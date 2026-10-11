@@ -148,3 +148,33 @@
 - [Platform CI 38155748502](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748502) SUCCESS，[Continuity CI 38155748491](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748491) SUCCESS。
 - 两次红 CI [38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269)、[38155633156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155633156) 均为测试断言把 `TR01B2D3_SIGNING_KEY_INVALID` / `TR01B2D3_HOST_IDENTITY_INVALID` 错误预期带 `OWNER_`；只更正测试。没有放宽生产客户端安全码。
 - 测试用 Node 本地回环网络 + real Ed25519 key/verification；**没有** EVO 服务端真实 Owner 路由、真实 PostgreSQL finance trust、经济事实和真实部署证据；仍标明 NOT_CERTIFIED / executionAllowed=false。
+
+
+## J. 2026-10-12 14 条历史分支全量 Git Tree 与最新 main 的逐文件 SHA 再核验
+
+**方法：** 使用 GitHub `git/trees/<full commit SHA>?recursive=1`，对 main `09fee6f8f327871b71e0b37a9e19a7f16161db57` 与交接登记的全部 14 个历史固定 tip，读取 15 棵完整递归树（`truncated=false`），按路径是否存在、同路径 blob SHA 是否一致分别核对。此法验证文件字节是否相同，不等于功能已被现行 main 吸收。
+
+| 历史固定 tip（前缀） | 源 blob 文件数 | main 中缺失的文件数 | main 同路径不同 blob 数 |
+| --- | ---: | ---: | ---: |
+| demo isolated bd67f320 | 1181 | 21 | 72 |
+| docs recovery b67e8437 | 1184 | 17 | 77 |
+| docs Railway preflight 3e7d5182 | 1156 | 12 | 72 |
+| peer Purchasing+Receiving 7e231732 | 1189 | 19 | 79 |
+| definer owner strict 0560386e | 1163 | 13 | 72 |
+| deployment descriptor c589f0bf | 1163 | 13 | 72 |
+| prod preflight 71821513 | 1163 | 13 | 72 |
+| four peer stage fb3db992 | 1183 | 17 | 77 |
+| Finance Draft #594 1d6149bd | 1189 | 19 | 79 |
+| six-lane 8a0a27dc | 1171 | 14 | 72 |
+| twelve-lane 75e85657 | 1175 | 15 | 72 |
+| cross-instance race 33675b9e | 1154 | 12 | 72 |
+| distinct DB login ff2fd23e | 1152 | 11 | 72 |
+| isolated credential HTTP c8cfda81 | 1155 | 12 | 72 |
+
+**24 distinct missing paths across all 14 source tips, exactly as earlier audit:** six `.github/workflows` (peer-purchasing-receiving, four-peer-stage, online-stage-preview, finance-owner-deployment-preflight, six-lane-admission, twelve-lane-admission); 12 `tools` scripts (certify cross-instance races, distinct DB logins, Host hot signing key, Host HTTPS identity, trust rotation, installed Host session, OIDC login, PG role separation, trusted owner delegation, create CI keys, create installed Host CI, run installed Host CI); three `demos/tr01b2d3-isolated-stage` files (`index.html`, `railway-function.ts`, `static-demo.mjs`); two protocol tests (four-peer-stage and online-stage-preview); one `docs/roadmap/TR01B2D3-STAGE-DEMO-ONLINE-20261011.md`. No Git Tree was truncated.
+
+**重复版本审计：** 23 条缺失路径的 blob 在出现该路径的各旧 tip 之间一致；`tools/certify-tr01b2d3-distinct-db-logins.mjs` 有三版：`79f998e432fa3fb7e9e5db41cfaf51b33929ef1e`、`e18eb2ce908494e9b841c5558a8f6faf9a1a3502`、`56b0a439b2649a842bf078f55b888f418fef82c9`。三版都已源码级分析、其独立 LOGIN 控制已通过 F2 #777 中新的受控 PostgreSQL CI 重建，但旧原文仍应按各自 SHA 留存。
+
+**同路径高风险差异的含义：** 在旧 tip 中至少 72 条路径的 blob 与 modern main 不同，包含 `manager/server.ts`、`catalog/seed.ts`、`manager/plugin-store-page.ts`、`manager/provider-manager-page.ts`、`providers/trading-finance-owner/package.ts`、`.github/workflows/cross-project-tr01b-sales-evo-postgres.yml` 和 stage package 等。旧目录比 main 少数百文件，**旧文件 blob 不同通常反映历史基线落后，必须执行具体功能和授权语义比对；不得将 mismatch 判定为主线遗漏，也绝不能恢复旧 Host Core**。目前仅 F0 #775、F2 #777、F1 #779 已选取独特回归并以 CI 合入；旧 Demo F3 源码保留但不迁正式产品，旧 F4 工作流多与现行门禁重复。
+
+**保留 / 删除决策：** 不因 Tree 查看完毕即删除历史分支：剩余的 Host-managed session、跨实例 nonce race、RSA/OIDC/实际 TLS、生产 Owner listener、外部 key custody 等仍有未关闭的真实认证门槛。尤其 Finance #594 是 OPEN Draft 且仍有外部 EVO #108 Draft 依赖。全部 14 refs 保留原 head，待逐项明确资产归属和生产/CI 合同后再按 Git SHA 租约安全退役。此次未读 Agent/Diagram 分支的代码，亦无一项其改动。
