@@ -31,6 +31,17 @@ import {
 import {
   tradingReferencePackageV010
 } from "../apps/trading-reference/package.js";
+import { stagePreviewEnabledV010 } from "../apps/trading-stage/demo-kit.js";
+import { salesStagePackageV010, salesStagePageV010, salesStagePageSourceV010 }
+  from "../apps/trading-stage-sales/package.js";
+import { shipmentStagePackageV010, shipmentStagePageV010, shipmentStagePageSourceV010 }
+  from "../apps/trading-stage-shipment/package.js";
+import { receivableStagePackageV010, receivableStagePageV010, receivableStagePageSourceV010 }
+  from "../apps/trading-stage-receivable/package.js";
+import { cashStagePackageV010, cashStagePageV010, cashStagePageSourceV010 }
+  from "../apps/trading-stage-cash/package.js";
+export {salesStagePackageV010,shipmentStagePackageV010,
+  receivableStagePackageV010,cashStagePackageV010};
 import {
   biWorkbenchPackage
 } from "../apps/bi-workbench/package.js";
@@ -401,10 +412,22 @@ export const ledgerRuntimeConfiguratorExperienceAssets = new Map<string, unknown
   }]
 ]);
 
+export const tradingStageExperienceAssetsV010 = new Map<string, unknown>(
+  stagePreviewEnabledV010()
+    ? [
+      [salesStagePageSourceV010, salesStagePageV010],
+      [shipmentStagePageSourceV010, shipmentStagePageV010],
+      [receivableStagePageSourceV010, receivableStagePageV010],
+      [cashStagePageSourceV010, cashStagePageV010]
+    ]
+    : []
+);
+
 export const referenceExperienceAssets = new Map<string, unknown>([
   ...enterpriseAgentExperienceAssets,
   ...enterpriseContextGovernanceExperienceAssets,
   ...companyNotesExperienceAssets,
   ...tradingLiteExperienceAssets,
-  ...ledgerRuntimeConfiguratorExperienceAssets
+  ...ledgerRuntimeConfiguratorExperienceAssets,
+  ...tradingStageExperienceAssetsV010
 ]);
