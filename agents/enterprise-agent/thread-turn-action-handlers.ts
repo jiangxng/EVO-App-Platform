@@ -5,6 +5,7 @@ import type {
 } from "../../actions/contracts.js";
 import type { AgentRunStoreV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type { ConversationThreadStoreV010 } from "../../contracts/conversation-thread.js";
+import type { ConversationContextAssemblerV010 } from "../../contracts/conversation-context.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
 import type {
   ActiveContextRefV010,
@@ -17,6 +18,9 @@ import type {
   AgentToolCatalogV010,
   PersonalAgentReplyV010
 } from "./contracts.js";
+import {
+  parsePersonalAgentInteractionContextV010
+} from "./chat-action-handler.js";
 import { presentPersonalAgentReplyV020 } from "./reply-presentation.js";
 import {
   drainResumableAgentRunV010,
@@ -29,6 +33,7 @@ import {
 
 export interface ThreadBackedAgentTurnDependenciesV010 {
   threadStore: ConversationThreadStoreV010;
+  contextAssembler?: ConversationContextAssemblerV010;
   runStore: AgentRunStoreV010;
   runExecutor: ResumableAgentRunExecutorV010;
   resolveLlmProvider(): {
@@ -127,13 +132,13 @@ function sameContext(
     );
 }
 
-function threadForScope(
+async function threadForScope(
   dependencies: ThreadBackedAgentTurnDependenciesV010,
   threadId: string,
   principal: PlatformPrincipalV010,
   context: ResolvedContextSetV010
 ) {
-  const thread = dependencies.threadStore.get(threadId);
+  const thread = await dependencies.threadStore.get(threadId);
   if (
     !thread
     || thread.principalSubjectId !== principal.subjectId
@@ -176,6 +181,27 @@ function stringValue(
         : "MESSAGE_REQUIRED");
   }
   return value.trim();
+}
+
+function clientTurnIdForRequest(
+  request: AppActionRequestV010
+): string | undefined {
+  const value = request.values.clientTurnId;
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== "string"
+    || !value.trim()
+    || value.length > 240
+  ) {
+    throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_INVALID");
+  }
+  return value.trim();
+}
+
+function turnSourceActionId(clientTurnId: string | undefined): string {
+  return clientTurnId
+    ? "enterprise-agent.thread.send:" + clientTurnId
+    : "enterprise-agent.thread.send";
 }
 
 function localeForRequest(
@@ -280,7 +306,7 @@ async function ensureAssistantMessage(
   context: ResolvedContextSetV010,
   requestContext: PlatformRequestContextV010 | undefined
 ) {
-  const thread = threadForScope(
+  const thread = await threadForScope(
     dependencies,
     threadId,
     principal,
@@ -310,7 +336,7 @@ async function ensureAssistantMessage(
     context,
     requestContext
   );
-  return dependencies.threadStore.appendMessage({
+  return await dependencies.threadStore.appendMessage({
     threadId,
     messageId: assistantMessageId(run.runId),
     role: "ASSISTANT",
@@ -329,6 +355,44 @@ function verifyRunBelongsToThread(
   if (run.sourceInteractionId !== threadId) {
     throw new Error("CONVERSATION_THREAD_RUN_MISMATCH");
   }
+}
+
+async function presentTurnResult(
+  dependencies: ThreadBackedAgentTurnDependenciesV010,
+  request: AppActionRequestV010,
+  threadId: string,
+  run: AgentRunV010,
+  principal: PlatformPrincipalV010,
+  context: ResolvedContextSetV010,
+  requestContext: PlatformRequestContextV010 | undefined
+): Promise<AppActionExecutionResultV010> {
+  const thread = await ensureAssistantMessage(
+    dependencies,
+    threadId,
+    run,
+    principal,
+    context,
+    requestContext
+  );
+  const parts = run.state === "SUCCEEDED"
+    ? await terminalPresentation(
+        dependencies,
+        run,
+        principal,
+        context,
+        requestContext
+      )
+    : undefined;
+  return success(request, {
+    thread,
+    run,
+    ...(run.state === "SUCCEEDED" && run.finalMessage
+      ? {
+          message: run.finalMessage,
+          ...(parts ? { messageParts: parts } : {})
+        }
+      : {})
+  });
 }
 
 export function createThreadBackedAgentTurnActionHandlersV010(
@@ -352,7 +416,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           );
           const threadId = stringValue(request, "threadId");
           const message = stringValue(request, "message");
-          const scopedThread = threadForScope(
+          const scopedThread = await threadForScope(
             dependencies,
             threadId,
             principal,
@@ -371,21 +435,81 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             );
           }
 
+          const clientTurnId = clientTurnIdForRequest(request);
+          const sourceActionId = turnSourceActionId(clientTurnId);
+          const existingRun = clientTurnId
+            ? dependencies.runStore.list({
+                principalSubjectId: principal.subjectId,
+                context: context.activeContext,
+                limit: 100
+              }).find(candidate =>
+                candidate.sourceInteractionId === threadId
+                && candidate.sourceActionId === sourceActionId
+              )
+            : undefined;
+
+          if (existingRun) {
+            if (existingRun.input.message !== message) {
+              throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+            }
+            const resumed = ["READY", "PAUSED", "RUNNING"].includes(
+              existingRun.state
+            )
+              ? await drainResumableAgentRunV010(
+                  dependencies.runExecutor,
+                  {
+                    runId: existingRun.runId,
+                    principal,
+                    context,
+                    requestContext
+                  }
+                )
+              : {
+                  contractVersion: "0.1.0" as const,
+                  run: existingRun,
+                  advanced: false,
+                  advanceCount: 0,
+                  exhaustedBudget: false
+                };
+            return presentTurnResult(
+              dependencies,
+              request,
+              threadId,
+              resumed.run,
+              principal,
+              context,
+              requestContext
+            );
+          }
+
           const runId = "agent-run:" + dependencies.runId();
           const createdAt = now(dependencies);
-          const history = dependencies.threadStore.conversationHistory({
-            threadId
-          });
+          const assembledContext = dependencies.contextAssembler
+            ? await dependencies.contextAssembler.assemble({
+                threadId,
+                threadStore: dependencies.threadStore,
+                now: createdAt
+              })
+            : undefined;
+          const history = assembledContext?.messages
+            ?? await dependencies.threadStore.conversationHistory({
+              threadId
+            });
+          const interactionContext =
+            parsePersonalAgentInteractionContextV010(request);
           let run = dependencies.runStore.create({
             runId,
             principalSubjectId: principal.subjectId,
             principalActorType: principal.actorType,
             context: structuredClone(context.activeContext),
             sourceInteractionId: threadId,
-            sourceActionId: "enterprise-agent.thread.send",
+            sourceActionId,
             input: {
               message,
               conversationHistory: history,
+              ...(interactionContext
+                ? { interactionContext: structuredClone(interactionContext) }
+                : {}),
               locale: localeForRequest(request, message),
               providerId: resolved.provider.providerId,
               modelId: resolved.provider.modelId
@@ -393,15 +517,18 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             createdAt
           });
 
-          const threadBeforeMessage = dependencies.threadStore.get(threadId)!;
+          const threadBeforeMessage = (await dependencies.threadStore.get(threadId))!;
           if (!threadBeforeMessage.messages.some(item => item.runId === runId && item.role === "USER")) {
-            dependencies.threadStore.appendMessage({
+            await dependencies.threadStore.appendMessage({
               threadId,
               messageId: userMessageId(runId),
               role: "USER",
               content: message,
               createdAt,
-              runId
+              runId,
+              ...(clientTurnId
+                ? { presentation: { clientTurnId } }
+                : {})
             });
           }
 
@@ -415,33 +542,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             }
           );
           run = resumed.run;
-          const thread = await ensureAssistantMessage(
+          return presentTurnResult(
             dependencies,
+            request,
             threadId,
             run,
             principal,
             context,
             requestContext
           );
-          const parts = run.state === "SUCCEEDED"
-            ? await terminalPresentation(
-                dependencies,
-                run,
-                principal,
-                context,
-                requestContext
-              )
-            : undefined;
-          return success(request, {
-            thread,
-            run,
-            ...(run.state === "SUCCEEDED" && run.finalMessage
-              ? {
-                  message: run.finalMessage,
-                  ...(parts ? { messageParts: parts } : {})
-                }
-              : {})
-          });
         } catch (error) {
           return failure(request, error);
         }
@@ -459,7 +568,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           );
           const threadId = stringValue(request, "threadId");
           const runId = stringValue(request, "runId");
-          const thread = threadForScope(
+          const thread = await threadForScope(
             dependencies,
             threadId,
             principal,
@@ -485,33 +594,15 @@ export function createThreadBackedAgentTurnActionHandlersV010(
               requestContext
             }
           );
-          const nextThread = await ensureAssistantMessage(
+          return presentTurnResult(
             dependencies,
+            request,
             threadId,
             resumed.run,
             principal,
             context,
             requestContext
           );
-          const parts = resumed.run.state === "SUCCEEDED"
-            ? await terminalPresentation(
-                dependencies,
-                resumed.run,
-                principal,
-                context,
-                requestContext
-              )
-            : undefined;
-          return success(request, {
-            thread: nextThread,
-            run: resumed.run,
-            ...(resumed.run.state === "SUCCEEDED" && resumed.run.finalMessage
-              ? {
-                  message: resumed.run.finalMessage,
-                  ...(parts ? { messageParts: parts } : {})
-                }
-              : {})
-          });
         } catch (error) {
           return failure(request, error);
         }

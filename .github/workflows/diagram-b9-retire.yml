@@ -1,0 +1,72 @@
+name: Retire preserved B9 Draft source branches
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/architecture/DIAGRAM-B9-DRAFT-RETIREMENT-20261011.json"
+      - ".github/workflows/diagram-b9-retire.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  scoped-branch-cleanup:
+    if: github.repository == 'jiangxng/EVO-App-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check all 53 old Drafts and exact Git refs, then delete
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner,repo=context.repo.repo;
+            const read=async path=>{
+              const x=await github.rest.repos.getContent({owner,repo,path,ref:context.sha});
+              if(Array.isArray(x.data)||x.data.type!=="file")throw Error("Invalid source catalog "+path);
+              return JSON.parse(Buffer.from(x.data.content,"base64").toString("utf8"));
+            };
+            const archive=await read("docs/architecture/DIAGRAM-B9-DRAFT-CONSOLIDATED-CATALOG-20261011.json");
+            const manifest=await read("docs/architecture/DIAGRAM-B9-DRAFT-RETIREMENT-20261011.json");
+            if(manifest.repository!==owner+"/"+repo||manifest.archivePR!==705||
+               archive.legacyDraftPRs?.length!==54||archive.archivedEntries?.length!==92||
+               manifest.eligible?.length!==53||manifest.eligibleCount!==53||
+               manifest.held?.pr!==537||manifest.formalCommercial?.cases!==39||
+               manifest.formalCommercial?.signed!==0)throw Error("Archive/retirement scope mismatch");
+            const consolidation=await github.rest.pulls.get({owner,repo,pull_number:705});
+            if(!consolidation.data.merged_at||consolidation.data.merge_commit_sha!==manifest.archiveMainCommit)
+              throw Error("Archive PR not merged at the expected SHA");
+            const source=new Map(archive.legacyDraftPRs.map(x=>[x.pr,x]));
+            const allOpen=await github.paginate(github.rest.pulls.list,{owner,repo,state:"open",per_page:100});
+            const seen=new Set(),candidates=[];
+            // Complete preflight BEFORE any deletion.
+            for(const row of manifest.eligible){
+              const saved=source.get(row.pr);
+              if(!saved||saved.pr===537||seen.has(row.headRef)||row.headRef!==saved.head||
+                 row.headSha!==saved.sha||!/^[a-f0-9]{40}$/.test(row.headSha)||
+                 !/^(feat|test|docs)\/diagram/.test(row.headRef))throw Error("Invalid candidate "+row.pr);
+              seen.add(row.headRef);
+              const {data:pr}=await github.rest.pulls.get({owner,repo,pull_number:row.pr});
+              if(pr.state!=="closed"||pr.merged_at||!pr.draft||
+                 pr.head?.repo?.full_name!==owner+"/"+repo||
+                 pr.head.ref!==row.headRef||pr.head.sha!==row.headSha)
+                   throw Error("Modified or unclosed Draft #"+row.pr);
+              if(allOpen.some(p=>p.base?.ref===row.headRef))
+                   throw Error("Active PR depends on "+row.headRef);
+              const gitRef=await github.rest.git.getRef({owner,repo,ref:"heads/"+row.headRef});
+              if(gitRef.data.object.sha!==row.headSha)throw Error("Branch advanced since audit "+row.headRef);
+              candidates.push(row);
+            }
+            if(candidates.length!==53)throw Error("Incomplete preflight");
+            const held=await github.rest.git.getRef({owner,repo,ref:"heads/"+manifest.held.head});
+            if(!held.data.object.sha)throw Error("Dependent #537 branch missing");
+            core.info("All 53 closed Draft refs match archives and no open PR bases depend on them.");
+            let deleted=0;
+            for(const item of candidates){
+              const ref=await github.rest.git.getRef({owner,repo,ref:"heads/"+item.headRef});
+              if(ref.data.object.sha!==item.headSha)throw Error("Concurrent ref update "+item.headRef);
+              await github.rest.git.deleteRef({owner,repo,ref:"heads/"+item.headRef});
+              core.info("Deleted "+item.pr+" "+item.headRef+" @ "+item.headSha);
+              deleted++;
+            }
+            if(deleted!==53)throw Error("Partial cleanup "+deleted);
+            core.info("Retired exactly 53 B9 Draft heads; retained #537 for open #547.");

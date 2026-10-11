@@ -171,7 +171,7 @@ export function createPersonalAgentThreadActionHandlersV010(
             throw new Error("CONVERSATION_THREAD_TITLE_INVALID");
           }
           const createdAt = (dependencies.now?.() ?? new Date()).toISOString();
-          const thread = dependencies.threadStore.create({
+          const thread = await dependencies.threadStore.create({
             threadId: "conversation-thread:" + dependencies.threadId(),
             principalSubjectId: principal.subjectId,
             principalActorType: principal.actorType,
@@ -198,7 +198,7 @@ export function createPersonalAgentThreadActionHandlersV010(
             request,
             requestContext
           );
-          const thread = dependencies.threadStore.get(threadIdFromRequest(request));
+          const thread = await dependencies.threadStore.get(threadIdFromRequest(request));
           if (!thread || !sameScope(thread, principal, context)) {
             throw new Error("CONVERSATION_THREAD_NOT_FOUND");
           }
@@ -236,7 +236,7 @@ export function createPersonalAgentThreadActionHandlersV010(
             throw new Error("CONVERSATION_THREAD_INCLUDE_ARCHIVED_INVALID");
           }
           return success(request, {
-            threads: dependencies.threadStore.list({
+            threads: await dependencies.threadStore.list({
               principalSubjectId: principal.subjectId,
               context: context.activeContext,
               limit,
@@ -258,13 +258,13 @@ export function createPersonalAgentThreadActionHandlersV010(
             request,
             requestContext
           );
-          const thread = dependencies.threadStore.get(threadIdFromRequest(request));
+          const thread = await dependencies.threadStore.get(threadIdFromRequest(request));
           if (!thread || !sameScope(thread, principal, context)) {
             throw new Error("CONVERSATION_THREAD_NOT_FOUND");
           }
           const archivedAt = (dependencies.now?.() ?? new Date()).toISOString();
           return success(request, {
-            thread: dependencies.threadStore.archive({
+            thread: await dependencies.threadStore.archive({
               threadId: thread.threadId,
               archivedAt,
               archivedBySubjectId: principal.subjectId

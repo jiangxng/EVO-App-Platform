@@ -456,6 +456,14 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
     resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
     inspectorResolver: EnterpriseOperatingGraphInspectorPropertyResolverV010;
     locale?: (context: PlatformRequestContextV010) => string | undefined;
+    onEditorRead?: (
+      context: PlatformRequestContextV010,
+      target: {
+        enterpriseId: string;
+        graphId: string;
+        resourceId: string;
+      }
+    ) => void;
   }
 ): AppActionHandler[] {
   const semanticHandlers =
@@ -561,7 +569,13 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
   return [
     handler(EOG_VIEW_GET_ACTION, async (request, context) => {
       const resourceId = stringValue(request.values, "resourceId");
+      const scope = enterpriseScope(context);
       const graph = getGraph(context, resourceId);
+      dependencies.onEditorRead?.(context, {
+        enterpriseId: scope.enterpriseId,
+        graphId: resourceId,
+        resourceId
+      });
       return success(
         request,
         graph

@@ -20,6 +20,30 @@ import {
   templateStorePackage
 } from "../apps/template-store/package.js";
 import {
+  counterpartyPackage
+} from "../apps/counterparty/package.js";
+import {
+  itemPackage
+} from "../apps/item/package.js";
+import {
+  warehousePackage
+} from "../apps/warehouse/package.js";
+import {
+  tradingReferencePackageV010
+} from "../apps/trading-reference/package.js";
+import {
+  biWorkbenchPackage
+} from "../apps/bi-workbench/package.js";
+import {
+  dataImportPackage
+} from "../apps/data-import/package.js";
+import {
+  objectExtensionPackage
+} from "../apps/object-extension/package.js";
+import {
+  responsibilityPackage
+} from "../apps/responsibility/package.js";
+import {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
 import {
@@ -36,6 +60,30 @@ export {
 export {
   templateStorePackage
 } from "../apps/template-store/package.js";
+export {
+  counterpartyPackage
+} from "../apps/counterparty/package.js";
+export {
+  itemPackage
+} from "../apps/item/package.js";
+export {
+  warehousePackage
+} from "../apps/warehouse/package.js";
+export {
+  tradingReferencePackageV010
+} from "../apps/trading-reference/package.js";
+export {
+  biWorkbenchPackage
+} from "../apps/bi-workbench/package.js";
+export {
+  dataImportPackage
+} from "../apps/data-import/package.js";
+export {
+  objectExtensionPackage
+} from "../apps/object-extension/package.js";
+export {
+  responsibilityPackage
+} from "../apps/responsibility/package.js";
 export {
   ledgerManagerPackage
 } from "../apps/ledger-manager/package.js";

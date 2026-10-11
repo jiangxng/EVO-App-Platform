@@ -1,3 +1,5 @@
+import type { TemplateProjectionEdgePathKindV010, TemplateProjectionEdgeAnchorV010, TemplateProjectionEdgePointV010 } from "./template-projection-gallery.js";
+
 export const VISUAL_2D_VIEWER_CAPABILITY_V010 = "visual.viewer.2d";
 export const TEMPLATE_2D_PREVIEW_ROUTE_V010 = "/template-preview/2d";
 
@@ -29,6 +31,11 @@ export interface TemplatePreviewEdgeV010 {
   kind: string;
   label?: string;
   arrow?: "none" | "start" | "end" | "both";
+  /** Optional rendering route, not a business relationship type. */
+  pathKind?: TemplateProjectionEdgePathKindV010;
+  waypoints?: TemplateProjectionEdgePointV010[];
+  sourceAnchor?: TemplateProjectionEdgeAnchorV010;
+  targetAnchor?: TemplateProjectionEdgeAnchorV010;
   detail?: string;
   properties?: TemplatePreviewPropertyV010[];
 }

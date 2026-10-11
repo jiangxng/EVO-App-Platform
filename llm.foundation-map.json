@@ -38,7 +38,8 @@
     "enterpriseContextGrants": "CI_VERIFIED_P0_6",
     "enterpriseContextOwnership": "CI_VERIFIED_P0_8_TRANSFER_LIFECYCLE",
     "enterpriseRelationships": "CI_VERIFIED_P0_8",
-    "projectContinuity": "AUTHORITATIVE_BOOTSTRAP_CI_ENFORCED"
+    "projectContinuity": "AUTHORITATIVE_BOOTSTRAP_CI_ENFORCED",
+    "foundationObjectContracts": "STABLE_CANDIDATE_AFTER_IT01_SECOND_OBJECT_PROOF"
   },
   "deliveredP0": {
     "hostCompatibilityRange": "IMPLEMENTED",
@@ -561,5 +562,59 @@
       "platform": "CONTROL_PLANE",
       "components": "DIRECT_CONTRACT_BOUND_DATA_PLANE"
     }
+  },
+  "aiNativeAgentStateContext": {
+    "status": "ACTIVE_PROJECT_CONSTITUTION",
+    "authority": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+    "aiNativeMeaning": "EXPLICIT_GOVERNED_DURABLE_MODEL_INDEPENDENT_STATE_AND_CONTEXT_NOT_JSONL",
+    "stateClasses": [
+      "CONVERSATION",
+      "WORKING_STATE",
+      "CONTEXT_ASSEMBLY",
+      "PERSONAL_CONTEXT_MEMORY",
+      "ENTERPRISE_RUNTIME_EVIDENCE",
+      "EXPERIENCE_COMPILER"
+    ],
+    "rawConversation": "PRESERVE_AS_SOURCE_EVIDENCE_SUBJECT_TO_RETENTION",
+    "compression": "DERIVED_VERSIONED_TRACEABLE_REGENERABLE",
+    "contextAssembly": "MINIMUM_SUFFICIENT_AUTHORIZED_TOKEN_BUDGETED",
+    "durableRuns": "REQUIRED",
+    "idempotency": "REQUIRED",
+    "modelIndependence": "REQUIRED",
+    "humanAuthority": "REQUIRED",
+    "storage": {
+      "durableQueryableProductState": "POSTGRESQL_PREFERRED",
+      "flexiblePayload": "POSTGRESQL_JSONB_WHERE_BOUNDED",
+      "jsonl": "LOG_EXPORT_MIGRATION_EVALUATION_NOT_PRODUCT_DATABASE_AUTHORITY",
+      "semanticRetrieval": "MEASURED_NEED_BEFORE_VECTOR_ADOPTION",
+      "experimentalTechnology": "ISOLATED_REPLACEABLE_NON_AUTHORITATIVE_UNLESS_GRADUATED"
+    },
+    "conversationJsonlCurrentStatus": "TRANSITIONAL_COMPATIBILITY_DEBT",
+    "conversationTargetAuthority": "POSTGRESQL",
+    "execution": "INCREMENTAL_LONG_TERM_PROGRAM"
+  },
+  "agentFoundationDebtRetirement": {
+    "status": "QUEUED_BEHIND_CP03D",
+    "authority": "docs/roadmap/AI-NATIVE-AGENT-FOUNDATION-DEBT-RETIREMENT-v0.1.md",
+    "constitution": "docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md",
+    "sequence": [
+      "CP-03D Human production validation",
+      "AF-01 Conversation PostgreSQL Authority",
+      "AF-02 Long-context v0.1",
+      "CP-05 Foundation Object mainline resumes"
+    ],
+    "af01Exit": "PERSONAL_AGENT_CONVERSATION_POSTGRES_AUTHORITY_PASS",
+    "af02Exit": "PERSONAL_AGENT_LONG_CONTEXT_V01_PASS",
+    "fullAgentRewriteBeforeCp05": false
+  },
+  "foundationObjectProgram": {
+    "status": "WH01_ACTIVE",
+    "authority": "docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md",
+    "currentGate": "WH-01 Warehouse/Location third-object proof",
+    "secondObjectProof": "IT-01 CLOSED_PRODUCTION_PASS",
+    "maturity": "SELECTED_OBJECT_NEUTRAL_CONTRACTS_STABLE_CANDIDATE",
+    "maturityEvidence": "docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md",
+    "hardSeparation": "Warehouse = where; Inventory Position = what Item is there and how much",
+    "next": "TR-01 Trading Reference Loop"
   }
 }

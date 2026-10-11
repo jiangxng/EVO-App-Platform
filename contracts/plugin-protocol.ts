@@ -2,9 +2,11 @@ import type {
   EidosLocalizationBundleContributionV010,
   EidosSettingsContributionV010,
   EidosWorkbenchActivityContributionV010,
+  EidosWorkbenchHomeItemContributionV010,
   ExperienceContributionV010,
   PackageManifestV010,
   PlatformCapabilityOperationContributionV010,
+  PlatformDataImportTargetContributionV010,
   PlatformServiceProviderContributionV010
 } from "./package.js";
 
@@ -39,7 +41,9 @@ function contributionContractVersion(
     | ExperienceContributionV010
     | EidosLocalizationBundleContributionV010
     | EidosWorkbenchActivityContributionV010
+    | EidosWorkbenchHomeItemContributionV010
     | EidosSettingsContributionV010
+    | PlatformDataImportTargetContributionV010
     | PlatformServiceProviderContributionV010
     | PlatformCapabilityOperationContributionV010
 ): string {
@@ -50,8 +54,12 @@ function contributionContractVersion(
       return contribution.bundle.contractVersion;
     case "eidos.workbench-activity":
       return contribution.activity.contractVersion;
+    case "eidos.workbench-home-item":
+      return contribution.item.contractVersion;
     case "eidos.settings":
       return contribution.settings.contractVersion;
+    case "platform.data-import-target":
+      return contribution.target.contractVersion;
     case "platform.service-provider":
       return contribution.provider.contractVersion;
     case "platform.capability-operation":
@@ -519,6 +527,51 @@ export function validatePluginManifestV010(
         }
       }
 
+      if (contribution.kind === "eidos.workbench-home-item") {
+        const item = contribution.item;
+        if (!idPattern.test(item.id)) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_ID_INVALID",
+            `${contributionPath}.item.id`,
+            "Workbench home item id must be a stable lowercase identifier."
+          );
+        }
+        if (!item.title.trim()) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_TITLE_REQUIRED",
+            `${contributionPath}.item.title`,
+            "Workbench home item title is required."
+          );
+        }
+        if (!item.route.trim() || !item.route.startsWith("/")) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_ROUTE_INVALID",
+            `${contributionPath}.item.route`,
+            "Workbench home item route must be an absolute application route."
+          );
+        }
+        if (
+          item.localization
+          && item.localization.namespace !== pkg.packageId
+        ) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_LOCALIZATION_NAMESPACE_MISMATCH",
+            `${contributionPath}.item.localization.namespace`,
+            "Workbench home item localization namespace must equal owning Package id."
+          );
+        }
+        if (
+          item.capabilityOperationId
+          && !packageOperationIds.includes(item.capabilityOperationId)
+        ) {
+          add(
+            "PLUGIN_WORKBENCH_HOME_ITEM_CAPABILITY_OPERATION_NOT_OWNED",
+            `${contributionPath}.item.capabilityOperationId`,
+            "A capability-bound Workbench item must reference an operation declared by the same Package."
+          );
+        }
+      }
+
       if (contribution.kind === "eidos.settings") {
         const settings = contribution.settings;
         if (settings.namespace !== pkg.packageId) {
@@ -533,6 +586,41 @@ export function validatePluginManifestV010(
             "PLUGIN_SETTING_KEY_DUPLICATE",
             `${contributionPath}.settings.properties`,
             `Duplicate setting key '${duplicate}'.`
+          );
+        }
+      }
+
+      if (contribution.kind === "platform.data-import-target") {
+        const target = contribution.target;
+        if (!idPattern.test(target.targetId)) {
+          add(
+            "PLUGIN_DATA_IMPORT_TARGET_ID_INVALID",
+            `${contributionPath}.target.targetId`,
+            "Data Import targetId must be a stable lowercase identifier."
+          );
+        }
+        if (!idPattern.test(target.objectType)) {
+          add(
+            "PLUGIN_DATA_IMPORT_TARGET_OBJECT_TYPE_INVALID",
+            `${contributionPath}.target.objectType`,
+            "Data Import objectType must be a stable lowercase identifier."
+          );
+        }
+        if (!target.label.default.trim()) {
+          add(
+            "PLUGIN_DATA_IMPORT_TARGET_LABEL_REQUIRED",
+            `${contributionPath}.target.label.default`,
+            "Data Import target default label is required."
+          );
+        }
+        if (
+          target.binding.type !== "HOST_FACTORY"
+          || !target.binding.ref.trim()
+        ) {
+          add(
+            "PLUGIN_DATA_IMPORT_TARGET_BINDING_INVALID",
+            `${contributionPath}.target.binding`,
+            "Data Import targets require a non-empty HOST_FACTORY binding ref."
           );
         }
       }

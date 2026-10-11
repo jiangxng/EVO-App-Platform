@@ -1,0 +1,1259 @@
+{
+  "version": 1,
+  "created": "2026-10-11",
+  "repo": "jiangxng/EVO-App-Platform",
+  "mainBase": "4542ab12d2db73ad8d3a2b0799199a41788dc31e",
+  "canonicalB9z": {
+    "commit": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+    "branch": "feat/diagram-commercial-source-target-semantics-b9z-20261011"
+  },
+  "researchSources": [
+    {
+      "pr": 554,
+      "commit": "4a5f96fdf36061ccc456d9b05d7d6b4464d6cb2c"
+    },
+    {
+      "pr": 623,
+      "commit": "d027ed8eab06ad3d4f549f5466f6c36dbd3cfed8"
+    }
+  ],
+  "draftCount": 54,
+  "archivedEntries": [
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-auto-router-full-dom.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-auto-router-full-dom.yml",
+      "sha": "181fb298bd018e13fb895aad532ec3b1805d9589",
+      "size": 1438
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-b8tu-acceptance.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-b8tu-acceptance.yml",
+      "sha": "3b9a9039473ec2a1360134866acebbc5d7502dfe",
+      "size": 1742
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-commercial-quality-b9u.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-commercial-quality-b9u.yml",
+      "sha": "3f91ba738b00c9bb45dbde3df76a5a6aada70a3b",
+      "size": 618
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-complex-business-dom.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-complex-business-dom.yml",
+      "sha": "0b9ed069a73bd8d2151245742adf164c63612300",
+      "size": 1613
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-corridor-risk-b9o.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-corridor-risk-b9o.yml",
+      "sha": "821dd850846228601bbc8d6545616bddab795b06",
+      "size": 554
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-dense-full-dom.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-dense-full-dom.yml",
+      "sha": "891fa59ccc99686d10cf88f86074442303044bd0",
+      "size": 1658
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-designer-browser-cas.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-designer-browser-cas.yml",
+      "sha": "cc6ee76ca5b0f635583cb06eec75da4c06081a14",
+      "size": 1487
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-designer-integration.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-designer-integration.yml",
+      "sha": "8518dbc87994d892eba71e854af25938bb465853",
+      "size": 5136
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-enterprise-fixture-intake-b9k.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-enterprise-fixture-intake-b9k.yml",
+      "sha": "e4b5f64edb2d5327f6d3f99787e0b56ecf59cd5f",
+      "size": 915
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-enterprise-native-browser-b9l.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-enterprise-native-browser-b9l.yml",
+      "sha": "755db40930dac49245dadcad44233e5ac343ff6b",
+      "size": 2653
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-formal-acceptance-b9r.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-formal-acceptance-b9r.yml",
+      "sha": "ef02be3af6615107799c5f9d569ed42934caa8b4",
+      "size": 740
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-performance-browser.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-performance-browser.yml",
+      "sha": "12c9b84d0c7d561fcb7d02739baf12c7081030c9",
+      "size": 2614
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-rtl-cross-browser.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-rtl-cross-browser.yml",
+      "sha": "ff5024b249d2c8291671bbf629e878cf2ec40acd",
+      "size": 1817
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": ".github/workflows/diagram-saved-positive-browser-b9i.yml",
+      "archivedPath": "docs/archive/diagram-b9/source/.github/workflows/diagram-saved-positive-browser-b9i.yml",
+      "sha": "f7d2ad5c07e507f1361af423ae41542539fd6eb8",
+      "size": 1790
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B6A-SNAPPING-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B6A-SNAPPING-INTEGRATION-20261010.md",
+      "sha": "2a22bb98d7a71f1b88a380edf3441318870aa242",
+      "size": 3190
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B6B-HANDLES-ARRANGEMENT-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B6B-HANDLES-ARRANGEMENT-INTEGRATION-20261010.md",
+      "sha": "76eba4bc10715bc3030527e8a5433347a3d4ff6d",
+      "size": 4970
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B7-PROJECTION-CAS-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B7-PROJECTION-CAS-20261010.md",
+      "sha": "054f3ae73a0b1dc1479ce35076aa2c5f6c4a3680",
+      "size": 4302
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B7B-AGENT-CAS-WRITE-TOKEN-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B7B-AGENT-CAS-WRITE-TOKEN-20261010.md",
+      "sha": "b25a381d0e1fa4c622c05032d0e7cb5ad10a4036",
+      "size": 4093
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B7B-BROWSER-CAS-PROOF-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B7B-BROWSER-CAS-PROOF-20261010.md",
+      "sha": "27e4bca86faaa37920ee9d3c0c5ef9648640d323",
+      "size": 3528
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8A-AUTO-SEGMENT-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8A-AUTO-SEGMENT-INTEGRATION-20261010.md",
+      "sha": "35099d69dbb2560acce371a76288ab68915d6e88",
+      "size": 3486
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8B-SAVE-RELOAD-VIEWER-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8B-SAVE-RELOAD-VIEWER-20261010.md",
+      "sha": "8d564181b2779524e618dced6f9ea08aba2a327a",
+      "size": 3888
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8C-OVERLAP-TOUCH-REGRAB-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8C-OVERLAP-TOUCH-REGRAB-INTEGRATION-20261010.md",
+      "sha": "6df9af9f544ebf92c92e85da189414b360b5e148",
+      "size": 3478
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8D-MULTI-OVERLAP-CYCLE-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8D-MULTI-OVERLAP-CYCLE-INTEGRATION-20261010.md",
+      "sha": "15e6674ee05d7112b5445b672847be3539dee43a",
+      "size": 2900
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8E-ROUNDED-DENSE-REGRAB-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8E-ROUNDED-DENSE-REGRAB-INTEGRATION-20261010.md",
+      "sha": "672c267f5ff68caa75f90364475541e91ff61b65",
+      "size": 2981
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8F-SELF-LOOP-CURVE-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8F-SELF-LOOP-CURVE-INTEGRATION-20261010.md",
+      "sha": "49fe8060d733c5eb90b60ad98ea5182f47656eed",
+      "size": 4279
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8G-SELF-LOOP-OBSTACLE-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8G-SELF-LOOP-OBSTACLE-INTEGRATION-20261010.md",
+      "sha": "b19a47ee53d87dff73df5d21466779dc2d714dbe",
+      "size": 3678
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8H-MULTI-LOOP-CONGESTION-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8H-MULTI-LOOP-CONGESTION-INTEGRATION-20261010.md",
+      "sha": "9f47d9316017f6db7d0a9369145e87c9bc0d3ff0",
+      "size": 3794
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8I-EDGE-LABEL-AVOIDANCE-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8I-EDGE-LABEL-AVOIDANCE-INTEGRATION-20261010.md",
+      "sha": "26d3850ddd9179fd40f10037fe1469f30693f331",
+      "size": 5167
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8JK-RENDERED-INK-SPATIAL-INDEX-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8JK-RENDERED-INK-SPATIAL-INDEX-INTEGRATION-20261010.md",
+      "sha": "aa6aa29c2f2594626d6f7d758f7462d31c41580f",
+      "size": 6540
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8LM-LABEL-METRICS-DENSITY-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8LM-LABEL-METRICS-DENSITY-INTEGRATION-20261010.md",
+      "sha": "ba2507b65116046fb18a309f93c3406998d4924f",
+      "size": 6364
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8NO-MULTILINGUAL-DENSE-DOM-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8NO-MULTILINGUAL-DENSE-DOM-INTEGRATION-20261010.md",
+      "sha": "bb24345be6f1d357eec02df845ee42f86e3db9cf",
+      "size": 6721
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8PQ-WORD-BIDI-COMPLEX-DOM-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8PQ-WORD-BIDI-COMPLEX-DOM-INTEGRATION-20261010.md",
+      "sha": "f8499d845152abdfc488ddbf98a6ba28bcdd0db2",
+      "size": 9688
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8RS-AUTO-ROUTING-CROSS-BROWSER-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8RS-AUTO-ROUTING-CROSS-BROWSER-INTEGRATION-20261010.md",
+      "sha": "f8dc6bdab4c5280762b9fd3e25f1db94d917cd11",
+      "size": 10306
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8TU-ROUTING-BROWSER-ACCEPTANCE-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8TU-ROUTING-BROWSER-ACCEPTANCE-20261010.md",
+      "sha": "1c27a4d46b336fdce7d319a0c77e605ca1eabe14",
+      "size": 8816
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8VW-CONGESTION-POSTSELECT-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8VW-CONGESTION-POSTSELECT-INTEGRATION-20261010.md",
+      "sha": "a5af2a85a4dd834988b9f49cc069170b8f9ba234",
+      "size": 5571
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8X-TWO-INSTANCE-ISOLATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8X-TWO-INSTANCE-ISOLATION-20261010.md",
+      "sha": "aaf90704d1ca12230cac9e9c0464c4404133805f",
+      "size": 4913
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8Y-CONGESTION-HIDE-UNDO-BROWSER-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8Y-CONGESTION-HIDE-UNDO-BROWSER-20261010.md",
+      "sha": "0b4227b0e0d7c7742e3dcd8ad98a4c5ab925c9a2",
+      "size": 3375
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B8Z-NATIVE-DRAG-UNDO-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B8Z-NATIVE-DRAG-UNDO-20261010.md",
+      "sha": "4dafb0a319acd0856449ad7015835a9b97fdca52",
+      "size": 3886
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9A-UNSAVED-REFRESH-BROWSER-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9A-UNSAVED-REFRESH-BROWSER-20261010.md",
+      "sha": "cd14f659764ac0bd1b0af62d9af15876a46818d9",
+      "size": 3949
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9B-APP-SAVED-VIEWER-CONGESTION-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9B-APP-SAVED-VIEWER-CONGESTION-20261011.md",
+      "sha": "ebeef94e7a31fdbb89f1982cc892c7887c2fac9a",
+      "size": 3140
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9BG-SAVE-REOPEN-CAS-HANDOFF-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9BG-SAVE-REOPEN-CAS-HANDOFF-20261011.md",
+      "sha": "54887a7a4a67c903a9385ad56fc9fed9ff350c1b",
+      "size": 5764
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9C-POSITIVE-VIEWER-CONGESTION-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9C-POSITIVE-VIEWER-CONGESTION-20261011.md",
+      "sha": "9d9d8fa50947d7e1a158b71f41562890f8a50a18",
+      "size": 2153
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9D-FILE-STORE-RESTART-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9D-FILE-STORE-RESTART-20261011.md",
+      "sha": "7ac55846f658d37ea9bf85e8cab7536940d86644",
+      "size": 3294
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9E-CROSSPROCESS-FILE-CAS-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9E-CROSSPROCESS-FILE-CAS-20261011.md",
+      "sha": "041b80b9c90a5a8ffa0b97f39645db96888ab0d5",
+      "size": 2627
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9F-TWO-APP-HANDLER-PROCESSES-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9F-TWO-APP-HANDLER-PROCESSES-20261011.md",
+      "sha": "b3a2c2fdaf29a4b97e4346da6089cd4f8305f420",
+      "size": 2800
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9G-DENIED-PROJECTION-FILE-SAVE-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9G-DENIED-PROJECTION-FILE-SAVE-20261011.md",
+      "sha": "e498daf8d5a1c7612132a1ff83ed419810cd4165",
+      "size": 2372
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9H-PERSISTED-POSITIVE-CONGESTION-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9H-PERSISTED-POSITIVE-CONGESTION-20261011.md",
+      "sha": "a068ba614fad248d3b5ed4d9c5f5086b6dadd342",
+      "size": 3647
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9HJ-PERSISTED-NATIVE-CHROME-HANDOFF-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9HJ-PERSISTED-NATIVE-CHROME-HANDOFF-20261011.md",
+      "sha": "3608bf2161dab629c71dc55398946ab65144ced8",
+      "size": 4756
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9I-SAVED-POSITIVE-CHROME-VIEWER-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9I-SAVED-POSITIVE-CHROME-VIEWER-20261011.md",
+      "sha": "9e49e932ccecc0273aa45b31264463b539bee835",
+      "size": 4166
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9J-NATIVE-SAVE-POSITIVE-VIEWER-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9J-NATIVE-SAVE-POSITIVE-VIEWER-20261011.md",
+      "sha": "caa672230016ef59cf04234484d0d851c554bc31",
+      "size": 5404
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9K-ENTERPRISE-PROJECTION-INTAKE-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9K-ENTERPRISE-PROJECTION-INTAKE-20261011.md",
+      "sha": "833ff8f2474c69caa0f7341164cc7580dfee24d4",
+      "size": 4841
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9L-ENTERPRISE-NATIVE-CHROME-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9L-ENTERPRISE-NATIVE-CHROME-QA-20261011.md",
+      "sha": "c57ee6012dcc7106861487bc2802c76f074e350c",
+      "size": 6553
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9M-FIXTURE-FILESYSTEM-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9M-FIXTURE-FILESYSTEM-20261011.md",
+      "sha": "43f20a6cb12e5a5dd6ba2324015e71534ace01fa",
+      "size": 1386
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9N-SINGLE-READ-HANDOFF-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9N-SINGLE-READ-HANDOFF-20261011.md",
+      "sha": "9aa82f9ddac7effe504706e129bb1984eee76cb5",
+      "size": 1354
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9O-ROUTE-RISK-PROXY-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9O-ROUTE-RISK-PROXY-20261011.md",
+      "sha": "04ace42281ce96fab350eb909dc43ebf733afe8e",
+      "size": 1909
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9P-NATIVE-SAVE-STALE-CAS-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9P-NATIVE-SAVE-STALE-CAS-20261011.md",
+      "sha": "6523e0d5ae8521afed970668c31a9451796d4f73",
+      "size": 1036
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9Q-RESPONSIVE-CHROME-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9Q-RESPONSIVE-CHROME-QA-20261011.md",
+      "sha": "5a5d5a2d408a74822858d11ee585ede4728e03a9",
+      "size": 1125
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9R-39-ITEM-DEVICE-ACCEPTANCE-PROTOCOL-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9R-39-ITEM-DEVICE-ACCEPTANCE-PROTOCOL-20261011.md",
+      "sha": "6b63fc96a6b559c10446820e903c99a518e5f81f",
+      "size": 4522
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9S-MOBILE-CANVAS-CLIPPING-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9S-MOBILE-CANVAS-CLIPPING-20261011.md",
+      "sha": "784d0c73da422aa7df7b2b62e7945e69c2e9f2d8",
+      "size": 1269
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9T-MOBILE-TOOLBAR-OVERFLOW-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9T-MOBILE-TOOLBAR-OVERFLOW-20261011.md",
+      "sha": "880d7286e9b291fc3743e13e5b58f0ae78e5d102",
+      "size": 1335
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9U-UNICODE-INPUT-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9U-UNICODE-INPUT-20261011.md",
+      "sha": "e44f7ff06e29f54366ce9ec218a3df8de2da22e6",
+      "size": 623
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9v-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9v-QA-20261011.md",
+      "sha": "3e36cb37c2421b96fdbccd7d8264acd45178f72b",
+      "size": 517
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9w-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9w-QA-20261011.md",
+      "sha": "1cfbc9a8994218aea1f99a2134fbbb81f71b335d",
+      "size": 626
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9x-CHROME-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9x-CHROME-QA-20261011.md",
+      "sha": "f24bf3c714ad055b7c171fe81bcdeeec1f329f11",
+      "size": 558
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9y-CHROME-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9y-CHROME-QA-20261011.md",
+      "sha": "671aaae23ce4bb4a58fe985a8def5ed9d7c41022",
+      "size": 460
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-B9z-CHROME-QA-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-B9z-CHROME-QA-20261011.md",
+      "sha": "5bc7a656734ea62c7d4ead0f8614c11d0e706ab3",
+      "size": 492
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-DELTA-B5A-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-DELTA-B5A-20261010.md",
+      "sha": "a14327fa3094d8511319e82bfb8249bf40372c8f",
+      "size": 5540
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-COMMERCIAL-ROUTING-B1-B2-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-COMMERCIAL-ROUTING-B1-B2-INTEGRATION-20261010.md",
+      "sha": "5b9e6e179149ee1381dcfdf33b53fe717490f27a",
+      "size": 1832
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-COMMERCIAL-WAYPOINT-B3-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-COMMERCIAL-WAYPOINT-B3-INTEGRATION-20261010.md",
+      "sha": "fe7e9746fc00041e1c92a975a07ebc4c803543b2",
+      "size": 1428
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-INTEGRATION-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-P01A-LARGE-GRAPH-PERFORMANCE-INTEGRATION-20261010.md",
+      "sha": "a9e91cff4fb5c75c72bea4ddc033e22084dbe1fd",
+      "size": 7313
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/DIAGRAM-TOUCH-CANCEL-B4A-20261010.md",
+      "archivedPath": "docs/architecture/DIAGRAM-TOUCH-CANCEL-B4A-20261010.md",
+      "sha": "d65089a37a9270bbe03eca82c1ce32880b62635b",
+      "size": 885
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "docs/architecture/EOG-2D-DESIGNER-COMMERCIAL-UPGRADE-A3-2026-10-09.md",
+      "archivedPath": "docs/architecture/EOG-2D-DESIGNER-COMMERCIAL-UPGRADE-A3-2026-10-09.md",
+      "sha": "e72ba272c4d67d78e3326f71c73412c08a36d981",
+      "size": 1388
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tests/integration/diagram-commercial-next-b9u.test.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tests/integration/diagram-commercial-next-b9u.test.mjs",
+      "sha": "86aa8f56dd500e672bfbead10a15beebeb77f7a1",
+      "size": 1046
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tests/integration/diagram-commercial-next-b9v.test.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tests/integration/diagram-commercial-next-b9v.test.mjs",
+      "sha": "cccc610529008820b4e683b92036bc51f03c3149",
+      "size": 974
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tests/integration/diagram-commercial-next-b9w.test.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tests/integration/diagram-commercial-next-b9w.test.mjs",
+      "sha": "06eea9d198f54649e6132088ebb178db0dd67594",
+      "size": 1121
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tests/integration/diagram-corridor-risk-b9o.test.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tests/integration/diagram-corridor-risk-b9o.test.mjs",
+      "sha": "32734d0b640543db3ad4c98c774f26e19599ff81",
+      "size": 1956
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tests/integration/diagram-enterprise-fixture-intake-b9k.test.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tests/integration/diagram-enterprise-fixture-intake-b9k.test.mjs",
+      "sha": "214af8a041485b80f956b6321497d91d4e7e5c92",
+      "size": 7382
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-corridor-risk-b9o.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-corridor-risk-b9o.mjs",
+      "sha": "a08097afb1e98efacec837d41749d59fe0ae3d00",
+      "size": 2824
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-cross-browser-label-proof.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-cross-browser-label-proof.mjs",
+      "sha": "6bab3ebb58aa9ea1ae0254b0052c02d9d4184642",
+      "size": 29416
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-enterprise-browser-proof-b9l.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-enterprise-browser-proof-b9l.mjs",
+      "sha": "d8720a1b338e1751ccfa24d252df56fecd4c664c",
+      "size": 21096
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-enterprise-synthetic-fixture-b9l.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-enterprise-synthetic-fixture-b9l.mjs",
+      "sha": "cb003ed0b28603b67c69ea62f9aeddbc4d41a811",
+      "size": 1434
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-performance-browser-proof.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-performance-browser-proof.mjs",
+      "sha": "810c6d0809d42b132a841ecbfd33107685b28a08",
+      "size": 20951
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-performance-compare.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-performance-compare.mjs",
+      "sha": "5ac1d3bcb486236f6327a5822051335a58253735",
+      "size": 2530
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-projection-browser-conflict-proof.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-projection-browser-conflict-proof.mjs",
+      "sha": "f2cd7cdd30c26f96c96c64a8d5965c19e11699c7",
+      "size": 136027
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "B9z",
+      "original": "tools/diagram-saved-positive-browser-proof-b9i.mjs",
+      "archivedPath": "docs/archive/diagram-b9/source/tools/diagram-saved-positive-browser-proof-b9i.mjs",
+      "sha": "b8132670b31d3f1d3a7032dfdfcf7351f210d2c2",
+      "size": 14977
+    },
+    {
+      "source": "research-554",
+      "stage": "research-554",
+      "original": "docs/architecture/EOG-2D-DESIGNER-ACCEPTANCE-MATRIX-20261010.md",
+      "archivedPath": "docs/architecture/EOG-2D-DESIGNER-ACCEPTANCE-MATRIX-20261010.md",
+      "sha": "35e05161b65758d015bc2d59eac976b01e6dd5a0",
+      "size": 7368
+    },
+    {
+      "source": "research-554",
+      "stage": "research-554",
+      "original": "docs/architecture/EOG-2D-DESIGNER-COMMERCIAL-REQUIREMENTS-v1.0.md",
+      "archivedPath": "docs/architecture/EOG-2D-DESIGNER-COMMERCIAL-REQUIREMENTS-v1.0.md",
+      "sha": "6084ef90fe0c38cfa33d657e1f2fe63cbad9b40c",
+      "size": 44159
+    },
+    {
+      "source": "research-554",
+      "stage": "research-554",
+      "original": "docs/architecture/EOG-2D-DESIGNER-RESEARCH-HANDOFF-20261010.md",
+      "archivedPath": "docs/architecture/EOG-2D-DESIGNER-RESEARCH-HANDOFF-20261010.md",
+      "sha": "e0f7187ad61233d929806adcd75672edf8aa382a",
+      "size": 12378
+    },
+    {
+      "source": "research-554",
+      "stage": "research-554",
+      "original": "docs/architecture/EOG-2D-DESIGNER-RESEARCH-REFERENCE-INDEX-20261010.md",
+      "archivedPath": "docs/architecture/EOG-2D-DESIGNER-RESEARCH-REFERENCE-INDEX-20261010.md",
+      "sha": "3a7e41852bd100297eb339b1e1e4276572947290",
+      "size": 25561
+    },
+    {
+      "source": "handoff-623",
+      "stage": "handoff-623",
+      "original": "docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-HANDOFF-B9J-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-HANDOFF-B9J-20261011.md",
+      "sha": "10269b33ce1ab81439e815718ea5618bf00d5b23",
+      "size": 9575
+    },
+    {
+      "source": "handoff-623",
+      "stage": "handoff-623",
+      "original": "docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-REFERENCE-INDEX-B9J-20261011.md",
+      "archivedPath": "docs/architecture/DIAGRAM-COMMERCIAL-RESEARCH-REFERENCE-INDEX-B9J-20261011.md",
+      "sha": "df2312135117b17e97e53f699b183a1f06c1b44f",
+      "size": 34227
+    },
+    {
+      "source": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "stage": "obsolete-source-forensic",
+      "original": "apps/eog-2d-designer/definition-projection-editor.ts",
+      "archivedPath": "docs/archive/diagram-b9/source/apps/eog-2d-designer/definition-projection-editor.ts",
+      "sha": "f4c30a5361513bdd2fe428ad3da08064276b29e7",
+      "size": 50623
+    }
+  ],
+  "legacyDraftPRs": [
+    {
+      "pr": 537,
+      "head": "feat/diagram-projection-route-integration-20261009",
+      "sha": "f2694fbf4584fe8942e1a19094fa4d3bb30d3740",
+      "base": "main",
+      "title": "feat(diagram): wire Eidos commercial canvas routes through projection save and Viewer",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/537"
+    },
+    {
+      "pr": 553,
+      "head": "feat/diagram-commercial-visual-waypoint-integration-b5a-20261010",
+      "sha": "5f5846a1d7b7b7c61cfae55a646aa58c2d9c3c40",
+      "base": "feat/diagram-commercial-touch-safety-b4-20261010",
+      "title": "feat(diagram): B5a integrate Eidos manual route drag without App Host navigation regression",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/553"
+    },
+    {
+      "pr": 554,
+      "head": "docs/diagram-commercial-acceptance-matrix-20261010",
+      "sha": "4a5f96fdf36061ccc456d9b05d7d6b4464d6cb2c",
+      "base": "docs/diagram-commercial-research-handoff-20261010",
+      "title": "docs(diagram): 39-case evidence-based acceptance matrix",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/554"
+    },
+    {
+      "pr": 561,
+      "head": "feat/diagram-commercial-projection-cas-b7-20261010",
+      "sha": "5043852c7b23c325368938e1ba6563f5aa39ca59",
+      "base": "feat/diagram-commercial-visual-waypoint-integration-b5a-20261010",
+      "title": "Draft: B7 projection CAS, stale-save rejection and draft protection",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/561"
+    },
+    {
+      "pr": 563,
+      "head": "feat/diagram-commercial-agent-cas-b7b-20261010",
+      "sha": "efa8dacf443704a1ab15150b2fdd3eceb3d88559",
+      "base": "feat/diagram-commercial-projection-cas-b7-20261010",
+      "title": "Draft: B7b enforce projection write tokens and protect Agent crop CAS",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/563"
+    },
+    {
+      "pr": 566,
+      "head": "feat/diagram-commercial-snapping-integration-b6a-20261010",
+      "sha": "0d56bdaa8717d133f0c79b7b3520c2bbebb3fdc8",
+      "base": "feat/diagram-commercial-agent-cas-b7b-20261010",
+      "title": "Draft: B6a integrate Eidos alignment guides and grid snapping",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/566"
+    },
+    {
+      "pr": 568,
+      "head": "feat/diagram-commercial-snapping-tools-integration-b6b-20261010",
+      "sha": "7a5546082f840cfcde2efd6c449c07077fccc9b5",
+      "base": "feat/diagram-commercial-snapping-integration-b6a-20261010",
+      "title": "Draft B6b: vendored handle snapping and alignment commands",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/568"
+    },
+    {
+      "pr": 573,
+      "head": "feat/diagram-commercial-perf-integration-p01a-20261010",
+      "sha": "48d67ab2796dac064d6da0b702313f4437d3cf02",
+      "base": "feat/diagram-commercial-snapping-tools-integration-b6b-20261010",
+      "title": "Draft P01a: repeatable Chrome stress evidence for Eidos large graphs",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/573"
+    },
+    {
+      "pr": 581,
+      "head": "feat/diagram-commercial-auto-route-segment-integration-b8a-20261010",
+      "sha": "474d62040d45d3dd23e66a3564f5eb5c1dbcb7ed",
+      "base": "feat/diagram-commercial-perf-integration-p01a-20261010",
+      "title": "Draft B8a: integrate automatic orthogonal segment drag into projection editor",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/581"
+    },
+    {
+      "pr": 583,
+      "head": "test/diagram-b8b-save-viewer-roundtrip-20261010",
+      "sha": "e50f06581be5f0c7186c1621a9be7669f9967f2d",
+      "base": "feat/diagram-commercial-auto-route-segment-integration-b8a-20261010",
+      "title": "Draft B8b: real Chrome save, reload and read-only Viewer roundtrip for converted auto routes",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/583"
+    },
+    {
+      "pr": 586,
+      "head": "feat/diagram-commercial-overlap-regrab-integration-b8c-20261010",
+      "sha": "2e76ea6e83d1438b17f5239089fa0768c4e3e1cb",
+      "base": "test/diagram-b8b-save-viewer-roundtrip-20261010",
+      "title": "Draft B8c: overlap handle modifiers and same-page Chrome native touch regrab",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/586"
+    },
+    {
+      "pr": 590,
+      "head": "feat/diagram-commercial-overlap-cycle-integration-b8d-20261010",
+      "sha": "f5776cdd5a8a6e7fb4bd8c8da6b92bc42a5b84c7",
+      "base": "feat/diagram-commercial-overlap-regrab-integration-b8c-20261010",
+      "title": "Draft B8d: integrate multi-overlap segment cycling in 2D Designer",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/590"
+    },
+    {
+      "pr": 591,
+      "head": "test/diagram-commercial-rounded-dense-integration-b8e-20261010",
+      "sha": "4e475831798dc622837d4306ab2242e47f8e6022",
+      "base": "feat/diagram-commercial-overlap-cycle-integration-b8d-20261010",
+      "title": "Draft B8e: Chrome rounded dense handles, Escape/regrab and Viewer persistence",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/591"
+    },
+    {
+      "pr": 593,
+      "head": "feat/diagram-commercial-loop-curve-integration-b8f-20261010",
+      "sha": "84d6297710f68a2e456f856d15e1fafb92d83c7f",
+      "base": "test/diagram-commercial-rounded-dense-integration-b8e-20261010",
+      "title": "Draft B8f: self-loop and curve presentation-only editor integration",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/593"
+    },
+    {
+      "pr": 595,
+      "head": "feat/diagram-commercial-self-loop-obstacle-integration-b8g-20261010",
+      "sha": "4095e886a2a4a1e92acba95ed1793acb2bd056d2",
+      "base": "feat/diagram-commercial-loop-curve-integration-b8f-20261010",
+      "title": "Draft B8g: obstacle-aware self-loop Designer/Viewer integration",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/595"
+    },
+    {
+      "pr": 596,
+      "head": "feat/diagram-commercial-loop-congestion-integration-b8h-20261010",
+      "sha": "d26933dadc30ca5f8cdee3861c7b6dce401f1e22",
+      "base": "feat/diagram-commercial-self-loop-obstacle-integration-b8g-20261010",
+      "title": "Draft B8h: multi-loop congestion-aware Designer and Viewer",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/596"
+    },
+    {
+      "pr": 597,
+      "head": "feat/diagram-commercial-loop-edge-label-integration-b8i-20261010",
+      "sha": "874dfc8362af4e8285bab366a7086532e1c65569",
+      "base": "feat/diagram-commercial-loop-congestion-integration-b8h-20261010",
+      "title": "Draft B8i: Designer/Viewer external connector and label reservations",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/597"
+    },
+    {
+      "pr": 598,
+      "head": "feat/diagram-commercial-precise-ink-index-integration-b8jk-20261010",
+      "sha": "bcfaca11209d8a18ad5e09fa0a766fbcb01aaf10",
+      "base": "feat/diagram-commercial-loop-edge-label-integration-b8i-20261010",
+      "title": "Draft B8j+B8k: curved-edge collision parity and fast indexed self-loop ink",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/598"
+    },
+    {
+      "pr": 599,
+      "head": "feat/diagram-commercial-label-metrics-density-integration-b8lm-20261010",
+      "sha": "8c21be3bec7f91f591c1df3c03f86b830388dcdc",
+      "base": "feat/diagram-commercial-precise-ink-index-integration-b8jk-20261010",
+      "title": "Draft B8l+B8m: real label collision geometry and high-density fallback evidence",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/599"
+    },
+    {
+      "pr": 600,
+      "head": "feat/diagram-commercial-multilingual-density-integration-b8no-20261010",
+      "sha": "ba33e14160ebdef3d02b57879060be76618c9aa7",
+      "base": "feat/diagram-commercial-label-metrics-density-integration-b8lm-20261010",
+      "title": "Draft B8n+B8o: multilingual multiline labels and real full-DOM dense Chrome bench",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/600"
+    },
+    {
+      "pr": 601,
+      "head": "feat/diagram-commercial-word-bidi-perf-integration-b8pq-20261010",
+      "sha": "f3ce5313954f19c1fbfe9bddb7a1b43d6b7a65cc",
+      "base": "feat/diagram-commercial-multilingual-density-integration-b8no-20261010",
+      "title": "Draft B8p+B8q: RTL word-wrap Chrome parity and complex S2C/P2P full-DOM benchmark",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/601"
+    },
+    {
+      "pr": 602,
+      "head": "feat/diagram-commercial-auto-routing-cross-browser-integration-b8rs-20261010",
+      "sha": "ed69eb538cee6eb13b5575f0af7cd5f3f9f667f5",
+      "base": "feat/diagram-commercial-word-bidi-perf-integration-b8pq-20261010",
+      "title": "Draft B8r+B8s: real auto-router Chrome DOM and Firefox/WebKit RTL evidence",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/602"
+    },
+    {
+      "pr": 604,
+      "head": "feat/diagram-commercial-budget-text-integration-b8tu-20261010",
+      "sha": "b21de6d35ae1a924a96b14174f1b65fc2fb4f57b",
+      "base": "feat/diagram-commercial-auto-routing-cross-browser-integration-b8rs-20261010",
+      "title": "Draft B8t+B8u: larger all-auto Chrome DOM and complex Firefox/WebKit label limits",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/604"
+    },
+    {
+      "pr": 606,
+      "head": "feat/diagram-commercial-congestion-summary-postselect-integration-b8vw-20261010",
+      "sha": "77d951921c14e0a82088e77150159947bdcca980",
+      "base": "feat/diagram-commercial-budget-text-integration-b8tu-20261010",
+      "title": "Draft B8v+B8w: accessible congestion summary + Firefox/WebKit native rerender CI",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/606"
+    },
+    {
+      "pr": 607,
+      "head": "feat/diagram-commercial-multi-instance-isolation-b8x-20261010",
+      "sha": "ae4fe559cbfa1c71292859f63341b02824402cb7",
+      "base": "feat/diagram-commercial-congestion-summary-postselect-integration-b8vw-20261010",
+      "title": "Draft B8x: real Firefox/WebKit two-instance 2D Designer isolation test",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/607"
+    },
+    {
+      "pr": 608,
+      "head": "feat/diagram-commercial-congestion-undo-refresh-b8y-20261010",
+      "sha": "b914a8c67a162290e76f04ad717c49f211be375c",
+      "base": "feat/diagram-commercial-multi-instance-isolation-b8x-20261010",
+      "title": "Draft B8y: native hide/undo recalculates visible congestion without cross-instance leakage",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/608"
+    },
+    {
+      "pr": 610,
+      "head": "feat/diagram-commercial-native-drag-congestion-b8z-20261010",
+      "sha": "2bd077eb6aca612bdee2cede8557c45d4a5e5e3b",
+      "base": "feat/diagram-commercial-congestion-undo-refresh-b8y-20261010",
+      "title": "Draft B8z: real Firefox/WebKit obstacle drag reroutes congestion; Undo restores it",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/610"
+    },
+    {
+      "pr": 611,
+      "head": "feat/diagram-commercial-unsaved-refresh-boundary-b9a-20261010",
+      "sha": "016005b2785cc5172c6f7fcf66ba82c1187dd1cd",
+      "base": "feat/diagram-commercial-native-drag-congestion-b8z-20261010",
+      "title": "Draft B9a: unsaved local congestion edit resets on read refresh and page reload",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/611"
+    },
+    {
+      "pr": 612,
+      "head": "feat/diagram-commercial-saved-viewer-congestion-b9b-20261011",
+      "sha": "6b9616c6fcffd441539273998740a44e4c31cd03",
+      "base": "feat/diagram-commercial-unsaved-refresh-boundary-b9a-20261010",
+      "title": "Draft B9b: actual App CAS save -> fresh Designer -> readonly Viewer congestion parity",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/612"
+    },
+    {
+      "pr": 614,
+      "head": "feat/diagram-commercial-positive-viewer-congestion-b9c-20261011",
+      "sha": "f9babc194cbca7770c2573660af212909f75e79c",
+      "base": "feat/diagram-commercial-saved-viewer-congestion-b9b-20261011",
+      "title": "Draft B9c: real readonly Viewer confirms nonzero route congestion summary",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/614"
+    },
+    {
+      "pr": 615,
+      "head": "feat/diagram-commercial-file-store-reopen-b9d-20261011",
+      "sha": "8b1a7c51332a762f629b0dd082c94914d3564716",
+      "base": "feat/diagram-commercial-positive-viewer-congestion-b9c-20261011",
+      "title": "Draft B9d: real App projection CAS survives file-store restart, Viewer GET and stale-write rejection",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/615"
+    },
+    {
+      "pr": 617,
+      "head": "feat/diagram-commercial-crossprocess-cas-b9e-20261011",
+      "sha": "4e85117c96df36b4cb1d651e2746580812b31281",
+      "base": "feat/diagram-commercial-file-store-reopen-b9d-20261011",
+      "title": "Draft B9e: file-backed projection CAS under two real processes and orphaned lock",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/617"
+    },
+    {
+      "pr": 618,
+      "head": "feat/diagram-commercial-app-handler-process-race-b9f-20261011",
+      "sha": "b01a91ad8891b263d09a24aef0012e5e5e8cd157",
+      "base": "feat/diagram-commercial-crossprocess-cas-b9e-20261011",
+      "title": "Draft B9f: concurrent real App projection Save handlers across two Node processes",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/618"
+    },
+    {
+      "pr": 619,
+      "head": "feat/diagram-commercial-denied-file-save-b9g-20261011",
+      "sha": "9b7944fbd7739643393896ddfd555c1228b79b76",
+      "base": "feat/diagram-commercial-app-handler-process-race-b9f-20261011",
+      "title": "Draft B9g: denied App projection Save cannot touch file-backed Store or readonly Viewer state",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/619"
+    },
+    {
+      "pr": 620,
+      "head": "feat/diagram-commercial-persist-positive-congestion-b9h-20261011",
+      "sha": "8384c13950eb716b51d89afb3ae1d8792b05f48e",
+      "base": "feat/diagram-commercial-denied-file-save-b9g-20261011",
+      "title": "Draft B9h: real App CAS persists positive obstacle congestion into reopened Designer/Viewer",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/620"
+    },
+    {
+      "pr": 621,
+      "head": "feat/diagram-commercial-saved-positive-browser-b9i-20261011",
+      "sha": "6adbb3467a5e5b17b6f56f103ece2a1217181b64",
+      "base": "feat/diagram-commercial-persist-positive-congestion-b9h-20261011",
+      "title": "Draft B9i: true Chrome persisted-positive congestion Designer/Viewer and saved-clear replay",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/621"
+    },
+    {
+      "pr": 622,
+      "head": "feat/diagram-commercial-native-save-positive-b9j-20261011",
+      "sha": "6740000086577a15c257e813ca6340ab2027410c",
+      "base": "feat/diagram-commercial-saved-positive-browser-b9i-20261011",
+      "title": "Draft B9j: real Chrome native hide + Save button persists positive->clear Viewer congestion",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/622"
+    },
+    {
+      "pr": 623,
+      "head": "docs/diagram-commercial-research-decision-handoff-b9j-20261011",
+      "sha": "d027ed8eab06ad3d4f549f5466f6c36dbd3cfed8",
+      "base": "feat/diagram-commercial-native-save-positive-b9j-20261011",
+      "title": "Docs-only Draft: B9j 2D Designer research/decisions new-window handoff and verified source index",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/623"
+    },
+    {
+      "pr": 625,
+      "head": "feat/diagram-commercial-enterprise-fixture-intake-b9k-20261011",
+      "sha": "df674faa7818b194a8719cdaf5f7a861d8473e7f",
+      "base": "feat/diagram-commercial-native-save-positive-b9j-20261011",
+      "title": "Draft B9k: fail-closed authorized S2C/P2P projection fixture intake for real-data QA",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/625"
+    },
+    {
+      "pr": 626,
+      "head": "feat/diagram-commercial-enterprise-native-save-b9l-20261011",
+      "sha": "d6af618914798a3712f9e610f56e7672cf6694f7",
+      "base": "feat/diagram-commercial-enterprise-fixture-intake-b9k-20261011",
+      "title": "Draft B9l: guarded S2C/P2P Chrome native Save→CAS→readonly Viewer proof",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/626"
+    },
+    {
+      "pr": 628,
+      "head": "feat/diagram-commercial-fixture-filesystem-b9m-20261011",
+      "sha": "1682b4678a2536ecfe1cd6e8c699229dd6d75d63",
+      "base": "feat/diagram-commercial-enterprise-native-save-b9l-20261011",
+      "title": "Draft B9m: harden local enterprise graph file ingestion against symlink and checkout escapes",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/628"
+    },
+    {
+      "pr": 629,
+      "head": "feat/diagram-commercial-single-read-b9n-20261011",
+      "sha": "8111abcfcea72c257b8fb90a4ed4407e81b832d7",
+      "base": "feat/diagram-commercial-fixture-filesystem-b9m-20261011",
+      "title": "Draft B9n: single-read validated S2C/P2P graph handoff to native Chrome proof",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/629"
+    },
+    {
+      "pr": 630,
+      "head": "feat/diagram-commercial-route-risk-b9o-20261011",
+      "sha": "ad64922d8449e03f4c905be5d77e6c9205548c20",
+      "base": "feat/diagram-commercial-single-read-b9n-20261011",
+      "title": "Draft B9o: bounded, privacy-safe enterprise corridor congestion risk diagnostics",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/630"
+    },
+    {
+      "pr": 631,
+      "head": "feat/diagram-commercial-browser-stale-cas-b9p-20261011",
+      "sha": "447b923d4674aacd15a15d434c259df7a66e8c36",
+      "base": "feat/diagram-commercial-route-risk-b9o-20261011",
+      "title": "Draft B9p: reject stale App CAS writes after real Chrome projection Save",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/631"
+    },
+    {
+      "pr": 632,
+      "head": "feat/diagram-commercial-responsive-chrome-b9q-20261011",
+      "sha": "96438977aef701992578b92772966ddf501d30d8",
+      "base": "feat/diagram-commercial-browser-stale-cas-b9p-20261011",
+      "title": "Draft B9q: resized mobile/tablet Chrome Designer and readonly Viewer persist consistency",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/632"
+    },
+    {
+      "pr": 634,
+      "head": "feat/diagram-commercial-acceptance-gate-b9r-20261011",
+      "sha": "0d846bf6beb559cc81daf1a789403d6e8544e63c",
+      "base": "feat/diagram-commercial-responsive-chrome-b9q-20261011",
+      "title": "Draft B9r: guard 39 formal acceptance cases and document physical device test protocol",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/634"
+    },
+    {
+      "pr": 635,
+      "head": "feat/diagram-commercial-responsive-clipping-b9s-20261011",
+      "sha": "f5254fe6540b7711e0a617c89176f4b904de9cdd",
+      "base": "feat/diagram-commercial-acceptance-gate-b9r-20261011",
+      "title": "Draft B9s: verify visible mobile canvas clipping without mistaking SVG world width for overflow",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/635"
+    },
+    {
+      "pr": 637,
+      "head": "feat/diagram-commercial-mobile-toolbar-wrap-b9t-20261011",
+      "sha": "23b6d4b07231de2afc2e0e0b47f5766a4e7180b8",
+      "base": "feat/diagram-commercial-responsive-clipping-b9s-20261011",
+      "title": "Draft B9t: fix 390px Designer horizontal overflow with paired Eidos mobile CSS",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/637"
+    },
+    {
+      "pr": 640,
+      "head": "feat/diagram-commercial-b9u-control-text-20261011",
+      "sha": "70f493f592e75872326ee76cf675f0f54f940277",
+      "base": "feat/diagram-commercial-mobile-toolbar-wrap-b9t-20261011",
+      "title": "Draft B9u: reject control characters without breaking CJK/RTL/ZWJ fixture intake",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/640"
+    },
+    {
+      "pr": 641,
+      "head": "feat/diagram-commercial-bounded-world-geometry-b9v-20261011",
+      "sha": "478a3a733e72f429289f51bc9ac5f6e0f5c57846",
+      "base": "feat/diagram-commercial-b9u-control-text-20261011",
+      "title": "Draft B9v: bound de-identified fixture world coordinates and shapes",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/641"
+    },
+    {
+      "pr": 642,
+      "head": "feat/diagram-commercial-topology-fingerprint-b9w-20261011",
+      "sha": "25b9c736dc570bb2419d8061bdf203a584a46eac",
+      "base": "feat/diagram-commercial-bounded-world-geometry-b9v-20261011",
+      "title": "Draft B9w: distinguish display-only changes from business relation direction",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/642"
+    },
+    {
+      "pr": 643,
+      "head": "feat/diagram-commercial-deny-save-after-commit-b9x-20261011",
+      "sha": "917874ef2e15a57efd989e9b61a5d6cdf1da1d40",
+      "base": "feat/diagram-commercial-topology-fingerprint-b9w-20261011",
+      "title": "Draft B9x: test denied authorization cannot overwrite a browser-saved projection",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/643"
+    },
+    {
+      "pr": 644,
+      "head": "feat/diagram-commercial-readonly-get-no-write-b9y-20261011",
+      "sha": "baf9d149592dbbc8d79fb84adf3dfc28971da73f",
+      "base": "feat/diagram-commercial-deny-save-after-commit-b9x-20261011",
+      "title": "Draft B9y: verify repeated Viewer GET and viewport changes never trigger a CAS write",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/644"
+    },
+    {
+      "pr": 645,
+      "head": "feat/diagram-commercial-source-target-semantics-b9z-20261011",
+      "sha": "a70c55ead2b936d6e0c24116854998f2675cd0b9",
+      "base": "feat/diagram-commercial-readonly-get-no-write-b9y-20261011",
+      "title": "Draft B9z: verify business relation identity and direction survive native projection Save",
+      "archivedFrom": "OPEN_DRAFT",
+      "sourceUrl": "https://github.com/jiangxng/EVO-App-Platform/pull/645"
+    }
+  ],
+  "nonDestructive": true,
+  "formalAcceptance": {
+    "cases": 39,
+    "signed": 0,
+    "syntheticEvidenceOnly": true
+  },
+  "deployment": "No Railway release intended",
+  "notes": [
+    "Contents copied as immutable blobs. Historical workflow files are stored outside .github/workflows to avoid launching legacy CI.",
+    "Current App/Host, Eidos and Enterprise Context runtime source remains unchanged.",
+    "Archive includes outdated Designer snapshot only for historical provenance; current public 2D API remains canonical."
+  ]
+}

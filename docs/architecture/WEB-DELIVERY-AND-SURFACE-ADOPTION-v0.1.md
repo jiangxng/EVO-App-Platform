@@ -360,3 +360,38 @@ For `enterprise-agent.home`:
 - `/enterprise-agent/setup` on mobile task -> HANDOFF rather than mobile-home substitution.
 
 The Surface Gateway is presentation routing only and does not change Principal, Context, authorization or Agent command semantics.
+
+
+## 14. Reloadable detail routes and browser history
+
+A Human-visible contextual page must be reconstructable from its browser route. A detail page must not depend exclusively on transient in-memory selection created by the previous click.
+
+For contextual detail/deep-link routes:
+
+- the declared Experience route remains the stable base path;
+- reloadable item/revision identity may travel as a query-qualified route;
+- App Host matches the declared base route while forwarding the exact qualified route to the owning page source;
+- browser refresh, back/forward and Host process restart must be able to reconstruct the same readable page from authoritative data;
+- transient session selection may remain only as a compatibility fallback, never as the sole locator.
+
+This rule does **not** weaken the Web delivery cache policy. Qualified page reads use their full request URL as the cache key and continue to use ETag/conditional revalidation. Immutable revisioned JS/CSS remain long-lived and immutable; the shell remains revalidated; authenticated snapshots remain private and conditionally revalidated.
+
+Browser history clearing the final hash must render the configured initial workspace rather than leaving an empty surface.
+
+
+## Route identity must survive Host adapters
+
+Every adapter between Workbench/App Host and the App Manager page source must forward `ExperienceReadOptionsV010` unchanged, including the exact qualified `routePath`.
+
+A wrapper that forwards only the page descriptor but drops read options breaks reloadable detail/deep-link routes even when authentication and the underlying page source are correct. Regression coverage therefore treats read-option forwarding as part of the page-read contract.
+
+Authentication failures remain distinct: expired or missing sessions use 401/403 and the managed login flow; a 409 page-selection conflict must not be interpreted as an authentication failure.
+
+
+## Protected-request authentication recovery
+
+All browser runtimes use the revision-aware transport for protected same-origin requests. The transport explicitly keeps same-origin credentials and treats HTTP 401 as an authentication-recovery signal, not as an ordinary page/action failure.
+
+The browser login recovery preserves the exact current pathname, query and hash as `returnTo`. After authentication, the Human returns to the same Workbench detail/projection route instead of losing editing context.
+
+This does not weaken action authorization. 401 means authentication/session recovery; 403 remains an authorization denial; domain conflicts such as revision or selection conflicts remain separate application errors.

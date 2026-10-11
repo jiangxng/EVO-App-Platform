@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {branchMergeProfileV010 as inspect} from "../../tools/diagram-enterprise-assurance-b10o.mjs";
+test("B10o branch-merge: synthetic aggregate-only evidence",()=>{const g={nodes:[{id:"a"},{id:"b"},{id:"c"}],edges:[{source:"a",target:"b"},{source:"a",target:"c"},{source:"b",target:"c"}]};assert.deepEqual([inspect(g).branches,inspect(g).merges,inspect(g).maxIn],[1,1,2]);assert.doesNotMatch(JSON.stringify(inspect(g)),/"a"/);});

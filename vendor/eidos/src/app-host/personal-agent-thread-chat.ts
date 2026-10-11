@@ -92,6 +92,21 @@ function scopeValues(request: ActionRequestV010): Record<string, JsonValue> {
   return values;
 }
 
+function turnContextValues(
+  request: ActionRequestV010
+): Record<string, JsonValue> {
+  const values = scopeValues(request);
+  const interactionContext = request.values.interactionContext;
+  if (interactionContext !== undefined) {
+    values.interactionContext = structuredClone(interactionContext);
+  }
+  const clientTurnId = request.values.clientTurnId;
+  if (clientTurnId !== undefined) {
+    values.clientTurnId = structuredClone(clientTurnId);
+  }
+  return values;
+}
+
 function commandRequest(
   source: ActionRequestV010,
   code: string,
@@ -615,7 +630,7 @@ export async function executeThreadBackedChatV010(
     {
       threadId,
       message: message.trim(),
-      ...scopeValues(options.request)
+      ...turnContextValues(options.request)
     }
   ));
   if (threadActionsUnavailableV010(sent)) return undefined;

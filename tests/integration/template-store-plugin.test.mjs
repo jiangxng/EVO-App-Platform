@@ -182,7 +182,7 @@ test("Template Store package exposes a non-navigation detail route", () => {
     true
   );
   assert.equal(
-    manifest.navigation?.some(item => item.route === TEMPLATE_STORE_DETAIL_ROUTE),
+    manifest.navigation?.some(item => item.route === TEMPLATE_STORE_DETAIL_ROUTE) ?? false,
     false
   );
 });

@@ -3,6 +3,7 @@ import {
   ENTERPRISE_BUSINESS_DEFINITION_CAPABILITY_V010
 } from "../../contracts/enterprise-business-definition.js";
 import {
+  DEFINITION_2D_EDITOR_ROUTE_V010,
   DEFINITION_2D_PREVIEW_ROUTE_V010
 } from "../../contracts/definition-projection.js";
 import {
@@ -54,6 +55,18 @@ export const EOG_2D_DESIGNER_PAGE_ID = "evo-eog-2d-designer.editor";
 export const EOG_2D_DESIGNER_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/editor";
 export const EOG_2D_DESIGNER_ROUTE = "/operating-graph";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID =
+  "evo-eog-2d-designer.definition-projection";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE =
+  "app://evo-eog-2d-designer/pages/definition-projection";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_ROUTE =
+  DEFINITION_2D_EDITOR_ROUTE_V010;
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION =
+  "evo-eog-2d.designer.definition-projection.get";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION =
+  "evo-eog-2d.designer.definition-projection.selection.get";
+export const EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION =
+  "evo-eog-2d.designer.definition-projection.save";
 
 /**
  * One installable EOG 2D package with two capability profiles:
@@ -183,11 +196,19 @@ export const eog2dPackage: PackageManifestV010 = {
             id: EOG_2D_DESIGNER_PAGE_ID,
             title: "Enterprise Operating Graph Designer",
             source: EOG_2D_DESIGNER_PAGE_SOURCE
+          }, {
+            id: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID,
+            title: "Definition Projection Editor",
+            source: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE
           }],
           routes: [{
             id: EOG_2D_DESIGNER_PAGE_ID,
             path: EOG_2D_DESIGNER_ROUTE,
             pageId: EOG_2D_DESIGNER_PAGE_ID
+          }, {
+            id: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID,
+            path: EOG_2D_DESIGNER_DEFINITION_PROJECTION_ROUTE,
+            pageId: EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_ID
           }]
           // Designer remains routable/capability-discoverable but is launched
           // from a business context rather than persistent navigation.

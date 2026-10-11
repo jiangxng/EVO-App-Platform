@@ -11,7 +11,7 @@ import type {
   BusinessDefinitionRepositoryV010
 } from "../../contracts/enterprise-business-definition.js";
 import {
-  DEFINITION_2D_PREVIEW_ROUTE_V010,
+  definition2dPreviewRouteV010,
   type DefinitionProjectionSessionStoreV010
 } from "../../contracts/definition-projection.js";
 import type {
@@ -30,13 +30,13 @@ import type {
 } from "../ledger-runtime-configurator/expression-compiler.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
-  LEDGER_MANAGER_DETAIL_ROUTE,
   LEDGER_MANAGER_FEATURE_ID,
   LEDGER_MANAGER_OPEN_DETAIL_COMMAND,
   LEDGER_MANAGER_PACKAGE_ID,
   LEDGER_MANAGER_PREVIEW_PROJECTION_COMMAND,
   LEDGER_MANAGER_PUBLISH_AUTHORIZATION_ACTION,
-  LEDGER_MANAGER_PUBLISH_COMMAND
+  LEDGER_MANAGER_PUBLISH_COMMAND,
+  ledgerManagerDetailRouteV010
 } from "./constants.js";
 import {
   ledgerManagerVersionLabelV010
@@ -203,7 +203,10 @@ export function createLedgerManagerActionHandlersV010(input: {
         }
         return success(request, {
           message: `Opening ${ledgerManagerVersionLabelV010(revision.revision)} for “${revision.title}”.`,
-          navigateTo: LEDGER_MANAGER_DETAIL_ROUTE
+          navigateTo: ledgerManagerDetailRouteV010(
+            definitionId,
+            definitionRevision
+          )
         });
       }
     ),
@@ -244,7 +247,11 @@ export function createLedgerManagerActionHandlersV010(input: {
         }
         return success(request, {
           message: `Opening 2D projection “${projectionId}”.`,
-          navigateTo: DEFINITION_2D_PREVIEW_ROUTE_V010
+          navigateTo: definition2dPreviewRouteV010({
+            definitionId,
+            definitionRevision,
+            projectionId
+          })
         });
       }
     ),

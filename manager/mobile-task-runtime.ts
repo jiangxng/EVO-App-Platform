@@ -401,7 +401,7 @@ export async function mountMobileTaskRuntimeV010(options: {
   if (!page) throw new Error("EVO_MOBILE_TASK_PAGE_NOT_FOUND");
 
   const [definition, bundles] = await Promise.all([
-    options.source.loadPage(page),
+    options.source.loadPage(page, { routePath: options.path }),
     options.source.listEffectiveLocalizationBundles()
   ]);
 
@@ -427,7 +427,9 @@ export async function mountMobileTaskRuntimeV010(options: {
   );
 
   const actionHost: ActionHost = createAppManagerActionHost({
-    baseUrl: options.baseUrl
+    baseUrl: options.baseUrl,
+    fetchImpl: options.fetchImpl,
+    locale: () => options.locale
   });
   const root = document.createElement("main");
   root.setAttribute("data-evo-mobile-task-runtime", "0.1.0");

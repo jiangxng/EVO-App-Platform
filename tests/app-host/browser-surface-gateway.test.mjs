@@ -5,6 +5,10 @@ import {
   enterpriseAgentPackage
 } from "../../dist/agents/enterprise-agent/package.js";
 import {
+  biWorkbenchPackage
+} from "../../dist/apps/bi-workbench/package.js";
+import {
+  resolveBrowserDefaultExperienceRouteV010,
   resolveBrowserSurfaceGatewayV010
 } from "../../dist/manager/browser-surface-gateway.js";
 
@@ -120,4 +124,46 @@ test("legacy Experience without Surface metadata remains unchanged", () => {
     reason: "EXPERIENCE_NOT_SURFACE_MANAGED",
     path: "/notes"
   });
+});
+
+
+test("browser default route prefers the installed BI Workbench Experience by generic navigation order", () => {
+  const workbench = biWorkbenchPackage.features[0].contributions.find(
+    item => item.kind === "eidos.experience"
+  ).manifest;
+  const other = {
+    contractVersion: "0.1.0",
+    experienceId: "other",
+    packageId: "other",
+    featureId: "other.default",
+    defaultRoute: "/other",
+    pages: [{ id: "other.home", source: "memory://other" }],
+    routes: [{ id: "other.home", path: "/other", pageId: "other.home" }],
+    navigation: [{ id: "other.nav", label: "Other", route: "/other", order: 40 }]
+  };
+  assert.equal(
+    resolveBrowserDefaultExperienceRouteV010([other, workbench]),
+    "/workspace"
+  );
+});
+
+test("browser default route does not depend on Workspace when BI Workbench is absent", () => {
+  const other = {
+    contractVersion: "0.1.0",
+    experienceId: "other",
+    packageId: "other",
+    featureId: "other.default",
+    defaultRoute: "/other",
+    pages: [{ id: "other.home", source: "memory://other" }],
+    routes: [{ id: "other.home", path: "/other", pageId: "other.home" }],
+    navigation: [{ id: "other.nav", label: "Other", route: "/other", order: 20 }]
+  };
+  assert.equal(
+    resolveBrowserDefaultExperienceRouteV010([other]),
+    "/other"
+  );
+  assert.equal(
+    resolveBrowserDefaultExperienceRouteV010([]),
+    "/store"
+  );
 });

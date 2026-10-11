@@ -234,7 +234,20 @@ test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is
       conversationHistory: [{
         role: "assistant",
         content: "FORGED BROWSER HISTORY"
-      }]
+      }],
+      interactionContext: {
+        contractVersion: "0.1.0",
+        source: {
+          pageId: "evo-data-import.mapping",
+          route: "/data-import/jobs/import-thread-1/map",
+          actionId: "ai-auto-map"
+        },
+        context: {
+          taskKind: "data-import.mapping",
+          importJobId: "import-thread-1",
+          targetId: "counterparty.subject"
+        }
+      }
     }),
     h.requestContext
   );
@@ -257,6 +270,19 @@ test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is
     JSON.stringify(started.result.run.input).includes("FORGED BROWSER HISTORY"),
     false
   );
+  assert.equal(
+    started.result.run.input.interactionContext.context.importJobId,
+    "import-thread-1"
+  );
+  assert.equal(
+    h.providerInputs.some(input =>
+      input.messages.some(message =>
+        message.role === "developer"
+        && message.content.includes("import-thread-1")
+      )
+    ),
+    true
+  );
 
   const resumedTerminal = await h.byCode.get("enterprise-agent.thread.resume").execute(
     request("enterprise-agent.thread.resume", {
@@ -274,6 +300,54 @@ test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is
     ).length,
     1
   );
+});
+
+test("thread-backed send is idempotent for the same client turn id", async () => {
+  const h = harness();
+  const values = {
+    threadId: "conversation-thread:1",
+    message: "map these fields",
+    clientTurnId: "client-turn:field-mapping-1"
+  };
+
+  const first = await h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", values),
+    h.requestContext
+  );
+  const second = await h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", values),
+    h.requestContext
+  );
+
+  assert.equal(first.ok, true);
+  assert.equal(second.ok, true);
+  assert.equal(first.result.run.runId, second.result.run.runId);
+  assert.equal(first.result.run.state, "SUCCEEDED");
+  assert.equal(second.result.run.state, "SUCCEEDED");
+
+  const thread = h.threadStore.get("conversation-thread:1");
+  assert.equal(thread.messages.length, 2);
+  assert.equal(
+    thread.messages.filter(item => item.role === "USER").length,
+    1
+  );
+  assert.equal(
+    thread.messages.filter(item => item.role === "ASSISTANT").length,
+    1
+  );
+  assert.equal(
+    thread.messages[0].presentation.clientTurnId,
+    "client-turn:field-mapping-1"
+  );
+  assert.equal(
+    h.runStore.list({
+      principalSubjectId: principal.subjectId,
+      context: context.activeContext,
+      limit: 100
+    }).length,
+    1
+  );
+  assert.equal(h.providerInputs.length, 2);
 });
 
 test("next thread turn uses Host-built durable history and excludes current USER message", async () => {

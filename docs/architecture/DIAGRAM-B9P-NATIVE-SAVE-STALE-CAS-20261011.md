@@ -1,0 +1,5 @@
+# B9p — Native Chrome Save followed by stale App CAS rejection (2026-10-11)
+
+Stacked B Class Draft on B9o #630. Extends existing isolated B9l S2C/P2P *synthetic* Chrome script without touching production App/Eidos code. After the actual Chrome mouse click + native Save projection advances FileStore CAS 1→2, a second independent App Handler, holding stale token `1`, attempts to save unhidden projection state. It must return `DEFINITION_PROJECTION_WRITE_CONFLICT`, keep CAS=2, and preserve the selected hiddenNodeIds. Then fresh Designer/readonly Viewer still read the winning view.
+
+This is more specific than node-only CAS tests: it joins browser user Save to a real rejected conflicting Handler write. It does not pretend two physical users or production identity have signed off. No actual customer fixture in CI, no database/deployment, no real macOS/Windows/mobile or formal §14 acceptance. Workflow must emit `B9P_STALE_CAS_RESULT` twice, one per synthetic process and pass exact head, preserving existing B9l assertions.

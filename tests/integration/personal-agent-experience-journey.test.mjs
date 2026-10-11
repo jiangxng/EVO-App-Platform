@@ -1,15 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   createPersonalAgentChatPageV020,
   createPersonalAgentPluginStoreProductStateV010,
-  createPersonalAgentSetupPageV010
+  createPersonalAgentSetupPageV010,
+  resolvePersonalAgentActiveContextV010
 } from "../../dist/manager/personal-agent-experience.js";
 import {
-  createLocalizationRuntime,
-  localizeAppHostPageDefinition
-} from "../../dist/vendor/eidos/src/localization/index.js";
+  createAppManagerActionHost
+} from "../../dist/vendor/eidos/src/app-host/app-manager-action-host.js";
 import {
   enterpriseAgentPackage
 } from "../../dist/agents/enterprise-agent/package.js";
@@ -164,13 +165,14 @@ test("Personal Agent first-class locale bundles keep exact key parity", () => {
   }
 });
 
-test("system-owned Personal context label localizes while enterprise display names remain data", () => {
+test("Personal Agent shows resolved Context without a second Context selector", () => {
   const context = {
     contractVersion: "0.1.0",
     activeContext: {
       contractVersion: "0.1.0",
-      kind: "PERSONAL",
-      contextId: "personal:preview-user"
+      kind: "ENTERPRISE",
+      contextId: "enterprise:acme",
+      enterpriseId: "acme"
     },
     personalContext: {
       contractVersion: "0.1.0",
@@ -178,6 +180,13 @@ test("system-owned Personal context label localizes while enterprise display nam
       contextId: "personal:preview-user",
       ownerSubjectId: "preview-user",
       displayName: "Preview User"
+    },
+    enterpriseContext: {
+      contractVersion: "0.1.0",
+      kind: "ENTERPRISE",
+      contextId: "enterprise:acme",
+      enterpriseId: "acme",
+      displayName: "ACME Japan"
     }
   };
   const definition = createPersonalAgentChatPageV020(
@@ -211,23 +220,163 @@ test("system-owned Personal context label localizes while enterprise display nam
     ]
   );
 
-  const bundles = enterpriseAgentPackage.features[0].contributions
-    .filter(contribution => contribution.kind === "eidos.localization-bundle")
-    .map(contribution => contribution.bundle);
-  const page = {
-    experienceId: "enterprise-agent",
-    packageId: "enterprise-agent",
-    featureId: "enterprise-agent.default",
-    route: { id: "enterprise-agent.home", path: "/enterprise-agent", pageId: "enterprise-agent.home" },
-    page: { id: "enterprise-agent.home", title: "Personal Agent", source: "memory://personal-agent" },
-    definition
+  assert.equal(definition.context.label, "Current enterprise");
+  assert.equal(definition.context.value, "ACME Japan");
+  assert.equal(definition.context.selector, undefined);
+});
+
+test("Personal Agent context policy follows the current/default enterprise before Personal", () => {
+  const personal = {
+    contractVersion: "0.1.0",
+    kind: "PERSONAL",
+    contextId: "personal:user-1"
   };
-  const localized = localizeAppHostPageDefinition(
-    page,
-    createLocalizationRuntime(bundles, { locale: "zh-CN", fallbackLocales: ["en"] })
+  const enterpriseA = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:a",
+    enterpriseId: "a"
+  };
+  const enterpriseB = {
+    contractVersion: "0.1.0",
+    kind: "ENTERPRISE",
+    contextId: "enterprise:b",
+    enterpriseId: "b"
+  };
+
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: enterpriseB,
+      defaultEnterpriseContext: enterpriseA,
+      availableContexts: [personal, enterpriseA, enterpriseB]
+    }),
+    enterpriseB
+  );
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: personal,
+      defaultEnterpriseContext: enterpriseA,
+      availableContexts: [personal, enterpriseA, enterpriseB]
+    }),
+    enterpriseA
+  );
+  assert.deepEqual(
+    resolvePersonalAgentActiveContextV010({
+      requestedContext: personal,
+      availableContexts: [personal]
+    }),
+    personal
+  );
+});
+
+
+test("Personal Agent chat transport exposes an abortable action execution path", async () => {
+  let capturedSignal;
+  const fetchImpl = async (_url, init) => {
+    capturedSignal = init.signal;
+    return await new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => {
+        reject(new DOMException("Aborted", "AbortError"));
+      }, { once: true });
+    });
+  };
+
+  const host = createAppManagerActionHost({
+    baseUrl: "https://example.test",
+    fetchImpl
+  });
+  const controller = new AbortController();
+  const pending = host.executeWithSignal({
+    contractVersion: "0.1.0",
+    type: "command",
+    command: {
+      code: "enterprise-agent.chat",
+      inputVersion: "0.1.0"
+    },
+    values: { message: "hello" },
+    sourceInteractionId: "enterprise-agent.home",
+    actionId: "chat.send",
+    requiresConfirmation: false
+  }, controller.signal);
+
+  controller.abort();
+  await assert.rejects(pending, error => error?.name === "AbortError");
+  assert.equal(capturedSignal, controller.signal);
+  assert.equal(capturedSignal.aborted, true);
+});
+
+test("Personal Agent chat overlay keeps mature feedback and message actions", async () => {
+  const source = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+    "utf8"
   );
 
-  assert.equal(localized.context.selector.options[0].label, "个人");
-  assert.equal(localized.context.selector.options[1].label, "ACME Japan");
-  assert.doesNotMatch(localized.context.selector.options[0].label, /Preview User/);
+  assert.match(source, /data-eidos-chat-pending/);
+  assert.match(source, /data-eidos-chat-stop/);
+  assert.match(source, /data-eidos-chat-message-copy/);
+  assert.match(source, /data-eidos-chat-message-retry/);
+  assert.match(source, /AbortController/);
+  assert.match(source, /chatUiTextV010/);
+});
+
+test("Personal Agent chat header uses Eidos Workbench chrome and progressive disclosure", async () => {
+  const [source, designLanguage] = await Promise.all([
+    readFile(
+      new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+      "utf8"
+    ),
+    readFile(
+      new URL("../../dist/vendor/eidos/src/design-language/productive-workbench-css.js", import.meta.url),
+      "utf8"
+    )
+  ]);
+
+  assert.match(source, /data-eidos-chat-heading-group/);
+  assert.match(source, /data-eidos-chat-thread-controls/);
+  assert.match(source, /data-eidos-chat-history-menu/);
+  assert.match(source, /data-eidos-chat-history-item/);
+  assert.match(source, /data-eidos-chat-more-menu/);
+  assert.match(source, /data-eidos-chat-archive-thread/);
+  assert.match(source, /data-eidos-chat-context/);
+  assert.match(source, /createEidosIconElement/);
+  assert.match(source, /"newChat"/);
+  assert.match(source, /"history"/);
+  assert.match(source, /"moreHorizontal"/);
+  assert.match(source, /data-eidos-chat-toolbar-label/);
+  assert.doesNotMatch(source, /moreSummary\.textContent = "⋯"/);
+  assert.doesNotMatch(source, /threadControls\.append\(threadSelect, newThreadButton, archiveThreadButton\)/);
+
+  assert.match(
+    designLanguage,
+    /data-eidos-workspace-content\]:has\(> \[data-eidos-chat\]\)/
+  );
+  assert.match(designLanguage, /data-eidos-chat-new-thread/);
+  assert.match(designLanguage, /data-eidos-chat-history-toggle/);
+  assert.match(designLanguage, /data-eidos-chat-more-toggle/);
+});
+
+test("Personal Agent thinking state is transient and hidden after terminal progress", async () => {
+  const source = await readFile(
+    new URL("../../dist/vendor/eidos/src/app-host/page-controller.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /pendingIndicator\.style\.display = "none"/);
+  assert.match(source, /pendingIndicator\.style\.display = busy \? "flex" : "none"/);
+  assert.match(source, /\["SUCCEEDED", "BLOCKED", "FAILED", "CANCELLED"\]/);
+  assert.match(source, /message => message\.id !== runProgressMessageId/);
+});
+
+test("Workbench suppresses a duplicate side chat while the workspace itself is chat", async () => {
+  const source = await readFile(
+    new URL("../../dist/manager/desktop-workbench-runtime.js", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /data-evo-workspace-chat-exclusive/);
+  assert.match(source, /data-eidos-workspace-content/);
+  assert.match(source, /data-eidos-side-panel-content/);
+  assert.match(source, /data-eidos-chat/);
+  assert.match(source, /MutationObserver/);
+  assert.match(source, /gridTemplateColumns/);
 });

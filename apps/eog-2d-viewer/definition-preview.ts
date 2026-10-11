@@ -4,8 +4,9 @@ import type {
   AppActionRequestV010,
   JsonValue
 } from "../../actions/contracts.js";
-import type {
-  DefinitionProjectionArtifactSourceV010
+import {
+  definition2dEditorRouteV010,
+  type DefinitionProjectionArtifactSourceV010
 } from "../../contracts/definition-projection.js";
 import type {
   DiagramWorkspacePageV010,
@@ -117,12 +118,21 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
   definitionRevision: number;
   projectionId?: string;
   title: string;
+  camera?: {
+    scale: number;
+    translateX: number;
+    translateY: number;
+  };
+  canEditProjection?: boolean;
+  contextNavigation?: DiagramWorkspacePageV010["contextNavigation"];
+  locale?: string;
 }): DiagramWorkspacePageV010 {
+  const zh = (input.locale ?? "").toLowerCase().startsWith("zh");
   return {
     contractVersion: "0.1.0",
     kind: "diagram-workspace",
     id: EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_ID,
-    title: `2D Viewer · ${input.title}`,
+    title: `${zh ? "关系图" : "Relationship map"} · ${input.title}`,
     resourceId:
       `enterprise-definition:${input.enterpriseId}:${input.definitionId}@${input.definitionRevision}`
       + (input.projectionId ? `#${input.projectionId}` : ""),
@@ -140,12 +150,31 @@ export function createEnterpriseDefinition2dPreviewPageV010(input: {
       definitionRevision: input.definitionRevision,
       ...(input.projectionId ? { projectionId: input.projectionId } : {})
     },
+    ...(input.contextNavigation
+      ? { contextNavigation: input.contextNavigation }
+      : {}),
+    ...(input.canEditProjection && input.projectionId
+      ? {
+          toolbarActions: [{
+            id: "edit-projection",
+            label: zh ? "编辑投影" : "Edit projection",
+            route: definition2dEditorRouteV010({
+              definitionId: input.definitionId,
+              definitionRevision: input.definitionRevision,
+              projectionId: input.projectionId
+            }),
+            primary: true
+          }]
+        }
+      : {}),
+    ...(input.camera ? { initialCamera: { ...input.camera } } : {}),
     viewInteraction: {
       zoom: true,
-      pan: true,
-      localNodeDrag: true
+      pan: true
     },
-    emptyMessage: "Select a node or relation to inspect definition properties."
+    emptyMessage: zh
+      ? "选择节点或关系查看属性。"
+      : "Select a node or relation to inspect definition properties."
   };
 }
 

@@ -19,16 +19,13 @@ import {
 } from "../vendor/eidos/src/app-host/surface.js";
 import {
   replaceBrowserSurfaceRouteV010,
+  resolveBrowserDefaultExperienceRouteV010,
   resolveBrowserSurfaceGatewayV010
 } from "./browser-surface-gateway.js";
 import {
   disposeOnRealPageExitV010,
   mountBrowserConnectivityNoticeV010
 } from "./browser-lifecycle.js";
-
-if (!window.location.hash || window.location.hash === "#") {
-  window.location.hash = "/workspace";
-}
 
 const persistedLocale = window.localStorage.getItem("evo.locale")?.trim();
 const browserLocale = window.navigator.language?.trim();
@@ -45,6 +42,15 @@ const transport = createRevisionAwareBrowserTransportV010({
   },
   onCurrentRevision() {
     versionNotice.hide();
+  },
+  onAuthenticationRequired() {
+    const returnTo =
+      window.location.pathname
+      + window.location.search
+      + window.location.hash;
+    window.location.replace(
+      "/auth/login?returnTo=" + encodeURIComponent(returnTo)
+    );
   }
 });
 
@@ -62,17 +68,24 @@ const bootstrapManifests = await source.listEffectiveExperienceManifests();
 const currentSurfacePath = window.location.hash.startsWith("#")
   ? window.location.hash.slice(1)
   : window.location.hash;
+const defaultExperienceRoute =
+  resolveBrowserDefaultExperienceRouteV010(bootstrapManifests);
+const requestedSurfacePath =
+  currentSurfacePath?.trim() || defaultExperienceRoute;
+if (!currentSurfacePath?.trim()) {
+  replaceBrowserSurfaceRouteV010(requestedSurfacePath);
+}
 
 const surfaceGateway = resolveBrowserSurfaceGatewayV010({
   manifests: bootstrapManifests,
-  path: currentSurfacePath || "/workspace",
+  path: requestedSurfacePath,
   url: new URL(window.location.href),
   profile: readBrowserSurfaceProfileV010(),
   storedUserTarget:
     window.localStorage.getItem("evo.surface.target") ?? undefined
 });
 
-let activePath = currentSurfacePath || "/workspace";
+let activePath = requestedSurfacePath;
 let activeSurfaceId: string | undefined;
 let activeTarget:
   | "DESKTOP_WORKBENCH"
@@ -148,6 +161,7 @@ if (surfaceGateway.kind === "HANDOFF") {
     source,
     bootstrapManifests,
     path: activePath,
+    locale: initialLocale,
     baseUrl: window.location.origin,
     fetchImpl: transport.fetch
   });

@@ -249,10 +249,30 @@ export interface PersonalAgentContextOptionV010 {
   label: string;
 }
 
+export function resolvePersonalAgentActiveContextV010(input: {
+  requestedContext?: ActiveContextRefV010;
+  defaultEnterpriseContext?: ActiveContextRefV010;
+  availableContexts: readonly ActiveContextRefV010[];
+}): ActiveContextRefV010 | undefined {
+  const enterprises = input.availableContexts.filter(
+    context => context.kind === "ENTERPRISE"
+  );
+  if (enterprises.length > 0) {
+    if (input.requestedContext?.kind === "ENTERPRISE") {
+      return input.requestedContext;
+    }
+    if (input.defaultEnterpriseContext?.kind === "ENTERPRISE") {
+      return input.defaultEnterpriseContext;
+    }
+    return enterprises[0];
+  }
+  return input.requestedContext;
+}
+
 export function createPersonalAgentChatPageV020(
   readiness: PersonalAgentReadinessV010,
   context: ResolvedContextSetV010,
-  availableContexts: readonly PersonalAgentContextOptionV010[],
+  _availableContexts: readonly PersonalAgentContextOptionV010[],
   followUps: readonly PersonalAgentFollowUpV010[] = []
 ): ChatExperienceV020 {
   const contextLabel = context.activeContext.kind === "PERSONAL"
@@ -274,19 +294,10 @@ export function createPersonalAgentChatPageV020(
       disabled: readiness.state !== "ready" && readiness.state !== "degraded"
     },
     context: {
-      label: "Current context",
-      value: contextLabel,
-      selector: {
-        key: "activeContext",
-        ariaLabel: "Choose context",
-        selectedId: context.activeContext.contextId,
-        options: availableContexts.map(item => ({
-          id: item.ref.contextId,
-          label: item.ref.kind === "PERSONAL" ? "Personal" : item.label,
-          ...(item.ref.kind === "PERSONAL" ? { localizationKey: "personal" } : {}),
-          value: structuredClone(item.ref)
-        }))
-      }
+      label: context.activeContext.kind === "ENTERPRISE"
+        ? "Current enterprise"
+        : "Current context",
+      value: contextLabel
     },
     readiness: {
       state: readiness.state,

@@ -287,4 +287,5 @@
 - **APP-224** Plugins, Template Store, Provider configuration, Memory governance and comparable low-frequency platform capabilities belong to explicit Settings/administration placement unless a later Human-validated workflow proves a distinct frequent-work destination. Enterprise/Ledger business administration remains semantically distinct from system infrastructure even when reached through the common Settings/management surface.
 - **APP-225** The default App Host landing MUST be a neutral work surface or a real Human work destination. A system-management page such as Plugin Store MUST NOT become the default landing solely because no business application is currently open.
 
-- **APP-226** The global Help Center MUST open in the Main Workspace (or a full-content mobile Surface). Workbench Side Panels are for contextual help that supports the current task and MUST NOT host the entire searchable Help Center.
+
+- **APP-226** Help remains a secondary Workbench utility, but substantive Help Center catalogs and article content MUST render in the primary workspace rather than the narrow side panel. Side-panel Help is reserved for lightweight navigation or contextual assistance. Business-facing Help cards MUST prioritize Human-readable title, summary, category and action; technical metadata is progressively disclosed.

@@ -191,6 +191,31 @@ export interface EidosWorkbenchActivityContributionV010 {
   };
 }
 
+export interface EidosWorkbenchHomeItemContributionV010 {
+  kind: "eidos.workbench-home-item";
+  item: {
+    contractVersion: "0.1.0";
+    id: string;
+    title: string;
+    description?: string;
+    section:
+      | "MY_WORK"
+      | "MY_BUSINESS_OBJECTS"
+      | "OPERATIONAL_PROJECTIONS"
+      | "FIXED_CAPABILITIES"
+      | "PERSONAL_AGENT";
+    route: string;
+    capabilityOperationId?: string;
+    order?: number;
+    localization?: {
+      namespace: string;
+      titleKey: string;
+      descriptionKey?: string;
+    };
+  };
+}
+
+
 export type SettingValueV010 = string | number | boolean;
 
 export interface EidosSettingsContributionV010 {
@@ -256,6 +281,23 @@ export interface PlatformCapabilityOperationContributionV010 {
   };
 }
 
+export interface PlatformDataImportTargetContributionV010 {
+  kind: "platform.data-import-target";
+  target: {
+    contractVersion: "0.1.0";
+    targetId: string;
+    objectType: string;
+    label: {
+      default: string;
+      translations?: Record<string, string>;
+    };
+    binding: {
+      type: "HOST_FACTORY";
+      ref: string;
+    };
+  };
+}
+
 export interface PlatformServiceProviderContributionV010 {
   kind: "platform.service-provider";
   provider: {
@@ -280,7 +322,9 @@ export type FeatureContributionV010 =
   | ExperienceContributionV010
   | EidosLocalizationBundleContributionV010
   | EidosWorkbenchActivityContributionV010
+  | EidosWorkbenchHomeItemContributionV010
   | EidosSettingsContributionV010
+  | PlatformDataImportTargetContributionV010
   | PlatformServiceProviderContributionV010
   | PlatformCapabilityOperationContributionV010;
 
@@ -374,5 +418,23 @@ export interface PackageLifecyclePlanV010 {
   deactivateFeatures: string[];
   uninstallPackages: string[];
   blockers: Array<{ code: string; message: string }>;
+  sideEffectFree: true;
+}
+
+export interface PackageUpgradePlanV010 {
+  contractVersion: "0.1.0";
+  operation: "UPGRADE";
+  packageId: string;
+  fromVersion: string;
+  toVersion: string;
+  updateFeatures: Array<{
+    featureId: string;
+    fromVersion: string;
+    toVersion: string;
+  }>;
+  blockers: Array<{ code: string; message: string }>;
+  requestedPermissions?: PluginPermissionV010[];
+  requiresTrustApproval?: boolean;
+  requiresUserApproval?: boolean;
   sideEffectFree: true;
 }

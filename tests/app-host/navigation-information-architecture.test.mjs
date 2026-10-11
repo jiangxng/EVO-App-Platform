@@ -50,12 +50,17 @@ test("primary Workbench activities contain work context, not system administrati
   assert.match(source, /id: "workspace"/);
   assert.match(source, /id: "help"/);
   assert.match(source, /id: "settings"/);
+  assert.match(
+    source,
+    /id: "help"[\s\S]*?kind: "workspace-route"[\s\S]*?route: "\/help"/
+  );
   assert.doesNotMatch(source, /id: "plugins"/);
   assert.doesNotMatch(source, /id: "memory"/);
   assert.match(source, /defaultActivityId: "apps"/);
 });
 
-test("global Help Center uses the main workspace while remaining secondary navigation", async () => {
+
+test("successful business actions may navigate the Workbench to a declared internal route", async () => {
   const source = await import("node:fs/promises").then(fs =>
     fs.readFile(
       new URL("../../manager/desktop-workbench-runtime.ts", import.meta.url),
@@ -63,11 +68,56 @@ test("global Help Center uses the main workspace while remaining secondary navig
     )
   );
 
-  const helpStart = source.indexOf('id: "help"');
-  assert.notEqual(helpStart, -1);
-  const helpBlock = source.slice(helpStart, helpStart + 520);
-  assert.match(helpBlock, /kind: "workspace-route"/);
-  assert.match(helpBlock, /route: "\/help"/);
-  assert.match(helpBlock, /placement: "secondary"/);
-  assert.doesNotMatch(helpBlock, /kind: "side-route"/);
+  assert.match(
+    source,
+    /const navigateTo =[\s\S]*?typeof payload\?\.navigateTo === "string"[\s\S]*?navigateTo\.startsWith\("\/"\)[\s\S]*?workbench\?\.navigateWorkspace\(navigateTo\)/
+  );
+});
+
+
+test("vendored Eidos Workbench owns action-result navigation and empty-hash recovery", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../vendor/eidos/src/workbench/shell.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(source, /function actionResultNavigateToV010/);
+  assert.match(
+    source,
+    /const navigateTo = actionResultNavigateToV010\(result\);[\s\S]*?await navigateWorkspace\(navigateTo\)/
+  );
+  assert.match(source, /window\.history\.replaceState/);
+  assert.match(source, /void navigateWorkspace\(fallback\)/);
+});
+
+
+test("Desktop Workbench forwards qualified route read options to the page source", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../manager/desktop-workbench-runtime.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(
+    source,
+    /loadPage\(page, readOptions\)\s*\{\s*return source\.loadPage\(page, readOptions\);\s*\}/
+  );
+});
+
+
+test("vendored ActionHost preserves EVO context headers while localizing actions", async () => {
+  const source = await import("node:fs/promises").then(fs =>
+    fs.readFile(
+      new URL("../../vendor/eidos/src/app-host/app-manager-action-host.ts", import.meta.url),
+      "utf8"
+    )
+  );
+
+  assert.match(source, /request\.values\.activeContext/);
+  assert.match(source, /"x-evo-context-id"/);
+  assert.match(source, /options\.locale\?\.\(\)\?\.trim\(\)/);
+  assert.match(source, /searchParams\.set\("locale", locale\)/);
 });

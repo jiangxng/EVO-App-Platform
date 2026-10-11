@@ -1,5 +1,7 @@
 # LLM Context Contract
 
+> **AI-Native Agent State & Context Constitution (2026-10-08):** Before changing Personal Agent Conversation, long-context handling, summarization/compression, Working State, Agent Runs, Context Assembly, Personal Context Memory, semantic retrieval, EC learning integration or their durable storage, read `docs/architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md`. AI-native means explicit governed durable model-independent state and task-specific context assembly; it does **not** mean JSONL-first storage or dumping all history into the model. Conversation, Working State, Personal Memory and EC learning are distinct semantic layers. Raw source evidence is preserved subject to retention; compression is derived/versioned/regenerable; durable queryable product state prefers mature PostgreSQL-backed storage; JSONL remains appropriate for logs/export/migration/evaluation, not as the default product database authority.
+
 > **Extension Boundary Constitution (2026-10-01):** Before placing any material new capability, read `docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md` and `architecture.boundary-policy.json`. Classify the work as **Core, Provider, Application, Integration Adapter, or Experience** and identify who owns the authoritative facts before selecting files. Replaceable/vendor/deployment-specific services default to Provider Plugins; external-product compatibility belongs to Integration Adapters; Human UI belongs to Eidos Experience; Core contains only the smallest generic hosting/resolution/security/composition mechanism. Do not let current-chat convenience override ownership boundaries.
 > **Four-project ecosystem boundary (2026-10-01):** Read `docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md` before moving responsibility between EVO-App-Platform, EVO, Eidos and Experience-Compiler. These are the four current owner projects. `EVO-EC-Eidos-Convergence` is historical evidence only and is not a destination for new functionality.
 
@@ -77,6 +79,39 @@ Read `docs/architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md` before modif
 
 For ordinary plugin work, also read `docs/architecture/PLUGIN-PROTOCOL-v0.1.md`. For independent manifest authoring, load `contracts/schema/plugin-package-v0.1.schema.json` and `contracts/schema/plugin-feature-v0.1.schema.json` first, then the plugin's own manifest and only its direct public contracts. Use `npm run plugin:validate -- <manifest.json>` for canonical semantic validation. Do not load or test the whole plugin portfolio by default.
 
+
+## Foundation Object Program authority
+
+Before adding fields, import, projection, responsibility, workbench, permissions or LLM adaptation behavior to Counterparty, Item, Warehouse/Location or another Foundation Object, read:
+
+- `docs/architecture/ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md` (canonical persistence/container authority)
+- `docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md`
+- `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
+- `docs/architecture/FOUNDATION-OBJECT-EXPERIENCE-IMPORT-WORKBENCH-v0.1.md`
+- `docs/architecture/LLM-NATIVE-ENTERPRISE-ADAPTATION-v0.1.md` when enterprise-specific extension/adaptation is involved
+
+Permanent placement rule:
+
+```text
+domain semantics
+  -> owning Foundation Object Application plugin
+
+object-agnostic reusable mechanism
+  -> shared Foundation Object contract/module/package
+
+Human rendering primitive
+  -> Eidos
+
+persistent learning/reasoning method
+  -> Experience-Compiler
+
+BusinessData / Posting / Ledger / Replay deterministic runtime
+  -> EVO
+```
+
+Counterparty is the first reference object, not the owner of generic Foundation Object infrastructure. Shared contracts remain EXPERIMENTAL until a materially different second object (Item/Product) proves reuse.
+
+Enterprise Context is the persistent enterprise Resource Container / data plane. It provides scope, namespace, access, lifecycle and persistence; object/application plugins define resource semantics. Never move Foundation Object business meaning into Enterprise Context Core, and never bypass the Enterprise Resource boundary with an ungoverned private durable store.
 
 ## Current handoff / fresh-chat bootstrap
 
@@ -249,6 +284,32 @@ Current Railway single-replica adapter may use a mounted durable state file behi
 
 Do not wait for the human to enumerate ordinary lifecycle closure. For an installable Package, default completeness includes discovery, side-effect-free plan, dependency resolution, install, enable, disable, uninstall, dependency-safe blocking, persistent lifecycle state, and upgrade when a newer compatible catalog version exists. Each transition must update effective Capabilities/Contributions/Experiences consistently and be regression-tested through the canonical App Host path.
 
+
+## Plugin Lazy Resource Loading Rule
+
+Before changing plugin startup, browser bootstrap, runtime initialization, database/store wiring or optional application loading, read:
+
+`docs/architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md`
+
+Canonical rule:
+
+```text
+catalog metadata discovery
+→ lightweight and declarative
+
+not installed / not active
+→ no effective Experience
+→ no plugin runtime/store/database initialization
+→ no plugin-specific browser resource loading
+
+installed + active but unused interactive plugin
+→ keep heavy implementation lazy where feasible
+
+surface opened / capability invoked
+→ load the owning implementation on demand
+```
+
+App Platform Host may eagerly own only generic lifecycle, authorization, Contribution discovery and lazy dispatch mechanisms. First-party status does not justify eager plugin runtime loading. Background initialization requires an explicit active Feature/runtime reason.
 
 ## Plugin-First Extension Rule
 

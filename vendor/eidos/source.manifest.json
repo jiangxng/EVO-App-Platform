@@ -1,7 +1,7 @@
 {
   "name": "Eidos public runtime snapshot",
   "sourceRepository": "jiangxng/eidos",
-  "sourceCommit": "682ff6cb7418bdd772f44311922e1fa4d4a367db",
+  "sourceCommit": "22b487ffc3ddc12b819c9601d6f06c34326fb454",
   "ownership": "Eidos",
   "policy": "Eidos owns generic semantics. Sync pinned source first, but preserve explicitly declared App-Platform Host overlays; rebase Eidos changes into overlays instead of replacing those files wholesale.",
   "files": [
@@ -35,8 +35,18 @@
     "src/design-language/productive-workbench-css.ts",
     "src/design-language/tokens.ts",
     "src/diagram/contracts.ts",
+    "src/diagram/edge-lanes.ts",
+    "src/diagram/edge-paths.ts",
+    "src/diagram/edge-waypoints.ts",
     "src/diagram/editor.ts",
     "src/diagram/index.ts",
+    "src/diagram/ink-spatial-index.ts",
+    "src/diagram/label-reservation.ts",
+    "src/diagram/layered-layout.ts",
+    "src/diagram/obstacle-routing.ts",
+    "src/diagram/obstacle-spatial-index.ts",
+    "src/diagram/selection.ts",
+    "src/diagram/snapping.ts",
     "src/diagram/surface.ts",
     "src/diagram/viewport.ts",
     "src/diagram/workspace.ts",
@@ -80,6 +90,58 @@
       "owner": "EVO-App-Platform",
       "reason": "Host integration overlay preserving production-verified durable Personal Agent thread/run behavior while mounting generic Eidos page capabilities such as Diagram Editor.",
       "syncPolicy": "Never replace wholesale. Start from the current App-Platform overlay and apply the minimal Eidos semantic delta."
+    },
+    {
+      "path": "src/app-host/app-manager-action-host.ts",
+      "owner": "EVO-App-Platform",
+      "reason": "Host integration overlay preserving EVO active Enterprise Context request headers while adopting generic Eidos ActionHost capabilities such as action locale propagation.",
+      "syncPolicy": "Never replace wholesale. Start from the current App-Platform overlay and apply the minimal Eidos semantic delta."
+    },
+    {
+      "path": "src/diagram/surface.ts",
+      "owner": "EVO-App-Platform",
+      "reason": "Preserve already deployed App Host Eidos-context-navigation integration and canvas rendering behavior; do not silently overwrite with upstream standalone diagram navigation and mouse affordances. Reconcile explicitly in a separately tested future upstream sync.",
+      "syncPolicy": "Review explicitly; do not bulk overwrite."
+    }
+  ],
+  "componentPins": [
+    {
+      "component": "eidos.2d-core",
+      "sourceRepository": "jiangxng/eidos",
+      "sourceCommit": "3fde008f372bcbcaad45563f511c7b7cf1f8924e",
+      "sourcePath": "src/diagram",
+      "vendoredPath": "vendor/eidos/src/diagram",
+      "publicEntrypoint": "src/2d/index.ts",
+      "sourcePublicEntrypointBlob": "d35b0f2fd6631b1c14ea540f27984a5f2cf0e419",
+      "upstreamFileBlobs": {
+        "contracts.ts": "96b08ea4399a027a5e32d5bac8f551483c4276b0",
+        "edge-lanes.ts": "5c8d6b38e16f1ec9b719090a379e26cad1c80abb",
+        "edge-paths.ts": "05c4d4974996987867d5131b65bfcc882a2236cc",
+        "edge-waypoints.ts": "5a615d9fc3741fa8a4898b7358fa0c6108ed6d9c",
+        "editor.ts": "a147f7ba719fd906d2e5523b32217b35a907b927",
+        "index.ts": "b6897cb3533c5735f98405c42e8f71ea8fd1ea91",
+        "ink-spatial-index.ts": "0b97e3e6ae4da6bf084f5a31fcb6a43987831989",
+        "label-reservation.ts": "f60bb64d534a25b839e943cb1de43938f7dedee4",
+        "layered-layout.ts": "e6efb14ea6f6d719a1b3ddda1d4eb230263303ce",
+        "obstacle-routing.ts": "654e70d482a6530d4633af2a5f0c8a2f61a645d9",
+        "obstacle-spatial-index.ts": "21700786ac2ae3ed385b6ded7398eb5aaff9df2c",
+        "selection.ts": "6fa647650f2b93c5b5c95eef6b925cfebc62e41f",
+        "snapping.ts": "49c34ba683e277698d9d5fb0f27edbc263aa43aa",
+        "surface.ts": "5e84b31995df4024c68309ee918b9700ca2952b2",
+        "viewport.ts": "c5904985d29e8df1f9c882ac3faf37a3823e63b1",
+        "workspace.ts": "28d40b7185cd4b9d8057026c5875b45bb98d420a"
+      },
+      "hostOverlays": [
+        {
+          "path": "src/diagram/surface.ts",
+          "upstreamBlob": "5e84b31995df4024c68309ee918b9700ca2952b2",
+          "vendoredBlob": "21e610553357c836519d960ce3e98279299ec690",
+          "owner": "EVO-App-Platform",
+          "reason": "Preserve already deployed App Host Eidos-context-navigation integration and canvas rendering behavior; do not silently overwrite with upstream standalone diagram navigation and mouse affordances. Reconcile explicitly in a separately tested future upstream sync."
+        }
+      ],
+      "status": "SCOPED_PIN_WITH_EXPLICIT_HOST_OVERLAY",
+      "note": "Top-level sourceCommit records the older broad Eidos runtime snapshot, not this newer independently pinned 2D component. Exactly 15 of 16 diagram files must match the upstream commit byte-for-byte. Scope does not imply all other vendored Eidos assets have been synchronized."
     }
   ]
 }

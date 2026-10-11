@@ -93,6 +93,8 @@ export interface ConversationThreadV010 {
   lastEventId: string;
 }
 
+export type ConversationStoreResultV010<T> = T | Promise<T>;
+
 export interface ConversationThreadEventStoreV010 {
   append(event: ConversationThreadEventV010): void;
   listEvents(): ConversationThreadEventV010[];
@@ -107,12 +109,12 @@ export interface ConversationThreadStoreV010 {
     createdAt: string;
     sourceInteractionId?: string;
     title?: string;
-  }): ConversationThreadV010;
+  }): ConversationStoreResultV010<ConversationThreadV010>;
   archive(input: {
     threadId: string;
     archivedAt: string;
     archivedBySubjectId: string;
-  }): ConversationThreadV010;
+  }): ConversationStoreResultV010<ConversationThreadV010>;
   appendMessage(input: {
     threadId: string;
     messageId: string;
@@ -122,20 +124,20 @@ export interface ConversationThreadStoreV010 {
     runId?: string;
     replyToMessageId?: string;
     presentation?: Record<string, unknown>;
-  }): ConversationThreadV010;
-  get(threadId: string): ConversationThreadV010 | undefined;
+  }): ConversationStoreResultV010<ConversationThreadV010>;
+  get(threadId: string): ConversationStoreResultV010<ConversationThreadV010 | undefined>;
   list(input: {
     principalSubjectId: string;
     context: ActiveContextRefV010;
     limit?: number;
     includeArchived?: boolean;
-  }): ConversationThreadV010[];
-  events(threadId: string): ConversationThreadEventV010[];
+  }): ConversationStoreResultV010<ConversationThreadV010[]>;
+  events(threadId: string): ConversationStoreResultV010<ConversationThreadEventV010[]>;
   conversationHistory(input: {
     threadId: string;
     maxMessages?: number;
     maxTotalCharacters?: number;
     maxCharactersPerMessage?: number;
     excludeMessageId?: string;
-  }): AgentConversationMessageV010[];
+  }): ConversationStoreResultV010<AgentConversationMessageV010[]>;
 }

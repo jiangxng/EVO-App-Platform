@@ -447,6 +447,12 @@ form[data-eidos-id] button,
 [data-eidos-catalog-items],[data-eidos-extension-items]{
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--eidos-space-lg);margin-top:var(--eidos-space-lg);
 }
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-layout="list"] [data-eidos-catalog-items]{
+  grid-template-columns:minmax(0,1fr);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-layout="list"] [data-eidos-catalog-item]{
+  padding:var(--eidos-space-xl);
+}
 [data-eidos-catalog-item],[data-eidos-extension-item]{
   border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-md);
   padding:var(--eidos-space-lg);display:flex;flex-direction:column;gap:var(--eidos-space-md);background:var(--eidos-bg);
@@ -483,6 +489,205 @@ form[data-eidos-id] button,
 }
 [data-eidos-catalog-item] button:disabled{
   cursor:not-allowed;opacity:.5;
+}
+
+/* Shared business-page hierarchy and context navigation.
+   Mirrors the 2D Workspace breadcrumb language without plugin-owned CSS. */
+[data-eidos-page-header]{display:grid;gap:var(--eidos-space-sm)}
+[data-eidos-page-heading]{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:var(--eidos-space-section);min-width:0;
+}
+[data-eidos-page-heading-copy]{min-width:0}
+form[data-eidos-id] [data-eidos-page-heading] h1,
+[data-eidos-capability="catalog-browser"] [data-eidos-page-heading] h1{
+  margin:0;font-size:var(--eidos-font-page);line-height:1.25;letter-spacing:-.015em;
+}
+[data-eidos-page-description]{
+  margin:var(--eidos-space-sm) 0 0;max-width:760px;
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);line-height:1.55;
+}
+[data-eidos-page-actions]{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:var(--eidos-space-sm);flex-wrap:wrap;flex:0 0 auto;
+}
+[data-eidos-page-actions] [data-eidos-action-wrap]{display:block}
+[data-eidos-page-actions] button,
+[data-eidos-page-actions] [data-eidos-catalog-download]{
+  min-height:var(--eidos-control-normal);
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg);
+  padding:0 var(--eidos-space-lg);
+}
+[data-eidos-page-actions] button[data-eidos-primary="true"],
+[data-eidos-page-actions] [data-eidos-catalog-download][data-eidos-primary="true"],
+form[data-eidos-id] [data-eidos-form-actions] button[data-eidos-primary="true"]{
+  border-color:var(--eidos-primary);background:var(--eidos-primary);
+  color:var(--eidos-primary-fg);
+}
+[data-eidos-page-actions] button:not([data-eidos-primary="true"]):hover,
+form[data-eidos-id] [data-eidos-form-actions] button:not([data-eidos-primary="true"]):hover{
+  background:var(--eidos-bg-hover);
+}
+
+[data-eidos-collection-heading]{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:var(--eidos-space-lg);
+  margin-top:var(--eidos-space-section);
+  padding-top:var(--eidos-space-lg);
+  border-top:1px solid var(--eidos-border);
+}
+[data-eidos-collection-heading] h2{
+  margin:0;font-size:var(--eidos-font-body);line-height:1.35;font-weight:650;
+}
+[data-eidos-collection-heading] p{
+  margin:4px 0 0;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);line-height:1.45;
+}
+[data-eidos-context-navigation]{
+  min-width:0;min-height:22px;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);line-height:1.4;
+}
+[data-eidos-context-navigation-desktop]{
+  display:flex;align-items:center;gap:6px;min-width:0;
+  white-space:nowrap;overflow:hidden;
+}
+/* Context navigation follows the Ledger Runtime template-design workspace:
+   it is navigation metadata, never a second toolbar or page title. */
+form[data-eidos-id] [data-eidos-context-navigation] button,
+[data-eidos-capability="catalog-browser"] [data-eidos-context-navigation] button,
+[data-eidos-diagram-editor] [data-eidos-context-navigation] button,
+[data-eidos-context-navigation-mobile] button{
+  appearance:none!important;
+  min-height:0!important;height:auto!important;
+  border:0!important;border-radius:0!important;
+  padding:0!important;margin:0!important;
+  background:transparent!important;box-shadow:none!important;
+  color:var(--eidos-fg-muted)!important;
+  font:inherit!important;font-weight:400!important;line-height:1.4!important;
+  cursor:pointer;
+}
+form[data-eidos-id] [data-eidos-context-navigation] button:hover,
+[data-eidos-capability="catalog-browser"] [data-eidos-context-navigation] button:hover,
+[data-eidos-diagram-editor] [data-eidos-context-navigation] button:hover,
+[data-eidos-context-navigation-mobile] button:hover{
+  color:var(--eidos-primary)!important;text-decoration:underline;
+}
+[data-eidos-context-navigation-desktop] span[aria-current="page"]{
+  color:var(--eidos-fg);font-weight:600;overflow:hidden;text-overflow:ellipsis;
+}
+[data-eidos-context-separator]{
+  color:color-mix(in srgb,var(--eidos-fg-muted) 58%,transparent);
+}
+[data-eidos-context-navigation-mobile]{display:none}
+
+form[data-eidos-id] [data-eidos-form-fields]{margin-top:var(--eidos-space-md)}
+form[data-eidos-id] [data-eidos-form-actions]{
+  display:flex;justify-content:flex-end;align-items:center;gap:var(--eidos-space-sm);
+  flex-wrap:wrap;margin-top:var(--eidos-space-section);
+  padding-top:var(--eidos-space-lg);border-top:1px solid var(--eidos-border);
+}
+
+/* Productive management lists: continuous, scannable rows.
+   Row activation is the default detail affordance; status is informative,
+   not a competing action. */
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"]{
+  width:min(1180px,100%);border:0;border-radius:0;
+  padding:0;background:transparent;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{
+  display:block;margin-top:var(--eidos-space-md);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);
+  overflow:hidden;background:var(--eidos-bg);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
+  position:relative;
+  border:0;border-bottom:1px solid var(--eidos-border);
+  border-radius:0;
+  padding:var(--eidos-space-lg) 44px var(--eidos-space-lg) var(--eidos-space-xl);
+  gap:var(--eidos-space-sm);box-shadow:none;background:var(--eidos-bg);
+  display:grid;grid-template-columns:minmax(0,1fr);
+  align-items:center;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]:last-child{
+  border-bottom:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item][data-eidos-catalog-row-route]{
+  cursor:pointer;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item][data-eidos-catalog-row-route]:hover{
+  background:var(--eidos-bg-hover);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item][data-eidos-catalog-row-route]:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:-2px;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>header{
+  min-width:0;display:flex;align-items:center;justify-content:space-between;
+  gap:var(--eidos-space-lg);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item] h2{
+  font-size:var(--eidos-font-body);font-weight:650;line-height:1.35;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>p{
+  margin:0;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-compact);line-height:1.45;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-badges]:empty,
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer:empty{
+  display:none;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-metadata]{
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:var(--eidos-space-xs) var(--eidos-space-lg);min-width:0;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-meta]{
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-status]{
+  flex:0 0 auto;
+  border:0;border-radius:var(--eidos-radius-pill);
+  padding:2px 7px;
+  font-size:var(--eidos-font-meta);font-weight:500;line-height:1.35;
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-status][data-tone="positive"]{
+  color:var(--eidos-success);
+  background:color-mix(in srgb,var(--eidos-success-bg) 72%,transparent);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-status][data-tone="neutral"]{
+  color:var(--eidos-fg-muted);background:var(--eidos-bg-subtle);
+}
+[data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
+  justify-content:flex-start;margin-top:var(--eidos-space-xs);
+}
+[data-eidos-catalog-row-disclosure]{
+  position:absolute;right:var(--eidos-space-xl);top:50%;
+  transform:translateY(-50%);
+  color:var(--eidos-fg-subtle);font-size:1.25rem;line-height:1;
+  pointer-events:none;
+}
+@media (max-width:700px){
+  [data-eidos-page-heading]{display:grid;grid-template-columns:minmax(0,1fr)}
+  [data-eidos-page-actions]{justify-content:flex-start}
+  [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]{
+    padding-right:38px;
+  }
+  [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>header{
+    align-items:flex-start;
+  }
+  [data-eidos-capability="catalog-browser"][data-eidos-catalog-density="compact"] [data-eidos-catalog-item]>footer{
+    justify-content:flex-start;margin-top:var(--eidos-space-xs);
+  }
+  [data-eidos-context-navigation-desktop]{display:none}
+  [data-eidos-context-navigation-mobile]{
+    display:flex;align-items:center;min-height:28px;
+  }
+  form[data-eidos-id] [data-eidos-form-actions]{
+    justify-content:stretch;
+  }
+  form[data-eidos-id] [data-eidos-form-actions] button{
+    flex:1 1 auto;min-height:var(--eidos-touch-target);
+  }
 }
 
 [data-eidos-capability="catalog-detail"]{
@@ -2294,6 +2499,248 @@ form[data-eidos-id] button:hover,
   [data-eidos-catalog-detail-info],
   [data-eidos-review-item]{
     border-radius:var(--eidos-radius-lg);
+  }
+}
+
+
+/* Personal Agent conversation chrome.
+   A primary chat is a Workbench task surface, not a card floating inside the canvas.
+   Thread controls stay quiet, compact and progressively disclosed. */
+[data-eidos-workspace-content]:has(> [data-eidos-chat]){
+  padding:0;
+  overflow:hidden;
+  background:var(--eidos-bg);
+}
+[data-eidos-workspace-content] > [data-eidos-chat],
+[data-eidos-side-panel] [data-eidos-chat]{
+  height:100%;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  background:var(--eidos-bg);
+  container-type:inline-size;
+  container-name:eidos-chat;
+}
+[data-eidos-side-panel] [data-eidos-chat-header] h1{
+  display:none;
+}
+[data-eidos-workspace-content] > [data-eidos-chat] [data-eidos-chat-header]{
+  min-height:var(--eidos-side-header-height);
+  padding:0 var(--eidos-space-xl);
+  background:var(--eidos-bg);
+}
+[data-eidos-chat-heading-group]{
+  min-width:0;
+  flex:1 1 auto;
+  display:flex;
+  align-items:center;
+  gap:var(--eidos-space-md);
+}
+[data-eidos-chat-heading-group] h1{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+[data-eidos-chat-heading-group] [data-eidos-chat-context]{
+  min-width:0;
+  max-width:40%;
+  flex:0 1 auto;
+}
+[data-eidos-chat-heading-group] [data-eidos-chat-context]>span{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+[data-eidos-chat-heading-group] [data-eidos-chat-context]>strong{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding:var(--eidos-space-xs) var(--eidos-space-md);
+  border-radius:var(--eidos-radius-pill);
+  background:var(--eidos-bg-subtle);
+  color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);
+  font-weight:600;
+}
+[data-eidos-chat-heading-group] [data-eidos-chat-context] select{
+  width:auto;
+  min-width:96px;
+  max-width:240px;
+  height:var(--eidos-control-compact);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-pill);
+  padding:0 var(--eidos-space-md);
+  background:var(--eidos-bg-subtle);
+  color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);
+}
+[data-eidos-chat-thread-controls]{
+  width:auto;
+  min-width:0;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:var(--eidos-space-xs);
+}
+[data-eidos-chat-thread-controls] details{
+  position:relative;
+}
+[data-eidos-chat-thread-controls] summary{
+  list-style:none;
+}
+[data-eidos-chat-thread-controls] summary::-webkit-details-marker{
+  display:none;
+}
+[data-eidos-chat-new-thread],
+[data-eidos-chat-history-toggle],
+[data-eidos-chat-more-toggle]{
+  min-height:var(--eidos-control-compact);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:var(--eidos-space-sm);
+  border:0;
+  border-radius:var(--eidos-radius-sm);
+  padding:0 var(--eidos-space-md);
+  background:transparent;
+  color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);
+  white-space:nowrap;
+  cursor:pointer;
+}
+[data-eidos-chat-new-thread]:hover,
+[data-eidos-chat-history-toggle]:hover,
+[data-eidos-chat-more-toggle]:hover{
+  background:var(--eidos-bg-hover);
+  color:var(--eidos-fg);
+}
+[data-eidos-chat-history][open] > [data-eidos-chat-history-toggle],
+[data-eidos-chat-more][open] > [data-eidos-chat-more-toggle]{
+  background:var(--eidos-bg-selected);
+  color:var(--eidos-primary);
+}
+[data-eidos-chat-more-toggle]{
+  width:var(--eidos-control-compact);
+  padding:0;
+}
+[data-eidos-chat-thread-controls] [data-eidos-icon]{
+  width:16px;
+  height:16px;
+}
+[data-eidos-chat-history-menu],
+[data-eidos-chat-more-menu]{
+  position:absolute;
+  top:calc(100% + var(--eidos-space-xs));
+  right:0;
+  z-index:20;
+  padding:var(--eidos-space-xs);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  box-shadow:var(--eidos-shadow-overlay);
+}
+[data-eidos-chat-history-menu]{
+  width:min(320px,82vw);
+}
+[data-eidos-chat-more-menu]{
+  min-width:160px;
+}
+[data-eidos-chat-history-list]{
+  display:grid;
+  gap:2px;
+  max-height:320px;
+  overflow:auto;
+}
+[data-eidos-chat-history-item],
+[data-eidos-chat-archive-thread]{
+  width:100%;
+  min-height:var(--eidos-control-compact);
+  border:0;
+  border-radius:var(--eidos-radius-sm);
+  padding:0 var(--eidos-space-md);
+  background:transparent;
+  color:var(--eidos-fg);
+  font-size:var(--eidos-font-compact);
+  text-align:left;
+}
+[data-eidos-chat-history-item]{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+[data-eidos-chat-history-item]:hover,
+[data-eidos-chat-archive-thread]:hover{
+  background:var(--eidos-bg-hover);
+}
+[data-eidos-chat-history-item][data-active="true"]{
+  background:var(--eidos-bg-selected);
+  color:var(--eidos-primary);
+}
+[data-eidos-chat-new-thread]:disabled,
+[data-eidos-chat-history-toggle][aria-disabled="true"],
+[data-eidos-chat-more-toggle][aria-disabled="true"]{
+  cursor:not-allowed;
+  opacity:.5;
+}
+[data-eidos-chat-thread-selector]{
+  display:none;
+}
+[data-eidos-workspace-content] > [data-eidos-chat] [data-eidos-chat-transcript]{
+  scrollbar-gutter:stable;
+}
+
+@container eidos-chat (max-width:520px){
+  [data-eidos-chat-header]{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    align-items:stretch;
+    gap:var(--eidos-space-sm);
+    min-height:auto;
+    padding:var(--eidos-space-sm) var(--eidos-space-md);
+  }
+  [data-eidos-chat-heading-group]{
+    width:100%;
+    min-width:0;
+  }
+  [data-eidos-chat-heading-group] [data-eidos-chat-context]{
+    max-width:50%;
+  }
+  [data-eidos-chat-thread-controls]{
+    width:100%;
+    justify-content:flex-end;
+  }
+  [data-eidos-chat-context] select{
+    min-width:0;
+    max-width:100%;
+  }
+}
+
+@container eidos-chat (max-width:360px){
+  [data-eidos-chat-heading-group]{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:var(--eidos-space-xs);
+  }
+  [data-eidos-chat-heading-group] [data-eidos-chat-context]{
+    width:100%;
+    max-width:none;
+  }
+  [data-eidos-chat-toolbar-label]{
+    display:none;
+  }
+  [data-eidos-chat-new-thread],
+  [data-eidos-chat-history-toggle]{
+    width:var(--eidos-control-compact);
+    padding:0;
   }
 }
 

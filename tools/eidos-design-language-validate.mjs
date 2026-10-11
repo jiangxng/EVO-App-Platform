@@ -118,7 +118,10 @@ for (const visualMarker of [
   "--eidos-primary:#2B6CB0",
   "--eidos-bg-selected:#EAF2FB",
   'data-eidos-workspace-mode="app"',
-  "data-eidos-activity-label"
+  "data-eidos-activity-label",
+  "data-eidos-page-heading",
+  "data-eidos-context-navigation",
+  'data-eidos-catalog-density="compact"'
 ]) {
   if (!eidosProductiveWorkbenchCss.includes(visualMarker)) {
     problems.push("Vendored Eidos business-office realization is incomplete: " + visualMarker);
@@ -155,10 +158,9 @@ if (!document || document.kind !== "help-document") {
 if (
   !desktopRuntime.includes('id: "help"')
   || !desktopRuntime.includes('icon: "help"')
-  || !desktopRuntime.includes('kind: "workspace-route"')
-  || !desktopRuntime.includes('route: "/help"')
+  || !/id: "help"[\s\S]*?kind: "workspace-route"[\s\S]*?route: "\/help"/.test(desktopRuntime)
 ) {
-  problems.push("Global Help Center must remain a secondary Activity launcher that opens the full Help Center in the Main Workspace.");
+  problems.push("Workbench Help must remain a secondary utility Activity while opening the full Help Center in the primary workspace.");
 }
 
 if (

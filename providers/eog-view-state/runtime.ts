@@ -156,6 +156,24 @@ export function createEogViewStateProviderV010(input: {
         }
         next.hiddenNodeIds = [];
         next.hiddenEdgeIds = [];
+      } else if (request.mutation.type === "PROJECTION_VISIBILITY_REPLACE") {
+        if (next.kind !== "DIAGRAM_2D") {
+          throw new Error("EOG_VIEW_PROJECTION_2D_REQUIRED");
+        }
+        const hiddenNodeIds = request.mutation.hiddenNodeIds.map(id =>
+          required(id, "EOG_VIEW_PROJECTION_ITEM_ID_REQUIRED")
+        );
+        const hiddenEdgeIds = request.mutation.hiddenEdgeIds.map(id =>
+          required(id, "EOG_VIEW_PROJECTION_ITEM_ID_REQUIRED")
+        );
+        if (
+          new Set(hiddenNodeIds).size !== hiddenNodeIds.length
+          || new Set(hiddenEdgeIds).size !== hiddenEdgeIds.length
+        ) {
+          throw new Error("EOG_VIEW_PROJECTION_ITEMS_DUPLICATE");
+        }
+        next.hiddenNodeIds = [...hiddenNodeIds];
+        next.hiddenEdgeIds = [...hiddenEdgeIds];
       } else if (request.mutation.type === "CAMERA_SET") {
         if (next.kind !== "SPATIAL_3D") {
           throw new Error("EOG_VIEW_CAMERA_3D_REQUIRED");

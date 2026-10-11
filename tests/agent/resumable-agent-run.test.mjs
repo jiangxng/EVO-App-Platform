@@ -373,16 +373,18 @@ test("resume rechecks Principal and Context scope", async () => {
   );
 });
 
-test("concurrent resume is rejected while one slice is active", async () => {
+test("concurrent resume joins the same in-flight slice without duplicate inference", async () => {
   const store = memoryStore();
   createRun(store);
 
   let release;
+  let inferenceCount = 0;
   const gate = new Promise(resolve => { release = resolve; });
   const provider = {
     providerId: "test.llm",
     modelId: "test-model",
     async infer() {
+      inferenceCount += 1;
       await gate;
       return {
         contractVersion: "0.1.0",
@@ -406,18 +408,18 @@ test("concurrent resume is rejected while one slice is active", async () => {
   });
   await new Promise(resolve => setTimeout(resolve, 0));
 
-  await assert.rejects(
-    () => runExecutor.resume({
-      runId: "agent-run:test",
-      principal,
-      context
-    }),
-    /AGENT_RUN_RESUME_CONFLICT/
-  );
+  const second = runExecutor.resume({
+    runId: "agent-run:test",
+    principal,
+    context
+  });
 
   release();
-  const completed = await first;
-  assert.equal(completed.run.state, "SUCCEEDED");
+  const [firstCompleted, secondCompleted] = await Promise.all([first, second]);
+  assert.equal(firstCompleted.run.state, "SUCCEEDED");
+  assert.equal(secondCompleted.run.state, "SUCCEEDED");
+  assert.equal(firstCompleted.run.runId, secondCompleted.run.runId);
+  assert.equal(inferenceCount, 1);
 });
 
 test("indeterminate resumed WRITE blocks the run fail-closed", async () => {
@@ -943,6 +945,38 @@ test("Host drain completes an ordinary multi-slice run without client round trip
   assert.equal(result.run.finalMessage, "done from durable observation");
   assert.equal(result.advanceCount, 2);
   assert.equal(result.exhaustedBudget, false);
+});
+
+test("Host drain default time budget pauses work before a long browser request", async () => {
+  let calls = 0;
+  const fakeExecutor = {
+    async resume() {
+      calls += 1;
+      await new Promise(resolve => setTimeout(resolve, 20));
+      return {
+        contractVersion: "0.1.0",
+        advanced: true,
+        run: {
+          runId: "agent-run:time-budget",
+          state: "PAUSED"
+        }
+      };
+    }
+  };
+
+  const result = await drainResumableAgentRunV010(
+    fakeExecutor,
+    {
+      runId: "agent-run:time-budget",
+      principal,
+      context
+    },
+    { maxElapsedMs: 30 }
+  );
+
+  assert.ok(calls >= 1);
+  assert.equal(result.run.state, "PAUSED");
+  assert.equal(result.exhaustedBudget, true);
 });
 
 test("Host drain remains bounded and leaves a durable PAUSED run for recovery", async () => {

@@ -13,7 +13,8 @@ import type {
   ResolvedContextSetV010
 } from "../../contracts/platform-services.js";
 import {
-  parsePersonalAgentConversationHistoryV010
+  parsePersonalAgentConversationHistoryV010,
+  parsePersonalAgentInteractionContextV010
 } from "./chat-action-handler.js";
 import type {
   AgentToolCatalogV010,
@@ -259,6 +260,8 @@ export function createPersonalAgentRunActionHandlersV010(
           }
           const conversationHistory =
             parsePersonalAgentConversationHistoryV010(request);
+          const interactionContext =
+            parsePersonalAgentInteractionContextV010(request);
           const createdAt = (dependencies.now?.() ?? new Date()).toISOString();
           const run = dependencies.runStore.create({
             runId: "agent-run:" + dependencies.runId(),
@@ -270,6 +273,9 @@ export function createPersonalAgentRunActionHandlersV010(
             input: {
               message: message.trim(),
               conversationHistory,
+              ...(interactionContext
+                ? { interactionContext: structuredClone(interactionContext) }
+                : {}),
               locale: localeForRequest(request, message),
               providerId: resolved.provider.providerId,
               modelId: resolved.provider.modelId

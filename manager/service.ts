@@ -2,17 +2,23 @@ import type {
   FeatureManifestV010,
   InstallPlanV010,
   PackageLifecyclePlanV010,
+  PackageUpgradePlanV010,
   PackageManifestV010,
   PlatformSnapshotV010,
   PlatformCapabilityOperationContributionV010,
+  PlatformDataImportTargetContributionV010,
   PlatformServiceProviderContributionV010,
   EidosLocalizationBundleContributionV010,
   EidosWorkbenchActivityContributionV010,
+  EidosWorkbenchHomeItemContributionV010,
   EidosSettingsContributionV010
 } from "../contracts/package.js";
 import type { PackageCatalog } from "../catalog/catalog.js";
 import type { LifecycleStore } from "./store.js";
-import { evaluatePackageCompatibility } from "./compatibility.js";
+import {
+  compareSemanticVersionsV010,
+  evaluatePackageCompatibility
+} from "./compatibility.js";
 import {
   inspectPluginRuntimeV010,
   type PluginRuntimeStatusV010
@@ -30,9 +36,16 @@ export interface PackageIntegrityAdmissionV010 {
 
 export interface PluginLifecycleEventV010 {
   contractVersion: "0.1.0";
-  type: "PACKAGE_INSTALLED" | "FEATURE_ACTIVATED" | "FEATURE_DEACTIVATED" | "PACKAGE_UNINSTALLED";
+  type:
+    | "PACKAGE_INSTALLED"
+    | "PACKAGE_UPGRADED"
+    | "FEATURE_ACTIVATED"
+    | "FEATURE_DEACTIVATED"
+    | "PACKAGE_UNINSTALLED";
   packageId: string;
   featureId?: string;
+  fromVersion?: string;
+  toVersion?: string;
   occurredAt: string;
 }
 
@@ -40,6 +53,8 @@ export interface AppManagerService {
   listCatalog(): PackageManifestV010[];
   planInstall(packageId: string): InstallPlanV010;
   install(packageId: string, authorization?: InstallAuthorizationV010): PlatformSnapshotV010;
+  planUpgrade(packageId: string): PackageUpgradePlanV010;
+  upgrade(packageId: string, authorization?: InstallAuthorizationV010): PlatformSnapshotV010;
   activateForEvent(eventName: string): PlatformSnapshotV010;
   enable(packageId: string): PlatformSnapshotV010;
   planDisable(packageId: string): PackageLifecyclePlanV010;
@@ -48,10 +63,12 @@ export interface AppManagerService {
   uninstall(packageId: string): PlatformSnapshotV010;
   getSnapshot(): PlatformSnapshotV010;
   listEffectiveExperiences(): unknown[];
+  listEffectiveDataImportTargets(): Array<PlatformDataImportTargetContributionV010["target"] & { packageId: string; featureId: string }>;
   listEffectiveServiceProviders(capability?: string): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }>;
   listEffectiveCapabilityOperations(capability?: string): Array<PlatformCapabilityOperationContributionV010["operation"] & { packageId: string; featureId: string }>;
   listEffectiveLocalizationBundles(): Array<EidosLocalizationBundleContributionV010["bundle"] & { packageId: string; featureId: string }>;
   listEffectiveWorkbenchActivities(): Array<EidosWorkbenchActivityContributionV010["activity"] & { packageId: string; featureId: string }>;
+  listEffectiveWorkbenchHomeItems(): Array<EidosWorkbenchHomeItemContributionV010["item"] & { packageId: string; featureId: string }>;
   listInstalledSettings(packageId?: string): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }>;
   loadExperiencePage(source: string): unknown | undefined;
 }
@@ -347,6 +364,248 @@ export function createAppManagerService(
     return getSnapshot();
   }
 
+  function planUpgrade(packageId: string): PackageUpgradePlanV010 {
+    const installed = store.getInstalledPackage(packageId);
+    const target = catalog.get(packageId);
+    const blockers: Array<{ code: string; message: string }> = [];
+
+    if (!installed) {
+      blockers.push({
+        code: "PACKAGE_NOT_INSTALLED",
+        message: `Package '${packageId}' is not installed.`
+      });
+    }
+    if (!target) {
+      blockers.push({
+        code: "PACKAGE_NOT_FOUND",
+        message: `Package '${packageId}' is not in the catalog.`
+      });
+    }
+
+    const fromVersion = installed?.version ?? "";
+    const toVersion = target?.version ?? "";
+    const updateFeatures: PackageUpgradePlanV010["updateFeatures"] = [];
+
+    if (installed && target) {
+      const comparison = compareSemanticVersionsV010(
+        target.version,
+        installed.version
+      );
+      if (comparison === undefined) {
+        blockers.push({
+          code: "PACKAGE_VERSION_INVALID",
+          message: `Cannot compare installed version '${installed.version}' with catalog version '${target.version}'.`
+        });
+      } else if (comparison === 0) {
+        blockers.push({
+          code: "PACKAGE_ALREADY_CURRENT",
+          message: `Package '${packageId}' is already at catalog version '${target.version}'.`
+        });
+      } else if (comparison < 0) {
+        blockers.push({
+          code: "PACKAGE_DOWNGRADE_NOT_ALLOWED",
+          message: `Catalog version '${target.version}' is older than installed version '${installed.version}'.`
+        });
+      }
+
+      const compatibility = evaluatePackageCompatibility(target);
+      if (compatibility.state === "INCOMPATIBLE") {
+        blockers.push({
+          code: "HOST_INCOMPATIBLE",
+          message: `Package '${packageId}': ${compatibility.messages.join(" ")}`
+        });
+      }
+
+      const runtime = evaluateRuntime(target);
+      if (runtime.status !== "READY") {
+        blockers.push({
+          code: "PLUGIN_RUNTIME_UNSUPPORTED",
+          message: `Package '${packageId}': ${runtime.message}`
+        });
+      }
+
+      const integrity = evaluateIntegrity(target);
+      if (integrity.state === "INVALID" || integrity.state === "UNTRUSTED") {
+        blockers.push({
+          code: "PACKAGE_INTEGRITY_REJECTED",
+          message: `Package '${packageId}': ${integrity.message}`
+        });
+      }
+      if (
+        (target.runtime?.kind === "PROCESS" || target.runtime?.kind === "REMOTE")
+        && integrity.state === "UNSIGNED"
+      ) {
+        blockers.push({
+          code: "PROCESS_PACKAGE_SIGNATURE_REQUIRED",
+          message: `Package '${packageId}' requires a trusted signature before executable runtime admission.`
+        });
+      }
+
+      const snapshot = store.snapshot();
+      const targetFeatures = new Map(
+        target.features.map(feature => [feature.featureId, feature])
+      );
+      const activeTarget = snapshot.activeFeatures
+        .filter(feature => feature.packageId === packageId);
+
+      for (const active of activeTarget) {
+        const next = targetFeatures.get(active.featureId);
+        if (!next) {
+          blockers.push({
+            code: "ACTIVE_FEATURE_REMOVED_BY_UPGRADE",
+            message: `Active Feature '${active.featureId}' is absent from Package '${packageId}' ${target.version}.`
+          });
+          continue;
+        }
+        updateFeatures.push({
+          featureId: active.featureId,
+          fromVersion: active.version,
+          toVersion: next.version
+        });
+      }
+
+      const postUpgradeFeatures: FeatureManifestV010[] = [];
+      for (const active of snapshot.activeFeatures) {
+        if (active.packageId === packageId) {
+          const next = targetFeatures.get(active.featureId);
+          if (next) postUpgradeFeatures.push(next);
+          continue;
+        }
+        const owner = catalog.get(active.packageId);
+        const current = owner?.features.find(
+          feature => feature.featureId === active.featureId
+        );
+        if (current) postUpgradeFeatures.push(current);
+      }
+
+      const activeFeatureIds = new Set(
+        postUpgradeFeatures.map(feature => feature.featureId)
+      );
+      const activeCapabilities = new Set(
+        postUpgradeFeatures.flatMap(
+          feature => feature.providesCapabilities ?? []
+        )
+      );
+      for (const feature of postUpgradeFeatures) {
+        for (const requiredFeature of feature.requiresFeatures ?? []) {
+          if (!activeFeatureIds.has(requiredFeature)) {
+            blockers.push({
+              code: "UPGRADE_DEPENDENCY_UNSATISFIED",
+              message: `Feature '${feature.featureId}' requires inactive Feature '${requiredFeature}' after upgrade.`
+            });
+          }
+        }
+        for (const capability of feature.requiresCapabilities ?? []) {
+          if (!activeCapabilities.has(capability)) {
+            blockers.push({
+              code: "UPGRADE_DEPENDENCY_UNSATISFIED",
+              message: `Feature '${feature.featureId}' requires unavailable Capability '${capability}' after upgrade.`
+            });
+          }
+        }
+      }
+    }
+
+    const granted = new Set(installed?.grantedPermissions ?? []);
+    const requestedPermissions = (target?.permissions ?? [])
+      .filter(permission => !granted.has(permission.id));
+    const requiresTrustApproval =
+      target?.publisher?.trust === "UNVERIFIED"
+      && installed?.trustApproved !== true;
+    const requiresUserApproval =
+      requiresTrustApproval || requestedPermissions.length > 0;
+
+    return {
+      contractVersion: "0.1.0",
+      operation: "UPGRADE",
+      packageId,
+      fromVersion,
+      toVersion,
+      updateFeatures: updateFeatures.sort((a, b) =>
+        a.featureId.localeCompare(b.featureId)
+      ),
+      blockers,
+      requestedPermissions: structuredClone(requestedPermissions),
+      requiresTrustApproval,
+      requiresUserApproval,
+      sideEffectFree: true
+    };
+  }
+
+  function upgrade(
+    packageId: string,
+    authorization: InstallAuthorizationV010 = {}
+  ): PlatformSnapshotV010 {
+    const plan = planUpgrade(packageId);
+    if (plan.blockers.length > 0) {
+      throw new Error(`UPGRADE_BLOCKED: ${JSON.stringify(plan.blockers)}`);
+    }
+
+    const installed = store.getInstalledPackage(packageId);
+    const target = catalog.get(packageId);
+    if (!installed || !target) {
+      throw new Error(`UPGRADE_STATE_INVALID: ${packageId}`);
+    }
+
+    if (plan.requiresTrustApproval && authorization.trustApproved !== true) {
+      throw new Error(`UPGRADE_TRUST_APPROVAL_REQUIRED: ${packageId}`);
+    }
+
+    const approved = new Set([
+      ...(installed.grantedPermissions ?? []),
+      ...(authorization.approvedPermissions ?? [])
+    ]);
+    const missingRequiredPermissions = (target.permissions ?? [])
+      .filter(permission =>
+        permission.required !== false && !approved.has(permission.id)
+      )
+      .map(permission => permission.id);
+    if (missingRequiredPermissions.length > 0) {
+      throw new Error(
+        `UPGRADE_PERMISSION_APPROVAL_REQUIRED: ${missingRequiredPermissions.join(",")}`
+      );
+    }
+
+    const allowedTargetPermissions = new Set(
+      (target.permissions ?? []).map(permission => permission.id)
+    );
+    store.saveInstalledPackage({
+      ...installed,
+      version: target.version,
+      trustApproved: target.publisher?.trust === "UNVERIFIED"
+        ? installed.trustApproved === true || authorization.trustApproved === true
+        : true,
+      grantedPermissions: [...approved]
+        .filter(permission => allowedTargetPermissions.has(permission))
+        .sort()
+    });
+
+    const targetFeatures = new Map(
+      target.features.map(feature => [feature.featureId, feature])
+    );
+    for (const active of store.snapshot().activeFeatures) {
+      if (active.packageId !== packageId) continue;
+      const next = targetFeatures.get(active.featureId);
+      if (!next) continue;
+      store.saveActiveFeature({
+        ...active,
+        version: next.version
+      });
+    }
+
+    const timestamp = now().toISOString();
+    onLifecycleEvent({
+      contractVersion: "0.1.0",
+      type: "PACKAGE_UPGRADED",
+      packageId,
+      fromVersion: installed.version,
+      toVersion: target.version,
+      occurredAt: timestamp
+    });
+
+    return getSnapshot();
+  }
+
   function activateForEvent(eventName: string): PlatformSnapshotV010 {
     const normalized = eventName.trim();
     if (!normalized) throw new Error("ACTIVATION_EVENT_REQUIRED");
@@ -601,6 +860,50 @@ export function createAppManagerService(
     });
   }
 
+  function listEffectiveDataImportTargets(): Array<
+    PlatformDataImportTargetContributionV010["target"]
+    & { packageId: string; featureId: string }
+  > {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<
+      PlatformDataImportTargetContributionV010["target"]
+      & { packageId: string; featureId: string }
+    > = [];
+    const ids = new Map<string, { packageId: string; featureId: string }>();
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "platform.data-import-target") continue;
+        const target = structuredClone(contribution.target);
+        const previous = ids.get(target.targetId);
+        if (previous) {
+          throw new Error(
+            `DATA_IMPORT_TARGET_ID_CONFLICT: ${target.targetId} is contributed by `
+            + `${previous.packageId}/${previous.featureId} and `
+            + `${item.packageId}/${item.featureId}`
+          );
+        }
+        ids.set(target.targetId, {
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+        result.push({
+          ...target,
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      a.targetId.localeCompare(b.targetId)
+      || a.packageId.localeCompare(b.packageId)
+      || a.featureId.localeCompare(b.featureId)
+    );
+  }
+
   function listEffectiveServiceProviders(
     capability?: string
   ): Array<PlatformServiceProviderContributionV010["provider"] & { packageId: string; featureId: string }> {
@@ -758,6 +1061,46 @@ export function createAppManagerService(
     );
   }
 
+  function listEffectiveWorkbenchHomeItems(): Array<EidosWorkbenchHomeItemContributionV010["item"] & { packageId: string; featureId: string }> {
+    const active = store.snapshot().activeFeatures;
+    const result: Array<EidosWorkbenchHomeItemContributionV010["item"] & { packageId: string; featureId: string }> = [];
+    const ids = new Set<string>();
+
+    for (const item of active) {
+      const pkg = catalog.get(item.packageId);
+      const feature = pkg?.features.find(x => x.featureId === item.featureId);
+      for (const contribution of feature?.contributions ?? []) {
+        if (contribution.kind !== "eidos.workbench-home-item") continue;
+
+        const homeItem = structuredClone(contribution.item);
+        if (ids.has(homeItem.id)) {
+          throw new Error(`WORKBENCH_HOME_ITEM_ID_CONFLICT: ${homeItem.id}`);
+        }
+        ids.add(homeItem.id);
+
+        if (
+          homeItem.localization
+          && homeItem.localization.namespace !== item.packageId
+        ) {
+          throw new Error(
+            `WORKBENCH_HOME_ITEM_LOCALIZATION_NAMESPACE_MISMATCH: ${homeItem.localization.namespace} != ${item.packageId}`
+          );
+        }
+
+        result.push({
+          ...homeItem,
+          packageId: item.packageId,
+          featureId: item.featureId
+        });
+      }
+    }
+
+    return result.sort((a, b) =>
+      (a.order ?? 0) - (b.order ?? 0)
+      || a.id.localeCompare(b.id)
+    );
+  }
+
   function listInstalledSettings(
     packageId?: string
   ): Array<EidosSettingsContributionV010["settings"] & { packageId: string; featureId: string }> {
@@ -809,6 +1152,8 @@ export function createAppManagerService(
     listCatalog: () => catalog.list().map(x => x.package),
     planInstall,
     install,
+    planUpgrade,
+    upgrade,
     activateForEvent,
     enable,
     planDisable,
@@ -817,10 +1162,12 @@ export function createAppManagerService(
     uninstall,
     getSnapshot,
     listEffectiveExperiences,
+    listEffectiveDataImportTargets,
     listEffectiveServiceProviders,
     listEffectiveCapabilityOperations,
     listEffectiveLocalizationBundles,
     listEffectiveWorkbenchActivities,
+    listEffectiveWorkbenchHomeItems,
     listInstalledSettings,
     loadExperiencePage
   };

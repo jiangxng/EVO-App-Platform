@@ -251,7 +251,9 @@ export async function drainResumableAgentRunV010(
   options: DrainResumableAgentRunOptionsV010 = {}
 ): Promise<DrainResumableAgentRunResultV010> {
   const maxAdvances = Math.max(1, Math.trunc(options.maxAdvances ?? 12));
-  const maxElapsedMs = Math.max(1_000, options.maxElapsedMs ?? 90_000);
+  // Keep one Host action comfortably below the browser/proxy request timeout.
+  // Longer work remains durable and is resumed by the run-backed client.
+  const maxElapsedMs = Math.max(1_000, options.maxElapsedMs ?? 20_000);
   const startedAt = Date.now();
 
   let advanceCount = 0;
@@ -283,7 +285,8 @@ export async function drainResumableAgentRunV010(
 export function createResumableAgentRunExecutorV010(
   dependencies: ResumableAgentRunExecutorDependenciesV010
 ): ResumableAgentRunExecutorV010 {
-  const activeRuns = new Set<string>();
+  const activeRuns =
+    new Map<string, Promise<AgentRunResumeResultV010>>();
   const now = () => (dependencies.now?.() ?? new Date()).toISOString();
 
   const append = (
@@ -413,12 +416,12 @@ export function createResumableAgentRunExecutorV010(
         };
       }
 
-      if (activeRuns.has(initial.runId)) {
-        throw new Error("AGENT_RUN_RESUME_CONFLICT");
+      const inFlight = activeRuns.get(initial.runId);
+      if (inFlight) {
+        return inFlight;
       }
-      activeRuns.add(initial.runId);
 
-      try {
+      const execution = (async (): Promise<AgentRunResumeResultV010> => {
         let run = dependencies.store.get(initial.runId)!;
         verifyScope(run, input.principal, input.context);
 
@@ -517,6 +520,13 @@ export function createResumableAgentRunExecutorV010(
                 )
               }
             : {}),
+          ...(run.input.interactionContext
+            ? {
+                interactionContext: structuredClone(
+                  run.input.interactionContext
+                )
+              }
+            : {}),
           tools: structuredClone(offeredTools),
           observations: structuredClone([
             ...run.observations,
@@ -577,8 +587,15 @@ export function createResumableAgentRunExecutorV010(
           run,
           advanced: true
         };
+      })();
+
+      activeRuns.set(initial.runId, execution);
+      try {
+        return await execution;
       } finally {
-        activeRuns.delete(initial.runId);
+        if (activeRuns.get(initial.runId) === execution) {
+          activeRuns.delete(initial.runId);
+        }
       }
     }
   };

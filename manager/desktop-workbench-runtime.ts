@@ -64,6 +64,50 @@ export function currentUserDisplayNameV010(
   return principal.displayName?.trim() || principal.subjectId;
 }
 
+export function currentUserLogoutActionV010(locale: string): string {
+  const normalizedLocale = locale.toLowerCase().startsWith("zh")
+    ? "zh-CN"
+    : "en";
+  const returnTo = "/login?locale=" + encodeURIComponent(normalizedLocale);
+  return "/auth/logout?returnTo=" + encodeURIComponent(returnTo);
+}
+
+export function applyExclusiveChatWorkspacePresentationV010(
+  root: HTMLElement
+): boolean {
+  const workspaceHasChat = Boolean(
+    root.querySelector(
+      "[data-eidos-workspace-content] > [data-eidos-chat]"
+    )
+  );
+  const sidePanelHasChat = Boolean(
+    root.querySelector(
+      "[data-eidos-side-panel-content] > [data-eidos-chat]"
+    )
+  );
+  const exclusive = workspaceHasChat && sidePanelHasChat;
+  const sidePanel = root.querySelector<HTMLElement>("[data-eidos-side-panel]");
+  const splitter = root.querySelector<HTMLElement>("[data-eidos-workbench-splitter]");
+  const workspace = root.querySelector<HTMLElement>("[data-eidos-workspace]");
+
+  if (exclusive) {
+    root.setAttribute("data-evo-workspace-chat-exclusive", "true");
+    root.style.gridTemplateColumns =
+      "var(--eidos-activity-width) 0 0 minmax(0,1fr)";
+    if (sidePanel) sidePanel.style.display = "none";
+    if (splitter) splitter.style.display = "none";
+    if (workspace) workspace.style.gridColumn = "2 / 5";
+    return true;
+  }
+
+  root.removeAttribute("data-evo-workspace-chat-exclusive");
+  root.style.removeProperty("grid-template-columns");
+  sidePanel?.style.removeProperty("display");
+  splitter?.style.removeProperty("display");
+  workspace?.style.removeProperty("grid-column");
+  return false;
+}
+
 async function loadBrowserContextOptionsV010(
   fetchImpl: typeof fetch
 ): Promise<{
@@ -105,11 +149,12 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
   fetchImpl?: typeof fetch;
 }): Promise<DesktopWorkbenchRuntimeV010> {
   const source = options.source;
+  let activeLocale = options.initialLocale;
   const actionHost = createAppManagerActionHost({
     baseUrl: options.baseUrl,
-    fetchImpl: options.fetchImpl
+    fetchImpl: options.fetchImpl,
+    locale: () => activeLocale
   });
-  let activeLocale = options.initialLocale;
   let activeTextScale: EidosTextScalePreferenceV010 =
     normalizeEidosTextScalePreferenceV010(
       window.localStorage.getItem("evo.textScale")
@@ -136,8 +181,8 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       }
       return source.listEffectiveExperienceManifests();
     },
-    loadPage(page) {
-      return source.loadPage(page);
+    loadPage(page, readOptions) {
+      return source.loadPage(page, readOptions);
     }
   });
 
@@ -427,6 +472,36 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         });
         textScaleControl.append(textScaleLabel, textScaleSelect);
         currentUserMenu.append(textScaleControl);
+
+        const logoutForm = document.createElement("form");
+        logoutForm.method = "post";
+        logoutForm.action = currentUserLogoutActionV010(activeLocale);
+        logoutForm.setAttribute("data-evo-current-user-logout", "");
+        logoutForm.setAttribute("data-eidos-account-logout", "");
+        const logoutButton = document.createElement("button");
+        logoutButton.type = "submit";
+        logoutButton.textContent = zh ? "退出登录" : "Sign out";
+        logoutButton.setAttribute(
+          "aria-label",
+          zh ? "退出当前 EVO 会话" : "Sign out of the current EVO session"
+        );
+        logoutForm.style.marginTop = "var(--eidos-space-xs)";
+        logoutForm.style.paddingTop = "var(--eidos-space-md)";
+        logoutForm.style.borderTop = "1px solid var(--eidos-border)";
+        logoutButton.style.width = "100%";
+        logoutButton.style.minHeight = "var(--eidos-control-normal)";
+        logoutButton.style.border = "1px solid var(--eidos-border-strong)";
+        logoutButton.style.borderRadius = "var(--eidos-radius-md)";
+        logoutButton.style.padding = "0 var(--eidos-space-md)";
+        logoutButton.style.background = "var(--eidos-bg)";
+        logoutButton.style.color = "var(--eidos-danger)";
+        logoutButton.style.font = "inherit";
+        logoutButton.style.fontSize = "var(--eidos-font-compact)";
+        logoutButton.style.fontWeight = "600";
+        logoutButton.style.textAlign = "left";
+        logoutButton.style.cursor = "pointer";
+        logoutForm.append(logoutButton);
+        currentUserMenu.append(logoutForm);
       }
     }
 
@@ -502,6 +577,11 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       localization,
       minSidePanelWidth: 260,
       maxSidePanelWidth: 720,
+      resolveAgentActivity(capability) {
+        return !capability || capability === "agent.personal"
+          ? "enterprise-agent"
+          : undefined;
+      },
       mountGlobalControls(container) {
         const contextControl = document.createElement("label");
         contextControl.setAttribute("data-evo-context-control", "");
@@ -639,12 +719,50 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
             window.localStorage.setItem("evo.context.id", copiedContextId);
             await refreshContextControlV010(copiedContextId);
             await workbench?.navigateWorkspace("/ledger");
+            return;
+          }
+
+          const navigateTo =
+            typeof payload?.navigateTo === "string"
+              ? payload.navigateTo.trim()
+              : "";
+          if (navigateTo.startsWith("/")) {
+            await workbench?.navigateWorkspace(navigateTo);
+            return;
           }
         }
       }
     });
 
     await refreshContextControlV010();
+
+    const workbenchRoot = document.querySelector<HTMLElement>(
+      '[data-eidos-app-host-layout="workbench"]'
+    );
+    let chatWorkspaceObserver: MutationObserver | undefined;
+    if (workbenchRoot) {
+      const syncChatWorkspace = () => {
+        applyExclusiveChatWorkspacePresentationV010(workbenchRoot);
+      };
+      const workspaceContent = workbenchRoot.querySelector<HTMLElement>(
+        "[data-eidos-workspace-content]"
+      );
+      const sideContent = workbenchRoot.querySelector<HTMLElement>(
+        "[data-eidos-side-panel-content]"
+      );
+      chatWorkspaceObserver = new MutationObserver(syncChatWorkspace);
+      if (workspaceContent) {
+        chatWorkspaceObserver.observe(workspaceContent, {
+          childList: true
+        });
+      }
+      if (sideContent) {
+        chatWorkspaceObserver.observe(sideContent, {
+          childList: true
+        });
+      }
+      syncChatWorkspace();
+    }
   
     const realtime = createFetchSseRealtimeSourceV010({
       url: () => window.location.origin + "/v1/events",
@@ -687,6 +805,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         }
         unsubscribeRealtime();
         realtime.dispose();
+        chatWorkspaceObserver?.disconnect();
         workbench?.dispose();
         host.dispose();
       }
