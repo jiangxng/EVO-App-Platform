@@ -4055,6 +4055,13 @@ export function mountDiagramEditorPageV010(
     };
 
     const pointerUp = (event: PointerEvent) => {
+      // M07: Space+left navigation must not synthesize a blank-canvas click
+      // that clears the existing node selection after pointer capture ends.
+      if (event.type === "pointerup" && event.button === 0 && spaceHeld
+        && navigationPointers.has(event.pointerId)) {
+        suppressNextCanvasClick = true;
+        window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+      }
       if (marquee?.pointerId === event.pointerId) {
         const box = marquee;
         removeMarquee();

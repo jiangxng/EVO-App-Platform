@@ -517,6 +517,47 @@ try{
     rightDragPanned:true,nodesUnchanged:true,selectionUnchanged:true,
     menuNotShown:true,noImplicitSave:true,physicalDeviceVerified:false
   }));
+  // M07: real middle mouse and keyboard Space+left drag independently pan.
+  // No application data, node coordinates or selected nodes may be changed.
+  const m07Data=async()=>tab.evaluate(()=>{
+    const nodes=[...document.querySelectorAll("[data-eidos-diagram-node]")];
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    const r=canvas.getBoundingClientRect();
+    return {positions:nodes.map(n=>({id:n.dataset.eidosDiagramNode,x:n.style.left,y:n.style.top})),
+      transform:nodes[0].parentElement.style.transform,
+      selected:nodes.map(n=>n.getAttribute("aria-pressed")),
+      start:{x:r.left+30,y:r.top+35},
+      target:document.elementFromPoint(r.left+30,r.top+35)?.tagName};
+  });
+  const m07Before=await m07Data();
+  await tab.mouse.move(m07Before.start.x,m07Before.start.y);
+  await tab.mouse.down({button:"middle"});
+  await tab.mouse.move(m07Before.start.x+48,m07Before.start.y+26,{steps:8});
+  await tab.mouse.up({button:"middle"});
+  const m07Mid=await m07Data();
+  assert.notEqual(m07Mid.transform,m07Before.transform,"M07 middle drag must pan viewport");
+  assert.deepEqual(m07Mid.positions,m07Before.positions,"M07 middle drag cannot move nodes");
+  assert.deepEqual(m07Mid.selected,m07Before.selected,"M07 middle drag keeps selection");
+  await tab.locator("[data-eidos-diagram-canvas]").focus();
+  await tab.keyboard.down("Space");
+  await tab.mouse.move(m07Before.start.x,m07Before.start.y);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(m07Before.start.x-33,m07Before.start.y+22,{steps:8});
+  await tab.mouse.up({button:"left"});
+  await tab.keyboard.up("Space");
+  const m07Space=await m07Data();
+  assert.notEqual(m07Space.transform,m07Mid.transform,"M07 Space+left must pan viewport");
+  assert.deepEqual(m07Space.positions,m07Before.positions,"M07 Space+left cannot move nodes");
+  assert.deepEqual(m07Space.selected,m07Before.selected,"M07 Space+left keeps selection");
+  assert.equal(await tab.locator("[data-eidos-diagram-marquee]").count(),0,
+    "M07 Space pan must not leave a marquee");
+  assert.equal(store.getVersion(id),0,"M07 navigation cannot persist a projection");
+  console.log("DIAGRAM_M07_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M07",browser:"Chromium "+browser.version(),
+    nativeMiddlePan:true,nativeSpaceLeftPan:true,
+    preservedSelection:true,positionsStable:true,withoutImplicitSave:true,
+    physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
