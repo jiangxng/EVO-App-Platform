@@ -1,4 +1,4 @@
-name: Prune merged inactive branches safely
+name: Prune main-merged inactive branches safely
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
               report.scanned++;
               const name=branch.name;
               if (branch.protected || referenced.has(name) ||
-                  /^(?:agent\/|eog\/|docs\/personal-agent|feat\/diagram-|docs\/diagram-|feat\/eog-|chore\/diagram-)/u.test(name) ||
+                  /^(?:agent\/|eog\/|docs\/personal-agent|docs\/external-agent|feat\/external-agent|feat\/ea4a-|feat\/2d-|feat\/diagram-|feat\/eog-|feat\/projection-|feat\/enterprise-software-projection|fix\/eog-|docs\/diagram-|chore\/diagram-|architecture\/sop-designer-)/u.test(name) ||
                   /^(?:release\/|production\/|staging\/|deploy\/)/u.test(name)) {
                 report.protected.push(name); continue;
               }
