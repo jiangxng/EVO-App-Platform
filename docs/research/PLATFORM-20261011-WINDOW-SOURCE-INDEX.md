@@ -134,3 +134,12 @@
 | S38 / **A 原文（历史说明，当前状态另验）** | [TR01B2D3 stage demo online record](https://github.com/jiangxng/EVO-App-Platform/blob/bd67f320dce5ed6d4a023b58546b619ce4a03aa0/docs/roadmap/TR01B2D3-STAGE-DEMO-ONLINE-20261011.md) | 历史原文记录 Preview 独立 Railway Function 创建因额度而失败，无公网服务端链接；RawGitHack 仅被建议作为静态浏览器加载方式。本轮未访问 RawGitHack，也未声称最新 CDN 可用或已部署 |
 
 F3 决定：上述原始 SHA 作为演示/研究遗产保存，**不将缺失的 3 个 demo 文件、1 个 demo 研究文档及旧 workflow 原样吸收进 main**。真正业务安装、授权、EVO Ledger 调用必须由后续 Purchasing 独立验收，不能由该 demo 替代。
+
+
+## 2026-10-12 新增来源：F1 Host 传输守卫
+
+| 新 ID / 原文阅读深度 | 固定源码、CI、参考说明 | 事实、限制与工程用途 |
+| --- | --- | --- |
+| S39 / A 源码原文 | [main 对应旧 Client 代码](https://github.com/jiangxng/EVO-App-Platform/blob/34f332ba96feaa9d19a6fd8615fb2e5de9b98e8d/apps/trading-reference/finance-owner-remote.ts)，blob 85ebfd580143b9beaf72726050ca4c8a8c7fb0cb；[F1 新测试](https://github.com/jiangxng/EVO-App-Platform/blob/09fee6f8f327871b71e0b37a9e19a7f16161db57/tests/protocol/platform-f1-signed-owner-loopback-boundary.test.mjs) | main 和旧 #594 的签名 Client 同 blob，不整支回灌。新增真正的 loopback HTTP / Ed25519 消息签名协议负例，但接收端不具备真实 EVO/Postgres |
+| S40 / C CI 元数据 + B 失败日志 | [PR #779](https://github.com/jiangxng/EVO-App-Platform/pull/779)、[成功 Platform CI #38155748502](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748502)、[成功 Continuity #38155748491](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748491)；[初次失败 38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269)、[二次失败 38155633156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155633156) | 两次红 CI 是测试错误码断言的预期错误，不是安全守卫被绕过。第三次通过后合并 SHA 09fee6f；这些不能升级成正式 Owner/真实经济合同/人验 |
+| S41 / A 直接读取 | [EVO #108 finance-only app](https://github.com/jiangxng/EVO/blob/a8c3b0dfca56ec207c095efb743e1f6e9493d6a0/apps/api/src/finance-owner-readonly-app.ts)、[独立 main](https://github.com/jiangxng/EVO/blob/a8c3b0dfca56ec207c095efb743e1f6e9493d6a0/apps/api/src/finance-owner-readonly-main.ts)、[旧 Host session CI 说明](https://github.com/jiangxng/EVO-App-Platform/blob/34f332ba96feaa9d19a6fd8615fb2e5de9b98e8d/docs/roadmap/TR01B2D3-INSTALLED-HOST-MANAGED-SESSION-CI-20261010.md) | 专用 Finance Listener 在 EVO Draft #108，但不在 EVO main；旧端到端历史证据须保持历史语义，不可拿独立 Host mock 测试替代发布合同 |
