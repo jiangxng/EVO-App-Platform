@@ -1,13 +1,13 @@
-name: One-time Platform Squash-Merged PR Head Retirement
+name: One-time Platform Squash-Merged PR Head Retirement (Batch 2026-10-12)
 on:
   pull_request:
     paths:
-      - "repository-hygiene/platform-merged-squash-heads-20261011.json"
+      - "repository-hygiene/platform-merged-squash-heads-20261012.json"
       - ".github/workflows/platform-one-time-squash-pr-ref-retirement-20261011.yml"
   push:
     branches: [main]
     paths:
-      - "repository-hygiene/platform-merged-squash-heads-20261011.json"
+      - "repository-hygiene/platform-merged-squash-heads-20261012.json"
 permissions:
   contents: write
   pull-requests: read
@@ -29,14 +29,12 @@ jobs:
             const execute=process.env.SQUASH_REF_EXECUTE==='true';
             if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repository');
             if(execute && (context.eventName!=='push'||context.ref!=='refs/heads/main'))throw Error('Execution on main push only');
-            const approved=new Map([[728,'fix/platform-branch-hygiene-leased-20261011'],
-            [731,'feat/tr01-six-stage-host-preview-discovery-20261011'],
-            [736,'fix/tr01-finance-signer-pointer-fd-20261011'],
-            [740,'chore/retire-verified-platform-source-refs-20261011'],
-            [741,'docs/platform-convergence-cleanup-results-20261011']]);
-            const manifest=JSON.parse(fs.readFileSync('repository-hygiene/platform-merged-squash-heads-20261011.json','utf8'));
-            if(manifest.schemaVersion!==1 || manifest.scope!=='platform-squash-pr-retirement-20261011' ||
-            !Array.isArray(manifest.records) || manifest.records.length!==5)throw Error('Invalid squash retirement manifest');
+            const approved=new Map([[775,'test/platform-f0-four-peer-lifecycle-convergence-20261011'],
+            [777,'test/platform-f2-disposable-postgres-logins-20261012'],
+            [779,'test/platform-f1-host-signed-loopback-proof-20261012']]);
+            const manifest=JSON.parse(fs.readFileSync('repository-hygiene/platform-merged-squash-heads-20261012.json','utf8'));
+            if(manifest.schemaVersion!==1 || manifest.scope!=='platform-squash-pr-retirement-20261012' ||
+            !Array.isArray(manifest.records) || manifest.records.length!==3)throw Error('Invalid squash retirement manifest');
             const shaRe=/^[0-9a-f]{40}$/i;
             const seen=new Set();
             for(const r of manifest.records){
@@ -80,5 +78,5 @@ jobs:
               await github.rest.git.deleteRef({owner,repo,ref:'heads/'+r.head});
               core.info('DELETED_SQUASH_HEAD #'+r.number+' '+r.head+' '+r.expectedHeadSha);
             }
-            core.info('EXECUTED_5_MERGED_PR_HEADS; separately enumerate branches to verify');
+            core.info('EXECUTED_3_MERGED_PR_HEADS; separately enumerate branches to verify');
             
