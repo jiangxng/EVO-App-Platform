@@ -1,0 +1,37 @@
+name: Agent PA-01B2 Native Chromium Preflight
+
+on:
+  pull_request:
+    paths:
+      - "tests/agent-line/pa01b2_chromium_preflight.py"
+      - ".github/workflows/agent-pa01b2-native-chromium.yml"
+      - "vendor/eidos/src/app-host/contextual-assistance.ts"
+      - "vendor/eidos/src/workbench/shell.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-chromium-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      - run: python -m pip install "playwright==1.56.0"
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/agent-line/pa01b2_chromium_preflight.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa01b2-native-chromium-evidence
+          path: artifacts/agent-pa01b2-chromium/
+          if-no-files-found: warn

@@ -1,3 +1,6 @@
+import type { AgentAssistanceResultV010 } from "../../contracts/agent-assistance.js";
+import { parseAgentAssistanceRequestV010, assistanceInteractionContextV010 } from "./assistance-request.js";
+import { isDeepStrictEqual } from "node:util";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -383,9 +386,21 @@ async function presentTurnResult(
         requestContext
       )
     : undefined;
+  const assistanceResult: AgentAssistanceResultV010 | undefined = run.input.assistanceRequest
+    ? {
+        contractVersion: "0.1.0",
+        requestId: run.input.assistanceRequest.requestId,
+        taskKind: run.input.assistanceRequest.taskKind,
+        source: structuredClone(run.input.assistanceRequest.source),
+        runId: run.runId,
+        runState: run.state,
+        actionReceiptIds: [...run.actionReceiptIds]
+      }
+    : undefined;
   return success(request, {
     thread,
     run,
+    ...(assistanceResult ? { assistanceResult } : {}),
     ...(run.state === "SUCCEEDED" && run.finalMessage
       ? {
           message: run.finalMessage,
@@ -415,7 +430,16 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             requestContext
           );
           const threadId = stringValue(request, "threadId");
-          const message = stringValue(request, "message");
+          const assistanceRequest = parseAgentAssistanceRequestV010(
+            request.values.assistanceRequest
+          );
+          const message = assistanceRequest?.userIntent ?? stringValue(request, "message");
+          if (assistanceRequest && (
+            (request.values.message !== undefined && stringValue(request, "message") !== message)
+            || request.values.interactionContext !== undefined
+          )) {
+            throw new Error("PERSONAL_AGENT_ASSISTANCE_INPUT_CONFLICT");
+          }
           const scopedThread = await threadForScope(
             dependencies,
             threadId,
@@ -435,7 +459,17 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             );
           }
 
-          const clientTurnId = clientTurnIdForRequest(request);
+          // Validate task coordinates before reusing or advancing an existing run.
+          // Identical text can target different imports/resources.
+          const interactionContext = assistanceRequest
+            ? assistanceInteractionContextV010(assistanceRequest)
+            : parsePersonalAgentInteractionContextV010(request);
+          const explicitClientTurnId = clientTurnIdForRequest(request);
+          if (assistanceRequest && explicitClientTurnId !== undefined
+            && explicitClientTurnId !== assistanceRequest.requestId) {
+            throw new Error("PERSONAL_AGENT_ASSISTANCE_INPUT_CONFLICT");
+          }
+          const clientTurnId = assistanceRequest?.requestId ?? explicitClientTurnId;
           const sourceActionId = turnSourceActionId(clientTurnId);
           const existingRun = clientTurnId
             ? dependencies.runStore.list({
@@ -449,7 +483,14 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             : undefined;
 
           if (existingRun) {
-            if (existingRun.input.message !== message) {
+            if (
+              existingRun.input.message !== message
+              || !isDeepStrictEqual(existingRun.input.assistanceRequest, assistanceRequest)
+              || !isDeepStrictEqual(
+                existingRun.input.interactionContext,
+                interactionContext
+              )
+            ) {
               throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
             }
             const resumed = ["READY", "PAUSED", "RUNNING"].includes(
@@ -495,8 +536,6 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             ?? await dependencies.threadStore.conversationHistory({
               threadId
             });
-          const interactionContext =
-            parsePersonalAgentInteractionContextV010(request);
           let run = dependencies.runStore.create({
             runId,
             principalSubjectId: principal.subjectId,
@@ -505,6 +544,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             sourceInteractionId: threadId,
             sourceActionId,
             input: {
+              ...(assistanceRequest ? { assistanceRequest: structuredClone(assistanceRequest) } : {}),
               message,
               conversationHistory: history,
               ...(interactionContext
@@ -610,3 +650,4 @@ export function createThreadBackedAgentTurnActionHandlersV010(
     }
   ];
 }
+
