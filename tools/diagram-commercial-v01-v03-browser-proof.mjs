@@ -1998,6 +1998,98 @@ try{
   await e07Viewer.close();
   await e07Tab.close();
 
+  // D01: real native Chrome UI hides a business relation and node as a
+  // presentation-only draft; Save must preserve canonical business data.
+  const d01Tab=await browser.newPage({viewport:{width:1250,height:820}});
+  await d01Tab.goto(base+"/designer",{waitUntil:"load"});
+  await waitReady(d01Tab);
+  assert.equal(store.getVersion(id),2,"D01 starts from the completed E07 saved baseline");
+  const d01EdgePoint=await d01Tab.evaluate(edgeId=>{
+    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
+    const transform=path.getScreenCTM(),len=path.getTotalLength();
+    for(let pct=8;pct<=92;pct+=2){
+      const p=path.getPointAtLength(len*pct/100);
+      const x=p.x*transform.a+p.y*transform.c+transform.e;
+      const y=p.x*transform.b+p.y*transform.d+transform.f;
+      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
+        return {x,y};
+    }
+    return null;
+  },relationId);
+  assert.ok(d01EdgePoint,"D01 must mouse-select the real visible relation");
+  await d01Tab.mouse.click(d01EdgePoint.x,d01EdgePoint.y);
+  await d01Tab.locator('[data-eidos-diagram-local-hide]').click();
+  assert.equal(await d01Tab.locator(selector).count(),0,
+    "D01 hidden relation must disappear from the current presentation");
+  assert.equal(await d01Tab.locator('[data-eidos-diagram-node="receipt"]').count(),1);
+  await d01Tab.locator('[data-eidos-diagram-node="sale"]').click();
+  await d01Tab.locator('[data-eidos-diagram-local-hide]').click();
+  assert.equal(await d01Tab.locator('[data-eidos-diagram-node="sale"]').count(),0,
+    "D01 hidden node must disappear without deleting the business node");
+  assert.equal(store.getVersion(id),2,"D01 visibility editing before Save is local only");
+  const beforeSave=await read.execute(request(READ,id),ctx);
+  assert.equal(beforeSave.ok,true);
+  assert.equal(beforeSave.result.nodes.length,2,
+    "D01 original read before Save retains both canonical business nodes");
+  assert.equal(beforeSave.result.edges.length,1,
+    "D01 original read before Save retains the canonical relationship");
+  await d01Tab.locator('[data-eidos-diagram-toolbar] button')
+    .filter({hasText:"Save projection"}).click();
+  await d01Tab.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Saved.",
+    {timeout:30000});
+  assert.equal(store.getVersion(id),3,"D01 explicit Save increments projection CAS once");
+  const persisted=await read.execute(request(READ,id),ctx);
+  assert.equal(persisted.ok,true,persisted.error?.message);
+  assert.ok(persisted.result.hiddenNodeIds?.includes("sale"),
+    "D01 saved projection records hidden node ID");
+  assert.ok(persisted.result.hiddenEdgeIds?.includes(relationId),
+    "D01 saved projection records hidden relation ID");
+  assert.equal(persisted.result.nodes.length,2,
+    "D01 projection hide must never delete underlying business nodes");
+  assert.equal(persisted.result.edges.length,1,
+    "D01 projection hide must never delete underlying business relation");
+  assert.equal(persisted.result.edges[0].source,"sale");
+  assert.equal(persisted.result.edges[0].target,"receipt");
+  assert.equal(persisted.result.edges[0].arrow,"end");
+  assert.equal(repo.listHistory({
+    enterpriseId:id.enterpriseId,definitionId:id.definitionId
+  }).length,1,"D01 projection-only write cannot create a business revision");
+  const d01Ready=page=>page.waitForFunction(()=>
+    document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.",
+    {timeout:30000});
+  await d01Tab.reload({waitUntil:"load"});
+  await d01Ready(d01Tab);
+  assert.equal(await d01Tab.locator('[data-eidos-diagram-node="sale"]').count(),0,
+    "D01 fresh Designer must preserve hidden node");
+  assert.equal(await d01Tab.locator(selector).count(),0,
+    "D01 fresh Designer must preserve hidden edge");
+  assert.equal(await d01Tab.locator('[data-eidos-diagram-node="receipt"]').count(),1);
+  const d01Viewer=await browser.newPage({viewport:{width:1250,height:820}});
+  await d01Viewer.goto(base+"/viewer",{waitUntil:"load"});
+  await d01Ready(d01Viewer);
+  assert.equal(await d01Viewer.locator('[data-eidos-diagram-node="sale"]').count(),0);
+  assert.equal(await d01Viewer.locator(selector).count(),0);
+  assert.equal(await d01Viewer.locator('[data-eidos-diagram-node="receipt"]').count(),1);
+  assert.equal(await d01Viewer.locator("[data-eidos-diagram-toolbar] button")
+    .filter({hasText:"Save projection"}).count(),0,
+    "D01 readonly Viewer cannot change the projection");
+  assert.equal(store.getVersion(id),3,"D01 read-only operations cannot write CAS");
+  assert.deepEqual(await d01Tab.evaluate(()=>window.__errors),[]);
+  assert.deepEqual(await d01Viewer.evaluate(()=>window.__errors),[]);
+  console.log("DIAGRAM_D01_BROWSER_SUBGATE="+JSON.stringify({
+    case:"D01",browser:"Chromium "+browser.version(),
+    nativeMouseHideEdge:true,nativeMouseHideNode:true,
+    localDraftBeforeExplicitSave:true,
+    independentCasVersionBefore:2,after:3,
+    persistedHiddenNode:true,persistedHiddenRelation:true,
+    freshDesignerAndReadonlyViewerHide:true,
+    businessNodes:2,businessEdges:1,businessRevisions:1,
+    formalHumanSignedCases:0,physicalDeviceVerified:false
+  }));
+  await d01Viewer.close();
+  await d01Tab.close();
+
 }finally{
   await browser?.close();
   server.closeAllConnections?.();server.close();
