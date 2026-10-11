@@ -13,6 +13,12 @@ export const experienceCompilerMemoryIntakeProviderPackage: PackageManifestV010 
   contractVersion: "0.1.0",
   packageId: EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
   displayName: "Experience Compiler Memory Intake Provider",
+  displayNameTranslations: {
+    "en": "Experience Compiler Memory Intake Provider",
+    "zh-CN": "Experience Compiler 记忆接入服务",
+    "ja": "Experience Compiler メモリ取り込みサービス",
+    "zh-TW": "Experience Compiler 記憶匯入服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {

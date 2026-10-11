@@ -527,6 +527,12 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ENTERPRISE_AGENT_PACKAGE_ID,
   displayName: "Personal Agent",
+  displayNameTranslations: {
+    "en": "Personal Agent",
+    "zh-CN": "个人代理",
+    "ja": "パーソナルエージェント",
+    "zh-TW": "個人代理"
+  },
   version: "0.1.0",
   type: "AGENT",
   features: [

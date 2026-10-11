@@ -4,6 +4,8 @@ import {stagePackageV010,stagePageV010,stagePageSourceV010} from "../trading-sta
 export const receivableStageDemoSpecV010 = {
   "domain": "receivable",
   "titleZh": "应收",
+  "titleJa": "売掛金",
+  "titleTw": "應收款",
   "titleEn": "Accounts Receivable",
   "descriptionZh": "应收插件展示从业务事实派生的应收状态，不重复记账",
   "recordId": "DEMO-AR-1001",

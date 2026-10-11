@@ -96,6 +96,20 @@ export function validatePluginManifestV010(
     add("PLUGIN_DISPLAY_NAME_REQUIRED", "displayName", "displayName is required.");
   }
 
+  if (pkg.displayNameTranslations !== undefined) {
+    const names = pkg.displayNameTranslations;
+    if (!names || typeof names !== "object" || Array.isArray(names)) {
+      add("PLUGIN_DISPLAY_NAME_TRANSLATIONS_INVALID", "displayNameTranslations", "Expected a locale-to-title object.");
+    } else {
+      for (const [locale, title] of Object.entries(names)) {
+        if (!/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(locale)
+          || typeof title !== "string" || !title.trim()) {
+          add("PLUGIN_DISPLAY_NAME_TRANSLATIONS_INVALID", `displayNameTranslations.${locale}`, "Expected a locale key and non-empty title.");
+        }
+      }
+    }
+  }
+
   if (!pkg.version.trim()) {
     add("PLUGIN_VERSION_REQUIRED", "version", "version is required.");
   }

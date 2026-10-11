@@ -1,3 +1,4 @@
+import { resolvePackageDisplayNameV010 } from "./package-display-name.js";
 import type { AppManagerService } from "./service.js";
 import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
 import type {
@@ -139,7 +140,8 @@ export function createProviderBindingPage(
   registry: ProviderRuntimeRegistry,
   bindings: ProviderBindingStoreV010,
   capability: string,
-  context: ProviderResolutionContextV010 = { installationId: "default" }
+  context: ProviderResolutionContextV010 = { installationId: "default" },
+  locale = "en"
 ): SettingsEditorV020 | undefined {
   const descriptors = manager.listEffectiveServiceProviders(capability);
   if (descriptors.length === 0) return undefined;
@@ -149,7 +151,7 @@ export function createProviderBindingPage(
   const selectedProviderId = existing?.providerId ?? providerIds[0]!;
   const health = registry.getHealth(selectedProviderId);
   const packageNameById = new Map(
-    manager.listCatalog().map(pkg => [pkg.packageId, pkg.displayName] as const)
+    manager.listCatalog().map(pkg => [pkg.packageId, resolvePackageDisplayNameV010(pkg, locale)] as const)
   );
   const providerDisplayName = (providerId: string): string => {
     const descriptor = descriptors.find(item => item.providerId === providerId);

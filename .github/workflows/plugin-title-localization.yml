@@ -1,0 +1,33 @@
+name: Plugin Title Localization
+on:
+  pull_request:
+    paths:
+      - 'apps/**/package.ts'
+      - 'apps/trading-stage/demo-kit.ts'
+      - 'providers/**/package.ts'
+      - 'agents/enterprise-agent/package.ts'
+      - 'catalog/seed.ts'
+      - 'contracts/package.ts'
+      - 'contracts/plugin-protocol.ts'
+      - 'contracts/schema/plugin-package-v0.1.schema.json'
+      - 'manager/package-display-name.ts'
+      - 'manager/external-agent-governance-package.ts'
+      - 'manager/plugin-store-page.ts'
+      - 'manager/settings-page.ts'
+      - 'manager/provider-manager-page.ts'
+      - 'manager/server.ts'
+      - 'vendor/eidos/src/localization/**'
+      - 'tests/protocol/plugin-title-localization.test.mjs'
+      - '.github/workflows/plugin-title-localization.yml'
+jobs:
+  titles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node --test tests/protocol/plugin-title-localization.test.mjs tests/protocol/plugin-protocol.test.mjs tests/settings/plugin-settings.test.mjs tests/integration/provider-manager-page.test.mjs tests/app-host/runtime-localization.test.mjs

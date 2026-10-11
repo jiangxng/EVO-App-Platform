@@ -15,6 +15,12 @@ export const applicationRuntimeBindingProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
   displayName: "Enterprise Application Runtime Binding Provider",
+  displayNameTranslations: {
+    "en": "Enterprise Application Runtime Binding Provider",
+    "zh-CN": "企业应用运行时绑定服务",
+    "ja": "企業アプリ実行環境バインドサービス",
+    "zh-TW": "企業應用執行環境繫結服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   features: [

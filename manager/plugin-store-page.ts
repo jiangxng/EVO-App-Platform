@@ -1,3 +1,4 @@
+import { resolvePackageDisplayNameV010 } from "./package-display-name.js";
 import type { PackageManifestV010, PlatformSnapshotV010 } from "../contracts/package.js";
 import { EVO_PLUGIN_PROTOCOL_VERSION } from "../contracts/plugin-protocol.js";
 import {
@@ -81,6 +82,7 @@ export interface PluginStoreProductStateV010 {
 }
 
 export interface PluginStorePageOptionsV010 {
+  locale?: string;
   integrityTrustStore?: PluginIntegrityTrustStoreV010;
   runtimeDiagnostics?: PluginRuntimeDiagnosticsV010[];
   runtimeEvents?: PluginRuntimeEventV010[];
@@ -161,7 +163,7 @@ export function createPluginStorePage(
 
         return {
           id: pkg.packageId,
-          title: pkg.displayName,
+          title: resolvePackageDisplayNameV010(pkg, options.locale),
           description: `${pkg.features.length} Feature(s) · ${provides.length} provided Capability(ies) · ${requires.length} required Capability(ies)`,
           version: pkg.version,
           category: pkg.type,

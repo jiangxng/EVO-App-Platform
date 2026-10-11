@@ -23,6 +23,12 @@ export const templateStorePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: TEMPLATE_STORE_PACKAGE_ID,
   displayName: "EVO Template Store",
+  displayNameTranslations: {
+    "en": "EVO Template Store",
+    "zh-CN": "EVO 模板商店",
+    "ja": "EVO テンプレートストア",
+    "zh-TW": "EVO 範本商店"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

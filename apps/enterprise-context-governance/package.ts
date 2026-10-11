@@ -47,6 +47,12 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
   displayName: "Enterprise Context",
+  displayNameTranslations: {
+    "en": "Enterprise Context",
+    "zh-CN": "企业上下文",
+    "ja": "企業コンテキスト",
+    "zh-TW": "企業上下文"
+  },
   version: "0.2.0",
   type: "APPLICATION",
   publisher: {

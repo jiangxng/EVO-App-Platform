@@ -4,6 +4,8 @@ import {stagePackageV010,stagePageV010,stagePageSourceV010} from "../trading-sta
 export const cashStageDemoSpecV010 = {
   "domain": "cash",
   "titleZh": "收款",
+  "titleJa": "入金",
+  "titleTw": "收款",
   "titleEn": "Customer Receipts",
   "descriptionZh": "收款插件独立展示客户收款业务记录与应收关联，禁止触发财务分配",
   "recordId": "DEMO-REC-1001",

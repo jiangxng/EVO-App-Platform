@@ -13,6 +13,12 @@ export const remoteContextMemoryDlpProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
   displayName: "Remote Context Memory DLP Provider",
+  displayNameTranslations: {
+    "en": "Remote Context Memory DLP Provider",
+    "zh-CN": "远程记忆数据防泄漏服务",
+    "ja": "リモートメモリ情報漏洩防止サービス",
+    "zh-TW": "遠端記憶資料防外洩服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   secrets: [{

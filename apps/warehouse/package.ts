@@ -30,6 +30,12 @@ export const warehousePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: WAREHOUSE_PACKAGE_ID,
   displayName: "EVO Warehouse",
+  displayNameTranslations: {
+    "en": "EVO Warehouse",
+    "zh-CN": "EVO 仓库与库位",
+    "ja": "EVO 倉庫・保管場所",
+    "zh-TW": "EVO 倉庫與儲位"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {

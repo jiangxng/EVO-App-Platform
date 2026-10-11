@@ -27,6 +27,12 @@ export const hostEnterpriseContextProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
   displayName: "Host Enterprise Context Provider",
+  displayNameTranslations: {
+    "en": "Host Enterprise Context Provider",
+    "zh-CN": "企业上下文资源服务",
+    "ja": "企業コンテキストリソースサービス",
+    "zh-TW": "企業上下文資源服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {

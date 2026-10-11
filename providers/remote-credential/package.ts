@@ -9,6 +9,12 @@ export const hostRemoteCredentialProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_REMOTE_CREDENTIAL_PROVIDER_PACKAGE_ID,
   displayName: "Host Remote Credential Provider",
+  displayNameTranslations: {
+    "en": "Host Remote Credential Provider",
+    "zh-CN": "远程连接凭据服务",
+    "ja": "リモート接続認証情報サービス",
+    "zh-TW": "遠端連線憑證服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {

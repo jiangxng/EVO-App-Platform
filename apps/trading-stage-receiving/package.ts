@@ -9,6 +9,8 @@ import { stagePackageV010, stagePageV010, stagePageSourceV010 } from "../trading
 export const receivingStageDemoSpecV010 = {
   "domain": "receiving",
   "titleZh": "采购收货",
+  "titleJa": "入荷",
+  "titleTw": "收貨",
   "titleEn": "Goods Receiving",
   "descriptionZh": "收货插件独立展示采购履约和不可变冲销关系，不产生影子库存账",
   "recordId": "DEMO-GR-1001",

@@ -11,6 +11,12 @@ export const hostMemoryIntakeProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_MEMORY_INTAKE_PACKAGE_ID,
   displayName: "Host Memory Intake Provider",
+  displayNameTranslations: {
+    "en": "Host Memory Intake Provider",
+    "zh-CN": "记忆资料接入服务",
+    "ja": "メモリ資料取り込みサービス",
+    "zh-TW": "記憶資料匯入服務"
+  },
   version: "0.1.0",
   type: "PLATFORM_PROVIDER",
   publisher: {
