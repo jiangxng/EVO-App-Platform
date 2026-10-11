@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: "24.20.0"
@@ -29,8 +31,11 @@ jobs:
         run: node --test tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs
       - name: Retain previous four peer package proof
         run: node --test tests/protocol/tr01b2d3-four-peer-stage-plugins.test.mjs
-      - name: Generic Host boundary stays unchanged
+      - name: No Platform Core changes in this PR
+        if: github.event_name == 'pull_request'
         run: |
-          git diff --exit-code HEAD^ HEAD -- manager/server.ts catalog/seed.ts || true
+          git diff --exit-code "origin/${{ github.base_ref }}...HEAD" -- manager/server.ts catalog/seed.ts
+      - name: Eidos language and Experience gates
+        run: |
           node tools/eidos-design-language-validate.mjs
           node tools/eidos-experience-architecture-validate.mjs
