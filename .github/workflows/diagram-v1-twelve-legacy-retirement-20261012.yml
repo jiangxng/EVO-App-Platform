@@ -30,7 +30,7 @@ jobs:
             const fs=require('node:fs');
             const {owner,repo}=context.repo;
             const execute=process.env.EXECUTE==='true';
-            const selfPrNumber=779;
+            const selfPrNumber=780;
             const selfBranch='chore/diagram-v1-legacy-reconciliation-20261012';
             if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repository');
             const manifest=JSON.parse(fs.readFileSync('repository-hygiene/diagram-v1-twelve-legacy-head-retirement-20261012.json','utf8'));
