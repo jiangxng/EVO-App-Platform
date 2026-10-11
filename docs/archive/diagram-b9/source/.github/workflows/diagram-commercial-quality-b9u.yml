@@ -1,0 +1,20 @@
+name: Diagram B9u-B10j QA Increment CI
+on:
+  pull_request:
+    paths:
+      - "tests/integration/diagram-commercial-next-*.test.mjs"
+      - "tools/diagram-commercial-next-*.mjs"
+      - "tools/diagram-enterprise-fixture-intake-b9k.mjs"
+      - ".github/workflows/diagram-commercial-quality-b9u.yml"
+permissions:
+  contents: read
+jobs:
+  synthetic-contract-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test tests/integration/diagram-commercial-next-*.test.mjs

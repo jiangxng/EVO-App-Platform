@@ -3,7 +3,7 @@
 **Status:** ACTIVE SHORT-TERM MAINLINE  
 **Date:** 2026-10-08  
 **Program owner:** EVO-App-Platform  
-**Current entry gate:** IT-01 Item/Product second-object proof (CP-07 CLOSED_PRODUCTION_PASS)
+**Current entry gate:** TR-01 Trading Reference Loop (WH-01 CLOSED_PRODUCTION_PASS)
 **Architecture authority:** docs/architecture/FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md
 
 ## 1. Program goal
@@ -540,7 +540,7 @@ This means the Foundation Object mechanism is proven deeply enough to move to a 
 
 ## 16. IT-01 — Item/Product second-object proof
 
-**Current state:** ACTIVE. IT-01A through IT-01D are MERGED_CI_PRODUCTION_PASS; IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure is the current slice. Shared Foundation Object contracts remain EXPERIMENTAL until IT-01E evidence and the contract maturity review complete.
+**Current state:** CLOSED_PRODUCTION_PASS. PR #538 completed real Open Food Facts/standards RVC, the Item second-object compatibility proof and production validation. Selected object-neutral Foundation Object contracts are now STABLE_CANDIDATE; Item domain semantics remain EXPERIMENTAL/domain-owned. WH-01 is active.
 
 Evidence authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
 
@@ -560,9 +560,11 @@ Mandatory architecture acceptance:
 
 Use Open Food Facts and other real Item datasets for pressure evidence.
 
-After Item passes, shared contracts may move from EXPERIMENTAL toward STABLE if compatibility evidence supports it.
+After Item passes, shared contracts may move from EXPERIMENTAL toward STABLE if compatibility evidence supports it. **Decision:** selected object-neutral contracts are STABLE_CANDIDATE after IT-01; WH-01 must reuse them by default and may reopen them only on concrete third-object incompatibility evidence. See `docs/roadmap/IT01-ITEM-RVC-EVIDENCE-2026-10-09.md`.
 
 ## 17. WH-01 — Warehouse/Location third-object proof
+
+**Current state:** CLOSED_PRODUCTION_PASS. PR #546 completed real Overture warehouse/facility RVC with unchanged STABLE_CANDIDATE shared contracts; Railway production deployment `235335b8-44e3-4da4-9682-6cb75c70bcb6` is SUCCESS. TR-01 is active.
 
 Validate Warehouse stable identity, Zone/Location/Bin structure, hierarchical imports, responsibility, physical/facility facets and operational projections.
 
@@ -578,6 +580,8 @@ Do not put on-hand balance into Warehouse master data.
 Use real WMS/public warehouse/location evidence.
 
 ## 18. TR-01 — Trading Reference Loop
+
+**Current state:** ACTIVE. WH-01 is CLOSED_PRODUCTION_PASS. TR-01A purchase-side reference loop is the current slice.
 
 After three Foundation Object proofs, stop adding objects as the mainline.
 
@@ -675,3 +679,9 @@ Do not:
 The program is successful when a new enterprise can present business/data evidence and EVO can respond mostly through reuse, enterprise definitions, generated imports, projections, workbench composition and bounded new Applications rather than bespoke database/backend/page/import/permission/Agent implementations.
 
 Counterparty is the first proof, Item is the first anti-overfit proof, Warehouse is the structural proof, and Trading Loop is the real-business proof.
+
+
+> WH-01 current slice (2026-10-09): WH-01B hierarchical Data Import is MERGED_CI_PRODUCTION_PASS via PR #542; WH-01C Responsibility / Projection / Eidos composition is the current slice. Shared STABLE_CANDIDATE contracts remain reuse-by-default.
+
+
+> WH-01 current slice (2026-10-09): WH-01C Responsibility / Projection / Eidos composition is MERGED_CI_PRODUCTION_PASS via PR #544; WH-01D real Warehouse/Location RVC is the current closure slice before TR-01.

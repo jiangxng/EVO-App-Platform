@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "repo": "jiangxng/EVO-App-Platform",
+  "created": "2026-10-11",
+  "kind": "CLOSEOUT_LAST_FIVE_2D_PROVENANCE_PRS",
+  "priorB9ArchivePR": 705,
+  "priorB9RetirementPR": 706,
+  "priorArchiveFiles": 92,
+  "formalCommercialAcceptance": {
+    "cases": 39,
+    "signed": 0
+  },
+  "onlyDistinctUnarchivedBlob": {
+    "originalPath": "docs/architecture/EOG-2D-DESIGNER-RESEARCH-REFERENCE-INDEX-20261010.md",
+    "archivePath": "docs/archive/diagram-b9/research/original-552/docs/architecture/EOG-2D-DESIGNER-RESEARCH-REFERENCE-INDEX-20261010.md",
+    "blob": "e8634454acec08ceff05744ed709278cf4b4fa94",
+    "sourceHead": "fb62efeda171f6ef5334a0b554fd0b4031979e84"
+  },
+  "closedHistoryPRs": [
+    {
+      "number": 537,
+      "headRef": "feat/diagram-projection-route-integration-20261009",
+      "headSha": "f2694fbf4584fe8942e1a19094fa4d3bb30d3740",
+      "base": "main",
+      "draft": true,
+      "wasOpen": true,
+      "merged": false,
+      "cleanupEligible": true
+    },
+    {
+      "number": 547,
+      "headRef": "feat/diagram-commercial-professional-routing-integration-20261010",
+      "headSha": "82194ffd13d2bfef9aa95656b23a34d355b70d01",
+      "base": "feat/diagram-projection-route-integration-20261009",
+      "draft": false,
+      "wasOpen": true,
+      "merged": false,
+      "cleanupEligible": true
+    },
+    {
+      "number": 549,
+      "headRef": "feat/diagram-commercial-waypoint-integration-b3-20261010",
+      "headSha": "f8e20971dd795d9ea4bf9bb932d4429665ef7457",
+      "base": "feat/diagram-commercial-professional-routing-integration-20261010",
+      "draft": false,
+      "wasOpen": true,
+      "merged": false,
+      "cleanupEligible": true
+    },
+    {
+      "number": 550,
+      "headRef": "feat/diagram-commercial-touch-safety-b4-20261010",
+      "headSha": "a5a20c1b3310f0869a9d12c50025aa92dbabb93e",
+      "base": "feat/diagram-commercial-waypoint-integration-b3-20261010",
+      "draft": false,
+      "wasOpen": true,
+      "merged": false,
+      "cleanupEligible": true
+    },
+    {
+      "number": 552,
+      "headRef": "docs/diagram-commercial-research-handoff-20261010",
+      "headSha": "fb62efeda171f6ef5334a0b554fd0b4031979e84",
+      "base": "feat/diagram-commercial-touch-safety-b4-20261010",
+      "draft": false,
+      "wasOpen": true,
+      "merged": false,
+      "cleanupEligible": true
+    }
+  ],
+  "reason": "The runtime changes of #537, #547, #549 and #550 are ancestors of preserved canonical B9z a70c55ead2b936d6e0c24116854998f2675cd0b9; #552 has one unique older research index retained exactly here. None of these five is active product code beyond main."
+}

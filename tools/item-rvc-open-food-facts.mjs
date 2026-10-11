@@ -1,8 +1,40 @@
 import { createHash } from "node:crypto";
-import { createReadStream, writeFileSync } from "node:fs";
+import {
+  createReadStream,
+  readFileSync,
+  writeFileSync
+} from "node:fs";
+import { performance } from "node:perf_hooks";
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
-import { performance } from "node:perf_hooks";
+
+import {
+  createMemoryEnterpriseResourceRepositoryV010
+} from "../dist/providers/enterprise-context/resources.js";
+import {
+  createItemRepositoryV010
+} from "../dist/apps/item/repository.js";
+import {
+  createObjectExtensionRepositoryV010
+} from "../dist/apps/object-extension/repository.js";
+import {
+  createObjectExtensionValueRepositoryV010,
+  OBJECT_EXTENSION_VALUE_COLLECTION_V010,
+  OBJECT_EXTENSION_VALUE_RESOURCE_TYPE_V010
+} from "../dist/apps/object-extension/values.js";
+import {
+  createDataImportRepositoryV010
+} from "../dist/apps/data-import/repository.js";
+import {
+  createDataImportServiceV010
+} from "../dist/apps/data-import/service.js";
+import {
+  createItemImportTargetV010
+} from "../dist/apps/item/import-target.js";
+import {
+  ITEM_RESOURCE_TYPE_V010,
+  ITEM_TRADE_PROFILE_SLOT_V010
+} from "../dist/apps/item/foundation-object.js";
 
 function requiredText(value, code) {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
@@ -13,7 +45,7 @@ function optionalText(value) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function integer(value, code) {
+function positiveInteger(value, code) {
   if (!Number.isInteger(value) || value < 1) throw new Error(code);
   return value;
 }
@@ -29,10 +61,15 @@ export function assertItemRvcManifestV010(value) {
   if (!Number.isFinite(Date.parse(retrievedAt))) {
     throw new Error("ITEM_RVC_RETRIEVED_AT_INVALID");
   }
+  const fieldMap = value.fieldMap ?? {};
   return {
     contractVersion: "0.1.0",
     sourceId: requiredText(value.sourceId, "ITEM_RVC_SOURCE_ID_REQUIRED"),
     sourceUrl: requiredText(value.sourceUrl, "ITEM_RVC_SOURCE_URL_REQUIRED"),
+    resolvedDataUrl: requiredText(
+      value.resolvedDataUrl,
+      "ITEM_RVC_RESOLVED_DATA_URL_REQUIRED"
+    ),
     retrievedAt,
     sourceVersion: requiredText(
       value.sourceVersion,
@@ -52,208 +89,496 @@ export function assertItemRvcManifestV010(value) {
       "ITEM_RVC_ADAPTER_VERSION_REQUIRED"
     ),
     sampling: {
-      method: value.sampling?.method === "FIRST_N"
-        ? "FIRST_N"
+      method: value.sampling?.method === "FIRST_N_NONEMPTY_CODE"
+        ? "FIRST_N_NONEMPTY_CODE"
         : (() => { throw new Error("ITEM_RVC_SAMPLING_METHOD_INVALID"); })(),
-      limit: integer(value.sampling?.limit, "ITEM_RVC_SAMPLING_LIMIT_INVALID")
+      limit: positiveInteger(
+        value.sampling?.limit,
+        "ITEM_RVC_SAMPLING_LIMIT_INVALID"
+      )
     },
-    ...(optionalText(value.contentDigest)
-      ? { contentDigest: optionalText(value.contentDigest) }
+    importPressure: {
+      limit: positiveInteger(
+        value.importPressure?.limit,
+        "ITEM_RVC_IMPORT_LIMIT_INVALID"
+      )
+    },
+    fieldMap: {
+      code: requiredText(fieldMap.code, "ITEM_RVC_CODE_FIELD_REQUIRED"),
+      productName: requiredText(
+        fieldMap.productName,
+        "ITEM_RVC_PRODUCT_NAME_FIELD_REQUIRED"
+      ),
+      ...(optionalText(fieldMap.quantity)
+        ? { quantity: optionalText(fieldMap.quantity) }
+        : {}),
+      ...(optionalText(fieldMap.brands)
+        ? { brands: optionalText(fieldMap.brands) }
+        : {}),
+      ...(optionalText(fieldMap.categories)
+        ? { categories: optionalText(fieldMap.categories) }
+        : {}),
+      ...(optionalText(fieldMap.countries)
+        ? { countries: optionalText(fieldMap.countries) }
+        : {})
+    },
+    ...(optionalText(value.sampleContentDigest)
+      ? { sampleContentDigest: optionalText(value.sampleContentDigest) }
       : {})
   };
 }
 
-function text(value) {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
+function csvRecordComplete(value) {
+  let quoted = false;
+  for (let i = 0; i < value.length; i += 1) {
+    if (value[i] !== '"') continue;
+    if (quoted && value[i + 1] === '"') {
+      i += 1;
+      continue;
+    }
+    quoted = !quoted;
   }
-  return "";
+  return !quoted;
 }
 
-function stringArray(value) {
-  if (Array.isArray(value)) {
-    return value
-      .map(item => text(item))
-      .filter(Boolean);
+export function parseCsvRecordV010(value) {
+  const cells = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < value.length; i += 1) {
+    const ch = value[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (value[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      cells.push(cell);
+      cell = "";
+    } else {
+      cell += ch;
+    }
   }
-  const scalar = text(value);
-  if (!scalar) return [];
-  return scalar.split(",").map(item => item.trim()).filter(Boolean);
+  if (quoted) throw new Error("ITEM_RVC_CSV_UNCLOSED_QUOTE");
+  cells.push(cell);
+  return cells;
 }
 
-function normalized(value) {
-  return text(value).normalize("NFKC").toLocaleLowerCase();
+export async function* readCsvObjectsV010(inputPath, limit) {
+  const lines = createInterface({
+    input: createReadStream(inputPath, { encoding: "utf8" }),
+    crlfDelay: Infinity
+  });
+  let pending = "";
+  let headers;
+  let emitted = 0;
+  for await (const line of lines) {
+    pending = pending ? pending + "\n" + line : line;
+    if (!csvRecordComplete(pending)) continue;
+    const cells = parseCsvRecordV010(pending);
+    pending = "";
+    if (!headers) {
+      headers = cells.map((item, index) =>
+        (index === 0 ? item.replace(/^\uFEFF/u, "") : item).trim()
+      );
+      if (headers.some(item => !item)) {
+        throw new Error("ITEM_RVC_CSV_HEADER_REQUIRED");
+      }
+      if (new Set(headers).size !== headers.length) {
+        throw new Error("ITEM_RVC_CSV_HEADER_DUPLICATE");
+      }
+      continue;
+    }
+    if (cells.length > headers.length) {
+      throw new Error("ITEM_RVC_CSV_TOO_MANY_COLUMNS");
+    }
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = cells[index] ?? "";
+    });
+    yield row;
+    emitted += 1;
+    if (emitted >= limit) break;
+  }
+  if (pending) throw new Error("ITEM_RVC_CSV_UNCLOSED_QUOTE");
+  if (!headers) throw new Error("ITEM_RVC_CSV_EMPTY");
+}
+
+export function validGtinChecksumV010(value) {
+  const code = String(value ?? "").trim();
+  if (!/^\d+$/u.test(code) || ![8, 12, 13, 14].includes(code.length)) {
+    return false;
+  }
+  const digits = [...code].map(Number);
+  const check = digits.pop();
+  let sum = 0;
+  let weight = 3;
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    sum += digits[index] * weight;
+    weight = weight === 3 ? 1 : 3;
+  }
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+function normalizedName(value) {
+  return value.trim().normalize("NFKC").toLocaleLowerCase();
 }
 
 function increment(map, key) {
-  const normalizedKey = key || "(missing)";
-  map.set(normalizedKey, (map.get(normalizedKey) ?? 0) + 1);
+  const normalized = key || "(missing)";
+  map.set(normalized, (map.get(normalized) ?? 0) + 1);
 }
 
-function sortedCounts(map, limit = 25) {
+function sortedCounts(map, limit = 30) {
   return [...map.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, limit)
     .map(([value, count]) => ({ value, count }));
 }
 
-function gtinShape(code) {
-  if (!/^\d+$/u.test(code)) return undefined;
-  if (![8, 12, 13, 14].includes(code.length)) return undefined;
-  return "GTIN_" + code.length;
+function quantityUnit(value) {
+  const text = String(value ?? "").normalize("NFKC").trim().toLocaleLowerCase();
+  if (!text) return undefined;
+  const regex = /(\d+(?:[.,]\d+)?)\s*(fl\s*oz|kg|mg|g|ml|cl|dl|l|oz|lb|pcs?|pieces?|units?)\b/giu;
+  let match;
+  let unit;
+  while ((match = regex.exec(text))) unit = match[2].replaceAll(" ", "");
+  if (!unit) return undefined;
+  if (unit === "piece" || unit === "pieces" || unit === "pc" || unit === "pcs"
+      || unit === "unit" || unit === "units") return "count";
+  return unit;
 }
 
-function rec20Candidate(sourceUnit) {
-  const unit = normalized(sourceUnit).replaceAll(" ", "");
-  const known = new Map([
-    ["g", "GRM"],
-    ["gram", "GRM"],
-    ["grams", "GRM"],
-    ["kg", "KGM"],
-    ["kilogram", "KGM"],
-    ["kilograms", "KGM"],
-    ["ml", "MLT"],
-    ["millilitre", "MLT"],
-    ["milliliter", "MLT"],
-    ["l", "LTR"],
-    ["liter", "LTR"],
-    ["litre", "LTR"],
-    ["cl", "CLT"]
-  ]);
-  return known.get(unit);
+const REC20_COMMON_MAPPING = Object.freeze({
+  g: "GRM",
+  kg: "KGM",
+  ml: "MLT",
+  l: "LTR",
+  count: "C62"
+});
+
+function codeShape(code) {
+  if (!code) return "missing";
+  if (!/^\d+$/u.test(code)) return "non-numeric";
+  return "numeric-" + code.length;
 }
 
-function productName(row) {
-  return text(row.product_name)
-    || text(row.product_name_en)
-    || text(row.generic_name)
-    || text(row.generic_name_en);
+function deterministicRvcItemCode(sourceCode) {
+  return "RVC-" + createHash("sha256")
+    .update(sourceCode)
+    .digest("hex")
+    .slice(0, 20)
+    .toUpperCase();
 }
 
-function commercialGroupingKey(row) {
-  const name = normalized(productName(row));
-  const brand = normalized(
-    text(row.brands)
-    || stringArray(row.brands_tags)[0]
-    || ""
-  );
-  if (!name) return "";
-  return name + "|" + brand;
+function extensionDefinition(fieldId, semanticType, order) {
+  return {
+    contractVersion: "0.1.0",
+    extensionId: "it01e.off." + fieldId,
+    targetObjectType: ITEM_RESOURCE_TYPE_V010,
+    targetSlot: ITEM_TRADE_PROFILE_SLOT_V010,
+    namespace: "rvc.open-food-facts",
+    fieldId,
+    semanticType,
+    valueType: "STRING",
+    label: { default: fieldId },
+    required: false,
+    order,
+    applicability: {
+      qualifiers: {
+        "item.kind": ["GOODS"]
+      }
+    },
+    surfaces: ["DETAIL"],
+    searchable: false,
+    importable: true,
+    exportable: true,
+    agentReadable: true,
+    agentWritable: false
+  };
 }
 
-function classificationCardinality(row) {
-  const categories = stringArray(row.categories_tags);
-  const brands = stringArray(row.brands_tags).length > 0
-    ? stringArray(row.brands_tags)
-    : stringArray(row.brands);
-  const packaging = stringArray(row.packaging_tags);
-  return { categories, brands, packaging };
+function exerciseGenericItemImport(input) {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const items = createItemRepositoryV010(resources);
+  const extensions = createObjectExtensionRepositoryV010(resources);
+  const extensionValues = createObjectExtensionValueRepositoryV010(resources);
+  const jobs = createDataImportRepositoryV010(resources);
+  const contextId = "enterprise-context:it01e-off-rvc";
+  const actorSubjectId = "it01e-rvc";
+  const recordedAt = input.recordedAt;
+
+  for (const [index, definition] of [
+    extensionDefinition(
+      "rvcExternalTradeItemCode",
+      "external-trade-item-identifier-evidence",
+      10
+    ),
+    extensionDefinition(
+      "rvcPackageQuantityText",
+      "package-quantity-source-text",
+      20
+    ),
+    extensionDefinition(
+      "rvcSourceBrands",
+      "external-brand-evidence",
+      30
+    ),
+    extensionDefinition(
+      "rvcSourceCategories",
+      "external-category-evidence",
+      40
+    )
+  ].entries()) {
+    extensions.save({
+      contextId,
+      definition,
+      actorSubjectId,
+      recordedAt: new Date(
+        Date.parse(recordedAt) + index * 1000
+      ).toISOString()
+    });
+  }
+
+  const target = createItemImportTargetV010({
+    resources,
+    repository: items,
+    extensionRepository: extensions,
+    extensionValueRepository: extensionValues
+  });
+  const service = createDataImportServiceV010({
+    repository: jobs,
+    targets: [target]
+  });
+  const headers = [
+    "enterpriseCode",
+    "displayName",
+    "itemKind",
+    "baseUomCode",
+    "rvcExternalTradeItemCode",
+    "rvcPackageQuantityText",
+    "rvcSourceBrands",
+    "rvcSourceCategories"
+  ];
+  const sourceRows = input.rows.map(row => ({
+    enterpriseCode: deterministicRvcItemCode(row.sourceCode),
+    displayName: row.productName,
+    itemKind: "GOODS",
+    baseUomCode: "C62",
+    rvcExternalTradeItemCode: row.sourceCode,
+    rvcPackageQuantityText: row.quantity,
+    rvcSourceBrands: row.brands,
+    rvcSourceCategories: row.categories
+  }));
+  const mapping = [
+    ["enterpriseCode", "code"],
+    ["displayName", "displayName"],
+    ["itemKind", "itemKind"],
+    ["baseUomCode", "baseUomCode"],
+    ["rvcExternalTradeItemCode", "rvcExternalTradeItemCode"],
+    ["rvcPackageQuantityText", "rvcPackageQuantityText"],
+    ["rvcSourceBrands", "rvcSourceBrands"],
+    ["rvcSourceCategories", "rvcSourceCategories"]
+  ].map(([sourceColumn, targetFieldId]) => ({
+    sourceColumn,
+    targetFieldId
+  }));
+  const importJobId =
+    "it01e-off-" + input.sourceVersion.replace(/[^a-z0-9]/giu, "").slice(0, 16);
+
+  service.stage({
+    contextId,
+    importJobId,
+    targetId: "item.subject",
+    source: {
+      kind: "ROWS",
+      name: "Open Food Facts RVC adapter sample",
+      headers,
+      rows: sourceRows
+    },
+    mapping,
+    actorSubjectId,
+    recordedAt
+  });
+  const dryRun = service.dryRun({
+    contextId,
+    importJobId,
+    actorSubjectId,
+    recordedAt
+  });
+  if (dryRun.state !== "DRY_RUN_READY") {
+    return {
+      requestedRows: sourceRows.length,
+      dryRunState: dryRun.state,
+      validRows: dryRun.dryRun?.validRows ?? 0,
+      invalidRows: dryRun.dryRun?.invalidRows ?? sourceRows.length,
+      commitState: "NOT_ATTEMPTED",
+      committedRows: 0,
+      itemResources: 0,
+      extensionValueSets: 0
+    };
+  }
+  const committed = service.commit({
+    contextId,
+    importJobId,
+    actorSubjectId,
+    recordedAt
+  });
+  const itemResources = items.list(contextId).length;
+  const extensionValueSets = resources.list({
+    contextId,
+    namespace: "evo.object-extension",
+    collectionId: OBJECT_EXTENSION_VALUE_COLLECTION_V010,
+    resourceType: OBJECT_EXTENSION_VALUE_RESOURCE_TYPE_V010,
+    lifecycleState: "ACTIVE"
+  }).length;
+  return {
+    requestedRows: sourceRows.length,
+    dryRunState: dryRun.state,
+    validRows: dryRun.dryRun?.validRows ?? 0,
+    invalidRows: dryRun.dryRun?.invalidRows ?? 0,
+    commitState: committed.state,
+    committedRows: committed.receipt?.succeededRows ?? 0,
+    failedCommitRows: committed.receipt?.failedRows ?? sourceRows.length,
+    itemResources,
+    extensionValueSets,
+    adapterRules: {
+      enterpriseItemCode:
+        "RVC-only deterministic surrogate derived from source code; not a production identity rule.",
+      itemKind: "GOODS",
+      baseUomCode:
+        "C62 (one) as an explicit RVC adapter assumption: one external trade-item record is treated as one operational unit for pipeline pressure only.",
+      externalTradeItemCode:
+        "Preserved in Item trade-profile extension evidence; never promoted to itemId."
+    }
+  };
 }
 
 export async function analyzeOpenFoodFactsItemRvcV010(input) {
   const manifest = assertItemRvcManifestV010(input.manifest);
   const started = performance.now();
-  const lines = createInterface({
-    input: createReadStream(input.inputPath, { encoding: "utf8" }),
-    crlfDelay: Infinity
-  });
-
   const codes = new Set();
-  const commercialGroups = new Map();
-  const gtinShapeCounts = new Map();
-  const sourceUnitCounts = new Map();
-  const rec20CandidateCounts = new Map();
-  const categoryCardinalityCounts = new Map();
-  const brandCardinalityCounts = new Map();
-  const packagingCardinalityCounts = new Map();
+  const names = new Map();
+  const codeShapeCounts = new Map();
+  const quantityUnitCounts = new Map();
+  const rec20CodeCounts = new Map();
+  const importRows = [];
+  const importCodes = new Set();
 
   let totalRows = 0;
-  let validJsonRows = 0;
-  let invalidJsonRows = 0;
-  let rowsWithCode = 0;
-  let duplicateCodes = 0;
-  let gtinLikeCodes = 0;
-  let nonGtinLikeCodes = 0;
-  let missingDisplayName = 0;
-  let rowsWithMultipleCategories = 0;
-  let rowsWithMultipleBrands = 0;
-  let rowsWithMultiplePackagingTags = 0;
-  let rowsWithSourceQuantityUnit = 0;
-  let rowsWithRec20Candidate = 0;
-  let sameCommercialDescriptionDifferentCode = 0;
-  let localizedNameFallbacks = 0;
+  let duplicateExternalCodes = 0;
+  let duplicateNameCandidates = 0;
+  let missingProductName = 0;
+  let missingQuantity = 0;
+  let missingBrands = 0;
+  let missingCategories = 0;
+  let missingCountries = 0;
+  let numericCodes = 0;
+  let gtinShapeCandidates = 0;
+  let validGtinChecksumCandidates = 0;
+  let invalidGtinChecksumCandidates = 0;
+  let nonNumericCodes = 0;
+  let offAssigned200PrefixCandidates = 0;
+  let quantityRowsWithParsedUnit = 0;
+  let quantityRowsWithRec20Mapping = 0;
 
-  for await (const line of lines) {
-    if (totalRows >= manifest.sampling.limit) break;
-    if (!line.trim()) continue;
+  for await (const row of readCsvObjectsV010(
+    input.inputPath,
+    manifest.sampling.limit
+  )) {
     totalRows += 1;
+    const sourceCode = String(row[manifest.fieldMap.code] ?? "").trim();
+    const productName = String(
+      row[manifest.fieldMap.productName] ?? ""
+    ).trim();
+    const quantity = manifest.fieldMap.quantity
+      ? String(row[manifest.fieldMap.quantity] ?? "").trim()
+      : "";
+    const brands = manifest.fieldMap.brands
+      ? String(row[manifest.fieldMap.brands] ?? "").trim()
+      : "";
+    const categories = manifest.fieldMap.categories
+      ? String(row[manifest.fieldMap.categories] ?? "").trim()
+      : "";
+    const countries = manifest.fieldMap.countries
+      ? String(row[manifest.fieldMap.countries] ?? "").trim()
+      : "";
 
-    let row;
-    try {
-      row = JSON.parse(line);
-      validJsonRows += 1;
-    } catch {
-      invalidJsonRows += 1;
-      continue;
+    if (codes.has(sourceCode) && sourceCode) duplicateExternalCodes += 1;
+    if (sourceCode) codes.add(sourceCode);
+
+    const nameKey = productName ? normalizedName(productName) : "";
+    if (nameKey && names.has(nameKey)) duplicateNameCandidates += 1;
+    if (nameKey) names.set(nameKey, (names.get(nameKey) ?? 0) + 1);
+
+    if (!productName) missingProductName += 1;
+    if (!quantity) missingQuantity += 1;
+    if (!brands) missingBrands += 1;
+    if (!categories) missingCategories += 1;
+    if (!countries) missingCountries += 1;
+
+    const shape = codeShape(sourceCode);
+    increment(codeShapeCounts, shape);
+    if (/^\d+$/u.test(sourceCode)) {
+      numericCodes += 1;
+      if ([8, 12, 13, 14].includes(sourceCode.length)) {
+        gtinShapeCandidates += 1;
+        if (validGtinChecksumV010(sourceCode)) {
+          validGtinChecksumCandidates += 1;
+        } else {
+          invalidGtinChecksumCandidates += 1;
+        }
+      }
+      if (sourceCode.startsWith("200")) {
+        offAssigned200PrefixCandidates += 1;
+      }
+    } else if (sourceCode) {
+      nonNumericCodes += 1;
     }
 
-    const code = text(row.code || row._id || row.id);
-    if (code) {
-      rowsWithCode += 1;
-      if (codes.has(code)) duplicateCodes += 1;
-      codes.add(code);
-      const shape = gtinShape(code);
-      if (shape) {
-        gtinLikeCodes += 1;
-        increment(gtinShapeCounts, shape);
-      } else {
-        nonGtinLikeCodes += 1;
+    const unit = quantityUnit(quantity);
+    if (unit) {
+      quantityRowsWithParsedUnit += 1;
+      increment(quantityUnitCounts, unit);
+      const rec20 = REC20_COMMON_MAPPING[unit];
+      if (rec20) {
+        quantityRowsWithRec20Mapping += 1;
+        increment(rec20CodeCounts, rec20);
       }
     }
 
-    const name = productName(row);
-    if (!name) {
-      missingDisplayName += 1;
-    } else if (!text(row.product_name) && text(row.product_name_en)) {
-      localizedNameFallbacks += 1;
-    }
-
-    const groupingKey = commercialGroupingKey(row);
-    if (groupingKey && code) {
-      const prior = commercialGroups.get(groupingKey);
-      if (prior && !prior.has(code)) {
-        sameCommercialDescriptionDifferentCode += 1;
-      }
-      const group = prior ?? new Set();
-      group.add(code);
-      commercialGroups.set(groupingKey, group);
-    }
-
-    const cardinality = classificationCardinality(row);
-    increment(categoryCardinalityCounts, String(cardinality.categories.length));
-    increment(brandCardinalityCounts, String(cardinality.brands.length));
-    increment(packagingCardinalityCounts, String(cardinality.packaging.length));
-    if (cardinality.categories.length > 1) rowsWithMultipleCategories += 1;
-    if (cardinality.brands.length > 1) rowsWithMultipleBrands += 1;
-    if (cardinality.packaging.length > 1) rowsWithMultiplePackagingTags += 1;
-
-    const sourceUnit = text(
-      row.product_quantity_unit
-      || row.product_quantity_unit_en
-      || row.serving_quantity_unit
-    );
-    if (sourceUnit) {
-      rowsWithSourceQuantityUnit += 1;
-      increment(sourceUnitCounts, sourceUnit);
-      const candidate = rec20Candidate(sourceUnit);
-      if (candidate) {
-        rowsWithRec20Candidate += 1;
-        increment(rec20CandidateCounts, candidate);
-      }
+    if (
+      importRows.length < manifest.importPressure.limit
+      && sourceCode
+      && productName
+      && !importCodes.has(sourceCode)
+    ) {
+      importCodes.add(sourceCode);
+      importRows.push({
+        sourceCode,
+        productName,
+        quantity,
+        brands,
+        categories
+      });
     }
   }
 
+  const importStarted = performance.now();
+  const importPressure = exerciseGenericItemImport({
+    rows: importRows,
+    recordedAt: manifest.retrievedAt,
+    sourceVersion: manifest.sourceVersion
+  });
+  const importElapsedMs = performance.now() - importStarted;
   const elapsedMs = performance.now() - started;
   const manifestDigest = createHash("sha256")
     .update(JSON.stringify(manifest))
@@ -265,6 +590,7 @@ export async function analyzeOpenFoodFactsItemRvcV010(input) {
     source: {
       sourceId: manifest.sourceId,
       sourceUrl: manifest.sourceUrl,
+      resolvedDataUrl: manifest.resolvedDataUrl,
       retrievedAt: manifest.retrievedAt,
       sourceVersion: manifest.sourceVersion,
       license: manifest.license,
@@ -272,54 +598,63 @@ export async function analyzeOpenFoodFactsItemRvcV010(input) {
       redistributionConstraints: manifest.redistributionConstraints,
       adapterVersion: manifest.adapterVersion,
       manifestDigest,
-      ...(manifest.contentDigest ? { contentDigest: manifest.contentDigest } : {})
+      ...(manifest.sampleContentDigest
+        ? { sampleContentDigest: manifest.sampleContentDigest }
+        : {})
     },
     sampling: manifest.sampling,
-    evidence: {
+    rawEvidence: {
       totalRows,
-      validJsonRows,
-      invalidJsonRows,
-      rowsWithCode,
-      duplicateCodes,
-      gtinLikeCodes,
-      nonGtinLikeCodes,
-      gtinShapeCounts: sortedCounts(gtinShapeCounts),
-      missingDisplayName,
-      localizedNameFallbacks,
-      sameCommercialDescriptionDifferentCode,
-      rowsWithMultipleCategories,
-      rowsWithMultipleBrands,
-      rowsWithMultiplePackagingTags,
-      categoryCardinalityCounts: sortedCounts(categoryCardinalityCounts),
-      brandCardinalityCounts: sortedCounts(brandCardinalityCounts),
-      packagingCardinalityCounts: sortedCounts(packagingCardinalityCounts),
-      rowsWithSourceQuantityUnit,
-      rowsWithRec20Candidate,
-      sourceUnitCounts: sortedCounts(sourceUnitCounts),
-      rec20CandidateCounts: sortedCounts(rec20CandidateCounts)
+      distinctExternalCodes: codes.size,
+      duplicateExternalCodes,
+      duplicateNameCandidates,
+      missingProductName,
+      missingQuantity,
+      missingBrands,
+      missingCategories,
+      missingCountries,
+      numericCodes,
+      nonNumericCodes,
+      gtinShapeCandidates,
+      validGtinChecksumCandidates,
+      invalidGtinChecksumCandidates,
+      offAssigned200PrefixCandidates,
+      codeShapeCounts: sortedCounts(codeShapeCounts),
+      quantityRowsWithParsedUnit,
+      quantityRowsWithRec20Mapping,
+      quantityUnitCounts: sortedCounts(quantityUnitCounts),
+      rec20CodeCounts: sortedCounts(rec20CodeCounts)
+    },
+    importPressure: {
+      ...importPressure,
+      elapsedMs: Math.round(importElapsedMs * 100) / 100,
+      rowsPerSecond: importElapsedMs > 0
+        ? Math.round((importPressure.committedRows / importElapsedMs) * 1000)
+        : importPressure.committedRows
     },
     performance: {
       elapsedMs: Math.round(elapsedMs * 100) / 100,
-      rowsPerSecond: elapsedMs > 0
+      rawRowsPerSecond: elapsedMs > 0
         ? Math.round((totalRows / elapsedMs) * 1000)
         : totalRows
     },
-    interpretation: {
-      sourceCodeIsEvoItemIdentity: false,
-      sourceBarcodeOrGtinIsPrimaryItemIdentity: false,
-      commercialDescriptionEqualityIsIdentityEquality: false,
-      sourceQuantityUnitIsBaseUomAuthority: false,
-      categoriesBrandsPackagingAreIdentity: false,
-      separatelyTradedVariantRule:
-        "If a variant is separately priced, ordered or invoiced, model it as a distinct Item/trade item identity rather than a decorative attribute on one Item.",
-      externalIdentifierRule:
-        "Store barcode/GTIN-like values as external identifiers with an explicit scheme and provenance; validate true GTIN semantics separately from source key shape.",
-      productGroupingRule:
-        "Product is an optional managed/grouping concept over one or more Items, not the durable Item identity itself.",
-      skuRule:
-        "SKU is enterprise-specific coding/stock semantics and may map to enterprise Item code under explicit policy; it is not a universal external identifier.",
-      uomRule:
-        "EVO baseUomCode should reference governed unit codes such as UN/CEFACT Recommendation 20. Open Food Facts quantity-unit text is source evidence, not authority."
+    semanticBoundary: {
+      sourceSchemaIsCanonicalEvoSchema: false,
+      sourceCodeIsEnterpriseItemIdentity: false,
+      sourceCodeMayBeGtin: true,
+      allSourceCodesAreGtins: false,
+      gtinIsUniversalItemPrimaryKey: false,
+      packageQuantityDefinesEnterpriseBaseUom: false,
+      sourceCategoryIsCoreItemIdentity: false,
+      sourceBrandIsCoreItemIdentity: false,
+      recommendedExternalIdentifierModel:
+        "scheme + value identifier evidence attached to a trade profile or related identifier resource, separate from itemId/item code",
+      recommendedCategoryModel:
+        "governed classification/taxonomy relation; not a scalar core identity field",
+      recommendedProductVariantSkuModel:
+        "defer universal Product/SKU/variant core fields; model only when enterprise semantics prove grouping, sellable/stock unit or variant relationships",
+      recommendedUomModel:
+        "baseUomCode remains enterprise operational UOM and should reference governed Rec20-compatible codes; external package quantity is separate measure evidence"
     }
   };
 }
@@ -335,12 +670,14 @@ async function main() {
   const reportPath = argument("--report");
   if (!manifestPath || !inputPath) {
     throw new Error(
-      "Usage: node tools/item-rvc-open-food-facts.mjs --manifest <manifest.json> --input <sample.jsonl> [--report <report.json>]"
+      "Usage: node tools/item-rvc-open-food-facts.mjs --manifest <manifest.json> --input <sample.csv> [--report <report.json>]"
     );
   }
-  const { readFile } = await import("node:fs/promises");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-  const report = await analyzeOpenFoodFactsItemRvcV010({ manifest, inputPath });
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const report = await analyzeOpenFoodFactsItemRvcV010({
+    manifest,
+    inputPath
+  });
   const output = JSON.stringify(report, null, 2) + "\n";
   if (reportPath) writeFileSync(reportPath, output, "utf8");
   else process.stdout.write(output);
@@ -348,7 +685,7 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch(error => {
-    console.error(error instanceof Error ? error.message : String(error));
+    console.error(error instanceof Error ? error.stack ?? error.message : String(error));
     process.exitCode = 1;
   });
 }

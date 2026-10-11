@@ -3,53 +3,71 @@
 > **GENERATED CURRENT STATE.** Source of truth: `project.status.json`.  
 > Do not hand-edit this file. Run `npm run continuity:render` after changing the structured continuity snapshot.
 
-**Snapshot:** `it01e-platform-gaps-closed-rvc-active-2026-10-09`  
-**Snapshot time:** `2026-10-09T20:23:00+08:00`  
+**Snapshot:** `tr01b2d2-evo-readonly-owner-fact-pin-postgresql-pass-trusted-host-delegation-open-20261010`  
+**Snapshot time:** `2026-10-10T03:14:45.977Z`  
 **Status:** `AUTHORITATIVE_CURRENT`
 
 ## Current milestone
 
 ```text
-IT-01 Item/Product second-object proof
+TR-01 Trading Reference Loop
 ACTIVE
 ```
 
 ## Latest closed live slice
 
-**it01e-row-dynamic-qualifier-import: MERGED_CI_PRODUCTION_PASS**
+**tr01b2d2-evo-owner-readonly-immutable-finance-fact-pin-verifier: OWNER_READONLY_HOST_CI_POSTGRESQL_PRODUCTION_CODE_PASS_BOUNDED**
 
-IT-01E resolved the row-dynamic qualifier import limitation generically. Foundation Object schema compilation now has EFFECTIVE and DISCOVERY applicability modes; Item import discovers conditional fields before row context exists, then validates each row against its own effective qualifier context. Mixed GOODS/SERVICE imports can map GOODS-only extensions without leaking them onto SERVICE rows.
+TR-01B2D2 added the EVO plugin-owned PostgresTradingFinanceFactVerifierV010 (read-only, internal only), validating actual single Sales Order/Shipment/Customer Cash immutable BusinessData, matching customer/item/warehouse/source/consumer, posted input and boundary, ACTIVE/PUBLISHED version-locked valuation/allocation/Shipment rule IDs, exact same-currency full payment. EVO PR #107 merged after 27/27 owner CI success. App Platform PR #588 pins that EVO SHA and certifies against its exact pre-existing App Platform Sales→Production→Shipment→Cash facts after FIFO Cost/COGS and formal Allocation+canonical full replay in real PostgreSQL. Host B2D1 admission permits HUMAN/AI only after independently checking each resource; denied receipt stops before EVO owner, owner rejects forged/mismatched tenant/fact/pin/amount/boundary; canonical economic and immutable input digests unchanged, no new CostRun/AllocationInstruction. Positive attestation is OWNER_DATABASE_READ_ONLY with executionAllowed=false. NOT a production authenticated Host→EVO delegation, public Cost/Allocation mutation API, installed Sales Eidos/Agent/Workbench, or Financial Account Foundation Object.
 
-Authority: `docs/roadmap/IT01-ITEM-SECOND-OBJECT-EVIDENCE-v0.1.md`
+Authority: `docs/roadmap/TR01B2D2-EVO-OWNER-FACT-PIN-VERIFICATION-20261010.md`
 
 Evidence:
 
 ```json
 {
-  "implementationPr": 534,
-  "mergeCommit": "9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac",
-  "platformCI": "PASS",
-  "projectContinuityCI": "PASS",
-  "railwayDeploymentId": "b16708e5-b17b-4151-99d1-4803880880b3",
+  "evoOwnerPr": 107,
+  "evoOwnerMergedMain": "d5ce051325c4572c7a5fd713560d7d7d06e4b401",
+  "evoOwnerFullCiRun": 38019400183,
+  "evoOwnerCI": "27/27 PASS",
+  "appPlatformPr": 588,
+  "appPlatformMergeCommit": "3d5cc5a0793b3db990cde36564838d6097cc8d8f",
+  "crossProjectEvoPostgresqlRun": 38019652795,
+  "postgresqlCI": "PASS",
+  "marker": "TR01B2D2_OWNER_FINANCE_FACT_PIN_POSTGRESQL_PROOF",
+  "continuityRun": 38019652821,
+  "continuityCI": "PASS",
+  "actualAppPlatformOriginatedFacts": true,
+  "hostHumanAiPerResourcePreflight": true,
+  "ownerCostFactPinVerified": true,
+  "ownerReceiptAllocationSourcePinVerified": true,
+  "wrongTenantFactsPinsAmountAndBoundaryDenied": true,
+  "canonicalEconomicReplayInputUnchanged": true,
+  "createsCostRuns": 0,
+  "createsAllocationInstructions": 0,
+  "ownerVerifiedExecutionAllowed": false,
+  "trustedHostOwnerDelegation": "NOT_ADMITTED",
+  "publicFinancialMutationOperation": "NOT_REGISTERED",
+  "salesHumanAgentWorkbench": "NOT_CERTIFIED",
+  "railwayDeploymentId": "b64899d3-70d6-4df5-97ee-b1750109540c",
   "railwayDeploymentStatus": "SUCCESS"
 }
 ```
 
 ## Current open live gate
 
-**it01e-real-world-item-rvc-semantic-boundaries: ACTIVE**
+**tr01b2d3-trusted-host-to-evo-finance-owner-delegation: OPEN**
 
-IT-01E remains active with both platform gaps now closed. The current sub-slice is real-world Item RVC using Open Food Facts plus GS1/UN/CEFACT evidence to settle Item/Product/SKU/variant/GTIN/UOM/category boundaries and produce the Foundation Object contract maturity recommendation.
+The EVO Cost/Valuation compatible read-only owner verifier and the App Platform Host per-resource finance intent guard have passed real one-order PostgreSQL CI together, but only through a disposable in-process test adapter. No authenticated/forgery-resistant Host→EVO owner delegation is admitted in production: current EVO compatibility API accepts client-declared actors, while the new owner verifier deliberately exposes no route or trusted delegated interface. Next prove a bounded trusted identity/enterprise-scoped plugin verifier transport before any mutating Cost/Valuation or AllocationInstruction operation. Maintain deny-by-default Host preflight, executionAllowed=false, plugin ownership and target minimal EVO Core; do not call private EVO CostEngine or /demo/* from production.
 
 Acceptance:
 
-- Use Open Food Facts and/or another real-world corpus as external Item RVC evidence.
-- Decide enterprise Item vs Product/SKU/variant/trade-item semantics from evidence instead of naming preference.
-- Treat GTIN according to GS1 trade-item semantics and UOM according to governed unit-code evidence.
-- Pressure schema/extensions/import/projection/lifecycle with real data at useful scale.
-- Resolve or explicitly bound row-dynamic qualifier import behavior.
-- Resolve or explicitly bound lifecycle-aware import-target contribution/registry before declaring Item import product-reachable.
-- Produce an explicit Foundation Object contract maturity recommendation before moving to WH-01.
+- Specify and implement actual trusted Host→EVO owner verifier delegation: authenticate caller at owner boundary (not request-declared actor), bind principal and Enterprise Context to a server-trusted Host→EVO tenant mapping; prevent forged tenant, actor, context and replayed delegation.
+- Register a read-only versioned plugin interface with explicit installation and provider trust, permissions/activation and stable error/status semantics, without adding finance engines to minimal EVO Core or exposing a raw anonymous owner-verifier HTTP route.
+- Prove the installed/verifiably authenticated Host route on real PostgreSQL with original App Platform source order, Shipment and Cash Receipt IDs; reject forged delegation, wrong tenant, denied Customer/Item/Warehouse/Receipt, wrong policy version and changed effective boundary.
+- Keep informational fact verification `executionAllowed:false` and never treat it as a write authorization or a reusable authorization token. At future execution time, independent plugin must re-check data freshness, identity, posting/concurrency boundary and approval obligations.
+- Subsequent TR-01B2D4 separately admits trusted mutating Cost/Valuation and source/consumer AllocationInstruction/Relation operations with idempotency, audit and canonical replay, no private/demo or client-asserted actor bypass.
+- Subsequent TR-01B2E installed Sales Eidos Human/Personal Agent/Workbench and real Chrome journey remain OPEN; defer bank/payment provider Financial Account Foundation Object pending reconciliation use cases and leave parallel Agent and 2D Designer PRs isolated.
 
 ## Current production preview
 
@@ -58,8 +76,8 @@ Acceptance:
 - Service: Ledger Configurator
 - Environment: production
 - Source: `jiangxng/EVO-App-Platform:main`
-- Commit: `9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac`
-- Deployment: `b16708e5-b17b-4151-99d1-4803880880b3`
+- Commit: `3d5cc5a0793b3db990cde36564838d6097cc8d8f`
+- Deployment: `b64899d3-70d6-4df5-97ee-b1750109540c`
 - Status: `SUCCESS`
 - Persistent state: `/data`
 
@@ -90,6 +108,25 @@ Not proved:
 
 ## Recent mainline changes
 
+- PR #588 — MERGED_REAL_EVO_POSTGRESQL_CI_PRODUCTION_PASS_BOUNDED_READ_ONLY: TR-01B2D2 EVO PR #107 internal read-only owner fact/pin verifier passed 27/27 CI and merged d5ce051325c4572c7a5fd713560d7d7d06e4b401. App Platform PR #588 pinned it and ran actual Sales/Production/Shipment/Receipt→FIFO COGS→formal Allocation→read-only owner verification in real PostgreSQL: CI 38019652795 PASS, Continuity 38019652821 PASS. HUMAN/AI Host permissions independently checked; wrong tenant/receipt/order/item/warehouse/amount/policy pin/boundary denied; canonical economic/input digests unchanged, zero new CostRuns or AllocationInstructions. Main 3d5cc5a0793b3db990cde36564838d6097cc8d8f; Railway b64899d3-70d6-4df5-97ee-b1750109540c SUCCESS. Trusted Host delegation and finance execution NOT ADMITTED.
+- PR #585 — MERGED_CI_PRODUCTION_PASS_BOUNDED_GUARD_ONLY: TR-01B2D1 Host finance cost/settlement intent preflight with per-resource order, Counterparty, Item, Warehouse and shipment/receipt grants, positive policy/rule version pins, explicit posting boundary, full same-currency source→consumer IDs, deny-if-obligations and owner verifier unavailable by default. Platform 38018453036 PASS, Continuity 38018453035 PASS, Trading Lite PostgreSQL 38018453152 PASS, TR-01A installed Browser/Agent/Workbench 38018453003 PASS; main 55ba646be4484180772be67d3cf836a0209ea1e7, Railway ec06f5aa-41bc-4f96-b56e-72fda1dfd954 SUCCESS. No registered finance operation/owner public API, next B2D2 trusted owner verifier.
+- PR #582 — MERGED_CI_PRODUCTION_CODE_PASS_BOUNDED: TR-01B2C carried historic paired local receivable basis and certified exact App Platform-source Cash Receipt→Sales Order policy-pinned AllocationInstruction/Relation (1000 CNY), immutable Instruction/idempotency and second canonical economic/full-input replay MATCH in real EVO PostgreSQL. CI 38017215432 PASS, Platform 38017215368 PASS, Continuity 38017215324 PASS, previous PostgreSQL 38017215275 PASS, TR-01A Chrome/Agent/Workbench 38017215288 PASS. Merged main 59527f6aafe5868891727006bf9ff43e7ee252b0; Railway 0dde9ed2-5b57-4671-8e45-602d4ac337ff SUCCESS. Production public Cost/Allocation operations, multi-source/partial/FX, installed Sales UI and Financial Account object remain UNPROVEN.
+- PR #578 — MERGED_EVO_OWNER_CI_PRODUCTION_CODE_PASS_BOUNDED: TR-01B2B isolated EVO-owner CostEngine/ValuationPosting on actual App Platform immutable Sales facts, explicit FIFO valuation/allocation/shipment rule v1 pins; raw Inventory amount 125→valued 0 and COGS 125; canonical economic and immutable input Full Replay MATCH, Receivable 0/Cash 1000. CI 38015494916 PASS, continuity 38015494601 PASS; main 887e70752c4f9c5d3c3ac392db4273d78e36a3e5 and Railway 72b35a06-a4c8-4757-a8f8-b9abf6314bc6 SUCCESS. Private isolated owner test only; public Cost/Allocation plugin contract NOT ADMITTED, EVO review PR 106 proposed.
+- PR #574 — MERGED_CI_PRODUCTION_PASS_BOUNDED: TR-01B2A governed Sales Work/Position read service for HUMAN/AI Principals using EVO public exact dimensioned Ledger+Work; CI [38014202340] PASS with isolated one-order authorization and unauthorized-order refusal, Platform 38014202293 PASS, continuity 38014202284 PASS, existing PostgreSQL 38014202326 PASS, TR-01A installed Chrome regression 38014202298 PASS. Merged 39109addd721c017cd6276c60ee4b3062ab3f6b7; Railway b0ff4777-17d6-4de0-bdda-7a02dbf39d6b SUCCESS. Stock qty=0 while raw amount=125 after shipment; valuation/COGS, installed sales UI and formal allocation NOT certified.
+- PR #571 — MERGED_CI_PRODUCTION_PASS_BOUNDED: TR-01B1 reused CUSTOMER Counterparty, Item and Warehouse in real EVO Sales→Production→Shipment→Cash public BusinessData chain. Platform 38013542321 PASS, Continuity 38013542307 PASS, PostgreSQL Sales Cash 38013542437 PASS, existing PostgreSQL 38013542399 PASS, installed TR01A browser regression 38013542531 PASS. Merged 301cf0a45e59591adcb6a33e6d30fb68a94db443; Railway 3add74b5-5ed9-4da7-ade4-bd5f7dbd8691 SUCCESS. Cash Account object and inventory valuation/COGS/Allocation remain unproven.
+- PR #567 — MERGED_INSTALLED_BROWSER_CI_PRODUCTION_CODE_PASS: Pinned real EVO PostgreSQL + immutable PO/Receipt/Reversal proof; installed optional Trading Reference/BI Workbench, scoped policy and mapping; actual Chrome Eidos Workbench→lookup→detail, separate AI Principal Host parity, forbidden order and deep link denial. Run 38012256000 PASS, existing DB CI 38012255964 PASS, continuity 38012255960 PASS, merged main 399cbf5838626583599b441e3992e03fef9102c5, Railway 5a03ab99-2731-4a0d-91e4-9daa8c33a7dc SUCCESS.
+- PR #565 — MERGED_35_CI_PRODUCTION_PASS: Added opt-in Eidos read-only purchase query/detail and permission-filtered Workbench operational entry using the A4 governed read; 35/35 CI PASS, Railway deployment 624d7723-45bb-4a03-a0fd-3ceecd930650 SUCCESS; actual installed browser certified later by #567.
+- PR #564 — MERGED_35_CI_PRODUCTION_PASS: Registered optional Trading Reference Capability Operation and Action Host with explicit enterprise-to-EVO mapping and deny-by-default policy; 35/35 CI PASS, Railway 588060a1-3945-4c18-9d7e-665b5b5fec7f SUCCESS.
+- PR #562 — MERGED_CI_PRODUCTION_PASS: Proved bounded read-only authorized shared EVO Work/Inventory Position/Payable projection with Human/AI parity and PostgreSQL certification; Railway 2b58a678-bf20-40e7-9da4-d7bf020d17ff SUCCESS.
+- PR #559 — MERGED_CI_PRODUCTION_PASS: Made pinned EVO full deterministic TR-01A2 reversal Replay an explicit third cross-project PostgreSQL CI gate; exact head 2ebaf57c passed Continuity/Platform/Cross Project CI and main 5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b deployed Railway 11ee6c04-6845-474c-b56b-d8b7b84ea015 SUCCESS.
+- PR #557 — MERGED_CI_PRODUCTION_PASS: TR-01A2 appended receipt-reversal BusinessData using EVO REVERSES and unchanged PO/Receipt; public EVO PostgreSQL CI proved pending purchase/inventory/payable/Work effects, pinned EVO replay CI passed and Railway production 1ece6ea3-c124-4d65-9860-f14d88f959a9 is SUCCESS.
+- PR #556 — MERGED_CI_PRODUCTION_PASS: Restored A1 continuity drift and activated A2 using verified #551 CI/production facts; regenerated HANDOFF-LATEST and deployed main 2737de425cc53d017fe250007a7f8139ce51d67d at Railway fc2b7e6c-9e8d-47a7-90df-d7e9b9c787fc SUCCESS.
+- PR #551 — MERGED_CI_PRODUCTION_PASS: TR-01A1 positive purchase/receipt loop composed Supplier Counterparty, Item and Warehouse into immutable EVO BusinessData facts with FULFILLS lineage; Platform, Continuity and cross-project EVO PostgreSQL CI passed; production main a191b1ac deployed at b1d141c6-858d-4ee3-8422-0efbe7147396 SUCCESS.
+- PR #546 — MERGED_CI_RVC_PRODUCTION_PASS: WH-01D completed real Overture warehouse/facility RVC over 5,000 external warehouse building features; Platform/Continuity/RVC CI passed and Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 is SUCCESS.
+- PR #544 — MERGED_CI_PRODUCTION_PASS: WH-01C completed lifecycle-gated Warehouse Responsibility/Authorization/Projection/Eidos composition with shared Human/Agent read authority; 34/34 CI passed and Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f is SUCCESS.
+- PR #542 — MERGED_CI_PRODUCTION_PASS: WH-01B proved order-independent hierarchical Warehouse Location Data Import on unchanged STABLE_CANDIDATE contracts; Platform/Continuity CI passed and Railway deployment c2011371-4309-4982-9062-90cb98a166a9 is SUCCESS.
+- PR #540 — MERGED_CI_PRODUCTION_PASS: WH-01A established Enterprise Context-backed Warehouse identity and structural Zone/Location/Bin hierarchy on unchanged STABLE_CANDIDATE Foundation Object contracts; Platform/Continuity CI passed and Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 is SUCCESS.
+- PR #538 — MERGED_CI_RVC_PRODUCTION_PASS: IT-01E completed real Open Food Facts Item RVC and the second-object contract maturity review; 20k real rows and 1k generic imports passed, Item batch persistence improved ~4.9x, and Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 is SUCCESS.
 - PR #534 — MERGED_CI_PRODUCTION_PASS: Resolved row-dynamic qualifier-aware Item import through generic DISCOVERY/EFFECTIVE schema modes; Platform/Continuity CI passed and Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 is SUCCESS.
 - PR #532 — MERGED_CI_PRODUCTION_PASS: Resolved lifecycle-aware Data Import target discovery/loading; 35/35 CI passed and Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d is SUCCESS.
 - PR #530 — MERGED_CI_PRODUCTION_PASS: IT-01D completed lifecycle-gated Item Projection/Responsibility/Eidos composition with shared Human/Agent projection authority; 34/34 CI passed and Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 is SUCCESS.
@@ -101,181 +138,16 @@ Not proved:
 - PR #504 — MERGED_CI_PRODUCTION_PASS_AWAITING_HUMAN: Extracted Workspace from Host into optional evo-bi-workbench plugin; /workspace is plugin-owned, runtime/state are lazy, Host default routing is based on active Experiences, and current production was explicitly migrated to the plugin.
 - PR #500 — MERGED_CI_PRODUCTION_PASS: Fixed Host Workbench action feature gating so Workbench commands execute through the real ActionRouter feature gate while preserving item-level reauthorization.
 - PR #499 — MERGED_CI_PRODUCTION_PASS: Persisted governed Enterprise/role Workbench defaults plus personal preferences, Favorites and Recent; Workbench opens reauthorize before recording Recent; Data Import remains a fixed capability.
-- PR #498 — MERGED_CI_PRODUCTION_PASS: Added active-package Workbench contributions and deterministic Package -> Enterprise/role -> Personal composition; unauthorized preference items cannot expand authority.
-- PR #497 — MERGED_CI_PRODUCTION_PASS: Human UI and Personal Agent now share the same governed Counterparty My Customers/My Suppliers projection service and Capability Operations.
-- PR #493 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-05 deployed facet/profile composition was Human validated and is now closed; mainline advances to CP-06.
-- PR #492 — MERGED_CI_PRODUCTION_HUMAN_PASS: Counterparty detail progressively composes role-scoped Customer/Supplier Profiles plus repeatable Contacts and Addresses through Eidos; Human accepted the production experience.
-- PR #491 — MERGED_CI_PRODUCTION_PASS: EffectiveObjectSchema semantic destinations route Data Import into Counterparty Profile/Contact/Address resources instead of flattening them into identity.
-- PR #488 — MERGED_CI_PRODUCTION_PASS: Established repeatable Counterparty Contact/Address child resources and role-bound Customer/Supplier Profile boundaries.
-- PR #486 — MERGED_CI_PRODUCTION_PROOF_PASS: AF-02 production proof passed after policy-scoped summary version migration; bounded context, policy regeneration, fallback, raw-source retention and short direct path are proven.
-- PR #485 — MERGED_CI_PRODUCTION_GATE_FIX: AF-02 hard context budget includes the rendered checkpoint envelope; production proof verified exact 6000/6000 cap.
-- PR #484 — MERGED_PRODUCTION_PROOF: Added isolated PostgreSQL AF-02 long-context production proof.
-- PR #483 — MERGED_CI_PRODUCTION_PASS: Added source-preserving bounded Context Assembly, versioned summary/checkpoint artifacts and PostgreSQL persistence.
-- PR #481 — MERGED_CI_PRODUCTION_PASS: AF-01 PostgreSQL Conversation authority implemented and production-cut over after digest-verified migration and mirror phase; restart recovery passed.
-- PR #478 — MERGED_PRODUCTION_BACKEND_PROOF_PASS: Added and executed an isolated production CP-03D proof: first Human-origin successful import recorded real EC experience and a differently structured second file received EC advisory mappings with confidence/provenance while Recipe reuse was absent. The proof also exposed the EC SQLite worker-thread defect before the final successful rerun.
-- PR #476 — MERGED_CI_PRODUCTION_HUMAN_PASS: Historical Human-confirmed precheck-only mappings are reusable after the Recipe-persistence upgrade; production Human validation passed for the exact save-mapping -> precheck -> no-import -> reupload path.
-- PR #475 — MERGED_CI_PRODUCTION_PASS: Human-confirmed mappings become reusable after successful precheck without requiring business-data commit; later successful commit only adds stronger outcome evidence.
-- PR #474 — MERGED_CI_PRODUCTION_PASS: Added compatibility reuse for Human-confirmed successful imports created before persistent Import Recipes.
-- PR #472 — MERGED_CI_PRODUCTION_PASS: Adopted the AI-Native Agent State & Context Constitution as project authority: AI-native is governed durable model-independent state/context architecture, not JSONL-first storage.
-- PR #471 — MERGED_CI_PRODUCTION_PASS: Personal Agent refresh now shows an explicit conversation-loading state while durable thread history is restored instead of presenting a misleading empty conversation.
-- PR #469 — MERGED_CI_PRODUCTION_PASS: Contextual Agent actions such as Data Import AI auto-match stage the Human-visible turn immediately and serialize transport behind initial durable thread recovery.
-- PR #467 — MERGED_CI_PRODUCTION_PASS: Personal Agent chat turns are idempotent: duplicate submits are suppressed, durable thread.send reuses the original run by clientTurnId, concurrent resume is single-flight, and DeepSeek/request timing is bounded below the browser timeout.
-- PR #465 — MERGED_CI_PRODUCTION_SUPERSEDED_BY_467: Initial Personal Agent browser-timeout mitigation; superseded by PR #467 turn idempotency and single-flight resume hardening.
-- PR #463 — MERGED_CI_PRODUCTION_PASS: Make Experience Compiler the Data Import learning authority; record App Platform production deployment and EC deployment boundary.
-- PR #462 — MERGED_CI_PRODUCTION_PASS: Integrate optional EC advisory learning into Data Import; successful Human-confirmed mappings feed EC and different-structure imports can reuse scoped semantic experience.
-- PR #461 — MERGED_CI_PRODUCTION_PASS: Continuity advanced CP-03D to production validation while preserving CP-04 as CLOSED_HUMAN_PASS.
-- PR #460 — MERGED_CI_PRODUCTION_PASS: CP-03D whole-file Import Recipe closure: learned Recipe provenance/evidence UI, second same-structure reuse proof and stale-schema fallback proof.
-- PR #458 — MERGED_CI_PRODUCTION_HUMAN_PASS: CP-04 Responsibility + governed Customers/Suppliers/My Customers/My Suppliers projections and server-side data scope; Human validation passed.
-- PR #439 — MERGED_CI_PRODUCTION_PENDING_HUMAN_VALIDATION: CP-03 XLSX + Human Import Experience: dependency-free XLSX first-sheet parser, CSV/XLSX file upload, localized EffectiveObjectSchema auto-mapping, editable mapping page, dry-run review, explicit commit confirmation, error CSV download and guarded archive expansion.
-- PR #433 — MERGED_CI_PRODUCTION_PASS: CP-03 atomic bulk persistence: Enterprise Resource transaction/bulk put, domain-level Counterparty/Role/Extension batch writes, all-or-nothing import semantics, rollback proof and deterministic 1k full Counterparty import.
-- PR #431 — MERGED_CI_PRODUCTION_PASS: CP-03 generic Data Import core: neutral FoundationObjectImportTarget, CSV staging, dry run, commit receipts/error CSV, Counterparty target, role-aware extensions, Enterprise Context extension-value sidecars, schema-drift guard and 10k stage/dry-run proof.
-- PR #430 — MERGED_CI_PRODUCTION_PASS: CP-03 Object Extension public capability: governed list/upsert/archive operations through ActionHost over Enterprise Context persisted definitions.
-- PR #419 — HUMAN_PASS: Counterparty Relationship Roles v0.2 Human production validation passed on 2026-10-07: CUSTOMER + SUPPLIER coexistence and independent role removal preserve one stable Counterparty identity.
-- PR #427 — MERGED_CI_PRODUCTION_PASS: FO-01 first implementation: shared Foundation Object descriptor/schema/extension contracts, deterministic EffectiveObjectSchema compiler, conformance testkit, Enterprise Context-backed Object Extension definition repository/package boundary, and Counterparty create/edit forms driven from the shared schema.
-- PR #419 — MERGED_CI_DEPLOYED_HUMAN_VALIDATION_PENDING: Counterparty Relationship Roles v0.2: explicit CUSTOMER/SUPPLIER Enterprise Context resources over one stable Counterparty identity; role commands/detail UX; projection/read-model ownership boundary; Foundation Objects + RVC baseline.
-- PR #417 — MERGED_CI_PRODUCTION_PASS: Complete Counterparty v0.1 core master-data loop with in-place Edit and generic Eidos UIDL initial-value support.
-- PR #415 — MERGED_CI_PRODUCTION_PASS: Start evo-counterparty on the Enterprise Context Resource Library with enterprise-scoped Counterparty identity plus directory/create/detail/archive flows.
-- PR #412 — MERGED_CI_PRODUCTION_PASS: Add fixed deterministic layered Auto layout to Definition Projection Editor and replace the growing action row with frequent actions plus More overflow.
-- PR #410 — MERGED_CI_PRODUCTION_PASS: Separate Personal Agent chat context from current enterprise 2D editor task scope; current-editor tools work while chat context remains Personal.
-- PR #409 — MERGED_CI_PRODUCTION_PASS: Unify /operating-graph and Definition Projection Editor as the Host-owned current 2D editor target for Personal Agent.
-- PR #407 — MERGED_CI_PASS: Let Personal Agent read and directly crop the currently open 2D Projection, preserving Projection identity/business revision and triggering exact mounted-canvas refresh.
-- PR #405 — MERGED_CI_PASS: Make Projection non-versioned presentation state with in-place saves, collapse legacy projection-only raw revisions into semantic Ledger versions, and adopt pane-responsive Personal Agent chat chrome from Eidos PR #125.
-- PR #403 — MERGED_CI_PASS: Add explicit default Projection management while preserving Business Definition payload and Ledger Runtime semantics.
-- PR #401 — MERGED_MAINLINE: Add independent Projection rename plus automatic current-canvas thumbnail regeneration on Save and Save As; keep visual identity plugin-owned.
-- PR #400 — MERGED_MAINLINE: Authorize governed EOG Projection persistence and remove STATIC_POLICY_NO_MATCH for valid Owner/Admin writes.
-- PR #399 — MERGED_MAINLINE: Trial responsive deep context navigation for Ledger Manager -> Definition -> Projection -> Edit, with compact mobile parent navigation.
-- PR #398 — MERGED_MAINLINE: Restore complete Projection state, add Save As and preserve qualified projection identity across the authoring journey.
-- PR #397 — MERGED_MAINLINE: Preserve qualified routes through Desktop Workbench so deep Projection pages survive routing and reload.
-- PR #394 — MERGED_MAINLINE: Adopt the professional Eidos 2D canvas in EOG.
-- PR #393 — MERGED_MAINLINE: Restore Ledger detail reload and browser history.
-- PR #392 — MERGED_MAINLINE: Support projection-only node/relation pruning without deleting business objects.
-- PR #390 — MERGED_MAINLINE: Complete the explicit EOG Projection edit-save flow.
-- PR #387 — MERGED_MAINLINE: Align Ledger Manager with the Business Office design language.
-- PR #379 — MERGED_MAINLINE: Adopt Eidos Mobile Design Language v0.1.
-- PR #378 — MERGED_MAINLINE: Converge thin Enterprise Context, global session controls and Ledger Manager v0.1.
-- PR #344 — MERGED_CI_PASS: Add neutral exact-revision TemplateTransferBundle, Enterprise Context template-transfer Provider, independent Template Store snapshot repository, SHA-256 integrity and TEMPLATE_COPY provenance.
-- PR #342 — MERGED_CI_PASS: Add independent evo-template-store v0.1, first EVO Ledger Runtime baseline template, Eidos thumbnail rendering, plugin CI and durable architecture/decision documentation.
-- PR #315 — MERGED_CI_PASS: Prove real Eidos Trading Lite browser interaction through ActionHost, governed Enterprise Context, generic EVO BusinessData transport, PostgreSQL 18, Worker and Receivable Ledger.
-- PR #314 — MERGED_CI_PASS: Propagate the Host-selected active Context generically on same-origin browser requests without app-specific context injection.
-- PR #313 — MERGED_CI_PASS: Close the generic EVO transport gate and open the bounded Trading Lite Eidos browser proof.
-- PR #312 — MERGED_CI_PASS: Certify Trading Lite through App Platform → public EVO BusinessData HTTP → PostgreSQL 18 → Worker → Ledger/runtime observation using exact runtime applicationId binding.
-- PR #311 — MERGED_CI_PASS: Migrate Trading Lite to the generic EVO BusinessData transport.
-- PR #310 — MERGED_CI_PASS: Add Host-owned EVO BusinessData HTTP adapter.
-- PR #308 — MERGED_CI_PASS: Prove exact Host semantic Application → runtimeApplicationId → EVO applicationId public-contract identity mapping.
-- PR #307 — MERGED_CI_PASS: Close four-project boundary audit and open the App Platform→EVO applicationId proof gate.
-- PR #306 — MERGED_CI_PASS: Audit and correct ownership boundaries across EVO, App Platform, Eidos and Experience Compiler.
-- PR #305 — MERGED_CI_PASS: Close peer-provider convergence and open the four-project contract-boundary audit.
-- PR #304 — MERGED_CI_PASS: Audit Runtime Fact / Analysis Provider boundaries; freeze historical SOP conformance/deviation coupling as preserved deferred debt.
-- PR #303 — MERGED_CI_PASS: Gate Application Runtime Binding provider resolution through package lifecycle while preserving upgrade compatibility.
-- PR #302 — MERGED_CI_PASS: Move Application Runtime Binding service/store into generic provider ownership with manager compatibility re-exports.
-- PR #301 — MERGED_CI_PASS: Publish generic Enterprise Application Runtime Binding public contract and headless provider package identity.
-- PR #300 — MERGED_CI_PASS: Defer SOP extraction/product development and advance the Runtime Binding Adapter convergence gate.
-- PR #297 — MERGED_CI_PASS: Close interactive EOG 2D Workspace convergence across Viewer and Designer.
-- PR #296 — MERGED_CI_PASS: Prove end-to-end Designer Inspector edit -> ActionHost -> new authoritative Enterprise Graph revision while Viewer remains non-editable.
-- PR #295 — MERGED_CI_PASS: Add governed Designer edits for EOG-owned Inspector properties: safe node rebind and unconfirmed Guidance source updates.
-- PR #294 — MERGED_CI_PASS: Wire lazy selection-time peer-owned Inspector properties into Viewer and Designer with role-based edit descriptor filtering.
-- PR #293 — MERGED_CI_PASS: Add deterministic additive multi-provider Inspector property resolution.
-- PR #292 — MERGED_CI_PASS: Publish peer-owned Inspector property contribution contract and owner-command editing metadata.
-- PR #291 — MERGED_CI_PASS: Make the generic interactive 2D Viewer Workspace the primary desktop shell; Observatory becomes a mode rather than Viewer identity.
-- PR #290 — MERGED_CI_PASS: Adopt neutral Eidos Diagram Workspace vocabulary across shared EOG 2D Viewer/Designer code.
-- PR #289 — MERGED_CI_PASS: Add explicit Designer-only Inspector editor binding seam over the shared property model.
-- PR #288 — MERGED_CI_PASS: Share structured node/edge Inspector property data across Viewer and Designer.
-- PR #287 — MERGED_CI_PASS: Correct 2D Viewer architecture: interactive semantic-read-only workspace sharing interaction foundations with Designer.
-- PR #286 — MERGED_CI_PASS: Freeze peer-plugin extraction baseline: SOP Designer first, runtime-binding adapter later, analysis/report portfolio remains demand-driven.
-- PR #284 — MERGED_CI_PASS: Close EOG application package dependency leaks into manager-private implementation and enforce the boundary in CI.
-- PR #283 — MERGED_CI_PASS: Remove residual 2D Designer persistence/migration compatibility imports and use package-owned model/store directly.
-- PR #282 — MERGED_CI_PASS: Publish Observatory Service/Provider Resolver contracts and move Viewer/peer Provider type dependencies off manager-private implementation.
-- PR #281 — MERGED_CI_PASS: Physically move the 3D spatial Observatory page/action implementation into evo-eog-3d-viewer.
-- PR #280 — MERGED_CI_PASS: Promote Observatory request parsing to a package-neutral EOG input grammar shared by 2D and 3D viewers.
-- PR #279 — MERGED_CI_PASS: Complete desktop 2D Viewer physical cutover with a Viewer-owned fail-closed read-only operation command.
-- PR #278 — MERGED_CI_PASS: Extract package-neutral EOG-to-Eidos 2D base projection and keep semantic edit actions Designer-owned.
-- PR #277 — MERGED_CI_PASS: Physically move 2D Viewer observatory actions, Agent tools and mobile read implementation into the owning package.
-- PR #276 — MERGED_CI_PASS: Publish the Enterprise Graph semantic read contract so Viewer code no longer depends on the Designer Host service type.
-- PR #275 — MERGED_CI_PASS: Extract shared 2D/3D View State into a public Host presentation-state provider boundary.
-- PR #274 — MERGED_CI_PASS: Physically split EOG Personal Agent tool implementation between 2D Designer and 3D Viewer package owners.
-- PR #273 — MERGED_CI_PASS: Physically move 2D Designer Human actions and editor projection into the owning package.
-- PR #269 — MERGED_CI_PASS_DEPLOYED_LIVE_PASS: Cut EOG semantic runtime persistence over to Enterprise Context Business Definition Repository; production imported one legacy graph definition and controlled restart proved idempotence.
-- PR #268 — MERGED_CI_PASS: Add ENTERPRISE_OPERATING_GRAPH Business Definition kind, contract-bound persistence adapter foundation and non-destructive legacy semantic migration.
-- PR #266 — MERGED_CI_PASS: Split semantic and Observatory Personal Agent tool ownership between EOG 2D Designer and EOG 2D Viewer while preserving Provider calculation ownership.
-- PR #265 — MERGED_CI_PASS: Cut EOG 3D Viewer Experience and spatial read ActionHost ownership to evo-eog-3d-viewer, completing dedicated ownership for all three EOG application Experiences.
-- PR #264 — MERGED_CI_PASS: Cut EOG 2D Viewer desktop/mobile-read Experience and read/orchestration ownership to evo-eog-2d-viewer while preserving peer-provider analysis ownership.
-- PR #263 — MERGED_CI_PASS: Cut EOG 2D Designer Experience and Human semantic/2D ActionHost ownership to evo-eog-2d-designer.
-- PR #262 — MERGED_CI_PASS: Assign EOG 3D Viewer target Experience ownership while keeping the package default-OFF before controlled cutover.
-- PR #261 — MERGED_CI_PASS: Assign EOG 2D Viewer target desktop/mobile-read Experience ownership while keeping the package default-OFF.
-- PR #260 — MERGED_CI_PASS: Assign EOG 2D Designer target Experience ownership while keeping the package default-OFF.
-- PR #258 — MERGED_CI_PASS: Freeze EOG 2D/3D responsibility convergence: Enterprise Context definition authority, Eidos reusable 2D/3D cores, and three App Platform EOG application plugins.
-- PR #257 — MERGED_CI_PASS: Close External Agent READ/PLAN capability validation and record Grok Web/Mobile production proof.
-- PR #256 — MERGED_CI_PASS_DEPLOYED: Add bounded non-secret OAuth token-failure diagnostics used to prove Grok stale refresh-token behavior without logging authorization codes, PKCE verifiers, refresh tokens or access tokens.
-- PR #255 — MERGED_CI_PASS_DEPLOYED_LIVE_PASS: Add stateless handshake-era Streamable HTTP MCP compatibility for 2025-11-25, 2025-06-18 and 2025-03-26 while preserving the strict 2026-07-28 path; native Grok Web/Mobile production calls pass through the same governed core.
-- PR #254 — MERGED_CONTINUITY_PASS: Prepare the capability-level Grok Web/Mobile Human live validation gate that is now closed VERIFIED_PRODUCTION_PASS.
-- PR #253 — MERGED_CI_PASS_DEPLOYED: Project exact Capability + READ/PLAN selectors into mobile OAuth Human Consent, show current covered operations, revalidate selector form input against current grantable authority, and preserve explicit-operation selection.
-- PR #251 — MERGED_CI_PASS_DEPLOYED: Add exact Capability + READ/PLAN External Agent delegation selectors and freeze OAuth authorization-code/access/refresh token operation ceilings so durable selector growth cannot silently expand an existing credential family.
-- PR #250 — MERGED_CONTINUITY_PASS_DEPLOYED: Add the Grok Web/Mobile public CIMD profile and mobile native MCP validation runbook; production is aligned to the resulting main revision.
-- PR #249 — MERGED_CI_PASS_DEPLOYED: Add OAuth Human Consent and first-use public CIMD enrollment so a normal browser/mobile flow can create bounded External Agent governance without DevTools.
-- PR #248 — MERGED_CI_PASS_DEPLOYED: Introduce Agent Capability Fabric v0.1 with search/describe/invoke and DIRECT/HYBRID/FABRIC MCP projection modes; production currently uses HYBRID.
-- PR #247 — MERGED_CI_PASS: Add a public secret-free Claude Code native CIMD client profile for a later second-Agent Remote MCP proof without DCR or a local MCP protocol adapter.
-- PR #246 — MERGED_CI_PASS_DEPLOYED: Add RFC 8252 native loopback IP ephemeral-port redirect matching while preserving exact matching for ordinary redirects.
-- PR #245 — MERGED_CI_PASS: Record the Cline + DeepSeek real AI-Agent production portability pass and move the second-Agent proof out of the critical path.
-- PR #244 — MERGED_CI_PASS_LIVE_PASS: Add the thin Cline local MCP Integration Adapter so Cline + DeepSeek can bridge STDIO to EVO CIMD/OAuth PKCE + modern MCP 2026-07-28 without enabling DCR; real AI-Agent autonomous Ledger READ proof passed.
-- PR #242 — MERGED_CI_PASS_DEPLOYED: Align MCP tools/call structuredContent directly with each declared Capability Operation outputSchema; production Ledger describe call passed.
-- PR #241 — MERGED_CI_PASS_DEPLOYED: Stamp resultType=complete on MCP 2026-07-28 successful results; production modern tools/list passed.
-- PR #240 — MERGED_CI_PASS: Add a fresh Inspector Web CIMD identity with supported localhost/127.0.0.1 callbacks only.
-- PR #239 — MERGED_CI_PASS: Add cache-independent Inspector Web CIMD identity used during interoperability diagnosis.
-- PR #238 — MERGED_CI_PASS: Document additional loopback callback variants during Inspector interoperability diagnosis.
-- PR #237 — MERGED_CI_PASS: Add the first public secret-free MCP Inspector CIMD metadata document.
-- PR #236 — MERGED_CI_PASS: Record the first production OAuth/MCP public-discovery pass and preserve the real-client gate.
-- PR #235 — MERGED_CI_PASS_DEPLOYED: Codify Core/Provider/Application/Integration Adapter/Experience ownership boundaries and selective documentation lifecycle governance; deploy the current mainline used by OAuth/MCP production validation.
-- PR #234 — MERGED_CI_PASS_DEPLOYED: Add installable Enterprise Context Governance Experience plugin while preserving Provider-owned Enterprise Context facts; production Human created the first Enterprise Context through the normal page flow.
-- PR #233 — MERGED_CI_PASS_DEPLOYED: Expose External Agent governance through Human Action Host commands with Enterprise Context-only delegated grants and confirmation boundaries.
-- PR #232 — MERGED_CI_PASS_DEPLOYED: Add explicit durable managed Session revocation; production Human proof and restart-after-revoke both passed.
-- PR #229 — MERGED_CI_PASS_DEPLOYED: Add the first ChatGPT MCP Product Adapter without changing plugin business semantics; add RFC 9207 issuer identification and deploy safely with External Agent access still OFF.
-- PR #228 — MERGED_CI_PASS_DEPLOYED: Project currently delegated READ/PLAN Capability Operations into MCP tools/list and tools/call through the ordinary ActionHost path.
-- PR #227 — MERGED_CI_PASS_DEPLOYED: Bind /mcp to the OAuth Bearer protected-resource resolver behind a default-OFF production flag.
-- PR #226 — MERGED_CI_PASS_DEPLOYED: Add the stateless MCP 2026-07-28 protocol core.
-- PR #224 — MERGED_CI_PASS_DEPLOYED: Project External Agent OAuth onto Host HTTP discovery/authorize/token/revoke routes behind a default-OFF production flag.
-- PR #223 — MERGED_CI_PASS_DEPLOYED: Add CIMD-first PKCE S256 resource-bound OAuth authorization/access/refresh token core with current-authority revalidation.
-- PR #222 — MERGED_CI_PASS_DEPLOYED: Recompute effective delegated External Agent authority from current Human, membership, plugin lifecycle and authorization policy.
-- PR #221 — MERGED_CI_PASS_DEPLOYED: Add the current Human identity user directory used by delegated authority resolution.
-- PR #220 — MERGED_CI_PASS_DEPLOYED: Add durable External Agent, Client and attenuated Authority Grant governance.
-- PR #219 — MERGED_CI_PASS_DEPLOYED: Make Capability Operation discovery and invocation authorization-aware at the Host boundary.
-- PR #218 — MERGED_CI_PASS_DEPLOYED: Expose Ledger Runtime configuration describe and bounded digest-bound section READ as Agent-neutral Capability Operations.
-- PR #217 — MERGED_CI_PASS_DEPLOYED: Add platform.capability-operation to Plugin Protocol with lifecycle-effective aggregation and fail-closed operation-id conflicts.
-- PR #216 — MERGED_CI_PASS_DEPLOYED: Wire the generic OIDC Provider into Host Settings, Secrets and Provider Runtime Registry while keeping production login disabled until live proof.
-- PR #215 — MERGED_CI_PASS_DEPLOYED: Add generic OIDC Authorization Code + PKCE S256 + JWKS/RS256 Provider core.
-- PR #214 — MERGED_CI_PASS_DEPLOYED: Add Provider-neutral Host authentication orchestration and managed Session issuance/logout boundary.
-- PR #210 — MERGED_CI_PASS_DEPLOYED: Record the Enterprise–Personal Learning Loop as a long-term architecture target while keeping it outside current MVP/CI.
-- PR #209 — MERGED_CI_PASS_DEPLOYED: Converge Enterprise Context Business Definition authority, migrate legacy EOG SOP persistence and preserve EOG/SOP analysis assets as non-gating.
-- PR #84 — MERGED: Preserve distinct Host tools after repeated READ suppression and add Memory Proposal readback.
-- PR #85 — MERGED: Make supersedesMemoryId effective in ordinary retrieval while preserving exact-ID history.
-- PR #86 — MERGED: Add append-only Human-reviewed existing-Memory canonicalization.
-- PR #88 — MERGED: Converge paraphrased Context Memory READ loops by authoritative evidence.
-- PR #89 — MERGED: Add exact-ID historical Context Memory audit.
-- PR #90 — MERGED: Add one-shot effective-vs-history audit to reduce sequential LLM/tool latency.
-- PR #91 — MERGED: Strengthen deterministic multi-token lexical retrieval.
-- PR #92 — MERGED: Record Memory canonicalization LIVE PASS.
-- PR #93 — MERGED_DEPLOYED: Add bounded cross-session Context Memory recall with short query expansion and prohibit Context speculation from retrieval misses.
-- PR #94 — MERGED_HUMAN_LIVE_PASS: Add repository-native AI-BOOTSTRAP/project.status/HANDOFF-LATEST continuity protocol with anti-stale CI; fresh ChatGPT cold-start recovery was user-confirmed PASS.
-- PR #95 — MERGED: Record Human LIVE PASS for fresh-ChatGPT project continuity cold-start recovery.
-- PR #96 — MERGED_DEPLOYED: Make ranked Memory retrieval non-exhaustiveness and fact-vs-inference separation durable Personal Agent responsibility rules; context.memory.recall now declares exhaustive=false.
-- PR #97 — MERGED: Record fresh-session recall functional pass and PR #96 epistemic retest gate.
-- PR #98 — MERGED: Close P1.4X Human LIVE PASS and bootstrap P1.5 Durable Agent Operations.
-- PR #99 — MERGED_DEPLOYED: Add deterministic paginated Context Memory governance inventory with exact reader-visible count, historical relation metadata and digest-bound cursor stability.
-- PR #100 — MERGED: Record deployed P1.5A inventory Human gate and advance continuity validation beyond closed P1.4X.
-- PR #101 — MERGED_DEPLOYED: Add generic durable idempotent Agent Action Receipts for Personal Agent material WRITEs.
-- PR #103 — MERGED: Record P1.5B Human WRITE PASS and readback-only gate.
-- PR #104 — MERGED: Close P1.5B LIVE PASS and start P1.5C resumable Agent Runs.
-- PR #105 — MERGED_DEPLOYED: Add append-only durable resumable Personal Agent Runs with bounded slices and Action Receipt replay safety.
-- PR #107 — MERGED_DEPLOYED: Resume a pre-decision crash in the original durable slice instead of inflating slice count.
-- PR #109 — MERGED_DEPLOYED: Persist READ convergence across resumable slices after production smoke exposed repeated complete inventory reads.
-- PR #110 — MERGED_DEPLOYED: Make Personal Agent recommendations governance-state aware and inventory completeness filter-bounded.
-- PR #112 — MERGED_DEPLOYED: Make Eidos Personal Agent chat run-backed by default with automatic resume, reconnect recovery, rich terminal presentation and bounded legacy fallback.
-- PR #114 — MERGED_CI_PASS: Add clean Host+Eidos integration proof for multi-slice READ and post-WRITE reconnect with no duplicate WRITE.
-- PR #116 — MERGED: Add durable Conversation Thread foundation.
-- PR #117 — MERGED: Bind durable Conversation Threads to Agent Runs and Host-built history.
-- PR #118 — MERGED_DEPLOYED: Make Eidos Personal Agent transcript Host-thread-backed; 30/30 CI PASS and Railway deployment SUCCESS.
 
 ## DO NOT repeat stale actions
 
+- TR-01B2D2 verified EVO immutable facts and exact policy pins READ-ONLY in real PostgreSQL, but only through disposable in-process Host↔owner CI adapter. No authenticated production delegation, no public Cost/Allocation mutation, no finance Agent tool; executionAllowed=false and no CostRun/AllocationInstruction created. Next trusted Host→EVO owner verifier admission.
+- TR-01B2D1 finance intent preflight is not a public finance operation: no EVO owner verifier is installed, it fails closed, and even mocked successful owner attestation has executionAllowed=false. Never wire EVO private CostEngine/AllocationStore or /demo/*/caller-asserted actor into Host or Agent. Next trusted EVO owner verifier with scoped attested facts.
+- TR-01B2C proves formal 1000 CNY source-order to receipt AllocationInstruction and derived Relation only via isolated EVO-owner PostgreSQL certification, with replay. It does NOT expose a production Host/Agent public cost/allocation operation or certify arbitrary currency/partial/multi-invoice/Bank Account; never treat BusinessData REFERENCES as financial allocation.
+- TR-01B2B cost/replay CI DOES NOT expose a production cost or settlement public API. Never call private CostEngine or /demo/cost/recalculate from Host/Agent. Fixed versions of valuation policy, allocation policy, shipment valuation rule were mandatory. Formal customer receipt AllocationInstruction/Relation and Financial Account object remain UNPROVEN.
+- TR-01B2A real EVO proves Inventory quantity=0 but raw Ledger amount=125 after Shipment; do NOT claim Inventory Amount or COGS closed, and do NOT direct-write any balance. Sales read HUMAN/AI parity is service-level CI, NOT installed Host/Agent/Workbench.
+- Do not conflate TR-01B1 cash.received and cash Ledger increase with an enterprise financial/bank account Foundation Object or formal allocation; shipment quantity closes but Inventory Amount and COGS need separate proof.
+- Do not claim TR-01A reference acceptance proves customer production plugin install, actual customer login, Agent model reasoning, partial/concurrent reversal or a complete procurement product; #567 proves only real isolated installed Chrome/AI/Workbench acceptance.
 - Do not accept memory-proposal:dc107947-7016-4e33-8c20-b328bcc4030f as the deduplication mechanism.
 - Do not accept the P1.5B smoke-test Proposal memory-proposal:55b2b06e-8361-43f9-8f22-408aae7a8f1b as formal Memory; it is test-only and currently PENDING.
 - Do not accept the P1.5C smoke-test Proposal memory-proposal:974893e1-6a91-4473-8de8-e3e395342f62 as formal Memory; it is test-only and currently PENDING.
@@ -543,16 +415,31 @@ Not proved:
 - Do not reopen IT-01B or add a duplicate Item payload lifecycle status; Enterprise Resource ACTIVE/ARCHIVED is the current Item identity lifecycle authority.
 - Do not create an Item-specific import subsystem in IT-01C; Item must prove the existing generic Data Import target/service contracts.
 - Do not reopen IT-01C or create an Item-only Data Import framework; Item now consumes the generic Data Import target/service path.
-- Do not claim row-dynamic qualifier-dependent import schemas are solved; IT-01C records the current job-level EffectiveObjectSchema limitation explicitly.
 - Do not turn Item Projection into a new business-data authority in IT-01D; projections remain derived from authoritative Item/Extension/Responsibility data.
 - Do not move Workspace ownership into Item; evo-bi-workbench remains the optional BI / Insight Experience owner.
 - Do not reopen IT-01D; its lifecycle-gated Item Projection/Responsibility/Eidos product slice passed 34/34 CI and production deployment on 2026-10-09.
 - Do not treat ITEM_STEWARD Responsibility as Item authorization; it filters My Items only after normal Authorization Provider decisions.
-- Do not statically register the IT-01C Item import target in Host; a lifecycle-aware import-target registry/contribution is required before product exposure.
 - Do not force-install evo-item merely because it is present in Catalog; PR #509 install/use-driven lifecycle rules remain authoritative.
 - Do not reopen the lifecycle-aware Data Import target registry debt; PR #532 resolved it with active-feature metadata discovery and use-time lazy target implementation loading.
 - Do not reopen row-dynamic qualifier-aware Item import; PR #534 resolved it with shared DISCOVERY/EFFECTIVE applicability modes and per-row effective validation.
 - Do not treat Open Food Facts barcode/code, GTIN, category, brand or packaging fields as EVO Item primary identity during IT-01E RVC; they are external identifiers/classifications until evidence says otherwise.
+- Do not reopen IT-01 or rerun its Open Food Facts RVC without new compatibility evidence; IT-01 closed on 2026-10-09 after PR #538, real-data CI and production deployment passed.
+- Do not make GTIN/barcode a universal Item primary key; external trade-item identifiers remain scheme+value evidence separate from enterprise Item identity.
+- Do not add universal Product/SKU/variant/category core fields from naming preference; those remain domain relations/classifications until business evidence requires them.
+- Do not infer enterprise baseUomCode from package quantity text; base UOM is governed operational UOM, external package measure is separate evidence.
+- Do not put inventory quantity/on-hand/availability into Warehouse master data during WH-01; Warehouse is where, Inventory Position is what Item is there and how much.
+- Do not casually redesign STABLE_CANDIDATE Foundation Object contracts in WH-01; require concrete third-object incompatibility evidence.
+- Do not reopen WH-01A or introduce a generic hierarchy framework from Warehouse alone; warehouse.location hierarchy remains domain-owned until a second structurally hierarchical consumer proves a shared abstraction.
+- Do not put on-hand, available, reserved or ledger quantities into Warehouse or Warehouse Location master data; Inventory Position owns what Item is there and how much.
+- Do not reopen WH-01 or infer Inventory Position quantities from Warehouse/facility data; WH-01 closed with real Overture RVC and Warehouse remains where only.
+- Do not continue adding Foundation Objects as the mainline during TR-01; pressure existing Counterparty, Item and Warehouse/Location through real business operations.
+- Do not mutate historical Purchase Order/Receipt/Shipment facts to represent later state; state changes are new business/ledger facts and projections are derived.
+- Do not reopen TR-01A1 or duplicate EVO Ledger/Work/Balance authority in App Platform.
+- Do not start TR-01B until TR-01A2 immutable receipt reversal and replay certification have closed.
+- Do not modify original Purchase Order or Goods Receipt to represent a correction; append an explicitly linked REVERSES fact.
+- Do not repeat TR-01A2 reversal reference implementation or replay certification; it is merged, cross-project CI passed and production deployed.
+- Do not mark all TR-01A acceptance complete solely from A1/A2 economic CI: governed Human/Agent/Workbench operational view acceptance still requires explicit evidence.
+- Do not treat the certified full reversal of one known Goods Receipt as proof of safe generalized partial/concurrent over-reversal or original-cost read-back.
 
 ## Fresh ChatGPT / LLM startup
 
@@ -572,20 +459,27 @@ A dated handoff is historical evidence unless `project.status.json.handoff` poin
 
 A new ChatGPT / LLM session is project-continuous only if it can do all of the following after the startup read:
 
+- state WH-01 Warehouse/Location third-object proof as CLOSED_PRODUCTION_PASS after PR #546 / main commit 0397a31f341a101756af5572f36d52390703c1a7 / Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 SUCCESS and 5,000-row Overture real facility RVC PASS
+- state TR-01A Purchase Order → Receipt → Inventory Position → Payable as the current active Foundation Object Program slice
+- state selected object-neutral Foundation Object contracts as STABLE_CANDIDATE through TR-01; promote to STABLE only after real trading loop evidence
+- state current production Ledger Configurator as App Platform PR #546 merge commit 0397a31f341a101756af5572f36d52390703c1a7 / Railway deployment 235335b8-44e3-4da4-9682-6cb75c70bcb6 SUCCESS
+- state WH-01C Warehouse Responsibility / Projection / Eidos composition as MERGED_CI_PRODUCTION_PASS via PR #544 / main commit f47890b5823ad7389625563d5a6f0c62eb220fdb / Railway deployment 60a02755-b544-48cf-907c-95e3feddd56f SUCCESS after 34/34 combined CI
+- state WH-01B hierarchical Warehouse Location Data Import as MERGED_CI_PRODUCTION_PASS via PR #542 / main commit 9f3e65e84d521f2e6ea23aba31dc64525c3aa224 / Railway deployment c2011371-4309-4982-9062-90cb98a166a9 SUCCESS
+- state WH-01A Warehouse identity + Location hierarchy as MERGED_CI_PRODUCTION_PASS via PR #540 / main commit 4f9490b24792836db5d070bd8b2b2767809f3bda / Railway deployment a946ec39-35d2-4c73-8dd2-d9e3b7cd5de1 SUCCESS
+- state IT-01 Item/Product second-object proof as CLOSED_PRODUCTION_PASS after PR #538 / main commit 139ad94c13909a1f47c73d081742a5a6a870eef5 / Railway deployment ca33d2da-7de7-483a-b584-1d71d38f84d1 SUCCESS
+- state WH-01 Warehouse/Location third-object proof as the current active Foundation Object Program gate
+- state selected object-neutral Foundation Object contracts as STABLE_CANDIDATE after Counterparty + Item proof, while Item/Product/SKU/variant/trade-identifier/UOM/classification semantics remain domain-owned/EXPERIMENTAL
+- state Warehouse = where and Inventory Position = what Item is there and how much; Warehouse master data must not own stock balances
 - state IT-01E row-dynamic qualifier-aware import as MERGED_CI_PRODUCTION_PASS via PR #534 / main commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
 - state both IT-01E platform gaps (lifecycle-aware import targets and row-dynamic qualifier import) as closed before real-world Item RVC
-- state real-world Open Food Facts / GS1 / UN/CEFACT Item RVC as the current active IT-01E sub-slice
-- state current production Ledger Configurator as App Platform PR #534 merge commit 9d4475ac18e2457e46d7b596f9a3e87d0e5db4ac / Railway deployment b16708e5-b17b-4151-99d1-4803880880b3 SUCCESS
 - state IT-01E lifecycle-aware Data Import target registry as MERGED_CI_PRODUCTION_PASS via PR #532 / main commit 07ae77f1f9f94b9860b29c20f858bd059b23c502 / Railway deployment c7ac359b-3fe7-4a5c-b258-9fb7e3baa01d SUCCESS after 35/35 CI
 - state IT-01D Item projections/responsibility + governed Eidos experience as MERGED_CI_PRODUCTION_PASS via PR #530 / main commit ea3594f06625803883b7fd6dddcc878feb8bdc99 / Railway deployment bb543f4b-fb43-4d4e-a515-c83eb46ff992 SUCCESS after 34/34 CI
-- state IT-01E real-world Item RVC + Product/SKU/variant/GTIN boundary pressure as the current active slice inside IT-01
 - state Item import Host exposure as intentionally pending a lifecycle-aware Data Import target registry; do not statically register the Item target merely to make it visible
 - state IT-01C generic Data Import reuse with Item target as MERGED_CI_PRODUCTION_PASS via PR #528 / main commit 8639fc0914e33d4040b92a1541679557f97c9cee / Railway deployment f4e56280-cfae-4012-bc8a-ed4e48d77ec6 SUCCESS
 - state IT-01B Item Enterprise Context repository + deterministic identity lifecycle as MERGED_CI_PRODUCTION_PASS via PR #524 / main commit 7dbe34f706fdf4dd27d60997127cc5766002b1de / Railway deployment d2d85a7f-3987-4f49-8bf5-de9a3c6e9d58 SUCCESS
 - state IT-01A Item second-object schema/anti-overfit proof as MERGED_CI_PRODUCTION_PASS via PR #522 / main commit d9ad7b6cb194096f04aa58979af27e0af99d157d / Railway deployment 3aa0e5fb-139a-492f-be63-41b1b9255c9b SUCCESS
 - state object-neutral applicability qualifiers as the path for new Foundation Objects while Counterparty relationshipRoles remains v0.1 compatibility debt
 - state CP-07 Counterparty maturity gate as CLOSED_PRODUCTION_PASS on 2026-10-09 after PR #519 merged, 42/42 combined CI passed and Railway production deployment f681b927-2685-4d66-8654-299e0374c347 succeeded
-- state IT-01 Item/Product second-object proof as the current active Foundation Object Program gate and keep shared Foundation Object contracts EXPERIMENTAL until materially different second-object evidence supports stabilization
 - state CP-06 Personal Workbench + Agent as CLOSED_HUMAN_PASS on 2026-10-09 with evo-bi-workbench remaining the independent optional BI / Insight Experience plugin
 - state Personal Agent P1.8 as verified and production-closed
 - state Enterprise Operating Graph Contract & Editor v0.1 as implementation-closed through PR #139/#140
@@ -685,7 +579,6 @@ A new ChatGPT / LLM session is project-continuous only if it can do all of the f
 - state immediate Grant-revocation cutoff as live-proven: a fresh Grok /mcp request returned 401 while the connector remained configured
 - state the Grok first-consent browser-return stall as a known Web+Mobile client UX interoperability issue, not an unresolved authorization gate
 - state External Agent WRITE, additional non-Ledger external projections and ChatGPT product-specific entitlement/UX as future expansion rather than foundation blockers
-- state current production Ledger Configurator as commit 5ba3a8193d004c660bd0c4e4b4434bae21f7c959 / Railway deployment 7e851fd2-47f5-445b-9ef9-ccb07d4d9a09 SUCCESS
 - state EOG 2D/3D Responsibility Convergence v0.1 as the active milestone
 - state Enterprise Context as the authoritative Enterprise Graph Definition lifecycle/persistence owner
 - state Eidos 2D Core and 3D Core as reusable business-semantic-free frontend framework capabilities

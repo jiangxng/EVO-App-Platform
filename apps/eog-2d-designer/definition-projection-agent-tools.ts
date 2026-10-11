@@ -130,15 +130,16 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
     if (!artifact?.diagram2d) {
       throw new Error("DEFINITION_PROJECTION_DIAGRAM_NOT_AVAILABLE");
     }
-    const gallery = input.projectionStore.get({
+    const stored = input.projectionStore.getVersioned({
       enterpriseId: selection.enterpriseId,
       definitionId: selection.definitionId,
       definitionRevision: selection.definitionRevision
-    }) ?? latest.projectionGallery;
+    });
+    const gallery = stored.gallery ?? latest.projectionGallery;
     if (!gallery) {
       throw new Error("DEFINITION_PROJECTION_GALLERY_REQUIRED");
     }
-    return { selection, latest, artifact, gallery };
+    return { selection, latest, artifact, gallery, writeToken: String(stored.version) };
   };
 
   return [{
@@ -158,11 +159,12 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
     }),
     available: currentAvailable,
     execute() {
-      const { selection, artifact } = readCurrent();
+      const { selection, artifact, writeToken } = readCurrent();
       const hiddenNodes = new Set(artifact.hiddenNodeIds ?? []);
       const hiddenEdges = new Set(artifact.hiddenEdgeIds ?? []);
       return {
         selection,
+        writeToken,
         projection: {
           projectionId: selection.projectionId,
           title: artifact.title,
@@ -210,9 +212,13 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
           rationale: {
             type: "string",
             description: "Short explanation of how the retained material matches the Human request."
+          },
+          expectedWriteToken: {
+            type: "string",
+            description: "Exact writeToken from current.get, required for conflict-safe editing."
           }
         },
-        required: ["visibleNodeIds", "visibleEdgeIds"],
+        required: ["visibleNodeIds", "visibleEdgeIds", "expectedWriteToken"],
         additionalProperties: false
       },
       effect: "WRITE",
@@ -221,6 +227,11 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
     }),
     available: currentAvailable,
     execute(args) {
+      if (typeof args.expectedWriteToken !== "string"
+        || !/^(0|[1-9][0-9]*)$/.test(args.expectedWriteToken)
+        || !Number.isSafeInteger(Number(args.expectedWriteToken))) {
+        throw new Error("DEFINITION_PROJECTION_WRITE_TOKEN_REQUIRED");
+      }
       const visibleNodeIds = Array.isArray(args.visibleNodeIds)
         ? args.visibleNodeIds.map(value =>
             typeof value === "string" ? value.trim() : ""
@@ -252,7 +263,10 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
         throw new Error("DEFINITION_PROJECTION_MANAGE_ROLE_REQUIRED");
       }
 
-      const { selection, latest, artifact, gallery } = readCurrent();
+      const { selection, latest, artifact, gallery, writeToken } = readCurrent();
+      if (args.expectedWriteToken !== writeToken) {
+        throw new Error("DEFINITION_PROJECTION_WRITE_CONFLICT");
+      }
       const diagram = artifact.diagram2d!;
       const nextGallery = cropDefinitionProjectionToVisibleItemsV010({
         gallery,
@@ -263,14 +277,14 @@ export function createDefinitionProjectionAgentToolRegistrationsV010(input: {
         locale: input.locale
       });
       const recordedAt = now().toISOString();
-      input.projectionStore.put({
+      input.projectionStore.putIfVersion({
         enterpriseId: latest.enterpriseId,
         definitionId: latest.definitionId,
         definitionRevision: latest.revision,
         gallery: nextGallery,
         updatedAt: recordedAt,
         updatedBySubjectId: input.principal.subjectId
-      });
+      }, Number(args.expectedWriteToken));
 
       const nextSelection: DefinitionProjectionSelectionV010 = {
         ...selection,
