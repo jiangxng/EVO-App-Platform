@@ -42,3 +42,26 @@ test('signer pointer rejects malformed, symlinked or externally readable operato
   }
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test('signer pointer read uses verified file descriptor, never a second pathname open',()=>{
+ const source=readFileSync(new URL('../../apps/trading-reference/finance-owner-key-pointer.ts',
+   import.meta.url),'utf8');
+ assert.match(source,/O_NOFOLLOW/);
+ assert.match(source,/fstatSync\(fd\)/);
+ assert.match(source,/readFileSync\(fd, 'utf8'\)/);
+ assert.doesNotMatch(source,/readFileSync\(file\s*,/);
+});
+
+test('signer pointer rejects directories and still permits safe atomic renames',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'evo-finance-pointer-fd-'));
+ try{
+   assert.throws(()=>readFinanceOwnerActiveKeyIdV010(dir),
+     /TR01B2D3_SIGNING_POINTER_PERMISSIONS_INVALID/);
+   const active=join(dir,'active'),swap=join(dir,'swap');
+   writeFileSync(active,'old-key\n',{mode:0o600});
+   writeFileSync(swap,'new-key\n',{mode:0o600});
+   assert.equal(readFinanceOwnerActiveKeyIdV010(active),'old-key');
+   renameSync(swap,active);
+   assert.equal(readFinanceOwnerActiveKeyIdV010(active),'new-key');
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
