@@ -11,7 +11,7 @@ const component = (manifest.componentPins ?? []).find(p => p.component === "eido
 const errors = [];
 const required = (c, why) => { if (!c) errors.push(why); };
 required(component?.sourceRepository === "jiangxng/eidos","Unexpected 2D upstream repository.");
-required(component?.sourceCommit === "3fde008f372bcbcaad45563f511c7b7cf1f8924e","Unexpected 2D upstream commit.");
+required(component?.sourceCommit === "89ca893f2aeec760bf29a7cabe4e8e6ef04a421b","Unexpected 2D upstream commit.");
 required(component?.sourcePath === "src/diagram","Unexpected source path.");
 required(component?.vendoredPath === "vendor/eidos/src/diagram","Unexpected local path.");
 required(component?.publicEntrypoint === "src/2d/index.ts","Wrong Eidos 2D public entrypoint.");
