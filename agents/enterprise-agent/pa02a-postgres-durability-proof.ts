@@ -137,7 +137,7 @@ export async function createPostgresAgentDurabilityProofV020(input:{
         "JOIN "+q+".agent_turns t ON e.run_id=t.run_id "+
         "WHERE t.scope_key=$1 AND e.run_id=$2 ORDER BY e.ordinal ASC",
         [scopeKey(r.scope),required(r.runId)]);
-      return rows.map(x=>structuredClone(x.payload as AgentRunEventV010));
+      return rows.map(x=>typeof x.payload === "string" ? JSON.parse(x.payload) as AgentRunEventV010 : structuredClone(x.payload as AgentRunEventV010));
     },
     async beginReceipt(r:AgentReceiptBeginInputV020) {
       const key=scopeKey(r.scope),receipt=r.receipt;
