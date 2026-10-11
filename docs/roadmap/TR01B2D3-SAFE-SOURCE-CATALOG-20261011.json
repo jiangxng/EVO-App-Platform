@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "kind": "TR01B2D3_ADDITIVE_FINANCE_OWNER_SOURCE",
+  "sourcePR": 594,
+  "sourceHead": "1d6149bd05136d642e49aab5196d12ab243cbe4e",
+  "baseMain": "296d9c444ae50ba802fd01c1584caccd205f356c",
+  "importedNewFiles": [
+    {
+      "path": "apps/trading-reference/finance-owner-key-pointer.ts",
+      "blob": "7980430f6a6ca3cc32c057b71affdd9f8facee65"
+    },
+    {
+      "path": "apps/trading-reference/finance-owner-remote.ts",
+      "blob": "85ebfd580143b9beaf72726050ca4c8a8c7fb0cb"
+    },
+    {
+      "path": "docs/roadmap/TR01-INDEPENDENT-PURCHASING-RECEIVING-PLUGIN-SPLIT-20261011.md",
+      "blob": "421f7518e4ada7b8c93d3c9ec9ac367ae72f157d"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-DISTINCT-DB-LOGINS-LIVE-OWNER-CI-20261010.md",
+      "blob": "afd13b07457bde264ad7768fc067fe212cbce3c2"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-FINANCE-OWNER-DEPLOYMENT-DESCRIPTOR-20261011.md",
+      "blob": "23fd44f95dcd243abb4bc98edc2617af096b16ea"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-FINANCE-OWNER-PRODUCTION-ADMISSION-PREFLIGHT-20261011.md",
+      "blob": "933b95d0fc3266ecefbc2afddbc69d2835124531"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-FOUR-PEER-PLUGIN-STAGE-DEMO-20261011.md",
+      "blob": "7d282bfee12381ff22992441452a017af49fde95"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-HOST-HOT-SIGNER-AND-DB-ROLES-20261010.md",
+      "blob": "88377673e82e39f12a2a7205c69ccb5cbde8c3d8"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-INSTALLED-HOST-MANAGED-SESSION-CI-20261010.md",
+      "blob": "aade4ad6344398bce24a147ab8bfcd05eb591df3"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-ISOLATED-FINANCE-OWNER-HTTP-20261011.md",
+      "blob": "20081e83a1546a898aacf1b92ded11878215a63d"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-LIVE-POSTGRES-KEY-ROTATION-20261010.md",
+      "blob": "3fd25b06430c5f5d1c3ae6c91e600cb0a884b1e0"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-MAINLINE-WINDOW-RECOVERY-20261011.md",
+      "blob": "7e8639e5544e83926dd9c31673412df57b1f1207"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-PARALLEL-OIDC-TLS-CERTIFICATION-20261010.md",
+      "blob": "aac618d8a7a971a8a81134ac8d3c1b170c603f5b"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-RAILWAY-PRODUCTION-READONLY-INVENTORY-20261011.md",
+      "blob": "76eb698c09d5b46313d14a74b30e07bb7e480a5d"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-SIX-LANE-PRODUCTION-ADMISSION-20261011.md",
+      "blob": "f58a26130d1d70dcf76e6807150d6d3198cd9423"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-TRUSTED-OWNER-DELEGATION-20261010.md",
+      "blob": "69a2d41a02ede190047bb866ececbc1da29a18c7"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-TWELVE-LANE-PREADMISSION-20261011.md",
+      "blob": "969d21cfa1df3a7461e03a05de4002e7f8435c31"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-TWO-EVO-CONCURRENT-NONCE-REVOKE-20261011.md",
+      "blob": "0c590315c24f525b7d6c67a2420b37c6c0953426"
+    },
+    {
+      "path": "docs/roadmap/TR01B2D3-TWO-EVO-INSTANCES-TRUST-20261010.md",
+      "blob": "4de8023d8a9572cf831ae109a73c1244354c3d4d"
+    },
+    {
+      "path": "providers/trading-finance-owner/package.ts",
+      "blob": "1eb2c48b42cc34f9b18dcdfdfe049fbef4598ea4"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-deployment-descriptor.test.mjs",
+      "blob": "e67a9c1644da882048b0c7b9ab2f40c484bddb1d"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-finance-owner-preflight.test.mjs",
+      "blob": "82f4d3763e3b0b06aa96cd441e7a728310860306"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-four-peer-stage-plugins.test.mjs",
+      "blob": "4a7c1c84bb6aafb60b0ba9ac77b324300db89a33"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-private-tls-probe.test.mjs",
+      "blob": "e6d2de91dadba875d9910f31e5f0923b8c93d696"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-signing-pointer.test.mjs",
+      "blob": "45efea0ffb85414962e814734cf1cf2b3403b99c"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-six-lane-admission.test.mjs",
+      "blob": "a8dd14669db5ce6471a100bb0768c3251c2947cb"
+    },
+    {
+      "path": "tests/protocol/tr01b2d3-twelve-lane-admission.test.mjs",
+      "blob": "e388205928e36e6c9e20823b929f84eefa2b8daf"
+    },
+    {
+      "path": "tools/tr01b2d3-deployment-descriptor-validate.mjs",
+      "blob": "1dd88a5b6cd101d7e0dc8569b719d6e2b1c0ad09"
+    },
+    {
+      "path": "tools/tr01b2d3-finance-owner-catalog-preflight.mjs",
+      "blob": "f212b45994a0bb9cee338334d0d4375fd267c018"
+    },
+    {
+      "path": "tools/tr01b2d3-private-tls-probe.mjs",
+      "blob": "de894903eec70b6f0a68a2df6108f61a838ae041"
+    },
+    {
+      "path": "tools/tr01b2d3-six-lane-admission.mjs",
+      "blob": "b95e06705a11afce9f4f5c0c6babef1f0ee3c7d7"
+    },
+    {
+      "path": "tools/tr01b2d3-twelve-lane-admission.mjs",
+      "blob": "1571dbaa2be47ce25fabb4a00b4754127b7df4df"
+    }
+  ],
+  "remainingChangedHostFiles": [
+    "catalog/seed.ts",
+    "manager/server.ts",
+    "apps/trading-reference/finance-owner-remote.ts (new, not yet wired)"
+  ],
+  "state": "INACTIVE_UNTIL_EXPLICIT_PLUGIN_RUNTIME_INTEGRATION",
+  "financing": "READ_ONLY_OWNER_NO_NEW_LEDGER_EXECUTION",
+  "sourceBranchKept": true
+}
