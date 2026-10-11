@@ -1,0 +1,160 @@
+name: TR01 Legacy Branch Retirement after Independent Plugin Convergence
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/tr01-independent-plugin-retirement-20261012.json"
+      - ".github/workflows/tr01-independent-plugin-retirement-20261012.yml"
+      - "providers/trading-finance-owner/legacy-evidence/**"
+      - "apps/trading-stage/LEGACY-CONVERGENCE.md"
+      - "docs/archive/TR01-20261012-LEGACY-BRANCH-RETIREMENT.md"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/tr01-independent-plugin-retirement-20261012.json"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  audit-then-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate merged plugin ownership; delete only on main push
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner,repo=context.repo.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repo');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(!execute&&context.eventName!=='pull_request')throw Error('Unapproved trigger');
+            const versionRef=execute?'main':context.payload.pull_request.head.sha;
+            const read=async(path,ref=versionRef)=>{
+              const d=(await github.rest.repos.getContent({owner,repo,path,ref})).data;
+              if(Array.isArray(d)||d.type!=='file')throw Error('Expected file: '+path);
+              return {sha:d.sha,body:Buffer.from(d.content,'base64').toString('utf8')};
+            };
+            const manifest=JSON.parse((await read('repository-hygiene/tr01-independent-plugin-retirement-20261012.json')).body);
+            const approvedOld=new Set([
+              'demo/tr01b2d3-isolated-live-stage-20261011',
+              'docs/tr01b2d3-mainline-recovery-20261011',
+              'docs/tr01b2d3-railway-runtime-preflight-evidence-20261011',
+              'feat/tr01-trading-peer-purchasing-receiving-20261011',
+              'feat/tr01b2d3-definer-owner-strict-admission-20261011',
+              'feat/tr01b2d3-deployment-descriptor-gate-20261011',
+              'feat/tr01b2d3-finance-owner-prod-preflight-20261011',
+              'feat/tr01b2d3-four-peer-business-plugins-stage-20261011',
+              'feat/tr01b2d3-host-owner-delegation-20261010',
+              'feat/tr01b2d3-six-lane-production-admission-20261011',
+              'feat/tr01b2d3-twelve-lane-preprod-20261011',
+              'test/tr01b2d3-cross-instance-nonce-revocation-race-20261011',
+              'test/tr01b2d3-distinct-db-login-http-20261010',
+              'test/tr01b2d3-isolated-finance-owner-credential-http-20261011'
+            ]);
+            const approvedOther=new Set([
+              'chore/audit-and-retire-platform-tail-20261011',
+              'chore/retire-platform-merged-f0-f1-f2-heads-20261012',
+              'fix/plugin-card-descriptions-20261012'
+            ]);
+            if(manifest.schemaVersion!==1||manifest.scope!=='tr01-independent-plugin-convergence-retirement-20261012'
+              ||manifest.baselineMainSha!=='8b8b1634256f96b06e1a9e5aa978d919c39e8024'
+              ||manifest.knownOpenDraftToClose!==594
+              ||manifest.oldTR01?.length!==14||manifest.otherConverged?.length!==3)throw Error('Unexpected inventory');
+            const all=[...manifest.oldTR01,...manifest.otherConverged];
+            const seen=new Set();
+            for(const r of all){
+              const allowed=approvedOld.has(r.name)||approvedOther.has(r.name);
+              if(!allowed||seen.has(r.name)||!/^[a-f0-9]{40}$/i.test(r.expectedHeadSha))
+                throw Error('Unapproved, unpinned or duplicate ref');
+              seen.add(r.name);
+            }
+            if([...approvedOld,...approvedOther].some(x=>!seen.has(x)))throw Error('Incomplete 17-ref manifest');
+            const mainSha=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const cmp=await github.rest.repos.compareCommits({owner,repo,base:manifest.baselineMainSha,head:mainSha});
+            if(cmp.data.behind_by!==0 || cmp.data.merge_base_commit?.sha!==manifest.baselineMainSha)
+              throw Error('Main history rewound');
+            // Source preservation, before refs disappear: both process documents ALREADY in main.
+            const processDocs=[
+              ['docs/tr01b2d3-mainline-recovery-20261011',
+               'docs/roadmap/TR01B2D3-MAINLINE-WINDOW-RECOVERY-20261011.md'],
+              ['docs/tr01b2d3-railway-runtime-preflight-evidence-20261011',
+               'docs/roadmap/TR01B2D3-RAILWAY-PRODUCTION-READONLY-INVENTORY-20261011.md']
+            ];
+            for(const [branch,path] of processDocs){
+              const original=await read(path,branch), current=await read(path,'main');
+              if(original.sha!==current.sha)throw Error('Process document not identical in main: '+path);
+            }
+            // Six independently installable APPLICATION packages are in main, no old Host/catalog restore.
+            for(const domain of ['purchasing','receiving','sales','shipment','receivable','cash']){
+              const {body}=await read('apps/trading-stage-'+domain+'/package.ts','main');
+              if(!body.includes('stagePackageV010(')||!body.includes('stagePageV010('))
+                throw Error('Independent application not present: '+domain);
+            }
+            const provider=(await read('providers/trading-finance-owner/package.ts','main')).body;
+            if(!provider.includes('PLATFORM_PROVIDER')||!provider.includes('executionAllowed:"false"'))
+              throw Error('Read-only Provider ownership missing');
+            const archived=[
+              ['certify-tr01b2d3-host-hot-signing-key.mjs','b20b399a0c269a203e6da01cd6930b7e057f7541'],
+              ['certify-tr01b2d3-installed-host-session.mjs','dc12c03f00176f90c1d830bb806e5c59e5a26566'],
+              ['certify-tr01b2d3-host-https-identity.mjs','8e1f7a04d32f69a445480aee9bd8f066147ab1a7'],
+              ['create-tr01b2d3-installed-host-ci.mjs','91cb4ff7787106a7161025c3209237fca07c9365'],
+              ['run-tr01b2d3-installed-host-ci.mjs','5cec331e9fc56379f332478de33b22dc72bf0b31']
+            ];
+            for(const [file,sha] of archived){
+              const actual=await read('providers/trading-finance-owner/legacy-evidence/'+file+'.reference.txt');
+              if(actual.sha!==sha)throw Error('Host-only source not preserved byte-for-byte: '+file);
+            }
+            await read('apps/trading-stage/LEGACY-CONVERGENCE.md');
+            await read('providers/trading-finance-owner/legacy-evidence/README.md');
+            await read('docs/archive/TR01-20261012-LEGACY-BRANCH-RETIREMENT.md');
+            const reserved=async()=>{
+              const p=(await github.rest.pulls.list({owner,repo,state:'open',per_page:100})).data;
+              if(p.length>=100)throw Error('Unbounded PR set');
+              const s=new Set(['main']);
+              for(const pr of p){s.add(pr.base.ref);if(pr.head.repo?.full_name===owner+'/'+repo)s.add(pr.head.ref);}
+              return s;
+            };
+            const protectedPR=(await github.rest.pulls.get({owner,repo,pull_number:594})).data;
+            if(protectedPR.head.sha!=='1d6149bd05136d642e49aab5196d12ab243cbe4e'
+              ||protectedPR.head.ref!=='feat/tr01b2d3-host-owner-delegation-20261010'
+              ||protectedPR.merged)throw Error('Finance Draft #594 changed');
+            if(execute&&protectedPR.state!=='closed')
+              throw Error('Close superseded Finance Draft #594 before retirement');
+            const used=await reserved();
+            for(const r of all){
+              if(used.has(r.name)){
+                if(!execute&&r.name==='feat/tr01b2d3-host-owner-delegation-20261010'
+                  &&protectedPR.state==='open'&&protectedPR.draft){
+                  core.info('AUDIT_DRAFT_MUST_CLOSE_BEFORE_EXECUTE #594');continue;
+                }
+                throw Error('Ref remains in open PR head/base: '+r.name);
+              }
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+r.name})).data;
+              if(ref.object.sha!==r.expectedHeadSha)throw Error('Source ref moved: '+r.name);
+              const br=(await github.rest.repos.getBranch({owner,repo,branch:r.name})).data;
+              if(br.protected)throw Error('Protected source ref: '+r.name);
+              core.info('RETIRE_PREFLIGHT_OK '+r.name+' '+r.expectedHeadSha);
+            }
+            // Prove the two earlier platform squash merges and #783 localization in current main.
+            for(const [n,head,merge] of [
+              [781,'chore/retire-platform-merged-f0-f1-f2-heads-20261012',
+                'fd915983d108f860215276dcfe9e78af173544ee'],
+              [783,'fix/plugin-card-descriptions-20261012',
+                '8b8b1634256f96b06e1a9e5aa978d919c39e8024']
+            ]){
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:n})).data;
+              if(!pr.merged||pr.state!=='closed'||pr.head.ref!==head||pr.merge_commit_sha!==merge)
+                throw Error('Merged PR provenance not confirmed #'+n);
+              const x=(await github.rest.repos.compareCommits({owner,repo,base:merge,head:mainSha})).data;
+              if(x.behind_by!==0||x.merge_base_commit?.sha!==merge)
+                throw Error('Merge not an ancestor #'+n);
+            }
+            if(!execute){core.info('AUDIT_ONLY_17_PINNED_REFS (no branch deleted)');return;}
+            const liveReserved=await reserved();
+            for(const r of all)if(liveReserved.has(r.name))throw Error('PR opened during audit: '+r.name);
+            for(const r of all){
+              const x=(await github.rest.git.getRef({owner,repo,ref:'heads/'+r.name})).data;
+              if(x.object.sha!==r.expectedHeadSha)throw Error('Ref moved before delete: '+r.name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+r.name});
+              core.info('DELETED_OLD_REF '+r.name+' '+r.expectedHeadSha);
+            }
+            core.info('RETIRED_14_TR01_AND_3_SUBSUMED_REFS; verify actual branch count separately');
