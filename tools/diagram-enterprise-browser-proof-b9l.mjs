@@ -483,6 +483,23 @@ try{
    caveat:"two tabs in one Chrome process, not true multi-user/tenant concurrency"
   }));
  }finally{await Promise.all(tabs.map(t=>t.close()))}
+ // B11e: real Chrome network reload of readonly Viewer, not only new client mount.
+ const reloadTab=await browser.newPage({viewport:{width:414,height:896}});
+ try{
+  await reloadTab.goto(address+"/viewer",{waitUntil:"load"});
+  await reloadTab.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  await reloadTab.reload({waitUntil:"load"});
+  await reloadTab.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  const view=await reloadTab.evaluate(()=>({
+   errors:window.__errors.length,congested:Number(document.querySelector("svg[data-eidos-diagram-congested-count]")?.getAttribute("data-eidos-diagram-congested-count")),
+   documentWidth:document.documentElement.scrollWidth
+  }));
+  assert.equal(view.errors,0);
+  assert.equal(view.congested,reopenedClearViewer.count);
+  assert.ok(view.documentWidth<=414);
+  assert.equal(reopened.projectionStore.getVersion(id),2);
+  console.log("B11E_VIEWER_RELOAD_RESULT="+JSON.stringify({process:intake.process,hardReload:true,casPreserved:2,congestionMatches:true}));
+ }finally{await reloadTab.close()}
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
