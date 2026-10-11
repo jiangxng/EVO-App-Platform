@@ -1297,6 +1297,9 @@ export function mountDiagramEditorPageV010(
   let selected: { kind: "node" | "edge"; id: string } | undefined;
   const selectedNodeIds = new Set<string>();
   let canvasTool: "SELECT" | "PAN" = "SELECT";
+  // T06 visible mobile tools: no keyboard modifier or hidden long press.
+  let touchMultiSelect = false;
+  let touchBoxSelect = false;
   let spaceHeld = false;
   let wheelInputMode: "MOUSE" | "TRACKPAD" = "MOUSE";
   // B6a: distinct local presentation controls. Do not serialize preferences in business data.
@@ -1854,6 +1857,28 @@ export function mountDiagramEditorPageV010(
           renderActions();
         };
         toolbar.appendChild(button);
+      }
+      // T06: explicit no-keyboard modes, visible on touch and narrow screens.
+      if (window.matchMedia("(any-pointer: coarse), (max-width: 680px)").matches) {
+        for (const option of [
+          { id: "multi", label: "Multi-select", title: "Tap nodes to add or remove selection" },
+          { id: "box", label: "Box select", title: "Drag one finger to draw a selection box" }
+        ] as const) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = option.label;
+          button.title = option.title;
+          button.setAttribute("data-eidos-diagram-touch-selection", option.id);
+          button.setAttribute("aria-pressed", String(option.id === "multi"
+            ? touchMultiSelect : touchBoxSelect));
+          button.onclick = () => {
+            if (option.id === "multi") touchMultiSelect = !touchMultiSelect;
+            else touchBoxSelect = !touchBoxSelect;
+            canvasTool = "SELECT";
+            renderActions();
+          };
+          toolbar.appendChild(button);
+        }
       }
       const wheelButton = document.createElement("button");
       wheelButton.type = "button";
@@ -3536,7 +3561,7 @@ export function mountDiagramEditorPageV010(
           suppressNextNodeClick = false;
           return;
         }
-        if (event.shiftKey && page.viewInteraction?.localNodeDrag === true) {
+        if ((event.shiftKey || touchMultiSelect) && page.viewInteraction?.localNodeDrag === true) {
           if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
           else selectedNodeIds.add(node.id);
           const last = [...selectedNodeIds].at(-1);
@@ -3558,6 +3583,7 @@ export function mountDiagramEditorPageV010(
           if (event.pointerType !== "touch" && event.button !== 0) return;
           if (spaceHeld || canvasTool === "PAN") return;
           const isTouch = event.pointerType === "touch";
+          if (isTouch && touchBoxSelect) return; // Let canvas capture touch marquee.
           if (isTouch) {
             navigationPointers.set(event.pointerId, {
               x: event.clientX,
@@ -3929,7 +3955,8 @@ export function mountDiagramEditorPageV010(
           edgeId:target?.closest?.("[data-eidos-diagram-edge]")?.getAttribute("data-eidos-diagram-edge")??undefined};
       }
       const primary = event.button === 0;
-      const wantsMarquee = mouse && primary
+      const wantsMarquee = ((mouse && primary)
+        || (event.pointerType === "touch" && touchBoxSelect))
         && page.viewInteraction?.localNodeDrag === true
         && canvasTool === "SELECT" && !spaceHeld;
       if (
@@ -3953,7 +3980,8 @@ export function mountDiagramEditorPageV010(
         canvas.appendChild(element);
         marquee = {
           pointerId: event.pointerId, start: anchor, current: anchor,
-          additive: event.shiftKey, moved: false, element
+          additive: event.shiftKey || (event.pointerType === "touch" && touchMultiSelect),
+          moved: false, element
         };
         return;
       }
