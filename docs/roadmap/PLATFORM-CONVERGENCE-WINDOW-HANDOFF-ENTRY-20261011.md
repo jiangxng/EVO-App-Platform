@@ -69,3 +69,9 @@ https://ledger-configurator-production.up.railway.app
 - 已建立 [PR #728](https://github.com/jiangxng/EVO-App-Platform/pull/728)，head `4d37a029c93a9a94136545e1d2d7d230d4d9588d`，只修改 `.github/workflows/branch-hygiene.yml`：取消 main push 自动清理；改手工、默认 audit，只有 manifest 显式 `expectedHeadSha`、不是开放 PR head/base、不是 Agent/EOG/2D/Projection、旧 head 是 main 祖先且 ref 未变化才允许 execute 删除。既有无 SHA 清单保持不可删。本项在 CI PASS/实际合并前**不得称完成**。
 - [Draft #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 核实仍 OPEN；PR 原文承认虽然已有 HTTP/PostgreSQL、Managed Session、ECDSA/Ed25519 签名与跨实例轮换专项 CI，真实外部 OIDC、实际部署 TLS、分布式 Host key 传播、正式运行权限等仍未认证，不能整支合并。
 - 本轮未删除旧 branch ref，未修改 Agent/2D 分支或全局状态，未发布 Railway。新材料均为直接读取的 GitHub 原始文件/PR/API，日期 2026-10-11；本记录不声称查过第三方文档或真实线上浏览器。
+
+### PR #728 结果勘误／实际验收
+
+[PR #728](https://github.com/jiangxng/EVO-App-Platform/pull/728) 已在本轮通过 Project Continuity CI [run #38138346624](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38138346624) 并 squash 合入 `main`，合并 SHA `4867d7a25f47fde47fa37be14fbd1ef568834e68`。由于此前入口的新增记录是在 CI 尚未结束时写入，以上是**后续实际结果**，不得再称 #728 待合并。最新分支查询 58 条，旧 16 条中仍看到多个历史 refs；本次**未执行删除**，没有证据称已清理完成。
+
+#703 的六独立 Trading Application package PR 状态已直接查询为 merged；当前 main 的 apps 目录列有 trading-stage-sales、shipment、receivable、cash、purchasing、receiving 六包。**目录存在不等于实测安装/启用/商店发现/真实授权通过**，这仍是后续功能验收工作。
