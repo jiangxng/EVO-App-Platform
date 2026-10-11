@@ -14,6 +14,7 @@ function manifest(limit = 100) {
     sourceId: "open-food-facts",
     sourceUrl:
       "https://world.openfoodfacts.org/data/exports/products.random-modulo-1000.jsonl.gz",
+    resolvedDataUrl: "https://world.openfoodfacts.org/data/exports/products.random-modulo-1000.jsonl.gz",
     retrievedAt: "2026-10-09T12:30:00.000Z",
     sourceVersion: "daily random-modulo-1000 sample",
     license: "Open Database License (ODbL)",
@@ -23,8 +24,16 @@ function manifest(limit = 100) {
       "Raw sample remains external; repository retains only adapter/tests/derived evidence.",
     adapterVersion: "item-open-food-facts-jsonl-v0.1",
     sampling: {
-      method: "FIRST_N",
+      method: "FIRST_N_NONEMPTY_CODE",
       limit
+    },
+    importPressure: { limit: 100 },
+    fieldMap: {
+      code: "code",
+      productName: "product_name",
+      quantity: "product_quantity_unit",
+      brands: "brands_tags",
+      categories: "categories_tags"
     }
   };
 }
