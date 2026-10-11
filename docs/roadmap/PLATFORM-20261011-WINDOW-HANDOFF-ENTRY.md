@@ -85,3 +85,20 @@
 ## 2026-10-12 全量旧分支哈希再盘点
 
 本窗口新增第三个合并的 F1 Host-side 回归 #779，随后重新扫描 GitHub 最新 main `09fee6f8f327871b71e0b37a9e19a7f16161db57` 及 14 条旧 TR01 分支的所有 blob（15 个完整 recursive trees，truncated=false）。与原交接保持一致：**24 条旧源缺失路径不变**，23 个单一 blob + 三版 `certify-tr01b2d3-distinct-db-logins.mjs`。主线与旧分支同名 72–79 个文件的 blob 不同，不能直接整文件迁移。详细逐源计数及分类保留在本交接 Execution Evidence §J；14 条源分支全部留存。后续重点仍是功能级审查跨实例 nonce、Host Session 与生产 Owner 独立接口，不能因 CI 的局部成功跳过实际安全门槛。
+
+
+## 2026-10-12 用户纠偏：停止扩张，只做插件平台分支收敛（优先级覆盖前述后续研发设想）
+
+**最高优先级目标：** EVO-App-Platform 是 **插件平台**；本窗口的交付物是平台 GitHub 分支与 PR 的收敛、证据归档、冲突消解、保留/退役决定，**不是** 财务领域功能、Ledger Runtime、Personal Agent、2D/EOG，亦不是开始建设 Purchasing 等六个应用。此前写入的“下一步继续 F1/F2 安全测试”“再开始 Purchasing”等都**暂停**，不得自动转成研发任务。
+
+**明确禁止本窗口擅自行动：** 不新建测试/产品功能 PR，不恢复过时 Host Core、旧 Finance Owner，不推进跨实例、OIDC、TLS 或业务经济计算实施，不动 Agent/EOG/eidos 独立线，不部署 Railway，不碰全局项目权威文件。已有 #775/#777/#779 是已合历史事实，不能据此继续拉新开发线。
+
+**分支处理四态：**
+- **已合可退役候选**：逐条查 merged PR、main 已有对应提交、旧 head 固定 SHA、受保护状态、开放 PR 的 head/base 依赖；最后才删除 ref，保留 PR/merge SHA/CI 证据。
+- **保留（未完成/受保护）**：仍有 open Draft PR、仍作为其他 PR 的 base、外部专项并行开发、或真实功能归属未决；禁止随手删。
+- **历史封存**：原始分支的源码与依据已索引，判定为 Demo/重复 workflow/过时基础代码；归档不代表已获删分支的授权。
+- **待冲突判定**：旧分支与 main 同路径 blob 不同，先比对插件安装/启停/卸载、catalog、权限、Host 插件 contract 等**平台能力**，避免覆盖目前较新的代码。
+
+**实时初步候选清单（GitHub 2026-10-12 查询）：** Platform main `1d9b301f418ef17b0d15aa8df982bab17810e9ca`；共有 **33** 分支、**9** 个 open PR。已合 PR [#775](https://github.com/jiangxng/EVO-App-Platform/pull/775)、[#777](https://github.com/jiangxng/EVO-App-Platform/pull/777)、[#779](https://github.com/jiangxng/EVO-App-Platform/pull/779) 的三个源分支仍在，分别为 `test/platform-f0-four-peer-lifecycle-convergence-20261011`（head `d2f560074b4a46290cec6e6e784e7deb6b8a94d3`）、`test/platform-f2-disposable-postgres-logins-20261012`（head `78a9d299aabf0aaf6d276196645549e7d8f8d945`）、`test/platform-f1-host-signed-loopback-proof-20261012`（head `c65447b2478c56ca8a808ce560f2b1fdabcdf2f7`）。三者都非 protected、对应 PR 为 closed/merged、不是当次 9 个 open PR 的 head/base；**标为可清理候选，但本次没有删除**。当前连接的 GitHub 操作不提供删除 branch/ref 的能力；绝不将“候选”写成“已删除”。
+
+14 条 TR01/B2D3 老分支保留，尤其 [#594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 是 open Draft；6 条 Agent PR 依赖分支和 2D/eidos 专项不由平台收敛窗口处理；[本交接 #771](https://github.com/jiangxng/EVO-App-Platform/pull/771) 仍 Draft。后续操作仅以**缩减、合并和退役现有分支**为验收，不以新增功能、测试或 CI 数量为绩效。
