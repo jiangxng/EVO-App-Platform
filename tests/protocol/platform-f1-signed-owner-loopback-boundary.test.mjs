@@ -155,7 +155,7 @@ test('F1 Host denies missing install, cross-enterprise, untrusted endpoint and i
       for(const [factory,input,code] of samples)
         await assert.rejects(factory().verify(input),new RegExp('TR01B2D3_OWNER_'+code));
       assert.equal(getRequests(),0,'preflight denial must never send HTTP');
-      assert.equal(secretLookups.length,1,'secret resolution only after all scope/endpoint checks');
+      assert.equal(secretLookups.length,0,'scope/endpoint failures must not consult Host private key');
     });
   }finally{
     if(previous===undefined)delete process.env.NODE_ENV;
