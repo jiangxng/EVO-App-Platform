@@ -1,0 +1,67 @@
+name: Agent PA-01B2 Full Isolated Chrome Host Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "tools/agent-line/pa01b2-full-host-fixture.mjs"
+      - "tests/agent-line/pa01b2_full_host_chromium.py"
+      - ".github/workflows/agent-pa01b2-full-browser.yml"
+      - "agents/enterprise-agent/**"
+      - "vendor/eidos/src/app-host/**"
+      - "vendor/eidos/src/workbench/shell.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-host-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      - run: python -m pip install "playwright==1.56.0"
+      - run: python -m playwright install --with-deps chromium
+      - name: Start disposable Host and loopback Responses fixture
+        run: |
+          mkdir -p artifacts/agent-pa01b2-full-browser
+          node tools/agent-line/pa01b2-full-host-fixture.mjs > artifacts/agent-pa01b2-full-browser/bootstrap.log 2>&1 &
+          echo $! > /tmp/agent-pa01b2-fixture.pid
+          ready=0
+          for i in $(seq 1 80); do
+            if grep -q 'PA01B2_E2E_FIXTURE_READY=' artifacts/agent-pa01b2-full-browser/bootstrap.log; then ready=1; break; fi
+            if ! kill -0 "$(cat /tmp/agent-pa01b2-fixture.pid)" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat artifacts/agent-pa01b2-full-browser/bootstrap.log; exit 1; fi
+          cat artifacts/agent-pa01b2-full-browser/fixture.json
+      - name: Full real Workbench to Thread to Run to source browser proof
+        run: python tests/agent-line/pa01b2_full_host_chromium.py
+      - name: Show isolated log on failure
+        if: failure()
+        run: cat artifacts/agent-pa01b2-full-browser/bootstrap.log || true
+      - name: Terminate disposable processes
+        if: always()
+        run: |
+          if [ -f /tmp/agent-pa01b2-fixture.pid ]; then
+            kill "$(cat /tmp/agent-pa01b2-fixture.pid)" 2>/dev/null || true
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa01b2-full-host-chromium-evidence
+          path: artifacts/agent-pa01b2-full-browser/
+          if-no-files-found: warn
