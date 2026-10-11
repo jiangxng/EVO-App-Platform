@@ -765,6 +765,21 @@ try{
     x:Number.parseFloat(el.style.left),y:Number.parseFloat(el.style.top)
   }));
   const t03Before=await t03Pos();
+  await t03Tab.evaluate(()=>{
+    window.__t03PointerLog=[];
+    const sale=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    for(const el of [sale,canvas]){
+      for(const type of ["pointerdown","pointermove","pointerup","pointercancel"]){
+        el.addEventListener(type,e=>{
+          window.__t03PointerLog.push({type,pointerType:e.pointerType,
+            target:e.target.getAttribute?.("data-eidos-diagram-node"),
+            current:el.getAttribute("data-eidos-diagram-node")??"canvas",
+            capture:sale.hasPointerCapture(e.pointerId),x:e.clientX,y:e.clientY});
+        },true);
+      }
+    }
+  });
   const t03Cdp=await t03Context.newCDPSession(t03Tab);
   await t03Cdp.send("Input.dispatchTouchEvent",{
     type:"touchStart",touchPoints:[{x:t03X,y:t03Y}]
@@ -774,6 +789,10 @@ try{
   });
   await t03Cdp.send("Input.dispatchTouchEvent",{type:"touchEnd",touchPoints:[]});
   const t03After=await t03Pos();
+  console.log("T03_POINTER_DIAGNOSTIC="+JSON.stringify({
+    before:t03Before,after:t03After,
+    events:await t03Tab.evaluate(()=>window.__t03PointerLog)
+  }));
   assert.ok(Math.hypot(t03After.x-t03Before.x,t03After.y-t03Before.y)>12,
     "T03 selected node must move after explicit touch dragging threshold");
   assert.equal(store.getVersion(id),0,
