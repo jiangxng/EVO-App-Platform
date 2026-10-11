@@ -32,3 +32,29 @@
 ## 当前边界和后续条件
 
 14 条 TR-01/B2D3 原始 branch 保留，特别是 Draft #594 原 head。完成 F0 的小测试并经 CI 后，再逐一处理 F1/F2/F4 的非重复安全资产和门禁；没有安全的来源对照与新的测试证据，**不删任何旧 ref**。单应用 Purchasing 实现必须等全部历史 F 包功能级收敛完成；后续一应用一小 PR、真实 EVO BusinessData/Ledger/Work、Railway 固定 SHA、用户签收后才允许 Receiving。
+
+## F0 首次 CI 实际证据（代码 head 已核对）
+
+- 本 PR 初始 head `3f3fe7320b0de47c7e81eaadac84b110d4321824`；[Platform CI run 38153195737](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153195737) **SUCCESS**，包含 build 与 protocol tests；[Project Continuity run 38153195746](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38153195746) **SUCCESS**。这两项针对该固定 SHA，不将 GitHub 合并状态或浏览器用户签收据此推为 PASS。
+- 本次仅在以上 CI 之后追加证据文字；如 PR head 被更新，应核对新 head 的 CI 再合入。
+
+## F2 原始 12 脚本依赖清册（2026-10-11 实际读取源码，未执行）
+
+均从旧 [Finance Host Draft 固定 commit](https://github.com/jiangxng/EVO-App-Platform/tree/1d6149bd05136d642e49aab5196d12ab243cbe4e/tools) 的源码读取；这不是“运行通过”的声明。按依赖分层，为后续小 PR 提供逐项选择的依据：
+
+| 旧源文件 | 实际原文行数 | 明确依赖和待采纳断言 | 当前审查结论 |
+| --- | ---: | --- | --- |
+| `certify-tr01b2d3-cross-instance-races.mjs` | 289 | `../evo/dist/`、PostgreSQL；同 nonce 多进程竞态/撤销 | 保留测试意图，待 Runtime owner 接口正式化 |
+| `certify-tr01b2d3-distinct-db-logins.mjs` | 321 | 独立 PostgreSQL LOGIN、隔离 listener、严格目录 owner 预检 | 优先参考 V1+V2 的组合；原样迁入 BLOCKED |
+| `certify-tr01b2d3-host-hot-signing-key.mjs` | 149 | Platform secret-store 与 EVO database；文件换键/权限 | 仅保留安全边界负例，待隔离化 |
+| `certify-tr01b2d3-host-https-identity.mjs` | 159 | 本地 https + 自签 CA + EVO database | 本地 TLS 证明不等于公网证书认证 |
+| `certify-tr01b2d3-hot-trust-rotation.mjs` | 200 | EVO digest、数据库信任表和只读 Finance Owner | 签名可信度≠经济真相，保留旧只读证明 |
+| `certify-tr01b2d3-installed-host-session.mjs` | 165 | Hosted managed Session、EVO Replay digest | Draft Provider 依赖，暂不进入 main |
+| `certify-tr01b2d3-oidc-login-owner.mjs` | 237 | 本地 OIDC issuer、EVO DB、OIDC Provider | 真实外部企业 IdP 未验证 |
+| `certify-tr01b2d3-postgres-role-separation.mjs` | 84 | 直用旧 `../evo/node_modules/pg`、数据库授权矩阵 | 能移植授权断言但须先替换旧依赖 |
+| `certify-tr01b2d3-trusted-owner-delegation.mjs` | 207 | Finance intent + remote owner + EVO replay digest | 保留认证前置/拒绝语义，不提升经济解释权限 |
+| `create-tr01b2d3-ci-keys.mjs` | 34 | EVO database、临时 Ed25519 配置 | 只用于 disposable CI |
+| `create-tr01b2d3-installed-host-ci.mjs` | 128 | Host 多 Provider/安装状态，含 Draft trading-finance owner | 缺正式安装合同前暂不复制 |
+| `run-tr01b2d3-installed-host-ci.mjs` | 85 | 旧 Draft Finance Provider + Host 进程启动 | 依赖旧进程构造，暂不复制 |
+
+**F2 本轮决定：** 12 份脚本全部保留在旧 SHA 作为参考；当前无一份已被直接合并或重跑 PostgreSQL。V1 DB login 的 catalog 检查和 V2 的 Finance-only HTTP 404 检查均有可独立重建价值；不得把 V3 的 `dist/apps/api/src/main.js` 完整旧 EVO API 进程恢复为安全测试标准。下一步应先定义不越过新版 Runtime/Host 权威边界的最小测试场景，才复制断言到现代 CI。
