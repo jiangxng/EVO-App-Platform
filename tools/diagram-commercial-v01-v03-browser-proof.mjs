@@ -181,7 +181,9 @@ try{
   const base="http://127.0.0.1:"+server.address().port;
   browser=await chromium.launch({headless:true,executablePath:chrome,
     args:["--no-sandbox","--disable-dev-shm-usage","--disable-gpu"]});
-  const tab=await browser.newPage({viewport:{width:1250,height:820}});
+  // Main tab uses an explicit context so M09 can open a second tab in it.
+  const mainContext=await browser.newContext({viewport:{width:1250,height:820}});
+  const tab=await mainContext.newPage();
   await tab.goto(base+"/designer",{waitUntil:"load"});
   await waitReady(tab);
   // V05 genuine Chrome DOM: full titles remain retrievable, node labels stay
