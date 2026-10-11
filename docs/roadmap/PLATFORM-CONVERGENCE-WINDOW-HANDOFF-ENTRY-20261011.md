@@ -1,5 +1,7 @@
 # Platform 非 Agent / 非 2D 分支功能收敛 — 新窗口接续入口
 
+> **本窗口最高治理目标更新（2026-10-11，用户明确确认）**：[EVO 账本运行时事实解释主权与 TR-01 / B2D3 治理目标](../governance/EVO-LEDGER-RUNTIME-AUTHORITY-AND-TR01-CORRECTION-GOAL-20261011.md)。治理必须同时防止 B2D3 绕过 EVO Ledger Runtime 的正式语义解释形成平行财务权威，并让六个独立业务插件真正继承 BusinessData→EVO Runtime→可追溯运行时结果的链路。**CI PASS、单行 DEMO List、签名/DB 只读检查和部署成功均不构成用户验收。** 原供应商导入的端到端用户验收仍为 P0，不得被无限扩张的财务安全技术工作替代。新文档为评审门槛，非实现/生产 PASS。
+
 > 核查日：2026-10-11。本文是窗口工作交接，不是 Platform 全项目权威状态文件。
 > 仓库：https://github.com/jiangxng/EVO-App-Platform
 > 独立交接分支：docs/platform-convergence-research-handoff-20261011
