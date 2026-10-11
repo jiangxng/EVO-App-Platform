@@ -81,3 +81,13 @@
 ## 5. 来源事实 vs 我们的设计判断
 
 上表的原文、API 响应、commit SHA、测试通过状态及 Git blob 一致性属于**来源事实**。下列属于**本窗口的工程判断**，不是某篇文章的结论：旧版整体不可直接回并、新版模块已 supersede 某类功能、应该按 Source tree 增量移植、应限制全量删除脚本的 GitHub API 消耗、应维持 EVO 独占 FIFO/核销引擎的架构设计。这些判断的采纳理由和限制必须结合 [决策/问题文档](../roadmap/PLATFORM-CONVERGENCE-DECISIONS-GAPS-20261011.md) 阅读。
+
+
+## 新窗口补充：六个独立 Trading 插件与公网 Host 证据（2026-10-11）
+
+| 编号 / 阅读状态 | 原始来源 | 来源事实与适用边界 | 实施映射 |
+|---|---|---|---|
+| SRC-NEW-01 / **A 原文** | [共享 preview 构造器](https://github.com/jiangxng/EVO-App-Platform/blob/89320e118b97f358b4fdab0ec4c198d1cf8a57c7/apps/trading-stage/demo-kit.ts)、[六插件主线测试](https://github.com/jiangxng/EVO-App-Platform/blob/89320e118b97f358b4fdab0ec4c198d1cf8a57c7/tests/protocol/tr01-trading-peer-purchasing-receiving.test.mjs) | `stagePreviewEnabledV010` 需要两环境开关；六个 APPLICATION 为合成只读预览，不做真实 BusinessData 或财务写入；原测试直接构造 manager，而非现有 Host 进程发现。 | 决定补 opt-in Host 注册；不得声称 #703 已有真实公网商店发现。 |
+| SRC-NEW-02 / **A 原文** | [六插件 package](https://github.com/jiangxng/EVO-App-Platform/tree/89320e118b97f358b4fdab0ec4c198d1cf8a57c7/apps/trading-stage-sales)、[Host 预览适配](https://github.com/jiangxng/EVO-App-Platform/blob/89320e118b97f358b4fdab0ec4c198d1cf8a57c7/apps/trading-stage/host-preview.ts)、[Host 生命周期验证](https://github.com/jiangxng/EVO-App-Platform/blob/89320e118b97f358b4fdab0ec4c198d1cf8a57c7/tests/protocol/tr01-six-stage-host-preview.test.mjs) | 独立采购订单、采购收货、销售订单、出库发货、应收和收款全部通过 Store 发现、安装、启停、卸载的进程内管理服务 CI；页面包含 `SYNTHETIC` / `READ-ONLY`，与未实际客户操作的公网验收分开。 | [#731](https://github.com/jiangxng/EVO-App-Platform/pull/731) 合并 `89320e11`；严格限制 Host 注册差异。 |
+| SRC-NEW-03 / **A CI 原始日志** | [六插件 CI run #38139204726](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38139204726)、[PR #731](https://github.com/jiangxng/EVO-App-Platform/pull/731) | 最终更新后的 PR 36/36 workflows SUCCESS，先前 workflow 首轮因“绝对禁止 Host diff”而失败，随后改为只允许四处明确 Host wiring 的 diff，保留失败历史。 | CI_GATE_PASS / MERGED_MAIN，不能替代 Human 在线测试。 |
+| SRC-NEW-04 / **Railway 实时部署元数据与日志** | [Railway 对应服务](https://railway.com/dashboard)、[公网 Store](https://ledger-configurator-production.up.railway.app/store) | Railway connector 显示部署 ID `bcc40ccc-ed2e-4746-8a56-45d9289ca3ca`、pinned SHA `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`、状态 SUCCESS；build `/health` 一次成功，server 8080 启动，原卷保留。尚未浏览器里人工点击安装。 | PUBLIC_INTEGRATION_DEPLOY_PASS；用户 Human 签收仍 OPEN，Railway 名称里的 production 不对应正式业务生产。 |
