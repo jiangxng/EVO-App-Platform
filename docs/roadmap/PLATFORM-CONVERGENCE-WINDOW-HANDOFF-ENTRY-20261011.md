@@ -61,3 +61,11 @@ https://ledger-configurator-production.up.railway.app
 ## 5. 资料可信度与交接声明
 
 这个窗口主要通过已连接的 GitHub、Railway 接口直接读取原始文件、源代码、CI 日志和实时部署元数据；**没有发现需要补造的第三方网页文章，也没有保存网页截图**。参考索引严格区分“已读原文”“部分原文/仅元数据”“待验证”；原始链接、文档路径和 run id 均留在独立索引中。除 GitHub 上明确保存的文档/PR/源码/CI 外，聊天解释本身不构成独立永久源文件。
+
+## 2026-10-11 新窗口增量核验（非历史快照覆盖）
+
+- 新窗口直接读取了本入口、来源索引、决策与风险、14 分支矩阵原文，核验 GitHub main 在本轮初始时为 `60754835f4c7d7b6e2acd7fe9f12b202ef143244`（2D 专项 PR #726，**不可据此修改 2D**）。
+- [Branch Hygiene 失败 run #38113793947](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38113793947) 的工作流原文已复核：每次 main push 全量分页 `state:closed`，直接删 ref；退休清单 `repository-hygiene/retired-branches.json` 仅有名称/原因，没有旧 head SHA；因此不能直接据此批量删。
+- 已建立 [PR #728](https://github.com/jiangxng/EVO-App-Platform/pull/728)，head `4d37a029c93a9a94136545e1d2d7d230d4d9588d`，只修改 `.github/workflows/branch-hygiene.yml`：取消 main push 自动清理；改手工、默认 audit，只有 manifest 显式 `expectedHeadSha`、不是开放 PR head/base、不是 Agent/EOG/2D/Projection、旧 head 是 main 祖先且 ref 未变化才允许 execute 删除。既有无 SHA 清单保持不可删。本项在 CI PASS/实际合并前**不得称完成**。
+- [Draft #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 核实仍 OPEN；PR 原文承认虽然已有 HTTP/PostgreSQL、Managed Session、ECDSA/Ed25519 签名与跨实例轮换专项 CI，真实外部 OIDC、实际部署 TLS、分布式 Host key 传播、正式运行权限等仍未认证，不能整支合并。
+- 本轮未删除旧 branch ref，未修改 Agent/2D 分支或全局状态，未发布 Railway。新材料均为直接读取的 GitHub 原始文件/PR/API，日期 2026-10-11；本记录不声称查过第三方文档或真实线上浏览器。
