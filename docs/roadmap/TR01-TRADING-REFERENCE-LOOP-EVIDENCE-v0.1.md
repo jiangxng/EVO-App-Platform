@@ -1,6 +1,6 @@
 # TR-01 Trading Reference Loop Evidence v0.1
 
-**Status:** TR-01A ACTIVE  
+**Status:** TR-01A1 + TR-01A2 MERGED_CI_PRODUCTION_PASS / TR-01A operational view acceptance OPEN  
 **Date:** 2026-10-10  
 **Program:** Foundation Object Program  
 **Authority:** `docs/roadmap/FOUNDATION-OBJECT-PROGRAM-v0.1.md`
@@ -93,7 +93,7 @@ the real trading loops complete without incompatible evidence.
 
 ## TR-01A1 — Purchase / Receipt cross-project composition
 
-Status: **IMPLEMENTED / CI PENDING**.
+Status: **MERGED_CI_PRODUCTION_PASS**.
 
 This slice does not implement procurement accounting inside App Platform.
 
@@ -186,7 +186,7 @@ TR-01A is intentionally not closed by the first positive purchase loop alone.
 
 ### TR-01A1 — positive purchase loop + replay
 
-Status: **IMPLEMENTED / CROSS-PROJECT CI PENDING**
+Status: **MERGED_CI_PRODUCTION_PASS**
 
 Evidence target:
 
@@ -204,9 +204,25 @@ Evidence target:
 
 Runtime Observation aggregate quantity/amount is deliberately **not** used as an order-level Position API. It is a ledger-wide observation surface and correctly fails closed when units/currencies cannot be represented as one aggregate. TR-01A1 instead uses EVO's public dimension-filtered LedgerBalance read boundary introduced by EVO PR #104.
 
+### TR-01A1 verified closure — 2026-10-10
+
+The positive purchase loop is closed as **MERGED_CI_PRODUCTION_PASS**; this does **not** close TR-01A or authorize TR-01B.
+
+- App Platform PR #551: https://github.com/jiangxng/EVO-App-Platform/pull/551
+- merged main commit: `a191b1acac1a142d4c71ac31bc388ef7ec4bfde3`
+- verified PR head: `1de23c70e26c1c45653115ac6abc805d4f70f681`
+- Project Continuity CI: **PASS** (run 38006776596)
+- Platform CI: **PASS** (run 38006776576)
+- Cross Project CI — Trading Lite EVO PostgreSQL: **PASS** (run 38006776715)
+- Railway project `EVO Ledger Runtime MVP`, service `Ledger Configurator`, production deployment `b1d141c6-858d-4ee3-8422-0efbe7147396`: **SUCCESS**, main commit `a191b1acac1a142d4c71ac31bc388ef7ec4bfde3`
+- EVO current main at verification: `2311022640aa108a6baf3db44d9b26bd3e3ad623`
+- EVO PR #103: atomic direct BusinessData `FULFILLS` relation; PR #104: exact dimension-filtered LedgerBalance read; PR #105: isolated receipt `REVERSES` replay certification. All three are merged.
+
+The dedicated PostgreSQL proof asserts Purchase Order -> Goods Receipt yields pending_purchase +10 then 0, inventory +10 / +125, payable +125 and an open PAY WorkItem while RECEIVE closes. This is a cross-project integration proof, not evidence of a completed App Platform correction/reversal submission. Historical BusinessData is immutable. EVO PR #105's isolated replay certification supplies the runtime-level replay capability; App Platform A2 still needs its own public API integration certification.
+
 ### TR-01A2 — purchase receipt correction / reversal
 
-Status: **REQUIRED / NOT YET IMPLEMENTED**
+Status: **MERGED_CI_PRODUCTION_PASS — BOUNDED FULL REVERSAL**.
 
 A correction must be a new immutable business occurrence. It must not mutate the
 Purchase Order or prior Goods Receipt.
@@ -226,3 +242,45 @@ The reversal fact must carry explicit lineage to the Goods Receipt it reverses a
 must replay deterministically in EVO.
 
 Do not mark TR-01A closed and do not start TR-01B merely because TR-01A1 passes.
+
+## Next live gate / TR-01A2 ownership — 2026-10-10
+
+- App Platform: resolve the authoritative receipt context and original Goods Receipt BusinessData identity, form a separate reversal BusinessData submission through the existing generic EVO adapter with `REVERSES` lineage; preserve existing owner references and deterministic idempotency.
+- EVO: owns immutable BusinessData relation persistence, purchase reversal posting rules, pending_purchase/inventory/payable balances, WorkItems and replay. Reuse PR #105 and its public contract; no App Platform private Ledger writes.
+- Evidence target: PostgreSQL HTTP receipt reversal from App Platform public integration, exact line/quantity/cost/dimension assertions, original PO/Receipt unchanged, REVERSES lineage, no payable rollback, RECEIVE reopened, PAY still open, deterministic replay.
+- Sequence guard: TR-01A2 must close before TR-01B starts.
+
+
+## TR-01A2 verified production closure — 2026-10-10
+
+TR-01A2 is **MERGED_CI_PRODUCTION_PASS** as a bounded immutable full Goods Receipt reversal proof. This does **not** certify general partial or concurrent reversals, or close all TR-01A product experience acceptance.
+
+- App Platform PR #557: https://github.com/jiangxng/EVO-App-Platform/pull/557
+- merged main: `70c6aac34cd6fad931f7110442e9a0f01293ef44`; verified final PR head: `646a7c0d75a9e88536c5ca71f4e7ea708ab83002`.
+- Project Continuity CI `38008286765`: PASS; Platform CI `38008286826`: PASS; Cross Project Trading Lite EVO PostgreSQL CI `38008286848`: PASS.
+- Railway project `EVO Ledger Runtime MVP`, service `Ledger Configurator`, production deployment `1ece6ea3-c124-4d65-9860-f14d88f959a9` at main `70c6aac34cd6fad931f7110442e9a0f01293ef44`: SUCCESS; service reported online, 1/1 replicas and no current warnings/critical issues.
+- EVO main `2311022640aa108a6baf3db44d9b26bd3e3ad623`, PR #105: merged runtime `REVERSES` contract and immutable, deterministic replay certification; EVO #105 CI PASS.
+- App Platform certifies through public EVO BusinessData, dimension-filtered LedgerBalance, WorkItem and Runtime Observation boundaries: full Receipt +10 / +125 followed by reversal leaves `pending_purchase +10`, `inventory 0 quantity / 0 cost`, `payable +125`, RECEIVE reopened and PAY still open.
+- The original Purchase Order and Goods Receipt remain unchanged. The new `goods_receipt.reversed` fact links by `REVERSES` directly to the original Goods Receipt's BusinessData ID. EVO replay preserves immutable facts, lineage, balances, Work and economic digest.
+
+Detailed record: `docs/roadmap/TR01A2-PURCHASE-RECEIPT-REVERSAL-PRODUCTION-EVIDENCE-20261010.md`.
+
+### Remaining TR-01A acceptance — NOT YET CLOSED
+
+TR-01A's original acceptance criterion 6 calls for shared governed **Human/Agent/Workbench operational projections**. The #551/#557 certification proves economic ledger and derived EVO WorkItem behavior, but those PRs deliberately do not implement a procurement-specific Human interface or certify shared Human/Agent/Workbench consumption. Do not turn the successful economic reference proof into an unsupported claim that the entire TR-01A product experience is production accepted.
+
+The next bounded gate is to inventory existing owned Work/Projection/Workbench capabilities, prove or implement the missing authorized consumption, and record relevant CI / production / Human evidence. TR-01B remains **PLANNED_NOT_STARTED** until this remaining acceptance is evaluated and closed.
+
+Also excluded: generalized partial/multiple reversal, concurrency-safe over-reversal prevention, and public read-back verification of original receipt cost. These require a separate authoritative receipt query/idempotency and remaining-quantity design before a generic correction UX can claim readiness.
+
+### TR-01A2 replay CI hardening / latest production
+
+After #557 was deployed, App Platform PR #559 merged a stricter cross-project CI step executing pinned EVO `validate:tr01-purchase-receipt-reversal` after the public HTTP economic proof. PR #559 head `2ebaf57c596075d04193e7688d6e1f28d0be2ea4` passed Platform CI `38008484986`, Project Continuity CI `38008484991` and Cross Project PostgreSQL CI `38008484982`; main merge `5f4ff27bd3c4b42d6d5acd3cebab096588e18f5b` deployed at Railway `11ee6c04-6845-474c-b56b-d8b7b84ea015` SUCCESS. The latest production source therefore includes an explicit **enforced** EVO deterministic reversal replay CI gate; TR-01A operational view acceptance remains OPEN.
+
+### TR-01A3–A6 governed operational consumption — reference acceptance evidence, 2026-10-10
+
+A3/A4/A5 established one application-owned read-only derived Work / Inventory Position / Payable contract, a lifecycle-gated opt-in Capability Operation through Action Host, and a lightweight Eidos purchase lookup with authorized BI Workbench entry. All runtime business state is read from EVO public WorkItems and dimension-filtered LedgerBalance APIs. No second stock or payable authority is written.
+
+A6 finally certified **actual installed use**, not just UI-model snapshots: [PR #567](https://github.com/jiangxng/EVO-App-Platform/pull/567), Chrome + Eidos Workbench → purchase lookup → authoritative position detail; separate AI Principal Action Host invocation; scoped one-order permission; rejection of unauthorized PO and forged deep link; real PostgreSQL-backed Purchase → Receipt → immutable reversal. The A6 CI proof [38012256000](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012256000) completed PASS, existing PostgreSQL CI [38012255964](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012255964) PASS, continuity [38012255960](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38012255960) PASS; merged main `399cbf5838626583599b441e3992e03fef9102c5`, Railway deployment `5a03ab99-2731-4a0d-91e4-9daa8c33a7dc` SUCCESS.
+
+**TR-01A bounded reference technical acceptance:** PASS after A1/A2 economics + A3–A6 operational view evidence. This **permits planning** TR-01B inverse reference validation, not declaring a commercial procurement product finished. Independent customer production installation, customer role-policy rollout, genuine LLM search/invoke, partial/concurrent receipt reversal and accounting settlement remain unproved and must never inherit this acceptance stamp. Further details: `docs/roadmap/TR01A6-INSTALLED-HUMAN-AGENT-WORKBENCH-EVIDENCE-20261010.md`.

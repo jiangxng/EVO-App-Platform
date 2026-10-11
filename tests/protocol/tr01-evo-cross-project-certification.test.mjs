@@ -19,6 +19,11 @@ test("TR-01A cross-project certification pins the EVO dimension-filtered Ledger 
     true
   );
   assert.equal(source.includes("postgres:18"), true);
+  assert.equal(
+    source.includes("run: npm run validate:tr01-purchase-receipt-reversal"),
+    true,
+    "Cross Project PostgreSQL CI must rerun EVO full purchase receipt reversal replay certification"
+  );
 });
 
 test("TR-01A certification uses App Platform authorities and public EVO APIs only", async () => {
@@ -57,4 +62,39 @@ test("TR-01A receipt contract carries explicit FULFILLS relation", async () => {
     true
   );
   assert.equal(source.includes('movementType: "PURCHASE_RECEIPT"'), true);
+});
+
+test("TR-01A2 certification reuses EVO #105 REVERSES contract and stays public-API-only", async () => {
+  const contract = await readFile("contracts/evo-business-data.ts", "utf8");
+  const service = await readFile(
+    "apps/trading-reference/purchase-loop.ts",
+    "utf8"
+  );
+  const crossProof = await readFile(
+    "tools/certify-tr01-purchase-evo-postgres.mjs",
+    "utf8"
+  );
+
+  assert.equal(contract.includes('"REVERSES"'), true);
+  assert.equal(service.includes("reversePurchaseReceipt"), true);
+  assert.equal(
+    service.includes('businessDataType: "goods_receipt.reversed"'),
+    true
+  );
+  assert.equal(
+    service.includes('movementType: "PURCHASE_RECEIPT_REVERSAL"'),
+    true
+  );
+  assert.equal(service.includes('relationType: "REVERSES"'), true);
+  assert.equal(crossProof.includes("reversePurchaseReceipt"), true);
+  assert.equal(
+    crossProof.includes("pendingPurchaseQuantityAfterReversal"),
+    true
+  );
+  assert.equal(crossProof.includes("inventoryAmountAfterReversal"), true);
+  assert.equal(crossProof.includes("payableAmountAfterReversal"), true);
+  assert.equal(crossProof.includes("receiveReopenedAfterReversal"), true);
+  assert.equal(crossProof.includes("../evo/"), false);
+  assert.equal(crossProof.includes("business_object_link"), false);
+  assert.equal(crossProof.includes("ledger_balance"), false);
 });

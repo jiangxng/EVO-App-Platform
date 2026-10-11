@@ -113,6 +113,10 @@ function fromDeclaredPayload(payload: unknown): Template2dPreviewV010 | undefine
       );
     }
     const arrow = asString(edge?.arrow);
+    const pathKind = asString(edge?.pathKind);
+    if (pathKind && !["straight", "orthogonal", "rounded-orthogonal", "curve"].includes(pathKind)) {
+      throw new Error("DEFINITION_PROJECTION_EDGE_PATH_INVALID");
+    }
     edges.push({
       id,
       source,
@@ -122,6 +126,7 @@ function fromDeclaredPayload(payload: unknown): Template2dPreviewV010 | undefine
       ...(arrow && ["none", "start", "end", "both"].includes(arrow)
         ? { arrow: arrow as "none" | "start" | "end" | "both" }
         : {}),
+      ...(pathKind ? { pathKind: pathKind as "straight" | "orthogonal" | "rounded-orthogonal" | "curve" } : {}),
       ...(asString(edge?.detail) ? { detail: asString(edge?.detail)! } : {})
     });
   }
@@ -431,13 +436,22 @@ export function applyDefinitionProjectionV010(input: {
         : { ...node };
     });
   const visibleNodeIds = new Set(nodes.map(node => node.id));
+  const routeByEdgeId = new Map((projection.view.edgePaths ?? []).map(item => [item.edgeId, item] as const));
   const edges = input.diagram.edges
     .filter(edge =>
       (input.includeHidden === true || !hiddenEdges.has(edge.id))
       && visibleNodeIds.has(edge.source)
       && visibleNodeIds.has(edge.target)
     )
-    .map(edge => ({ ...edge }));
+    .map(edge => ({
+      ...edge,
+      ...(routeByEdgeId.has(edge.id) ? {
+        pathKind: routeByEdgeId.get(edge.id)!.pathKind,
+        ...(routeByEdgeId.get(edge.id)!.waypoints?.length ? { waypoints: routeByEdgeId.get(edge.id)!.waypoints!.map(p => ({ ...p })) } : {}),
+        ...(routeByEdgeId.get(edge.id)!.sourceAnchor ? { sourceAnchor: routeByEdgeId.get(edge.id)!.sourceAnchor } : {}),
+        ...(routeByEdgeId.get(edge.id)!.targetAnchor ? { targetAnchor: routeByEdgeId.get(edge.id)!.targetAnchor } : {})
+      } : {})
+    }));
 
   return {
     projectionId,

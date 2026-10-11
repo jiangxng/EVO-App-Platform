@@ -89,5 +89,25 @@
     "dataDesignSeparation": "Designer/Experience -> public contract -> authoritative owner",
     "coreMinimalism": true,
     "explicitBoundaryExceptionRequired": true
+  },
+  "businessPluginOwnership": {
+    "tr01": {
+      "applicationPackage": "apps/trading-reference/package.ts",
+      "masterObjectPackages": [
+        "apps/counterparty/package.ts",
+        "apps/item/package.ts",
+        "apps/warehouse/package.ts"
+      ],
+      "factComposers": [
+        "apps/trading-reference/purchase-loop.ts",
+        "apps/trading-reference/sales-loop.ts"
+      ],
+      "publicEvoBusinessDataPort": "contracts/evo-business-data.ts",
+      "financeIntentPreflight": "apps/trading-reference/finance-intent-admission.ts",
+      "deterministicLedgerOwner": "EVO",
+      "applicationOwner": "APPLICATION",
+      "hostCoreRole": "GENERIC_LIFECYCLE_AUTHORIZATION_COMPOSITION",
+      "financialExecutionState": "READ_ONLY_NOT_ADMITTED"
+    }
   }
 }

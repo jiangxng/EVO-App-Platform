@@ -19,6 +19,10 @@ import {
   createWarehouseRepositoryV010
 } from "../dist/apps/warehouse/repository.js";
 import {
+  createPurchaseOperationalProjectionServiceV010,
+  PURCHASE_OPERATIONS_READ_ACTION_V010
+} from "../dist/apps/trading-reference/operational-projection.js";
+import {
   createPurchaseReferenceServiceV010,
   TRADING_REFERENCE_PURCHASE_HOST_APPLICATION_REF_ID_V010,
   TRADING_REFERENCE_RECEIPT_HOST_APPLICATION_REF_ID_V010
@@ -112,7 +116,22 @@ async function waitForBalance(
 ) {
   let last;
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    const body = await ledgerBalances(enterpriseId, ledgerCode, dimensions);
+    let body;
+    try {
+      body = await ledgerBalances(enterpriseId, ledgerCode, dimensions);
+    } catch (error) {
+      // EVO may temporarily report 'no result' before the async Worker
+      // creates the first dimensioned balance row. Retry only this exact
+      // read-not-ready response within the existing bounded 60 attempts.
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('HTTP 500:')
+          || !message.includes('"message":"no result"')) {
+        throw error;
+      }
+      last = { transientEvoBalanceNotReady: true, ledgerCode };
+      await new Promise(resolve => setTimeout(resolve, 500));
+      continue;
+    }
     if (body.items.length === 1 && predicate(body.items[0])) {
       return body.items[0];
     }
@@ -435,9 +454,170 @@ assert.ok(payWorkAfterReceipt);
 assert.equal(payWorkAfterReceipt.workType, "PAY");
 assert.ok(Math.abs(Number(payWorkAfterReceipt.amount) - amount) < 0.000001);
 
+const reversal = await service.reversePurchaseReceipt({
+  target,
+  selection,
+  receiptBusinessDataId: receipt.submission.businessDataId,
+  originalReceiptNo: "TR01-GR-001",
+  reversalNo: "TR01-GRR-001",
+  orderNo: "TR01-PO-001",
+  quantity,
+  totalCost: "125.00",
+  currency: "CNY",
+  effectiveAt: "2026-10-10T01:30:00.000Z",
+  correlationId: "TR01:GRR:001",
+  idempotencyKey: "tr01:grr:001"
+});
+assert.equal(reversal.submission.postingStatus, "QUEUED");
+assert.notEqual(
+  reversal.submission.businessDataId,
+  receipt.submission.businessDataId,
+  "receipt must be reversed by a separate immutable fact"
+);
+assert.notEqual(
+  reversal.submission.businessDataId,
+  purchase.submission.businessDataId
+);
+
+await waitForApplicationEvents(
+  enterprise.id,
+  receiptBinding.applicationId,
+  beforeReceiptEvents + 2,
+  "receipt reversal BusinessData event was not observed"
+);
+const pendingAfterReversal = await waitForBalance(
+  enterprise.id,
+  "pending_purchase",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item => Math.abs(Number(item.quantity) - quantity) < 0.000001,
+  "receipt reversal did not reopen pending purchase"
+);
+const inventoryAfterReversal = await waitForBalance(
+  enterprise.id,
+  "inventory",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01",
+    warehouse: "warehouse-tr01"
+  },
+  item =>
+    Math.abs(Number(item.quantity)) < 0.000001
+    && Math.abs(Number(item.amount)) < 0.000001,
+  "receipt reversal did not remove original inventory quantity and cost"
+);
+const payableAfterReversal = await waitForBalance(
+  enterprise.id,
+  "payable",
+  {
+    order_no: "TR01-PO-001",
+    supplier: "cp-tr01-supplier",
+    product_id: "item-tr01"
+  },
+  item => Math.abs(Number(item.amount) - amount) < 0.000001,
+  "receipt reversal must preserve Purchase Order payable"
+);
+const workAfterReversal = await waitForOrderWork(
+  enterprise.id,
+  "TR01-PO-001",
+  body => {
+    const receive = orderWork(body, "TR01-PO-001", "pending_purchase");
+    const pay = orderWork(body, "TR01-PO-001", "payable");
+    return receive?.workType === "RECEIVE"
+      && Math.abs(Number(receive.quantity) - quantity) < 0.000001
+      && pay?.workType === "PAY"
+      && Math.abs(Number(pay.amount) - amount) < 0.000001;
+  },
+  "receipt reversal did not reopen RECEIVE while preserving PAY"
+);
+assert.ok(orderWork(workAfterReversal, "TR01-PO-001", "pending_purchase"));
+assert.ok(orderWork(workAfterReversal, "TR01-PO-001", "payable"));
+
+// Read the identical governed application projection through actual EVO
+// work-items and dimension-filtered LedgerBalance HTTP endpoints. This test
+// only uses a scoped certification policy; it does not claim UI registration.
+const operationalReader = createPurchaseOperationalProjectionServiceV010({
+  resolveAuthorizationProvider: () => ({
+    providerId: "tr01-certification-scoped-policy",
+    async check(query) {
+      return {
+        contractVersion: "0.1.0",
+        allowed: query.action === PURCHASE_OPERATIONS_READ_ACTION_V010
+          && query.scope.enterpriseId === enterprise.id
+          && query.resource.type === "trading-reference.purchase-order"
+          && query.resource.id === "TR01-PO-001"
+          && query.resource.attributes?.supplierCounterpartyId
+            === selection.supplierCounterpartyId
+          && query.resource.attributes?.itemId === selection.itemId
+          && query.resource.attributes?.warehouseId === selection.warehouseId,
+        policyProviderId: "tr01-certification-scoped-policy",
+        reasonCodes: []
+      };
+    }
+  }),
+  reader: {
+    async listOpenWorkItems(evoEnterpriseId) {
+      const page = await openWorkItems(evoEnterpriseId);
+      return { items: page.items, complete: page.items.length < 100 };
+    },
+    async readLedgerBalances(evoEnterpriseId, ledgerCode, dimensions) {
+      const page = await ledgerBalances(evoEnterpriseId, ledgerCode, dimensions);
+      return { items: page.items, complete: page.items.length < 100 };
+    }
+  }
+});
+function operationalRequest(actorType) {
+  return {
+    contextId: hostEnterpriseId,
+    enterpriseId: enterprise.id,
+    orderNo: "TR01-PO-001",
+    supplierCounterpartyId: selection.supplierCounterpartyId,
+    itemId: selection.itemId,
+    warehouseId: selection.warehouseId,
+    requestContext: {
+      contractVersion: "0.1.0",
+      principal: {
+        contractVersion: "0.1.0",
+        subjectId: "proof-owner",
+        actorType,
+        identityProviderId: "tr01-proof-identity",
+        sessionId: "tr01-proof-session"
+      },
+      scope: {
+        contractVersion: "0.1.0",
+        enterpriseId: enterprise.id,
+        userId: "proof-owner"
+      },
+      context: {
+        activeContext: {
+          contractVersion: "0.1.0",
+          kind: "ENTERPRISE",
+          contextId: hostEnterpriseId,
+          enterpriseId: enterprise.id
+        }
+      },
+      correlationId: "tr01:a3:operational-read"
+    }
+  };
+}
+const humanOperational = await operationalReader.read(operationalRequest("HUMAN"));
+const agentOperational = await operationalReader.read(operationalRequest("AI"));
+assert.deepEqual(agentOperational, humanOperational);
+assert.equal(humanOperational.pendingPurchaseQuantity, quantity);
+assert.equal(humanOperational.inventoryPosition.quantity, 0);
+assert.equal(humanOperational.inventoryPosition.amount, 0);
+assert.equal(humanOperational.payableAmount, amount);
+assert.equal(humanOperational.openWork.receive.quantity, quantity);
+assert.equal(humanOperational.openWork.pay.amount, amount);
+
 console.log(JSON.stringify({
   status: "PASS",
-  proof: "TR01A_APP_PLATFORM_TO_EVO_PROCURE_TO_PAY_REFERENCE_LOOP",
+  proof: "TR01A2_APP_PLATFORM_TO_EVO_PURCHASE_RECEIPT_REVERSAL",
   evoScopeKey: enterprise.id,
   purchaseApplicationId: purchaseBinding.applicationId,
   receiptApplicationId: receiptBinding.applicationId,
@@ -448,10 +628,19 @@ console.log(JSON.stringify({
   },
   purchaseBusinessDataId: purchase.submission.businessDataId,
   receiptBusinessDataId: receipt.submission.businessDataId,
-  explicitRelation: "FULFILLS",
+  reversalBusinessDataId: reversal.submission.businessDataId,
+  explicitRelation: "FULFILLS_AND_REVERSES",
+  operationalProjection: {
+    status: "PASS",
+    contract: humanOperational.projectionId,
+    humanAgentSameContract: true,
+    source: "EVO_PUBLIC_WORK_ITEMS_AND_DIMENSIONED_LEDGER_BALANCES",
+    view: humanOperational,
+    consumerIntegration: "NOT_YET_INSTALLED"
+  },
   evidence: {
     purchaseEventDelta: 1,
-    receiptEventDelta: 1,
+    receiptEventDelta: 2,
     receiveWorkQuantityBeforeReceipt: Number(receiveWork.quantity),
     receiveWorkClosedAfterReceipt: true,
     ledgerCertification: "EVO_PUBLIC_DIMENSION_FILTERED_LEDGER_BALANCE",
@@ -462,10 +651,16 @@ console.log(JSON.stringify({
     inventoryQuantityAfterReceipt: Number(inventoryAfterReceipt.quantity),
     inventoryAmountAfterReceipt: Number(inventoryAfterReceipt.amount),
     inventoryDimensions: inventoryAfterReceipt.dimensions,
+    pendingPurchaseQuantityAfterReversal: Number(pendingAfterReversal.quantity),
+    inventoryQuantityAfterReversal: Number(inventoryAfterReversal.quantity),
+    inventoryAmountAfterReversal: Number(inventoryAfterReversal.amount),
+    payableAmountAfterReversal: Number(payableAfterReversal.amount),
     aggregateRuntimeObservationAvoided: true
   },
   work: {
     receiveClosed: true,
-    payStillOpen: true
+    payStillOpen: true,
+    receiveReopenedAfterReversal: true,
+    payStillOpenAfterReversal: true
   }
 }, null, 2));

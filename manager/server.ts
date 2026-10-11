@@ -783,6 +783,7 @@ import {
   counterpartyPackage,
   itemPackage,
   warehousePackage,
+  tradingReferencePackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -798,6 +799,14 @@ import {
   templateStorePackage,
   tradingLitePackage
 } from "../catalog/seed.js";
+import {
+  PURCHASE_OPERATIONS_READ_COMMAND_V010,
+  PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+  PURCHASE_OPERATIONS_LOOKUP_PAGE_SOURCE_V010,
+  PURCHASE_OPERATIONS_DETAIL_PAGE_SOURCE_V010,
+  TRADING_REFERENCE_FEATURE_ID_V010,
+  TRADING_REFERENCE_PACKAGE_ID_V010
+} from "../apps/trading-reference/constants.js";
 import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE,
@@ -1027,6 +1036,7 @@ const catalog = createPackageCatalog([
   counterpartyPackage,
   itemPackage,
   warehousePackage,
+  tradingReferencePackageV010,
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -4912,6 +4922,51 @@ const actionRouter = createAppActionRouter(
         }
       })
     ),
+    createLazyAppActionHandlerV010({
+      packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
+      featureId: TRADING_REFERENCE_FEATURE_ID_V010,
+      commandCode: PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+      async load() {
+        const mod = await import("../apps/trading-reference/operational-actions.js");
+        return mod.createPurchaseOperationalEntryActionHandlerV010();
+      }
+    }),
+    createLazyAppActionHandlerV010({
+      packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
+      featureId: TRADING_REFERENCE_FEATURE_ID_V010,
+      commandCode: PURCHASE_OPERATIONS_READ_COMMAND_V010,
+      async load() {
+        const [actionModule, projectionModule, httpModule] = await Promise.all([
+          import("../apps/trading-reference/operational-actions.js"),
+          import("../apps/trading-reference/operational-projection.js"),
+          import("../apps/trading-reference/operational-http-reader.js")
+        ]);
+        const service =
+          projectionModule.createPurchaseOperationalProjectionServiceV010({
+            reader: httpModule.createPurchaseOperationalEvoHttpReaderV010({
+              baseUrl: evoBaseUrl
+            }),
+            resolveAuthorizationProvider
+          });
+        return actionModule.createPurchaseOperationalReadActionHandlerV010({
+          service,
+          resolveEvoEnterpriseId(context) {
+            const active = context.context?.activeContext;
+            if (!active || active.kind !== "ENTERPRISE"
+                || context.scope.enterpriseId !== active.enterpriseId) {
+              throw new Error("TR01_OPERATIONAL_ENTERPRISE_CONTEXT_MISMATCH");
+            }
+            // Unlike the legacy demo Trading Lite path, a purchase-read
+            // MUST NOT fall back to the global EVO_DEMO enterprise.
+            const bound = evoRuntimeScopeMap.get(active.enterpriseId);
+            if (!bound) {
+              throw new Error("TR01_OPERATIONAL_EVO_SCOPE_BINDING_REQUIRED");
+            }
+            return bound;
+          }
+        });
+      }
+    }),
     ...[
       WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
       WAREHOUSE_MY_READ_COMMAND_V010
@@ -7066,6 +7121,104 @@ const server = createServer(async (request, response) => {
                 readableFieldIds: directory.readableFieldIds,
                 canManage
               })
+        );
+      }
+
+      if (
+        source === PURCHASE_OPERATIONS_LOOKUP_PAGE_SOURCE_V010
+        || source === PURCHASE_OPERATIONS_DETAIL_PAGE_SOURCE_V010
+      ) {
+        // Keep UI and Agent reads on exactly the same authorized Action Host
+        // operation; a guessed deep link cannot bypass runtime binding or policy.
+        if (!manager.getSnapshot().activeFeatures.some(feature =>
+          feature.packageId === TRADING_REFERENCE_PACKAGE_ID_V010
+          && feature.featureId === TRADING_REFERENCE_FEATURE_ID_V010
+        )) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const registry = createContextRegistryForSession(session);
+        const resolved = registry.resolve(
+          contextFromHeaderV010(request.headers, registry)
+        );
+        if (resolved.activeContext.kind !== "ENTERPRISE") {
+          return json(response, 409, {
+            code: "TR01_OPERATIONAL_ENTERPRISE_CONTEXT_REQUIRED"
+          });
+        }
+        const locale = requestedLocale(url);
+        const principal = {
+          ...structuredClone(session.principal),
+          sessionId: session.sessionId
+        };
+        const partialContext: PlatformRequestContextV010 = {
+          contractVersion: "0.1.0",
+          principal,
+          scope: { contractVersion: "0.1.0", userId: principal.subjectId },
+          context: resolved,
+          correlationId: "tr01-operational-view-" + randomUUID(),
+          locale
+        };
+        const readContext: PlatformRequestContextV010 = {
+          ...partialContext,
+          scope: legacyScopeFromRequestContextV010(partialContext)
+        };
+        const pageModule = await import(
+          "../apps/trading-reference/operational-page.js"
+        );
+        if (source === PURCHASE_OPERATIONS_LOOKUP_PAGE_SOURCE_V010) {
+          const entry = await actionRouter.execute({
+            contractVersion: "0.1.0",
+            type: "command",
+            command: {
+              code: PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+              inputVersion: "0.1.0"
+            },
+            values: {},
+            sourceInteractionId: "purchase-entry",
+            actionId: "open",
+            requiresConfirmation: false
+          }, readContext);
+          if (!entry.ok) return json(response, 403, {
+            code: entry.error?.code ?? "TR01_OPERATIONAL_ENTRY_DENIED"
+          });
+          return json(
+            response, 200,
+            pageModule.createPurchaseOperationalLookupPageV010(locale)
+          );
+        }
+        const selected = pageModule.parsePurchaseOperationalDetailRouteV010(
+          url.searchParams.get("route")?.trim() || undefined
+        );
+        if (!selected) {
+          return json(response, 400, {
+            code: "TR01_OPERATIONAL_DETAIL_ROUTE_INVALID"
+          });
+        }
+        const result = await actionRouter.execute({
+          contractVersion: "0.1.0",
+          type: "command",
+          command: {
+            code: PURCHASE_OPERATIONS_READ_COMMAND_V010,
+            inputVersion: "0.1.0"
+          },
+          values: { ...selected },
+          sourceInteractionId: "purchase-detail",
+          actionId: "read",
+          requiresConfirmation: false
+        }, readContext);
+        if (!result.ok || !result.result) {
+          return json(response, 403, {
+            code: result.error?.code ?? "TR01_OPERATIONAL_READ_DENIED"
+          });
+        }
+        return json(response, 200,
+          pageModule.createPurchaseOperationalPositionPageV010(
+            result.result as unknown as import(
+              "../apps/trading-reference/operational-projection.js"
+            ).PurchaseOperationalViewV010,
+            locale
+          )
         );
       }
 

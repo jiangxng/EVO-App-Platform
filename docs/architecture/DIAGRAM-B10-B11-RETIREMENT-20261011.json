@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "kind": "EOG_2D_B10_B11_DRAFT_BRANCH_RETIREMENT",
+  "date": "2026-10-11",
+  "repository": "jiangxng/EVO-App-Platform",
+  "archivePr": 699,
+  "archiveMergeCommit": "de3bfbb967b2ff1113fc860a42f6b97d7741f83c",
+  "requireArchiveFiles": 108,
+  "requireDraftBranches": 42,
+  "originalFormalCases": 39,
+  "originalSigned": 0,
+  "notice": "This is a branch deletion allowlist only. The PR discussions, historical indexes and synthetic scripts remain permanently linked from merged PR #699. The workflow requires all 42 exact git SHAs/closed-unmerged source PRs before deleting any branch.",
+  "entries": [
+    {
+      "stage": "B10a",
+      "pr": 646,
+      "headSha": "fb4bd505c005d2e16cc1f54599eaea1a0c1c0409"
+    },
+    {
+      "stage": "B10b",
+      "pr": 647,
+      "headSha": "83b768dd9f5ece23dc595fc46cf602585257f86e"
+    },
+    {
+      "stage": "B10c",
+      "pr": 648,
+      "headSha": "72517c6fed3b3a203743a1d7e2f3f7d60d30e1bd"
+    },
+    {
+      "stage": "B10d",
+      "pr": 649,
+      "headSha": "97131d17d7993648c3aff0963bc671d03bf3c4b2"
+    },
+    {
+      "stage": "B10e",
+      "pr": 650,
+      "headSha": "10724c87cc07111f8dd47a8242686640897a1c7b"
+    },
+    {
+      "stage": "B10f",
+      "pr": 651,
+      "headSha": "01afc9103e35a4035d4d345c65df8e0f628a8a51"
+    },
+    {
+      "stage": "B10g",
+      "pr": 652,
+      "headSha": "d29e61ed4d32bed4adca16ce4cfb8ae5e8d873e2"
+    },
+    {
+      "stage": "B10h",
+      "pr": 653,
+      "headSha": "51355d56ea46679f2bf52569d71b570f2c710016"
+    },
+    {
+      "stage": "B10i",
+      "pr": 655,
+      "headSha": "d3fb3a1800fb875e5cb67d658e423c6f9bf9169b"
+    },
+    {
+      "stage": "B10j",
+      "pr": 656,
+      "headSha": "89ac4accda79540eede3449514db63917b3bcf84"
+    },
+    {
+      "stage": "B10k",
+      "pr": 658,
+      "headSha": "63f9315d60f7c11dbe37923bf166a1e5658674e5"
+    },
+    {
+      "stage": "B10l",
+      "pr": 659,
+      "headSha": "614b7fa5920717e0a9a9030d990a8f1e1c346c7c"
+    },
+    {
+      "stage": "B10m",
+      "pr": 660,
+      "headSha": "73fc854f14a84c43a6fe51bc570e1d88aef4e619"
+    },
+    {
+      "stage": "B10n",
+      "pr": 661,
+      "headSha": "42365c58e3d15a5988ddd75c80ae911ac094d54f"
+    },
+    {
+      "stage": "B10o",
+      "pr": 662,
+      "headSha": "5420b15aca9fe8b776e961a2f69e6405ce38fcfa"
+    },
+    {
+      "stage": "B10p",
+      "pr": 663,
+      "headSha": "8cbf6b59e04bfb5f5f7ff71827b56605b7640a67"
+    },
+    {
+      "stage": "B10q",
+      "pr": 664,
+      "headSha": "ef73d19f790296e07c868783daa58b4d13cf6b22"
+    },
+    {
+      "stage": "B10r",
+      "pr": 665,
+      "headSha": "99bbdc4bca044fc50ae95e1a52e7c7f5840fc403"
+    },
+    {
+      "stage": "B10s",
+      "pr": 666,
+      "headSha": "2ec49894f7000d147d38ab2e311c1c9af0987403"
+    },
+    {
+      "stage": "B10t",
+      "pr": 667,
+      "headSha": "4ba95ff19cae73a41b442e39b58373f6a23375b0"
+    },
+    {
+      "stage": "B10u",
+      "pr": 668,
+      "headSha": "7cd091b447215d943230cf8c1f768651d949d74c"
+    },
+    {
+      "stage": "B10v",
+      "pr": 669,
+      "headSha": "9c04cc265cfb76c00c9f826aab22ef43e3a8fcb5"
+    },
+    {
+      "stage": "B10w",
+      "pr": 670,
+      "headSha": "8926a9efd9d8e41b1f9161bab311f7b1d1c83652"
+    },
+    {
+      "stage": "B10x",
+      "pr": 671,
+      "headSha": "958743a880ccb9932cdd24ca76a82fdae0196f61"
+    },
+    {
+      "stage": "B10y",
+      "pr": 672,
+      "headSha": "530ec9fc81cf3980cbc5778833f90e52183e718b"
+    },
+    {
+      "stage": "B10z",
+      "pr": 673,
+      "headSha": "e78b908c6948d75f1e6dd3ae2fc64de6b31a3387"
+    },
+    {
+      "stage": "B11a",
+      "pr": 674,
+      "headSha": "c94f01be0fc85740e28811cfedb8b7d23e8ddd77"
+    },
+    {
+      "stage": "B11b",
+      "pr": 675,
+      "headSha": "b60066c4a5cdd0098992d4e76b6b661de8efaf38"
+    },
+    {
+      "stage": "B11c",
+      "pr": 676,
+      "headSha": "6446e91093e59872f182d563978209cc4248750f"
+    },
+    {
+      "stage": "B11d",
+      "pr": 677,
+      "headSha": "925cddf39546b7992fefd35842a4b5db7d64efaf"
+    },
+    {
+      "stage": "B11e",
+      "pr": 678,
+      "headSha": "80657fc84cc6a3accf438ebb75bdce9742ee1818"
+    },
+    {
+      "stage": "B11f",
+      "pr": 679,
+      "headSha": "bb8e6a58c7fbe03f2ee45c8f7be130b369bbe72f"
+    },
+    {
+      "stage": "B11g",
+      "pr": 680,
+      "headSha": "27126e701b75b3079868347b6022640e817624fc"
+    },
+    {
+      "stage": "B11h",
+      "pr": 681,
+      "headSha": "cb3970c98e37e2e4e13ac3710937444d2d13636c"
+    },
+    {
+      "stage": "B11i",
+      "pr": 682,
+      "headSha": "ac259f0e3746cd0f3139c2913c252dd4cae3ef96"
+    },
+    {
+      "stage": "B11j",
+      "pr": 683,
+      "headSha": "8d1ceaa1c90fa0a5a5ecd78985c01e13c98ec644"
+    },
+    {
+      "stage": "B11k",
+      "pr": 684,
+      "headSha": "24c400a7d7000d10d257b16737eb0248feede6e8"
+    },
+    {
+      "stage": "B11l",
+      "pr": 685,
+      "headSha": "a3bedc9a2aed049aed35a4d04865acbb258c52f2"
+    },
+    {
+      "stage": "B11m",
+      "pr": 686,
+      "headSha": "8742061aff51c16294942471029aaecc19deea2d"
+    },
+    {
+      "stage": "B11n",
+      "pr": 687,
+      "headSha": "3782052ede01bc1648c66b2168d78142742bbfbd"
+    },
+    {
+      "stage": "B11o",
+      "pr": 688,
+      "headSha": "2c22a934158354c002f392d117ad68de248712c5"
+    },
+    {
+      "stage": "B11p",
+      "pr": 689,
+      "headSha": "fb2bbe71e2b14edb7b8c6dce4b2efd0debbcc7ec"
+    }
+  ]
+}

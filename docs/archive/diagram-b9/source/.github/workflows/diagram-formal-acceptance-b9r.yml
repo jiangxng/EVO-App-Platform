@@ -1,0 +1,21 @@
+name: Diagram B9r Formal Acceptance Matrix CI
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-formal-acceptance-audit-b9r.mjs"
+      - "tests/integration/diagram-formal-acceptance-audit-b9r.test.mjs"
+      - ".github/workflows/diagram-formal-acceptance-b9r.yml"
+      - "docs/architecture/DIAGRAM-COMMERCIAL-ACCEPTANCE-EVIDENCE-MATRIX-20261010.md"
+permissions:
+  contents: read
+jobs:
+  acceptance-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test tests/integration/diagram-formal-acceptance-audit-b9r.test.mjs
+      - run: node tools/diagram-formal-acceptance-audit-b9r.mjs

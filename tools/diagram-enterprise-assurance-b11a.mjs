@@ -1,0 +1,3 @@
+/** B11a synthetic/prevalidated offline QA; no production write. */
+export function hiddenEdgeClosureV010(graph,hiddenNodes=[]){if(!Array.isArray(graph?.nodes)||!Array.isArray(graph?.edges)||!Array.isArray(hiddenNodes))throw Error("graph/mask required");const valid=new Set(graph.nodes.map(n=>n.id)),hidden=new Set(hiddenNodes);if(hidden.size!==hiddenNodes.length||hiddenNodes.some(x=>!valid.has(x)))throw Error("invalid mask");let crossing=0,internal=0,unaffected=0;for(const e of graph.edges){const a=hidden.has(e.source),b=hidden.has(e.target);if(a&&b)internal++;else if(a||b)crossing++;else unaffected++}return {schema:"B11a-projection-closure-proxy",crossing,internal,unaffected,sourceEdgesUnmodified:graph.edges.length,note:"preview mask simulation, not real App commit"};
+}

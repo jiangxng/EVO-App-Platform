@@ -1,0 +1,40 @@
+name: Diagram Automatic Router Full DOM CI
+
+on:
+  pull_request:
+    paths:
+      - "vendor/eidos/src/diagram/**"
+      - "tools/diagram-performance-browser-proof.mjs"
+      - "tests/integration/diagram-auto-routing-astar.test.mjs"
+      - ".github/workflows/diagram-auto-router-full-dom.yml"
+  push:
+    branches:
+      - "feat/diagram-commercial-auto-routing-cross-browser-integration-b8rs-20261010"
+jobs:
+  auto-full-dom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: B8r real Chrome 100/300 and 200/600 automatic orthogonal DOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Missing real Chrome" >&2; exit 1; fi
+          export CHROME
+          EVO_AUTO_B8R=1 node tools/diagram-performance-browser-proof.mjs | tee /tmp/b8r-auto-router.log
+          grep -q 'B8R_AUTO_BROWSER_RESULT=' /tmp/b8r-auto-router.log
+      - name: Preserve auto-route trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b8r-chrome-real-automatic-orthogonal
+          path: /tmp/b8r-auto-router.log
+          if-no-files-found: ignore

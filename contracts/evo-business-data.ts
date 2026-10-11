@@ -7,7 +7,8 @@ export type EvoBusinessDataRelationTypeV010 =
   | "FULFILLS"
   | "ALLOCATES_TO"
   | "DERIVES_FROM"
-  | "REFERENCES";
+  | "REFERENCES"
+  | "REVERSES";
 
 export interface EvoBusinessDataSubmissionRelationV010 {
   fromBusinessDataId: string;

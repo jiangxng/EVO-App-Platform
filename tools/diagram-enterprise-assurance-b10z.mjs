@@ -1,0 +1,3 @@
+/** B10z synthetic/prevalidated offline QA; no production write. */
+export function degreeBucketProfileV010(graph){if(!Array.isArray(graph?.nodes)||!Array.isArray(graph?.edges))throw Error("graph required");const d=new Map(graph.nodes.map(n=>[n.id,0]));for(const e of graph.edges){if(!d.has(e.source)||!d.has(e.target))throw Error("orphan");d.set(e.source,d.get(e.source)+1);d.set(e.target,d.get(e.target)+1)}const bins={zero:0,one:0,twoToFour:0,fiveOrMore:0};for(const n of d.values()){if(n===0)bins.zero++;else if(n===1)bins.one++;else if(n<=4)bins.twoToFour++;else bins.fiveOrMore++}return{schema:"B10z-total-degree-buckets",...bins,nodeCount:d.size,note:"structural distribution not user roles or route path"};
+}

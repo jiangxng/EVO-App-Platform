@@ -1,0 +1,2 @@
+# B10b | Readonly Viewer Chrome native wheel contract
+Fire real Playwright mouse wheel input in a 390px Chrome Viewer loaded via official Handler GET. No JS error, no Save button appearing and FileStore CAS still 2. This checks no unintended persistence from navigation; does not claim that zoom amount/trackpad gesture has been ergonomically validated, nor any physical device or screenreader. S2C/P2P synthetic only; §14 all NOT TESTED.

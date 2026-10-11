@@ -231,11 +231,12 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
     if (!artifact?.diagram2d) {
       throw new Error("CURRENT_2D_EDITOR_DIAGRAM_NOT_AVAILABLE");
     }
-    const gallery = input.definitionProjectionStore.get({
+    const stored = input.definitionProjectionStore.getVersioned({
       enterpriseId: target.enterpriseId,
       definitionId: target.definitionId,
       definitionRevision: target.definitionRevision
-    }) ?? latest.projectionGallery;
+    });
+    const gallery = stored.gallery ?? latest.projectionGallery;
     if (!gallery) throw new Error("CURRENT_2D_EDITOR_GALLERY_REQUIRED");
     return {
       target,
@@ -243,6 +244,7 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
       latest,
       artifact,
       gallery,
+      writeToken: String(stored.version),
       diagram: artifact.diagram2d,
       hiddenNodeIds: [...(artifact.hiddenNodeIds ?? [])],
       hiddenEdgeIds: [...(artifact.hiddenEdgeIds ?? [])]
@@ -271,6 +273,8 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
       const hiddenEdgeIds = new Set(current.hiddenEdgeIds);
       return {
         currentEditor: structuredClone(current.target),
+        writeToken: current.kind === "DEFINITION_PROJECTION"
+          ? current.writeToken : String(current.view.revision),
         nodes: current.diagram.nodes.map(node => ({
           id: node.id,
           label: node.label,
@@ -314,9 +318,13 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
           rationale: {
             type: "string",
             description: "Short explanation of why the retained material matches the Human request."
+          },
+          expectedWriteToken: {
+            type: "string",
+            description: "Opaque token returned by enterprise.current_2d_editor.get; required to avoid overwriting edits made after the model read."
           }
         },
-        required: ["visibleNodeIds", "visibleEdgeIds"],
+        required: ["visibleNodeIds", "visibleEdgeIds", "expectedWriteToken"],
         additionalProperties: false
       },
       effect: "WRITE",
@@ -325,6 +333,11 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
     }),
     available,
     execute(args) {
+      if (typeof args.expectedWriteToken !== "string"
+        || !/^(0|[1-9][0-9]*)$/.test(args.expectedWriteToken)
+        || !Number.isSafeInteger(Number(args.expectedWriteToken))) {
+        throw new Error("CURRENT_2D_EDITOR_WRITE_TOKEN_REQUIRED");
+      }
       const visibleNodeIds = exactStringArray(
         args.visibleNodeIds,
         "CURRENT_2D_EDITOR_VISIBLE_NODES_REQUIRED"
@@ -354,6 +367,9 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
 
       let version: number | undefined;
       if (current.kind === "OPERATING_GRAPH") {
+        if (Number(args.expectedWriteToken) !== current.view.revision) {
+          throw new Error("CURRENT_2D_EDITOR_WRITE_CONFLICT");
+        }
         const hiddenNodeIds = current.diagram.nodes
           .filter(node => !visibleNodeIds.includes(node.id))
           .map(node => node.id);
@@ -378,6 +394,9 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
         });
         version = next.revision;
       } else {
+        if (args.expectedWriteToken !== current.writeToken) {
+          throw new Error("DEFINITION_PROJECTION_WRITE_CONFLICT");
+        }
         const nextGallery = cropDefinitionProjectionToVisibleItemsV010({
           gallery: current.gallery,
           projectionId: current.target.projectionId,
@@ -387,15 +406,15 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
           locale: input.locale
         });
         const recordedAt = now().toISOString();
-        input.definitionProjectionStore.put({
+        const committed = input.definitionProjectionStore.putIfVersion({
           enterpriseId: current.latest.enterpriseId,
           definitionId: current.latest.definitionId,
           definitionRevision: current.latest.revision,
           gallery: nextGallery,
           updatedAt: recordedAt,
           updatedBySubjectId: input.principal.subjectId
-        });
-        version = current.latest.revision;
+        }, Number(args.expectedWriteToken));
+        version = committed.version;
       }
 
       input.onEditorUpdated?.({

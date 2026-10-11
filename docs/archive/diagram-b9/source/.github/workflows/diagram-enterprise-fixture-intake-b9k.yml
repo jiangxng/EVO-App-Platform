@@ -1,0 +1,28 @@
+name: Diagram B9k Authorized Enterprise Fixture Intake CI
+
+on:
+  pull_request:
+    paths:
+      - "tools/diagram-enterprise-fixture-intake-b9k.mjs"
+      - "tests/integration/diagram-enterprise-fixture-intake-b9k.test.mjs"
+      - ".github/workflows/diagram-enterprise-fixture-intake-b9k.yml"
+  push:
+    branches:
+      - "feat/diagram-commercial-enterprise-fixture-intake-b9k-20261011"
+
+permissions:
+  contents: read
+
+jobs:
+  offline-intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check B9k fixture preflight syntax
+        run: node --check tools/diagram-enterprise-fixture-intake-b9k.mjs
+      - name: Test B9k synthetic contracts, privacy boundaries and malformed inputs
+        run: node --test tests/integration/diagram-enterprise-fixture-intake-b9k.test.mjs
