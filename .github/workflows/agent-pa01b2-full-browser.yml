@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/agent-line/pa01b2-full-host-fixture.mjs"
       - "tests/agent-line/pa01b2_full_host_chromium.py"
+      - "tests/agent-line/pa01b3_authorized_mapping_browser.py"
       - ".github/workflows/agent-pa01b2-full-browser.yml"
       - "agents/enterprise-agent/**"
       - "vendor/eidos/src/app-host/**"
@@ -50,6 +51,8 @@ jobs:
           cat artifacts/agent-pa01b2-full-browser/fixture.json
       - name: Full real Workbench to Thread to Run to source browser proof
         run: python tests/agent-line/pa01b2_full_host_chromium.py
+      - name: Verify authorized AI Capability write and true ActionReceipt IDs
+        run: python tests/agent-line/pa01b3_authorized_mapping_browser.py
       - name: Show isolated log on failure
         if: failure()
         run: cat artifacts/agent-pa01b2-full-browser/bootstrap.log || true
