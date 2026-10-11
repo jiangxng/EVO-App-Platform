@@ -14,16 +14,16 @@ import {
   receivingStagePackageV010, receivingStagePageV010
 } from '../../dist/apps/trading-stage-receiving/package.js';
 import {
-  salesStagePackageV010
+  salesStagePackageV010, salesStagePageV010
 } from '../../dist/apps/trading-stage-sales/package.js';
 import {
-  shipmentStagePackageV010
+  shipmentStagePackageV010, shipmentStagePageV010
 } from '../../dist/apps/trading-stage-shipment/package.js';
 import {
-  receivableStagePackageV010
+  receivableStagePackageV010, receivableStagePageV010
 } from '../../dist/apps/trading-stage-receivable/package.js';
 import {
-  cashStagePackageV010
+  cashStagePackageV010, cashStagePageV010
 } from '../../dist/apps/trading-stage-cash/package.js';
 import {
   stagePackageIdV010, stagePageSourceV010, stageRouteV010
@@ -37,7 +37,11 @@ const packages=[
 ];
 const assets=new Map([
   [stagePageSourceV010('purchasing'), purchasingStagePageV010],
-  [stagePageSourceV010('receiving'), receivingStagePageV010]
+  [stagePageSourceV010('receiving'), receivingStagePageV010],
+  [stagePageSourceV010('sales'), salesStagePageV010],
+  [stagePageSourceV010('shipment'), shipmentStagePageV010],
+  [stagePageSourceV010('receivable'), receivableStagePageV010],
+  [stagePageSourceV010('cash'), cashStagePageV010]
 ]);
 
 test('six distinct TR-01 native APPLICATION packages without an ERP monolith',()=>{
@@ -82,7 +86,7 @@ test('purchasing and receiving install independently, obey activation and render
       route:{},page:{},definition:model
     });
     assert.match(html,/data-eidos-catalog/);
-    assert.doesNotMatch(html,/<style\\b/);
+    assert.doesNotMatch(html,/<style\b/);
     assert.doesNotMatch(html,/finance-execution-allowed|data-finance-write/i);
   }
   assert.equal(purchasingStagePageV010.actions.find(x=>x.id==='continue')?.route,
