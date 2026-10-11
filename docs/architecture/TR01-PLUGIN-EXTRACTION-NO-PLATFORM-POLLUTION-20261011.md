@@ -14,8 +14,9 @@
 1. **采购订单、采购收货、销售订单、出库发货、应收、客户收款都是独立 Application 插件，不准合成单体 Trading Application**。采购冲销可作为收货插件的受控业务动作，不另建一包。
 2. **Inventory 与 Cost 首先是报表/查询视图**：消费者使用 EVO Ledger Runtime 已计算出的 Position / Balance / Cost 结果；不为显示这些报表再创造库存台账或成本计算引擎。
 3. **FIFO 算法已经位于现有 EVO Ledger Runtime**，保留并复用，不另立 Platform 算法或重复的 Cost Owner。财务 Allocation 的现有工程资产也暂时保留，不自动创建新的强制插件、不自动开启写入。
-4. 四个 `apps/trading-stage-{sales,shipment,receivable,cash}` 只读合成插件已在 TR01B2D3 功能分支，不等于真实业务处理全部迁移。接着独立添加采购订单/收货 Package；原 `apps/trading-reference` 保持兼容与 CI，待另行验证迁移。
-5. **所有交易插件均为多个独立 Package、Feature 与 Eidos Experience**，而不是将多步骤放入一个业务插件的不同按钮。Package 之间经由公开 Capability/事实引用组成链路。
+4. 已核查 EVO `modules/cost`、`modules/allocation`、`modules/valuation` 分别实现现有成本、FIFO、核销与估值语义；Platform `apps/trading-reference/finance-intent-admission.ts` 和 `finance-owner-remote.ts` 只做请求形状、授权与只读网络委托，`providers/trading-finance-owner/package.ts` 只注册只读 Provider，不构成第二套核销/FIFO 引擎。**今后不得在 Platform 保留任何同名算法/执行引擎副本；现有代码没有发现应删除的计算引擎副本。**
+5. 四个 `apps/trading-stage-{sales,shipment,receivable,cash}` 只读合成插件已在 TR01B2D3 功能分支，不等于真实业务处理全部迁移。接着独立添加采购订单/收货 Package；原 `apps/trading-reference` 保持兼容与 CI，待另行验证迁移。
+6. **所有交易插件均为多个独立 Package、Feature 与 Eidos Experience**，而不是将多步骤放入一个业务插件的不同按钮。Package 之间经由公开 Capability/事实引用组成链路。
 
 ## 已有与本次拆分范围
 
@@ -41,7 +42,8 @@
 4. 不复制 EVO Ledger Runtime；Eidos Experience 原生声明和 Eidos 组件渲染，禁止业务插件自带 HTML/CSS/Shell。
 5. 不因拆包而启用任何未被批准的写入：合成页面一律 SYNTHETIC/READ-ONLY/NOT_CERTIFIED；真实业务写入迁移需要分离授权的增量 PR、回归和用户验收。
 6. 对现存参考流程、Agent/2D Designer 独立线、`project.status.json` 和自动生成 HANDOFF 零侵入。
-7. 提交应包含 **按 PR base 对比的 Core 变更为零** 门禁和明确说明：代码可安装/渲染的证据不等于已有生产执行链路。
+7. 已新增 `tools/tr01-evo-runtime-single-owner-guard.mjs` 的自动架构禁令，集成到 `tools/architecture-boundary-validate.mjs`：覆盖 `apps/`、`providers/`、`manager/`、`catalog/` 的计算引擎/私有导入/直接金融账本表写入典型越界模式，并有拒绝路径测试。它是静态哨兵，不替代代码审核与运行时隔离。
+8. 提交应包含 **按 PR base 对比的 Core 变更为零** 门禁和明确说明：代码可安装/渲染的证据不等于已有生产执行链路。
 
 ## 阶段收敛验收
 
