@@ -496,6 +496,7 @@ export function createEnterpriseDefinitionProjectionEditorPageV010(input: {
       localVisibilityResetNotice: text.restoreAllNotice,
       localVisibilityResetPlacement: "OVERFLOW",
       localAutoLayout: true,
+      localPositionLock: true,
       localAutoLayoutLabel: text.autoLayout,
       localAutoLayoutNotice: text.autoLayoutNotice,
       localAutoLayoutDirection: "RIGHT",
