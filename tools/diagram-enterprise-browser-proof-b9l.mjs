@@ -500,6 +500,23 @@ try{
   assert.equal(reopened.projectionStore.getVersion(id),2);
   console.log("B11E_VIEWER_RELOAD_RESULT="+JSON.stringify({process:intake.process,hardReload:true,casPreserved:2,congestionMatches:true}));
  }finally{await reloadTab.close()}
+ // B11f: input-level Delete from readonly Viewer may not persist hidden graph.
+ const deleteTab=await browser.newPage({viewport:{width:390,height:844}});
+ try{
+  await deleteTab.goto(address+"/viewer",{waitUntil:"load"});
+  await deleteTab.waitForFunction(()=>document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready.");
+  await deleteTab.keyboard.press("Delete");
+  const state=await deleteTab.evaluate(()=>({errors:window.__errors.length,
+   save:[...document.querySelectorAll("[data-eidos-diagram-toolbar] button")].filter(x=>x.textContent.trim()==="Save projection").length
+  }));
+  assert.equal(state.errors,0);
+  assert.equal(state.save,0);
+  assert.equal(reopened.projectionStore.getVersion(id),2);
+  console.log("B11F_READONLY_DELETE_RESULT="+JSON.stringify({
+   process:intake.process,nativeDeleteKey:true,casPreserved:2,
+   limitation:"physical keyboard and editable input focus still require user/device QA"
+  }));
+ }finally{await deleteTab.close()}
  assert.equal(repository.listHistory({
   enterpriseId:id.enterpriseId,definitionId:id.definitionId
  }).length,1,"projection Save must not version the business definition");
