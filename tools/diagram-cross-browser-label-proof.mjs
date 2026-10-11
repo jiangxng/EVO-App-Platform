@@ -77,8 +77,12 @@ fixtures.set("rtl-cap-258",sourceHTML.replace(sourceJSON,JSON.stringify(capState
 // congestion notices, resource IDs, route geometry and marker SVG IDs.
 const dualDefinitions=[
  {...definition,id:"b8x-congested",resourceId:"b8x:congested",
+  operationCommand:{code:"b8x.save",inputVersion:"0.1.0"},
+  viewInteraction:{...definition.viewInteraction,localNodeDrag:true},
   initialCamera:{scale:0.8,translateX:12,translateY:14}},
  {...definition,id:"b8x-clear",resourceId:"b8x:clear",
+  operationCommand:{code:"b8x.save",inputVersion:"0.1.0"},
+  viewInteraction:{...definition.viewInteraction,localNodeDrag:true},
   initialCamera:{scale:0.8,translateX:12,translateY:14}}
 ];
 const dualNodesA=[
@@ -99,11 +103,13 @@ const dualNodesB=[
 ];
 const dualStates=[
  {contractVersion:"0.1.0",resourceId:dualDefinitions[0].resourceId,
-  revision:1,lifecycleState:"DRAFT",nodes:dualNodesA,
+  revision:1,lifecycleState:"DRAFT",writeToken:"0",nodes:dualNodesA,
+  actions:[{id:"b8x-save",label:"Save view",operation:{save:true},captureViewState:true}],
   edges:[{id:"blocked-relation",kind:"test",source:"crowded-a",target:"crowded-b",
     pathKind:"orthogonal",arrow:"end",label:"Review required"}]},
  {contractVersion:"0.1.0",resourceId:dualDefinitions[1].resourceId,
-  revision:1,lifecycleState:"DRAFT",nodes:dualNodesB,
+  revision:1,lifecycleState:"DRAFT",writeToken:"0",nodes:dualNodesB,
+  actions:[{id:"b8x-save",label:"Save view",operation:{save:true},captureViewState:true}],
   edges:[{id:"clear-relation",kind:"test",source:"clear-a",target:"clear-b",
     pathKind:"curve",arrow:"end",label:"No congestion"}]}
 ];
@@ -120,14 +126,14 @@ fixtures.set("b8x-two-instances",
  +'<main id="b8x-first">'+renderDiagramEditorPageShellToHtmlV010(dualDefinitions[0])+'</main>'
  +'<main id="b8x-second">'+renderDiagramEditorPageShellToHtmlV010(dualDefinitions[1])+'</main>'
  +'<script>window.__dualStates='+JSON.stringify(dualStates)
- +';window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
+ +';window.__saves=[[],[]];window.__errors=[];window.addEventListener("error",e=>window.__errors.push(e.message));'
  +'window.addEventListener("unhandledrejection",e=>window.__errors.push(String(e.reason)));'
  +'</script><script type="module">'
  +'import {mountDiagramEditorPageV010} from "/dist/vendor/eidos/src/diagram/surface.js";'
  +dualDefinitions.map((def,i)=>
   'mountDiagramEditorPageV010({definition:'+JSON.stringify(def)
   +',container:document.getElementById("b8x-'+(i===0?'first':'second')+'"),'
-  +'actionHost:{async execute(){return {ok:true,result:window.__dualStates['+i+']}}}});'
+  +'actionHost:{async execute(request){if(request.command?.code==="b8x.save"){window.__saves['+i+'].push(request);return {ok:true,result:window.__dualStates['+i+']}}return {ok:true,result:window.__dualStates['+i+']}}}});'
  ).join("")
  +'</script></body></html>');
 const server=createServer(async(req,res)=>{
@@ -366,6 +372,48 @@ try{
     assert.deepEqual(afterFirst.stateCounts,before.stateCounts,
      "presentation selection must not mutate business graph fixture");
     assert.deepEqual(afterFirst.errors,[],engine+" independent selection errors");
+    // P02: native keyboard and explicit view-save commands stay within each
+    // focused instance and its own ActionHost (not persistent production CAS).
+    const dualPositions=()=>dualPage.evaluate(()=>({
+      first:document.querySelector("#b8x-first [data-eidos-diagram-node='crowded-a']")?.style.left,
+      second:document.querySelector("#b8x-second [data-eidos-diagram-node='clear-a']")?.style.left,
+      saves:window.__saves.map(a=>a.length)
+    }));
+    const p02Start=await dualPositions();
+    await dualPage.locator("#b8x-second [data-eidos-diagram-node='clear-a']").click();
+    await dualPage.keyboard.press("ArrowRight");
+    const p02SecondMoved=await dualPositions();
+    assert.equal(p02SecondMoved.first,p02Start.first,
+      engine+" keyboard focus must not move first node while second is active");
+    assert.notEqual(p02SecondMoved.second,p02Start.second,
+      engine+" second native keyboard ArrowRight moves only second node");
+    await dualPage.locator("#b8x-second").getByRole("button",{name:"Save view"}).click();
+    await dualPage.waitForFunction(()=>window.__saves?.[1]?.length===1);
+    assert.deepEqual((await dualPositions()).saves,[0,1],
+      engine+" second Host Save must not call first Host");
+    await dualPage.locator("#b8x-first [data-eidos-diagram-node='crowded-a']").click();
+    await dualPage.keyboard.press("ArrowRight");
+    const p02FirstMoved=await dualPositions();
+    assert.equal(p02FirstMoved.second,p02Start.second,
+      engine+" saved second graph must retain its own original read state");
+    assert.notEqual(p02FirstMoved.first,p02Start.first);
+    await dualPage.locator("#b8x-first").getByRole("button",{name:"Save view"}).click();
+    await dualPage.waitForFunction(()=>window.__saves?.[0]?.length===1);
+    assert.deepEqual((await dualPositions()).saves,[1,1],
+      engine+" each Surface sends exactly one independent Save");
+    const p02Saves=await dualPage.evaluate(()=>window.__saves.map(a=>a[0]));
+    assert.notDeepEqual(p02Saves[0],p02Saves[1],
+      engine+" captured view inputs must be independent");
+    assert.ok(JSON.stringify(p02Saves[0]).includes("crowded-a"));
+    assert.ok(JSON.stringify(p02Saves[1]).includes("clear-a"));
+    assert.deepEqual(await dualPage.evaluate(()=>window.__errors),[]);
+    console.log("DIAGRAM_P02_BROWSER_SUBGATE="+JSON.stringify({
+      case:"P02",engine,oneDomTwoInstances:true,distinctSvgMarkers:true,
+      isolatedSelection:true,focusedNativeKeyboardIsolation:true,
+      isolatedCapturedSaveRequests:true,customFixtureActionHost:true,
+      persistentEnterpriseCASVerified:false,physicalDeviceVerified:false,
+      formalHumanSignedCases:0
+    }));
     console.log("B8X_MULTI_INSTANCE_RESULT="+JSON.stringify({
      engine,first:afterFirst.first,second:afterFirst.second,
      independentSelection:true,distinctSvgMarkers:true,
