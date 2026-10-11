@@ -641,7 +641,8 @@ try{
   const m09Moving=await m09Pos();
   assert.notDeepEqual(m09Moving,m09Before,
     "M09 must first prove that a real native node drag is in progress");
-  const m09Other=await browser.newPage();
+  // Same browser context, not a separate isolated Playwright context.
+  const m09Other=await tab.context().newPage();
   await m09Other.goto("about:blank");
   await m09Other.bringToFront();
   await tab.waitForFunction(()=>!document.hasFocus(),{timeout:10000});
