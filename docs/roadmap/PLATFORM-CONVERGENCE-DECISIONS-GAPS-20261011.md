@@ -104,3 +104,12 @@
 - 本 docs-only 交接不会改写 main 或其他窗口的专项状态、不会主动清理任何 Agent/2D 分支。
 
 **工作界线一句话：**真正的成果=产品现行功能得到保留或补齐 + 测试通过 + PR 合入 main + 源历史保留 + 旧 ref 经安全核验删除；这里五批到“功能合并”已证实，尚有“最终 refs 清理”和“公网人验”。
+
+
+### 2026-10-11 新窗口决定：优先交付六插件可安装预览，不误报业务正式上线
+
+- **新增证据（A 原文）**：Main 有 6 个独立 package 和进程内 lifecycle CI，但 `catalog/seed.ts` 与 `manager/server.ts` 的 Host Catalog 构造最初并未纳入这六包；直接部署 #703 后的 main 不会让用户在真实 Store 看到它们。
+- **采用** package-owned `host-preview.ts` + Host 四处最小显式 wiring + `APP_PLATFORM_STAGE_MODE=isolated-preview`、`APP_PLATFORM_TR01B_STAGE_DEMO=enabled` 双开关；`#731` 通过 36/36 CI 后合入，不用旧 14 分支 Host Core。
+- **排除** 无条件将六包注册所有环境、绕过安装生命周期直接公开静态 HTML、将 synthetic finance fact 作为真实读写、把旧 `manager/server.ts` 整文件合并。
+- **已证实** Railway 同一现有公网集成测试服务新 pinned 版本 `89320e11` 部署 SUCCESS、健康检查 PASS，原持久卷未删改。用户测试未签收，不能称为真正 BusinessData/ERP 生产已完成。
+- **保持原决定** 真实销售/出库/应收/收款操作与 Finance Owner 授权 #594、EVO Ledger owner 的安全合同属于下一批独立专项，本次未打开财务写入门。
