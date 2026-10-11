@@ -77,7 +77,7 @@ test('TR-01B real plugin Host lifecycle: install / independently open / disable 
     createMemoryLifecycleStore(),()=>new Date(),assets);
   let page=createPluginStorePage(packages,manager.getSnapshot());
   assert.equal(page.kind,'extension-manager');
-  for(const p of packages)assert.equal(page.items.find(x=>x.packageId===p.packageId)?.status.id,'not-installed');
+  for(const p of packages)assert.equal(page.items.find(x=>x.id===p.packageId)?.status.id,'not-installed');
   assert.match(renderAppHostPageToHtml({
     experienceId:'evo-plugin-store',packageId:'evo-app-platform',
     featureId:'evo-plugin-store.system',route:{},page:{},definition:page
