@@ -1,112 +1,87 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-import {
-  analyzeOpenFoodFactsItemRvcV010
-} from "../../tools/item-rvc-open-food-facts.mjs";
+import { analyzeOpenFoodFactsItemRvcV010 } from "../../tools/item-rvc-open-food-facts.mjs";
 
 function manifest(limit = 100) {
   return {
     contractVersion: "0.1.0",
     sourceId: "open-food-facts",
-    sourceUrl:
-      "https://world.openfoodfacts.org/data/exports/products.random-modulo-1000.jsonl.gz",
-    resolvedDataUrl: "https://world.openfoodfacts.org/data/exports/products.random-modulo-1000.jsonl.gz",
+    sourceUrl: "https://world.openfoodfacts.org/data/exports/products.csv.gz",
+    resolvedDataUrl: "https://world.openfoodfacts.org/data/exports/products.csv.gz",
     retrievedAt: "2026-10-09T12:30:00.000Z",
-    sourceVersion: "daily random-modulo-1000 sample",
+    sourceVersion: "offline synthetic CSV fixture",
     license: "Open Database License (ODbL)",
-    attributionRequirements:
-      "Attribute Open Food Facts and retain source identity in RVC evidence.",
-    redistributionConstraints:
-      "Raw sample remains external; repository retains only adapter/tests/derived evidence.",
-    adapterVersion: "item-open-food-facts-jsonl-v0.1",
-    sampling: {
-      method: "FIRST_N_NONEMPTY_CODE",
-      limit
-    },
+    attributionRequirements: "Preserve OFF source and identity attribution.",
+    redistributionConstraints: "Only synthetic fixtures are committed.",
+    adapterVersion: "item-open-food-facts-csv-v0.1",
+    sampling: { method: "FIRST_N_NONEMPTY_CODE", limit },
     importPressure: { limit: 100 },
     fieldMap: {
       code: "code",
       productName: "product_name",
-      quantity: "product_quantity_unit",
-      brands: "brands_tags",
-      categories: "categories_tags"
+      quantity: "quantity",
+      brands: "brands",
+      categories: "categories"
     }
   };
 }
 
-test("IT-01E OFF RVC separates source barcode/trade data from EVO Item identity", async () => {
+async function withCsv(lines, action) {
   const dir = mkdtempSync(join(tmpdir(), "evo-item-rvc-"));
-  const path = join(dir, "sample.jsonl");
-  const rows = [{
-    code: "3017620422003",
-    product_name: "Hazelnut spread",
-    brands_tags: ["en:brand-a"],
-    categories_tags: ["en:spreads", "en:hazelnut-spreads"],
-    packaging_tags: ["en:jar"],
-    product_quantity_unit: "g"
-  }, {
-    code: "3017620422010",
-    product_name: "Hazelnut spread",
-    brands_tags: ["en:brand-a"],
-    categories_tags: ["en:spreads"],
-    packaging_tags: ["en:jar", "en:glass"],
-    product_quantity_unit: "g"
-  }, {
-    code: "store-internal-42",
-    product_name_en: "Prepared service bundle",
-    brands: "Store Brand",
-    categories_tags: [],
-    product_quantity_unit: "ml"
-  }];
-  writeFileSync(path, rows.map(row => JSON.stringify(row)).join("\n") + "\n");
+  const path = join(dir, "synthetic.csv");
+  try {
+    writeFileSync(path, lines.join("\n") + "\n", "utf8");
+    return await action(path);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
-  const report = await analyzeOpenFoodFactsItemRvcV010({
+test("IT-01E synthetic OFF CSV keeps source barcode, trade quantity, and category separate from Item identity", async () => {
+  const report = await withCsv([
+    "code,product_name,quantity,brands,categories",
+    "3017620422003,Hazelnut spread,400 g,Brand A,Spreads",
+    "3017620422010,Hazelnut spread,250 g,Brand A,Spreads",
+    "store-internal-42,Prepared service bundle,500 ml,Store Brand,Services"
+  ], path => analyzeOpenFoodFactsItemRvcV010({
     manifest: manifest(),
     inputPath: path
-  });
+  }));
 
-  assert.equal(report.evidence.totalRows, 3);
-  assert.equal(report.evidence.gtinLikeCodes, 2);
-  assert.equal(report.evidence.nonGtinLikeCodes, 1);
-  assert.equal(report.evidence.sameCommercialDescriptionDifferentCode, 1);
-  assert.equal(report.evidence.rowsWithMultipleCategories, 1);
-  assert.equal(report.evidence.rowsWithMultiplePackagingTags, 1);
-  assert.equal(report.evidence.rowsWithRec20Candidate, 3);
-  assert.deepEqual(report.evidence.rec20CandidateCounts, [
+  assert.equal(report.objectType, "item.subject");
+  assert.equal(report.rawEvidence.totalRows, 3);
+  assert.equal(report.rawEvidence.distinctExternalCodes, 3);
+  assert.equal(report.rawEvidence.duplicateNameCandidates, 1);
+  assert.equal(report.rawEvidence.numericCodes, 2);
+  assert.equal(report.rawEvidence.nonNumericCodes, 1);
+  assert.equal(report.rawEvidence.quantityRowsWithRec20Mapping, 3);
+  assert.deepEqual(report.rawEvidence.rec20CodeCounts, [
     { value: "GRM", count: 2 },
     { value: "MLT", count: 1 }
   ]);
-  assert.equal(report.interpretation.sourceCodeIsEvoItemIdentity, false);
-  assert.equal(
-    report.interpretation.sourceQuantityUnitIsBaseUomAuthority,
-    false
-  );
-  assert.equal(
-    report.interpretation.categoriesBrandsPackagingAreIdentity,
-    false
-  );
+  assert.equal(report.semanticBoundary.sourceCodeIsEnterpriseItemIdentity, false);
+  assert.equal(report.semanticBoundary.gtinIsUniversalItemPrimaryKey, false);
+  assert.equal(report.semanticBoundary.packageQuantityDefinesEnterpriseBaseUom, false);
+  assert.equal(report.semanticBoundary.sourceCategoryIsCoreItemIdentity, false);
+  assert.equal(report.semanticBoundary.sourceBrandIsCoreItemIdentity, false);
 });
 
-test("IT-01E OFF RVC retains malformed-source evidence without treating source schema as authority", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "evo-item-rvc-invalid-"));
-  const path = join(dir, "sample.jsonl");
-  writeFileSync(path, [
-    JSON.stringify({ code: "12345678", product_name: "Valid" }),
-    "{malformed",
-    JSON.stringify({ code: "", product_name: "" })
-  ].join("\n") + "\n");
-
-  const report = await analyzeOpenFoodFactsItemRvcV010({
+test("IT-01E OFF CSV accounts for duplicated external codes and missing source descriptions without inventing Item identity", async () => {
+  const report = await withCsv([
+    "code,product_name,quantity,brands,categories",
+    "12345678,Valid,1 g,Brand A,Snacks",
+    "12345678,Duplicate,1 g,Brand A,Snacks",
+    ",,1 g,,"
+  ], path => analyzeOpenFoodFactsItemRvcV010({
     manifest: manifest(10),
     inputPath: path
-  });
-  assert.equal(report.evidence.totalRows, 3);
-  assert.equal(report.evidence.validJsonRows, 2);
-  assert.equal(report.evidence.invalidJsonRows, 1);
-  assert.equal(report.evidence.missingDisplayName, 1);
-  assert.equal(report.evidence.rowsWithCode, 1);
+  }));
+  assert.equal(report.rawEvidence.totalRows, 3);
+  assert.equal(report.rawEvidence.distinctExternalCodes, 1);
+  assert.equal(report.rawEvidence.duplicateExternalCodes, 1);
+  assert.equal(report.rawEvidence.missingProductName, 1);
+  assert.equal(report.semanticBoundary.allSourceCodesAreGtins, false);
 });
