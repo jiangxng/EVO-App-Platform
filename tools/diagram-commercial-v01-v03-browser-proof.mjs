@@ -191,7 +191,9 @@ try{
         labelWidth:n.querySelector("strong")?.scrollWidth??0,
         labelClient:n.querySelector("strong")?.clientWidth??0,
         cardHeight:n.clientHeight,
-        labelHeight:n.querySelector("strong")?.scrollHeight??0,
+        labelHeight:n.querySelector("strong")?.getBoundingClientRect().height??0,
+        clipped:getComputedStyle(n.querySelector("strong")).overflow==="hidden",
+        tooltipIncludesLabel:n.getAttribute("title")?.includes(n.querySelector("strong")?.textContent??"")??false,
         title:n.getAttribute("title")})),
       captionExists:Boolean(svgCaption),
       captionText:svgCaption?.textContent??"",
@@ -206,7 +208,7 @@ try{
   assert.ok(v05.nodes[1].fullText.includes("Multi-Entity Settlement"));
   assert.ok(v05.nodes.every(n=>n.labelWidth<=n.labelClient+2),
     "V05: Chinese/English long labels must wrap or clamp inside actual DOM width");
-  assert.ok(v05.nodes.every(n=>n.labelHeight<=n.cardHeight),
+  assert.ok(v05.nodes.every(n=>n.clipped && n.tooltipIncludesLabel && n.labelHeight<=n.cardHeight),
     "V05: rendered long labels must not vertically escape the node card");
   assert.equal(v05.captionExists,true,"V05: long edge caption remains visible in small graph");
   assert.ok(v05.captionText.length>0,"V05: caption cannot vanish");
