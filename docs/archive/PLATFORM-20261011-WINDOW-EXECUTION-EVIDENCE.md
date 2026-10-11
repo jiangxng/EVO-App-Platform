@@ -189,3 +189,14 @@
 | `providers/trading-finance-owner/package.ts` | 1eb2c48b42cc34f9b18dcdfdfe049fbef4598ea4 | 62ca743e95b646c26645194255e68b68f57863e3 | main 增补多语言标题；metadata 仍 READ + executionAllowed=false；保留 main |
 
 所有代码均来自固定 SHA 下直接 `fetch_file` 原文，不是浏览搜索摘要；此处未修改生产代码，没有声称 #594 可直接退役。
+
+
+## L. 2026-10-12 首批实际 Ref 删除：只清理三个已合并 Platform 验证 PR 的源分支
+
+- 审计基准 main `1d9b301f418ef17b0d15aa8df982bab17810e9ca`；固定原始 head、merge SHA 与 open PR 使用性预检均 PASS。严格三条目标的 [manifest](https://github.com/jiangxng/EVO-App-Platform/blob/fd915983d108f860215276dcfe9e78af173544ee/repository-hygiene/platform-merged-squash-heads-20261012.json)；原 20261011 manifest 未改写。
+- [PR #781](https://github.com/jiangxng/EVO-App-Platform/pull/781) squash merge `fd915983d108f860215276dcfe9e78af173544ee`；[PR审计 CI #38157635596](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38157635596) 成功且仅 `AUDIT_ONLY`；[主线执行 CI #38157759718](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38157759718) 成功且日志三条 `DELETED_SQUASH_HEAD`。
+- 删除 `test/platform-f0-four-peer-lifecycle-convergence-20261011` @ `d2f560074b4a46290cec6e6e784e7deb6b8a94d3`，merged PR #775，main merge `014196f7a52f7051ef9a0fa8ea524e14b23169de`。
+- 删除 `test/platform-f2-disposable-postgres-logins-20261012` @ `78a9d299aabf0aaf6d276196645549e7d8f8d945`，merged PR #777，main merge `aa6432f0d525b2ef3ad02c358c9ab83e093238f3`。
+- 删除 `test/platform-f1-host-signed-loopback-proof-20261012` @ `c65447b2478c56ca8a808ce560f2b1fdabcdf2f7`，merged PR #779，main merge `09fee6f8f327871b71e0b37a9e19a7f16161db57`。
+- 事后再次枚举 GitHub：**31 branches、三条均缺席、14 个旧 TR01 不变、11 Agent 不变**。因为 #781 cleanup head 仍在，实减 2 refs，而不是 3；其 head `7bd9709ee0d812827476cdb0e6c1a07eddb44eb2` 是未来合并后的退役候选，当前未删除。
+- 源提交和合并 PR / CI 仍在 GitHub 历史中，**不改变任何一个业务插件的 PRODUCT_UNFINISHED** 状态。未对 Ledger Runtime、Finance Owner 功能、Host Core、Personal Agent、EOG/2D、eidos 或 Railway 作任何更改。
