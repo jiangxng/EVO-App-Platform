@@ -430,6 +430,45 @@ try{
     ordinaryClickReplaces:true,noImplicitSave:true,
     syntheticOnly:true,physicalDeviceVerified:false
   }));
+  // M04: drag one of two selected nodes using a native mouse. Both nodes
+  // must receive identical world-coordinate deltas, without losing business
+  // edge endpoints. One Undo restores original two-node relative placement.
+  const groupPos=async()=>tab.evaluate(()=>[...document.querySelectorAll(
+    "[data-eidos-diagram-node]")].map(n=>({
+      id:n.getAttribute("data-eidos-diagram-node"),
+      x:Number.parseFloat(n.style.left),y:Number.parseFloat(n.style.top)
+    })));
+  assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
+  const m04Before=await groupPos();
+  const m04EdgeBefore=await shape(tab);
+  const groupBox=await tab.locator('[data-eidos-diagram-node="sale"]').boundingBox();
+  const gx=groupBox.x+groupBox.width/2,gy=groupBox.y+groupBox.height/2;
+  await tab.mouse.move(gx,gy);
+  await tab.mouse.down({button:"left"});
+  await tab.mouse.move(gx+42,gy+14,{steps:9});
+  assert.notEqual(await shape(tab),m04EdgeBefore,
+    "M04 connected business edge must follow nodes while mouse is still down");
+  await tab.mouse.up({button:"left"});
+  const m04After=await groupPos();
+  const d0={x:m04After[0].x-m04Before[0].x,
+    y:m04After[0].y-m04Before[0].y};
+  const d1={x:m04After[1].x-m04Before[1].x,
+    y:m04After[1].y-m04Before[1].y};
+  assert.ok(Math.hypot(d0.x,d0.y)>6,"M04 group must really move");
+  assert.ok(Math.abs(d0.x-d1.x)<.05&&Math.abs(d0.y-d1.y)<.05,
+    "M04 both selected nodes must move by identical world delta");
+  assert.equal(store.getVersion(id),0,"M04 drag cannot implicitly Save projection");
+  await tab.locator("[data-eidos-diagram-canvas]").focus();
+  await tab.keyboard.press("Control+z");
+  assert.deepEqual(await groupPos(),m04Before,
+    "M04 group drag must be restored by one Undo without drifting geometry");
+  assert.equal(await shape(tab),m04EdgeBefore,
+    "M04 connected edge geometry must be restored by the same Undo");
+  console.log("DIAGRAM_M04_BROWSER_SUBGATE="+JSON.stringify({
+    case:"M04",browser:"Chromium "+browser.version(),mouseGroupDrag:true,
+    deltaShared:true,oneUndoExact:true,noImplicitSave:true,physicalDeviceVerified:false
+  }));
   const initialPath=await shape(tab);
   assert.match(initialPath,/^M .* L /,"V02 legacy shape should remain a straight SVG line");
   assert.doesNotMatch(initialPath,/ [QC] /,"V02 default must not be a curve");
