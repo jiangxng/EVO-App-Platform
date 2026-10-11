@@ -75,3 +75,12 @@ https://ledger-configurator-production.up.railway.app
 [PR #728](https://github.com/jiangxng/EVO-App-Platform/pull/728) 已在本轮通过 Project Continuity CI [run #38138346624](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38138346624) 并 squash 合入 `main`，合并 SHA `4867d7a25f47fde47fa37be14fbd1ef568834e68`。由于此前入口的新增记录是在 CI 尚未结束时写入，以上是**后续实际结果**，不得再称 #728 待合并。最新分支查询 58 条，旧 16 条中仍看到多个历史 refs；本次**未执行删除**，没有证据称已清理完成。
 
 #703 的六独立 Trading Application package PR 状态已直接查询为 merged；当前 main 的 apps 目录列有 trading-stage-sales、shipment、receivable、cash、purchasing、receiving 六包。**目录存在不等于实测安装/启用/商店发现/真实授权通过**，这仍是后续功能验收工作。
+
+
+### 2026-10-11 独立六插件公网可交互预览交付（新窗口，实际部署）
+
+- **真实实现与合并**：[PR #731](https://github.com/jiangxng/EVO-App-Platform/pull/731)，squash main SHA `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`。在 `apps/trading-stage/host-preview.ts` 通过双开关将六个独立 `APPLICATION` 作为可发现、安装、启用、禁用、卸载的真实 Host Store 项注册；`manager/server.ts` 只有四处注册 wiring，不修改 Catalog seed、Agent/2D、Finance Owner、Ledger engine。工作流验证 Host 变化**只允许这四处**，新增 `tests/protocol/tr01-six-stage-host-preview.test.mjs`。
+- 最新合并前 CI 在 [PR #731](https://github.com/jiangxng/EVO-App-Platform/pull/731) **36/36 SUCCESS**；其中六插件 workflow [run #38139204726](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38139204726)。CI 的模拟生命周期可重放，但不是生产业务事实。
+- **实际铁路部署**：Railway 项目 `EVO Ledger Runtime MVP`、environment `production`（只是**公网集成测试**）、服务 `Ledger Configurator`；由原先明确 pinned SHA `296d9c444ae50ba802fd01c1584caccd205f356c` 改为明确 pinned `89320e118b97f358b4fdab0ec4c198d1cf8a57c7`。部署 `bcc40ccc-ed2e-4746-8a56-45d9289ca3ca` 为 **SUCCESS**，build log 报 `/health` 第 1/1 次成功、Node `EVO App Manager listening on http://localhost:8080`；`/data` 原始持久卷保留，Railway 配置无 pending patch。仅设置 `APP_PLATFORM_STAGE_MODE=isolated-preview` 和 `APP_PLATFORM_TR01B_STAGE_DEMO=enabled`。
+- 可供用户浏览器验收：https://ledger-configurator-production.up.railway.app/store 、`/trading-stage/{sales,shipment,receivable,cash,purchasing,receiving}`（先安装）。**浏览器里真实登录、安装、页面视觉、权限、跨服务业务数据仍待用户签收**；这是 `Synthetic Stage Demo` / `READ-ONLY` / `NOT_CERTIFIED`，不得写成业务上线。
+- **测试版本冻结**：用户测试期间不能将此 Host 自动升级到后续 `main`；后续专项代码继续独立 PR 和审查，不扰动 Railway 的 pinned SHA。Railway 的 environment 名字为 `production` 不代表业务正式投产。
