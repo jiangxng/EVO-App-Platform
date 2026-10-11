@@ -1,5 +1,8 @@
 # EVO App Platform — 窗口交接入口（Platform 分支收敛 / 六应用逐项验收）
 
+> **当前执行范围（2026-10-12 用户最新要求）**：只进行插件平台的分支收敛，不增加开发任务。六个 Trading APPLICATION 插件和 Finance Owner PROVIDER **分别列名，均保持未完成**；不要用合成预览/CI/旧 PR 推断产品完成。最新按插件状态清单：[PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md](./PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md)。本条优先于本文件历史“继续做 F1/F2 或新应用”的建议。
+
+
 > 2026-10-11；**独立平台主线交接，不接管 Agent、2D/EOG、EVO Ledger Runtime 或 Eidos 项目。** 本文件为新窗口入口，不代替全局 project.status.json 或各窗口专项文档。以下 SHA、分支数、Railway 状态是本次交接时的**时点快照**，继续执行前必须再查询。
 
 ## 0. 先读什么
