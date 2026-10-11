@@ -15,6 +15,7 @@ export const hostContextMemoryProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_CONTEXT_MEMORY_PACKAGE_ID,
   displayName: "Host Context Memory Provider",
+  description: "管理个人与企业上下文记忆，支持授权读写及来源追溯。",
   displayNameTranslations: {
     "en": "Host Context Memory Provider",
     "zh-CN": "上下文记忆服务",

@@ -12,6 +12,7 @@ export const hostIdentityUserDirectoryProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID,
   displayName: "Host Identity User Directory Provider",
+  description: "提供用户身份目录查询，供成员管理等功能查找用户。",
   displayNameTranslations: {
     "en": "Host Identity User Directory Provider",
     "zh-CN": "用户身份目录服务",

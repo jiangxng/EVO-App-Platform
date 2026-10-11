@@ -36,6 +36,7 @@ export const dataImportPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: DATA_IMPORT_PACKAGE_ID,
   displayName: "EVO Data Import",
+  description: "导入表格数据，匹配字段并预览校验结果，再确认写入。",
   displayNameTranslations: {
     "en": "EVO Data Import",
     "zh-CN": "EVO 数据导入",

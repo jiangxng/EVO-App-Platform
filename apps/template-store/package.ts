@@ -23,6 +23,7 @@ export const templateStorePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: TEMPLATE_STORE_PACKAGE_ID,
   displayName: "EVO Template Store",
+  description: "浏览可复用业务模板，将模板复制为企业独立定义草稿。",
   displayNameTranslations: {
     "en": "EVO Template Store",
     "zh-CN": "EVO 模板商店",

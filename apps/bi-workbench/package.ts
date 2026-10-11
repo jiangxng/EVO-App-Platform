@@ -22,6 +22,7 @@ export const biWorkbenchPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: BI_WORKBENCH_PACKAGE_ID_V010,
   displayName: "EVO BI Workbench",
+  description: "按个人职责组织业务任务与视图，提供日常工作的统一入口。",
   displayNameTranslations: {
     "en": "EVO BI Workbench",
     "zh-CN": "EVO 个人工作台",

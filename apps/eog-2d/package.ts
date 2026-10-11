@@ -80,6 +80,7 @@ export const eog2dPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EOG_2D_PACKAGE_ID,
   displayName: "EOG 2D",
+  description: "以二维视图设计和查看企业运行图，编辑业务结构与关联。",
   displayNameTranslations: {
     "en": "EOG 2D",
     "zh-CN": "EOG 二维运行图",

@@ -105,6 +105,7 @@ export const companyNotesPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "company-notes",
   displayName: "Company Notes",
+  description: "提供企业笔记示例页面，演示插件安装、启用与内容展示。",
   displayNameTranslations: {
     "en": "Company Notes",
     "zh-CN": "企业笔记",
@@ -181,6 +182,7 @@ export const evoFoundationPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo.core",
   displayName: "EVO Foundation",
+  description: "提供基础运行时能力，支撑依赖它的业务插件。",
   displayNameTranslations: {
     "en": "EVO Foundation",
     "zh-CN": "EVO 基础运行时",
@@ -233,6 +235,7 @@ export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo-ledger-runtime-configurator",
   displayName: "EVO Ledger Runtime Compiler",
+  description: "将业务定义编译为账本运行时配置，支持校验与导入导出。",
   displayNameTranslations: {
     "en": "EVO Ledger Runtime Compiler",
     "zh-CN": "EVO 账本运行时编译器",
@@ -266,6 +269,7 @@ export const tradingLitePackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "trading-lite",
   displayName: "Trading Lite",
+  description: "展示轻量交易示例及其运行时依赖，验证插件协作流程。",
   displayNameTranslations: {
     "en": "Trading Lite",
     "zh-CN": "轻量交易示例",

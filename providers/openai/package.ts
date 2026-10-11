@@ -8,6 +8,7 @@ export const openAiLlmProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: OPENAI_LLM_PACKAGE_ID,
   displayName: "OpenAI LLM Provider",
+  description: "连接 OpenAI 模型，为已授权的代理任务提供模型推理能力。",
   displayNameTranslations: {
     "en": "OpenAI LLM Provider",
     "zh-CN": "OpenAI 模型服务",

@@ -44,6 +44,7 @@ export const counterpartyPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: COUNTERPARTY_PACKAGE_ID,
   displayName: "EVO Counterparty",
+  description: "统一管理客户、供应商等往来对象资料，供业务流程引用。",
   displayNameTranslations: {
     "en": "EVO Counterparty",
     "zh-CN": "EVO 往来对象",

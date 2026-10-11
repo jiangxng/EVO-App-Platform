@@ -9,6 +9,7 @@ export const hostStaticAuthorizationProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_STATIC_AUTHORIZATION_PACKAGE_ID,
   displayName: "Host Static Authorization Provider",
+  description: "按静态权限策略检查操作请求，为宿主提供授权判断。",
   displayNameTranslations: {
     "en": "Host Static Authorization Provider",
     "zh-CN": "静态权限策略服务",

@@ -527,6 +527,7 @@ export const enterpriseAgentPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ENTERPRISE_AGENT_PACKAGE_ID,
   displayName: "Personal Agent",
+  description: "在授权范围内协助处理个人任务、检索资料并调用插件能力。",
   displayNameTranslations: {
     "en": "Personal Agent",
     "zh-CN": "个人代理",

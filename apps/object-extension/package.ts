@@ -21,6 +21,7 @@ export const objectExtensionPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: OBJECT_EXTENSION_PACKAGE_ID,
   displayName: "EVO Object Extension",
+  description: "为基础对象配置企业自定义字段，满足不同业务的信息需求。",
   displayNameTranslations: {
     "en": "EVO Object Extension",
     "zh-CN": "EVO 对象扩展",

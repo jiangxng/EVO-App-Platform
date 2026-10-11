@@ -14,6 +14,7 @@ export const ledgerManagerPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: LEDGER_MANAGER_PACKAGE_ID,
   displayName: "EVO Ledger Manager",
+  description: "管理账本定义、版本与相关投影，组织企业账本配置。",
   displayNameTranslations: {
     "en": "EVO Ledger Manager",
     "zh-CN": "EVO 账本管理",

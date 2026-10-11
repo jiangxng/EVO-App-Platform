@@ -8,6 +8,7 @@ export const deepSeekLlmProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: DEEPSEEK_LLM_PACKAGE_ID,
   displayName: "DeepSeek LLM Provider",
+  description: "连接 DeepSeek 模型，为已授权的代理任务提供模型推理能力。",
   displayNameTranslations: {
     "en": "DeepSeek LLM Provider",
     "zh-CN": "DeepSeek 模型服务",

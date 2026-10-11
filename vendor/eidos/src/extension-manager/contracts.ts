@@ -22,6 +22,8 @@ export interface ExtensionManagerItemV010 {
   id: string;
   title: string;
   description?: string;
+  /** Plain text shown at the top of the initially collapsed details section. */
+  detailsDescription?: string;
   version: string;
   publisher?: string;
   category?: string;

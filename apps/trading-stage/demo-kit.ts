@@ -50,6 +50,7 @@ export function stagePackageV010(s: TradingStageDemoSpecV010): PackageManifestV0
       ja: "EVO " + (s.titleJa ?? s.titleEn) + "（合成データデモ）",
       "zh-TW": "EVO " + (s.titleTw ?? s.titleEn) + "（合成資料示範）"
     },
+    description: "合成数据只读演示：" + s.descriptionZh + "。",
     version:"0.1.0",
     type:"APPLICATION",
     publisher:{id:"evo",displayName:"EVO",trust:"FIRST_PARTY",source:"built-in"},

@@ -13,6 +13,7 @@ export const experienceCompilerMemoryIntakeProviderPackage: PackageManifestV010 
   contractVersion: "0.1.0",
   packageId: EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
   displayName: "Experience Compiler Memory Intake Provider",
+  description: "接入经验编译器的记忆资料与证据，供审核后纳入上下文记忆。",
   displayNameTranslations: {
     "en": "Experience Compiler Memory Intake Provider",
     "zh-CN": "Experience Compiler 记忆接入服务",

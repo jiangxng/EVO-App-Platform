@@ -17,6 +17,7 @@ export const eog3dPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EOG_3D_PACKAGE_ID,
   displayName: "EOG 3D",
+  description: "以三维视图查看企业运行图及关联信息，辅助理解业务结构。",
   displayNameTranslations: {
     "en": "EOG 3D",
     "zh-CN": "EOG 三维运行图",
