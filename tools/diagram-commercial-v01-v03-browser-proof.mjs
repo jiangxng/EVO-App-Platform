@@ -1071,6 +1071,87 @@ try{
     noKeyboardOrLongPress:true,noImplicitSave:true,
     physicalPhoneVerified:false
   }));
+  // T07: phone viewport orientation and simulated soft-keyboard resize.
+  // This subgate is NOT physical Safari/Android, notch or actual OS keyboard.
+  const t07Context=await browser.newContext({
+    viewport:{width:420,height:860},hasTouch:true,isMobile:true,deviceScaleFactor:1
+  });
+  const t07Tab=await t07Context.newPage();
+  await t07Tab.goto(base+"/phone",{waitUntil:"load"});
+  await waitReady(t07Tab);
+  const t07Sale=t07Tab.locator('[data-eidos-diagram-node="sale"]');
+  const t07Bounding=await t07Sale.boundingBox();
+  await t07Tab.touchscreen.tap(t07Bounding.x+t07Bounding.width/2,
+    t07Bounding.y+t07Bounding.height/2);
+  assert.equal(await t07Sale.getAttribute("aria-pressed"),"true",
+    "T07 initial phone view must select a real business node");
+  const t07Snapshot=()=>t07Tab.evaluate(()=>{
+    const n=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const v=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+    const t=document.querySelector("[data-eidos-diagram-toolbar]").getBoundingClientRect();
+    return {nodeX:n.style.left,nodeY:n.style.top,
+      selected:n.getAttribute("aria-pressed"),
+      canvasWidth:v.width,canvasHeight:v.height,
+      toolbarRight:t.right,viewportWidth:window.innerWidth,
+      inspectorText:document.querySelector("[data-eidos-diagram-selection]")?.textContent};
+  });
+  const t07Portrait=await t07Snapshot();
+  assert.ok(t07Portrait.inspectorText.length>0,
+    "T07 node selection drawer must remain accessible");
+  await t07Tab.setViewportSize({width:860,height:420});
+  await t07Tab.waitForTimeout(100);
+  const t07Landscape=await t07Snapshot();
+  assert.equal(t07Landscape.selected,"true",
+    "T07 rotation cannot clear the selected business node");
+  assert.equal(t07Landscape.nodeX,t07Portrait.nodeX);
+  assert.equal(t07Landscape.nodeY,t07Portrait.nodeY);
+  assert.ok(t07Landscape.canvasWidth>100 && t07Landscape.canvasHeight>100,
+    "T07 landscape orientation must retain a usable graph viewport");
+  assert.ok(t07Landscape.toolbarRight<=t07Landscape.viewportWidth+2,
+    "T07 landscape tool region must not overflow horizontal viewport");
+  await t07Tab.setViewportSize({width:420,height:860});
+  await t07Tab.waitForTimeout(100);
+  const t07Restored=await t07Snapshot();
+  assert.equal(t07Restored.selected,"true",
+    "T07 returning to portrait cannot lose selection");
+  assert.equal(t07Restored.nodeX,t07Portrait.nodeX);
+  assert.equal(t07Restored.nodeY,t07Portrait.nodeY);
+  const t07EdgePoint=await t07Tab.evaluate(edge=>{
+    const hit=document.querySelector('[data-eidos-diagram-edge="'+edge+'"]');
+    const p=hit.getPointAtLength(hit.getTotalLength()*.48);
+    const m=hit.getScreenCTM();
+    return {x:p.x*m.a+p.y*m.c+m.e,y:p.x*m.b+p.y*m.d+m.f};
+  },relationId);
+  await t07Tab.touchscreen.tap(t07EdgePoint.x,t07EdgePoint.y);
+  const t07PathKind=t07Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]');
+  await t07PathKind.waitFor({state:"visible",timeout:12000});
+  await t07PathKind.selectOption("orthogonal");
+  await t07Tab.getByRole("button",{name:"Add path point"}).click();
+  const t07Input=t07Tab.locator('[data-eidos-diagram-waypoint-controls] input[type="number"]').first();
+  await t07Input.waitFor({state:"visible"});
+  await t07Input.focus();
+  assert.equal(await t07Input.evaluate(el=>document.activeElement===el),true,
+    "T07 numeric path editor must accept focus");
+  // Shrink the viewport as a test proxy for a soft keyboard overlay.
+  await t07Tab.setViewportSize({width:420,height:480});
+  await t07Input.scrollIntoViewIfNeeded();
+  const t07Keyboard=await t07Input.boundingBox();
+  assert.ok(t07Keyboard && t07Keyboard.y>=0 &&
+    t07Keyboard.y+t07Keyboard.height<=480,
+    "T07 focused editor should remain reachable after viewport shrinks");
+  assert.equal(await t07Input.evaluate(el=>document.activeElement===el),true,
+    "T07 viewport keyboard resize must not discard input focus");
+  assert.equal(store.getVersion(id),0,
+    "T07 viewport change and editable focus must not implicitly Save");
+  console.log("DIAGRAM_T07_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T07",browser:"Chromium "+browser.version(),
+    portrait:t07Portrait,landscape:t07Landscape,
+    restoredPortrait:t07Restored,syntheticKeyboardRect:t07Keyboard,
+    selectionPreserved:true,focusPreserved:true,viewportReachable:true,
+    syntheticRotation:true,realSoftKeyboardVerified:false,
+    physicalSafeAreaVerified:false,physicalDeviceVerified:false
+  }));
+  await t07Context.close();
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
   assert.equal(await saveButton.count(),1,"normal Designer has one explicit Save");
