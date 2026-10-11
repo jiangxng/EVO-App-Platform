@@ -2143,8 +2143,7 @@ try{
   const d02Undo=d02Tab.locator('[data-eidos-diagram-history="undo"]');
   const d02Redo=d02Tab.locator('[data-eidos-diagram-history="redo"]');
   await d02Undo.click();
-  await d02Tab.mouse.click(d02EdgePoint.x,d02EdgePoint.y);
-  // Selection can affect Inspector layout; compare geometry via the rendered SVG.
+  // Undo is checked via the actual painted SVG, without stale click coordinates.
   assert.match(await shape(d02Tab),/ C /,
     "D02 first Undo reverts only the edge style to its previous curve");
   assert.deepEqual(await d02XY(),d02Moved,
