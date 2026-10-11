@@ -441,11 +441,14 @@ try{
   assert.equal(await tab.locator('[data-eidos-diagram-node="sale"]').getAttribute("aria-pressed"),"true");
   assert.equal(await tab.locator('[data-eidos-diagram-node="receipt"]').getAttribute("aria-pressed"),"true");
   const m04Before=await groupPos();
+  const m04EdgeBefore=await shape(tab);
   const groupBox=await tab.locator('[data-eidos-diagram-node="sale"]').boundingBox();
   const gx=groupBox.x+groupBox.width/2,gy=groupBox.y+groupBox.height/2;
   await tab.mouse.move(gx,gy);
   await tab.mouse.down({button:"left"});
   await tab.mouse.move(gx+42,gy+14,{steps:9});
+  assert.notEqual(await shape(tab),m04EdgeBefore,
+    "M04 connected business edge must follow nodes while mouse is still down");
   await tab.mouse.up({button:"left"});
   const m04After=await groupPos();
   const d0={x:m04After[0].x-m04Before[0].x,
@@ -460,6 +463,8 @@ try{
   await tab.keyboard.press("Control+z");
   assert.deepEqual(await groupPos(),m04Before,
     "M04 group drag must be restored by one Undo without drifting geometry");
+  assert.equal(await shape(tab),m04EdgeBefore,
+    "M04 connected edge geometry must be restored by the same Undo");
   console.log("DIAGRAM_M04_BROWSER_SUBGATE="+JSON.stringify({
     case:"M04",browser:"Chromium "+browser.version(),mouseGroupDrag:true,
     deltaShared:true,oneUndoExact:true,noImplicitSave:true,physicalDeviceVerified:false
