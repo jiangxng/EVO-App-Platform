@@ -113,6 +113,7 @@ const v06State={...initial.result,nodes:initial.result.nodes.map((node,i)=>({
 const html=(mode)=>{
   const readOnly=mode==="viewer";
   const v06=mode==="v06";
+  const phone=mode==="phone";
   const definition=readOnly?viewer:editor;
   const shell=readOnly
     ? renderDiagramWorkspacePageShellToHtmlV010(definition)
@@ -123,8 +124,9 @@ const html=(mode)=>{
   const json=JSON.stringify(definition).replaceAll("<","\\u003c");
   const issueState=v06?JSON.stringify(v06State).replaceAll("<","\\u003c"):"null";
   return '<!doctype html><html><head><meta charset="utf-8">'
-    +'<style>html,body{margin:0}main{width:1200px;height:760px}'
-    +'[data-eidos-diagram-editor]{height:750px!important;min-height:560px}</style></head>'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<style>html,body{margin:0}main{width:'+(phone?'100vw':'1200px')+';height:'+(phone?'100dvh':'760px')+'}'
+    +'[data-eidos-diagram-editor]{height:'+(phone?'100%':'750px')+'!important;min-height:'+(phone?'700px':'560px')+'}</style></head>'
     +'<body><main id="root">'+shell+'</main>'
     +'<script>window.__definition='+json
     +';window.__v06State='+issueState
@@ -142,7 +144,7 @@ const html=(mode)=>{
 const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,"http://127.0.0.1");
-    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"){
+    if(url.pathname==="/designer"||url.pathname==="/viewer"||url.pathname==="/v06"||url.pathname==="/phone"){
       res.writeHead(200,{"content-type":"text/html; charset=utf-8"});
       res.end(html(url.pathname.slice(1)));return;
     }
@@ -981,6 +983,93 @@ try{
     secondFingerCancelsNodeDrag:true,singleFingerContinuesPan:true,
     noZoomAfterLift:true,nodeDoesNotResumeDrag:true,
     syntheticTouch:true,physicalDeviceVerified:false
+  }));
+  // T06 phone-sized Chromium touch-only interaction:
+  // visible Multi-select + Box select; no keyboard/hidden long press.
+  const t06Context=await browser.newContext({
+    viewport:{width:420,height:860},hasTouch:true,isMobile:true,deviceScaleFactor:1
+  });
+  const t06Tab=await t06Context.newPage();
+  await t06Tab.goto(base+"/phone",{waitUntil:"load"});
+  await waitReady(t06Tab);
+  const t06Multi=t06Tab.locator('[data-eidos-diagram-touch-selection="multi"]');
+  const t06Box=t06Tab.locator('[data-eidos-diagram-touch-selection="box"]');
+  assert.equal(await t06Multi.count(),1,"T06 mobile needs visible multi-select control");
+  assert.equal(await t06Box.count(),1,"T06 mobile needs visible box-select control");
+  assert.equal(await t06Multi.isVisible(),true);
+  assert.equal(await t06Box.isVisible(),true);
+  const t06Sale=t06Tab.locator('[data-eidos-diagram-node="sale"]');
+  const t06Receipt=t06Tab.locator('[data-eidos-diagram-node="receipt"]');
+  const t06Tap=async locator=>{
+    const b=await locator.boundingBox();
+    assert.ok(b && b.width>4 && b.height>4,"T06 touch target must be rendered");
+    await t06Tab.touchscreen.tap(b.x+b.width/2,b.y+b.height/2);
+  };
+  const t06Geometry=await t06Tab.evaluate(()=>({
+    viewport:document.documentElement.clientWidth,
+    canvas:document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect().toJSON(),
+    sale:document.querySelector('[data-eidos-diagram-node="sale"]').getBoundingClientRect().toJSON(),
+    receipt:document.querySelector('[data-eidos-diagram-node="receipt"]').getBoundingClientRect().toJSON()
+  }));
+  console.log("T06_PHONE_GEOMETRY="+JSON.stringify(t06Geometry));
+  await t06Multi.click();
+  assert.equal(await t06Multi.getAttribute("aria-pressed"),"true");
+  await t06Tap(t06Sale);
+  await t06Tap(t06Receipt);
+  assert.equal(await t06Sale.getAttribute("aria-pressed"),"true",
+    "T06 mobile tap must preserve first selection without Shift");
+  assert.equal(await t06Receipt.getAttribute("aria-pressed"),"true",
+    "T06 mobile touch must add a second node without keyboard");
+  await t06Tap(t06Sale);
+  assert.equal(await t06Sale.getAttribute("aria-pressed"),"false",
+    "T06 tapping selected node again must remove only that node");
+  assert.equal(await t06Receipt.getAttribute("aria-pressed"),"true");
+  await t06Multi.click();
+  await t06Box.click();
+  assert.equal(await t06Box.getAttribute("aria-pressed"),"true");
+  const t06Selection=await t06Tab.evaluate(()=>{
+    const node=document.querySelector('[data-eidos-diagram-node="sale"]');
+    const n=node.getBoundingClientRect();
+    const v=document.querySelector("[data-eidos-diagram-canvas]").getBoundingClientRect();
+    return {
+      start:{x:Math.max(v.left+6,n.left-14),y:Math.max(v.top+6,n.top-14)},
+      end:{x:Math.min(v.right-6,n.right+14),y:Math.min(v.bottom-6,n.bottom+14)},
+      canvas:v.toJSON(),node:n.toJSON()
+    };
+  });
+  assert.ok(t06Selection.start.x<t06Selection.end.x
+    &&t06Selection.start.y<t06Selection.end.y,
+    "T06 phone selection rectangle needs reachable visible region");
+  const t06CDP=await t06Context.newCDPSession(t06Tab);
+  const t06Start=t06Selection.start,t06End=t06Selection.end;
+  await t06CDP.send("Input.dispatchTouchEvent",{
+    type:"touchStart",touchPoints:[{x:t06Start.x,y:t06Start.y}]
+  });
+  for(let i=1;i<=8;i++)await t06CDP.send("Input.dispatchTouchEvent",{
+    type:"touchMove",touchPoints:[{
+      x:t06Start.x+(t06End.x-t06Start.x)*i/8,
+      y:t06Start.y+(t06End.y-t06Start.y)*i/8
+    }]
+  });
+  assert.equal(await t06Tab.locator("[data-eidos-diagram-marquee]").count(),1,
+    "T06 single finger must display an actual touch selection box");
+  await t06CDP.send("Input.dispatchTouchEvent",{
+    type:"touchEnd",touchPoints:[]
+  });
+  assert.equal(await t06Tab.locator("[data-eidos-diagram-marquee]").count(),0);
+  assert.equal(await t06Sale.getAttribute("aria-pressed"),"true",
+    "T06 touch box must select enclosed sales node");
+  assert.equal(await t06Receipt.getAttribute("aria-pressed"),"false",
+    "T06 non-additive touch box must clear excluded prior selection");
+  assert.equal(store.getVersion(id),0,"T06 touch selection cannot Save business projection");
+  assert.deepEqual(await t06Tab.evaluate(()=>window.__errors),[]);
+  await t06Context.close();
+  console.log("DIAGRAM_T06_BROWSER_SUBGATE="+JSON.stringify({
+    case:"T06",browser:"Chromium "+browser.version(),
+    phoneViewportWidth:420,explicitVisibleTouchButtons:true,
+    additiveTap:true,toggleOffTap:true,nativeTouchBox:true,
+    noKeyboardOrLongPress:true,noImplicitSave:true,
+    physicalPhoneVerified:false
   }));
   const saveButton=tab.locator("[data-eidos-diagram-toolbar] button")
     .filter({hasText:"Save projection"});
