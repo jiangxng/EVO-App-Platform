@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { diagramEdgeGeometryV010 } from "../../vendor/eidos/src/diagram/edge-paths.js";
-import { diagramEdgeAnchorPointV010, diagramManualEdgeGeometryV010 } from "../../vendor/eidos/src/diagram/edge-waypoints.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -35,8 +33,11 @@ import {
 import type {
   Template2dPreviewV010
 } from "../../contracts/template-preview.js";
-import type {
-  DiagramWorkspacePageV010,
+import {
+  diagramEdgeAnchorPointV010,
+  diagramEdgeGeometryV010,
+  diagramManualEdgeGeometryV010,
+  type DiagramWorkspacePageV010,
   DiagramWorkspaceSelectionInspectionV010,
   DiagramWorkspaceStateV010
 } from "../../vendor/eidos/src/2d/index.js";
