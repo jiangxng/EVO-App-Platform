@@ -949,7 +949,9 @@ try{
   const t05Two=await t05Snapshot();
   const t05OneX=t05Ax-12,t05OneY=t05Ay-8;
   await t05Cdp.send("Input.dispatchTouchEvent",{
-    type:"touchEnd",touchPoints:[t05A(t05OneX,t05OneY)]
+    // CDP touchEnd points are the touches BEING RELEASED, not survivors.
+    // End finger B (id 32), leaving the original A (id 31) down.
+    type:"touchEnd",touchPoints:[t05B(t05X+214,t05Y+104)]
   });
   const t05Transition=await t05Snapshot();
   for(let i=1;i<=5;i++)await t05Cdp.send("Input.dispatchTouchEvent",{
