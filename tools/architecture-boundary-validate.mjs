@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import {
+  collectEvoRuntimeBoundarySourcesV010,
+  inspectEvoRuntimeSingleOwnerV010
+} from "./tr01-evo-runtime-single-owner-guard.mjs";
 import {
   TR01_BUSINESS_GUARD_FILES_V010,
   inspectTr01BusinessPluginOwnershipV010
@@ -35,6 +40,12 @@ const manifest = JSON.parse(manifestRaw);
 const policy = JSON.parse(policyRaw);
 const documentationPolicy = JSON.parse(documentationPolicyRaw);
 const errors = [];
+
+// Reject a second EVO-owned Ledger/FIFO/Allocation engine in Platform source.
+// This is a static tripwire; EVO itself remains the only authoritative runtime.
+errors.push(...inspectEvoRuntimeSingleOwnerV010(
+  collectEvoRuntimeBoundarySourcesV010(fileURLToPath(root))
+));
 
 const tr01Sources = {};
 for (const path of TR01_BUSINESS_GUARD_FILES_V010) {
