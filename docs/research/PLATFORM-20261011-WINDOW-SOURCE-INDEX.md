@@ -99,3 +99,19 @@
 | S32 / **A 原文/部分文件** | [F1 Finance Owner Draft #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 以及两版本 `apps/trading-reference/{finance-intent-admission,finance-owner-remote}.ts`、`providers/trading-finance-owner/package.ts`；[F4 6 个旧 workflow 源头索引](https://github.com/jiangxng/EVO-App-Platform/blob/014196f7a52f7051ef9a0fa8ea524e14b23169de/docs/archive/PLATFORM-20261011-F0-FOUR-PEER-SOURCE-RECOVERY.md) | 两个 finance admission/remote 文件相同 blob；Provider Manifest 旧/新主要为四语标题差异，不是新的经济语义执行合同。六份 workflow 已逐个读取，主要调度历史脚本/合成准入，不等于外部部署认证 |
 
 上述资料不改变原 S01–S28 的阅读分级，不声称已完成独立真实 Railway 浏览器业务验收。
+
+
+### S33 / A 原文：F4 六份旧 GitHub Actions 工作流原文（2026-10-11）
+
+每条均按源分支固定 commit 读取完整 YAML；这是**旧 CI 调度定义的源码审查**，不等于本轮执行该 workflow：
+
+| 旧工作流 | 固定原文网址 | 当前判断 |
+| --- | --- | --- |
+| TR01 Peer Purchase/Receiving | [source 7e231732](https://github.com/jiangxng/EVO-App-Platform/blob/7e23173250a23aa396555fed77a1470ebd099708/.github/workflows/tr01-peer-purchasing-receiving.yml) | 执行 stage 包协议与 static scope gate，主线已有对应测试 |
+| Four Peer Eidos Stage | [source fb3db992](https://github.com/jiangxng/EVO-App-Platform/blob/fb3db99272ef047aa7686715fd495545f9342ccf/.github/workflows/tr01b2d3-four-peer-stage.yml) | 调度旧四包 Eidos install/render；F0 独特断言已由 #775 提取 |
+| Isolated Browser Stage | [source bd67f320](https://github.com/jiangxng/EVO-App-Platform/blob/bd67f320dce5ed6d4a023b58546b619ce4a03aa0/.github/workflows/tr01b2d3-online-stage-preview.yml) | 静态模拟 CDN Probe 和内容防泄漏，不是真实财务在线服务 |
+| Six Lane Admission | [source 8a0a27dc](https://github.com/jiangxng/EVO-App-Platform/blob/8a0a27dca96ac69cb1fcef2eaffca6a43bc75dc4/.github/workflows/tr01b2d3-six-lane-admission.yml) | 六种候选缺失条件负例；不构成实际生产授予 |
+| Twelve Lane Pre-admission | [source 75e85657](https://github.com/jiangxng/EVO-App-Platform/blob/75e8565708433c3ed046016bc76bf45e054a03c0/.github/workflows/tr01b2d3-twelve-lane-admission.yml) | 12 个合成配置条件与聚合，非真实生产多节点认证 |
+| Finance Owner Deployment Preflight | [source 71821513](https://github.com/jiangxng/EVO-App-Platform/blob/718215136f79efd79d7e755954d686d77cf73356/.github/workflows/tr01b2d3-finance-owner-deployment-preflight.yml) | 仅候选 descriptor 的 fail-closed 静态矩阵 |
+
+**复用原则**：实际有功能增益才选择小 CI 迁移；现有 `tests/protocol/tr01b2d3-{six,twelve}-lane-admission.test.mjs` 的受控测试不能凭旧 YAML 自行升级成生产安全认证。
