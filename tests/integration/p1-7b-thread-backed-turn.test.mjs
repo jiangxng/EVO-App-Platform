@@ -495,3 +495,128 @@ test("client turn retry accepts equivalent context with different JSON key order
   assert.equal(h.providerInputs.length, beforeCalls);
   assert.equal(h.threadStore.get(values.threadId).messages.length, 2);
 });
+
+function assistanceEnvelope(overrides = {}) {
+  return {
+    contractVersion: "0.1.0", requestId: "assist:mapping-1",
+    taskKind: "data-import.mapping", userIntent: "map these fields",
+    source: { pageId: "mapping", actionId: "ai-auto-map",
+      resourceRef: "import-job:1", resourceRevision: "17" },
+    context: { importJobId: "job-1", targetId: "counterparty.subject" },
+    ...overrides
+  };
+}
+
+test("versioned assistance uses the existing durable turn and returns correlated source on send and resume", async () => {
+  const h = harness();
+  const envelope = assistanceEnvelope();
+  const values = { threadId: "conversation-thread:1", assistanceRequest: envelope };
+  const send = input => h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", input), h.requestContext
+  );
+  const first = await send(values);
+  assert.equal(first.ok, true);
+  assert.deepEqual(first.result.run.input.assistanceRequest, envelope);
+  assert.equal(first.result.run.input.interactionContext.context.importJobId, "job-1");
+  assert.equal(first.result.run.input.interactionContext.context.taskKind, "data-import.mapping");
+  assert.equal(first.result.thread.messages[0].content, envelope.userIntent);
+  assert.equal(first.result.thread.messages[0].presentation.clientTurnId, envelope.requestId);
+  assert.deepEqual(first.result.assistanceResult, {
+    contractVersion: "0.1.0", requestId: envelope.requestId, taskKind: envelope.taskKind,
+    source: envelope.source, runId: first.result.run.runId, runState: "SUCCEEDED",
+    actionReceiptIds: []
+  });
+  const beforeCalls = h.providerInputs.length;
+  const again = await send(values);
+  assert.equal(again.ok, true);
+  assert.equal(again.result.run.runId, first.result.run.runId);
+  assert.equal(h.providerInputs.length, beforeCalls);
+  const resumed = await h.byCode.get("enterprise-agent.thread.resume").execute(
+    request("enterprise-agent.thread.resume", { threadId: values.threadId, runId: first.result.run.runId }), h.requestContext
+  );
+  assert.equal(resumed.ok, true);
+  assert.deepEqual(resumed.result.assistanceResult, first.result.assistanceResult);
+  // The envelope is task data; it neither changes Host scope nor invents a write receipt.
+  assert.deepEqual(first.result.run.context, context.activeContext);
+  assert.equal("effects" in first.result.assistanceResult, false);
+});
+
+for (const [label, values, code] of [
+  ["unknown version", { assistanceRequest: assistanceEnvelope({ contractVersion: "9.0.0" }) }, "PERSONAL_AGENT_ASSISTANCE_VERSION_UNSUPPORTED"],
+  ["forged principal field", { assistanceRequest: assistanceEnvelope({ principalSubjectId: "admin" }) }, "PERSONAL_AGENT_ASSISTANCE_REQUEST_INVALID"],
+  ["conflicting intent", { assistanceRequest: assistanceEnvelope(), message: "different" }, "PERSONAL_AGENT_ASSISTANCE_INPUT_CONFLICT"],
+  ["conflicting request id", { assistanceRequest: assistanceEnvelope(), clientTurnId: "other" }, "PERSONAL_AGENT_ASSISTANCE_INPUT_CONFLICT"],
+  ["mixed context transports", { assistanceRequest: assistanceEnvelope(), interactionContext: {} }, "PERSONAL_AGENT_ASSISTANCE_INPUT_CONFLICT"],
+  ["revision without resource", { assistanceRequest: assistanceEnvelope({ source: { pageId: "x", actionId: "y", resourceRevision: "1" } }) }, "PERSONAL_AGENT_ASSISTANCE_REQUEST_INVALID"],
+  ["conflicting task kind", { assistanceRequest: assistanceEnvelope({ context: { taskKind: "another" } }) }, "PERSONAL_AGENT_ASSISTANCE_REQUEST_INVALID"],
+  ["non-finite JSON value", { assistanceRequest: assistanceEnvelope({ context: { score: Infinity } }) }, "PERSONAL_AGENT_ASSISTANCE_REQUEST_INVALID"],
+  ["oversize envelope", { assistanceRequest: assistanceEnvelope({ context: { sample: "x".repeat(16001) } }) }, "PERSONAL_AGENT_ASSISTANCE_REQUEST_TOO_LARGE"]
+]) {
+  test(`assistance rejects ${label} before creating any task or model call`, async () => {
+    const h = harness();
+    const result = await h.byCode.get("enterprise-agent.thread.send").execute(
+      request("enterprise-agent.thread.send", { threadId: "conversation-thread:1", ...values }), h.requestContext
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.error.code, code);
+    assert.equal(h.providerInputs.length, 0);
+    assert.equal(h.threadStore.get("conversation-thread:1").messages.length, 0);
+    assert.equal(h.runStore.list({principalSubjectId: principal.subjectId, context: context.activeContext}).length, 0);
+  });
+}
+
+test("assistance retry cannot silently change source revision or lose its envelope", async () => {
+  const h = harness();
+  const envelope = assistanceEnvelope();
+  const send = values => h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", { threadId: "conversation-thread:1", ...values }), h.requestContext
+  );
+  const first = await send({ assistanceRequest: envelope });
+  assert.equal(first.ok, true);
+  const beforeCalls = h.providerInputs.length;
+  for (const values of [
+    { assistanceRequest: assistanceEnvelope({ source: { ...envelope.source, resourceRevision: "18" } }) },
+    { message: envelope.userIntent, clientTurnId: envelope.requestId,
+      interactionContext: first.result.run.input.interactionContext }
+  ]) {
+    const result = await send(values);
+    assert.equal(result.ok, false);
+    assert.equal(result.error.code, "CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+  }
+  assert.equal(h.providerInputs.length, beforeCalls);
+  assert.equal(h.threadStore.get("conversation-thread:1").messages.length, 2);
+});
+
+test("assistance envelope survives durable event materialization and caller mutation", async () => {
+  const h = harness();
+  const envelope = assistanceEnvelope();
+  const expected = structuredClone(envelope);
+  const result = await h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", { threadId: "conversation-thread:1", assistanceRequest: envelope }), h.requestContext
+  );
+  assert.equal(result.ok, true);
+  envelope.source.resourceRef = "changed-after-send";
+  envelope.context.importJobId = "changed-after-send";
+  result.result.assistanceResult.source.resourceRef = "changed-after-reply";
+  const serializedEvents = JSON.parse(JSON.stringify(h.runStore.events(result.result.run.runId)));
+  const restored = createAgentRunStoreV010({
+    eventStore: createMemoryAgentRunEventStoreV010(serializedEvents), eventId: ids("restored-")
+  });
+  assert.deepEqual(restored.get(result.result.run.runId).input.assistanceRequest, expected);
+  assert.equal(restored.get(result.result.run.runId).state, "SUCCEEDED");
+});
+
+test("assistance rejects excessive nesting and prototype keys without executing", async () => {
+  let deep = {};
+  for(let i=0;i<20;i++) deep = { nested: deep };
+  for (const invalidContext of [deep, JSON.parse('{"__proto__":{"admin":true}}')]) {
+    const h = harness();
+    const result = await h.byCode.get("enterprise-agent.thread.send").execute(
+      request("enterprise-agent.thread.send", { threadId: "conversation-thread:1", assistanceRequest: assistanceEnvelope({ context: invalidContext }) }), h.requestContext
+    );
+    assert.equal(result.ok, false);
+    assert.equal(result.error.code, "PERSONAL_AGENT_ASSISTANCE_REQUEST_INVALID");
+    assert.equal(h.providerInputs.length, 0);
+    assert.equal(h.threadStore.get("conversation-thread:1").messages.length, 0);
+  }
+});
