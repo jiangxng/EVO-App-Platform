@@ -97,3 +97,6 @@
 
 
 | SRC-NEW-06 / **A 直接 CI 日志/分支枚举** | [#740 清理 PR](https://github.com/jiangxng/EVO-App-Platform/pull/740)、[预检 run #38140337021](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140337021)、[执行 run #38140393664](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140393664)、[GitHub 永久归档](https://github.com/jiangxng/EVO-App-Platform/blob/4690ff813fc076e3d0d8bf18641f2ca145d56b4b/docs/archive/platform-convergence-branch-retirement-20261011.md) | 预检 SUCCESS、执行 SUCCESS、实际 ref 枚举显示 16 条历史源分支全消失（该时点总分支 54）。精确原 SHA、对应合并 PR 已在归档文档保存；并行活跃分支未受影响。 | P0 历史 16 refs 删除结项；禁止把剩余 TR-01 和 squash 历史头当成已安全删除。 |
+
+
+| SRC-NEW-07 / **A GitHub 原始 PR、CI、实时分支结果** | [PR #743](https://github.com/jiangxng/EVO-App-Platform/pull/743)、[执行 run #38140857767](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38140857767)、[主线第二批来源归档](https://github.com/jiangxng/EVO-App-Platform/blob/8f32e0d348e5e9268612f1402afc72ab66d288cd/docs/archive/platform-merged-squash-ref-retirement-20261011.md) | #728/#731/#736/#740/#741 均 PR merged、SHA 固定且 merge commit 在 main；由于原 head squash divergence，使用 PR provenance 专用机制清理。push workflow SUCCESS，重新枚举 **5/5 source heads 均删除**，当时 52 branches。 | 21 条累计已删（16+5），剩余 TR-01 14 条需功能级收敛，不能纳入上述名单。 |
