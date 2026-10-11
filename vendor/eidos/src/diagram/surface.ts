@@ -223,6 +223,8 @@ export interface DiagramEditorNodeV010 {
   detail?: string;
   properties?: DiagramInspectorPropertyV010[];
   observations?: DiagramObservationBadgeV010[];
+  /** Declared display issue: cannot change a business relation or editing permission. */
+  issue?: { level: "warning" | "error"; message: string };
 }
 
 export interface DiagramEditorEdgeV010 {
@@ -660,6 +662,10 @@ export function validateDiagramEditorStateV010(
       || !finite(node?.height)
       || node.width <= 0
       || node.height <= 0
+      || (node.issue !== undefined && (
+        !["warning", "error"].includes(node.issue.level)
+        || !nonEmpty(node.issue.message)
+      ))
       || (
         node.typeLabel !== undefined
         && typeof node.typeLabel !== "string"
@@ -1117,6 +1123,14 @@ export function renderDiagramEditorPageShellToHtmlV010(
   display:grid;
   gap:8px;
 }
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-node]:hover:not(:focus-visible){
+  outline:2px solid var(--eidos-border-strong,#C9D2DC);
+  outline-offset:2px;
+}
+[data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-node]:focus-visible{
+  outline:3px dashed var(--eidos-primary,#2B6CB0);
+  outline-offset:4px;
+}
 [data-eidos-diagram-editor="${escapeHtml(page.id)}"] [data-eidos-diagram-status]{
   min-height:18px;
   font-size:var(--eidos-font-meta,.75rem);
@@ -1283,6 +1297,9 @@ export function mountDiagramEditorPageV010(
   let selected: { kind: "node" | "edge"; id: string } | undefined;
   const selectedNodeIds = new Set<string>();
   let canvasTool: "SELECT" | "PAN" = "SELECT";
+  // T06 visible mobile tools: no keyboard modifier or hidden long press.
+  let touchMultiSelect = false;
+  let touchBoxSelect = false;
   let spaceHeld = false;
   let wheelInputMode: "MOUSE" | "TRACKPAD" = "MOUSE";
   // B6a: distinct local presentation controls. Do not serialize preferences in business data.
@@ -1479,6 +1496,8 @@ export function mountDiagramEditorPageV010(
       `matrix(${camera.scale},0,0,${camera.scale},${camera.translateX},${camera.translateY})`;
     const gridStep = diagramGridStepV010(camera.scale);
     stageElement.style.backgroundSize = gridStep + "px " + gridStep + "px";
+    // 18 CSS px hit width across 10–300% zoom; O(1) inherited CSS variable.
+    stageElement.style.setProperty("--eidos-diagram-hit-world", (18 / camera.scale) + "px");
     // A zoom updates the transform without a full DOM redraw. Keep handle hit
     // targets at 44 CSS px and visible markers at a fixed screen radius.
     for (const target of Array.from(stageElement.querySelectorAll<SVGCircleElement>(
@@ -1838,6 +1857,28 @@ export function mountDiagramEditorPageV010(
           renderActions();
         };
         toolbar.appendChild(button);
+      }
+      // T06: explicit no-keyboard modes, visible on touch and narrow screens.
+      if (window.matchMedia("(any-pointer: coarse), (max-width: 680px)").matches) {
+        for (const option of [
+          { id: "multi", label: "Multi-select", title: "Tap nodes to add or remove selection" },
+          { id: "box", label: "Box select", title: "Drag one finger to draw a selection box" }
+        ] as const) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = option.label;
+          button.title = option.title;
+          button.setAttribute("data-eidos-diagram-touch-selection", option.id);
+          button.setAttribute("aria-pressed", String(option.id === "multi"
+            ? touchMultiSelect : touchBoxSelect));
+          button.onclick = () => {
+            if (option.id === "multi") touchMultiSelect = !touchMultiSelect;
+            else touchBoxSelect = !touchBoxSelect;
+            canvasTool = "SELECT";
+            renderActions();
+          };
+          toolbar.appendChild(button);
+        }
       }
       const wheelButton = document.createElement("button");
       wheelButton.type = "button";
@@ -2382,10 +2423,24 @@ export function mountDiagramEditorPageV010(
         }
         select.value = edge.pathKind ?? "straight";
         select.onchange = () => {
-          if (!isDiagramEdgePathKindV010(select.value) || select.value === (edge.pathKind ?? "straight")) return;
+          const previousKind = edge.pathKind ?? "straight";
+          if (!isDiagramEdgePathKindV010(select.value) || select.value === previousKind) return;
+          // E06: switching a manually routed connector to Straight is
+          // destructive for presentation controls, but never for business
+          // relation semantics. A native confirmation explains Undo.
+          if (select.value === "straight"
+            && Boolean(edge.waypoints?.length || edge.sourceAnchor || edge.targetAnchor)
+            && !window.confirm("Switching to Straight resets manual path points and anchors. Undo restores them. Continue?")) {
+            select.value = previousKind;
+            return;
+          }
           checkpoint();
           edge.pathKind = select.value;
-          if (select.value === "straight") delete edge.waypoints;
+          if (select.value === "straight") {
+            delete edge.waypoints;
+            delete edge.sourceAnchor;
+            delete edge.targetAnchor;
+          }
           render();
           report("Connector presentation updated locally. Save the projection to persist.");
         };
@@ -2883,6 +2938,10 @@ export function mountDiagramEditorPageV010(
       hit.setAttribute("fill", "none");
       hit.setAttribute("stroke", "transparent");
       hit.setAttribute("stroke-width", "18");
+      // Scoped forward-port from Eidos #161; preserve Host navigation overlay.
+      // CSS matrix zoom needs compensated world-space stroke width for Chrome
+      // to actually hit the transparent connector at low zoom.
+      hit.style.strokeWidth = "var(--eidos-diagram-hit-world)";
       hit.style.pointerEvents = "stroke";
       hit.style.cursor = "pointer";
       hit.setAttribute("data-eidos-diagram-edge", edge.id);
@@ -3431,7 +3490,14 @@ export function mountDiagramEditorPageV010(
       }
       const label = document.createElement("strong");
       label.textContent = node.label;
-      label.style.display = "block";
+      // V05: retain full original content but visually clamp multilingual labels.
+      label.style.display = "-webkit-box";
+      label.style.webkitBoxOrient = "vertical";
+      label.style.webkitLineClamp = "2";
+      label.style.overflow = "hidden";
+      label.style.overflowWrap = "anywhere";
+      label.style.wordBreak = "break-word";
+      label.style.maxWidth = "100%";
       label.style.lineHeight = "1.35";
       label.style.fontWeight = "650";
       element.appendChild(label);
@@ -3446,11 +3512,28 @@ export function mountDiagramEditorPageV010(
         badge.style.fontWeight = "400";
         element.appendChild(badge);
       }
+      if (node.issue) {
+        const issueBadge = document.createElement("span");
+        issueBadge.setAttribute("data-eidos-diagram-issue", node.issue.level);
+        issueBadge.setAttribute("aria-label",
+          (node.issue.level === "error" ? "Error: " : "Warning: ") + node.issue.message);
+        issueBadge.title = node.issue.message;
+        issueBadge.textContent = node.issue.level === "error" ? "✕ Error" : "⚠ Warning";
+        issueBadge.style.cssText = "position:absolute;right:6px;bottom:-11px;z-index:3;"
+          + "padding:1px 5px;border-radius:5px;font-size:10px;font-weight:650;"
+          + "border:1px solid var(--eidos-border-strong,#C9D2DC);"
+          + "color:var(--eidos-fg,#1F2933);background:var(--eidos-bg,#FFFFFF)";
+        element.appendChild(issueBadge);
+      }
       element.title = [
+        node.label,
+        ...(node.issue ? [node.issue.level.toUpperCase() + ": " + node.issue.message] : []),
         node.detail ?? node.kind,
         ...observationText(node.observations)
       ].filter(Boolean).join("\n");
       const nodeSelected = selectedNodeIds.has(node.id) || selectedNodeId === node.id;
+      element.setAttribute("aria-pressed", String(nodeSelected));
+      element.setAttribute("data-eidos-diagram-selected", String(nodeSelected));
       const nodeFocused = !selected || selectedNodeIds.has(node.id)
         || focusedNodeIds.has(node.id);
       element.style.position = "absolute";
@@ -3492,7 +3575,7 @@ export function mountDiagramEditorPageV010(
           suppressNextNodeClick = false;
           return;
         }
-        if (event.shiftKey && page.viewInteraction?.localNodeDrag === true) {
+        if ((event.shiftKey || touchMultiSelect) && page.viewInteraction?.localNodeDrag === true) {
           if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
           else selectedNodeIds.add(node.id);
           const last = [...selectedNodeIds].at(-1);
@@ -3514,6 +3597,7 @@ export function mountDiagramEditorPageV010(
           if (event.pointerType !== "touch" && event.button !== 0) return;
           if (spaceHeld || canvasTool === "PAN") return;
           const isTouch = event.pointerType === "touch";
+          if (isTouch && touchBoxSelect) return; // Let canvas capture touch marquee.
           if (isTouch) {
             navigationPointers.set(event.pointerId, {
               x: event.clientX,
@@ -3771,6 +3855,94 @@ export function mountDiagramEditorPageV010(
       b: { x: number; y: number }
     ): number => Math.hypot(b.x - a.x, b.y - a.y);
 
+    // M05/M06 are one right-button gesture: drag pans, stationary click menus.
+    let rightGesture: {
+      pointerId:number; startX:number; startY:number; dragged:boolean;
+      nodeId?:string; edgeId?:string;
+    } | undefined;
+    let contextMenu: HTMLDivElement | undefined;
+    const closeContextMenu = (): void => {
+      contextMenu?.remove();
+      contextMenu = undefined;
+    };
+    const showContextMenu = (
+      clientX:number,clientY:number,nodeId?:string,edgeId?:string
+    ): void => {
+      closeContextMenu();
+      if (nodeId && !selectedNodeIds.has(nodeId)) {
+        selectedNodeIds.clear();
+        selectedNodeIds.add(nodeId);
+        selected = { kind:"node", id:nodeId };
+        selectionInspection = undefined;
+        selectionReadGeneration += 1;
+        followsFitToCanvas = false;
+        render();
+        void inspectSelection();
+      } else if (edgeId && (selected?.kind !== "edge" || selected.id !== edgeId)) {
+        selectedNodeIds.clear();
+        selected = {kind:"edge",id:edgeId};
+        selectionInspection = undefined;
+        selectionReadGeneration += 1;
+        followsFitToCanvas = false;
+        render();
+        void inspectSelection();
+      }
+      const menu = document.createElement("div");
+      menu.setAttribute("data-eidos-diagram-context-menu", "");
+      menu.setAttribute("role","menu");
+      menu.setAttribute("aria-label","Diagram context menu");
+      menu.tabIndex = -1;
+      menu.style.cssText = "position:absolute;z-index:30;min-width:180px;max-width:260px;"
+        + "display:grid;gap:3px;padding:7px;border-radius:8px;"
+        + "border:1px solid var(--eidos-border-strong,#C9D2DC);"
+        + "background:var(--eidos-bg,#FFFFFF);color:var(--eidos-fg,#1F2933);"
+        + "box-shadow:var(--eidos-shadow-raised,0 6px 18px rgba(31,41,51,.1))";
+      const rect = canvas.getBoundingClientRect();
+      menu.style.left = Math.max(4,Math.min(clientX-rect.left,canvas.clientWidth-220))+"px";
+      menu.style.top = Math.max(4,Math.min(clientY-rect.top,canvas.clientHeight-140))+"px";
+      const context = document.createElement("strong");
+      context.setAttribute("data-eidos-diagram-context-subject","");
+      context.style.cssText = "font-size:12px;padding:4px 6px";
+      context.textContent = selectedNodeIds.size>1
+        ? selectedNodeIds.size+" nodes selected"
+        : selected?.kind==="node" ? "Node actions"
+          : selected?.kind==="edge" ? "Relation actions" : "Canvas actions";
+      menu.appendChild(context);
+      const addItem = (label:string,action:()=>void):void => {
+        const button=document.createElement("button");
+        button.type="button";
+        button.setAttribute("role","menuitem");
+        button.textContent=label;
+        button.style.cssText="text-align:left;padding:6px 8px;border-radius:5px;"
+          +"color:inherit;background:transparent;border:0;cursor:pointer";
+        button.onclick=event=>{event.stopPropagation();closeContextMenu();action();};
+        menu.appendChild(button);
+      };
+      addItem("Fit all",()=>{followsFitToCanvas=true;fitViewToCanvas();});
+      if(selected && selectedNodeIds.size<=1) {
+        addItem("Fit selection",()=>fitSelectionToCanvas());
+        if(page.viewInteraction?.localSelectionHide===true) {
+          addItem("Remove from view",()=>hideSelectedFromView());
+        }
+      }
+      addItem("Close",()=>canvas.focus({preventScroll:true}));
+      menu.addEventListener("keydown",event=>{
+        if(event.key==="Escape"){
+          event.preventDefault();closeContextMenu();canvas.focus({preventScroll:true});
+        }
+      });
+      canvas.appendChild(menu);
+      contextMenu=menu;
+      menu.focus({preventScroll:true});
+    };
+    const suppressNativeContextMenu = (event:MouseEvent):void => {
+      // The Eidos Designer provides its own M06 menu after stationary release.
+      // Native menus must never mask a M05 right drag.
+      event.preventDefault();
+    };
+    canvas.addEventListener("contextmenu",suppressNativeContextMenu);
+    listeners.push(()=>canvas.removeEventListener("contextmenu",suppressNativeContextMenu));
+
     let marquee: {
       pointerId: number;
       start: { x: number; y: number };
@@ -3787,9 +3959,18 @@ export function mountDiagramEditorPageV010(
 
     const pointerDown = (event: PointerEvent) => {
       const target = event.target as Element | null;
+      if (target?.closest?.("[data-eidos-diagram-context-menu]")) return;
+      closeContextMenu();
       const mouse = event.pointerType === "mouse" || event.pointerType === "pen";
+      if(mouse && event.button===2 && page.viewInteraction?.pan===true){
+        rightGesture = {pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,
+          dragged:false,
+          nodeId:target?.closest?.("[data-eidos-diagram-node]")?.getAttribute("data-eidos-diagram-node")??undefined,
+          edgeId:target?.closest?.("[data-eidos-diagram-edge]")?.getAttribute("data-eidos-diagram-edge")??undefined};
+      }
       const primary = event.button === 0;
-      const wantsMarquee = mouse && primary
+      const wantsMarquee = ((mouse && primary)
+        || (event.pointerType === "touch" && touchBoxSelect))
         && page.viewInteraction?.localNodeDrag === true
         && canvasTool === "SELECT" && !spaceHeld;
       if (
@@ -3813,7 +3994,8 @@ export function mountDiagramEditorPageV010(
         canvas.appendChild(element);
         marquee = {
           pointerId: event.pointerId, start: anchor, current: anchor,
-          additive: event.shiftKey, moved: false, element
+          additive: event.shiftKey || (event.pointerType === "touch" && touchMultiSelect),
+          moved: false, element
         };
         return;
       }
@@ -3855,6 +4037,10 @@ export function mountDiagramEditorPageV010(
         return;
       }
       if (!navigationPointers.has(event.pointerId)) return;
+      if(rightGesture?.pointerId===event.pointerId &&
+        Math.hypot(event.clientX-rightGesture.startX,event.clientY-rightGesture.startY)>=4){
+        rightGesture.dragged=true;
+      }
       event.preventDefault();
       navigationPointers.set(event.pointerId, {
         x: event.clientX,
@@ -3911,6 +4097,13 @@ export function mountDiagramEditorPageV010(
     };
 
     const pointerUp = (event: PointerEvent) => {
+      // M07: Space+left navigation must not synthesize a blank-canvas click
+      // that clears the existing node selection after pointer capture ends.
+      if (event.type === "pointerup" && event.button === 0 && spaceHeld
+        && navigationPointers.has(event.pointerId)) {
+        suppressNextCanvasClick = true;
+        window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
+      }
       if (marquee?.pointerId === event.pointerId) {
         const box = marquee;
         removeMarquee();
@@ -3933,15 +4126,23 @@ export function mountDiagramEditorPageV010(
           selectionInspection = undefined;
           selectionReadGeneration += 1;
           suppressNextCanvasClick = true;
+          // M01: selecting via marquee must not re-fit when the inspector opens.
+          followsFitToCanvas = false;
           render();
           canvas.focus({ preventScroll: true });
           window.setTimeout(() => { suppressNextCanvasClick = false; }, 0);
         }
         return;
       }
+      const completedRight = rightGesture?.pointerId===event.pointerId
+        ? rightGesture : undefined;
+      if(completedRight)rightGesture=undefined;
       navigationPointers.delete(event.pointerId);
       if (canvas.hasPointerCapture(event.pointerId)) {
         canvas.releasePointerCapture(event.pointerId);
+      }
+      if(completedRight && event.type==="pointerup" && !completedRight.dragged){
+        showContextMenu(event.clientX,event.clientY,completedRight.nodeId,completedRight.edgeId);
       }
       const points = [...navigationPointers.values()];
       if (points.length < 2) {
@@ -3964,6 +4165,8 @@ export function mountDiagramEditorPageV010(
       cancelActiveNodeDrag?.();
       cancelActiveRouteDrag?.();
       removeMarquee();
+      rightGesture=undefined;
+      closeContextMenu();
       navigationPointers.clear();
       panLast = undefined;
       spaceHeld = false;
