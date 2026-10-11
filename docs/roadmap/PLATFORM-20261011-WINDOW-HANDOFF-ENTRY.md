@@ -72,3 +72,11 @@
 - F2-PG-01 已合并：[PR #777](https://github.com/jiangxng/EVO-App-Platform/pull/777)，merge commit **aa6432f0d525b2ef3ad02c358c9ab83e093238f3**。代码在 [F2 归档](https://github.com/jiangxng/EVO-App-Platform/blob/aa6432f0d525b2ef3ad02c358c9ab83e093238f3/docs/archive/PLATFORM-20261012-F2-DISTINCT-LOGIN-RECOVERY.md)，新增一次性 PostgreSQL 16 双独立 LOGIN、权限拒绝及撤权检查。
 - 固定合并前 head **78a9d299aabf0aaf6d276196645549e7d8f8d945**：[Postgres CI 38154708390](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708390) PASS（16 checks）、[Platform CI 38154708378](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708378) PASS、[Continuity CI 38154708397](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38154708397) PASS。
 - 这只是 Postgres 权限安全的一项，不是 Finance Owner 经济语义认证，也不是正式 HTTP Listener 认证。所有 14 条旧 TR-01 原 ref、#594/#108 Draft 及未实施 Purchasing 的决策均保持不变。
+
+
+## 2026-10-12 F1 Host 已有签名客户端功能回归（新微步）
+
+- [PR #779](https://github.com/jiangxng/EVO-App-Platform/pull/779) 已合入 main，merge SHA **09fee6f8f327871b71e0b37a9e19a7f16161db57**。仅新增 1 个 Protocol Test 与 1 个审计归档：[F1 Host signed loopback record](https://github.com/jiangxng/EVO-App-Platform/blob/09fee6f8f327871b71e0b37a9e19a7f16161db57/docs/archive/PLATFORM-20261012-F1-HOST-SIGNED-LOOPBACK-RECOVERY.md)。
+- 固定 head **c65447b2478c56ca8a808ce560f2b1fdabcdf2f7**：[Platform CI 38155748502](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748502) SUCCESS、[Continuity CI 38155748491](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155748491) SUCCESS。
+- 真实 loopback TCP socket + Ed25519 Host assertion、actor/tenant/context/order/45 秒/jti 绑定、Host 对未经授权 scope/endpoint/key 的拒绝和远端越权/不只读结果的拒绝。**接收端为刻意设计的本地测试桩，不是 EVO Owner 真实金融事实查询，也不代表真实 Finance-only HTTP 服务上线。**
+- 初次 [CI 38155514269](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155514269) 与二次 [CI 38155633156](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38155633156) 失败，均为新测试对既有精确错误码前缀预期写错；只修正测试、不改生产代码。失败与纠正原文已保留于归档文件。
