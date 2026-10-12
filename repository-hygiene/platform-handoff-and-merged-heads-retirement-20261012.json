@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "scope": "platform-handoff-and-three-merged-or-archived-ref-retirement-20261012",
+  "baselineMainSha": "0c49414d1c3131cc4026fe3fe8ae926e3119c071",
+  "records": [
+    {
+      "name": "chore/converge-tr01-legacy-to-independent-plugins-20261012",
+      "expectedHeadSha": "a6e5c0470a97c4c6ed0269ae7f064dc37de5ac1a",
+      "mergedPr": 784,
+      "mergeCommitSha": "ccb5820b99d854e1e78f6c35bfb77e01e7d084f1",
+      "status": "MERGED"
+    },
+    {
+      "name": "feat/bex00-supplier-import-entry-20261012",
+      "expectedHeadSha": "30dcb38edc14a84189e93863d8497aa83707d88f",
+      "mergedPr": 787,
+      "mergeCommitSha": "33ecccdaa27a96f8d6fa0e3e146b589dd71adfa8",
+      "status": "MERGED"
+    },
+    {
+      "name": "docs/platform-convergence-window-handoff-20261011",
+      "expectedHeadSha": "5e541887fa6da859584c8ebc0be247d1a56912e5",
+      "archivedPr": 771,
+      "status": "DOCS_SUBSUMED_CLOSE_UNMERGED"
+    }
+  ],
+  "archivedPaths": [
+    "docs/archive/PLATFORM-20261011-WINDOW-EXECUTION-EVIDENCE.md",
+    "docs/research/PLATFORM-20261011-WINDOW-SOURCE-INDEX.md",
+    "docs/roadmap/PLATFORM-20261011-WINDOW-DECISIONS-GAPS.md",
+    "docs/roadmap/PLATFORM-20261011-WINDOW-HANDOFF-ENTRY.md",
+    "docs/roadmap/PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md"
+  ],
+  "cleanupSourceBranch": "chore/platform-handoff-and-merged-heads-retirement-20261012",
+  "cleanupPrNumber": 0
+}
