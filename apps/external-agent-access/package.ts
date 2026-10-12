@@ -16,6 +16,13 @@ export const externalAgentAccessPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: EXTERNAL_AGENT_ACCESS_PACKAGE_ID,
   displayName: "EVO External Agent Access",
+  displayNameTranslations: {
+    en: "EVO External Agent Access",
+    "zh-CN": "EVO 外部 Agent 接入",
+    ja: "EVO 外部エージェント接続",
+    "zh-TW": "EVO 外部 Agent 接入"
+  },
+  description: "管理外部智能代理接入入口，按企业权限安全发现与调用插件能力。",
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {
