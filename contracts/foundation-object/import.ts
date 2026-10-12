@@ -62,6 +62,14 @@ export interface FoundationObjectImportTargetV010 {
   parameters?: FoundationObjectImportTargetParameterV010[];
   objectType: string;
   ownerPackageId: string;
+  /**
+   * Optional object-owned destination after a confirmed import.
+   * Navigation is advisory only; it grants no new object or row access.
+   */
+  completionNavigation?(input: {
+    parameters?: FoundationObjectImportTargetParametersV010;
+    locale?: string;
+  }): { route: string; label: FoundationObjectLocalizedTextV010 } | undefined;
   describe(input: {
     contextId: string;
     locale?: string;
