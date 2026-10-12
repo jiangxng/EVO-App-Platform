@@ -32,5 +32,5 @@
     "docs/roadmap/PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md"
   ],
   "cleanupSourceBranch": "chore/platform-handoff-and-merged-heads-retirement-20261012",
-  "cleanupPrNumber": 0
+  "cleanupPrNumber": 793
 }
