@@ -97,3 +97,22 @@
 | P2 | S1–S7 官方原站，尤其 Miro/React Flow/draw.io/W3C/MDN | 仅当要修改交互或发现参考版本变化时再补读原文；更新阅读记录与截图路径 |
 
 **结论约束**：本窗口大量直接源代码/部署资料已经保存在 GitHub 链接中；本索引做的是**可回溯记录与事实/判断分层**，不是代替人工验收，也不是未授权地替其他窗口开发。
+
+
+---
+
+## 八、新窗口继续核查新增来源记录（2026-10-12 UTC+8，均 R/U 显式标注）
+
+> 这是第七节之后的**追加索引**，不改写前窗冻结证据。详细新结论和分类见 [main / Railway 调查 H 节](./DIAGRAM-V1-20261012-MAIN-ONLINE-INVESTIGATION.md#h-新窗口追加mainrailway2d-业务入口第二轮对账2026-10-12utc8)。
+
+| ID | 原始来源、读取等级 | 新增可核查内容／用途 |
+| --- | --- | --- |
+| N1 | [Platform main 的 GitHub branch](https://api.github.com/repos/jiangxng/EVO-App-Platform/branches/main) 与 [#788](https://github.com/jiangxng/EVO-App-Platform/pull/788)：**R** | 本轮 main \`ad85f850...\`；#788 仅文档已合并；其他窗口仍会推动 main |
+| N2 | [GitHub Compare：生产→新 main](https://github.com/jiangxng/EVO-App-Platform/compare/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1...ad85f8501930b6e3bf7e67211e6dbf3942a27327)：**R（REST 原文及 server patch）** | 40 commits、22 文件，\`manager/server.ts\` 更改仅 Supplier / Data Import 所在片段；本段无 2D 文件 diff |
+| N3 | [生产 2D package](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/apps/eog-2d/package.ts)、[Ledger detail](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/apps/ledger-manager/page.ts)、[定义投影路由](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/contracts/definition-projection.ts)：**R** | 已声明 viewer/designer、业务定义详情 Gallery→带参数的预览入口；实际安装、能否使用仍为 U |
+| N4 | [生产 server 的投影页分支](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/manager/server.ts#L7710-L7967)、[Viewer 预览](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/apps/eog-2d-viewer/definition-preview.ts#L115-L178)：**R** | active-feature、Enterprise Context、projection selection 的 404/409 门槛和 Edit 条件显示 |
+| N5 | [生产实际 Browser entry](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/manager/app-host-client.ts)、[Workbench route 正规化](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/vendor/eidos/src/workbench/surface-routing.ts)、[App Host 载入](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/vendor/eidos/src/app-host/host.ts#L673-L705)：**R** | 生产入口与纯 Browser Shell 需区分；route lookup 会剔除查询参数并在 loadPage 保留完整 route；不能以局部精确匹配认定线上坏 |
+| N6 | [Ledger Gallery producer](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/apps/ledger-manager/page.ts#L298-L348)、[Eidos Gallery validator](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/vendor/eidos/src/catalog-detail/render.ts#L93-L115)：**R** | 零个投影和大于九个投影时存在静态可演绎的 render validation failure；生产是否真实触发是 U、且涉及其他业务窗口所有权 |
+| N7 | Railway [production service dashboard](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601/service/a8622238-480e-4da3-be6f-60fd0f3e18db?environmentId=98b8b20c-d791-4073-a11d-bb1f7f0a1cb3)：**R（连接器的部署／配置／日志原文）** | 仍部署 \`ccb5820b...\`，挂载 \`/data\`，无 staged，取样 HTTP 中有 experience-pages 200 与单条 403、/store 404；不包含 page source / action body，也没有授权的 UI 会话 |
+
+**本轮无新的外部 S1–S7 原站读取（仍 H/U），没有截图、正式人工验收或真实生产租户快照（U）。** 没有因新增信息变更 v1.0 §13/§14 产品决策或历史 ref 归档决策。
