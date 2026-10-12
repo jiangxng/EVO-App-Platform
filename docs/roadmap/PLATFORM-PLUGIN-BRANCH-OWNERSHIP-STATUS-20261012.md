@@ -153,3 +153,16 @@
 1. **只退役经过核对的两个旧 Platform 清理 ref**，须满足固定 SHA + PR 依赖重检 + 必要历史归档；本次未执行删除。
 2. 继续保存 #594/#771/#783 开放 PR 及其 head/base。Agent 5、SOP 2 全交回各自 owner；#692 **closed/unmerged** 不能被误判为已合。
 3. 14 条 TR-01 旧 ref 继续做**归档/去重判定**，未完成 Provider / APPLICATION 始终维持未完成。不要据此新增 24 项工具研发、6 项业务研发或任何 CI、Railway 任务。
+
+
+## 2026-10-12 最终执行结果：用户正式批准旧分支分流并全部清理（覆盖本文件前面的旧快照）
+
+- 用户要求：两个旧阶段分支纳入 **六个独立 APPLICATION 插件**（未完成仍未完成）；Finance Owner 与 EVO Ledger/valuation/Allocation/fact verifier 重叠的旧功能不保留，Host 独特来源放回独立 Provider；孤立的独立 HTML/Railway 演示不保留；两份过程文档放入 main；多语言说明 PR 合并并发布公网。
+- [插件描述 PR #783](https://github.com/jiangxng/EVO-App-Platform/pull/783) **MERGED_MAIN** `8b8b1634256f96b06e1a9e5aa978d919c39e8024`；当时 42 项 checks 全 SUCCESS。原多语言说明 branch 已作为本次 17 refs 退役的一部分删除。
+- [插件分流与清理 PR #784](https://github.com/jiangxng/EVO-App-Platform/pull/784) **MERGED_MAIN** `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`；三项 PR checks 全 SUCCESS。main 已分别有六个业务 Package 的较新代码；新加 `apps/trading-stage/LEGACY-CONVERGENCE.md` 记录归属。五份**不激活的 Host 侧旧验证源码**逐字节迁入 `providers/trading-finance-owner/legacy-evidence/`。EVO Ledger 经济计算的旧复制、过时 Owner Listener/Race DB CI、独立 HTML Demo 均 **未复制/未重新启用**。旧两份过程文档在 main 的 Blob 均与历史分支完全一致，**已满足“放入 main”**，不是新拷贝。
+- [Finance Draft #594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 已在提交明确原因的评论后 **CLOSED, UNMERGED**，保持 **PRODUCT_UNFINISHED**，不误报“完成”或“已合并”；EVO 仓库 [#108](https://github.com/jiangxng/EVO/pull/108) 独立保留不动。
+- [只读 Audit #38186198615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38186198615) SUCCESS；[主线实际清理 #38186277365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38186277365) **SUCCESS**，日志记录 **17 条 `DELETED_OLD_REF`**：14 条旧 TR01 分支 + 2 条旧 chore 清理尾巴 + 已合多语言说明 branch。独立再次枚举：**10 条分支，TR01 历史 0，Draft #594 头已删除**；保留 main、5 条 Agent/External Agent、2 条 SOP Designer、1 条本交接 Draft #771、1 条已合 #784 的清理工作分支。
+- Railway Ledger Configurator 旧服务与原 `/data` 500 MB volume 维持，唯一 staged config 变更是从 `a35d68ddef5abbf1adfa3290317e9a069ddc449f` 切到精确 `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`。新 Deployment **`a6554bd8-8a24-4c13-9b40-e93c32f62a62`** `SUCCESS`；环境状态 `Online`，1 running / 0 crashed，0 warning/critical。网址 **https://ledger-configurator-production.up.railway.app/store**。此外部环境未取得独立 HTTP /health GET 结果；**不宣称浏览器人工验收或真实业务工作流已通过**。
+- 退役来源/分类/旧固定 SHA 见 main 的 `docs/archive/TR01-20261012-LEGACY-BRANCH-RETIREMENT.md`；没有新增开发任务、产品功能、全局 project.status.json 改动、Finance Writer 权限或 EVO Ledger Runtime 调整。
+
+**最新下一步不是再研发六个 APP**；六业务应用和 Finance Provider 仍为 **PRODUCT_UNFINISHED**。只剩 PR #784 的源分支 `chore/converge-tr01-legacy-to-independent-plugins-20261012` 可按合并 PR 事实另行退役（本轮未删）；Agent/Designer/其他无关分支照旧不动。
