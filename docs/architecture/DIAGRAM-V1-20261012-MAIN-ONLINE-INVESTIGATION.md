@@ -195,3 +195,26 @@
 | “很多功能被覆盖”的剩余范围 | 当前正常页面已经排除若干可能的 UI 丢失项 | 只对用户另行指出的**具体缺失操作/页面/历史版本差异**继续举证；不把当前截图当所有 §14 case 的人工签收 |
 
 **下一步**：保留此截图为正常视觉与业务入口基线；先询问或等待用户指出该正常页面之外的缺失项（如投影管理操作、业务定义列表入口、Viewer 返回流程、插件商店）。针对明确缺失项再进行与已合并 main / 生产版本 / 历史分支的定点对比；未获真实缺陷证据前不改程序。§14 状态仍为机器子场景 39/39、正式人工/真实设备 0/39。
+
+---
+
+## I. 新的用户环境观察与代码版本诊断（2026-10-12 UTC+8）
+
+**用户补充的直接观察**：用户在另一环境曾看到大量功能缺失；目前用户再次改变浏览器窗口尺寸，相关功能仍持续存在。**用户判断**原先问题更像版本未更新而非响应式排版。该观察足以**降低**“调整窗口宽度立即隐藏控件”的假设优先级，但旧环境的准确 URL、浏览器资源 revision、用户/企业上下文和缺失项尚未保留，不能将版本差异或浏览器缓存升级为已证实根因。
+
+### I1. 本轮再次直接读取（R）
+
+- GitHub Platform main：`6467d6960d5b89f41f318e8ec4df40477c33d06d`（#789 诊断文档合并）；Eidos main 仍为 `f412f1d03e684a3f3463d10eac51d6cc79032eff`。**此为读取时刻快照**，之后须复查动态 main。
+- Railway `Ledger Configurator` production：部署 `a6554bd8-8a24-4c13-9b40-e93c32f62a62`（SUCCESS），代码 `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`，无 staged changes。再次核验 GitHub [Compare](https://github.com/jiangxng/EVO-App-Platform/compare/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1...6467d6960d5b89f41f318e8ec4df40477c33d06d)：**41 commits ahead，22 files changed；没有任何 `apps/eog-2d*` 或 `vendor/eidos/src/diagram` 核心文件的变更**。三份新增的 2D 文件是**文档**，其他改动属 Supplier/Data Import/External Agent 等，不可称“新 main 包含线上缺少的 2D 图形核心”。
+- Railway 账户另有 `EVO Plugin Platform Preview` 项目 `d861af8a-0fba-4077-ba90-9bc2a57d818a`；只读 `list_services` 返回 1 个名为 production 的 environment、**0 个服务**。这不是另一可证明正在运行的 2D Preview 部署；但不能据此排除用户所谓“另一环境”是另一电脑、浏览器、域名或其他未发现环境。
+- Railway HTTP 只读样本约 501 项，按 `/assets/<revision>/...` 汇总：`ccb5820b...` 路径 255 次（样本 UTC 2026-10-12 00:23 至 02:46）；较早 `a35d68dd...` 路径 85 次（样本 UTC 2026-10-11 14:26 至 14:53）。样本**未**证明旧 revision 在最新部署后仍被该用户实际加载，不能宣称观察到了旧浏览器缓存复现。
+- [`manager/browser-transport.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/manager/browser-transport.ts) 从入口资产 URL 抽取客户端 revision，以 `x-evo-client-revision` 发送，并检查 `x-evo-host-revision` / `x-evo-client-update`；[`manager/browser-version-notice.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/manager/browser-version-notice.ts) 已有 “A newer EVO web version is available / Update” 按钮。[`manager/server.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/ccb5820b99d854e1e78f6c35bfb77e01e7d084f1/manager/server.ts#L6220-L6288) 支持归档 revision 的静态资源，旧浏览器 Tab **理论上可能**继续加载旧客户端，刷新/Update 才切换。**机制存在 ≠ 当前用户已复现缓存缺陷**。
+
+### I2. 本轮取舍和下一步（没有变更正式设计）
+
+1. 优先排查不同浏览器实际加载的 `/assets/<sha>/manager/app-host-client.js` 与服务端 current revision；不要再仅按 viewport 猜测“功能消失”。
+2. 用用户的**同一页面、同一 Enterprise Context**，在原问题环境通过新窗口重新打开，比较普通刷新 / 硬刷新前后的工具栏和“更多”菜单；如持续异常，再读 Network 资源版本及实际 `/v1/platform/snapshot` / effective experiences（有授权才读）。
+3. 明确核对“更多”菜单中原本就按状态出现的操作、是否选择了节点、历史管理功能是否从未进入 production，防止把条件呈现误当新旧代码差异。
+4. **禁止仅凭 41 个非 2D 提交就主动部署整站**；生产发布需单独许可/发布窗口，必须考虑 Supplier/Agent 等同时带入的新改动。没有确认真实 2D 源码差异时不追加改动 Eidos Surface 或 Projection 的开发任务。
+
+本轮结论：**生产并非最新 main，事实已证实；这是否解释早上“缺按钮”，仍未证实。** 当前截图在不同宽度下稳定且用户认可，作为视觉基线继续保留；§14 依然机器子场景 39/39、正式人工/设备 0/39。本轮只读诊断，没有改程序、部署、回滚或修改生产状态。
