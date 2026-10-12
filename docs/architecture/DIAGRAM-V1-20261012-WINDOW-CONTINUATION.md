@@ -17,7 +17,7 @@
 | Platform 2D 历史分支 | [#776](https://github.com/jiangxng/EVO-App-Platform/pull/776)、[#778](https://github.com/jiangxng/EVO-App-Platform/pull/778) 等先退役 38 个已合并相关旧 ref；[#780](https://github.com/jiangxng/EVO-App-Platform/pull/780) 将额外 12 个旧分支按原 SHA **历史归档而非整份旧工作树覆盖**，main 工作流删除它们及清理分支（共 13）。旧 [#388](https://github.com/jiangxng/EVO-App-Platform/pull/388) 关闭，但其原版保存逻辑**未部署**。 |
 | Eidos 商业化旧 PR | 通用核心 [#160](https://github.com/jiangxng/eidos/pull/160)，位置锁定 [#171](https://github.com/jiangxng/eidos/pull/171)，历史对账 [#172](https://github.com/jiangxng/eidos/pull/172)、[#173](https://github.com/jiangxng/eidos/pull/173)、收尾 [#174](https://github.com/jiangxng/eidos/pull/174) 已入 main；旧阶段 PR 29 个已关闭或自动并入。曾有主清理工作流「**删除已发生，但最终失败**」的 404，应按真实日志记载，不得写为成功；后续 Eidos Branch Hygiene 与 CI **成功**。 |
 | 没有因清理恢复旧功能 | 三类旧提议**未直接搬回**：企业软件投影 Gallery/原版管理动作、Eidos `secondaryActions` 旧字段、Viewer 返回导航旧实现；准确边界见 [12 分支对账](./DIAGRAM-V1-12-LEGACY-HEADS-RECONCILIATION-20261012.md)。历史归档 != 运行时代码合并。 |
-| 最新 main 快照 | 2026-10-12 09:??–10:17（香港时间）查得 Platform `33ecccdaa27a96f8d6fa0e3e146b589dd71adfa8`（#787 BEX 供应商首片）；Eidos `f412f1d03e684a3f3463d10eac51d6cc79032eff`。**新窗口先重新查询**，其他窗口仍会继续合并。 |
+| 最新 main 快照 | 2026-10-12 上午（香港时间，UTC+8）查得 Platform `33ecccdaa27a96f8d6fa0e3e146b589dd71adfa8`（#787 BEX 供应商首片）；Eidos `f412f1d03e684a3f3463d10eac51d6cc79032eff`。**新窗口先重新查询**，其他窗口仍会继续合并。 |
 | 线上 Railway 快照 | `ledger-configurator-production.up.railway.app` 的 Ledger Configurator 仍运行 Platform `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`（2026-10-11 23:59:56Z 部署；项目 `EVO Ledger Runtime MVP` 的 production）。当前 main 对比该部署：39 commits ahead、0 behind、19 个改变文件；有 BEX `manager/server.ts` 修改，但**无 `apps/eog-2d*` 或 `vendor/eidos/src/diagram` 文件差异**。Railway 在线、`/health` 通过并不等于操作验收通过。 |
 
 ## 3. 当前重要诊断结论与边界
