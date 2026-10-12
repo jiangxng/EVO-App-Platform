@@ -1,0 +1,51 @@
+name: One-time Agent and External Agent five-ref retirement
+on:
+  pull_request:
+    paths: [".github/workflows/agent-external-merged-ref-retirement-20261012.yml"]
+  push:
+    branches: [main]
+    paths: [".github/workflows/agent-external-merged-ref-retirement-20261012.yml"]
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  verify-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repository');
+            const targets=[["agent/pa02a-postgres-async-uniqueness-proof-20261011","9f794cf928d9a01e55a22c6d5742ea23fd7bc456"],["docs/external-agent-access-standard-20260930","661341eb87e8bfd8a5884c150267933c65b0c4b1"],["docs/external-agent-ea5-machine-foundation-20260930","8a4b5a0caecda26b90a4bfa60e17f9b5e23fb5d9"],["feat/external-agent-access-experience-20260930","76b33e63ac7d1e282463cae46133d74f54c0b636"],["feat/ea4a-oauth-resource-profile-20260930","7eb802eb21230e2e5a2dcf863d1507c69f1f7b0f"]];
+            const cleanup='chore/agent-external-convergence-20261012';
+            const get=async name=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;}catch(error){if(error.status===404)return null;throw error;}};
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const target=execute?main:context.payload.pull_request?.head?.sha;
+            if(!target)throw Error('Missing audit target');
+            if(execute&&main!==context.sha)throw Error('Main advanced; fail closed');
+            const reserved=async()=>{const prs=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});const s=new Set(['main']);for(const p of prs){s.add(p.base.ref);if(p.head.repo?.full_name===owner+'/'+repo)s.add(p.head.ref);}return s;};
+            for(const [name,sha] of targets){
+             const c=(await github.rest.repos.compareCommits({owner,repo,base:sha,head:target})).data;
+             if(c.behind_by!==0||c.merge_base_commit?.sha!==sha)throw Error('Not merged into main: '+name);
+             const head=await get(name);
+             if(head!==sha)throw Error('Branch moved or absent: '+name);
+             if((await reserved()).has(name))throw Error('Open PR still depends on '+name);
+             const info=(await github.rest.repos.getBranch({owner,repo,branch:name})).data;
+             if(info.protected)throw Error('Branch protected '+name);
+             if(!execute){core.info('AUDIT_ONLY '+name);continue;}
+             if(await get(name)!==sha||(await reserved()).has(name))throw Error('Race on '+name);
+             await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+             core.info('DELETED_AGENT_EXTERNAL '+name);
+            }
+            if(execute){
+             const m=(await github.rest.pulls.list({owner,repo,state:'closed',head:owner+':'+cleanup,per_page:100})).data.find(p=>p.merged_at&&p.base.ref==='main');
+             if(!m||!m.head.sha||await get(cleanup)!==m.head.sha||(await reserved()).has(cleanup))throw Error('Cleanup PR not merged safely');
+             const c=(await github.rest.repos.compareCommits({owner,repo,base:m.head.sha,head:main})).data;
+             if(c.behind_by!==0||c.merge_base_commit?.sha!==m.head.sha)throw Error('Cleanup commit missing');
+             await github.rest.git.deleteRef({owner,repo,ref:'heads/'+cleanup});
+             core.info('DELETED_AGENT_EXTERNAL_CLEANUP '+cleanup);
+             core.info('AGENT_EXTERNAL_5_REFS_RETIRED');
+            }else core.info('AUDIT_ONLY_5');

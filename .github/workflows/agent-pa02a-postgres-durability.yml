@@ -1,0 +1,42 @@
+name: Agent PA-02A Isolated PostgreSQL Async Uniqueness
+
+on:
+  pull_request:
+    paths:
+      - "contracts/agent-durability-async.ts"
+      - "agents/enterprise-agent/pa02a-postgres-durability-proof.ts"
+      - "tests/agent-line/pa02a-postgres-proof.test.mjs"
+      - ".github/workflows/agent-pa02a-postgres-durability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-durability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: agentproof
+          POSTGRES_PASSWORD: agentproof
+          POSTGRES_DB: agentproof
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agentproof -d agentproof"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA02A_PROOF_DATABASE_URL: postgres://agentproof:agentproof@127.0.0.1:5432/agentproof
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - run: node --test tests/agent-line/pa02a-postgres-proof.test.mjs
