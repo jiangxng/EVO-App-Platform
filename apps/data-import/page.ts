@@ -579,8 +579,7 @@ export function createDataImportReviewPageV010(input: {
       id: "return-to-target",
       label: localizedTextV010(completionNavigation.label, input.locale),
       type: "navigate" as const,
-      route: completionNavigation.route,
-      requiresConfirmation: false
+      route: completionNavigation.route
     });
   }
   if ((dryRun?.invalidRows ?? 0) > 0) {
