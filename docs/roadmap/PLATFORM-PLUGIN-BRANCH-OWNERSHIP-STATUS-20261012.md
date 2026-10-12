@@ -166,3 +166,13 @@
 - 退役来源/分类/旧固定 SHA 见 main 的 `docs/archive/TR01-20261012-LEGACY-BRANCH-RETIREMENT.md`；没有新增开发任务、产品功能、全局 project.status.json 改动、Finance Writer 权限或 EVO Ledger Runtime 调整。
 
 **最新下一步不是再研发六个 APP**；六业务应用和 Finance Provider 仍为 **PRODUCT_UNFINISHED**。只剩 PR #784 的源分支 `chore/converge-tr01-legacy-to-independent-plugins-20261012` 可按合并 PR 事实另行退役（本轮未删）；Agent/Designer/其他无关分支照旧不动。
+
+
+## 2026-10-12 最新平台收敛快照（main 0c49414）
+
+- main `0c49414d1c3131cc4026fe3fe8ae926e3119c071`、11 branches、open PR 仅 #771（资料交接 Draft）是**这次重新核验的时点**，早先 73/33/31/26/10 的数字全部属于历史快照。
+- 14 条 TR01 历史来源分支：**0**，已安全退役；原六个独立 `APPLICATION` 和 Finance Owner `PROVIDER` 的产品状态**仍然未完成**，不据此新生业务需求。
+- 待归档退役源头有两条已合并分支：`chore/converge-tr01-legacy-to-independent-plugins-20261012` (#784、固定 `a6e5c0470a97c4c6ed0269ae7f064dc37de5ac1a`) 和 `feat/bex00-supplier-import-entry-20261012` (#787、固定 `30dcb38edc14a84189e93863d8497aa83707d88f`)。
+- BEX-00 已根据 `docs/roadmap/BACKLOG.md` 被认领并完成 L0 对账；BEX-01 首批导入工作进入 main，不等于表格或手机验收。项目继续采用 Eidos 控件／对象插件语义／Host 授权三个独立 owner。
+- 五条 `docs/diagram-v1-*` 和两条 `architecture/sop-designer-package-identity*` 为其他专项正在使用的资料与 branch；**明确排除**当前清理清单。
+- 此状态清单属于**平台文档证据**；后续状态以 main 的 `BACKLOG.md` 和实际 GitHub 分支/PR 为准，历史仍保留在下文，不改写以往的主线时间点。
