@@ -111,7 +111,7 @@ export function parseDataImportUploadIntentV010(route?: string): {
   } catch {
     return undefined;
   }
-  const match = url.pathname.match(/^\\/data-import\\/new\\/([^/?#]+)$/u);
+  const match = url.pathname.match(/^\/data-import\/new\/([^/?#]+)$/u);
   if (!match || url.hash || url.origin !== "http://evo.local") return undefined;
   const initialParameters: Record<string, string> = {};
   for (const [name, value] of url.searchParams) {
