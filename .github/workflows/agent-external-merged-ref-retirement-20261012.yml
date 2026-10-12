@@ -23,10 +23,12 @@ jobs:
             const cleanup='chore/agent-external-convergence-20261012';
             const get=async name=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;}catch(error){if(error.status===404)return null;throw error;}};
             const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const target=execute?main:context.payload.pull_request?.head?.sha;
+            if(!target)throw Error('Missing audit target');
             if(execute&&main!==context.sha)throw Error('Main advanced; fail closed');
             const reserved=async()=>{const prs=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});const s=new Set(['main']);for(const p of prs){s.add(p.base.ref);if(p.head.repo?.full_name===owner+'/'+repo)s.add(p.head.ref);}return s;};
             for(const [name,sha] of targets){
-             const c=(await github.rest.repos.compareCommits({owner,repo,base:sha,head:main})).data;
+             const c=(await github.rest.repos.compareCommits({owner,repo,base:sha,head:target})).data;
              if(c.behind_by!==0||c.merge_base_commit?.sha!==sha)throw Error('Not merged into main: '+name);
              const head=await get(name);
              if(head!==sha)throw Error('Branch moved or absent: '+name);
