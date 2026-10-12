@@ -110,3 +110,15 @@
 ## 5. 附件与复查方式
 
 本轮没有视觉截图或付费/登录内容附件。公开网页在本文保存标题、原始URL、章节及足够的关键摘要；不伪称做了完整网页归档。代码通过固定Git提交重取。本目录与计划共同入库，是后续窗口的研究入口。
+
+## 6. 通用业务体验框架补充资料（同日追加）
+
+本补充未新增外部行业检索，不把上轮资料摘要扩大成所有业务均获验证。新增依据为实际读取的项目设计规则：
+
+- 平台 `vendor/eidos/src/experience-architecture/contracts.ts`：读取页面archetype、journey、action、agent和quality契约，证明已有通用体验架构字段，不证明所有业务页面已实现。
+- 平台 `vendor/eidos/src/design-language/mobile.ts`：读取手机策略；统一断点、安全区、触摸目标、单列、动作层级、字体缩放和禁止私有移动壳。用于框架§8。
+- 平台 `docs/architecture/EIDOS-NAVIGATION-INFORMATION-ARCHITECTURE-ADOPTION-v0.1.md`：读取前段导航层级和单一归位规则。
+- Eidos `docs/product/EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md`：读取设计权威分层及Human Directness原则。原始代码地址：https://github.com/jiangxng/eidos/blob/36527256431ccafb71b759d70f2b72d8d83ea0c6/docs/product/EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md
+- Eidos `MOBILE-DESIGN-LANGUAGE.md`：读取手机信息架构、字体、触摸、集合/表单和插件一致性段落。原始代码地址：https://github.com/jiangxng/eidos/blob/36527256431ccafb71b759d70f2b72d8d83ea0c6/MOBILE-DESIGN-LANGUAGE.md
+
+Eidos资料使用本地已取得的固定提交，未声称是当前最新main。平台固定策略与owner文档一致；实施L0仍要对账最新版本。框架中七类应用的映射、状态维度、手机转换表与验收矩阵是本次设计建议，不是已有业务的运行证据。
