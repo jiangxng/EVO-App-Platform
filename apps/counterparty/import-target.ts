@@ -34,6 +34,7 @@ import type {
   CounterpartyRelationshipRoleCodeV010,
   CounterpartyRoleRepositoryV010
 } from "./roles.js";
+import { COUNTERPARTY_SUPPLIERS_ROUTE } from "./constants.js";
 import type {
   CounterpartyAddressRepositoryV010,
   CounterpartyContactRepositoryV010,
@@ -416,6 +417,17 @@ export function createCounterpartyImportTargetV010(input: {
     }],
     objectType: "counterparty.subject",
     ownerPackageId: "evo-counterparty",
+    completionNavigation({ parameters }) {
+      return parameters?.relationshipMode === "SUPPLIER"
+        ? {
+            route: COUNTERPARTY_SUPPLIERS_ROUTE,
+            label: {
+              default: "Back to suppliers",
+              translations: { "zh-CN": "返回供应商列表" }
+            }
+          }
+        : undefined;
+    },
 
     describe(describeInput) {
       return describe(
