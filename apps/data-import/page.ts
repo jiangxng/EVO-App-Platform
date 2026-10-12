@@ -302,6 +302,7 @@ export function createDataImportDirectoryPageV010(input: {
 export function createDataImportUploadPageV010(input: {
   target: FoundationObjectImportTargetV010;
   locale?: string;
+  initialParameters?: Readonly<Record<string, string>>;
 }) {
   const t = text(input.locale);
   return {
@@ -358,9 +359,14 @@ export function createDataImportUploadPageV010(input: {
       semanticType: "data-import-target-parameter",
       control: "select" as const,
       required: parameter.required,
-      ...(parameter.defaultValue !== undefined
-        ? { initialValue: parameter.defaultValue }
-        : {}),
+      ...(input.initialParameters?.[parameter.key] !== undefined
+        && parameter.options.some(option =>
+          option.value === input.initialParameters?.[parameter.key]
+        )
+        ? { initialValue: input.initialParameters[parameter.key] }
+        : parameter.defaultValue !== undefined
+          ? { initialValue: parameter.defaultValue }
+          : {}),
       options: parameter.options.map(option => ({
         value: option.value,
         label: localizedTextV010(option.label, input.locale)
@@ -531,6 +537,7 @@ export function createDataImportMappingPageV010(input: {
 export function createDataImportReviewPageV010(input: {
   job: DataImportJobV010;
   locale?: string;
+  target?: FoundationObjectImportTargetV010;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
   const job = input.job;
@@ -560,6 +567,20 @@ export function createDataImportReviewPageV010(input: {
       values: { importJobId: job.importJobId },
       primary: true
     } as never);
+  }
+  const completionNavigation = job.state === "COMMITTED"
+    ? input.target?.completionNavigation?.({
+        parameters: job.targetParameters,
+        locale: input.locale
+      })
+    : undefined;
+  if (completionNavigation) {
+    summaryActions.push({
+      id: "return-to-target",
+      label: localizedTextV010(completionNavigation.label, input.locale),
+      type: "navigate" as const,
+      route: completionNavigation.route
+    });
   }
   if ((dryRun?.invalidRows ?? 0) > 0) {
     summaryActions.push({

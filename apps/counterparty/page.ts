@@ -331,6 +331,7 @@ export function createCounterpartyProjectionPageV010(input: {
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
+  importRoute?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const title = projectionTitleV010(
@@ -382,7 +383,16 @@ export function createCounterpartyProjectionPageV010(input: {
       type: "navigate",
       route: COUNTERPARTY_MY_SUPPLIERS_ROUTE,
       requiresConfirmation: false
-    }],
+    }, ...(input.canManage && input.importRoute
+      ? [{
+          id: "import",
+          label: text.import,
+          type: "navigate" as const,
+          route: input.importRoute,
+          requiresConfirmation: false,
+          primary: true
+        }]
+      : [])],
     search: {
       placeholder: text.search,
       ariaLabel: text.search,
