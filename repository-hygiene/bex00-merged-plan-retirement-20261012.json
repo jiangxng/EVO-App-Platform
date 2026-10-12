@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "scope": "bex00-merged-plan-retirement-20261012",
+  "branch": "docs/foundation-list-experience-plan-20261012",
+  "expectedHeadSha": "9a300c5319a19c40f30c137ff0a822273349d329",
+  "mergedViaPr": 785,
+  "mergeCommitSha": "b0da85bd42299f22eee648c1a581c883f4e8b285"
+}
