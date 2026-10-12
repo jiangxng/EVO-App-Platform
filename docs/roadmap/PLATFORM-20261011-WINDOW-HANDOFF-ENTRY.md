@@ -110,3 +110,17 @@
 ## 2026-10-12 实际分支清理结果（当前状态优先于前文历史候选数）
 
 按用户最新要求仅做分支收敛，合入 [#781](https://github.com/jiangxng/EVO-App-Platform/pull/781) 后通过 [GitHub Actions #38157759718](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38157759718) **执行并核实删除** #775、#777、#779 已合并后的三条 source refs。事后 GitHub branches 为 **31**（初始 33 + 新增 cleanup branch 1 - 真实删除 3）；TR01 保留 14、Agent 保留 11、Designer 保留 2。详细记录见 [按插件实际状态清单](./PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md) 和 Execution Evidence §L。六 APPLICATION + Finance Owner PROVIDER 继续 **未完成**，14 条老源 ref 暂留，不能为继续清理而自动追加任何开发工作。
+
+
+## 2026-10-12 最新平台收敛快照（main 0c49414）
+
+**本节是本文件最新状态，覆盖前文的 33/31/10 条分支历史时点数字。** 核对当时 main `0c49414d1c3131cc4026fe3fe8ae926e3119c071`；GitHub 共有 **11 条分支、1 个开放 PR (#771 Draft)**。main 已较 #787 和 Diagram 并行工作继续前进，绝不可反向覆盖。
+
+- 两条属于本平台可退役的**已合并源分支**：
+  - `chore/converge-tr01-legacy-to-independent-plugins-20261012`，head `a6e5c0470a97c4c6ed0269ae7f064dc37de5ac1a`，merged PR [#784](https://github.com/jiangxng/EVO-App-Platform/pull/784) / squash `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`。
+  - `feat/bex00-supplier-import-entry-20261012`，head `30dcb38edc14a84189e93863d8497aa83707d88f`，merged PR [#787](https://github.com/jiangxng/EVO-App-Platform/pull/787) / squash `33ecccdaa27a96f8d6fa0e3e146b589dd71adfa8`。
+- **本交接 #771** 含五份独有证据/研究/决策/插件状态文档，应把它们合并到 main 再删除来源分支；不能只删除 Draft 导致文档丢失。
+- **其他窗口，不碰**：`architecture/sop-designer-package-identity`、`architecture/sop-designer-package-identity-v2`、五条 `docs/diagram-v1-*`。这些分支不由平台收敛窗口决定完成或删除。
+- [BEX-00](./BACKLOG.md) 已通过 #787 完成现状对账；**BEX-01 仅首批供应商导入入口/预选角色/回到供应商列表进入 main**，真正数据表格、可授权服务器分页、手机浏览器验收仍未完成，不创建额外领域实现任务。
+- 六个 TR01 `APPLICATION` 与只读 Finance Owner `PROVIDER` 仍 **PRODUCT_UNFINISHED**；旧 14 条 TR01 branch 已按用户认可的归属删除并归档（主线决策 `docs/archive/TR01-20261012-LEGACY-BRANCH-RETIREMENT.md`）。不得按分支个数推断功能完成。
+- **收敛目标**：只合并本交接五份文档 + 归正 Backlog 事实 + 有精确来源/合并提交/保护规则审计的分支退役。完成时用 CI 日志和再次枚举反映真实删除数；禁止 Railway 部署和 Eidos/Agent/EVO/Diagram 改动。
