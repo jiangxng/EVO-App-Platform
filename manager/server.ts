@@ -938,7 +938,7 @@ import {
   dataImportUploadRouteV010,
   parseDataImportMappingRouteV010,
   parseDataImportReviewRouteV010,
-  parseDataImportUploadRouteV010
+  parseDataImportUploadIntentV010
 } from "../apps/data-import/constants.js";
 import {
   dataImportAuthorizationPolicyV010
@@ -6890,7 +6890,20 @@ const server = createServer(async (request, response) => {
               counterparties: projection.counterparties,
               locale,
               readableFieldIds: projection.readableFieldIds,
-              canManage
+              canManage,
+              ...(canManage && (
+                projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+                || projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+              ) && manager.listEffectiveDataImportTargets().some(target =>
+                target.targetId === "counterparty.subject"
+              )
+                ? {
+                    importRoute: dataImportUploadRouteV010(
+                      "counterparty.subject",
+                      { relationshipMode: "SUPPLIER" }
+                    )
+                  }
+                : {})
             })
           );
         }
@@ -7381,11 +7394,11 @@ const server = createServer(async (request, response) => {
         }
 
         if (source === DATA_IMPORT_UPLOAD_PAGE_SOURCE) {
-          const targetId = parseDataImportUploadRouteV010(
+          const uploadIntent = parseDataImportUploadIntentV010(
             routeValue || undefined
           );
           const target = dataImportTargets.find(item =>
-            item.targetId === targetId
+            item.targetId === uploadIntent?.targetId
           );
           if (!target) {
             return json(response, 404, {
@@ -7397,7 +7410,8 @@ const server = createServer(async (request, response) => {
             200,
             module.createDataImportUploadPageV010({
               target,
-              locale
+              locale,
+              initialParameters: uploadIntent?.initialParameters
             })
           );
         }
@@ -7444,7 +7458,8 @@ const server = createServer(async (request, response) => {
           200,
           module.createDataImportReviewPageV010({
             job,
-            locale
+            locale,
+            target: dataImportTargets.find(item => item.targetId === job.targetId)
           })
         );
       }
