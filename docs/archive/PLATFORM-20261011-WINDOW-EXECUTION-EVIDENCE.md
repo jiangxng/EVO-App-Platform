@@ -200,3 +200,12 @@
 - 删除 `test/platform-f1-host-signed-loopback-proof-20261012` @ `c65447b2478c56ca8a808ce560f2b1fdabcdf2f7`，merged PR #779，main merge `09fee6f8f327871b71e0b37a9e19a7f16161db57`。
 - 事后再次枚举 GitHub：**31 branches、三条均缺席、14 个旧 TR01 不变、11 Agent 不变**。因为 #781 cleanup head 仍在，实减 2 refs，而不是 3；其 head `7bd9709ee0d812827476cdb0e6c1a07eddb44eb2` 是未来合并后的退役候选，当前未删除。
 - 源提交和合并 PR / CI 仍在 GitHub 历史中，**不改变任何一个业务插件的 PRODUCT_UNFINISHED** 状态。未对 Ledger Runtime、Finance Owner 功能、Host Core、Personal Agent、EOG/2D、eidos 或 Railway 作任何更改。
+
+
+## M. 2026-10-12 用户批准的 14 条 TR01 资产分流、17 refs 实际退役与公网 pinned deploy
+
+- [#783](https://github.com/jiangxng/EVO-App-Platform/pull/783) 42 checks SUCCESS，squash merge `8b8b1634256f96b06e1a9e5aa978d919c39e8024`。只做插件标题/用途说明与协议本地化，不接管其他开发线。
+- [#784](https://github.com/jiangxng/EVO-App-Platform/pull/784) 3 checks SUCCESS，merge `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`；迁入 provider-owned 五个 **inert `.reference.txt`** 源，并保留六个独立 Application 的现行 main 代码；两份历史文档 main/旧分支 Blob **逐字节一致**；原孤立 HTML demo 和重叠 EVO 经济代码不迁回。
+- [#594](https://github.com/jiangxng/EVO-App-Platform/pull/594) 已留言并 **closed/unmerged**，Finance Provider 功能仍未完成。EVO Draft #108 不变。
+- [审核 Actions #38186198615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38186198615) 只读审计成功；[正式 Actions #38186277365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38186277365) 成功，逐个记录 **17 × DELETED_OLD_REF**：14 TR01/2 chore/1 merged descriptions。事后精确 branches 为 **10**，TR01 为 **0**；仍有已 merge 的新 cleanup ref 待另外安全清理，不虚报净减。
+- Railway 既有 Ledger Configurator 服务 `a8622238-480e-4da3-be6f-60fd0f3e18db`，环境 `98b8b20c-d791-4073-a11d-bb1f7f0a1cb3`，部署 `a6554bd8-8a24-4c13-9b40-e93c32f62a62` = **SUCCESS**，明确 pinned main `ccb5820b99d854e1e78f6c35bfb77e01e7d084f1`，原域名 `https://ledger-configurator-production.up.railway.app`，volume 原样保留，服务 Online 1/1、副本无错误。外部独立 HTTP 探针/人验未完成，不写 USER_ACCEPTED。
