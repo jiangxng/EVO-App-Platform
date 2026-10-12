@@ -1,0 +1,178 @@
+name: Platform Handoff and Three Merged Ref Retirement (2026-10-12)
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/platform-handoff-and-merged-heads-retirement-20261012.json"
+      - ".github/workflows/platform-handoff-and-merged-heads-retirement-20261012.yml"
+      - "docs/archive/PLATFORM-20261011-WINDOW-EXECUTION-EVIDENCE.md"
+      - "docs/research/PLATFORM-20261011-WINDOW-SOURCE-INDEX.md"
+      - "docs/roadmap/PLATFORM-20261011-WINDOW-*"
+      - "docs/roadmap/PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/platform-handoff-and-merged-heads-retirement-20261012.json"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  audit-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Verify exact source heads and merged content before deletion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner,repo=context.repo.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Wrong repo');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(!execute&&context.eventName!=='pull_request')throw Error('Disallowed event');
+            const candidateRef=execute?'main':context.payload.pull_request.head.sha;
+            const fetchContent=async(path,ref)=>{
+              const v=(await github.rest.repos.getContent({owner,repo,path,ref})).data;
+              if(Array.isArray(v)||v.type!=='file')throw Error('Not a file: '+path);
+              return v;
+            };
+            const manifest=JSON.parse(Buffer.from(
+              (await fetchContent('repository-hygiene/platform-handoff-and-merged-heads-retirement-20261012.json',candidateRef)).content,
+              'base64').toString('utf8'));
+            const expected=new Map([
+              ['chore/converge-tr01-legacy-to-independent-plugins-20261012',{
+                sha:'a6e5c0470a97c4c6ed0269ae7f064dc37de5ac1a',
+                pr:784,merge:'ccb5820b99d854e1e78f6c35bfb77e01e7d084f1',state:'MERGED'}],
+              ['feat/bex00-supplier-import-entry-20261012',{
+                sha:'30dcb38edc14a84189e93863d8497aa83707d88f',
+                pr:787,merge:'33ecccdaa27a96f8d6fa0e3e146b589dd71adfa8',state:'MERGED'}],
+              ['docs/platform-convergence-window-handoff-20261011',{
+                sha:'5e541887fa6da859584c8ebc0be247d1a56912e5',
+                pr:771,state:'DOCS_SUBSUMED_CLOSE_UNMERGED'}]
+            ]);
+            const paths=[
+              'docs/archive/PLATFORM-20261011-WINDOW-EXECUTION-EVIDENCE.md',
+              'docs/research/PLATFORM-20261011-WINDOW-SOURCE-INDEX.md',
+              'docs/roadmap/PLATFORM-20261011-WINDOW-DECISIONS-GAPS.md',
+              'docs/roadmap/PLATFORM-20261011-WINDOW-HANDOFF-ENTRY.md',
+              'docs/roadmap/PLATFORM-PLUGIN-BRANCH-OWNERSHIP-STATUS-20261012.md'
+            ];
+            if(manifest.schemaVersion!==1
+              ||manifest.scope!=='platform-handoff-and-three-merged-or-archived-ref-retirement-20261012'
+              ||manifest.baselineMainSha!=='0c49414d1c3131cc4026fe3fe8ae926e3119c071'
+              ||manifest.records?.length!==3
+              ||JSON.stringify(manifest.archivedPaths)!==JSON.stringify(paths)
+              ||manifest.cleanupSourceBranch!=='chore/platform-handoff-and-merged-heads-retirement-20261012'
+              ||!Number.isInteger(manifest.cleanupPrNumber)
+              ||manifest.cleanupPrNumber<0)throw Error('Unexpected manifest data');
+            const byName=new Map(manifest.records.map(x=>[x.name,x]));
+            if(byName.size!==3)throw Error('Duplicate retirement record');
+            for(const [name,assertion] of expected){
+              const r=byName.get(name);
+              if(!r||r.expectedHeadSha!==assertion.sha||r.status!==assertion.state
+                ||(assertion.state==='MERGED'
+                    ?r.mergedPr!==assertion.pr||r.mergeCommitSha!==assertion.merge
+                    :r.archivedPr!==assertion.pr))
+                throw Error('Unexpected source or provenance '+name);
+            }
+            const mainSha=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const baseline=(await github.rest.repos.compareCommits({
+              owner,repo,base:manifest.baselineMainSha,head:mainSha
+            })).data;
+            if(baseline.behind_by!==0||baseline.merge_base_commit?.sha!==manifest.baselineMainSha)
+              throw Error('Main history changed unexpectedly');
+            // PR audits compare copied blobs against the PR head. The main push verifies main.
+            const landing=execute?'main':candidateRef;
+            for(const path of paths){
+              const original=await fetchContent(path,'docs/platform-convergence-window-handoff-20261011');
+              const current=await fetchContent(path,landing);
+              if(original.sha!==current.sha)throw Error('Platform document not preserved: '+path);
+              core.info('ARCHIVED_DOC_IDENTICAL '+path+' '+original.sha);
+            }
+            for(const [name,v] of expected){
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:v.pr})).data;
+              if(pr.base.ref!=='main'
+                ||pr.head.ref!==name
+                ||pr.head.repo?.full_name!==owner+'/'+repo
+                ||pr.head.sha!==v.sha)throw Error('PR provenance changed '+v.pr);
+              if(v.state==='MERGED'){
+                if(!pr.merged||pr.state!=='closed'||pr.merge_commit_sha!==v.merge)
+                  throw Error('Merged PR mismatch '+v.pr);
+                const c=(await github.rest.repos.compareCommits({
+                  owner,repo,base:v.merge,head:mainSha
+                })).data;
+                if(c.behind_by!==0||c.merge_base_commit?.sha!==v.merge)
+                  throw Error('Merged source absent from main '+v.pr);
+              }else{
+                if(pr.merged)throw Error('Archived docs PR must not merge after handoff transfer');
+                if(execute&&pr.state!=='closed')
+                  throw Error('Close superseded docs PR #771 before deleting its head');
+                if(!execute&&pr.state!=='open'&&pr.state!=='closed')
+                  throw Error('Unexpected docs PR state');
+              }
+            }
+            const occupied=async()=>{
+              const open=(await github.rest.pulls.list({owner,repo,state:'open',per_page:100})).data;
+              if(open.length>=100)throw Error('Unbounded open PR list');
+              const refs=new Set(['main']);
+              for(const p of open){
+                refs.add(p.base.ref);
+                if(p.head.repo?.full_name===owner+'/'+repo)refs.add(p.head.ref);
+              }
+              return refs;
+            };
+            const reserved=await occupied();
+            for(const [name,v] of expected){
+              if(reserved.has(name)
+                && !(name==='docs/platform-convergence-window-handoff-20261011'&&!execute))
+                throw Error('Source still in open PR '+name);
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+              if(ref.object.sha!==v.sha)throw Error('Original ref moved '+name);
+              const br=(await github.rest.repos.getBranch({owner,repo,branch:name})).data;
+              if(br.protected)throw Error('Protected ref '+name);
+              core.info('RETIRE_VERIFIED '+name+' '+v.sha);
+            }
+            if(!execute){
+              core.info('AUDIT_ONLY_THREE_PINNED_SOURCES; nothing deleted');
+              return;
+            }
+            if(!Number.isInteger(manifest.cleanupPrNumber)||manifest.cleanupPrNumber<1)
+              throw Error('Cleanup PR number must be fixed before main execution');
+            const own=(await github.rest.pulls.get({
+              owner,repo,pull_number:manifest.cleanupPrNumber
+            })).data;
+            if(!own.merged||own.state!=='closed'||own.base.ref!=='main'
+              ||own.head.repo?.full_name!==owner+'/'+repo
+              ||own.head.ref!==manifest.cleanupSourceBranch)
+              throw Error('Cleanup PR not merged by this repository');
+            const ownAncestry=(await github.rest.repos.compareCommits({
+              owner,repo,base:own.merge_commit_sha,head:mainSha
+            })).data;
+            if(ownAncestry.behind_by!==0
+              ||ownAncestry.merge_base_commit?.sha!==own.merge_commit_sha)
+              throw Error('Cleanup PR merge not on main');
+            const ownRef=(await github.rest.git.getRef({
+              owner,repo,ref:'heads/'+manifest.cleanupSourceBranch
+            })).data;
+            if(ownRef.object.sha!==own.head.sha)throw Error('Cleanup head changed after merge');
+            const ownBranch=(await github.rest.repos.getBranch({
+              owner,repo,branch:manifest.cleanupSourceBranch
+            })).data;
+            if(ownBranch.protected)throw Error('Cleanup ref protected');
+            const lastReserved=await occupied();
+            for(const name of [...expected.keys(),manifest.cleanupSourceBranch]){
+              if(lastReserved.has(name))throw Error('Still used by open PR: '+name);
+            }
+            for(const [name,v] of expected){
+              const now=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+              if(now.object.sha!==v.sha)throw Error('Moved during retirement '+name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+              core.info('DELETED_PLATFORM_SOURCE_REF '+name);
+            }
+            const self=(await github.rest.git.getRef({
+              owner,repo,ref:'heads/'+manifest.cleanupSourceBranch
+            })).data;
+            if(self.object.sha!==own.head.sha)throw Error('Cleanup head moved during retirement');
+            await github.rest.git.deleteRef({
+              owner,repo,ref:'heads/'+manifest.cleanupSourceBranch
+            });
+            core.info('DELETED_OWN_CLEANUP_SOURCE '+manifest.cleanupSourceBranch);
+            core.info('PLATFORM_HANDOFF_RETIRED_4_SOURCE_REFS');
