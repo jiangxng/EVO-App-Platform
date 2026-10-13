@@ -95,3 +95,7 @@ Document class: DECISION_AND_GAP_HANDOFF。先读[简短入口](WINDOW-RESEARCH-
 **已核源码问题**：当前Thread发送入口只扫描最新100个Run，故旧clientTurnId的准确去重不成立。
 
 **本阶段工程判断**：在不启用PostgreSQL proof、不触碰生产的情况下，先给正式V010 Store增加精确、不分页的来源身份查找及同进程拒绝重复创建，添加131+运行记录回归。独立于未来异步V020唯一键的原子事实，不能当作多Worker并发解决。详见[PA02阶段门禁快照](PA02-STAGE-GATES-SNAPSHOT-20261013.md)。
+
+## 12. PA-02A 完整Receipt持久信息与业务Owner核验区分（2026-10-13）
+
+V020原隔离Proof只保存Receipt状态/摘要，不能承载正式V010回执的完整调用和终态证据，这是正式Host接线前的明确结构缺口。新增可选原始调用及终态JSONB字段和scope/Owner一致性验证，保留旧实验证据兼容，但仍须业务Owner认可结果、真实企业身份授权、可靠Outbox与Run统一状态，不可通过Schema列存在声称PA-02全部完成。

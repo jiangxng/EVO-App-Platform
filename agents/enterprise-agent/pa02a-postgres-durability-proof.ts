@@ -45,9 +45,35 @@ function same(a: unknown, b: unknown): boolean {
 function runRecord(row: Record<string,unknown>, created: boolean): AgentTurnClaimResultV020 {
   return {created,runId:String(row.run_id),taskDigest:String(row.task_digest),revision:Number(row.revision)};
 }
+function parsedJson<T>(raw: unknown): T | undefined {
+  if (raw === null || raw === undefined) return undefined;
+  return typeof raw === "string" ? JSON.parse(raw) as T : structuredClone(raw as T);
+}
 function receiptRecord(row: Record<string,unknown>): AgentReceiptRecordV020 {
+  const requested=parsedJson<AgentReceiptBeginInputV020["receipt"]>(row.request_payload);
+  const terminal=parsedJson<NonNullable<Parameters<AsyncAgentRunReceiptRepositoryV020["completeReceipt"]>[0]["terminal"]>>(row.terminal_payload);
   return {receiptId:String(row.receipt_id),status:row.status as AgentReceiptRecordV020["status"],
-    inputDigest:String(row.input_digest),revision:Number(row.revision)};
+    inputDigest:String(row.input_digest),revision:Number(row.revision),
+    ...(requested ? {requested} : {}),...(terminal ? {terminal} : {})};
+}
+function canonicalReceiptRequest(r: AgentReceiptBeginInputV020["receipt"]) {
+  return {
+    idempotencyKey:r.idempotencyKey,sourceInteractionId:r.sourceInteractionId,
+    sourceActionId:r.sourceActionId,principalSubjectId:r.principalSubjectId,
+    principalActorType:r.principalActorType,context:r.context,toolId:r.toolId,
+    ownerPackageId:r.ownerPackageId,capability:r.capability,inputDigest:r.inputDigest
+  };
+}
+function assertReceiptScope(scope: HostResolvedAgentDurabilityScopeV020, r: AgentReceiptBeginInputV020["receipt"]) {
+  if(r.principalSubjectId !== scope.principalSubjectId || r.principalActorType !== scope.principalActorType
+    || r.context?.kind !== scope.contextKind || r.context?.contextId !== scope.contextId
+    || (scope.contextKind === "ENTERPRISE"
+      && (r.context.kind !== "ENTERPRISE" || r.context.enterpriseId !== scope.enterpriseId))) {
+    throw Error("PA02A_RECEIPT_SCOPE_MISMATCH");
+  }
+  required(r.sourceInteractionId); required(r.sourceActionId);
+  required(r.toolId); required(r.ownerPackageId);
+  if(!Number.isFinite(Date.parse(r.requestedAt)))throw Error("PA02A_RECEIPT_DATE_INVALID");
 }
 
 export async function createPostgresAgentDurabilityProofV020(input:{
@@ -72,8 +98,11 @@ export async function createPostgresAgentDurabilityProofV020(input:{
         "receipt_id text PRIMARY KEY,scope_key text NOT NULL,idempotency_key text NOT NULL,"+
         "input_digest text NOT NULL,status text NOT NULL DEFAULT 'REQUESTED',"+
         "revision integer NOT NULL DEFAULT 0,"+
+        "request_payload jsonb,terminal_payload jsonb,"+
         "CHECK(status IN ('REQUESTED','SUCCEEDED','FAILED','DENIED')),"+
         "UNIQUE(scope_key,idempotency_key))");
+      await tx.unsafe("ALTER TABLE "+q+".agent_receipts ADD COLUMN IF NOT EXISTS request_payload jsonb");
+      await tx.unsafe("ALTER TABLE "+q+".agent_receipts ADD COLUMN IF NOT EXISTS terminal_payload jsonb");
     });
   } catch(error) {await sql.end();throw error;}
 
@@ -86,7 +115,7 @@ export async function createPostgresAgentDurabilityProofV020(input:{
   };
   const getReceipt=async (r:{scope:HostResolvedAgentDurabilityScopeV020;receiptId:string;}):
   Promise<AgentReceiptRecordV020|undefined>=>{
-    const rows=await sql.unsafe("SELECT receipt_id,status,input_digest,revision FROM "+q+".agent_receipts "+
+    const rows=await sql.unsafe("SELECT * FROM "+q+".agent_receipts "+
       "WHERE scope_key=$1 AND receipt_id=$2",[scopeKey(r.scope),required(r.receiptId)]);
     return rows[0]?receiptRecord(rows[0]):undefined;
   };
@@ -142,28 +171,37 @@ export async function createPostgresAgentDurabilityProofV020(input:{
     async beginReceipt(r:AgentReceiptBeginInputV020) {
       const key=scopeKey(r.scope),receipt=r.receipt;
       const id=required(receipt.receiptId),idem=required(receipt.idempotencyKey),hash=ensureDigest(receipt.inputDigest);
+      assertReceiptScope(r.scope,receipt);
       return sql.begin(async tx=>{
         const inserted=await tx.unsafe("INSERT INTO "+q+".agent_receipts "+
-          "(receipt_id,scope_key,idempotency_key,input_digest,status) "+
-          "VALUES($1,$2,$3,$4,'REQUESTED') ON CONFLICT DO NOTHING "+
-          "RETURNING receipt_id,status,input_digest,revision",[id,key,idem,hash]);
+          "(receipt_id,scope_key,idempotency_key,input_digest,status,request_payload) "+
+          "VALUES($1,$2,$3,$4,'REQUESTED',$5::jsonb) ON CONFLICT DO NOTHING "+
+          "RETURNING *",[id,key,idem,hash,JSON.stringify(receipt)]);
         if(inserted.length)return {...receiptRecord(inserted[0]),created:true};
-        const rows=await tx.unsafe("SELECT receipt_id,status,input_digest,revision "+
+        const rows=await tx.unsafe("SELECT * "+
           "FROM "+q+".agent_receipts WHERE scope_key=$1 AND idempotency_key=$2",[key,idem]);
         if(!rows.length||rows[0].input_digest!==hash)throw new Error("PA02A_RECEIPT_IDEMPOTENCY_CONFLICT");
+        const prior=receiptRecord(rows[0]).requested;
+        if(!prior)throw Error("PA02A_RECEIPT_LEGACY_METADATA_UNAVAILABLE");
+        if(!same(canonicalReceiptRequest(prior),canonicalReceiptRequest(receipt)))
+          throw Error("PA02A_RECEIPT_IDEMPOTENCY_CONFLICT");
         return {...receiptRecord(rows[0]),created:false};
       });
     },
     async completeReceipt(r) {
       const key=scopeKey(r.scope),id=required(r.receiptId);
       if(!["SUCCEEDED","FAILED","DENIED"].includes(r.status))throw new Error("PA02A_TERMINAL_INVALID");
+      if(r.terminal && (r.terminal.receiptId!==id || r.terminal.status!==r.status
+        || !Number.isFinite(Date.parse(r.terminal.completedAt))))throw Error("PA02A_TERMINAL_EVIDENCE_INVALID");
       const rows=await sql.unsafe("UPDATE "+q+".agent_receipts "+
-        "SET status=$3,revision=revision+1 WHERE scope_key=$1 AND receipt_id=$2 "+
-        "AND status='REQUESTED' RETURNING receipt_id,status,input_digest,revision",
-        [key,id,r.status]);
+        "SET status=$3,terminal_payload=$4::jsonb,revision=revision+1 WHERE scope_key=$1 AND receipt_id=$2 "+
+        "AND status='REQUESTED' RETURNING *",
+        [key,id,r.status,r.terminal?JSON.stringify(r.terminal):null]);
       if(rows.length)return {...receiptRecord(rows[0]),transitioned:true};
       const old=await getReceipt({scope:r.scope,receiptId:id});
-      if(!old||old.status!==r.status)throw new Error("PA02A_RECEIPT_TERMINAL_CONFLICT");
+      if(!old||old.status!==r.status
+        || (r.terminal && !same(old.terminal,r.terminal)))
+        throw new Error("PA02A_RECEIPT_TERMINAL_CONFLICT");
       return {...old,transitioned:false};
     },
     getReceipt,
