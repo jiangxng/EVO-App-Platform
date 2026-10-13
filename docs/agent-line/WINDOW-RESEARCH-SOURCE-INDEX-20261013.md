@@ -95,3 +95,8 @@ Document class: VERIFIED_SOURCE_INDEX_WITH_HISTORICAL_LINKS。配套：[简短�
 ## 8. 2026-10-13 PA-02B后续窗口新增源码来源
 
 | G19 已读内部源码/PR | [Platform #800](https://github.com/jiangxng/EVO-App-Platform/pull/800)；[PA-02B阶段文档](PA02B-FENCING-UNKNOWN-WRITE-20261013.md) | 2026-10-13 当前main原文核对V010 Run executor和Receipt、V020 PostgreSQL proof后新增隔离Lease/Write Intent、CI测试；只有看到精确head PASS才能升级运行证明 | 工程判断为持久fence+UNKNOWN quarantine，不代表正式Host单飞运行或外部工具审计；14项历史外链均未重新打开（H）。 |
+
+
+## 9. 2026-10-13 PA-02C后续窗口新增内部证据
+
+| G20 已读当前源码 + 待精确CI核验 | [Platform #801](https://github.com/jiangxng/EVO-App-Platform/pull/801)、[PA-02C记录](PA02C-DURABLE-CANCELLATION-20261013.md) | 2026-10-13 按现行V010 Run reducer/runtime、PA-02B隔离调度器和Host职责新增PostgreSQL取消屏障；后续以PR实际GitHub Actions查证运行状态 | 只证明实验性REQUESTED/CANCELLED取消事实、已发出WRITE不自动撤销；正式Host Run终态及生产仍无验收。外部来源S1–S14仍保留H级未重读。 |
