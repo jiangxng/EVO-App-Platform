@@ -1,7 +1,7 @@
 # PA-02A — 独立 Node 进程重启恢复门禁（2026-10-13）
 
 Document class: AGENT_LINE_INCREMENTAL_EVIDENCE
-Status: IMPLEMENTED_IN_SHORT_PR / CI_PENDING / NOT_HOST_WIRED / NOT_PRODUCTION
+Status: ISOLATED_POSTGRES_NODE_PROCESS_CRASH_RECOVERY_CI_PASS / NOT_HOST_WIRED / NOT_PRODUCTION
 
 ## 目的和当前基线
 
@@ -9,7 +9,7 @@ Status: IMPLEMENTED_IN_SHORT_PR / CI_PENDING / NOT_HOST_WIRED / NOT_PRODUCTION
 
 本阶段只新增 `tests/agent-line/pa02a-process-recovery.test.mjs` 并把它加入原 `agent-pa02a-postgres-durability.yml` PostgreSQL 18 一次性服务的独立CI。实现继续调用已经合并进main、但**未绑定正式Host**的 `createPostgresAgentDurabilityProofV020`。不改同步V010、`manager/server.ts`、Conversation持久化、EVO业务系统、插件目录或生产环境。
 
-## 设计与可复验断言（源码断言；只有CI实际成功后才可标通过）
+## 设计与可复验断言（已于下列准确head的CI实际执行通过）
 
 1. 测试父进程使用**真实独立Node子进程A**，在随机隔离 PostgreSQL schema 中完成 Run claim 和 REQUESTED Receipt 两次事务，**未向父进程确认结果前自发SIGKILL**。
 2. 父进程实际观察 A 的 `SIGKILL`；启动新的**独立Node子进程B**重新连接同一数据库/Schema，从数据库读取Run、RUN_CREATED事件和未终结的REQUESTED回执。
@@ -32,3 +32,9 @@ Status: IMPLEMENTED_IN_SHORT_PR / CI_PENDING / NOT_HOST_WIRED / NOT_PRODUCTION
 3. 任何Host接入都另经真实隔离Host端到端、鉴权及回滚门禁，不随本实验测试改动开启生产绑定。
 
 资料阅读等级：本阶段直接核对了GitHub原文 `manager/server.ts` Store构造位置、V020接口、隔离Postgres实现/测试/CI、PA02A候选设计和State Context宪法；旧14条外链仅历史索引(H)，未据此新增事实。
+
+## 首轮精确CI结果（2026-10-13 UTC+8）
+
+- 首次测试head：`fe699a2c17e8d5927c7bfe889a7dd5493d81c5a4`，PR [#799](https://github.com/jiangxng/EVO-App-Platform/pull/799)，[PostgreSQL 18工作流38345829365 / job115126899050](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365/jobs/115126899050)，**SUCCESS**。
+- 实际job log包含 `PA02A_ACTUAL_PROCESS_RESTART`：`status=PASS`、`parentObservedSignal=SIGKILL`、`recoveredFromDifferentNodeProcess=true`、`runCount=1`、`eventCount=1`、`receiptCount=1`、`receiptRemainsUnreconciled=true`；日志显示旧唯一性实验也PASS。
+- 同一head上的Project Continuity、Lightweight Host Architecture与短分支退役审计均SUCCESS。此后文档增量提交需在**最终PR head重新检查CI**，不能拿第一次通过冒称最终head通过。
