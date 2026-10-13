@@ -1,0 +1,181 @@
+import { randomUUID } from "node:crypto";
+import type { AgentRunCreateInputV010, AgentRunEventV010, AgentRunV010 } from "../contracts/agent-run.js";
+import type { PlatformPrincipalV010, PlatformRequestContextV010, ResolvedContextSetV010 } from "../contracts/platform-services.js";
+import type { LlmInferenceProvider } from "../contracts/llm.js";
+import type { AgentToolCatalogV010 } from "../agents/enterprise-agent/contracts.js";
+import type { AsyncAgentRunReceiptRepositoryV020 } from "../contracts/agent-durability-async.js";
+import type { FencedAgentRunAuthorityV030 } from "../agents/enterprise-agent/pa02b-fenced-run-authority.js";
+import type { AgentAtomicCancellationPortV020 } from "../agents/enterprise-agent/pa02c-atomic-run-cancel.js";
+import type { AgentExecutionCoordinatorV020 } from "../agents/enterprise-agent/pa02b-postgres-coordination.js";
+import { createHostScopedAsyncAgentRunBridgeV020,hostResolvedAgentDurabilityScopeV020 } from "./agent-durability-host-bridge.js";
+import { createReadOnlyFencedAgentWorkerV030 } from "../agents/enterprise-agent/pa02-async-read-worker.js";
+
+export interface HostAsyncReadExecutionV030 {
+  start(input: { create: AgentRunCreateInputV010; principal: PlatformPrincipalV010;
+    context: ResolvedContextSetV010; requestContext?:PlatformRequestContextV010 }):Promise<AgentRunV010>;
+  resume(input: {runId:string; principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010;requestContext?:PlatformRequestContextV010}):Promise<AgentRunV010>;
+  read(input: {runId:string; principal:PlatformPrincipalV010;context:ResolvedContextSetV010}):Promise<AgentRunV010|undefined>;
+  cancel(input: {runId:string; reason:string;principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010}):Promise<{run:AgentRunV010;state:"REQUESTED"|"CANCELLED"}>;
+  close():Promise<void>;
+}
+export interface HostAsyncReadExecutionDependenciesV030 {
+  resolveProvider():LlmInferenceProvider|undefined;
+  createToolCatalog(run:AgentRunV010,principal:PlatformPrincipalV010,
+    context:ResolvedContextSetV010,requestContext:PlatformRequestContextV010|undefined,
+    interaction:{sourceInteractionId:string;sourceActionId:string}):AgentToolCatalogV010;
+}
+function valid(s:unknown):string {
+  if(typeof s!=="string"||!s.trim())throw Error("PA02_HOST_RUN_ID_REQUIRED");
+  return s.trim();
+}
+/**
+ * Explicit development-mode async Run execution. Uses real fenced persisted Run
+ * state and optional cooperative READ-worker yielding. No material WRITE is
+ * dispatched: an undecided or WRITE tool causes a visible BLOCKED state.
+ *
+ * Not a substitute for the existing ordinary-chat Thread/Receipt pipeline.
+ */
+export async function createPostgresHostAsyncReadExecutionV030(input:{
+  connectionString:string;schema:string;deps:HostAsyncReadExecutionDependenciesV030;
+}):Promise<HostAsyncReadExecutionV030> {
+  if(!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema))
+    throw Error("PA02_HOST_WORKER_SCHEMA_INVALID");
+  if(!input.connectionString?.trim())
+    throw Error("PA02_HOST_WORKER_DATABASE_URL_REQUIRED");
+  const [{createPostgresAgentDurabilityProofV020},
+    {createPostgresAgentExecutionCoordinatorV020},
+    {createPostgresFencedAgentRunAuthorityV030},
+    {createPostgresAtomicAgentRunCancellationV020}]=await Promise.all([
+    import("../agents/enterprise-agent/pa02a-postgres-durability-proof.js"),
+    import("../agents/enterprise-agent/pa02b-postgres-coordination.js"),
+    import("../agents/enterprise-agent/pa02b-fenced-run-authority.js"),
+    import("../agents/enterprise-agent/pa02c-atomic-run-cancel.js")
+  ]);
+  let repo:AsyncAgentRunReceiptRepositoryV020|undefined;
+  let execution:AgentExecutionCoordinatorV020|undefined;
+  let authority:FencedAgentRunAuthorityV030|undefined;
+  let cancellation:AgentAtomicCancellationPortV020|undefined;
+  const close=async()=>{
+    for(const service of [cancellation,authority,execution,repo]) {
+      if(service)await service.close();
+    }
+  };
+  try{
+    repo=await createPostgresAgentDurabilityProofV020({
+      connectionString:input.connectionString,schema:input.schema
+    });
+    execution=await createPostgresAgentExecutionCoordinatorV020({
+      connectionString:input.connectionString,schema:input.schema
+    });
+    authority=await createPostgresFencedAgentRunAuthorityV030({
+      connectionString:input.connectionString,schema:input.schema
+    });
+    cancellation=await createPostgresAtomicAgentRunCancellationV020({
+      connectionString:input.connectionString,schema:input.schema
+    });
+  }catch(e){await close();throw e;}
+  const durable=repo!,fenced=authority!,cancel=cancellation!;
+  const reader=(i:{principal:PlatformPrincipalV010;context:ResolvedContextSetV010})=>
+    createHostScopedAsyncAgentRunBridgeV020({
+      repository:durable,principal:i.principal,context:i.context
+    });
+  const read=async (r:{runId:string;principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010})=>reader(r).getRun(valid(r.runId));
+  const runWorker=async (r:{runId:string;principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010;requestContext?:PlatformRequestContextV010})=>{
+    const runId=valid(r.runId);
+    const before=await read(r);
+    if(!before)throw Error("AGENT_RUN_NOT_FOUND");
+    const worker=createReadOnlyFencedAgentWorkerV030({
+      authority:fenced,releaseOnReturn:true,ttlSeconds:180,
+      resolveProvider:input.deps.resolveProvider,
+      createToolCatalog:input.deps.createToolCatalog,
+      eventId:randomUUID,sliceId:randomUUID
+    });
+    let run=before;
+    for(let i=0;i<24;i++){
+      if(["SUCCEEDED","FAILED","BLOCKED","CANCELLED"].includes(run.state))return run;
+      const result=await worker.resumeOnce({
+        runId,workerId:"agent-host-read-worker:"+randomUUID(),
+        principal:r.principal,context:r.context,requestContext:r.requestContext
+      });
+      run=result.run;
+      if(!result.claimed||!result.advanced)return run;
+    }
+    // Max bounded work per action invocation, but leaves the persisted Run
+    // ready to resume; never fabricates success on exhausted slices.
+    return run;
+  };
+  return {
+    read,
+    async start(r){
+      const created=r.create;
+      if(created.principalSubjectId!==r.principal.subjectId ||
+        created.principalActorType!==r.principal.actorType ||
+        JSON.stringify(created.context)!==JSON.stringify(r.context.activeContext)) {
+        throw Error("PA02_HOST_RUN_CREATED_SCOPE_MISMATCH");
+      }
+      const event:AgentRunEventV010={
+        contractVersion:"0.1.0",runId:valid(created.runId),
+        eventId:"agent-run-event:"+randomUUID(),type:"RUN_CREATED",
+        occurredAt:created.createdAt,
+        payload:{
+          principalSubjectId:created.principalSubjectId,
+          principalActorType:created.principalActorType,
+          context:structuredClone(created.context),
+          sourceInteractionId:created.sourceInteractionId,
+          sourceActionId:created.sourceActionId,
+          input:structuredClone(created.input)
+        }
+      };
+      const claim=await reader(r).claimTurn({
+        threadId:created.sourceInteractionId,clientTurnId:created.sourceActionId,created:event
+      });
+      return runWorker({...r,runId:claim.runId});
+    },
+    resume:runWorker,
+    async cancel(r){
+      const runId=valid(r.runId),scope=hostResolvedAgentDurabilityScopeV020(r);
+      const before=await read(r);
+      if(!before)throw Error("AGENT_RUN_NOT_FOUND");
+      await cancel.request({scope,runId,
+        requestedBy:r.principal.subjectId,reason:valid(r.reason)});
+      let state:"REQUESTED"|"CANCELLED"="REQUESTED";
+      try{
+        const committed=await cancel.commitSafe({
+          scope,runId,eventId:"agent-run-event:"+randomUUID(),
+          occurredAt:new Date().toISOString()
+        });
+        state=committed.state;
+      }catch(error){
+        // Real in-flight work/uncertain WRITE or Receipt is NEVER declared
+        // cancelled. Caller can retry after worker quiescence or owner review.
+        const code=error instanceof Error?error.message:String(error);
+        if(!["PA02C_WORKER_NOT_QUIESCED","PA02C_UNCONFIRMED_WRITE",
+          "PA02C_UNCONFIRMED_RECEIPT"].includes(code))throw error;
+      }
+      const run=await read(r);
+      if(!run)throw Error("AGENT_RUN_NOT_FOUND");
+      return {run,state};
+    },
+    close
+  };
+}
+
+export async function createOptionalPostgresHostAsyncReadExecutionV030(
+  env:Record<string,string|undefined>,deps:HostAsyncReadExecutionDependenciesV030
+):Promise<HostAsyncReadExecutionV030|undefined>{
+  const mode=env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase()||"OFF";
+  if(mode==="OFF")return undefined;
+  if(mode!=="READ_ONLY")throw Error("PA02_HOST_WORKER_MODE_INVALID");
+  if((env.APP_PLATFORM_AGENT_RUN_ASYNC_READ_MODE?.trim().toUpperCase()||"OFF")!=="OFF")
+    throw Error("PA02_HOST_WORKER_READ_MODE_CONFLICT");
+  const connectionString=env.APP_PLATFORM_AGENT_RUN_ASYNC_DATABASE_URL?.trim();
+  if(!connectionString)throw Error("PA02_HOST_WORKER_DATABASE_URL_REQUIRED");
+  const schema=env.APP_PLATFORM_AGENT_RUN_ASYNC_SCHEMA?.trim();
+  if(!schema||!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
+    throw Error("PA02_HOST_WORKER_SCHEMA_INVALID");
+  return createPostgresHostAsyncReadExecutionV030({connectionString,schema,deps});
+}
