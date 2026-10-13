@@ -105,3 +105,8 @@ Document class: LIVING_HANDOFF_POINTER。**本文件是本窗口截至2026-10-13
 - `docs/agent-pa02-context-recovery-20261013`：本窗口自己创建的文档分支，[#823](https://github.com/jiangxng/EVO-App-Platform/pull/823)；本规则**复用此分支追加**，不再另外开枝。通过CI后合并并清理。
 - `feat/governance-provider-lifecycle-ui-20261013` / `fix/governance-revision-resource-lifecycle-20261013`：对应 [#817](https://github.com/jiangxng/EVO-App-Platform/pull/817)/[#796](https://github.com/jiangxng/EVO-App-Platform/pull/796)已经合并但远端引用仍在，由Governance owner按SHA/合并历史核对后清理。
 - 本次GitHub列表合计7分支（包含`main`），其中3条PA-02开发线+1条本窗口Agent文档线。**本轮仅执行文档增量记录，没有自行删除上述仍含独有提交的分支；仓库级自动分支治理CI尚未实现。**
+
+## 长期执行规范入口
+
+- Agent开发从本次开始遵守 [Agent开发交付与分支治理规范](AGENT-DELIVERY-AND-BRANCH-GOVERNANCE.md)：一项任务单分支、复用已验证能力、短闭环入main、禁止无PR独有提交滞留、合并与安全清理同属交付，PA-02按原R01–R10收口。
+- GitHub实现复用现有 `.github/workflows/branch-hygiene.yml`：定时无PR Agent分支审计与合并后同仓Agent PR源分支的SHA+祖先核验清理；此工作流只有入main并正常运行才算自动化生效，不用文档替代真实验证。
