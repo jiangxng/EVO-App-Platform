@@ -137,3 +137,44 @@ test("EVO runtime revision bridge fails closed on invalid revision responses", a
   close();
   bridge.dispose();
 });
+
+test("duplicate registration ownership survives one release and late cancelled reads cannot seed cache", async () => {
+  const item = { connectionId: "same", contextId: "context", enterpriseId: "enterprise",
+    evoEnterpriseCode: "CODE", resourceId: "resource" };
+  const reads = [];
+  const pending = [];
+  const changed = [];
+  const bridge = createEvoRuntimeRevisionBridgeV010({
+    baseUrl: "https://evo.test", intervalMs: 60_000,
+    fetchImpl: (url, init) => {
+      reads.push(init);
+      return new Promise(resolve => pending.push(resolve)); // intentionally ignores AbortSignal
+    }, onChanged: e => changed.push(e)
+  });
+  const response = etag => new Response(JSON.stringify({ contractVersion: "0.1.0",
+    enterpriseId: "runtime", enterpriseCode: "CODE" }), { headers: { etag } });
+  const a = bridge.register([item]);
+  const b = bridge.register([item]);
+  a(); a();
+  assert.equal(bridge.diagnostics().interestCount, 1);
+  assert.equal(reads[0].signal.aborted, false);
+  b();
+  assert.equal(reads[0].signal.aborted, true);
+  const c = bridge.register([item]);
+  const oldPoll = bridge.pollNow();
+  pending.shift()(response('"obsolete"'));
+  await oldPoll;
+  const newPoll = bridge.pollNow();
+  assert.equal(new Headers(reads[1].headers).has("if-none-match"), false);
+  pending.shift()(response('"current"'));
+  await newPoll;
+  assert.equal(changed.length, 0);
+  c(); bridge.dispose();
+});
+
+test("request timeout configuration rejects invalid timer values", () => {
+  for (const requestTimeoutMs of [0, -1, NaN, Infinity, 2_147_483_648]) {
+    assert.throws(() => createEvoRuntimeRevisionBridgeV010({ baseUrl: "https://evo.test",
+      requestTimeoutMs, onChanged() {} }), /TIMEOUT_INVALID/);
+  }
+});

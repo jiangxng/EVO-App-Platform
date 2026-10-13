@@ -34,6 +34,7 @@ export interface EvoRuntimeRevisionBridgeV010 {
 export function createEvoRuntimeRevisionBridgeV010(options: {
   baseUrl: string;
   intervalMs?: number;
+  requestTimeoutMs?: number;
   fetchImpl?: typeof fetch;
   onChanged(event: EvoRuntimeRevisionBridgeEventV010): void;
   onError?(input: { evoEnterpriseCode: string; error: unknown }): void;
@@ -44,6 +45,12 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
     throw new Error("EVO_RUNTIME_REVISION_BRIDGE_INTERVAL_INVALID");
   }
 
+  const requestTimeoutMs = options.requestTimeoutMs ?? 10_000;
+  if (!Number.isFinite(requestTimeoutMs) || requestTimeoutMs < 1 || requestTimeoutMs > 2_147_483_647) {
+    throw new Error("EVO_RUNTIME_REVISION_BRIDGE_TIMEOUT_INVALID");
+  }
+  const owners = new Map<string, number>();
+  const requests = new Map<string, AbortController>();
   const interests = new Map<string, EvoRuntimeRevisionInterestV010>();
   const etags = new Map<string, string>();
   const initialized = new Set<string>();
@@ -61,23 +68,46 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
     ...new Set([...interests.values()].map(item => item.evoEnterpriseCode))
   ].sort();
 
+  const releaseUnused = () => {
+    const active = new Set(activeCodes());
+    for (const [code, controller] of requests) {
+      if (!active.has(code)) controller.abort();
+    }
+    for (const code of etags.keys()) {
+      if (!active.has(code)) { etags.delete(code); initialized.delete(code); }
+    }
+  };
+
   const stopIfIdle = () => {
+    releaseUnused();
     if (interests.size > 0 || timer === undefined) return;
     clearInterval(timer);
     timer = undefined;
   };
 
   const pollCode = async (code: string): Promise<void> => {
+    if (disposed || !activeCodes().includes(code)) return;
     const previous = etags.get(code);
+    const controller = new AbortController();
+    requests.set(code, controller);
+    let timedOut = false;
+    let response: Response | undefined;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort(new Error("EVO_RUNTIME_REVISION_TIMEOUT"));
+    }, requestTimeoutMs);
+    timeout.unref?.();
+    const cancelled = () => disposed || controller.signal.aborted || !activeCodes().includes(code);
     try {
       checks += 1;
       lastCheckAt = new Date().toISOString();
-      const response = await fetchImpl(
+      response = await fetchImpl(
         options.baseUrl.replace(/\/$/u, "")
           + "/api/v1/enterprises/"
           + encodeURIComponent(code)
           + "/runtime-revision",
         {
+          signal: controller.signal,
           headers: {
             accept: "application/json",
             ...(previous ? { "if-none-match": previous } : {})
@@ -85,6 +115,7 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
         }
       );
 
+      if (cancelled()) return;
       if (response.status === 304) {
         notModified += 1;
         return;
@@ -114,6 +145,7 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
         throw new Error("EVO_RUNTIME_REVISION_RESPONSE_INVALID");
       }
 
+      if (cancelled()) return;
       etags.set(code, etag);
       if (!initialized.has(code)) {
         initialized.add(code);
@@ -134,8 +166,17 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
         });
       }
     } catch (error) {
+      if (cancelled() && !timedOut) return;
       errors += 1;
-      options.onError?.({ evoEnterpriseCode: code, error });
+      options.onError?.({ evoEnterpriseCode: code, error: timedOut
+        ? new Error("EVO_RUNTIME_REVISION_TIMEOUT", { cause: error }) : error });
+    } finally {
+      clearTimeout(timeout);
+      requests.delete(code);
+      // Release unread error/304 bodies as well as successful bodies.
+      if (response?.body && !response.body.locked) {
+        await response.body.cancel().catch(() => undefined);
+      }
     }
   };
 
@@ -171,6 +212,7 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
           item.resourceId
         ].join("\u001f");
         interests.set(key, { ...item });
+        owners.set(key, (owners.get(key) ?? 0) + 1);
         ownedKeys.push(key);
       }
       if (ownedKeys.length > 0) {
@@ -181,7 +223,11 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
       return () => {
         if (closed) return;
         closed = true;
-        for (const key of ownedKeys) interests.delete(key);
+        for (const key of ownedKeys) {
+          const remaining = (owners.get(key) ?? 1) - 1;
+          if (remaining > 0) owners.set(key, remaining);
+          else { owners.delete(key); interests.delete(key); }
+        }
         stopIfIdle();
       };
     },
@@ -202,6 +248,8 @@ export function createEvoRuntimeRevisionBridgeV010(options: {
     dispose() {
       disposed = true;
       interests.clear();
+      owners.clear();
+      releaseUnused();
       if (timer !== undefined) clearInterval(timer);
       timer = undefined;
     }

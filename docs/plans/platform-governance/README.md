@@ -6,6 +6,10 @@
 
 - [整体规划与执行路线](PLAN.md)
 - [GOV-00 首轮代码对账](BASELINE-20261013.md)
+- [统一生命周期管理API](ADMIN-LIFECYCLE-API.md)
+- [过程分支清理交接](BRANCH-CLEANUP.md)
+- [异步停用状态与重试](PROVIDER-STOP-LIFECYCLE.md)
+- [真实订阅资源释放与超时](REVISION-RESOURCE-LIFECYCLE.md)
 - [按需Provider试点](LAZY-PROVIDER.md)
 - [启动恢复首批治理](STARTUP-RESTORE.md)
 - [首批运行资源基准](RUNTIME-BASELINE.md)
@@ -13,6 +17,6 @@
 - [项目待办](../../roadmap/BACKLOG.md)
 
 当前：已加入轻量宿主CI静态门禁与懒加载行为测试；GOV-00首轮静态对账完成，首批隔离环境运行基准已测，最小宿主与业务负载对比仍未完成。已加入显式minimal安装模式及一次性默认安装/产品迁移机制；未操作线上插件、数据或部署。
-当前GOV-02：瓶颈分析Provider已改为按需创建，静态依赖299→297。下一步验证具备真实连接/订阅资源的非关键服务及超时/取消策略；尚未完成全平台按需运行。不先动登录、凭据或生产账本。
+当前GOV-02：瓶颈分析Provider已改为按需创建，静态依赖299→297。已补充运行时修订订阅桥的真实HTTP取消、正文超时、重复订阅释放与恢复测试；已补充Provider内部停止状态、有限等待与安全重试；已接入授权与审计保护的统一管理API；下一步接入管理页面并选择第二个Provider迁移；尚未完成全平台按需运行。不先动登录、凭据或生产账本。
 
 本专项不接管BEX、Agent、2D Designer、EVO业务专项；BEX-00已由原窗口完成，BEX-01继续由原窗口推进。交易示例及未完成插件展示按用户要求暂不处理。

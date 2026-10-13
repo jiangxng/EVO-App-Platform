@@ -29,6 +29,9 @@ export interface ProviderBindingAuditEventV010 {
   eventId: string;
   occurredAt: string;
   action:
+    | "READ_PROVIDER_LIFECYCLE"
+    | "RETRY_PROVIDER_STOP"
+    | "PROVIDER_STOP_RESULT"
     | "UPDATE_PROVIDER_BINDING"
     | "PROBE_PROVIDER_HEALTH"
     | "READ_PROVIDER_GOVERNANCE_AUDIT";
@@ -38,6 +41,7 @@ export interface ProviderBindingAuditEventV010 {
   correlationId?: string;
   capability?: string;
   providerId?: string;
+  packageId?: string;
   scope?: string;
   scopeId?: string;
   reason: string;

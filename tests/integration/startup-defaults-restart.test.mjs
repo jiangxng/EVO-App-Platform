@@ -5,12 +5,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fork } from 'node:child_process';
 
-async function boot(stateFile, profile, check) {
+async function boot(stateFile, profile, check, extraEnv = {}) {
   const child = fork(path.resolve('dist/manager/server.js'), [], {
     execArgv: ['--import', path.resolve('tools/lightweight-host-probe.mjs')],
     env: { PATH: process.env.PATH, PORT: '0', NODE_ENV: 'test',
       APP_PLATFORM_STATE_FILE: stateFile, APP_PLATFORM_MANAGED_SESSION_ENABLED: 'true',
-      ...(profile ? { APP_PLATFORM_STARTUP_PROFILE: profile } : {}) },
+      ...(profile ? { APP_PLATFORM_STARTUP_PROFILE: profile } : {}), ...extraEnv },
     stdio: ['ignore', 'pipe', 'pipe', 'ipc']
   });
   child.stdout.resume();
@@ -103,5 +103,31 @@ test('completed 2D cutover does not reactivate an intentionally disabled Designe
     const restarted = await boot(file);
     assert.ok(!restarted.activeFeatures.some(item => item.featureId === 'evo-eog-2d.designer'));
     assert.ok(restarted.activeFeatures.some(item => item.featureId === 'evo-eog-2d.viewer'));
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+
+test('real Host lifecycle API denies anonymous access and rejects retry of an idle runtime', { timeout: 30000 }, async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-lifecycle-admin-'));
+  try {
+    await boot(path.join(directory, 'state.json'), 'minimal', async port => {
+      const base = `http://127.0.0.1:${port}/v1/providers/lifecycle`;
+      assert.equal((await fetch(base)).status, 403);
+      const headers = { authorization: 'Bearer isolated-test-admin' };
+      const read = await fetch(base, { headers });
+      assert.equal(read.status, 200);
+      const value = await read.json();
+      assert.equal(value.runtimes.length, 1);
+      assert.equal(value.runtimes[0].phase, 'IDLE');
+      const retry = await fetch(base + '/retry-stop?packageId=' + value.runtimes[0].packageId,
+        { method: 'POST', headers });
+      assert.equal(retry.status, 409);
+    }, {
+      APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN: 'isolated-test-admin',
+      APP_PLATFORM_AUTHORIZATION_POLICY_JSON: JSON.stringify({ contractVersion: '0.1.0', rules: [{
+        id: 'isolated-admin', effect: 'ALLOW', subjectIds: ['bootstrap-admin'], actorTypes: ['HUMAN'],
+        actions: ['provider.lifecycle.read', 'provider.lifecycle.retry-stop']
+      }] })
+    });
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });

@@ -1,3 +1,4 @@
+import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -3174,6 +3175,12 @@ async function authorizeHostAdministration(
     }
   );
 }
+
+const providerLifecycleAdministration = createProviderLifecycleAdministrationV010({
+  entries: new Map([[EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID, bottleneckRuntime]]),
+  authorize: authorizeHostAdministration,
+  audit: providerAudit
+});
 
 const runtimeDispatcher = createPluginRuntimeDispatcherV010({
   catalog,
@@ -6421,6 +6428,18 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/platform/snapshot") {
       return jsonVersioned(request, response, 200, manager.getSnapshot());
     }
+    if ((request.method === "GET" && url.pathname === "/v1/providers/lifecycle")
+      || (request.method === "POST" && url.pathname === "/v1/providers/lifecycle/retry-stop")) {
+      const authorization = request.headers.authorization;
+      const token = typeof authorization === "string" && authorization.startsWith("Bearer ")
+        ? authorization.slice("Bearer ".length) : undefined;
+      const result = await providerLifecycleAdministration.handle({
+        operation: request.method === "POST" ? "retry-stop" : "read",
+        packageId: url.searchParams.get("packageId")?.trim() || undefined,
+        token
+      });
+      return json(response, result.status, result.body);
+    }
     if (request.method === "GET" && url.pathname === "/v1/runtime/diagnostics") {
       const packageId = url.searchParams.get("packageId")?.trim();
       return json(
@@ -9336,10 +9355,16 @@ async function shutdown(signal: string): Promise<void> {
   evoRuntimeRevisionBridge?.dispose();
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
   contextMemorySchedulerLease.release();
-  await bottleneckRuntime.stop();
+  let shutdownFailed = false;
+  try {
+    await bottleneckRuntime.stop();
+  } catch (error) {
+    shutdownFailed = true;
+    console.error("Bottleneck runtime shutdown incomplete", error);
+  }
   await optionalAgentAsyncRunReader?.close();
   await processRuntimeHost.shutdown();
-  server.close(() => process.exit(0));
+  server.close(() => process.exit(shutdownFailed ? 1 : 0));
   setTimeout(() => process.exit(1), 5000).unref();
 }
 
