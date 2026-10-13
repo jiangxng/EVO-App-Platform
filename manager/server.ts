@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { createLazyProviderRuntimeV010 } from "./lazy-provider-runtime.js";
+import type { EnterpriseOperatingGraphAnalysisProviderV020 } from "../contracts/enterprise-operating-graph-observatory.js";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
@@ -503,9 +505,6 @@ import {
   APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
   applicationRuntimeBindingProviderPackage
 } from "../providers/application-runtime-binding/package.js";
-import {
-  createEogBottleneckAnalysisProviderV020
-} from "../providers/eog-bottleneck-analysis/runtime.js";
 import {
   createEvoRuntimeObservatoryHealthProbeV010,
   createEvoRuntimeObservatoryProviderV020
@@ -2191,6 +2190,15 @@ let warehouseRuntimePromise:
     }>
   | undefined;
 
+const bottleneckRuntime = createLazyProviderRuntimeV010<EnterpriseOperatingGraphAnalysisProviderV020>({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID),
+  async load() {
+    const module = await import("../providers/eog-bottleneck-analysis/runtime.js");
+    return module.createEogBottleneckAnalysisProviderV020({ expectedSopService: eogExpectedSopService });
+  }
+});
+
 const manager = createAppManagerService(
   catalog,
   store,
@@ -2217,6 +2225,9 @@ const manager = createAppManagerService(
 
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
+      if (event.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID) {
+        void bottleneckRuntime.stop().catch(error => console.error("Bottleneck runtime stop failed", error));
+      }
       if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
         void disposeBiWorkbenchRuntimeV010();
       }
@@ -3755,17 +3766,19 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 
 await refreshP12MemoryProviderRuntimes();
 
-providerRuntimeRegistry.replace(
+providerRuntimeRegistry.replace<EnterpriseOperatingGraphAnalysisProviderV020>(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
-  createEogBottleneckAnalysisProviderV020({
-    expectedSopService: eogExpectedSopService
-  })
+  {
+    contractVersion: "0.2.0",
+    providerId: EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+    analyze: request => bottleneckRuntime.run(runtime => runtime.analyze(request))
+  }
 );
 providerRuntimeRegistry.setHealth(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
   {
-    state: "HEALTHY",
-    message: "Evidence-backed bottleneck analysis is available.",
+    state: "UNKNOWN",
+    message: "Bottleneck facade is ready; implementation loads on first active invocation.",
     checkedAt: new Date().toISOString()
   }
 );
@@ -9315,6 +9328,7 @@ async function shutdown(signal: string): Promise<void> {
   evoRuntimeRevisionBridge?.dispose();
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
   contextMemorySchedulerLease.release();
+  await bottleneckRuntime.stop();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();

@@ -28,3 +28,5 @@
 新增CI步骤执行三组各三轮隔离启动测量（minimal、compatible、compatible加BI）并上传14天保留的JSON报告。每次使用临时文件存储、显式无密钥环境、保留托管登录；预加载探针拦截TCP外连并强制loopback监听。外连尝试、启动错误或非正常退出会失败；启动时间和RSS暂只报告，不设置未经验证的硬预算。见[运行基准](RUNTIME-BASELINE.md)。
 
 后续每批治理应缩减对应遗留边，保留正常认证授权，并用实际资源证据证明改善。
+
+GOV-02首批已增加Provider并发激活、停用drain、清理重试与重新激活测试；静态清单由299边减为297边。详见[按需Provider试点](LAZY-PROVIDER.md)。
