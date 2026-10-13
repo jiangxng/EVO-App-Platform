@@ -98,10 +98,18 @@ test("PA02C atomic commit: lease/write/receipt gates and real Run CANCELLED even
       requestedAt:"2026-10-13T00:00:00.000Z"
     }});
     await c.request(cancel(pending));
-    const pendingRows=await admin.unsafe('SELECT status,request_payload,scope_key FROM "'+schema+'".agent_receipts');
+    const pendingRows=await admin.unsafe('SELECT status,scope_key, '+
+      "jsonb_typeof(request_payload) AS payload_type, "+
+      "request_payload::text AS payload_text, "+
+      "request_payload->>'sourceInteractionId' AS source_interaction_id "+
+      'FROM "'+schema+'".agent_receipts');
     assert.equal(pendingRows.length,1);
     assert.equal(pendingRows[0].status,"REQUESTED");
-    assert.equal(pendingRows[0].request_payload.sourceInteractionId,pending);
+    console.log("PA02C_PENDING_RECEIPT_DIAGNOSTIC="+JSON.stringify({
+      type:pendingRows[0].payload_type,source:pendingRows[0].source_interaction_id,
+      payloadText:pendingRows[0].payload_text
+    }));
+    assert.equal(pendingRows[0].source_interaction_id,pending);
     await assert.rejects(c.commitSafe(safe(pending)),/PA02C_UNCONFIRMED_RECEIPT/);
     await a.completeReceipt({scope,receiptId:"receipt:pending",status:"DENIED",terminal:{
       receiptId:"receipt:pending",status:"DENIED",completedAt:"2026-10-13T00:03:00.000Z",
