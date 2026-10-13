@@ -44,6 +44,7 @@ function key(scope: HostResolvedAgentDurabilityScopeV020): string {
     kind === "ENTERPRISE" ? required(scope.enterpriseId) : null];
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }
+export { key as hostAgentDurabilityScopeKeyV020 };
 function ttl(value: number): number {
   if (!Number.isInteger(value) || value < 1 || value > 3600) throw Error("PA02B_TTL_INVALID");
   return value;
