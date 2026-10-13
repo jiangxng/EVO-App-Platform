@@ -1,3 +1,4 @@
+import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -6604,7 +6605,7 @@ const server = createServer(async (request, response) => {
       return jsonVersioned(request, response, 200, [
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager, requestedLocale(url)),
-        createProviderManagerExperienceManifest(manager),
+        createProviderManagerExperienceManifest(manager, requestedLocale(url)),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
         ...manager.listEffectiveExperiences()
@@ -8425,12 +8426,16 @@ const server = createServer(async (request, response) => {
           )
         );
       }
+      if (source === providerLifecyclePageSource) {
+        return json(response, 200, createProviderLifecyclePage(requestedLocale(url)));
+      }
       if (source === providerManagerIndexPageSource) {
         return json(response, 200, createProviderManagerIndexPage(
           manager,
           providerRuntimeRegistry,
           providerBindings,
-          { installationId: "default" }
+          { installationId: "default" },
+          requestedLocale(url)
         ));
       }
       const providerCapability = capabilityFromProviderManagerSource(source);
