@@ -374,11 +374,30 @@ export function createAgentRunStoreV010(input: {
 }): AgentRunStoreV010 {
   const runs = () => materializeAgentRunsV010(input.eventStore.listEvents());
   const get = (runId: string) => runs().find(run => run.runId === runId);
+  const getBySource = (request: {
+    principalSubjectId: string;
+    principalActorType: AgentRunV010["principalActorType"];
+    context: ActiveContextRefV010;
+    sourceInteractionId: string;
+    sourceActionId: string;
+  }): AgentRunV010 | undefined => runs().find(run =>
+    run.principalSubjectId === request.principalSubjectId
+    && run.principalActorType === request.principalActorType
+    && sameContext(run.context, request.context)
+    && run.sourceInteractionId === request.sourceInteractionId
+    && run.sourceActionId === request.sourceActionId
+  );
 
   return {
     create(request: AgentRunCreateInputV010) {
       if (get(request.runId)) {
         throw new Error("AGENT_RUN_ALREADY_EXISTS");
+      }
+      // Same-process/JSONL defensive uniqueness only; cross-worker atomic
+      // claims still require the async PostgreSQL turn identity authority.
+      if (request.sourceActionId.startsWith("enterprise-agent.thread.send:")
+        && getBySource(request)) {
+        throw new Error("CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
       }
       const event: AgentRunEventV010 = {
         contractVersion: "0.1.0",
@@ -410,6 +429,11 @@ export function createAgentRunStoreV010(input: {
     get(runId) {
       const run = get(runId);
       return run ? structuredClone(run) : undefined;
+    },
+
+    getBySource(request) {
+      const found = getBySource(request);
+      return found ? structuredClone(found) : undefined;
     },
 
     list(request) {

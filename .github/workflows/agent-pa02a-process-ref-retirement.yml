@@ -1,0 +1,62 @@
+name: One-time PA-02A process proof branch retirement
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/agent-pa02a-process-ref-retirement.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/agent-pa02a-process-ref-retirement.yml"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  verify-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform') throw Error('Unexpected repository');
+            const target='agent/pa02a-process-recovery-20261013';
+            const full=owner+'/'+repo;
+            const get=async()=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+target})).data.object.sha;}
+              catch(error){if(error.status===404)return null;throw error;}};
+            const open=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            if(context.eventName==='pull_request'){
+              const pr=context.payload.pull_request;
+              if(pr.head.ref!==target||pr.head.repo?.full_name!==full||pr.base.ref!=='main')throw Error('Unexpected PR');
+              if(await get()!==pr.head.sha)throw Error('Source branch moved during audit');
+              const allowed=new Set([
+                'tests/agent-line/pa02a-process-recovery.test.mjs',
+                '.github/workflows/agent-pa02a-postgres-durability.yml',
+                '.github/workflows/agent-pa02a-process-ref-retirement.yml',
+                'docs/agent-line/PA02A-CROSS-PROCESS-RECOVERY-20261013.md',
+                'docs/agent-line/WINDOW-RESEARCH-HANDOFF-ENTRY-20261013.md',
+                'docs/agent-line/WINDOW-RESEARCH-SOURCE-INDEX-20261013.md',
+                'docs/agent-line/WINDOW-RESEARCH-DECISIONS-GAPS-20261013.md'
+              ]);
+              const files=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:pr.number,per_page:100});
+              if(files.some(f=>!allowed.has(f.filename)))throw Error('Unexpected PR file');
+              core.info('AUDIT_ONLY_PA02A_PROCESS '+pr.head.sha);
+              return;
+            }
+            if(context.eventName!=='push'||context.ref!=='refs/heads/main')throw Error('Unexpected event');
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            if(main!==context.sha)throw Error('Main moved after push; fail closed');
+            const closed=await github.paginate(github.rest.pulls.list,{owner,repo,state:'closed',head:owner+':'+target,per_page:100});
+            const pr=closed.find(p=>p.merged_at&&p.base.ref==='main'&&p.head.ref===target&&p.head.repo?.full_name===full);
+            if(!pr)throw Error('Merged PA02A process PR not found');
+            const cmp=(await github.rest.repos.compareCommits({owner,repo,base:pr.head.sha,head:main})).data;
+            if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==pr.head.sha)throw Error('Merged head not main ancestor');
+            const branch=await get();
+            if(branch===null){core.info('ALREADY_RETIRED_PA02A_PROCESS');return;}
+            if(branch!==pr.head.sha)throw Error('Source moved since PR merge');
+            if(open.some(p=>p.base.ref===target||(p.head.ref===target&&p.head.repo?.full_name===full)))
+              throw Error('Source in use by open PR');
+            const info=(await github.rest.repos.getBranch({owner,repo,branch:target})).data;
+            if(info.protected)throw Error('Source branch protected');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+target});
+            core.info('DELETED_PA02A_PROCESS_SOURCE '+target+' @ '+branch);

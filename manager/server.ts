@@ -9328,9 +9328,15 @@ async function shutdown(signal: string): Promise<void> {
   evoRuntimeRevisionBridge?.dispose();
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
   contextMemorySchedulerLease.release();
-  await bottleneckRuntime.stop();
+  let shutdownFailed = false;
+  try {
+    await bottleneckRuntime.stop();
+  } catch (error) {
+    shutdownFailed = true;
+    console.error("Bottleneck runtime shutdown incomplete", error);
+  }
   await processRuntimeHost.shutdown();
-  server.close(() => process.exit(0));
+  server.close(() => process.exit(shutdownFailed ? 1 : 0));
   setTimeout(() => process.exit(1), 5000).unref();
 }
 

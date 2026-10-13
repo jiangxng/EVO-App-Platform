@@ -1,0 +1,50 @@
+name: One-time Agent research handoff source retirement
+on:
+  pull_request:
+    paths: [".github/workflows/agent-handoff-ref-retirement-20261013.yml"]
+  push:
+    branches: [main]
+    paths: [".github/workflows/agent-handoff-ref-retirement-20261013.yml"]
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  check-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform') throw Error('Unexpected repo');
+            const target='docs/agent-line-research-handoff-20261013';
+            const full=owner+'/'+repo;
+            const get=async()=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+target})).data.object.sha;}catch(error){if(error.status===404)return null;throw error;}};
+            const open=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            if(context.eventName==='pull_request'){
+             const pr=context.payload.pull_request;
+             if(pr.head.ref!==target || pr.head.repo?.full_name!==full || pr.base.ref!=='main')throw Error('Unexpected PR');
+             if((await get())!==pr.head.sha)throw Error('Handoff branch moved during PR audit');
+             const files=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:pr.number,per_page:100});
+             if(files.some(f=>!(f.filename.startsWith('docs/agent-line/')||f.filename==='.github/workflows/agent-handoff-ref-retirement-20261013.yml')))throw Error('PR touches non-Agent files');
+             core.info('AUDIT_ONLY_AGENT_HANDOFF '+target+' @ '+pr.head.sha+' files='+files.length);
+             return;
+            }
+            if(context.eventName!=='push'||context.ref!=='refs/heads/main')throw Error('Wrong workflow event');
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            if(main!==context.sha)throw Error('Main moved; fail closed');
+            const prs=(await github.rest.pulls.list({owner,repo,head:owner+':'+target,state:'closed',per_page:100})).data;
+            const pr=prs.find(x=>x.merged_at&&x.state==='closed'&&x.base.ref==='main'&&x.head.repo?.full_name===full&&x.head.ref===target);
+            if(!pr)throw Error('Handoff PR was not merged');
+            const cmp=(await github.rest.repos.compareCommits({owner,repo,base:pr.head.sha,head:main})).data;
+            if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==pr.head.sha)throw Error('Original PR tip not in main');
+            const current=await get();
+            if(current===null){core.info('ALREADY_ABSENT_HANDOFF_SOURCE');return;}
+            if(current!==pr.head.sha)throw Error('Source ref moved after merge');
+            if(open.some(p=>p.base.ref===target||(p.head.ref===target&&p.head.repo?.full_name===full)))throw Error('Source claimed by active PR');
+            const b=(await github.rest.repos.getBranch({owner,repo,branch:target})).data;
+            if(b.protected)throw Error('Protected source');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+target});
+            core.info('DELETED_COMPLETED_AGENT_HANDOFF_SOURCE '+target+' @ '+pr.head.sha);
+            

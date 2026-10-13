@@ -472,14 +472,13 @@ export function createThreadBackedAgentTurnActionHandlersV010(
           const clientTurnId = assistanceRequest?.requestId ?? explicitClientTurnId;
           const sourceActionId = turnSourceActionId(clientTurnId);
           const existingRun = clientTurnId
-            ? dependencies.runStore.list({
+            ? dependencies.runStore.getBySource({
                 principalSubjectId: principal.subjectId,
+                principalActorType: principal.actorType,
                 context: context.activeContext,
-                limit: 100
-              }).find(candidate =>
-                candidate.sourceInteractionId === threadId
-                && candidate.sourceActionId === sourceActionId
-              )
+                sourceInteractionId: threadId,
+                sourceActionId
+              })
             : undefined;
 
           if (existingRun) {

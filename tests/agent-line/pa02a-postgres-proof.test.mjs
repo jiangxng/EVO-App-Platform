@@ -102,6 +102,42 @@ test("PA02A independent async database proof: durable claim, scoped reads, races
   assert.equal((await left.getReceipt({scope,receiptId})).status,"SUCCEEDED");
   assert.equal(await right.getReceipt({scope:unauthorized,receiptId}),undefined);
 
+  const rich=receipt("receipt:rich","idempotency:rich");
+  const richStarted=await left.beginReceipt(rich);
+  assert.equal(richStarted.created,true);
+  assert.deepEqual(richStarted.requested,rich.receipt);
+  const richReplayed=await right.beginReceipt(receipt("receipt:retry","idempotency:rich"));
+  assert.equal(richReplayed.created,false);
+  assert.equal(richReplayed.receiptId,"receipt:rich");
+  assert.deepEqual(richReplayed.requested,rich.receipt);
+  await assert.rejects(right.beginReceipt({
+    ...receipt("receipt:bad-owner","idempotency:rich"),
+    receipt:{...receipt("receipt:bad-owner","idempotency:rich").receipt,ownerPackageId:"forged-owner"}
+  }),/PA02A_RECEIPT_IDEMPOTENCY_CONFLICT/);
+  await assert.rejects(left.beginReceipt({
+    ...receipt("receipt:bad-scope","idempotency:other"),
+    receipt:{...receipt("receipt:bad-scope","idempotency:other").receipt,principalSubjectId:"forged"}
+  }),/PA02A_RECEIPT_SCOPE_MISMATCH/);
+  const richTerminal={
+    receiptId:"receipt:rich",status:"SUCCEEDED",completedAt:"2026-10-13T00:02:00.000Z",
+    resultDigest:sha("business-result"),resultEntityRefs:["test:entity:1"],
+    resultSummary:"Verified sandbox result"
+  };
+  const richCompleted=await left.completeReceipt({
+    scope,receiptId:"receipt:rich",status:"SUCCEEDED",terminal:richTerminal
+  });
+  assert.equal(richCompleted.transitioned,true);
+  assert.deepEqual(richCompleted.terminal,richTerminal);
+  assert.deepEqual((await right.getReceipt({scope,receiptId:"receipt:rich"})).requested,rich.receipt);
+  assert.deepEqual((await right.getReceipt({scope,receiptId:"receipt:rich"})).terminal,richTerminal);
+  assert.equal((await right.completeReceipt({
+    scope,receiptId:"receipt:rich",status:"SUCCEEDED",terminal:richTerminal
+  })).transitioned,false);
+  await assert.rejects(right.completeReceipt({
+    scope,receiptId:"receipt:rich",status:"SUCCEEDED",
+    terminal:{...richTerminal,resultEntityRefs:["forged:entity"]}
+  }),/PA02A_RECEIPT_TERMINAL_CONFLICT/);
+
   await left.close();left=undefined;
   await right.close();right=undefined;
   const reopened=await createPostgresAgentDurabilityProofV020({connectionString:url,schema});
@@ -110,6 +146,9 @@ test("PA02A independent async database proof: durable claim, scoped reads, races
   assert.deepEqual((await reopened.listRunEvents({scope,runId:original})).map(x=>x.type),
    ["RUN_CREATED","RUN_SUCCEEDED"]);
   assert.equal((await reopened.getReceipt({scope,receiptId})).status,"SUCCEEDED");
+  const fullReopened=await reopened.getReceipt({scope,receiptId:"receipt:rich"});
+  assert.deepEqual(fullReopened.requested,rich.receipt);
+  assert.deepEqual(fullReopened.terminal,richTerminal);
   console.log("PA02A_POSTGRES_ISOLATED_PROOF="+JSON.stringify({
    status:"PASS",concurrentTurns:32,turnsBeyond100:131,turnIdempotent:true,
    scopeIsolation:true,revisionCAS:true,receiptConcurrentBegins:32,

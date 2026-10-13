@@ -865,6 +865,47 @@ test("durable read convergence survives file-backed process reconstruction", asy
   assert.equal(invokeCount, 1);
 });
 
+test("run.get uses explicitly injected Host scoped async reader only for missing V010 Run",async()=>{
+  const store=memoryStore();
+  const local=createRun(store,{runId:"agent-run:local"});
+  const executorMock=executor(store);
+  let calls=0;
+  const handlers=createPersonalAgentRunActionHandlersV010({
+    runStore:store,runExecutor:executorMock,
+    async asyncRunReader({runId,principal:resolved,context:resolvedContext}) {
+      calls++;
+      assert.equal(resolved.subjectId,principal.subjectId);
+      assert.equal(resolvedContext.activeContext.contextId,context.activeContext.contextId);
+      if(runId==="agent-run:async")return {...local,runId};
+      if(runId==="agent-run:forged")return {...local,runId,principalSubjectId:"forged"};
+      return undefined;
+    },
+    resolveLlmProvider(){return {installedProviderIds:[],provider:undefined};},
+    resolveIdentitySession(){return {contractVersion:"0.1.0",sessionId:"test",principal};},
+    resolveContext(){return context;},
+    createToolCatalog:readCatalog(),runId:()=> "unused"
+  });
+  const get=handlers.find(x=>x.commandCode==="enterprise-agent.run.get");
+  const req=runId=>({contractVersion:"0.1.0",type:"command",
+    command:{code:"enterprise-agent.run.get",inputVersion:"0.1.0"},
+    sourceInteractionId:"ui:test",actionId:"test",requiresConfirmation:false,
+    values:{runId}});
+  const present=await get.execute(req("agent-run:local"));
+  assert.equal(present.ok,true);
+  assert.equal(calls,0);
+  const recovered=await get.execute(req("agent-run:async"));
+  assert.equal(recovered.ok,true);
+  assert.equal(recovered.result.run.runId,"agent-run:async");
+  assert.equal(calls,1);
+  const hidden=await get.execute(req("agent-run:forged"));
+  assert.equal(hidden.ok,false);
+  assert.equal(hidden.error.code,"AGENT_RUN_NOT_FOUND");
+  const absent=await get.execute(req("agent-run:missing"));
+  assert.equal(absent.ok,false);
+  assert.equal(absent.error.code,"AGENT_RUN_NOT_FOUND");
+  assert.equal(calls,3);
+});
+
 test("run action handlers start, get and resume without resending original task", async () => {
   const store = memoryStore();
   const runExecutor = executor(store);
