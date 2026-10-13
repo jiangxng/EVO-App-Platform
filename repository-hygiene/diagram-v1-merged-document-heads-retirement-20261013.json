@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "scope": "retire-exact-five-merged-diagram-v1-document-branches-20261013",
+  "baselineMain": "de414fa1c65eabdd5a0a160f3cf4addea1ee1603",
+  "records": [
+    {
+      "name": "docs/diagram-v1-formal-acceptance-20261012",
+      "head": "605f3e5356f011d47d7c03334be8f507a76d21ec",
+      "pr": 791,
+      "merge": "056112e78753e356f87a18a62a903a437aac6583"
+    },
+    {
+      "name": "docs/diagram-v1-main-online-reconciliation-20261012",
+      "head": "3d566f0f8d3f2ad28e3de6cd297a076159464b84",
+      "pr": 789,
+      "merge": "6467d6960d5b89f41f318e8ec4df40477c33d06d"
+    },
+    {
+      "name": "docs/diagram-v1-runtime-revision-followup-20261012",
+      "head": "5bda762def0b8b89901e78896d226d6b3aa858c8",
+      "pr": 790,
+      "merge": "863667a0290ca07b4b2677c8650a5be2ed6e6cfe"
+    },
+    {
+      "name": "docs/diagram-v1-usable-acceptance-policy-20261012",
+      "head": "87dfcccbe895821982bd31335ec605cd1b544533",
+      "pr": 792,
+      "merge": "0c49414d1c3131cc4026fe3fe8ae926e3119c071"
+    },
+    {
+      "name": "docs/diagram-v1-window-research-main-online-handoff-20261012",
+      "head": "1e824c96c292b11a7fad50dec1c5f24bc56d543b",
+      "pr": 788,
+      "merge": "ad85f8501930b6e3bf7e67211e6dbf3942a27327"
+    }
+  ],
+  "cleanupBranch": "chore/retire-diagram-v1-merged-doc-heads-20261013",
+  "cleanupPr": 797
+}

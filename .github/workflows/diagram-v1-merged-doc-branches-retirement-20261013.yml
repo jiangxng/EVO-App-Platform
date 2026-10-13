@@ -1,0 +1,147 @@
+name: Retire five merged Diagram v1 documentation branches
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/diagram-v1-merged-document-heads-retirement-20261013.json"
+      - ".github/workflows/diagram-v1-merged-doc-branches-retirement-20261013.yml"
+      - "docs/archive/DIAGRAM-V1-MERGED-DOCUMENT-BRANCH-RETIREMENT-20261013.md"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/diagram-v1-merged-document-heads-retirement-20261013.json"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  verify-then-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: SHA-pinned merged-PR verification; delete on main push only
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner,repo=context.repo.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Unexpected repository');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(!execute&&context.eventName!=='pull_request')throw Error('Invalid event');
+            const candidate=execute?'main':context.payload.pull_request.head.sha;
+            const file=async(path,ref)=>{
+              const x=(await github.rest.repos.getContent({owner,repo,path,ref})).data;
+              if(Array.isArray(x)||x.type!=='file')throw Error('Not file '+path);
+              return x;
+            };
+            const manifest=JSON.parse(Buffer.from(
+              (await file('repository-hygiene/diagram-v1-merged-document-heads-retirement-20261013.json',candidate)).content,
+              'base64').toString('utf8'));
+            const fixed=new Map([
+              ['docs/diagram-v1-formal-acceptance-20261012',
+                {pr:791,head:'605f3e5356f011d47d7c03334be8f507a76d21ec',merge:'056112e78753e356f87a18a62a903a437aac6583'}],
+              ['docs/diagram-v1-main-online-reconciliation-20261012',
+                {pr:789,head:'3d566f0f8d3f2ad28e3de6cd297a076159464b84',merge:'6467d6960d5b89f41f318e8ec4df40477c33d06d'}],
+              ['docs/diagram-v1-runtime-revision-followup-20261012',
+                {pr:790,head:'5bda762def0b8b89901e78896d226d6b3aa858c8',merge:'863667a0290ca07b4b2677c8650a5be2ed6e6cfe'}],
+              ['docs/diagram-v1-usable-acceptance-policy-20261012',
+                {pr:792,head:'87dfcccbe895821982bd31335ec605cd1b544533',merge:'0c49414d1c3131cc4026fe3fe8ae926e3119c071'}],
+              ['docs/diagram-v1-window-research-main-online-handoff-20261012',
+                {pr:788,head:'1e824c96c292b11a7fad50dec1c5f24bc56d543b',merge:'ad85f8501930b6e3bf7e67211e6dbf3942a27327'}]
+            ]);
+            if(manifest.schemaVersion!==1||
+              manifest.scope!=='retire-exact-five-merged-diagram-v1-document-branches-20261013'||
+              manifest.baselineMain!=='de414fa1c65eabdd5a0a160f3cf4addea1ee1603'||
+              manifest.records?.length!==5||
+              manifest.cleanupBranch!=='chore/retire-diagram-v1-merged-doc-heads-20261013'||
+              !Number.isInteger(manifest.cleanupPr)||manifest.cleanupPr<0)
+              throw Error('Unexpected cleanup scope');
+            const names=new Set();
+            for(const r of manifest.records){
+              const v=fixed.get(r.name);
+              if(!v||names.has(r.name)||r.pr!==v.pr||r.head!==v.head||r.merge!==v.merge)
+                throw Error('Unknown or mutated record '+r.name);
+              names.add(r.name);
+            }
+            if(names.size!==fixed.size)throw Error('Incomplete exact ref manifest');
+            const mainSha=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const base=(await github.rest.repos.compareCommits({
+              owner,repo,base:manifest.baselineMain,head:mainSha
+            })).data;
+            if(base.behind_by!==0||base.merge_base_commit?.sha!==manifest.baselineMain)
+              throw Error('Main rewrite since review');
+            const acceptance=Buffer.from((await file(
+              'docs/architecture/DIAGRAM-V1-FORMAL-ACCEPTANCE-RUN-20261012.md','main'
+            )).content,'base64').toString('utf8');
+            if(!acceptance.includes('39/39')||!acceptance.includes('不要求逐项截图'))
+              throw Error('Current 39/39 usability acceptance policy changed');
+            await file('docs/archive/DIAGRAM-V1-MERGED-DOCUMENT-BRANCH-RETIREMENT-20261013.md',candidate);
+            for(const [name,v] of fixed){
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:v.pr})).data;
+              if(!pr.merged||pr.state!=='closed'||pr.base.ref!=='main'||
+                pr.head.repo?.full_name!==owner+'/'+repo||
+                pr.head.ref!==name||pr.head.sha!==v.head||
+                pr.merge_commit_sha!==v.merge)
+                throw Error('Merged PR provenance mismatch #'+v.pr);
+              const lineage=(await github.rest.repos.compareCommits({
+                owner,repo,base:v.merge,head:mainSha
+              })).data;
+              if(lineage.behind_by!==0||lineage.merge_base_commit?.sha!==v.merge)
+                throw Error('Merge commit not in main: '+v.pr);
+            }
+            const openReferences=async()=>{
+              const prs=(await github.rest.pulls.list({owner,repo,state:'open',per_page:100})).data;
+              if(prs.length>=100)throw Error('Open PR inventory is not exhaustive');
+              const used=new Set(['main']);
+              for(const pr of prs){
+                used.add(pr.base.ref);
+                if(pr.head.repo?.full_name===owner+'/'+repo)used.add(pr.head.ref);
+              }
+              return used;
+            };
+            const used=await openReferences();
+            for(const [name,v] of fixed){
+              if(used.has(name))throw Error('Source head/base in open PR '+name);
+              const r=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+              if(r.object.sha!==v.head)throw Error('Source SHA changed '+name);
+              const branch=(await github.rest.repos.getBranch({owner,repo,branch:name})).data;
+              if(branch.protected)throw Error('Source branch protected '+name);
+              core.info('SAFE_DIAGRAM_DOC_REF '+name+' '+v.head);
+            }
+            if(!execute){
+              core.info('AUDIT_ONLY_FIVE_MERGED_HEADS (no refs deleted)');
+              return;
+            }
+            if(manifest.cleanupPr<1)throw Error('Cleanup PR number unset');
+            const own=(await github.rest.pulls.get({
+              owner,repo,pull_number:manifest.cleanupPr
+            })).data;
+            if(!own.merged||own.state!=='closed'||own.base.ref!=='main'||
+              own.head.ref!==manifest.cleanupBranch||
+              own.head.repo?.full_name!==owner+'/'+repo)
+              throw Error('Cleanup PR provenance mismatch');
+            const ownLineage=(await github.rest.repos.compareCommits({
+              owner,repo,base:own.merge_commit_sha,head:mainSha
+            })).data;
+            if(ownLineage.behind_by!==0||ownLineage.merge_base_commit?.sha!==own.merge_commit_sha)
+              throw Error('Cleanup PR merge absent from main');
+            const ownBranch=(await github.rest.repos.getBranch({
+              owner,repo,branch:manifest.cleanupBranch
+            })).data;
+            if(ownBranch.protected||ownBranch.commit.sha!==own.head.sha)
+              throw Error('Cleanup source moved/protected');
+            const usedFinal=await openReferences();
+            for(const name of [...fixed.keys(),manifest.cleanupBranch])
+              if(usedFinal.has(name))throw Error('Open PR now references '+name);
+            for(const [name,v] of fixed){
+              const r=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+              if(r.object.sha!==v.head)throw Error('Moved before deletion '+name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+              core.info('DELETED_MERGED_DIAGRAM_DOC_REF '+name);
+            }
+            const self=(await github.rest.git.getRef({
+              owner,repo,ref:'heads/'+manifest.cleanupBranch
+            })).data;
+            if(self.object.sha!==own.head.sha)throw Error('Cleanup SHA changed');
+            await github.rest.git.deleteRef({
+              owner,repo,ref:'heads/'+manifest.cleanupBranch
+            });
+            core.info('DELETED_MERGED_CLEANUP_REF '+manifest.cleanupBranch);
+            core.info('ALL_SIX_DIAGRAM_DOC_CLEANUP_REFS_RETIRED');
