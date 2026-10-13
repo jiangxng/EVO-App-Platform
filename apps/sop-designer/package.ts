@@ -11,6 +11,13 @@ export const sopDesignerPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: SOP_DESIGNER_PACKAGE_ID,
   displayName: "SOP Designer",
+  description: "SOP 独立设计器插件预留，当前未启用。",
+  displayNameTranslations: {
+    "en": "SOP Designer",
+    "zh-CN": "SOP 设计器",
+    "ja": "SOP デザイナー",
+    "zh-TW": "SOP 設計器"
+  },
   version: "0.1.0",
   type: "APPLICATION",
   publisher: {
