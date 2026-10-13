@@ -89,3 +89,9 @@ Document class: DECISION_AND_GAP_HANDOFF。先读[简短入口](WINDOW-RESEARCH-
 **代码事实**：正式`manager/server.ts`继续构造Sync V010的Run/Receipt；`thread-turn-action-handlers.ts`对clientTurnId的同步Run.list(100)扫描仍未替换。PA-02A/B/C近期合并仅限隔离数据库proof及单独可靠性原语。新增[#802](https://github.com/jiangxng/EVO-App-Platform/pull/802)经当前V010 reducer提供Host可信scope和异步Run取回/任务冲突测试的分阶段接线基件，[专项边界](PA02A-HOST-ASYNC-BRIDGE-20261013.md)。
 
 **不改变决策**：用异步V020完全替换正式Run执行链只能在完整合同映射、可靠ActionReceipt结果信息、Conversation呈现一致性、权限与owner幂等、真实multi-worker与安全cancel完成后明确切换。Sync API不允许藏入未等候的PostgreSQL Promise，不能只合并源码宣布迁移完毕。仍拒绝生产迁移、LLM自行授权写入、未定量的RPO/RTO和没有业务凭证的UNKNOWN自动重试。
+
+## 11. 先修复现行V010无限历史幂等查找，再切换异步权威（2026-10-13）
+
+**已核源码问题**：当前Thread发送入口只扫描最新100个Run，故旧clientTurnId的准确去重不成立。
+
+**本阶段工程判断**：在不启用PostgreSQL proof、不触碰生产的情况下，先给正式V010 Store增加精确、不分页的来源身份查找及同进程拒绝重复创建，添加131+运行记录回归。独立于未来异步V020唯一键的原子事实，不能当作多Worker并发解决。详见[PA02阶段门禁快照](PA02-STAGE-GATES-SNAPSHOT-20261013.md)。
