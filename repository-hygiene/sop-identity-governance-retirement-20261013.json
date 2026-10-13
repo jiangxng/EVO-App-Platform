@@ -24,11 +24,13 @@
   "ownedAssets": [
     {
       "path": "apps/sop-designer/package.ts",
-      "expectedSha": "358583054ca7239fa062374dc9c337f8521ccf4d"
+      "expectedSha": "358583054ca7239fa062374dc9c337f8521ccf4d",
+      "landedSha": "affeda8da802710e35e0d9b0b33a2b785b81a644"
     },
     {
       "path": "tests/protocol/sop-designer-package-identity.test.mjs",
-      "expectedSha": "7de014c00b09e1c62bcaba1a039afab104fa8cee"
+      "expectedSha": "7de014c00b09e1c62bcaba1a039afab104fa8cee",
+      "landedSha": "7de014c00b09e1c62bcaba1a039afab104fa8cee"
     }
   ],
   "cleanupSourceBranch": "chore/sop-designer-identity-governance-convergence-20261013",
