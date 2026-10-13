@@ -90,3 +90,8 @@ Document class: VERIFIED_SOURCE_INDEX_WITH_HISTORICAL_LINKS。配套：[简短�
 | G18 已读当前源码+CI日志 | [Platform #799](https://github.com/jiangxng/EVO-App-Platform/pull/799)、[新增Node进程恢复测试](https://github.com/jiangxng/EVO-App-Platform/blob/fe699a2c17e8d5927c7bfe889a7dd5493d81c5a4/tests/agent-line/pa02a-process-recovery.test.mjs)、[GitHub Actions run 38345829365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365) / [job 115126899050](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365/jobs/115126899050) | 2026-10-13：经GitHub连接直接取回源码与job日志。真实Node子进程SIGKILL后另一进程重建仓储、查到唯一Run/事件/仍REQUESTED的Receipt；SQL回滚及scope隔离；一次性PostgreSQL18 job成功 | 弥补G13只测数据库**连接**重建的证据缺口。**不表示**正式Host接线、DB服务重启、多机器Worker、真实业务写入/未知结果协调或上线。新PR后续提交须另查最终head CI。 |
 
 此G18与原14项H级外链无关；未打开那些外部原文，也不升级其阅读等级。
+
+
+## 8. 2026-10-13 PA-02B后续窗口新增源码来源
+
+| G19 已读内部源码/PR | [Platform #800](https://github.com/jiangxng/EVO-App-Platform/pull/800)；[PA-02B阶段文档](PA02B-FENCING-UNKNOWN-WRITE-20261013.md) | 2026-10-13 当前main原文核对V010 Run executor和Receipt、V020 PostgreSQL proof后新增隔离Lease/Write Intent、CI测试；只有看到精确head PASS才能升级运行证明 | 工程判断为持久fence+UNKNOWN quarantine，不代表正式Host单飞运行或外部工具审计；14项历史外链均未重新打开（H）。 |
