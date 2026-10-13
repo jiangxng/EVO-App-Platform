@@ -62,3 +62,9 @@ Document class: DECISION_AND_GAP_HANDOFF。先读[简短入口](WINDOW-RESEARCH-
 - 独立Agent工作优先补**证明当前不成立的功能门禁**，不用重复已过的浏览器helper或分支历史收敛。每个测试写准确head、实际环境、断言、失败与回滚。
 - 绝不默许：因插件化就认为不可能影响main；未完成就直接部署；模型文本代替业务Receipt；旧docs覆盖新docs；旧OAuth覆盖新合同；直接改共享 `project.status.json` 或 TR/2D/生产环境。
 - 维持“来源事实/模型判断/尚待验证”三层，外部14项链接阅读标签不升级。不能恢复的日志/网页截图要清楚记为缺失而非创造新证据。
+
+## 7. 2026-10-13 接续窗口的PA-02A阶段更新（不覆盖原决策）
+
+**来源事实**：新增 [PR #799](https://github.com/jiangxng/EVO-App-Platform/pull/799) 的独立Node业务进程SIGKILL→第二进程PostgreSQL恢复读取测试；首次准确head `fe699a2` 的 [run 38345829365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365) 在PostgreSQL18成功。任务重复提交去重，事务失败回滚，企业scope读取隔离，未协调回执仍为REQUESTED。具体源码和验证见 [阶段文档](PA02A-CROSS-PROCESS-RECOVERY-20261013.md)。这是G13以外的新增**进程**恢复证据，仍非DB服务重启和正式业务Host恢复。
+
+**项目判断（已确认边界不变）**：维持Sync V010正式入口和独立异步V020 proof，不因通过进程恢复实验就切换 `manager/server.ts`。下一步Host接线设计必须先回答：Run/Receipt权威切换与历史兼容、Host可信Principal/Context映射、业务调用前的幂等/审计状态，以及**业务已写成功但Receipt尚未终结**时如何由owner核验，不得盲目重播写操作。PA-02B lease/fencing/outbox及生产迁移仍为OPEN。当前PR是否正式合并、最终CI状态与源branch退休须按GitHub现状单独核查。
