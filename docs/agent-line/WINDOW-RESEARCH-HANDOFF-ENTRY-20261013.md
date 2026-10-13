@@ -32,3 +32,8 @@ Document class: LIVING_HANDOFF_POINTER。**本文件是本窗口截至2026-10-13
 本窗口**实际直接获取过**GitHub文件正文、PR元数据、diff/比较、GitHub Actions日志、流水线结果和refs；14条外部AI/UI/协议文献沿用2026-10-11历史索引，**未在本窗口逐页重新打开**，统一保留“待验证（历史链接）”，没有可确证“只看搜索摘要”的新条目。截图/附件原始位置、可恢复摘要及未保存在GitHub的内容见详细索引§4–6。
 
 此入口为Agent线增量文档，不修改旧研究原稿、全局状态或其他开发窗口交接。
+
+## 2026-10-13 接续窗口增量（不改变上述原始交接快照）
+
+- [PA-02A真正独立Node进程恢复专项](PA02A-CROSS-PROCESS-RECOVERY-20261013.md)：[Platform #799](https://github.com/jiangxng/EVO-App-Platform/pull/799) 在PostgreSQL 18隔离CI中新增 **SIGKILL旧业务进程→新Node进程读取并幂等复用**、跨企业实验scope隔离、事务回滚；首次测试head `fe699a2` 的 [run 38345829365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365) 成功。
+- **没有接正式Host或生产数据库**。请求状态 `REQUESTED` 保留，不表示已实现unknown-write reconciliation、outbox、fencing、跨机器Worker恢复或数据库服务重启。PR合入/源branch删除及最终head CI状态以GitHub最新API为准，勿把此记录当合并凭证。
