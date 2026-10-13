@@ -22,6 +22,11 @@ export interface FencedAgentRunAuthorityV030 {
     lease: AgentLeaseV020;
     ttlSeconds: number;
   }): Promise<AgentLeaseV020 | undefined>;
+  /** Release only this exact fencing token; a stale worker cannot free its successor. */
+  release(input: {
+    scope: HostResolvedAgentDurabilityScopeV020;
+    lease: AgentLeaseV020;
+  }): Promise<boolean>;
   append(input: {
     scope: HostResolvedAgentDurabilityScopeV020;
     lease: AgentLeaseV020;
@@ -149,6 +154,19 @@ export async function createPostgresFencedAgentRunAuthorityV030(input:{
           "AND expires_at>clock_timestamp() RETURNING run_id,owner_id,fence,expires_at",
           [b,runId,worker,l.fence,ttl(r.ttlSeconds)]);
         return rows.length?lease(rows[0]):undefined;
+      });
+    },
+    async release(r) {
+      const l=r.lease,runId=required(l.runId),worker=required(l.ownerId);
+      const {b}=keys(r.scope);
+      return sql.begin(async tx=>{
+        await lock(tx,b,runId);
+        const rows=await tx.unsafe("UPDATE "+q+".pa02b_leases "+
+          "SET expires_at=clock_timestamp() WHERE scope_key=$1 "+
+          "AND run_id=$2 AND owner_id=$3 AND fence=$4 "+
+          "AND expires_at>clock_timestamp() RETURNING fence",
+          [b,runId,worker,l.fence]);
+        return rows.length===1;
       });
     },
     async append(r) {
