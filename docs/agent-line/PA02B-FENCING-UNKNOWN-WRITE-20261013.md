@@ -1,7 +1,7 @@
 # PA-02B — 多进程 Fencing 与持久写入意图隔离实验（2026-10-13）
 
 Document class: AGENT_LINE_INCREMENTAL_PROOF
-Status: CODE_IN_SHORT_PR / INDEPENDENT_CI_GATE / NOT_HOST_WIRED / NOT_PRODUCTION
+Status: ISOLATED_CI_PASS_MERGED_MAIN / NOT_HOST_WIRED / NOT_PRODUCTION
 
 ## 继承的权威和边界
 
@@ -30,3 +30,7 @@ Status: CODE_IN_SHORT_PR / INDEPENDENT_CI_GATE / NOT_HOST_WIRED / NOT_PRODUCTION
 ## CI证据签收
 
 在CI完成后，以最终PR精确head的GitHub Actions job日志为准；本文件的独立能力状态不随合并自动升级为正式Host/PA-02B生产完成。
+
+## 合并后验收凭证
+
+[#800](https://github.com/jiangxng/EVO-App-Platform/pull/800)经准确head `4e4147b8716e945ece07f93f92bd81d0c2f140d7` 的 [PostgreSQL CI 38347246849](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38347246849) SUCCESS；merge `92faf7ec69e0ae1de82288dec92fa5c622c91609`，短分支已删除。首次全Host浏览器allow job在mock模型调用观察中失败，同head复跑成功；不可抹去失败日志，也不是PA02B业务Host生产门禁。
