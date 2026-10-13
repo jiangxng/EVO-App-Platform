@@ -12,6 +12,8 @@ import {createPostgresFencedAgentRunAuthorityV030}
   from "../../dist/agents/enterprise-agent/pa02b-fenced-run-authority.js";
 import {createReadOnlyFencedAgentWorkerV030}
   from "../../dist/agents/enterprise-agent/pa02-async-read-worker.js";
+import {createPostgresAtomicAgentRunCancellationV020}
+  from "../../dist/agents/enterprise-agent/pa02c-atomic-run-cancel.js";
 
 const url=process.env.PA02A_PROOF_DATABASE_URL;
 const principal={contractVersion:"0.1.0",subjectId:"cross-process-reader",actorType:"HUMAN",identityProviderId:"sandbox"};
@@ -117,6 +119,64 @@ if(process.argv[2]==="--process-child") {
       }));
     }finally{
       for(const s of [authority,coordinator,repo])if(s)await s.close();
+      try{await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');}
+      finally{await admin.end();}
+    }
+  });
+
+  test("PA02 actual SIGKILL + durable cancellation: successor cannot revive terminal Run",{
+    skip:!url?"Requires disposable PA02A_PROOF_DATABASE_URL":false,timeout:90000
+  },async()=>{
+    const schema="agent_pa02_cancel_crash_"+randomUUID().replaceAll("-","").slice(0,9);
+    const admin=postgres(url,{max:2});
+    let repo,coordinator,authority,cancels;
+    try{
+      repo=await createPostgresAgentDurabilityProofV020({connectionString:url,schema});
+      coordinator=await createPostgresAgentExecutionCoordinatorV020({connectionString:url,schema});
+      authority=await createPostgresFencedAgentRunAuthorityV030({connectionString:url,schema});
+      cancels=await createPostgresAtomicAgentRunCancellationV020({connectionString:url,schema});
+      const runId="run:cross-process";
+      await repo.claimTurn({
+        scope,threadId:"thread:process",clientTurnId:"client:process",taskDigest:hash("cancel"),
+        taskPayload:{message:"cancel after crash"},
+        created:{contractVersion:"0.1.0",eventId:"created:"+randomUUID(),
+          runId,type:"RUN_CREATED",occurredAt:"2026-10-13T00:00:00.000Z",
+          payload:{principalSubjectId:principal.subjectId,principalActorType:principal.actorType,
+            context:context.activeContext,sourceInteractionId:"thread:process",
+            sourceActionId:"turn:process",input:{message:"cancel after crash",
+              conversationHistory:[],locale:"en",providerId:"process.test",modelId:"local"}}}
+      });
+      const crashed=await launch(schema,"crash");
+      assert.equal(crashed.signal,"SIGKILL",crashed.err);
+      assert.match(crashed.out,/PA02_WORKER_MODEL_ENTERED/);
+      const requested=await cancels.request({scope,runId,
+        requestedBy:scope.principalSubjectId,reason:"Explicit user cancellation"});
+      assert.equal(requested.state,"REQUESTED");
+      await assert.rejects(cancels.commitSafe({scope,runId,
+        eventId:"cancel:premature",occurredAt:"2026-10-13T00:02:00.000Z"}),
+        /PA02C_ATOMIC_WORKER_NOT_QUIESCED/);
+      await admin.unsafe('UPDATE "'+schema+'".pa02b_leases '+
+        "SET expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",[runId]);
+      const committed=await cancels.commitSafe({scope,runId,
+        eventId:"cancel:safe",occurredAt:"2026-10-13T00:03:00.000Z"});
+      assert.equal(committed.runState,"CANCELLED");
+      const recovered=await launch(schema,"recover");
+      assert.equal(recovered.code,0,recovered.err);
+      const status=JSON.parse(recovered.out.split("PA02_WORKER_RESULT=")[1].split("\n")[0]);
+      assert.equal(status.state,"CANCELLED");
+      assert.equal(status.advanced,false);
+      const durable=await authority.read({scope,runId});
+      assert.equal(durable.run.state,"CANCELLED");
+      assert.equal(durable.run.finalMessage,undefined);
+      assert.equal((await repo.listRunEvents({scope,runId})).filter(e=>e.type==="RUN_CANCELLED").length,1);
+      console.log("PA02_REAL_CANCEL_PROCESS_CRASH="+JSON.stringify({
+        status:"PASS",workerKilledBySigkill:true,requestPersisted:true,
+        activeLeasePreventedPrematureCancel:true,workerExpired:true,
+        runCancelledAtomically:true,freshProcessCannotRevive:true,
+        externalWriteExecuted:false,productionWired:false
+      }));
+    }finally{
+      for(const s of [cancels,authority,coordinator,repo])if(s)await s.close();
       try{await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');}
       finally{await admin.end();}
     }
