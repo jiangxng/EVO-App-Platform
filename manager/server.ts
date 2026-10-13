@@ -65,6 +65,7 @@ import {
 } from "../apps/trading-lite/action-handler.js";
 import { createEnterpriseAgentChatActionHandler } from "../agents/enterprise-agent/chat-action-handler.js";
 import { createPersonalAgentRunActionHandlersV010 } from "../agents/enterprise-agent/run-action-handlers.js";
+import { createOptionalHostAsyncRunReaderV020 } from "./agent-async-run-host-mode.js";
 import { createResumableAgentRunExecutorV010 } from "../agents/enterprise-agent/run-runtime.js";
 import { createJsonlPersonalAgentQualityEvidenceStoreV010, createMemoryPersonalAgentQualityEvidenceStoreV010 } from "../agents/enterprise-agent/quality-evidence-store.js";
 import { createFilePersonalAgentFollowUpStoreV010, createMemoryPersonalAgentFollowUpStoreV010 } from "./personal-agent-follow-up-store.js";
@@ -1455,6 +1456,10 @@ const agentRunStore = createAgentRunStoreV010({
   eventStore: agentRunEventStore,
   eventId: randomUUID
 });
+// PA-02 opt-in read-through only. Default OFF: no Postgres connection or
+// plugin registration and no change to the authoritative V010 Run executor.
+const optionalAgentAsyncRunReader =
+  await createOptionalHostAsyncRunReaderV020(process.env);
 const conversationThreadFile =
   process.env.APP_PLATFORM_CONVERSATION_THREAD_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "conversation-threads.jsonl") : undefined);
@@ -5350,6 +5355,9 @@ const actionRouter = createAppActionRouter(
     ...createPersonalAgentRunActionHandlersV010({
       runStore: agentRunStore,
       runExecutor: agentRunExecutor,
+      ...(optionalAgentAsyncRunReader
+        ? { asyncRunReader: optionalAgentAsyncRunReader.read }
+        : {}),
       resolveLlmProvider,
       resolveIdentitySession,
       resolveContext(selection, session) {
@@ -9329,6 +9337,7 @@ async function shutdown(signal: string): Promise<void> {
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
   contextMemorySchedulerLease.release();
   await bottleneckRuntime.stop();
+  await optionalAgentAsyncRunReader?.close();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
