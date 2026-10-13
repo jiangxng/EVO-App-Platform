@@ -191,7 +191,7 @@ export function createReadOnlyFencedAgentWorkerV030(
       };
 
       if(pending) {
-        return observe(pending,allTools.find(t=>
+        return await observe(pending,allTools.find(t=>
           pending.decision.type==="tool"&&t.id===pending.decision.call.tool
         ));
       }
@@ -231,7 +231,7 @@ export function createReadOnlyFencedAgentWorkerV030(
         await append("RUN_SUCCEEDED",{message:decision.message});
         return output(true);
       }
-      return observe(run.decisions[run.decisions.length-1],
+      return await observe(run.decisions[run.decisions.length-1],
         allTools.find(t=>t.id===decision.call.tool));
       } finally {
         if(deps.releaseOnReturn) {
