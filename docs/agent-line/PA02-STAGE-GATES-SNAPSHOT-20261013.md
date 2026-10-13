@@ -36,3 +36,9 @@ Scope: EVO-App-Platform agent line only; NOT production signoff.
 [#804候选：以创建后的实际PR编号为准] 纠正正式V010 Host的一个真实正确性缺口：原 `thread-turn-action-handlers.ts` 使用 `runStore.list({limit:100})` 寻找 `clientTurnId`，早于最近100条的用户Turn在网络重试时会被误判为全新任务。新增V010 `getBySource` 做Principal/actor/Context/Thread/sourceAction精确不限页查询；同一个Sync Store内强制相同source的二次创建失败；整合测试制造131条更新Run后复发原请求，确保不重复LLM执行/用户消息与拒绝不同输入。
 
 **限制：** 这是当前Host V010的单实例防重复修复；JSONL跨进程没有SQL式原子唯一约束。无法替代PA-02A全异步Host接线及PA-02B实际多Worker执行。精确PR与CI结果须另查最新GitHub状态，不从此段推断已合并。
+
+## PA-02A Receipt事件结果与原始调用证据保真（2026-10-13继续）
+
+**代码事实**：旧V020 PostgreSQL `agent_receipts` 只有 `receipt_id/idempotency_key/input_digest/status/revision`，不能满足旧正式V010回执对于Owner、来源Interaction、权限主体、完成时间、结果实体和失败细节的还原需求。
+
+**本批改进**：通过独立PostgreSQL schema迁移 `request_payload` 与 `terminal_payload` JSONB，原始Host请求及真实Owner提供的终态资料可保存、重试复用、关闭连接后恢复，并校验重试更换Owner/Tool的身份冲突、跨企业伪造的请求Scope；保留旧行无metadata时显式阻断身份重放。异步V020的终结字段仍可空以兼容此前实验，但**正式Host必须要求证据完整及由业务Owner验证**。本改动不是正式Host启用，也不能让尚未获得业务核验的UNKNOWN自动变为SUCCEEDED。PR与CI状态以GitHub提交核验。
