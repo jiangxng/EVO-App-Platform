@@ -1,7 +1,7 @@
 # PA-02A — 正式Host接入前的受控异步桥接与Run兼容性验证（2026-10-13）
 
 Document class: AGENT_LINE_INCREMENTAL_STAGING
-Status: EXPERIMENTAL_BRIDGE_ONLY / CI_PENDING / FORMAL_HOST_V010_UNCHANGED
+Status: EXPERIMENTAL_BRIDGE_CI_PASS_MERGED_MAIN / FORMAL_HOST_V010_UNCHANGED
 
 ## 证据与目的
 
@@ -25,3 +25,6 @@ Status: EXPERIMENTAL_BRIDGE_ONLY / CI_PENDING / FORMAL_HOST_V010_UNCHANGED
 - 这个PR目标是新增可以稳定演进的**无副作用接线基件**，不将PA-02A/B/C标记为正式产品完成。原14外部参考仍H级，没重读其原文。
 
 后续开发依赖需以GitHub合并后main准确SHA刷新；不动共享 `project.status.json`、TR/2D/生产。
+## 合并后验收凭证
+
+[#802](https://github.com/jiangxng/EVO-App-Platform/pull/802)准确head `fd5238dc1016b09c8514f45cfa81f6269eca5cbf` 的 [Host Bridge Postgres CI 38348081884](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38348081884) SUCCESS，Platform CI/Continuity/Lightweight Host均通过；merge `858e3119b68bce403b0b59b002a67c0b08b028ce`，临时branch已删。正式server仍用Sync V010。
