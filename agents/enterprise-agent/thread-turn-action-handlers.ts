@@ -39,6 +39,23 @@ export interface ThreadBackedAgentTurnDependenciesV010 {
   contextAssembler?: ConversationContextAssemblerV010;
   runStore: AgentRunStoreV010;
   runExecutor: ResumableAgentRunExecutorV010;
+  /**
+   * Explicit Host-injected V020 read/resume bridge. Both methods MUST enforce
+   * the authenticated Host principal and resolved enterprise context.
+   * No async fallback is allowed for an existing wrong-scope V010 Run.
+   */
+  asyncRunReader?: (input: {
+    runId: string;
+    principal: PlatformPrincipalV010;
+    context: ResolvedContextSetV010;
+  }) => Promise<AgentRunV010 | undefined>;
+  asyncRunResumer?: (input: {
+    runId: string;
+    principal: PlatformPrincipalV010;
+    context: ResolvedContextSetV010;
+    requestContext?: PlatformRequestContextV010;
+  }) => Promise<AgentRunV010>;
+
   resolveLlmProvider(): {
     installedProviderIds: string[];
     provider?: LlmInferenceProvider;
@@ -613,31 +630,49 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             principal,
             context
           );
-          const currentRun = runForScope(
-            dependencies,
-            runId,
-            principal,
-            context
+          const legacyRun = dependencies.runStore.get(runId);
+          // Never allow an async fallback to bypass a V010 wrong-scope Run.
+          if (legacyRun && (
+            legacyRun.principalSubjectId !== principal.subjectId
+            || legacyRun.principalActorType !== principal.actorType
+            || !sameContext(legacyRun.context, context.activeContext)
+          )) {
+            throw new Error("AGENT_RUN_NOT_FOUND");
+          }
+          const currentRun = legacyRun ?? (
+            dependencies.asyncRunReader && dependencies.asyncRunResumer
+              ? await dependencies.asyncRunReader({runId,principal,context})
+              : undefined
           );
+          if (!currentRun
+            || currentRun.principalSubjectId !== principal.subjectId
+            || currentRun.principalActorType !== principal.actorType
+            || !sameContext(currentRun.context,context.activeContext)) {
+            throw new Error("AGENT_RUN_NOT_FOUND");
+          }
           verifyRunBelongsToThread(threadId, currentRun);
           if (!thread.messages.some(item => item.role === "USER" && item.runId === runId)) {
             throw new Error("CONVERSATION_THREAD_RUN_USER_MESSAGE_REQUIRED");
           }
-
-          const resumed = await drainResumableAgentRunV010(
-            dependencies.runExecutor,
-            {
-              runId,
-              principal,
-              context,
-              requestContext
-            }
-          );
+          const run = legacyRun
+            ? (await drainResumableAgentRunV010(dependencies.runExecutor,{
+                runId,principal,context,requestContext
+              })).run
+            : await dependencies.asyncRunResumer!({
+                runId,principal,context,requestContext
+              });
+          // The injected worker may only return the original Run and scope.
+          if (run.runId!==runId || run.sourceInteractionId!==threadId
+            || run.principalSubjectId!==principal.subjectId
+            || run.principalActorType!==principal.actorType
+            || !sameContext(run.context,context.activeContext)) {
+            throw new Error("AGENT_RUN_NOT_FOUND");
+          }
           return presentTurnResult(
             dependencies,
             request,
             threadId,
-            resumed.run,
+            run,
             principal,
             context,
             requestContext
