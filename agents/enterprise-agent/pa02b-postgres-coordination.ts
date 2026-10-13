@@ -104,7 +104,12 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
       [key(scope),required(effectId)]);
     return rows.length ? write(rows[0]) : undefined;
   }
+  async function lockRun(tx: any, scopeKey: string, runId: string) {
+    await tx.unsafe("SELECT pg_advisory_xact_lock(hashtextextended($1::text,0))",
+      [scopeKey + ":" + required(runId)]);
+  }
   async function assertLease(tx: any, scopeKey: string, l: AgentLeaseV020, allowAfterCancel = false) {
+    await lockRun(tx,scopeKey,l.runId);
     const rows = await tx.unsafe("SELECT run_id FROM " + q + ".pa02b_leases "+
       "WHERE scope_key=$1 AND run_id=$2 AND owner_id=$3 AND fence=$4 "+
       "AND expires_at>clock_timestamp() FOR UPDATE",
@@ -118,28 +123,38 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
   }
   return {
     async claimLease(r) {
-      const stopped=await sql.unsafe("SELECT state FROM "+q+".pa02c_cancellations "+
-        "WHERE scope_key=$1 AND run_id=$2",[key(r.scope),required(r.runId)]);
-      if(stopped.length)return undefined;
-      const rows = await sql.unsafe("INSERT INTO " + q + ".pa02b_leases "+
-        "(scope_key,run_id,owner_id,fence,expires_at) "+
-        "VALUES($1,$2,$3,1,clock_timestamp()+($4::integer*interval '1 second')) "+
-        "ON CONFLICT (scope_key,run_id) DO UPDATE SET "+
-        "owner_id=EXCLUDED.owner_id,fence=" + q + ".pa02b_leases.fence+1,"+
-        "expires_at=EXCLUDED.expires_at "+
-        "WHERE " + q + ".pa02b_leases.expires_at<=clock_timestamp() "+
-        "RETURNING run_id,owner_id,fence,expires_at",
-        [key(r.scope),required(r.runId),required(r.ownerId),ttl(r.ttlSeconds)]);
-      return rows.length ? lease(rows[0]) : undefined;
+      const scopeKey=key(r.scope),runId=required(r.runId),ownerId=required(r.ownerId);
+      return sql.begin(async tx => {
+        await lockRun(tx,scopeKey,runId);
+        const stopped=await tx.unsafe("SELECT state FROM "+q+".pa02c_cancellations "+
+          "WHERE scope_key=$1 AND run_id=$2",[scopeKey,runId]);
+        if(stopped.length)return undefined;
+        const rows=await tx.unsafe("INSERT INTO "+q+".pa02b_leases "+
+          "(scope_key,run_id,owner_id,fence,expires_at) "+
+          "VALUES($1,$2,$3,1,clock_timestamp()+($4::integer*interval '1 second')) "+
+          "ON CONFLICT (scope_key,run_id) DO UPDATE SET "+
+          "owner_id=EXCLUDED.owner_id,fence="+q+".pa02b_leases.fence+1,"+
+          "expires_at=EXCLUDED.expires_at "+
+          "WHERE "+q+".pa02b_leases.expires_at<=clock_timestamp() "+
+          "RETURNING run_id,owner_id,fence,expires_at",
+          [scopeKey,runId,ownerId,ttl(r.ttlSeconds)]);
+        return rows.length ? lease(rows[0]) : undefined;
+      });
     },
     async renewLease(r) {
-      const l = r.lease;
-      const rows = await sql.unsafe("UPDATE " + q + ".pa02b_leases SET "+
-        "expires_at=clock_timestamp()+($5::integer*interval '1 second') "+
-        "WHERE scope_key=$1 AND run_id=$2 AND owner_id=$3 AND fence=$4 "+
-        "AND expires_at>clock_timestamp() RETURNING run_id,owner_id,fence,expires_at",
-        [key(r.scope),required(l.runId),required(l.ownerId),l.fence,ttl(r.ttlSeconds)]);
-      return rows.length ? lease(rows[0]) : undefined;
+      const l=r.lease,scopeKey=key(r.scope);
+      return sql.begin(async tx => {
+        await lockRun(tx,scopeKey,l.runId);
+        const stopped=await tx.unsafe("SELECT state FROM "+q+".pa02c_cancellations "+
+          "WHERE scope_key=$1 AND run_id=$2",[scopeKey,l.runId]);
+        if(stopped.length)return undefined;
+        const rows=await tx.unsafe("UPDATE "+q+".pa02b_leases SET "+
+          "expires_at=clock_timestamp()+($5::integer*interval '1 second') "+
+          "WHERE scope_key=$1 AND run_id=$2 AND owner_id=$3 AND fence=$4 "+
+          "AND expires_at>clock_timestamp() RETURNING run_id,owner_id,fence,expires_at",
+          [scopeKey,required(l.runId),required(l.ownerId),l.fence,ttl(r.ttlSeconds)]);
+        return rows.length ? lease(rows[0]) : undefined;
+      });
     },
     async prepareWrite(r) {
       const scopeKey=key(r.scope),effectId=required(r.effectId),inputDigest=digest(r.inputDigest);
