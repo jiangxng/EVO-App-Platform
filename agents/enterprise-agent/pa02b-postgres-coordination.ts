@@ -97,7 +97,7 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
       [key(scope),required(effectId)]);
     return rows.length ? write(rows[0]) : undefined;
   }
-  async function assertLease(tx: Parameters<Parameters<typeof sql.begin>[0]>[0], scopeKey: string, l: AgentLeaseV020) {
+  async function assertLease(tx: { unsafe(query: string, parameters?: readonly (string | number)[]): Promise<readonly Record<string, unknown>[]> }, scopeKey: string, l: AgentLeaseV020) {
     const rows = await tx.unsafe("SELECT run_id FROM " + q + ".pa02b_leases "+
       "WHERE scope_key=$1 AND run_id=$2 AND owner_id=$3 AND fence=$4 "+
       "AND expires_at>clock_timestamp() FOR UPDATE",
