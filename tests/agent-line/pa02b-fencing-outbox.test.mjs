@@ -83,7 +83,7 @@ test("PA02B: two-client lease fencing, durable write intent, and fail-closed unk
     console.log("PA02B_FENCED_OUTBOX_PROOF="+JSON.stringify({
       status:"PASS",concurrentClaimants:24,initialWinners:1,fenceBefore:1,fenceAfter:2,
       staleCompletionRejected:true,unknownWriteNeverReplayed:true,
-      separateProcessRecoveredState:true,tenantReadIsolation:true,
+      separateConnectionRecoveredState:true,tenantReadIsolation:true,
       externalToolInvoked:false,hostAdapterEnabled:false,productionUsed:false
     }));
   }finally{
