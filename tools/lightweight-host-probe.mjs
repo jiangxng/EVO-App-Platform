@@ -18,7 +18,7 @@ net.Server.prototype.listen = function (...args) {
       setTimeout(() => {
         const resources = {};
         for (const name of process.getActiveResourcesInfo()) resources[name] = (resources[name] ?? 0) + 1;
-        process.send?.({ kind: 'host-baseline', readyMs,
+        process.send?.({ kind: 'host-baseline', readyMs, port: this.address().port,
           idleWindowMs: performance.now() - readyMs,
           idleCpuMicros: process.cpuUsage(cpu), memoryBytes: process.memoryUsage(),
           activeResources: resources, blockedOutbound,

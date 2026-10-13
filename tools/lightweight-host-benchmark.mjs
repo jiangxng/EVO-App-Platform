@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { fork, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -8,6 +9,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const output = process.argv[2];
 if (!output) throw new Error('Usage: node tools/lightweight-host-benchmark.mjs <report.json>');
 const profiles = [
+  { name: 'managed-minimal', config: { APP_PLATFORM_STARTUP_PROFILE: 'minimal' } },
   { name: 'managed-empty-state', config: {} },
   { name: 'managed-plus-bi-installed-unused', config: { EVO_BI_WORKBENCH_AUTOINSTALL: '1' } }
 ];
@@ -65,6 +67,10 @@ for (let round = 1; round <= 3; round++) {
 const report = {
   schemaVersion: 1, measuredAt: new Date().toISOString(),
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
+  sourceState: 'working-tree; sourceCommit is the base, file hashes identify measured code',
+  measuredFilesSha256: Object.fromEntries(['dist/manager/server.js', 'dist/manager/startup-defaults.js',
+    'tools/lightweight-host-probe.mjs', 'tools/lightweight-host-benchmark.mjs'].map(file =>
+    [file, createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])),
   environment: { node: process.version, platform: process.platform, architecture: process.arch,
     cpu: os.cpus()[0]?.model, logicalCpus: os.cpus().length, totalMemoryBytes: os.totalmem() },
   scope: 'Fresh process + empty temporary file storage; warm OS cache possible; managed authentication enabled, no credentials or business requests; not minimum host and not production load.',

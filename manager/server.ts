@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
-import { createStartupDefaultsV010 } from "./startup-defaults.js";
+import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
 import {
   createMemoryDefinitionProjectionSessionStoreV010,
@@ -1173,6 +1173,9 @@ const current2dEditorSessions =
   createMemoryCurrent2dEditorSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
+const startupProfile = resolveStartupProfileV010(
+  process.env.APP_PLATFORM_STARTUP_PROFILE, managedSessionEnabled
+);
 const authenticationPublicBaseUrl =
   process.env.APP_PLATFORM_PUBLIC_BASE_URL?.trim();
 const externalAgentOAuthEnabled =
@@ -2439,7 +2442,8 @@ async function resolveBiWorkbenchRuntimeV010() {
 const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
   ? createFileSettingsStore(join(dirname(lifecycleStateFile), "startup-defaults.json"))
   : createMemorySettingsStore());
-function installBusinessDefaultOnce(packageId: string, ready = true): void {
+function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false): void {
+  if (startupProfile === "minimal" && !explicit) return;
   try {
     const result = startupDefaults.apply({
       packageId,
@@ -2453,44 +2457,9 @@ function installBusinessDefaultOnce(packageId: string, ready = true): void {
   }
 }
 
-if (
-  process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1"
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === BI_WORKBENCH_PACKAGE_ID_V010
-  )
-) {
-  try {
-    manager.install(BI_WORKBENCH_PACKAGE_ID_V010);
-    console.log("Activated optional EVO BI Workbench plugin by explicit operator configuration.");
-  } catch (error) {
-    console.error("Failed to activate optional EVO BI Workbench plugin.", error);
-  }
-}
-
-const eog2dStartupSnapshot = manager.getSnapshot();
-if (
-  eog2dStartupSnapshot.installedPackages.some(
-    item => item.packageId === EOG_2D_DESIGNER_PACKAGE_ID
-  )
-  && eog2dStartupSnapshot.activeFeatures.some(
-    item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
-  )
-  && !eog2dStartupSnapshot.activeFeatures.some(
-    item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID
-  )
-) {
-  try {
-    manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
-    console.log(
-      "Migrated EOG 2D installation to activate the contextual projection Designer."
-    );
-  } catch (error) {
-    console.error(
-      "Failed to activate EOG 2D projection Designer migration.",
-      error
-    );
-  }
-}
+installBusinessDefaultOnce(BI_WORKBENCH_PACKAGE_ID_V010,
+  process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1", true
+);
 
 installBusinessDefaultOnce(EOG_3D_VIEWER_PACKAGE_ID);
 installBusinessDefaultOnce(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
@@ -2510,46 +2479,12 @@ const enterpriseOperatingGraphInspectorProperties =
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
-if (
-  installedAtStartup.some(
-    item => item.packageId === "evo-ledger-runtime-configurator"
-  )
-  && !installedAtStartup.some(
-    item => item.packageId === LEDGER_MANAGER_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(LEDGER_MANAGER_PACKAGE_ID);
-    console.log(
-      "Migrated Ledger Configurator product surface to Ledger Manager."
-    );
-  } catch (error) {
-    console.error(
-      "Failed to activate Ledger Manager product cutover.",
-      error
-    );
-  }
-}
-if (
+installBusinessDefaultOnce(LEDGER_MANAGER_PACKAGE_ID,
+  installedAtStartup.some(item => item.packageId === "evo-ledger-runtime-configurator")
+);
+installBusinessDefaultOnce(APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
   applicationRuntimeBindingStore.snapshot().bindings.length > 0
-  && !manager.getSnapshot().activeFeatures.some(
-    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
-  )
-) {
-  try {
-    const installed = manager.getSnapshot().installedPackages.some(
-      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
-    );
-    if (installed) {
-      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    } else {
-      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    }
-    console.log("Migrated persisted Application Runtime Bindings onto the active provider feature.");
-  } catch (error) {
-    console.error("Failed to activate Application Runtime Binding Provider.", error);
-  }
-}
+);
 if (!installedAtStartup.some(
   item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
 )) {
@@ -2620,14 +2555,7 @@ if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATION
     console.error("Failed to activate Host Enterprise Relationship Provider.", error);
   }
 }
-if (!installedAtStartup.some(item => item.packageId === HOST_CONTEXT_MEMORY_PACKAGE_ID)) {
-  try {
-    manager.install(HOST_CONTEXT_MEMORY_PACKAGE_ID);
-    console.log("Activated Host Context Memory Provider.");
-  } catch (error) {
-    console.error("Failed to activate Host Context Memory Provider.", error);
-  }
-}
+installBusinessDefaultOnce(HOST_CONTEXT_MEMORY_PACKAGE_ID);
 if (
   hostMemoryIntakeConfig
   && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
@@ -2733,6 +2661,34 @@ installBusinessDefaultOnce(OBJECT_EXTENSION_PACKAGE_ID,
 installBusinessDefaultOnce(DATA_IMPORT_PACKAGE_ID,
   manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
 );
+const eog2dStartupSnapshot = manager.getSnapshot();
+if (
+  startupProfile !== "minimal"
+  && eog2dStartupSnapshot.installedPackages.some(
+    item => item.packageId === EOG_2D_DESIGNER_PACKAGE_ID
+  )
+  && eog2dStartupSnapshot.activeFeatures.some(
+    item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
+  )
+) {
+  try {
+    startupDefaults.migrate({
+      id: "eog-2d-contextual-designer-v1", ready: true,
+      run() {
+        if (!eog2dStartupSnapshot.activeFeatures.some(item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+          manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
+          console.log("Migrated EOG 2D contextual Designer feature.");
+        }
+      }
+    });
+  } catch (error) {
+    console.error(
+      "Failed to activate EOG 2D projection Designer migration.",
+      error
+    );
+  }
+}
+
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
