@@ -41,3 +41,5 @@ stop默认最多等待30秒，可用stopTimeoutMs配置正整数毫秒。超时�
 本轮没有强制取消业务调用。外部IO仍需Provider自身支持AbortSignal/请求超时，写事务取消、幂等补偿、进程强制退出边界另行设计。无资源的瓶颈分析Provider继续作为首个接线试点；第二个有资源Provider迁移尚未完成。Node模块缓存不因stop卸载。
 
 不修改Agent专项、全局project.status或全局HANDOFF；本入口及PR记录作为下一窗口接续依据。
+
+后续已落地统一管理员查询/重试API，见[管理接口](ADMIN-LIFECYCLE-API.md)；上文公开接口未完成属于本批初始状态，管理页面仍待接入。
