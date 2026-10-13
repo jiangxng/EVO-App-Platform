@@ -111,3 +111,33 @@ test("lazy handler guard blocks dependent plugin loading", async () => {
   assert.equal(allowed.ok, true);
   assert.equal(loads, 1);
 });
+
+test("concurrent first calls share loading and a failed load can retry", async () => {
+  let loads = 0;
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  const handler = createLazyAppActionHandlerV010({
+    packageId: "plugin.lazy",
+    featureId: "plugin.lazy.default",
+    commandCode: "plugin.lazy.test",
+    async load() {
+      loads += 1;
+      if (loads === 1) {
+        await pending;
+        throw new Error("temporary loading failure");
+      }
+      return {
+        packageId: "plugin.lazy", featureId: "plugin.lazy.default",
+        commandCode: "plugin.lazy.test", async execute() { return { ok: true }; }
+      };
+    }
+  });
+  const first = handler.execute(request);
+  const second = handler.execute(request);
+  release();
+  const failed = await Promise.allSettled([first, second]);
+  assert.equal(loads, 1);
+  assert.ok(failed.every(result => result.status === "rejected"));
+  assert.equal((await handler.execute(request)).ok, true);
+  assert.equal(loads, 2);
+});

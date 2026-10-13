@@ -3,9 +3,12 @@ import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { createLazyProviderRuntimeV010 } from "./lazy-provider-runtime.js";
+import type { EnterpriseOperatingGraphAnalysisProviderV020 } from "../contracts/enterprise-operating-graph-observatory.js";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
 import {
   createMemoryDefinitionProjectionSessionStoreV010,
@@ -502,9 +505,6 @@ import {
   APPLICATION_RUNTIME_BINDING_PROVIDER_ID,
   applicationRuntimeBindingProviderPackage
 } from "../providers/application-runtime-binding/package.js";
-import {
-  createEogBottleneckAnalysisProviderV020
-} from "../providers/eog-bottleneck-analysis/runtime.js";
 import {
   createEvoRuntimeObservatoryHealthProbeV010,
   createEvoRuntimeObservatoryProviderV020
@@ -1172,6 +1172,9 @@ const current2dEditorSessions =
   createMemoryCurrent2dEditorSessionStoreV010();
 const managedSessionEnabled =
   process.env.APP_PLATFORM_MANAGED_SESSION_ENABLED?.trim().toLowerCase() === "true";
+const startupProfile = resolveStartupProfileV010(
+  process.env.APP_PLATFORM_STARTUP_PROFILE, managedSessionEnabled
+);
 const authenticationPublicBaseUrl =
   process.env.APP_PLATFORM_PUBLIC_BASE_URL?.trim();
 const externalAgentOAuthEnabled =
@@ -2187,6 +2190,15 @@ let warehouseRuntimePromise:
     }>
   | undefined;
 
+const bottleneckRuntime = createLazyProviderRuntimeV010<EnterpriseOperatingGraphAnalysisProviderV020>({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID),
+  async load() {
+    const module = await import("../providers/eog-bottleneck-analysis/runtime.js");
+    return module.createEogBottleneckAnalysisProviderV020({ expectedSopService: eogExpectedSopService });
+  }
+});
+
 const manager = createAppManagerService(
   catalog,
   store,
@@ -2213,6 +2225,9 @@ const manager = createAppManagerService(
 
     if (event.type === "FEATURE_DEACTIVATED" || event.type === "PACKAGE_UNINSTALLED") {
       void processRuntimeHost.stop(event.packageId);
+      if (event.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID) {
+        void bottleneckRuntime.stop().catch(error => console.error("Bottleneck runtime stop failed", error));
+      }
       if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
         void disposeBiWorkbenchRuntimeV010();
       }
@@ -2434,70 +2449,31 @@ async function resolveBiWorkbenchRuntimeV010() {
   return biWorkbenchRuntimePromise;
 }
 
-if (
-  process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1"
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === BI_WORKBENCH_PACKAGE_ID_V010
-  )
-) {
+// Keep bootstrap completion separate from business state and user settings.
+const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
+  ? createFileSettingsStore(join(dirname(lifecycleStateFile), "startup-defaults.json"))
+  : createMemorySettingsStore());
+function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false): void {
+  if (startupProfile === "minimal" && !explicit) return;
   try {
-    manager.install(BI_WORKBENCH_PACKAGE_ID_V010);
-    console.log("Activated optional EVO BI Workbench plugin by explicit operator configuration.");
+    const result = startupDefaults.apply({
+      packageId,
+      installed: manager.getSnapshot().installedPackages.some(item => item.packageId === packageId),
+      ready,
+      install() { manager.install(packageId); }
+    });
+    if (result === "INSTALLED") console.log("Installed first-run business default", packageId);
   } catch (error) {
-    console.error("Failed to activate optional EVO BI Workbench plugin.", error);
+    console.error("Failed to initialize business default", packageId, error);
   }
 }
 
-const eog2dStartupSnapshot = manager.getSnapshot();
-if (
-  eog2dStartupSnapshot.installedPackages.some(
-    item => item.packageId === EOG_2D_DESIGNER_PACKAGE_ID
-  )
-  && eog2dStartupSnapshot.activeFeatures.some(
-    item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
-  )
-  && !eog2dStartupSnapshot.activeFeatures.some(
-    item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID
-  )
-) {
-  try {
-    manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
-    console.log(
-      "Migrated EOG 2D installation to activate the contextual projection Designer."
-    );
-  } catch (error) {
-    console.error(
-      "Failed to activate EOG 2D projection Designer migration.",
-      error
-    );
-  }
-}
+installBusinessDefaultOnce(BI_WORKBENCH_PACKAGE_ID_V010,
+  process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1", true
+);
 
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
-)) {
-  try {
-    manager.install(EOG_3D_VIEWER_PACKAGE_ID);
-    console.log("Activated EOG 3D Viewer ownership cutover.");
-  } catch (error) {
-    console.error("Failed to activate EOG 3D Viewer ownership cutover.", error);
-  }
-}
-if (
-  !manager.getSnapshot().activeFeatures.some(
-    feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
-  )
-  || !manager.getSnapshot().activeFeatures.some(
-    feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
-  )
-) {
-  try {
-    manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
-    console.log("Activated Enterprise Observatory peer plugin.");
-  } catch (error) {
-    console.error("Failed to activate Enterprise Observatory peer plugin.", error);
-  }
-}
+installBusinessDefaultOnce(EOG_3D_VIEWER_PACKAGE_ID);
+installBusinessDefaultOnce(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
 
 const enterpriseOperatingGraphObservatoryProviders =
   createEnterpriseOperatingGraphObservatoryProviderResolverV020({
@@ -2514,46 +2490,12 @@ const enterpriseOperatingGraphInspectorProperties =
   });
 
 const installedAtStartup = manager.getSnapshot().installedPackages;
-if (
-  installedAtStartup.some(
-    item => item.packageId === "evo-ledger-runtime-configurator"
-  )
-  && !installedAtStartup.some(
-    item => item.packageId === LEDGER_MANAGER_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(LEDGER_MANAGER_PACKAGE_ID);
-    console.log(
-      "Migrated Ledger Configurator product surface to Ledger Manager."
-    );
-  } catch (error) {
-    console.error(
-      "Failed to activate Ledger Manager product cutover.",
-      error
-    );
-  }
-}
-if (
+installBusinessDefaultOnce(LEDGER_MANAGER_PACKAGE_ID,
+  installedAtStartup.some(item => item.packageId === "evo-ledger-runtime-configurator")
+);
+installBusinessDefaultOnce(APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
   applicationRuntimeBindingStore.snapshot().bindings.length > 0
-  && !manager.getSnapshot().activeFeatures.some(
-    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
-  )
-) {
-  try {
-    const installed = manager.getSnapshot().installedPackages.some(
-      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
-    );
-    if (installed) {
-      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    } else {
-      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    }
-    console.log("Migrated persisted Application Runtime Bindings onto the active provider feature.");
-  } catch (error) {
-    console.error("Failed to activate Application Runtime Binding Provider.", error);
-  }
-}
+);
 if (!installedAtStartup.some(
   item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
 )) {
@@ -2564,16 +2506,7 @@ if (!installedAtStartup.some(
     console.error("Failed to activate EVO External Agent Governance foundation.", error);
   }
 }
-if (!installedAtStartup.some(
-  item => item.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID
-)) {
-  try {
-    manager.install(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
-    console.log("Activated EOG Bottleneck Analysis Provider.");
-  } catch (error) {
-    console.error("Failed to activate EOG Bottleneck Analysis Provider.", error);
-  }
-}
+installBusinessDefaultOnce(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
 const evoObservatoryEnabled =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_ENABLED?.trim().toLowerCase()
   === "true";
@@ -2633,14 +2566,7 @@ if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATION
     console.error("Failed to activate Host Enterprise Relationship Provider.", error);
   }
 }
-if (!installedAtStartup.some(item => item.packageId === HOST_CONTEXT_MEMORY_PACKAGE_ID)) {
-  try {
-    manager.install(HOST_CONTEXT_MEMORY_PACKAGE_ID);
-    console.log("Activated Host Context Memory Provider.");
-  } catch (error) {
-    console.error("Failed to activate Host Context Memory Provider.", error);
-  }
-}
+installBusinessDefaultOnce(HOST_CONTEXT_MEMORY_PACKAGE_ID);
 if (
   hostMemoryIntakeConfig
   && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
@@ -2737,51 +2663,43 @@ if (
     console.error("Failed to activate Host Enterprise Context Provider.", error);
   }
 }
+installBusinessDefaultOnce(COUNTERPARTY_PACKAGE_ID,
+  manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
+);
+installBusinessDefaultOnce(OBJECT_EXTENSION_PACKAGE_ID,
+  manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
+);
+installBusinessDefaultOnce(DATA_IMPORT_PACKAGE_ID,
+  manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
+);
+const eog2dStartupSnapshot = manager.getSnapshot();
 if (
-  manager.getSnapshot().effectiveCapabilities.includes(
-    ENTERPRISE_RESOURCE_CAPABILITY_V010
+  startupProfile !== "minimal"
+  && eog2dStartupSnapshot.installedPackages.some(
+    item => item.packageId === EOG_2D_DESIGNER_PACKAGE_ID
   )
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === COUNTERPARTY_PACKAGE_ID
+  && eog2dStartupSnapshot.activeFeatures.some(
+    item => item.featureId === EOG_2D_VIEWER_FEATURE_ID
   )
 ) {
   try {
-    manager.install(COUNTERPARTY_PACKAGE_ID);
-    console.log("Activated EVO Counterparty plugin.");
+    startupDefaults.migrate({
+      id: "eog-2d-contextual-designer-v1", ready: true,
+      run() {
+        if (!eog2dStartupSnapshot.activeFeatures.some(item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+          manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
+          console.log("Migrated EOG 2D contextual Designer feature.");
+        }
+      }
+    });
   } catch (error) {
-    console.error("Failed to activate EVO Counterparty plugin.", error);
+    console.error(
+      "Failed to activate EOG 2D projection Designer migration.",
+      error
+    );
   }
 }
-if (
-  manager.getSnapshot().effectiveCapabilities.includes(
-    ENTERPRISE_RESOURCE_CAPABILITY_V010
-  )
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === OBJECT_EXTENSION_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(OBJECT_EXTENSION_PACKAGE_ID);
-    console.log("Activated EVO Object Extension application.");
-  } catch (error) {
-    console.error("Failed to activate EVO Object Extension application.", error);
-  }
-}
-if (
-  manager.getSnapshot().effectiveCapabilities.includes(
-    ENTERPRISE_RESOURCE_CAPABILITY_V010
-  )
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === DATA_IMPORT_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(DATA_IMPORT_PACKAGE_ID);
-    console.log("Activated EVO Data Import application.");
-  } catch (error) {
-    console.error("Failed to activate EVO Data Import application.", error);
-  }
-}
+
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
@@ -3848,17 +3766,19 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 
 await refreshP12MemoryProviderRuntimes();
 
-providerRuntimeRegistry.replace(
+providerRuntimeRegistry.replace<EnterpriseOperatingGraphAnalysisProviderV020>(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
-  createEogBottleneckAnalysisProviderV020({
-    expectedSopService: eogExpectedSopService
-  })
+  {
+    contractVersion: "0.2.0",
+    providerId: EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
+    analyze: request => bottleneckRuntime.run(runtime => runtime.analyze(request))
+  }
 );
 providerRuntimeRegistry.setHealth(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
   {
-    state: "HEALTHY",
-    message: "Evidence-backed bottleneck analysis is available.",
+    state: "UNKNOWN",
+    message: "Bottleneck facade is ready; implementation loads on first active invocation.",
     checkedAt: new Date().toISOString()
   }
 );
@@ -9408,6 +9328,7 @@ async function shutdown(signal: string): Promise<void> {
   evoRuntimeRevisionBridge?.dispose();
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
   contextMemorySchedulerLease.release();
+  await bottleneckRuntime.stop();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();

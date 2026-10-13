@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-10-13T02:54:06.534Z",
+  "sourceCommit": "f84098e56f7d7deb1abf6b500ec5dd4c671f6fae",
+  "sourceState": "working-tree; sourceCommit is the base, file hashes identify measured code",
+  "measuredFilesSha256": {
+    "dist/manager/server.js": "10d4c423a7f14e4228d5febb68113fb22a90c24d0fde6ea921ca054b7e7e35fa",
+    "dist/manager/startup-defaults.js": "b82bb52fb4e7bedf4b828ce473b84b4a02783181671cce1acf2e3abc94cbceb9",
+    "tools/lightweight-host-probe.mjs": "de736a1930f862472eb05d05270b64b0002134da20f860bfbbe235f74dfd235d",
+    "tools/lightweight-host-benchmark.mjs": "d834bdf7c6d968fae31126f66d907344cd96b656eb835eee04ef70e86925d5b0"
+  },
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 9,
+    "totalMemoryBytes": 10451464192
+  },
+  "scope": "Fresh process + empty temporary file storage; warm OS cache possible; managed authentication enabled, no credentials or business requests; not minimum host and not production load.",
+  "samples": [
+    {
+      "profile": "managed-minimal",
+      "round": 1,
+      "kind": "host-baseline",
+      "readyMs": 1229.743698,
+      "port": 33979,
+      "idleWindowMs": 502.0952709999999,
+      "idleCpuMicros": {
+        "user": 1082,
+        "system": 751
+      },
+      "memoryBytes": {
+        "rss": 99815424,
+        "heapTotal": 62898176,
+        "heapUsed": 28720552,
+        "external": 5091209,
+        "arrayBuffers": 1152921
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "evo.external-agent-governance",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 7
+    },
+    {
+      "profile": "managed-empty-state",
+      "round": 1,
+      "kind": "host-baseline",
+      "readyMs": 1266.212598,
+      "port": 34009,
+      "idleWindowMs": 502.4043469999999,
+      "idleCpuMicros": {
+        "user": 1808,
+        "system": 0
+      },
+      "memoryBytes": {
+        "rss": 112439296,
+        "heapTotal": 62898176,
+        "heapUsed": 28661856,
+        "external": 5066426,
+        "arrayBuffers": 1128138
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 18
+    },
+    {
+      "profile": "managed-plus-bi-installed-unused",
+      "round": 1,
+      "kind": "host-baseline",
+      "readyMs": 1119.882406,
+      "port": 40907,
+      "idleWindowMs": 501.332001,
+      "idleCpuMicros": {
+        "user": 819,
+        "system": 581
+      },
+      "memoryBytes": {
+        "rss": 112021504,
+        "heapTotal": 62636032,
+        "heapUsed": 28688280,
+        "external": 5073249,
+        "arrayBuffers": 1134961
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-bi-workbench",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 19
+    },
+    {
+      "profile": "managed-minimal",
+      "round": 2,
+      "kind": "host-baseline",
+      "readyMs": 719.587682,
+      "port": 34335,
+      "idleWindowMs": 501.24872500000004,
+      "idleCpuMicros": {
+        "user": 546,
+        "system": 391
+      },
+      "memoryBytes": {
+        "rss": 100474880,
+        "heapTotal": 63422464,
+        "heapUsed": 28702920,
+        "external": 5079922,
+        "arrayBuffers": 1141634
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "evo.external-agent-governance",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 7
+    },
+    {
+      "profile": "managed-empty-state",
+      "round": 2,
+      "kind": "host-baseline",
+      "readyMs": 772.759722,
+      "port": 46277,
+      "idleWindowMs": 501.2304469999999,
+      "idleCpuMicros": {
+        "user": 449,
+        "system": 314
+      },
+      "memoryBytes": {
+        "rss": 112173056,
+        "heapTotal": 62636032,
+        "heapUsed": 28703232,
+        "external": 5072977,
+        "arrayBuffers": 1134689
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 18
+    },
+    {
+      "profile": "managed-plus-bi-installed-unused",
+      "round": 2,
+      "kind": "host-baseline",
+      "readyMs": 749.815537,
+      "port": 46199,
+      "idleWindowMs": 501.3513170000001,
+      "idleCpuMicros": {
+        "user": 0,
+        "system": 849
+      },
+      "memoryBytes": {
+        "rss": 112107520,
+        "heapTotal": 62898176,
+        "heapUsed": 28705720,
+        "external": 5074142,
+        "arrayBuffers": 1135854
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-bi-workbench",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 19
+    },
+    {
+      "profile": "managed-minimal",
+      "round": 3,
+      "kind": "host-baseline",
+      "readyMs": 704.04716,
+      "port": 39345,
+      "idleWindowMs": 501.2301530000001,
+      "idleCpuMicros": {
+        "user": 578,
+        "system": 350
+      },
+      "memoryBytes": {
+        "rss": 100663296,
+        "heapTotal": 63160320,
+        "heapUsed": 28627224,
+        "external": 5076908,
+        "arrayBuffers": 1138620
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "evo.external-agent-governance",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 7
+    },
+    {
+      "profile": "managed-empty-state",
+      "round": 3,
+      "kind": "host-baseline",
+      "readyMs": 776.801411,
+      "port": 46043,
+      "idleWindowMs": 501.26160100000004,
+      "idleCpuMicros": {
+        "user": 531,
+        "system": 297
+      },
+      "memoryBytes": {
+        "rss": 112381952,
+        "heapTotal": 62636032,
+        "heapUsed": 28726936,
+        "external": 5073514,
+        "arrayBuffers": 1135226
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 18
+    },
+    {
+      "profile": "managed-plus-bi-installed-unused",
+      "round": 3,
+      "kind": "host-baseline",
+      "readyMs": 796.230175,
+      "port": 36753,
+      "idleWindowMs": 501.455204,
+      "idleCpuMicros": {
+        "user": 1018,
+        "system": 0
+      },
+      "memoryBytes": {
+        "rss": 112099328,
+        "heapTotal": 63160320,
+        "heapUsed": 28771744,
+        "external": 5076639,
+        "arrayBuffers": 1138351
+      },
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-bi-workbench",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatureCount": 19
+    }
+  ]
+}
