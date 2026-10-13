@@ -3,13 +3,14 @@ on:
   pull_request:
     paths: [".github/workflows/agent-pa02-host-read-execution-ref-retirement.yml"]
   push:
-    branches: [main]
+    branches: [main, agent/pa02-host-async-read-execution-20261013]
     paths: [".github/workflows/agent-pa02-host-read-execution-ref-retirement.yml"]
 permissions:
   contents: write
   pull-requests: read
 jobs:
   retire-verified-source:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -39,3 +40,63 @@ jobs:
             if((await github.rest.repos.getBranch({owner,repo,branch:target})).data.protected)throw Error('Protected source');
             await github.rest.git.deleteRef({owner,repo,ref:'heads/'+target});
             core.info('PA02_HOST_READ_EXEC_WORKER_SOURCE_RETIRED '+target);
+
+  retire-absorbed-agent-refs:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/agent/pa02-host-async-read-execution-20261013'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Retire exact old PA-02 refs only after their history is contained in this active PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Unexpected repository');
+            const active='agent/pa02-host-async-read-execution-20261013';
+            const targets=[
+              {name:'agent/pa02-thread-turn-durable-run-20261013',
+               sha:'a40ec6f2a5c0345a20dfb31f2f7290f9ab6a66eb'},
+              {name:'agent/pa02-optin-host-async-20261013',
+               sha:'9e63327191fed69d3f89cbfae4890c5ebf14da14'}
+            ];
+            const get=async name=>{
+              try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}
+            };
+            if(await get(active)!==context.sha)throw Error('Active PR branch moved since trigger; fail closed');
+            const open=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            const mainPR=open.filter(p=>p.head.repo?.full_name===owner+'/'+repo&&
+              p.head.ref===active&&p.base.ref==='main');
+            if(mainPR.length!==1)throw Error('Expected exactly one open main-bound PA-02 PR');
+            // Verify the whole retirement set before mutating any branch.
+            const eligible=[];
+            for(const t of targets){
+              const now=await get(t.name);
+              if(now===null){core.info('ALREADY_ABSENT '+t.name);continue;}
+              if(now!==t.sha)throw Error('Ref moved: '+t.name);
+              if(open.some(p=>p.base.ref===t.name||
+                 (p.head.repo?.full_name===owner+'/'+repo&&p.head.ref===t.name)))
+                throw Error('Open PR still uses '+t.name);
+              const branch=(await github.rest.repos.getBranch({owner,repo,branch:t.name})).data;
+              if(branch.protected)throw Error('Protected branch: '+t.name);
+              const cmp=(await github.rest.repos.compareCommits({
+                owner,repo,base:t.sha,head:context.sha
+              })).data;
+              if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==t.sha)
+                throw Error('History not contained in active branch '+t.name);
+              eligible.push(t);
+            }
+            for(const t of eligible){
+              if(await get(active)!==context.sha)throw Error('Active PR moved; stop');
+              if(await get(t.name)!==t.sha)throw Error('Source changed before deletion '+t.name);
+              const livePRs=await github.paginate(github.rest.pulls.list,
+                {owner,repo,state:'open',per_page:100});
+              if(livePRs.some(p=>p.base.ref===t.name||
+                 (p.head.repo?.full_name===owner+'/'+repo&&p.head.ref===t.name)))
+                throw Error('Source referenced before deletion '+t.name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+t.name});
+              core.info('RETIRED_ABSORBED_PA02_BRANCH '+t.name+' @ '+t.sha);
+            }
+            core.summary.addHeading('PA-02 three-to-one branch consolidation')
+              .addRaw('Converged on '+active+' @ '+context.sha+'; retired '+eligible.length+
+                ' SHA-pinned absorbed refs. No product code removed.').write();
