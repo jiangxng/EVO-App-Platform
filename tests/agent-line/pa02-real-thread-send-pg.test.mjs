@@ -69,6 +69,7 @@ test("PA02 real thread.send -> PG atomic turn claim -> fenced model -> exactly-o
       createToolCatalog:()=>({list:()=>[],invoke:async()=>{throw Error("NO_WRITE");}}),
       eventId:randomUUID,sliceId:randomUUID,ttlSeconds:180
     });
+    let tick=0;
     const handlers=createThreadBackedAgentTurnActionHandlersV010({
       threadStore,runStore:oldRunStore,
       runExecutor:{resume:async()=>{throw Error("LEGACY_EXECUTOR_FORBIDDEN");}},
@@ -105,7 +106,7 @@ test("PA02 real thread.send -> PG atomic turn claim -> fenced model -> exactly-o
       resolveIdentitySession(){return {contractVersion:"0.1.0",principal};},
       resolveContext(){return context;},
       createToolCatalog:()=>({list:()=>[],invoke:async()=>{throw Error("NO_WRITE");}}),
-      runId:randomUUID,now:()=>new Date("2026-10-13T00:00:00.000Z")
+      runId:randomUUID,now:()=>new Date(Date.parse("2026-10-13T00:00:02.000Z")+(tick++)*1000)
     });
     const send=handlers.find(x=>x.commandCode==="enterprise-agent.thread.send");
     const request=(message)=>({
