@@ -3,7 +3,8 @@ import type {
   AppActionHandler,
   AppActionRequestV010
 } from "../../actions/contracts.js";
-import type { AgentRunStoreV010, AgentRunV010 } from "../../contracts/agent-run.js";
+import type { AgentRunStoreV010, AgentRunV010, AgentRunCreateInputV010 } from "../../contracts/agent-run.js";
+import type { HostAsyncReadExecutionV030 } from "../../manager/agent-async-read-worker-runtime.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
 import type {
   ActiveContextRefV010,
@@ -33,6 +34,8 @@ import {
 export interface PersonalAgentRunActionDependenciesV010 {
   runStore: AgentRunStoreV010;
   runExecutor: ResumableAgentRunExecutorV010;
+  /** Controlled READ-only persisted Run execution mode; default absent. */
+  asyncRunRuntime?: HostAsyncReadExecutionV030;
   /** Opt-in, Host-resolved async Run get; not activated in server.ts. */
   asyncRunReader?: (input: {
     runId: string;
@@ -269,7 +272,7 @@ export function createPersonalAgentRunActionHandlersV010(
           const interactionContext =
             parsePersonalAgentInteractionContextV010(request);
           const createdAt = (dependencies.now?.() ?? new Date()).toISOString();
-          const run = dependencies.runStore.create({
+          const created: AgentRunCreateInputV010 = {
             runId: "agent-run:" + dependencies.runId(),
             principalSubjectId: principal.subjectId,
             principalActorType: principal.actorType,
@@ -287,16 +290,16 @@ export function createPersonalAgentRunActionHandlersV010(
               modelId: resolved.provider.modelId
             },
             createdAt
-          });
-          const resumed = await drainResumableAgentRunV010(
-            dependencies.runExecutor,
-            {
-              runId: run.runId,
-              principal,
-              context,
-              requestContext
-            }
-          );
+          };
+          const run = dependencies.asyncRunRuntime
+            ? await dependencies.asyncRunRuntime.start({create: created, principal, context, requestContext})
+            : dependencies.runStore.create(created);
+          const resumed = dependencies.asyncRunRuntime
+            ? {run}
+            : await drainResumableAgentRunV010(
+              dependencies.runExecutor,
+              {runId: run.runId, principal, context, requestContext}
+            );
           return success(
             request,
             await presentedRunResult(
@@ -323,15 +326,14 @@ export function createPersonalAgentRunActionHandlersV010(
             request,
             requestContext
           );
-          const result = await drainResumableAgentRunV010(
-            dependencies.runExecutor,
-            {
-              runId: runIdFromRequest(request),
-              principal,
-              context,
-              requestContext
-            }
-          );
+          const runId=runIdFromRequest(request);
+          const legacy=dependencies.runStore.get(runId);
+          if(legacy&&!sameScope(legacy,principal,context))throw Error("AGENT_RUN_NOT_FOUND");
+          const result=dependencies.asyncRunRuntime&&!legacy
+            ? {run:await dependencies.asyncRunRuntime.resume({runId,principal,context,requestContext})}
+            : await drainResumableAgentRunV010(
+              dependencies.runExecutor,{runId,principal,context,requestContext}
+            );
           return success(
             request,
             await presentedRunResult(
@@ -348,6 +350,28 @@ export function createPersonalAgentRunActionHandlersV010(
         }
       }
     },
+    ...(dependencies.asyncRunRuntime ? [{
+      ...base,
+      commandCode: "enterprise-agent.run.cancel",
+      async execute(request:AppActionRequestV010,requestContext?:PlatformRequestContextV010){
+        try {
+          const {principal,context}=scopeForRequest(dependencies,request,requestContext);
+          const runId=runIdFromRequest(request);
+          // This command is only for V020 fenced Runs; never cancel a V010
+          // legacy Run via an unrelated Postgres authority.
+          if(dependencies.runStore.get(runId))throw Error("AGENT_RUN_NOT_FOUND");
+          const raw=request.values.reason;
+          const reason=typeof raw==="string"&&raw.trim()
+            ?raw.trim():"User requested cancellation";
+          const result=await dependencies.asyncRunRuntime!.cancel({
+            runId,reason,principal,context
+          });
+          return success(request,{run:result.run,cancellationState:result.state});
+        }catch(error){
+          return failure(request,error);
+        }
+      }
+    }] : []),
     {
       ...base,
       commandCode: "enterprise-agent.run.get",
@@ -364,9 +388,11 @@ export function createPersonalAgentRunActionHandlersV010(
           if (current && !sameScope(current, principal, context)) {
             throw new Error("AGENT_RUN_NOT_FOUND");
           }
-          const run = current ?? (dependencies.asyncRunReader
-            ? await dependencies.asyncRunReader({runId, principal, context})
-            : undefined);
+          const run = current ?? (dependencies.asyncRunRuntime
+            ? await dependencies.asyncRunRuntime.read({runId,principal,context})
+            : dependencies.asyncRunReader
+              ? await dependencies.asyncRunReader({runId,principal,context})
+              : undefined);
           if (!run || !sameScope(run, principal, context)) {
             throw new Error("AGENT_RUN_NOT_FOUND");
           }
