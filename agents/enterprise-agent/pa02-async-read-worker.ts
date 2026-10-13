@@ -91,6 +91,7 @@ export function createReadOnlyFencedAgentWorkerV030(
         if(!state)throw Error("AGENT_RUN_NOT_FOUND");
         return {run:state.run,advanced:false,claimed:false,writeDeferred:false};
       }
+      try {
       let current=await deps.authority.read({scope,runId});
       if(!current)throw Error("PA02_WORKER_RUN_MISSING_AFTER_CLAIM");
       const append=async (
@@ -230,6 +231,11 @@ export function createReadOnlyFencedAgentWorkerV030(
       }
       return observe(run.decisions[run.decisions.length-1],
         allTools.find(t=>t.id===decision.call.tool));
+      } finally {
+        // A healthy bounded slice should not strand the Run behind its TTL.
+        // Lost processes do not reach this finally; lease expiry is recovery.
+        await deps.authority.release({scope,lease});
+      }
     }
   };
 }
