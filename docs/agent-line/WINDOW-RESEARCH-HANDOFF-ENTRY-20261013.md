@@ -43,3 +43,6 @@ Document class: LIVING_HANDOFF_POINTER。**本文件是本窗口截至2026-10-13
 
 
 - **2026-10-13 PA-02C继续**：[PR #801](https://github.com/jiangxng/EVO-App-Platform/pull/801) 新增[PA-02C持久取消隔离证据](PA02C-DURABLE-CANCELLATION-20261013.md)，并使PA-02B写入启动前核验已保存的取消请求。**这不是正式Host `RUN_CANCELLED` 事件或跨进程真实取消完成**。PA-02A Host接线、PA-02B外部owner幂等/未知写入核对、PA-02C真实Host取消仍属未完成，勿按标题升级产品状态。
+
+
+- **2026-10-13 PA-02A Host桥继续**：[PR #802](https://github.com/jiangxng/EVO-App-Platform/pull/802) 增加无默认激活的Host可信Principal/Context→异步V020 Run bridge，利用V010 reducer复播隔离PostgreSQL事件，详见[阶段说明](PA02A-HOST-ASYNC-BRIDGE-20261013.md)。这不是 `manager/server.ts` 正式接入，更不是完整Receipt迁移、长期Worker和安全取消端到端验收。

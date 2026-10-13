@@ -82,3 +82,10 @@ Document class: DECISION_AND_GAP_HANDOFF。先读[简短入口](WINDOW-RESEARCH-
 **源码事实**：现行 `AgentRunEventTypeV010` / reducer有RUN_CANCELLED终态，但主Host V010 executor不具跨Worker协调；PA-02B隔离lease证明不保证已发出外部业务操作可撤回。[PR #801](https://github.com/jiangxng/EVO-App-Platform/pull/801)把取消请求持久化，并在独立Coordinator验证「取消前WRITE结果不明→不能立即CANCELLED」及「取消已生效→后续WRITE阻断」；详见[阶段记录](PA02C-DURABLE-CANCELLATION-20261013.md)。
 
 **判断**：不得只因新的Coordinator返回CANCELLED就声明PA-02C产品关闭。正式Run取消必须和宿主可恢复Run权威、Worker fenced执行边界、外部WRITE owner确认以及终态Receipt一致；跨进程/跨机器真实Host的中断、重复请求、租户攻击与浏览器交互全链路实测是最终门禁。实现验证通过后先收敛到main，但保持 `PA02_NOT_PRODUCTION_COMPLETE`，无需用户承担阶段性截图签收。
+
+
+## 10. PA-02A/B/C最终未完成门禁与接线选择（2026-10-13）
+
+**代码事实**：正式`manager/server.ts`继续构造Sync V010的Run/Receipt；`thread-turn-action-handlers.ts`对clientTurnId的同步Run.list(100)扫描仍未替换。PA-02A/B/C近期合并仅限隔离数据库proof及单独可靠性原语。新增[#802](https://github.com/jiangxng/EVO-App-Platform/pull/802)经当前V010 reducer提供Host可信scope和异步Run取回/任务冲突测试的分阶段接线基件，[专项边界](PA02A-HOST-ASYNC-BRIDGE-20261013.md)。
+
+**不改变决策**：用异步V020完全替换正式Run执行链只能在完整合同映射、可靠ActionReceipt结果信息、Conversation呈现一致性、权限与owner幂等、真实multi-worker与安全cancel完成后明确切换。Sync API不允许藏入未等候的PostgreSQL Promise，不能只合并源码宣布迁移完毕。仍拒绝生产迁移、LLM自行授权写入、未定量的RPO/RTO和没有业务凭证的UNKNOWN自动重试。
