@@ -8,6 +8,10 @@ import {createPersonalAgentRunActionHandlersV010}
   from "../../dist/agents/enterprise-agent/run-action-handlers.js";
 import {createAgentRunStoreV010,createMemoryAgentRunEventStoreV010}
   from "../../dist/manager/agent-run-store.js";
+import {createConversationThreadStoreV010,createMemoryConversationThreadEventStoreV010}
+  from "../../dist/manager/conversation-thread-store.js";
+import {createThreadBackedAgentTurnActionHandlersV010}
+  from "../../dist/agents/enterprise-agent/thread-turn-action-handlers.js";
 
 const url=process.env.PA02A_PROOF_DATABASE_URL;
 const principal={contractVersion:"0.1.0",subjectId:"host-async-test-user",
@@ -143,12 +147,60 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
       request("enterprise-agent.run.cancel",{runId:"agent-run:1"}));
     assert.equal(terminal.ok,false);
     assert.equal(terminal.error.code,"PA02C_ATOMIC_RUN_TERMINAL");
+
+    // Actual thread.send is wired to the SAME Host-owned PostgreSQL runtime:
+    // a browser retry must resolve one Run and append one USER/ASSISTANT pair.
+    const threadId="thread:host-pg:"+randomUUID();
+    const threadStore=createConversationThreadStoreV010({
+      eventStore:createMemoryConversationThreadEventStoreV010(),eventId:randomUUID
+    });
+    threadStore.create({
+      threadId,principalSubjectId:principal.subjectId,
+      principalActorType:principal.actorType,context:context.activeContext,
+      createdAt:"2026-10-13T00:00:00.000Z"
+    });
+    const turnActions=new Map(createThreadBackedAgentTurnActionHandlersV010({
+      threadStore,runStore:store,
+      runExecutor:{resume(){throw Error("LEGACY_EXECUTOR_FORBIDDEN");}},
+      asyncRunRuntime:runtime,
+      resolveLlmProvider:()=>({installedProviderIds:[provider.providerId],provider}),
+      resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
+      resolveContext:()=>context,createToolCatalog,
+      runId:()=>randomUUID(),now:()=>new Date("2026-10-13T00:00:02.000Z")
+    }).map(h=>[h.commandCode,h]));
+    const send=turnActions.get("enterprise-agent.thread.send");
+    const sendRequest=message=>({
+      ...request("enterprise-agent.thread.send",{
+        threadId,clientTurnId:"turn:host-pg:1",message
+      },"action:host-pg:1"),sourceInteractionId:"ui:thread"
+    });
+    const actionScope={contractVersion:"0.1.0",principal,context};
+    const inferredBefore=providerCalls,readsBefore=readCalls;
+    const sent=await send.execute(sendRequest("Read for my workbench"),actionScope);
+    assert.equal(sent.ok,true,JSON.stringify(sent.error));
+    assert.equal(sent.result.run.state,"SUCCEEDED");
+    assert.equal(readCalls,readsBefore+1);
+    assert.equal(providerCalls,inferredBefore+2);
+    const duplicateTurn=await send.execute(sendRequest("Read for my workbench"),actionScope);
+    assert.equal(duplicateTurn.ok,true,JSON.stringify(duplicateTurn.error));
+    assert.equal(duplicateTurn.result.run.runId,sent.result.run.runId);
+    assert.equal(readCalls,readsBefore+1,"retried Thread cannot repeat READ tool");
+    const turnConflict=await send.execute(sendRequest("Changed input"),actionScope);
+    assert.equal(turnConflict.ok,false);
+    assert.equal(turnConflict.error.code,"CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+    const conversation=await threadStore.get(threadId);
+    assert.equal(conversation.messages.filter(m=>m.role==="USER"&&
+      m.runId===sent.result.run.runId).length,1);
+    assert.equal(conversation.messages.filter(m=>m.role==="ASSISTANT"&&
+      m.runId===sent.result.run.runId).length,1);
+
     console.log("PA02_HOST_ASYNC_READ_EXECUTION="+JSON.stringify({
       status:"PASS",actualActionHandlers:true,asyncRunCreated:true,
       readToolExecuted:true,duplicateSourceDeduped:true,
       changedTaskRejected:true,legacyRunUnchanged:true,
       cancellationRequestedWhileActive:true,cancellationCommittedAfterYield:true,
-      finalRunPersisted:true,materialWriteNeverIssued:true,devOnly:true
+      finalRunPersisted:true,threadSendToHostPostgres:true,
+      threadTurnExactlyOnce:true,materialWriteNeverIssued:true,devOnly:true
     }));
   }finally{
     holdResolve?.();
