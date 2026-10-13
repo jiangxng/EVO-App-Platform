@@ -1,0 +1,171 @@
+name: Retire SOP Identity Historical Heads and Merged Governance Plan
+on:
+  pull_request:
+    paths:
+      - "repository-hygiene/sop-identity-governance-retirement-20261013.json"
+      - ".github/workflows/sop-identity-and-governance-retirement-20261013.yml"
+      - "apps/sop-designer/package.ts"
+      - "tests/protocol/sop-designer-package-identity.test.mjs"
+      - "docs/archive/SOP-DESIGNER-IDENTITY-20261013-CONVERGENCE.md"
+  push:
+    branches: [main]
+    paths:
+      - "repository-hygiene/sop-identity-governance-retirement-20261013.json"
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  audit-or-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Audit SHA-pinned source and delete only after PR merge to main
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner,repo=context.repo.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Unexpected repo');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(!execute&&context.eventName!=='pull_request')throw Error('Unexpected event');
+            const head=execute?'main':context.payload.pull_request.head.sha;
+            const getContent=async(path,ref)=>{
+              const data=(await github.rest.repos.getContent({owner,repo,path,ref})).data;
+              if(Array.isArray(data)||data.type!=='file')throw Error('Not file '+path);
+              return data;
+            };
+            const cfg=JSON.parse(Buffer.from(
+              (await getContent('repository-hygiene/sop-identity-governance-retirement-20261013.json',head)).content,
+              'base64').toString('utf8'));
+            const expected=new Map([
+              ['docs/platform-governance-plan-20261013',{
+                sha:'0f7966745f61252f3b689850aa8b8cd7e3d54329',
+                kind:'GOVERNANCE_MERGED',pr:794,
+                merge:'f128b160cfaa7f85fe1b0129f6ffd6f294eb0182'}],
+              ['architecture/sop-designer-package-identity',{
+                sha:'179d2f554fc9745d1a3f2f332cbbb53ab1a7475e',
+                kind:'IDENTITY_SOURCE_CAPTURED'}],
+              ['architecture/sop-designer-package-identity-v2',{
+                sha:'e45afa0634ec2b3c281367708c08410b85f095c9',
+                kind:'IDENTITY_SOURCE_CAPTURED'}]
+            ]);
+            const assets=new Map([
+              ['apps/sop-designer/package.ts',{source:'358583054ca7239fa062374dc9c337f8521ccf4d',landed:'affeda8da802710e35e0d9b0b33a2b785b81a644'}],
+              ['tests/protocol/sop-designer-package-identity.test.mjs',{source:'7de014c00b09e1c62bcaba1a039afab104fa8cee',landed:'7de014c00b09e1c62bcaba1a039afab104fa8cee'}]
+            ]);
+            if(cfg.schemaVersion!==1
+              ||cfg.scope!=='sop-identity-and-governance-merged-source-retirement-20261013'
+              ||cfg.baselineMainSha!=='f128b160cfaa7f85fe1b0129f6ffd6f294eb0182'
+              ||cfg.records?.length!==3||cfg.ownedAssets?.length!==2
+              ||cfg.cleanupSourceBranch!=='chore/sop-designer-identity-governance-convergence-20261013'
+              ||!Number.isInteger(cfg.cleanupPrNumber)||cfg.cleanupPrNumber<0)
+              throw Error('Manifest scope invalid');
+            for(const item of cfg.records){
+              const e=expected.get(item.name);
+              if(!e||item.expectedHeadSha!==e.sha||item.classification!==e.kind
+                ||(e.pr&&(item.mergedPr!==e.pr||item.mergeCommitSha!==e.merge)))
+                throw Error('Unapproved source '+item.name);
+            }
+            if(new Set(cfg.records.map(x=>x.name)).size!==3
+              ||cfg.records.some(x=>!expected.has(x.name)))
+              throw Error('Source inventory incomplete');
+            for(const asset of cfg.ownedAssets){
+              if(!assets.has(asset.path)||assets.get(asset.path).source!==asset.expectedSha
+                ||assets.get(asset.path).landed!==asset.landedSha)
+                throw Error('Unapproved asset '+asset.path);
+            }
+            const latestMain=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const compare=(await github.rest.repos.compareCommits({
+              owner,repo,base:cfg.baselineMainSha,head:latestMain
+            })).data;
+            if(compare.behind_by!==0||compare.merge_base_commit?.sha!==cfg.baselineMainSha)
+              throw Error('Governance main baseline not ancestor');
+            const gov=(await github.rest.pulls.get({owner,repo,pull_number:794})).data;
+            if(!gov.merged||gov.state!=='closed'||gov.base.ref!=='main'
+              ||gov.head.ref!=='docs/platform-governance-plan-20261013'
+              ||gov.head.sha!==expected.get(gov.head.ref).sha
+              ||gov.merge_commit_sha!==cfg.baselineMainSha)
+              throw Error('Merged governance PR provenance changed');
+            for(const [path,sha] of assets){
+              const current=await getContent(path,head);
+              if(current.sha!==sha.landed)throw Error('SOP landed source altered: '+path);
+              for(const ref of ['architecture/sop-designer-package-identity',
+                'architecture/sop-designer-package-identity-v2']){
+                const old=await getContent(path,ref);
+                if(old.sha!==sha.source)throw Error('Identity source does not match old ref '+ref);
+              }
+              core.info('SOP_IDENTITY_PRESERVED '+path+' source='+sha.source+' landed='+sha.landed);
+            }
+            // This is identity-only: never auto-install the unfinished SOP Editor.
+            const catalog=Buffer.from(
+              (await getContent('catalog/seed.ts','main')).content,'base64').toString('utf8');
+            if(catalog.includes('sopDesignerPackage')||catalog.includes('evo-sop-designer'))
+              throw Error('Unexpected eager Host SOP catalog registration');
+            const packageSource=Buffer.from(
+              (await getContent('apps/sop-designer/package.ts',head)).content,
+              'base64').toString('utf8');
+            if(!packageSource.includes('defaultActivation: false'))
+              throw Error('SOP must be default-OFF');
+            const boundary=JSON.parse(Buffer.from(
+              (await getContent('docs/architecture/eog-peer-plugin-extraction.v0.1.json',head)).content,
+              'base64').toString('utf8'));
+            if(boundary.targets?.sopDesigner?.concretePackageId!=='evo-sop-designer'
+              ||boundary.targets?.sopDesigner?.hostCatalogRegistration!=='DEFERRED_LIGHTWEIGHT_HOST_GATE'
+              ||boundary.targets?.runtimeBindingAdapter?.status!=='PACKAGE_LIFECYCLE_RESOLUTION_ACTIVE')
+              throw Error('SOP boundary or active Runtime Binding provider regressed');
+            await getContent('docs/archive/SOP-DESIGNER-IDENTITY-20261013-CONVERGENCE.md',head);
+            const openRefs=async()=>{
+              const list=(await github.rest.pulls.list({owner,repo,state:'open',per_page:100})).data;
+              if(list.length>=100)throw Error('Open PR list not exhaustive');
+              const set=new Set(['main']);
+              for(const p of list){set.add(p.base.ref);
+                if(p.head.repo?.full_name===owner+'/'+repo)set.add(p.head.ref);}
+              return set;
+            };
+            const used=await openRefs();
+            for(const [name,e] of expected){
+              if(used.has(name))throw Error('Source ref used by PR '+name);
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+              if(ref.object.sha!==e.sha)throw Error('Source ref moved '+name);
+              const b=(await github.rest.repos.getBranch({owner,repo,branch:name})).data;
+              if(b.protected)throw Error('Protected source '+name);
+              core.info('SOURCE_AUDIT_OK '+name+' '+e.sha);
+            }
+            if(!execute){core.info('AUDIT_ONLY_SOP_AND_GOVERNANCE; no deletion');return;}
+            if(cfg.cleanupPrNumber<1)throw Error('Cleanup PR not fixed');
+            const own=(await github.rest.pulls.get({
+              owner,repo,pull_number:cfg.cleanupPrNumber
+            })).data;
+            if(!own.merged||own.state!=='closed'||own.base.ref!=='main'
+              ||own.head.ref!==cfg.cleanupSourceBranch
+              ||own.head.repo?.full_name!==owner+'/'+repo)
+              throw Error('Cleanup PR not merged');
+            const ancestry=(await github.rest.repos.compareCommits({
+              owner,repo,base:own.merge_commit_sha,head:latestMain
+            })).data;
+            if(ancestry.behind_by!==0
+              ||ancestry.merge_base_commit?.sha!==own.merge_commit_sha)
+              throw Error('Cleanup merge not on main');
+            const ownRef=(await github.rest.git.getRef({
+              owner,repo,ref:'heads/'+cfg.cleanupSourceBranch
+            })).data;
+            if(ownRef.object.sha!==own.head.sha)throw Error('Cleanup head moved');
+            const ownBranch=(await github.rest.repos.getBranch({
+              owner,repo,branch:cfg.cleanupSourceBranch
+            })).data;
+            if(ownBranch.protected)throw Error('Cleanup head protected');
+            const used2=await openRefs();
+            for(const name of [...expected.keys(),cfg.cleanupSourceBranch])
+              if(used2.has(name))throw Error('Open PR uses '+name);
+            for(const [name,e] of expected){
+              const ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+              if(ref.object.sha!==e.sha)throw Error('Ref changed pre-delete '+name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+              core.info('DELETED_SOP_GOVERNANCE_SOURCE '+name);
+            }
+            const last=(await github.rest.git.getRef({
+              owner,repo,ref:'heads/'+cfg.cleanupSourceBranch
+            })).data;
+            if(last.object.sha!==own.head.sha)throw Error('Cleanup head changed pre-delete');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+cfg.cleanupSourceBranch});
+            core.info('DELETED_OWN_SOP_CONVERGENCE_REF '+cfg.cleanupSourceBranch);
+            core.info('SOP_GOVERNANCE_FOUR_REFS_RETIRED');

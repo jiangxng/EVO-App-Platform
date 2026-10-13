@@ -269,3 +269,18 @@ already contain the provider package in durable lifecycle state without its
 Feature being active. Bootstrap therefore checks Feature activation, not only
 package installation. If such a legacy state is found, the installed package
 is enabled to activate its sole provider Feature before provider resolution.
+
+
+## 2026-10-13 latest decision — SOP identity now on main, development still deferred
+
+The 2026-10-03 sections above describe the earlier **SOP identity not frozen** baseline. The present decision updates **identity only** after explicit owner request to converge the old SOP branches. It does **not** reopen implementation extraction or Designer product work:
+
+- Existing package scaffold copied **byte-for-byte** from `architecture/sop-designer-package-identity-v2` to `apps/sop-designer/package.ts`, with `evo-sop-designer` / `evo-sop-designer.default` / `enterprise.sop.designer` and `defaultActivation: false`.
+- The old package-identity regression test is retained, but package identity and standalone catalog contract verification **do not prove host catalog registration or installed runtime behavior**.
+- To preserve the 2026-10-13 light-host CI rule against new eager plugin dependencies, this **source-level package scaffold is NOT wired into `catalog/seed.ts` or `manager/server.ts`**. Catalog discoverability and actual installation/activation remain **DEFERRED** until the independent SOP development stream is explicitly reopened with an allowed lazy metadata path. Do not expand the static dependency baseline.
+- Existing Enterprise Context Business Definition repository continues to own SOP truth. Existing legacy SOP service/migration is unchanged; no second SOP store, EOG private dependency, editor page, Agent tool, or background task is introduced. Runtime Binding Adapter remains a physically implemented, active peer Provider, as established in current main; never replay old v1/v2 branch's stale runtime-binding fields into this architecture.
+- Both earlier identity branches are redundant historical sources after this copy; the [retirement record](../archive/SOP-DESIGNER-IDENTITY-20261013-CONVERGENCE.md) pins their original SHAs and records that **their old `manager/server.ts` changes were intentionally not merged** because of incompatible host generation and active lightweight-host governance.
+- **Product status: NOT_STARTED / DEVELOPMENT_DEFERRED.** Package identity in main is **not an installed, functional SOP Designer**.
+
+
+**2026-10-13 package metadata correction:** Source-level SOP identity was imported from the old v2 branch and then given the current Platform's mandatory four-locale title and catalog description fields. No application UI, runtime, default activation, or Host registry wiring was added. Exact source and landed blob evidence is preserved in `docs/archive/SOP-DESIGNER-IDENTITY-20261013-CONVERGENCE.md`.

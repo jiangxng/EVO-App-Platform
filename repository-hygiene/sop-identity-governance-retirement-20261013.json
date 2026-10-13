@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "scope": "sop-identity-and-governance-merged-source-retirement-20261013",
+  "baselineMainSha": "f128b160cfaa7f85fe1b0129f6ffd6f294eb0182",
+  "records": [
+    {
+      "name": "docs/platform-governance-plan-20261013",
+      "expectedHeadSha": "0f7966745f61252f3b689850aa8b8cd7e3d54329",
+      "mergedPr": 794,
+      "mergeCommitSha": "f128b160cfaa7f85fe1b0129f6ffd6f294eb0182",
+      "classification": "GOVERNANCE_MERGED"
+    },
+    {
+      "name": "architecture/sop-designer-package-identity",
+      "expectedHeadSha": "179d2f554fc9745d1a3f2f332cbbb53ab1a7475e",
+      "classification": "IDENTITY_SOURCE_CAPTURED"
+    },
+    {
+      "name": "architecture/sop-designer-package-identity-v2",
+      "expectedHeadSha": "e45afa0634ec2b3c281367708c08410b85f095c9",
+      "classification": "IDENTITY_SOURCE_CAPTURED"
+    }
+  ],
+  "ownedAssets": [
+    {
+      "path": "apps/sop-designer/package.ts",
+      "expectedSha": "358583054ca7239fa062374dc9c337f8521ccf4d",
+      "landedSha": "affeda8da802710e35e0d9b0b33a2b785b81a644"
+    },
+    {
+      "path": "tests/protocol/sop-designer-package-identity.test.mjs",
+      "expectedSha": "7de014c00b09e1c62bcaba1a039afab104fa8cee",
+      "landedSha": "7de014c00b09e1c62bcaba1a039afab104fa8cee"
+    }
+  ],
+  "cleanupSourceBranch": "chore/sop-designer-identity-governance-convergence-20261013",
+  "cleanupPrNumber": 795
+}
