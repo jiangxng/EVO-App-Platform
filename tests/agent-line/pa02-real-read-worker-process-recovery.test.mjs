@@ -154,7 +154,7 @@ if(process.argv[2]==="--process-child") {
       assert.equal(requested.state,"REQUESTED");
       await assert.rejects(cancels.commitSafe({scope,runId,
         eventId:"cancel:premature",occurredAt:"2026-10-13T00:02:00.000Z"}),
-        /PA02C_ATOMIC_WORKER_NOT_QUIESCED/);
+        /PA02C_WORKER_NOT_QUIESCED/);
       await admin.unsafe('UPDATE "'+schema+'".pa02b_leases '+
         "SET expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",[runId]);
       const committed=await cancels.commitSafe({scope,runId,
