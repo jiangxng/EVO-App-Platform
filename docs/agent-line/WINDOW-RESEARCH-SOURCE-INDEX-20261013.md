@@ -82,3 +82,11 @@ Document class: VERIFIED_SOURCE_INDEX_WITH_HISTORICAL_LINKS。配套：[简短�
 2. **未存入GitHub：** 上表部分CI的完整原始日志ZIP和截图二进制；只保留精确GitHub run/job/artifact URL、失败与通过摘要。GitHub artifact有过期风险。
 3. **未存入GitHub：** `/mnt/data/pa01b2-browser-proof/` 的PNG/HTML/JSON本地包（本次对话会提供下载链接，暂不宣称GitHub有文件）。
 4. **不存在因而无法存档：** 真实外部LLM语义映射质量评估、生产/多租户压测、完整节点进程崩溃恢复及正式用户截图签收；不得伪造位置或完成状态。
+
+## 7. 2026-10-13 后续窗口新增第一手证据（原 §1–6 保留原状）
+
+| 编号/等级 | 标题和原始网址 | 读取日期及直接观察 | 用途与严格限制 |
+|---|---|---|---|
+| G18 已读当前源码+CI日志 | [Platform #799](https://github.com/jiangxng/EVO-App-Platform/pull/799)、[新增Node进程恢复测试](https://github.com/jiangxng/EVO-App-Platform/blob/fe699a2c17e8d5927c7bfe889a7dd5493d81c5a4/tests/agent-line/pa02a-process-recovery.test.mjs)、[GitHub Actions run 38345829365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365) / [job 115126899050](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365/jobs/115126899050) | 2026-10-13：经GitHub连接直接取回源码与job日志。真实Node子进程SIGKILL后另一进程重建仓储、查到唯一Run/事件/仍REQUESTED的Receipt；SQL回滚及scope隔离；一次性PostgreSQL18 job成功 | 弥补G13只测数据库**连接**重建的证据缺口。**不表示**正式Host接线、DB服务重启、多机器Worker、真实业务写入/未知结果协调或上线。新PR后续提交须另查最终head CI。 |
+
+此G18与原14项H级外链无关；未打开那些外部原文，也不升级其阅读等级。
