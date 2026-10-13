@@ -122,6 +122,17 @@ export interface AgentRunStoreV010 {
   create(input: AgentRunCreateInputV010): AgentRunV010;
   append(event: AgentRunEventV010): AgentRunV010;
   get(runId: string): AgentRunV010 | undefined;
+  /**
+   * Exact, unpaginated durable source identity lookup for idempotent thread
+   * sends. Never implement this by list(limit=100), which loses old turns.
+   */
+  getBySource(input: {
+    principalSubjectId: string;
+    principalActorType: PlatformActorType;
+    context: ActiveContextRefV010;
+    sourceInteractionId: string;
+    sourceActionId: string;
+  }): AgentRunV010 | undefined;
   list(input: {
     principalSubjectId: string;
     context: ActiveContextRefV010;

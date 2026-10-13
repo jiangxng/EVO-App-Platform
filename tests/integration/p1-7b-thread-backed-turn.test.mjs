@@ -350,6 +350,75 @@ test("thread-backed send is idempotent for the same client turn id", async () =>
   assert.equal(h.providerInputs.length, 2);
 });
 
+test("Host reuses a client turn even after more than 100 newer runs", async () => {
+  const h = harness();
+  const values = {
+    threadId: "conversation-thread:1",
+    message: "map these fields",
+    clientTurnId: "client-turn:ancient"
+  };
+  const first = await h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", values), h.requestContext
+  );
+  assert.equal(first.ok, true);
+  const runId = first.result.run.runId;
+  const eventsBefore = h.runStore.events(runId);
+  const inferenceBefore = h.providerInputs.length;
+
+  for (let i = 0; i < 131; i++) {
+    h.runStore.create({
+      runId: "agent-run:seed-" + i,
+      principalSubjectId: principal.subjectId,
+      principalActorType: principal.actorType,
+      context: context.activeContext,
+      sourceInteractionId: "conversation-thread:1",
+      sourceActionId: "enterprise-agent.thread.send:seed-" + i,
+      input: {
+        message: "seed task " + i,
+        conversationHistory: [],
+        locale: "en",
+        providerId: "test.llm",
+        modelId: "thread-model"
+      },
+      createdAt: new Date(Date.parse("2026-09-29T00:00:00.000Z") + i * 1000).toISOString()
+    });
+  }
+  assert.equal(h.runStore.list({
+    principalSubjectId: principal.subjectId,
+    context: context.activeContext,
+    limit: 100
+  }).some(run => run.runId === runId), false);
+
+  const second = await h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", values), h.requestContext
+  );
+  assert.equal(second.ok, true);
+  assert.equal(second.result.run.runId, runId);
+  assert.deepEqual(h.runStore.events(runId), eventsBefore);
+  assert.equal(h.providerInputs.length, inferenceBefore);
+  const thread = await h.threadStore.get(values.threadId);
+  assert.equal(thread.messages.filter(message => message.runId === runId).length, 2);
+
+  const conflict = await h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send", { ...values, message: "different task" }),
+    h.requestContext
+  );
+  assert.equal(conflict.ok, false);
+  assert.equal(conflict.error.code, "CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+
+  const original = h.runStore.get(runId);
+  assert.throws(() => h.runStore.create({
+    runId: "agent-run:attempt-to-duplicate",
+    principalSubjectId: principal.subjectId,
+    principalActorType: principal.actorType,
+    context: original.context,
+    sourceInteractionId: original.sourceInteractionId,
+    sourceActionId: original.sourceActionId,
+    input: original.input,
+    createdAt: original.createdAt
+  }), /CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED/);
+});
+
 test("next thread turn uses Host-built durable history and excludes current USER message", async () => {
   const h = harness();
 

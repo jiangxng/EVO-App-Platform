@@ -105,3 +105,7 @@ Document class: VERIFIED_SOURCE_INDEX_WITH_HISTORICAL_LINKS。配套：[简短�
 ## 10. 2026-10-13 Host异步桥接新增第一手源码
 
 | G21 已读内部源码与PR新实现 | [Platform #802](https://github.com/jiangxng/EVO-App-Platform/pull/802)、[阶段说明](PA02A-HOST-ASYNC-BRIDGE-20261013.md) | 2026-10-13 直接核现行Host V010服务绑定、Principal/Context定义、Run reducer以及已合并PA-02A/B/C隔离proof后，新增仅测试使用的V020可信scope桥；CI通过与否必须按最终head核实 | 尚未投入正式Host或生产，不能作为PA-02完成凭证；外部14条仍H级，不改变旧阅读等级。 |
+
+## 11. PA-02 实际Host源码诊断增量（2026-10-13）
+
+| G22 已读现行源码及专项回归 | `agents/enterprise-agent/thread-turn-action-handlers.ts`、`manager/agent-run-store.ts`、`contracts/agent-run.ts`及`tests/integration/p1-7b-thread-backed-turn.test.mjs`，GitHub当前main | 直接确认V010的旧clientTurnId只查最新100 Run；追加精确source lookup与过100测试，是原Host路径的真实修复，但非异步数据库唯一性 | 仍需最终PR head CI与main合并证据；原外部来源列表不升级阅读等级。 |
