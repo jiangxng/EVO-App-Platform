@@ -30,3 +30,9 @@ Scope: EVO-App-Platform agent line only; NOT production signoff.
 - **外部参考**：原14条外部网页仍属H级历史索引，未据未打开的链接虚构新规范依据。所有新增访问为GitHub当前原文、PR/CI元数据和日志。
 
 不改TR、2D、Ledger Runtime、EVO业务权威、共享`project.status.json`及部署。
+
+## PA-02 最新实施增量 — 旧Turn精确查找（2026-10-13）
+
+[#804候选：以创建后的实际PR编号为准] 纠正正式V010 Host的一个真实正确性缺口：原 `thread-turn-action-handlers.ts` 使用 `runStore.list({limit:100})` 寻找 `clientTurnId`，早于最近100条的用户Turn在网络重试时会被误判为全新任务。新增V010 `getBySource` 做Principal/actor/Context/Thread/sourceAction精确不限页查询；同一个Sync Store内强制相同source的二次创建失败；整合测试制造131条更新Run后复发原请求，确保不重复LLM执行/用户消息与拒绝不同输入。
+
+**限制：** 这是当前Host V010的单实例防重复修复；JSONL跨进程没有SQL式原子唯一约束。无法替代PA-02A全异步Host接线及PA-02B实际多Worker执行。精确PR与CI结果须另查最新GitHub状态，不从此段推断已合并。
