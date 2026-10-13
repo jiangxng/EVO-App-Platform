@@ -68,3 +68,10 @@ Document class: DECISION_AND_GAP_HANDOFF。先读[简短入口](WINDOW-RESEARCH-
 **来源事实**：新增 [PR #799](https://github.com/jiangxng/EVO-App-Platform/pull/799) 的独立Node业务进程SIGKILL→第二进程PostgreSQL恢复读取测试；首次准确head `fe699a2` 的 [run 38345829365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365) 在PostgreSQL18成功。任务重复提交去重，事务失败回滚，企业scope读取隔离，未协调回执仍为REQUESTED。具体源码和验证见 [阶段文档](PA02A-CROSS-PROCESS-RECOVERY-20261013.md)。这是G13以外的新增**进程**恢复证据，仍非DB服务重启和正式业务Host恢复。
 
 **项目判断（已确认边界不变）**：维持Sync V010正式入口和独立异步V020 proof，不因通过进程恢复实验就切换 `manager/server.ts`。下一步Host接线设计必须先回答：Run/Receipt权威切换与历史兼容、Host可信Principal/Context映射、业务调用前的幂等/审计状态，以及**业务已写成功但Receipt尚未终结**时如何由owner核验，不得盲目重播写操作。PA-02B lease/fencing/outbox及生产迁移仍为OPEN。当前PR是否正式合并、最终CI状态与源branch退休须按GitHub现状单独核查。
+
+
+## 8. PA-02B新方案选择及边界（2026-10-13）
+
+**事实**：当前V010的Run executor仅用进程内Map做并发去重，`manager/server.ts`仍是同步Run/Receipt；PA-02A PostgreSQL proof已能跨Node进程取回状态，但不能排除多Worker同一业务工具重复调用。新[#800](https://github.com/jiangxng/EVO-App-Platform/pull/800)引入隔离数据库fence及PREPARED→INVOKING→UNKNOWN状态，针对这类重复调用风险做并发与崩溃后演练（证据见[阶段记录](PA02B-FENCING-UNKNOWN-WRITE-20261013.md)）。
+
+**判断**：先以短PR验证数据库时间租约、递增fencing和写入意图，拒绝失去lease的Worker终结回执及接班Worker盲重播。**未完成**的仍是正式Host异步接线、经过业务owner确认的幂等执行/未知结果协调、租约与正式Run状态同事务、PA-02C安全取消、生产恢复演练。不得把isolated proof合并当成PA-02B产品级完结。

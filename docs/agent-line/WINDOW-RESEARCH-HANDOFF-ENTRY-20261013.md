@@ -37,3 +37,6 @@ Document class: LIVING_HANDOFF_POINTER。**本文件是本窗口截至2026-10-13
 
 - [PA-02A真正独立Node进程恢复专项](PA02A-CROSS-PROCESS-RECOVERY-20261013.md)：[Platform #799](https://github.com/jiangxng/EVO-App-Platform/pull/799) 在PostgreSQL 18隔离CI中新增 **SIGKILL旧业务进程→新Node进程读取并幂等复用**、跨企业实验scope隔离、事务回滚；首次测试head `fe699a2` 的 [run 38345829365](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38345829365) 成功。
 - **没有接正式Host或生产数据库**。请求状态 `REQUESTED` 保留，不表示已实现unknown-write reconciliation、outbox、fencing、跨机器Worker恢复或数据库服务重启。PR合入/源branch删除及最终head CI状态以GitHub最新API为准，勿把此记录当合并凭证。
+
+
+- **2026-10-13 PA-02B续做**：[Platform #800](https://github.com/jiangxng/EVO-App-Platform/pull/800) 新增独立PostgreSQL租约fencing与UNKNOWN写入隔离proof，[证据及限制](PA02B-FENCING-UNKNOWN-WRITE-20261013.md)。正式Host、跨机器Worker/业务owner幂等和PA-02C取消门禁未因代码存在而完成；具体CI与合并状态以GitHub为准。
