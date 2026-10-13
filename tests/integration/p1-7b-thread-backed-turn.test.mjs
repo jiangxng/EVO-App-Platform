@@ -55,7 +55,7 @@ function request(code, values) {
   };
 }
 
-function harness() {
+function harness(options = {}) {
   const threadStore = createConversationThreadStoreV010({
     eventStore: createMemoryConversationThreadEventStoreV010(),
     eventId: ids("thread-event-")
@@ -155,6 +155,7 @@ function harness() {
     threadStore,
     runStore,
     runExecutor,
+    ...(options.handlerDependencies ?? {}),
     resolveLlmProvider() {
       return {
         installedProviderIds: [provider.providerId],
@@ -223,6 +224,74 @@ function harness() {
     requestContext
   };
 }
+
+test("thread.resume explicitly bridges a scoped async Run without bypassing V010 ownership",async()=>{
+  let remote,readCount=0,resumeCount=0;
+  const h=harness({handlerDependencies:{
+    async asyncRunReader({runId,principal:p,context:ctx}){
+      readCount++;
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return runId===remote?.runId ? structuredClone(remote):undefined;
+    },
+    async asyncRunResumer({runId,principal:p,context:ctx}){
+      resumeCount++;
+      assert.equal(runId,remote.runId);
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return {...remote,state:"SUCCEEDED",finalMessage:"async resumed final"};
+    }
+  }});
+  const local=createAgentRunStoreV010({
+    eventStore:createMemoryAgentRunEventStoreV010(),
+    eventId:ids("remote-")
+  });
+  remote=local.create({
+    runId:"agent-run:remote",principalSubjectId:principal.subjectId,
+    principalActorType:principal.actorType,context:context.activeContext,
+    sourceInteractionId:"conversation-thread:1",sourceActionId:"thread.send:remote",
+    input:{message:"resumable async task",conversationHistory:[],locale:"en",
+      providerId:"test.llm",modelId:"thread-model"},
+    createdAt:"2026-09-28T02:00:00.000Z"
+  });
+  const resume=runId=>h.byCode.get("enterprise-agent.thread.resume").execute(
+    request("enterprise-agent.thread.resume",{
+      threadId:"conversation-thread:1",runId
+    }),h.requestContext
+  );
+  const withoutUser=await resume(remote.runId);
+  assert.equal(withoutUser.ok,false);
+  assert.equal(withoutUser.error.code,"CONVERSATION_THREAD_RUN_USER_MESSAGE_REQUIRED");
+  assert.equal(resumeCount,0);
+  await h.threadStore.appendMessage({
+    threadId:"conversation-thread:1",messageId:"user:remote",role:"USER",
+    runId:remote.runId,content:"resumable async task",
+    createdAt:"2026-09-28T02:00:00.000Z"
+  });
+  const done=await resume(remote.runId);
+  assert.equal(done.ok,true);
+  assert.equal(done.result.run.state,"SUCCEEDED");
+  assert.equal(done.result.run.runId,remote.runId);
+  assert.equal(resumeCount,1);
+  assert.equal(readCount,2);
+  const newMessages=await h.threadStore.get("conversation-thread:1");
+  assert.equal(newMessages.messages.filter(x=>x.role==="ASSISTANT"&&x.runId===remote.runId).length,1);
+  const missing=await resume("agent-run:missing");
+  assert.equal(missing.ok,false);
+  assert.equal(missing.error.code,"AGENT_RUN_NOT_FOUND");
+  assert.equal(resumeCount,1);
+  h.runStore.create({
+    runId:"agent-run:legacy-foreign",principalSubjectId:"someone-else",
+    principalActorType:principal.actorType,context:context.activeContext,
+    sourceInteractionId:"conversation-thread:1",sourceActionId:"foreign",
+    input:remote.input,createdAt:"2026-09-28T02:00:00.000Z"
+  });
+  const before=readCount;
+  const foreign=await resume("agent-run:legacy-foreign");
+  assert.equal(foreign.ok,false);
+  assert.equal(foreign.error.code,"AGENT_RUN_NOT_FOUND");
+  assert.equal(readCount,before);
+});
 
 test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is exactly-once", async () => {
   const h = harness();
