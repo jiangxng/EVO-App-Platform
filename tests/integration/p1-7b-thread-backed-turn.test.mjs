@@ -371,6 +371,70 @@ test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is
   );
 });
 
+test("opt-in async thread.send atomically claims a canonical V020 Run before USER persistence",async()=>{
+  const remoteStore=createAgentRunStoreV010({
+    eventStore:createMemoryAgentRunEventStoreV010(),eventId:ids("async-event-")
+  });
+  let canonical,lookups=0,claims=0,resumes=0;
+  const h=harness({handlerDependencies:{
+    async asyncTurnLookup({threadId,clientTurnId,principal:p,context:ctx}){
+      lookups++;
+      assert.equal(threadId,"conversation-thread:1");
+      assert.equal(clientTurnId,"client-turn:async-1");
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return canonical;
+    },
+    async asyncTurnClaimer({clientTurnId,create,principal:p,context:ctx}){
+      claims++;
+      assert.equal(clientTurnId,"client-turn:async-1");
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      assert.equal(create.sourceActionId,"enterprise-agent.thread.send:client-turn:async-1");
+      canonical=remoteStore.create({...create,runId:"agent-run:canonical"});
+      return canonical;
+    },
+    async asyncRunResumer({runId,principal:p,context:ctx}){
+      resumes++;
+      assert.equal(runId,"agent-run:canonical");
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return canonical;
+    }
+  }});
+  const original={threadId:"conversation-thread:1",
+    message:"Help with mapping",clientTurnId:"client-turn:async-1"};
+  const send=values=>h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send",values),h.requestContext
+  );
+  const first=await send(original);
+  assert.equal(first.ok,true,JSON.stringify(first.error));
+  assert.equal(first.result.run.runId,"agent-run:canonical");
+  assert.equal(first.result.run.state,"READY");
+  assert.equal(claims,1);
+  assert.equal(resumes,1);
+  assert.equal(h.runStore.list({
+    principalSubjectId:principal.subjectId,context:context.activeContext
+  }).length,0,"V020 create cannot mutate legacy Store");
+  assert.equal((await h.threadStore.get(original.threadId)).messages.length,1);
+  assert.equal((await h.threadStore.get(original.threadId)).messages[0].runId,"agent-run:canonical");
+  const second=await send(original);
+  assert.equal(second.ok,true,JSON.stringify(second.error));
+  assert.equal(second.result.run.runId,"agent-run:canonical");
+  assert.equal(claims,1);
+  assert.equal(resumes,2);
+  assert.equal((await h.threadStore.get(original.threadId)).messages.length,1);
+  assert.equal(lookups,2);
+  const changed=await send({...original,message:"Different import mapping"});
+  assert.equal(changed.ok,false);
+  assert.equal(changed.error.code,"CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+  assert.equal(claims,1);
+  assert.equal(resumes,2);
+  const missingTurn=await send({threadId:original.threadId,message:"No client turn"});
+  assert.equal(missingTurn.ok,false);
+  assert.equal(missingTurn.error.code,"AGENT_ASYNC_THREAD_CLIENT_TURN_ID_REQUIRED");
+});
+
 test("thread-backed send is idempotent for the same client turn id", async () => {
   const h = harness();
   const values = {
