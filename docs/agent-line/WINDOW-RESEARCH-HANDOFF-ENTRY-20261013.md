@@ -40,3 +40,6 @@ Document class: LIVING_HANDOFF_POINTER。**本文件是本窗口截至2026-10-13
 
 
 - **2026-10-13 PA-02B续做**：[Platform #800](https://github.com/jiangxng/EVO-App-Platform/pull/800) 新增独立PostgreSQL租约fencing与UNKNOWN写入隔离proof，[证据及限制](PA02B-FENCING-UNKNOWN-WRITE-20261013.md)。正式Host、跨机器Worker/业务owner幂等和PA-02C取消门禁未因代码存在而完成；具体CI与合并状态以GitHub为准。
+
+
+- **2026-10-13 PA-02C继续**：[PR #801](https://github.com/jiangxng/EVO-App-Platform/pull/801) 新增[PA-02C持久取消隔离证据](PA02C-DURABLE-CANCELLATION-20261013.md)，并使PA-02B写入启动前核验已保存的取消请求。**这不是正式Host `RUN_CANCELLED` 事件或跨进程真实取消完成**。PA-02A Host接线、PA-02B外部owner幂等/未知写入核对、PA-02C真实Host取消仍属未完成，勿按标题升级产品状态。
