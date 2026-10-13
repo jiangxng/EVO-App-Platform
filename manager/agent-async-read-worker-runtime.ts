@@ -8,7 +8,7 @@ import type { FencedAgentRunAuthorityV030 } from "../agents/enterprise-agent/pa0
 import type { AgentAtomicCancellationPortV020 } from "../agents/enterprise-agent/pa02c-atomic-run-cancel.js";
 import type { AgentExecutionCoordinatorV020 } from "../agents/enterprise-agent/pa02b-postgres-coordination.js";
 import { createHostScopedAsyncAgentRunBridgeV020,hostResolvedAgentDurabilityScopeV020 } from "./agent-durability-host-bridge.js";
-import { createReadOnlyFencedAgentWorkerV030 } from "../agents/enterprise-agent/pa02-async-read-worker.js";
+
 
 export interface HostAsyncReadExecutionV030 {
   start(input: { create: AgentRunCreateInputV010; principal: PlatformPrincipalV010;
@@ -47,11 +47,13 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
   const [{createPostgresAgentDurabilityProofV020},
     {createPostgresAgentExecutionCoordinatorV020},
     {createPostgresFencedAgentRunAuthorityV030},
-    {createPostgresAtomicAgentRunCancellationV020}]=await Promise.all([
+    {createPostgresAtomicAgentRunCancellationV020},
+    {createReadOnlyFencedAgentWorkerV030}]=await Promise.all([
     import("../agents/enterprise-agent/pa02a-postgres-durability-proof.js"),
     import("../agents/enterprise-agent/pa02b-postgres-coordination.js"),
     import("../agents/enterprise-agent/pa02b-fenced-run-authority.js"),
-    import("../agents/enterprise-agent/pa02c-atomic-run-cancel.js")
+    import("../agents/enterprise-agent/pa02c-atomic-run-cancel.js"),
+    import("../agents/enterprise-agent/pa02-async-read-worker.js")
   ]);
   let repo:AsyncAgentRunReceiptRepositoryV020|undefined;
   let execution:AgentExecutionCoordinatorV020|undefined;
