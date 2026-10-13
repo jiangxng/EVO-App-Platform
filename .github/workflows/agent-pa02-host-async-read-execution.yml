@@ -1,5 +1,14 @@
 name: Agent PA-02 Host Async READ Execution
 on:
+  push:
+    branches: [agent/pa02-host-async-read-execution-20261013]
+    paths:
+      - "manager/agent-async-read-worker-runtime.ts"
+      - "agents/enterprise-agent/run-action-handlers.ts"
+      - "agents/enterprise-agent/thread-turn-action-handlers.ts"
+      - "manager/server.ts"
+      - "tests/agent-line/pa02-host-async-read-execution.test.mjs"
+      - ".github/workflows/agent-pa02-host-async-read-execution.yml"
   pull_request:
     paths:
       - "manager/agent-async-read-worker-runtime.ts"
