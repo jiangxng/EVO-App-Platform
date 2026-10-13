@@ -109,3 +109,7 @@ Document class: VERIFIED_SOURCE_INDEX_WITH_HISTORICAL_LINKS。配套：[简短�
 ## 11. PA-02 实际Host源码诊断增量（2026-10-13）
 
 | G22 已读现行源码及专项回归 | `agents/enterprise-agent/thread-turn-action-handlers.ts`、`manager/agent-run-store.ts`、`contracts/agent-run.ts`及`tests/integration/p1-7b-thread-backed-turn.test.mjs`，GitHub当前main | 直接确认V010的旧clientTurnId只查最新100 Run；追加精确source lookup与过100测试，是原Host路径的真实修复，但非异步数据库唯一性 | 仍需最终PR head CI与main合并证据；原外部来源列表不升级阅读等级。 |
+
+## 12. PA-02A Receipt模型缺口修复增量（2026-10-13）
+
+| G23 当前GitHub源码直接核对 | `contracts/agent-durability-async.ts`、`agents/enterprise-agent/pa02a-postgres-durability-proof.ts`、`contracts/agent-action-receipt.ts` | 发现V020 Receipt只保存4个公开字段，不能恢复正式V010来源/Owner/结果；新增JSONB保存完整请求与可选终态及重新连接回归，需后续CI/PR复核 | 属内部源码/工程设计判断，不是业务Owner已签收的写入结果或正式Host上线状态；外部旧参考链接仍H。 |
