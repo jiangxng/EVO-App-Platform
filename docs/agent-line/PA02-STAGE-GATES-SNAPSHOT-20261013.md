@@ -42,3 +42,11 @@ Scope: EVO-App-Platform agent line only; NOT production signoff.
 **代码事实**：旧V020 PostgreSQL `agent_receipts` 只有 `receipt_id/idempotency_key/input_digest/status/revision`，不能满足旧正式V010回执对于Owner、来源Interaction、权限主体、完成时间、结果实体和失败细节的还原需求。
 
 **本批改进**：通过独立PostgreSQL schema迁移 `request_payload` 与 `terminal_payload` JSONB，原始Host请求及真实Owner提供的终态资料可保存、重试复用、关闭连接后恢复，并校验重试更换Owner/Tool的身份冲突、跨企业伪造的请求Scope；保留旧行无metadata时显式阻断身份重放。异步V020的终结字段仍可空以兼容此前实验，但**正式Host必须要求证据完整及由业务Owner验证**。本改动不是正式Host启用，也不能让尚未获得业务核验的UNKNOWN自动变为SUCCEEDED。PR与CI状态以GitHub提交核验。
+
+
+## 2026-10-13 PA-02C跨Coordinator统一事务增量（[#806](https://github.com/jiangxng/EVO-App-Platform/pull/806)）
+
+- **读源码确认的问题**：先前PA-02A的Run事件、PA-02B的lease、PA-02C的cancel分别能通过数据库实验，但并未在一笔事务内将正式V010语义的`RUN_CANCELLED`、Run revision、取消Coordinator终态联动；另`claimLease`在读取取消状态与实际拿租约之间有竞争窗口，Receipt的旧JSONB数据以字符串格式存储，导致直接JSON字段查询可能忽略未终结业务操作。
+- **本PR解决的隔离层问题**：`pa02c-atomic-run-cancel.ts`对同作用域Run+取消使用PostgreSQL事务，并在同一事务中核对有效Worker lease、INVOKING/UNKNOWN写入、REQUESTED Receipt后才追加V010 `RUN_CANCELLED` 事件和递增revision；PA-02B领取/续租/写入启动与取消共用事务级advisory lock；PA-02A追加事件在数据库事务中重放V010 reducer，拒绝已终结Run复活；JSONB请求与终态改用真正对象编码，并归一化旧JSONB字符串。
+- **独立验收**：带PostgreSQL18服务的GitHub CI覆盖跨企业、Run终态幂等、失联Worker、在途WRITE、未完成回执、数据库重开、既有PA-02A/B/C回归。最终通过状态与合并提交必须核对最终PR head。
+- **绝对不代表**：真实Host `manager/server.ts` 已接成PostgreSQL异步Runtime、具备真正跨节点调度与外部业务Owner的结果核对、取消按钮已端到端可用或生产准备完成。原有SYNC V010仍权威，线上运行未因此被切换，**PA-02继续进行**。
