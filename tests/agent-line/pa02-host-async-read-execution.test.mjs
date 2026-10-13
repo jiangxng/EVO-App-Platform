@@ -165,7 +165,7 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
       asyncRunRuntime:runtime,
       resolveLlmProvider:()=>({installedProviderIds:[provider.providerId],provider}),
       resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
-      resolveContext:()=>context,createToolCatalog,
+      resolveContext:()=>context,createToolCatalog:createCatalog,
       runId:()=>randomUUID(),now:()=>new Date("2026-10-13T00:00:02.000Z")
     }).map(h=>[h.commandCode,h]));
     const send=turnActions.get("enterprise-agent.thread.send");
