@@ -100,3 +100,8 @@ Document class: VERIFIED_SOURCE_INDEX_WITH_HISTORICAL_LINKS。配套：[简短�
 ## 9. 2026-10-13 PA-02C后续窗口新增内部证据
 
 | G20 已读当前源码 + 待精确CI核验 | [Platform #801](https://github.com/jiangxng/EVO-App-Platform/pull/801)、[PA-02C记录](PA02C-DURABLE-CANCELLATION-20261013.md) | 2026-10-13 按现行V010 Run reducer/runtime、PA-02B隔离调度器和Host职责新增PostgreSQL取消屏障；后续以PR实际GitHub Actions查证运行状态 | 只证明实验性REQUESTED/CANCELLED取消事实、已发出WRITE不自动撤销；正式Host Run终态及生产仍无验收。外部来源S1–S14仍保留H级未重读。 |
+
+
+## 10. 2026-10-13 Host异步桥接新增第一手源码
+
+| G21 已读内部源码与PR新实现 | [Platform #802](https://github.com/jiangxng/EVO-App-Platform/pull/802)、[阶段说明](PA02A-HOST-ASYNC-BRIDGE-20261013.md) | 2026-10-13 直接核现行Host V010服务绑定、Principal/Context定义、Run reducer以及已合并PA-02A/B/C隔离proof后，新增仅测试使用的V020可信scope桥；CI通过与否必须按最终head核实 | 尚未投入正式Host或生产，不能作为PA-02完成凭证；外部14条仍H级，不改变旧阅读等级。 |
