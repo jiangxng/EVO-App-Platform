@@ -1,7 +1,7 @@
 # PA-02C — 持久取消请求与未知写入保护隔离验收（2026-10-13）
 
 Document class: AGENT_LINE_INCREMENTAL_PROOF
-Status: ISOLATED_CANCELLATION_GATE / CI_PENDING / NOT_FORMAL_RUN_CANCEL / NOT_PRODUCTION
+Status: ISOLATED_CI_PASS_MERGED_MAIN / NOT_FORMAL_RUN_CANCEL / NOT_PRODUCTION
 
 ## 先核实既有能力
 
@@ -26,3 +26,7 @@ Status: ISOLATED_CANCELLATION_GATE / CI_PENDING / NOT_FORMAL_RUN_CANCEL / NOT_PR
 ## 后续证据记录
 
 本次源代码PR与其最新commit、GitHub Actions build/PostgreSQL运行日志是可核证据；CI未通过前不得填写PASS。旧外部14个参考链接维持H级历史索引，不虚构已读网页原文。
+
+## 合并后验收凭证
+
+[#801](https://github.com/jiangxng/EVO-App-Platform/pull/801)经准确head `584f1d120eb6f80346ef2283cb377071557d78b2` 的 [PostgreSQL CI 38347671027](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38347671027) SUCCESS；merge `b41c02712bb9c1d14de425f3b7c75ec9415a1712`，过程分支已删除。隔离CANCELLED不是正式AgentRun取消完成。
