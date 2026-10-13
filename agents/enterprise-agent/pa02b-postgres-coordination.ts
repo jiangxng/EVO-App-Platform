@@ -84,6 +84,12 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
         "scope_key text NOT NULL,run_id text NOT NULL,owner_id text NOT NULL,"+
         "fence bigint NOT NULL,expires_at timestamptz NOT NULL,"+
         "PRIMARY KEY(scope_key,run_id))");
+      await tx.unsafe("CREATE TABLE IF NOT EXISTS " + q + ".pa02c_cancellations ("+
+        "scope_key text NOT NULL,run_id text NOT NULL,requested_by text NOT NULL,"+
+        "reason text NOT NULL,state text NOT NULL DEFAULT 'REQUESTED',"+
+        "requested_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
+        "completed_at timestamptz,"+
+        "CHECK(state IN ('REQUESTED','CANCELLED')),PRIMARY KEY(scope_key,run_id))");
       await tx.unsafe("CREATE TABLE IF NOT EXISTS " + q + ".pa02b_writes ("+
         "scope_key text NOT NULL,effect_id text NOT NULL,run_id text NOT NULL,"+
         "input_digest text NOT NULL,fence bigint NOT NULL,"+
@@ -97,15 +103,23 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
       [key(scope),required(effectId)]);
     return rows.length ? write(rows[0]) : undefined;
   }
-  async function assertLease(tx: any, scopeKey: string, l: AgentLeaseV020) {
+  async function assertLease(tx: any, scopeKey: string, l: AgentLeaseV020, allowAfterCancel = false) {
     const rows = await tx.unsafe("SELECT run_id FROM " + q + ".pa02b_leases "+
       "WHERE scope_key=$1 AND run_id=$2 AND owner_id=$3 AND fence=$4 "+
       "AND expires_at>clock_timestamp() FOR UPDATE",
       [scopeKey,required(l.runId),required(l.ownerId),l.fence]);
     if (!rows.length) throw Error("PA02B_LEASE_FENCED");
+    if (!allowAfterCancel) {
+      const cancelled=await tx.unsafe("SELECT state FROM "+q+".pa02c_cancellations "+
+        "WHERE scope_key=$1 AND run_id=$2",[scopeKey,l.runId]);
+      if(cancelled.length)throw Error("PA02C_CANCEL_REQUESTED");
+    }
   }
   return {
     async claimLease(r) {
+      const stopped=await sql.unsafe("SELECT state FROM "+q+".pa02c_cancellations "+
+        "WHERE scope_key=$1 AND run_id=$2",[key(r.scope),required(r.runId)]);
+      if(stopped.length)return undefined;
       const rows = await sql.unsafe("INSERT INTO " + q + ".pa02b_leases "+
         "(scope_key,run_id,owner_id,fence,expires_at) "+
         "VALUES($1,$2,$3,1,clock_timestamp()+($4::integer*interval '1 second')) "+
@@ -158,7 +172,7 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
       const scopeKey=key(r.scope),effectId=required(r.effectId);
       if(!["SUCCEEDED","DENIED","FAILED"].includes(r.outcome))throw Error("PA02B_OUTCOME_INVALID");
       return sql.begin(async tx => {
-        await assertLease(tx,scopeKey,r.lease);
+        await assertLease(tx,scopeKey,r.lease,true);
         const rows=await tx.unsafe("UPDATE " + q + ".pa02b_writes "+
           "SET state=$4 WHERE scope_key=$1 AND effect_id=$2 AND run_id=$3 "+
           "AND fence=$5 AND state='INVOKING' RETURNING *",
