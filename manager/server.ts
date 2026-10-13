@@ -5351,6 +5351,9 @@ const actionRouter = createAppActionRouter(
         : {}),
       runStore: agentRunStore,
       runExecutor: agentRunExecutor,
+      ...(optionalAgentAsyncReadWorker
+        ? { asyncRunRuntime: optionalAgentAsyncReadWorker }
+        : {}),
       resolveLlmProvider,
       resolveIdentitySession,
       resolveContext(selection, session) {
