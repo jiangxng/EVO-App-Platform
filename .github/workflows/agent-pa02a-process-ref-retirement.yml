@@ -33,7 +33,10 @@ jobs:
                 'tests/agent-line/pa02a-process-recovery.test.mjs',
                 '.github/workflows/agent-pa02a-postgres-durability.yml',
                 '.github/workflows/agent-pa02a-process-ref-retirement.yml',
-                'docs/agent-line/PA02A-CROSS-PROCESS-RECOVERY-20261013.md'
+                'docs/agent-line/PA02A-CROSS-PROCESS-RECOVERY-20261013.md',
+                'docs/agent-line/WINDOW-RESEARCH-HANDOFF-ENTRY-20261013.md',
+                'docs/agent-line/WINDOW-RESEARCH-SOURCE-INDEX-20261013.md',
+                'docs/agent-line/WINDOW-RESEARCH-DECISIONS-GAPS-20261013.md'
               ]);
               const files=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:pr.number,per_page:100});
               if(files.some(f=>!allowed.has(f.filename)))throw Error('Unexpected PR file');
