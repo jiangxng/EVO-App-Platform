@@ -56,6 +56,8 @@ export function createPersonalAgentExperienceProfileV010(
           "secret.value.manage",
           "provider.binding.update",
           "provider.health.probe",
+          "provider.lifecycle.read",
+          "provider.lifecycle.retry-stop",
           "provider.governance.audit.read"
         ],
         subjectIds: ["bootstrap-admin"],

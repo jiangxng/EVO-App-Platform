@@ -110,3 +110,85 @@ test('host binds the lazy facade and lifecycle stop rather than an eager analyze
   assert.match(host, /analyze: request => bottleneckRuntime\.run/);
   assert.match(host, /event\.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID[\s\S]*?bottleneckRuntime\.stop\(\)/);
 });
+
+test('drain timeout is observable, retains the lease and retries the same cleanup', async () => {
+  const entered = deferred(), running = deferred();
+  let disposals = 0, loads = 0;
+  const slot = createLazyProviderRuntimeV010({ isActive: () => true, stopTimeoutMs: 20,
+    async load() { loads++; return {}; }, dispose() { disposals++; } });
+  assert.equal(slot.diagnostics().phase, 'IDLE');
+  const call = slot.run(async () => { entered.resolve(); await running.promise; return 42; });
+  await entered.promise;
+  await assert.rejects(slot.stop(), /PROVIDER_STOP_TIMEOUT/);
+  assert.deepEqual(slot.diagnostics(), { phase: 'STOP_TIMEOUT', activeCalls: 1,
+    blocked: true, cleanupPending: true, stopAttempts: 1 });
+  await assert.rejects(slot.run(async () => {}), /STOPPING/);
+  assert.equal(disposals, 0);
+  const retry = slot.stop();
+  assert.equal(slot.stop(), retry);
+  running.resolve();
+  assert.equal(await call, 42);
+  await retry;
+  assert.equal(disposals, 1);
+  assert.equal(slot.diagnostics().phase, 'STOPPED');
+  assert.equal(slot.diagnostics().cleanupPending, false);
+  await slot.run(async () => {});
+  assert.equal(loads, 2);
+  await slot.stop();
+});
+
+test('timed-out disposal may fail later; retry retains and disposes the same instance', async () => {
+  const disposing = deferred(), entered = deferred();
+  const instance = {};
+  let disposals = 0;
+  const slot = createLazyProviderRuntimeV010({ isActive: () => true, stopTimeoutMs: 20,
+    async load() { return instance; }, async dispose(value) {
+      assert.equal(value, instance);
+      if (++disposals === 1) { entered.resolve(); await disposing.promise; throw Error('late failure'); }
+    } });
+  await slot.run(async () => {});
+  const first = assert.rejects(slot.stop(), /TIMEOUT/);
+  await entered.promise;
+  await first;
+  assert.equal(slot.diagnostics().phase, 'STOP_TIMEOUT');
+  const observing = slot.stop();
+  disposing.resolve();
+  await assert.rejects(observing, /late failure/);
+  assert.equal(slot.diagnostics().phase, 'STOP_FAILED');
+  assert.equal(slot.diagnostics().blocked, true);
+  assert.equal(slot.diagnostics().cleanupPending, false);
+  await assert.rejects(slot.run(async () => {}), /STOPPING/);
+  await slot.stop();
+  assert.equal(disposals, 2);
+  assert.equal(slot.diagnostics().phase, 'STOPPED');
+});
+
+test('load completion after timeout never executes the rejected operation', async () => {
+  const loading = deferred();
+  let executed = 0, disposed = 0;
+  const slot = createLazyProviderRuntimeV010({ isActive: () => true, stopTimeoutMs: 20,
+    load: () => loading.promise, dispose() { disposed++; } });
+  const call = assert.rejects(slot.run(async () => { executed++; }), /STOPPING/);
+  assert.equal(slot.diagnostics().phase, 'LOADING');
+  await assert.rejects(slot.stop(), /TIMEOUT/);
+  loading.resolve({});
+  await call;
+  await slot.stop();
+  assert.equal(executed, 0);
+  assert.equal(disposed, 1);
+  assert.equal(slot.diagnostics().phase, 'STOPPED');
+});
+
+test('stop validates its timeout and immediately stopping an empty lease is safe', async () => {
+  for (const stopTimeoutMs of [0, -1, NaN, Infinity, 1.5, 2_147_483_648]) {
+    assert.throws(() => createLazyProviderRuntimeV010({ isActive: () => true,
+      async load() { return {}; }, stopTimeoutMs }), /TIMEOUT_INVALID/);
+  }
+  const slot = createLazyProviderRuntimeV010({ isActive: () => true, async load() { return {}; } });
+  await slot.stop();
+  assert.deepEqual(slot.diagnostics(), { phase: 'STOPPED', activeCalls: 0,
+    blocked: false, cleanupPending: false, stopAttempts: 1 });
+  await slot.run(async () => {});
+  assert.equal(slot.diagnostics().phase, 'READY');
+  await slot.stop();
+});
