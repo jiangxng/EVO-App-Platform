@@ -6,7 +6,8 @@ import type {
   AppActionHandler,
   AppActionRequestV010
 } from "../../actions/contracts.js";
-import type { AgentRunStoreV010, AgentRunV010 } from "../../contracts/agent-run.js";
+import type { AgentRunStoreV010, AgentRunV010, AgentRunCreateInputV010 } from "../../contracts/agent-run.js";
+import type { HostAsyncReadExecutionV030 } from "../../manager/agent-async-read-worker-runtime.js";
 import type { ConversationThreadStoreV010 } from "../../contracts/conversation-thread.js";
 import type { ConversationContextAssemblerV010 } from "../../contracts/conversation-context.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
@@ -39,6 +40,8 @@ export interface ThreadBackedAgentTurnDependenciesV010 {
   contextAssembler?: ConversationContextAssemblerV010;
   runStore: AgentRunStoreV010;
   runExecutor: ResumableAgentRunExecutorV010;
+  /** Opt-in Host-governed PostgreSQL Run execution; absent in default mode. */
+  asyncRunRuntime?:HostAsyncReadExecutionV030;
   resolveLlmProvider(): {
     installedProviderIds: string[];
     provider?: LlmInferenceProvider;
@@ -522,6 +525,38 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             );
           }
 
+          // The V010 exact lookup above retains authority for legacy Runs.
+          // PostgreSQL retries look up the exact client turn before rebuilding
+          // conversation history (which can change after the original send).
+          if(clientTurnId&&dependencies.asyncRunRuntime){
+            const old=await dependencies.asyncRunRuntime.getByTurn({
+              threadId,clientTurnId,principal,context
+            });
+            if(old){
+              if(old.sourceInteractionId!==threadId ||
+                old.input.message!==message ||
+                !isDeepStrictEqual(old.input.assistanceRequest,assistanceRequest) ||
+                !isDeepStrictEqual(old.input.interactionContext,interactionContext)){
+                throw Error("CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+              }
+              const conversation=await dependencies.threadStore.get(threadId);
+              if(!conversation?.messages.some(item=>item.role==="USER"&&item.runId===old.runId)){
+                await dependencies.threadStore.appendMessage({
+                  threadId,messageId:userMessageId(old.runId),role:"USER",
+                  content:message,createdAt:old.createdAt,runId:old.runId,
+                  presentation:{clientTurnId}
+                });
+              }
+              const resumed=["READY","PAUSED","RUNNING"].includes(old.state)
+                ?await dependencies.asyncRunRuntime.resume({
+                  runId:old.runId,principal,context,requestContext
+                }):old;
+              return presentTurnResult(
+                dependencies,request,threadId,resumed,principal,context,requestContext
+              );
+            }
+          }
+
           const runId = "agent-run:" + dependencies.runId();
           const createdAt = now(dependencies);
           const assembledContext = dependencies.contextAssembler
@@ -535,7 +570,7 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             ?? await dependencies.threadStore.conversationHistory({
               threadId
             });
-          let run = dependencies.runStore.create({
+          const created:AgentRunCreateInputV010 = {
             runId,
             principalSubjectId: principal.subjectId,
             principalActorType: principal.actorType,
@@ -554,7 +589,13 @@ export function createThreadBackedAgentTurnActionHandlersV010(
               modelId: resolved.provider.modelId
             },
             createdAt
-          });
+          };
+          let run=dependencies.asyncRunRuntime
+            ?await dependencies.asyncRunRuntime.claim({
+              create:created,clientTurnId:clientTurnId??runId,
+              principal,context,requestContext
+            })
+            :dependencies.runStore.create(created);
 
           const threadBeforeMessage = (await dependencies.threadStore.get(threadId))!;
           if (!threadBeforeMessage.messages.some(item => item.runId === runId && item.role === "USER")) {
@@ -571,16 +612,16 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             });
           }
 
-          const resumed = await drainResumableAgentRunV010(
-            dependencies.runExecutor,
-            {
-              runId,
-              principal,
-              context,
-              requestContext
-            }
-          );
-          run = resumed.run;
+          if(dependencies.asyncRunRuntime){
+            run=await dependencies.asyncRunRuntime.resume({
+              runId:run.runId,principal,context,requestContext
+            });
+          }else{
+            const resumed=await drainResumableAgentRunV010(
+              dependencies.runExecutor,{runId,principal,context,requestContext}
+            );
+            run=resumed.run;
+          }
           return presentTurnResult(
             dependencies,
             request,
@@ -613,26 +654,26 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             principal,
             context
           );
-          const currentRun = runForScope(
-            dependencies,
-            runId,
-            principal,
-            context
-          );
+          // Never mask a wrong-scope legacy Run with a database fallback.
+          const legacy=dependencies.runStore.get(runId);
+          const currentRun=legacy
+            ?runForScope(dependencies,runId,principal,context)
+            :dependencies.asyncRunRuntime
+              ?await dependencies.asyncRunRuntime.read({runId,principal,context})
+              :undefined;
+          if(!currentRun)throw Error("AGENT_RUN_NOT_FOUND");
           verifyRunBelongsToThread(threadId, currentRun);
           if (!thread.messages.some(item => item.role === "USER" && item.runId === runId)) {
             throw new Error("CONVERSATION_THREAD_RUN_USER_MESSAGE_REQUIRED");
           }
 
-          const resumed = await drainResumableAgentRunV010(
-            dependencies.runExecutor,
-            {
-              runId,
-              principal,
-              context,
-              requestContext
-            }
-          );
+          const resumed=dependencies.asyncRunRuntime&&!legacy
+            ?{run:await dependencies.asyncRunRuntime.resume({
+              runId,principal,context,requestContext
+            })}
+            :await drainResumableAgentRunV010(
+              dependencies.runExecutor,{runId,principal,context,requestContext}
+            );
           return presentTurnResult(
             dependencies,
             request,
