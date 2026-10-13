@@ -49,8 +49,8 @@ jobs:
                 kind:'IDENTITY_SOURCE_CAPTURED'}]
             ]);
             const assets=new Map([
-              ['apps/sop-designer/package.ts','358583054ca7239fa062374dc9c337f8521ccf4d'],
-              ['tests/protocol/sop-designer-package-identity.test.mjs','7de014c00b09e1c62bcaba1a039afab104fa8cee']
+              ['apps/sop-designer/package.ts',{source:'358583054ca7239fa062374dc9c337f8521ccf4d',landed:'affeda8da802710e35e0d9b0b33a2b785b81a644'}],
+              ['tests/protocol/sop-designer-package-identity.test.mjs',{source:'7de014c00b09e1c62bcaba1a039afab104fa8cee',landed:'7de014c00b09e1c62bcaba1a039afab104fa8cee'}]
             ]);
             if(cfg.schemaVersion!==1
               ||cfg.scope!=='sop-identity-and-governance-merged-source-retirement-20261013'
@@ -69,7 +69,8 @@ jobs:
               ||cfg.records.some(x=>!expected.has(x.name)))
               throw Error('Source inventory incomplete');
             for(const asset of cfg.ownedAssets){
-              if(!assets.has(asset.path)||assets.get(asset.path)!==asset.expectedSha)
+              if(!assets.has(asset.path)||assets.get(asset.path).source!==asset.expectedSha
+                ||assets.get(asset.path).landed!==asset.landedSha)
                 throw Error('Unapproved asset '+asset.path);
             }
             const latestMain=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
@@ -86,13 +87,13 @@ jobs:
               throw Error('Merged governance PR provenance changed');
             for(const [path,sha] of assets){
               const current=await getContent(path,head);
-              if(current.sha!==sha)throw Error('SOP source altered: '+path);
+              if(current.sha!==sha.landed)throw Error('SOP landed source altered: '+path);
               for(const ref of ['architecture/sop-designer-package-identity',
                 'architecture/sop-designer-package-identity-v2']){
                 const old=await getContent(path,ref);
-                if(old.sha!==sha)throw Error('Identity source does not match old ref '+ref);
+                if(old.sha!==sha.source)throw Error('Identity source does not match old ref '+ref);
               }
-              core.info('SOP_IDENTITY_PRESERVED '+path+' '+sha);
+              core.info('SOP_IDENTITY_PRESERVED '+path+' source='+sha.source+' landed='+sha.landed);
             }
             // This is identity-only: never auto-install the unfinished SOP Editor.
             const catalog=Buffer.from(
