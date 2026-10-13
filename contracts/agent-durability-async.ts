@@ -1,6 +1,7 @@
 import type { AgentRunEventV010 } from "./agent-run.js";
 import type {
   AgentActionReceiptBeginInputV010,
+  AgentActionReceiptTerminalInputV010,
   AgentActionReceiptStatusV010
 } from "./agent-action-receipt.js";
 
@@ -42,6 +43,10 @@ export interface AgentReceiptRecordV020 {
   status: AgentActionReceiptStatusV010;
   inputDigest: string;
   revision: number;
+  /** Full original Host-claimed invocation for audited migration, if persisted. */
+  requested?: AgentActionReceiptBeginInputV010;
+  /** Full terminal evidence, only when supplied by an authorized owner path. */
+  terminal?: AgentActionReceiptTerminalInputV010;
 }
 
 export interface AsyncAgentRunReceiptRepositoryV020 {
@@ -67,6 +72,7 @@ export interface AsyncAgentRunReceiptRepositoryV020 {
     scope: HostResolvedAgentDurabilityScopeV020;
     receiptId: string;
     status: "SUCCEEDED" | "FAILED" | "DENIED";
+    terminal?: AgentActionReceiptTerminalInputV010;
   }): Promise<AgentReceiptRecordV020 & { transitioned: boolean }>;
   getReceipt(input: {
     scope: HostResolvedAgentDurabilityScopeV020;
