@@ -159,6 +159,7 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
       principalActorType:principal.actorType,context:context.activeContext,
       createdAt:"2026-10-13T00:00:00.000Z"
     });
+    let threadClock=0;
     const turnActions=new Map(createThreadBackedAgentTurnActionHandlersV010({
       threadStore,runStore:store,
       runExecutor:{resume(){throw Error("LEGACY_EXECUTOR_FORBIDDEN");}},
@@ -166,7 +167,9 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
       resolveLlmProvider:()=>({installedProviderIds:[provider.providerId],provider}),
       resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
       resolveContext:()=>context,createToolCatalog:createCatalog,
-      runId:()=>randomUUID(),now:()=>new Date("2026-10-13T00:00:02.000Z")
+      runId:()=>randomUUID(),
+      now:()=>new Date(Date.parse("2026-10-13T00:00:02.000Z")+
+        (threadClock++)*1000)
     }).map(h=>[h.commandCode,h]));
     const send=turnActions.get("enterprise-agent.thread.send");
     const sendRequest=message=>({
