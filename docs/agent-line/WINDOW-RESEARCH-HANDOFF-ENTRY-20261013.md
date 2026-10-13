@@ -50,3 +50,39 @@ Document class: LIVING_HANDOFF_POINTER。**本文件是本窗口截至2026-10-13
 ## PA-02 本日阶段证据闭环索引（2026-10-13）
 
 最新可靠性阶段状态与全部合并SHA、真实CI、剩余产品门禁见 [PA02阶段门禁快照](PA02-STAGE-GATES-SNAPSHOT-20261013.md)。四个Agent专项PR #799/#800/#801/#802均合main并删除过程分支；仅证明隔离可靠性前置能力。正式Host async Run/Receipt/Worker/CANCEL尚未接线或完整验收，PA-02整体状态仍为 **IN_PROGRESS / NOT_PRODUCTION_READY**；不复活历史分支，也不碰其它owner。
+
+
+## 2026-10-13 新窗口恢复与GitHub增量核对（基线 `d0519983f4c182b60008966104a02717911d75de`）
+
+**证据规则**：本节只表示聊天决策、GitHub PR实现及其特定测试范围，不把三者混同；旧章节保留作历史快照。来源沿用[资料索引](WINDOW-RESEARCH-SOURCE-INDEX-20261013.md)及[决策缺口](WINDOW-RESEARCH-DECISIONS-GAPS-20261013.md)，2026-10-10/11的14项外部参考仍是H级历史链接，本轮没有重开原网页，不能升级成已读原文。
+
+### 用户确认与窗口边界
+- 2026-10-13用户已明确允许PA-02A/B/C独立线**修改 `manager/server.ts` 等共享Host核心文件**，以最新main为基线、小范围独立PR、经CI后合并；这撤销了旧窗口“共享Host文件一律不能改”的限制，**并未授权生产部署或生产运行模式切换**。
+- 持续推进PA-02A→B→C，除真正需要人裁决的风险外不用中途人工截图签收。保持轻量宿主/按需插件、V010兼容、可隔离的开发能力默认OFF，不接管TR、Ledger、2D和其他owner，不改共享`project.status.json`/`HANDOFF-LATEST.md`。
+- 不复活历史已删除开发分支；研究与方案沿用四仓文档和精确PR/commit记录。合main≠启用≠真实产品验证≠生产完成。
+
+### 当前完成对照：不是仅停留在旧#813
+| 来源与范围 | 代码实现 / GitHub核验 | 可以认定的验证，不可认定的内容 |
+|---|---|---|
+| 用户旧聊天转述 #810–#813 | [#810](https://github.com/jiangxng/EVO-App-Platform/pull/810)真实Node Worker SIGKILL后新进程恢复；[#811](https://github.com/jiangxng/EVO-App-Platform/pull/811)Run.get可注入异步读；[#812](https://github.com/jiangxng/EVO-App-Platform/pull/812)可信scope PostgreSQL读adapter；[#813](https://github.com/jiangxng/EVO-App-Platform/pull/813)真实Action Handler隔离测试。四PR GitHub显示merged；#813合并SHA `56a2ae529c29de85d877fd7e2347b47dff20aa67` | #813实际Action对PostgreSQL读与V010拒绝不得fallback的测试；不代表server已接线、WRITE或生产迁移 |
+| [#814](https://github.com/jiangxng/EVO-App-Platform/pull/814) | merged `8920692`；**实际修改Host `manager/server.ts`**；`APP_PLATFORM_AGENT_RUN_ASYNC_READ_MODE=POSTGRES_READ_ONLY`可选装配，默认OFF | PR声明覆盖禁用状态、配置fail-closed、只读无DDL、租户隔离；不是V020全权威迁移 |
+| [#815](https://github.com/jiangxng/EVO-App-Platform/pull/815) | merged `c6e520f`；Worker READ slice完成后安全释放fenced lease | 隔离PostgreSQL回归；无业务WRITE |
+| [#816](https://github.com/jiangxng/EVO-App-Platform/pull/816) | **GitHub PR元数据 `merged=false`**，尽管对象含merge SHA字段；不能直接称此PR已正式合并，需要按当前main文件内容及ancestry核对是否已有等价接线 | PR描述了READ_ONLY Host异步start/resume/cancel方案，但此处不升级成该PR已合并或已启用 |
+| [#818](https://github.com/jiangxng/EVO-App-Platform/pull/818) | merged `2d086d8`；进程SIGKILL后原子取消防Run复活 | PostgreSQL隔离Worker取消证明，不覆盖外部WRITE |
+| [#819](https://github.com/jiangxng/EVO-App-Platform/pull/819), [#820](https://github.com/jiangxng/EVO-App-Platform/pull/820) | merged `5ebd742`, `da64043`；真正thread.resume Action异步fallback、PostgreSQL fenced READ测试 | 测试证明resume/同Turn去重/线程隔离；不是生产启动路径 |
+| [#821](https://github.com/jiangxng/EVO-App-Platform/pull/821), [#822](https://github.com/jiangxng/EVO-App-Platform/pull/822) | merged `2a0f86e`, `d0519983f4c182b60008966104a02717911d75de`；真正thread.send Action支持可选原子Turn claim，并有PostgreSQL fenced READ与消息单次写入测试 | #822说明使用确定性provider及隔离PostgreSQL；无真实外部业务WRITE、无生产运行方式变更 |
+
+**复核时间切片**：2026-10-13，GitHub main commit `d0519983f4c182b60008966104a02717911d75de`，已超过用户旧消息的 `56a2ae5`。以上是GitHub PR元数据+旧交接文档核对，不等于本窗口重新读取所有测试日志与全量源码，也不能擅称全部CI逐项重验或所有过程分支已删除。
+
+### 旧研究恢复与方案的采用/搁置
+- 保留原14项H级来源S1–S14（Anthropic agents/context、Copilot orchestration、AG-UI、A2UI、A2A、MCP Security、OAuth安全规范、HAX、Temporal、WCAG、OpenTelemetry、OWASP），逐项网址及适用性在[来源索引§3](WINDOW-RESEARCH-SOURCE-INDEX-20261013.md#3-外部网络资料仅继承已有14条全部h--待逐页核验)，不是本窗口重新研究结果。
+- **采用**：PostgreSQL持久Run/Receipt+Host可信scope+原子claim+fencing/UNKNOWN隔离+取消屏障，短PR渐进接线；确定性Host授权，业务owner负责核验结果。**暂不采用**：Temporal强依赖、默认多自主Agent、LLM代替工具授权、旧OAuth helper整包回退、旧Eidos CSS覆盖、新协议自称完全兼容。权衡与具体理由见[决策缺口§2](WINDOW-RESEARCH-DECISIONS-GAPS-20261013.md#2-比较与选择明确区分来源事实-vs-项目判断)。
+- 外部标准原文的实际历史逐页阅读记录无法完整恢复；部分截图与已过期CI artifact需按原索引重新获取，不猜测它们的内容。旧窗口未保存的自由讨论不能伪造为已确认决策。
+
+### 尚未闭合的门禁与下一步
+1. **先核#816是否确实以其他合并路径包含在main**，并以当前`manager/server.ts`、Action Handler及测试源码为准，检查可选Host异步start/resume/cancel真实装配。勿因PR状态或单一merge SHA字段单独下结论。
+2. 继续PA-02A完整Run/Receipt迁移与历史兼容、多进程及数据库中断测试；PA-02B真实业务Owner的幂等/UNKNOWN结果核验、Outbox/fence；PA-02C全Host取消与终态Receipt一致性，包括READ和WRITE边界。补跨企业攻击、真实隔离Host/沙盒场景、RPO/RTO/回滚门禁。
+3. External Agent实际安装/激活、OAuth/MCP外部盲发现；Eidos手机/IME/dirty、DENY Receipt终态仍属其他关联验收，切勿以插件manifest或CI通过取代运行验证。
+4. 保持`PA-02 IN_PROGRESS / NOT_PRODUCTION_READY`。只在CI与实际运行门禁满足时升级对应子项，**未经明确授权不部署生产**。
+
+本节仅追加Agent独立线的恢复证据，不修改其他窗口权威文档。
