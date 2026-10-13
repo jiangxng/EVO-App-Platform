@@ -32,3 +32,8 @@ Current additional archive documents this exact decision, while `docs/architectu
 - The two old SOP identity branch heads may be retired after this archive is merged, unchanged source hashes confirmed, and exact no-open-PR/protection guard. No archive tag created; Git history and pinned source SHA stay in merged PR and this document.
 
 No Agent, EOG Designer/Viewer runtime, EVO Ledger, Finance Owner or Railway change is authorized by this convergence.
+
+
+## 2026-10-13 mandatory catalog metadata compatibility correction
+
+The new Plugin Title Localization check now scans every shipped package file, including ones not registered with Host. The 2026-10-03 historical SOP `package.ts` lacked four required locale titles and a short catalog description. CI first failed on exactly `evo-sop-designer/en` and the missing description. To pass **current platform requirements without new SOP product development**, `apps/sop-designer/package.ts` received *only* `description` and `displayNameTranslations` for en/zh-CN/ja/zh-TW. The original blob remains `358583054ca7239fa062374dc9c337f8521ccf4d`, while the new landed manifest blob is `affeda8da802710e35e0d9b0b33a2b785b81a644`. Feature ID, default-OFF activation, capability requirements, and absence of UI remain unchanged. The unit test retains the **original identical** blob `7de014c00b09e1c62bcaba1a039afab104fa8cee`. Retirement gates separately pin both source and landing hashes; do not claim the localized manifest is byte-for-byte identical to its 2026-10-03 source.
