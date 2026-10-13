@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "authority": "docs/architecture/EOG-PEER-PLUGIN-EXTRACTION-BASELINE-v0.1.md",
-  "updatedAt": "2026-10-03",
+  "updatedAt": "2026-10-13",
   "status": "SOP_DEFERRED_RUNTIME_BINDING_ACTIVE",
   "prerequisites": {
     "eogThreePluginPhysicalBoundary": "CLOSED",
@@ -18,7 +18,7 @@
   "targets": {
     "sopDesigner": {
       "logicalRole": "SOP_DESIGNER",
-      "concretePackageId": "NOT_FROZEN_WHILE_DEFERRED",
+      "concretePackageId": "evo-sop-designer",
       "semantics": "APQC_PROCESS_STRUCTURE_PLUS_TIME_DIMENSION",
       "compatibilityName": "SOP",
       "definitionAuthority": "ENTERPRISE_CONTEXT_BUSINESS_DEFINITION",
@@ -45,7 +45,15 @@
       "legacyCompatibilityAssets": [
         "manager/enterprise-operating-graph-sop-store.ts"
       ],
-      "status": "DEFERRED_PRESERVE_ONLY"
+      "status": "IDENTITY_SOURCE_PRESERVED_DEFERRED",
+      "featureId": "evo-sop-designer.default",
+      "capability": "enterprise.sop.designer",
+      "packageIdentityStatus": "SOURCE_SCAFFOLD_PRESENT_NOT_HOST_REGISTERED",
+      "activation": "DEFAULT_OFF",
+      "developmentStatus": "DEFERRED",
+      "physicalExtraction": "NOT_STARTED",
+      "hostCatalogRegistration": "DEFERRED_LIGHTWEIGHT_HOST_GATE",
+      "provenance": "docs/archive/SOP-DESIGNER-IDENTITY-20261013-CONVERGENCE.md"
     },
     "runtimeBindingAdapter": {
       "logicalRole": "RUNTIME_BINDING_ADAPTER",
