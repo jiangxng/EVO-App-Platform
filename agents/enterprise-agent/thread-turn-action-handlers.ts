@@ -597,15 +597,18 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             })
             :dependencies.runStore.create(created);
 
+          // An atomic PostgreSQL claim can return the existing Run of a racing
+          // retry; never attach its message to the newly proposed Run ID.
+          const persistedRunId = run.runId;
           const threadBeforeMessage = (await dependencies.threadStore.get(threadId))!;
-          if (!threadBeforeMessage.messages.some(item => item.runId === runId && item.role === "USER")) {
+          if (!threadBeforeMessage.messages.some(item => item.runId === persistedRunId && item.role === "USER")) {
             await dependencies.threadStore.appendMessage({
               threadId,
-              messageId: userMessageId(runId),
+              messageId: userMessageId(persistedRunId),
               role: "USER",
               content: message,
-              createdAt,
-              runId,
+              createdAt: run.createdAt,
+              runId: persistedRunId,
               ...(clientTurnId
                 ? { presentation: { clientTurnId } }
                 : {})
@@ -614,11 +617,11 @@ export function createThreadBackedAgentTurnActionHandlersV010(
 
           if(dependencies.asyncRunRuntime){
             run=await dependencies.asyncRunRuntime.resume({
-              runId:run.runId,principal,context,requestContext
+              runId:persistedRunId,principal,context,requestContext
             });
           }else{
             const resumed=await drainResumableAgentRunV010(
-              dependencies.runExecutor,{runId,principal,context,requestContext}
+              dependencies.runExecutor,{runId:persistedRunId,principal,context,requestContext}
             );
             run=resumed.run;
           }
