@@ -3,7 +3,7 @@ import type {
   AppActionHandler,
   AppActionRequestV010
 } from "../../actions/contracts.js";
-import type { AgentRunStoreV010 } from "../../contracts/agent-run.js";
+import type { AgentRunStoreV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type { LlmInferenceProvider } from "../../contracts/llm.js";
 import type {
   ActiveContextRefV010,
@@ -33,6 +33,12 @@ import {
 export interface PersonalAgentRunActionDependenciesV010 {
   runStore: AgentRunStoreV010;
   runExecutor: ResumableAgentRunExecutorV010;
+  /** Opt-in, Host-resolved async Run get; not activated in server.ts. */
+  asyncRunReader?: (input: {
+    runId: string;
+    principal: PlatformPrincipalV010;
+    context: ResolvedContextSetV010;
+  }) => Promise<AgentRunV010 | undefined>;
   resolveLlmProvider(): {
     installedProviderIds: string[];
     provider?: LlmInferenceProvider;
@@ -352,7 +358,15 @@ export function createPersonalAgentRunActionHandlersV010(
             request,
             requestContext
           );
-          const run = dependencies.runStore.get(runIdFromRequest(request));
+          const runId = runIdFromRequest(request);
+          const current = dependencies.runStore.get(runId);
+          // A V010 run owned by another scope cannot be replaced by fallback.
+          if (current && !sameScope(current, principal, context)) {
+            throw new Error("AGENT_RUN_NOT_FOUND");
+          }
+          const run = current ?? (dependencies.asyncRunReader
+            ? await dependencies.asyncRunReader({runId, principal, context})
+            : undefined);
           if (!run || !sameScope(run, principal, context)) {
             throw new Error("AGENT_RUN_NOT_FOUND");
           }
