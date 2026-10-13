@@ -649,15 +649,16 @@ export function createThreadBackedAgentTurnActionHandlersV010(
             throw new Error("AGENT_RUN_NOT_FOUND");
           }
 
+          const claimedRunId = run.runId;
           const threadBeforeMessage = (await dependencies.threadStore.get(threadId))!;
-          if (!threadBeforeMessage.messages.some(item => item.runId === runId && item.role === "USER")) {
+          if (!threadBeforeMessage.messages.some(item => item.runId === claimedRunId && item.role === "USER")) {
             await dependencies.threadStore.appendMessage({
               threadId,
-              messageId: userMessageId(runId),
+              messageId: userMessageId(claimedRunId),
               role: "USER",
               content: message,
               createdAt,
-              runId,
+              runId: claimedRunId,
               ...(clientTurnId
                 ? { presentation: { clientTurnId } }
                 : {})
