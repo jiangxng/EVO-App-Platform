@@ -75,3 +75,10 @@ Document class: DECISION_AND_GAP_HANDOFF。先读[简短入口](WINDOW-RESEARCH-
 **事实**：当前V010的Run executor仅用进程内Map做并发去重，`manager/server.ts`仍是同步Run/Receipt；PA-02A PostgreSQL proof已能跨Node进程取回状态，但不能排除多Worker同一业务工具重复调用。新[#800](https://github.com/jiangxng/EVO-App-Platform/pull/800)引入隔离数据库fence及PREPARED→INVOKING→UNKNOWN状态，针对这类重复调用风险做并发与崩溃后演练（证据见[阶段记录](PA02B-FENCING-UNKNOWN-WRITE-20261013.md)）。
 
 **判断**：先以短PR验证数据库时间租约、递增fencing和写入意图，拒绝失去lease的Worker终结回执及接班Worker盲重播。**未完成**的仍是正式Host异步接线、经过业务owner确认的幂等执行/未知结果协调、租约与正式Run状态同事务、PA-02C安全取消、生产恢复演练。不得把isolated proof合并当成PA-02B产品级完结。
+
+
+## 9. PA-02C持续开发及产品关闭门槛（2026-10-13）
+
+**源码事实**：现行 `AgentRunEventTypeV010` / reducer有RUN_CANCELLED终态，但主Host V010 executor不具跨Worker协调；PA-02B隔离lease证明不保证已发出外部业务操作可撤回。[PR #801](https://github.com/jiangxng/EVO-App-Platform/pull/801)把取消请求持久化，并在独立Coordinator验证「取消前WRITE结果不明→不能立即CANCELLED」及「取消已生效→后续WRITE阻断」；详见[阶段记录](PA02C-DURABLE-CANCELLATION-20261013.md)。
+
+**判断**：不得只因新的Coordinator返回CANCELLED就声明PA-02C产品关闭。正式Run取消必须和宿主可恢复Run权威、Worker fenced执行边界、外部WRITE owner确认以及终态Receipt一致；跨进程/跨机器真实Host的中断、重复请求、租户攻击与浏览器交互全链路实测是最终门禁。实现验证通过后先收敛到main，但保持 `PA02_NOT_PRODUCTION_COMPLETE`，无需用户承担阶段性截图签收。
