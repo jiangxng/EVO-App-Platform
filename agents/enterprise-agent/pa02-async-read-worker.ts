@@ -41,6 +41,8 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   sliceId():string;
   now?:()=>Date;
   ttlSeconds?:number;
+  /** Enable only for a Host Worker that intentionally yields after each slice. */
+  releaseOnReturn?:boolean;
 }
 function required(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_WORKER_ID_REQUIRED");
@@ -91,6 +93,7 @@ export function createReadOnlyFencedAgentWorkerV030(
         if(!state)throw Error("AGENT_RUN_NOT_FOUND");
         return {run:state.run,advanced:false,claimed:false,writeDeferred:false};
       }
+      try {
       let current=await deps.authority.read({scope,runId});
       if(!current)throw Error("PA02_WORKER_RUN_MISSING_AFTER_CLAIM");
       const append=async (
@@ -230,6 +233,13 @@ export function createReadOnlyFencedAgentWorkerV030(
       }
       return observe(run.decisions[run.decisions.length-1],
         allTools.find(t=>t.id===decision.call.tool));
+      } finally {
+        if(deps.releaseOnReturn) {
+          // On a clean yield, allow another Worker to claim without waiting
+          // the TTL. An expired or superseded Worker cannot free its successor.
+          await deps.authority.release({scope,lease});
+        }
+      }
     }
   };
 }
