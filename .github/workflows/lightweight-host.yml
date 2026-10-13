@@ -1,0 +1,38 @@
+name: Lightweight Host Architecture
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lightweight-host-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lightweight-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - name: Guard regression tests
+        run: node --test tests/protocol/lightweight-host-guard.test.mjs
+      - name: Check eager dependency ratchet
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE_SHA" ] && [ "$BASE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            git worktree add --detach "$RUNNER_TEMP/lightweight-base" "$BASE_SHA"
+            LIGHTWEIGHT_HOST_BASE_ROOT="$RUNNER_TEMP/lightweight-base" node tools/lightweight-host-validate.mjs --base "$BASE_SHA"
+          else
+            node tools/lightweight-host-validate.mjs
+          fi
+      - run: npm run build
+      - name: Inactive plugin and lazy action behavior
+        run: node --test tests/protocol/plugin-resource-lazy-loading.test.mjs tests/actions/lazy-handler.test.mjs
