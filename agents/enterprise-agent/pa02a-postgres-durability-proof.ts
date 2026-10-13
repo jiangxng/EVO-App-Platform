@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import postgres from "postgres";
 import type { AgentRunEventV010 } from "../../contracts/agent-run.js";
+import { materializeAgentRunsV010 } from "../../manager/agent-run-store.js";
 import type {
   AsyncAgentRunReceiptRepositoryV020,
   AgentTurnClaimInputV020,
@@ -25,6 +26,7 @@ function scopeKey(scope: HostResolvedAgentDurabilityScopeV020): string {
   // Caller MUST be the authorized Host; client-supplied scope is never trusted.
   return createHash("sha256").update(JSON.stringify(["pa02a-v0.2",subject,scope.principalActorType,scope.contextKind,context,enterprise])).digest("hex");
 }
+export { scopeKey as hostAgentRunScopeKeyV020 };
 function ensureDigest(value: string): string {
   if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw new Error("PA02A_DIGEST_INVALID");
   return value;
@@ -155,6 +157,12 @@ export async function createPostgresAgentDurabilityProofV020(input:{
           "WHERE scope_key=$1 AND run_id=$2 AND revision=$3 RETURNING revision",
           [key,run,r.expectedRevision]);
         if(!rows.length)throw new Error("PA02A_RUN_REVISION_CONFLICT");
+        const prior=await tx.unsafe("SELECT payload FROM "+q+".agent_run_events "+
+          "WHERE run_id=$1 ORDER BY ordinal ASC",[run]);
+        const decoded=prior.map(row=>typeof row.payload==="string"
+          ? JSON.parse(row.payload) as AgentRunEventV010
+          : row.payload as AgentRunEventV010);
+        materializeAgentRunsV010([...decoded,event]);
         await tx.unsafe("INSERT INTO "+q+".agent_run_events "+
           "(event_id,run_id,ordinal,payload) VALUES($1,$2,$3,$4::jsonb)",
           [event.eventId,run,Number(rows[0].revision),JSON.stringify(event)]);
