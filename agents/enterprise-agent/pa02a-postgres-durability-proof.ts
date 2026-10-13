@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import postgres from "postgres";
 import type { AgentRunEventV010 } from "../../contracts/agent-run.js";
+import { materializeAgentRunsV010 } from "../../manager/agent-run-store.js";
 import type {
   AsyncAgentRunReceiptRepositoryV020,
   AgentTurnClaimInputV020,
@@ -25,6 +26,7 @@ function scopeKey(scope: HostResolvedAgentDurabilityScopeV020): string {
   // Caller MUST be the authorized Host; client-supplied scope is never trusted.
   return createHash("sha256").update(JSON.stringify(["pa02a-v0.2",subject,scope.principalActorType,scope.contextKind,context,enterprise])).digest("hex");
 }
+export { scopeKey as hostAgentRunScopeKeyV020 };
 function ensureDigest(value: string): string {
   if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) throw new Error("PA02A_DIGEST_INVALID");
   return value;
@@ -103,6 +105,14 @@ export async function createPostgresAgentDurabilityProofV020(input:{
         "UNIQUE(scope_key,idempotency_key))");
       await tx.unsafe("ALTER TABLE "+q+".agent_receipts ADD COLUMN IF NOT EXISTS request_payload jsonb");
       await tx.unsafe("ALTER TABLE "+q+".agent_receipts ADD COLUMN IF NOT EXISTS terminal_payload jsonb");
+      // An earlier postgres.js string parameter stored JSONB *strings* rather
+      // than objects. Normalize safely before JSON path based receipt gates.
+      await tx.unsafe("UPDATE "+q+".agent_receipts "+
+        "SET request_payload=(request_payload #>> '{}')::jsonb "+
+        "WHERE jsonb_typeof(request_payload)='string'");
+      await tx.unsafe("UPDATE "+q+".agent_receipts "+
+        "SET terminal_payload=(terminal_payload #>> '{}')::jsonb "+
+        "WHERE jsonb_typeof(terminal_payload)='string'");
     });
   } catch(error) {await sql.end();throw error;}
 
@@ -155,6 +165,12 @@ export async function createPostgresAgentDurabilityProofV020(input:{
           "WHERE scope_key=$1 AND run_id=$2 AND revision=$3 RETURNING revision",
           [key,run,r.expectedRevision]);
         if(!rows.length)throw new Error("PA02A_RUN_REVISION_CONFLICT");
+        const prior=await tx.unsafe("SELECT payload FROM "+q+".agent_run_events "+
+          "WHERE run_id=$1 ORDER BY ordinal ASC",[run]);
+        const decoded=prior.map(row=>typeof row.payload==="string"
+          ? JSON.parse(row.payload) as AgentRunEventV010
+          : row.payload as AgentRunEventV010);
+        materializeAgentRunsV010([...decoded,event]);
         await tx.unsafe("INSERT INTO "+q+".agent_run_events "+
           "(event_id,run_id,ordinal,payload) VALUES($1,$2,$3,$4::jsonb)",
           [event.eventId,run,Number(rows[0].revision),JSON.stringify(event)]);
@@ -176,7 +192,7 @@ export async function createPostgresAgentDurabilityProofV020(input:{
         const inserted=await tx.unsafe("INSERT INTO "+q+".agent_receipts "+
           "(receipt_id,scope_key,idempotency_key,input_digest,status,request_payload) "+
           "VALUES($1,$2,$3,$4,'REQUESTED',$5::jsonb) ON CONFLICT DO NOTHING "+
-          "RETURNING *",[id,key,idem,hash,JSON.stringify(receipt)]);
+          "RETURNING *",[id,key,idem,hash,sql.json(JSON.parse(JSON.stringify(receipt)))]);
         if(inserted.length)return {...receiptRecord(inserted[0]),created:true};
         const rows=await tx.unsafe("SELECT * "+
           "FROM "+q+".agent_receipts WHERE scope_key=$1 AND idempotency_key=$2",[key,idem]);
@@ -196,7 +212,7 @@ export async function createPostgresAgentDurabilityProofV020(input:{
       const rows=await sql.unsafe("UPDATE "+q+".agent_receipts "+
         "SET status=$3,terminal_payload=$4::jsonb,revision=revision+1 WHERE scope_key=$1 AND receipt_id=$2 "+
         "AND status='REQUESTED' RETURNING *",
-        [key,id,r.status,r.terminal?JSON.stringify(r.terminal):null]);
+        [key,id,r.status,r.terminal?sql.json(JSON.parse(JSON.stringify(r.terminal))):null]);
       if(rows.length)return {...receiptRecord(rows[0]),transitioned:true};
       const old=await getReceipt({scope:r.scope,receiptId:id});
       if(!old||old.status!==r.status
