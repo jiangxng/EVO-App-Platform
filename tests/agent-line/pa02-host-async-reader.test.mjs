@@ -52,9 +52,9 @@ test("Host injected async Run reader: actual PG V010 rehydration and strict cont
       enterpriseContext:{...context.enterpriseContext,contextId:"context:reader-b",
         enterpriseId:"enterprise:B"}};
     assert.equal(await port.read({runId,principal,context:other}),undefined);
-    await assert.rejects(port.read({
+    assert.equal(await port.read({
       runId,principal:{...principal,subjectId:"attacker"},context
-    }),/AGENT_DURABILITY_RUN_SCOPE_INCONSISTENT|AGENT_DURABILITY_RUN_NOT_FOUND/);
+    }),undefined);
     await repository.close();repository=undefined;
     second=await createPostgresAgentDurabilityProofV020({connectionString:url,schema});
     assert.equal((await createHostAsyncRunReaderPortV020(second)
