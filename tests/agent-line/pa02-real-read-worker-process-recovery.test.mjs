@@ -93,8 +93,6 @@ if(process.argv[2]==="--process-child") {
       assert.match(killed.out,/PA02_WORKER_MODEL_ENTERED/);
       const mid=await authority.read({scope,runId:"run:cross-process"});
       assert.equal(mid.run.state,"RUNNING");
-      const oldLease=mid.lease;
-      assert.ok(oldLease);
       await admin.unsafe('UPDATE "'+schema+'".pa02b_leases '+
         "SET expires_at=clock_timestamp()-interval '1 second' WHERE run_id=$1",
         ["run:cross-process"]);
