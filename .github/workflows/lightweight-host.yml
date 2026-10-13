@@ -36,3 +36,10 @@ jobs:
       - run: npm run build
       - name: Inactive plugin and lazy action behavior
         run: node --test tests/protocol/plugin-resource-lazy-loading.test.mjs tests/actions/lazy-handler.test.mjs
+      - name: Isolated startup resource baseline
+        run: node tools/lightweight-host-benchmark.mjs artifacts/lightweight-host-baseline.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lightweight-host-baseline
+          path: artifacts/lightweight-host-baseline.json
+          retention-days: 14
