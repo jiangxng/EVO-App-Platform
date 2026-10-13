@@ -192,7 +192,7 @@ export async function createPostgresAgentDurabilityProofV020(input:{
         const inserted=await tx.unsafe("INSERT INTO "+q+".agent_receipts "+
           "(receipt_id,scope_key,idempotency_key,input_digest,status,request_payload) "+
           "VALUES($1,$2,$3,$4,'REQUESTED',$5::jsonb) ON CONFLICT DO NOTHING "+
-          "RETURNING *",[id,key,idem,hash,sql.json(receipt)]);
+          "RETURNING *",[id,key,idem,hash,sql.json(JSON.parse(JSON.stringify(receipt)))]);
         if(inserted.length)return {...receiptRecord(inserted[0]),created:true};
         const rows=await tx.unsafe("SELECT * "+
           "FROM "+q+".agent_receipts WHERE scope_key=$1 AND idempotency_key=$2",[key,idem]);
@@ -212,7 +212,7 @@ export async function createPostgresAgentDurabilityProofV020(input:{
       const rows=await sql.unsafe("UPDATE "+q+".agent_receipts "+
         "SET status=$3,terminal_payload=$4::jsonb,revision=revision+1 WHERE scope_key=$1 AND receipt_id=$2 "+
         "AND status='REQUESTED' RETURNING *",
-        [key,id,r.status,r.terminal?sql.json(r.terminal):null]);
+        [key,id,r.status,r.terminal?sql.json(JSON.parse(JSON.stringify(r.terminal))):null]);
       if(rows.length)return {...receiptRecord(rows[0]),transitioned:true};
       const old=await getReceipt({scope:r.scope,receiptId:id});
       if(!old||old.status!==r.status
