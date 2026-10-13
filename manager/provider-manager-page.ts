@@ -1,3 +1,4 @@
+import { providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { resolvePackageDisplayNameV010 } from "./package-display-name.js";
 import type { AppManagerService } from "./service.js";
 import type { ProviderRuntimeRegistry } from "../providers/runtime-registry.js";
@@ -38,7 +39,7 @@ function uniqueCapabilities(manager: AppManagerService): string[] {
   )].sort();
 }
 
-export function createProviderManagerExperienceManifest(manager: AppManagerService) {
+export function createProviderManagerExperienceManifest(manager: AppManagerService, locale = "en") {
   const capabilities = uniqueCapabilities(manager);
   return {
     contractVersion: "0.1.0",
@@ -47,6 +48,7 @@ export function createProviderManagerExperienceManifest(manager: AppManagerServi
     featureId: "evo-provider-manager.system",
     defaultRoute: "/providers",
     pages: [
+      { id: "evo-providers.lifecycle", title: locale.startsWith("zh") ? "运行与清理" : "Runtime and cleanup", source: providerLifecyclePageSource },
       {
         id: "evo-providers.home",
         title: "Providers",
@@ -59,6 +61,7 @@ export function createProviderManagerExperienceManifest(manager: AppManagerServi
       }))
     ],
     routes: [
+      { id: "evo-providers.lifecycle", path: "/providers/lifecycle", pageId: "evo-providers.lifecycle" },
       {
         id: "evo-providers.home",
         path: "/providers",
@@ -77,7 +80,8 @@ export function createProviderManagerIndexPage(
   manager: AppManagerService,
   registry: ProviderRuntimeRegistry,
   bindings: ProviderBindingStoreV010,
-  context: ProviderResolutionContextV010 = { installationId: "default" }
+  context: ProviderResolutionContextV010 = { installationId: "default" },
+  locale = "en"
 ): CatalogBrowserV010 {
   const descriptors = manager.listEffectiveServiceProviders();
   const capabilities = [...new Set(descriptors.map(provider => provider.capability))].sort();
@@ -89,6 +93,7 @@ export function createProviderManagerIndexPage(
     title: "Provider Bindings",
     description: "Choose which installed Provider implements each platform capability. Explicit scope bindings are deterministic and never silently fail over.",
     emptyMessage: "No active platform Providers are available.",
+    actions: [{ id: "lifecycle", label: locale.startsWith("zh") ? "运行与清理" : "Runtime and cleanup", type: "navigate", route: "/providers/lifecycle" }],
     items: capabilities.map(capability => {
       const candidates = descriptors.filter(provider => provider.capability === capability);
       const healthSummary = candidates

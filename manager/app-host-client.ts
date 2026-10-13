@@ -191,3 +191,19 @@ if (surfaceGateway.kind === "HANDOFF") {
     versionNotice.dispose();
   });
 }
+
+
+// Load administrative UI code only when its existing settings form is submitted.
+document.addEventListener("submit", event => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.closest('[data-namespace="provider-lifecycle"]')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  void import("./provider-lifecycle-client.js").then(module => module.inspectProviderLifecycle(
+    form, transport.fetch, window.localStorage.getItem("evo.locale") || initialLocale
+  )).catch(() => {
+    const section = form.closest('[data-namespace="provider-lifecycle"]');
+    if (section) { const message = document.createElement("p"); message.setAttribute("role", "alert");
+      message.textContent = "管理页面加载失败，请刷新重试 / Unable to load administration. Please refresh."; section.append(message); }
+  });
+}, true);
