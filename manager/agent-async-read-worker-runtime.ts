@@ -11,6 +11,11 @@ import { createHostScopedAsyncAgentRunBridgeV020,hostResolvedAgentDurabilityScop
 
 
 export interface HostAsyncReadExecutionV030 {
+  /** Persist a Run first, before any conversation message or tool dispatch. */
+  claim(input: { create: AgentRunCreateInputV010; clientTurnId?:string;principal: PlatformPrincipalV010;
+    context: ResolvedContextSetV010; requestContext?:PlatformRequestContextV010 }):Promise<AgentRunV010>;
+  getByTurn(input: {threadId:string;clientTurnId:string;principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010}):Promise<AgentRunV010|undefined>;
   start(input: { create: AgentRunCreateInputV010; principal: PlatformPrincipalV010;
     context: ResolvedContextSetV010; requestContext?:PlatformRequestContextV010 }):Promise<AgentRunV010>;
   resume(input: {runId:string; principal:PlatformPrincipalV010;
@@ -110,32 +115,44 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     // ready to resume; never fabricates success on exhausted slices.
     return run;
   };
+  const claimRun=async(r:{create:AgentRunCreateInputV010;clientTurnId?:string;
+    principal:PlatformPrincipalV010;context:ResolvedContextSetV010;
+    requestContext?:PlatformRequestContextV010}):Promise<AgentRunV010>=>{
+    const created=r.create;
+    if(created.principalSubjectId!==r.principal.subjectId ||
+      created.principalActorType!==r.principal.actorType ||
+      JSON.stringify(created.context)!==JSON.stringify(r.context.activeContext)) {
+      throw Error("PA02_HOST_RUN_CREATED_SCOPE_MISMATCH");
+    }
+    const event:AgentRunEventV010={
+      contractVersion:"0.1.0",runId:valid(created.runId),
+      eventId:"agent-run-event:"+randomUUID(),type:"RUN_CREATED",
+      occurredAt:created.createdAt,
+      payload:{
+        principalSubjectId:created.principalSubjectId,
+        principalActorType:created.principalActorType,
+        context:structuredClone(created.context),
+        sourceInteractionId:created.sourceInteractionId,
+        sourceActionId:created.sourceActionId,
+        input:structuredClone(created.input)
+      }
+    };
+    const claim=await reader(r).claimTurn({
+      threadId:valid(created.sourceInteractionId),
+      clientTurnId:valid(r.clientTurnId ?? created.sourceActionId),created:event
+    });
+    if(!claim.run)throw Error("PA02_HOST_CLAIM_RUN_MISSING");
+    return claim.run;
+  };
   return {
     read,
+    claim:claimRun,
+    getByTurn(r){return reader(r).getByTurn({
+      threadId:valid(r.threadId),clientTurnId:valid(r.clientTurnId)
+    });},
     async start(r){
-      const created=r.create;
-      if(created.principalSubjectId!==r.principal.subjectId ||
-        created.principalActorType!==r.principal.actorType ||
-        JSON.stringify(created.context)!==JSON.stringify(r.context.activeContext)) {
-        throw Error("PA02_HOST_RUN_CREATED_SCOPE_MISMATCH");
-      }
-      const event:AgentRunEventV010={
-        contractVersion:"0.1.0",runId:valid(created.runId),
-        eventId:"agent-run-event:"+randomUUID(),type:"RUN_CREATED",
-        occurredAt:created.createdAt,
-        payload:{
-          principalSubjectId:created.principalSubjectId,
-          principalActorType:created.principalActorType,
-          context:structuredClone(created.context),
-          sourceInteractionId:created.sourceInteractionId,
-          sourceActionId:created.sourceActionId,
-          input:structuredClone(created.input)
-        }
-      };
-      const claim=await reader(r).claimTurn({
-        threadId:created.sourceInteractionId,clientTurnId:created.sourceActionId,created:event
-      });
-      return runWorker({...r,runId:claim.runId});
+      const claimed=await claimRun(r);
+      return runWorker({...r,runId:claimed.runId});
     },
     resume:runWorker,
     async cancel(r){
