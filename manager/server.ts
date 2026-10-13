@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
+import { createStartupDefaultsV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
 import {
   createMemoryDefinitionProjectionSessionStoreV010,
@@ -2434,6 +2435,24 @@ async function resolveBiWorkbenchRuntimeV010() {
   return biWorkbenchRuntimePromise;
 }
 
+// Keep bootstrap completion separate from business state and user settings.
+const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
+  ? createFileSettingsStore(join(dirname(lifecycleStateFile), "startup-defaults.json"))
+  : createMemorySettingsStore());
+function installBusinessDefaultOnce(packageId: string, ready = true): void {
+  try {
+    const result = startupDefaults.apply({
+      packageId,
+      installed: manager.getSnapshot().installedPackages.some(item => item.packageId === packageId),
+      ready,
+      install() { manager.install(packageId); }
+    });
+    if (result === "INSTALLED") console.log("Installed first-run business default", packageId);
+  } catch (error) {
+    console.error("Failed to initialize business default", packageId, error);
+  }
+}
+
 if (
   process.env.EVO_BI_WORKBENCH_AUTOINSTALL?.trim() === "1"
   && !manager.getSnapshot().installedPackages.some(
@@ -2473,31 +2492,8 @@ if (
   }
 }
 
-if (!manager.getSnapshot().activeFeatures.some(
-  feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID
-)) {
-  try {
-    manager.install(EOG_3D_VIEWER_PACKAGE_ID);
-    console.log("Activated EOG 3D Viewer ownership cutover.");
-  } catch (error) {
-    console.error("Failed to activate EOG 3D Viewer ownership cutover.", error);
-  }
-}
-if (
-  !manager.getSnapshot().activeFeatures.some(
-    feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID
-  )
-  || !manager.getSnapshot().activeFeatures.some(
-    feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID
-  )
-) {
-  try {
-    manager.install(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
-    console.log("Activated Enterprise Observatory peer plugin.");
-  } catch (error) {
-    console.error("Failed to activate Enterprise Observatory peer plugin.", error);
-  }
-}
+installBusinessDefaultOnce(EOG_3D_VIEWER_PACKAGE_ID);
+installBusinessDefaultOnce(ENTERPRISE_OBSERVATORY_PACKAGE_ID);
 
 const enterpriseOperatingGraphObservatoryProviders =
   createEnterpriseOperatingGraphObservatoryProviderResolverV020({
@@ -2564,16 +2560,7 @@ if (!installedAtStartup.some(
     console.error("Failed to activate EVO External Agent Governance foundation.", error);
   }
 }
-if (!installedAtStartup.some(
-  item => item.packageId === EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID
-)) {
-  try {
-    manager.install(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
-    console.log("Activated EOG Bottleneck Analysis Provider.");
-  } catch (error) {
-    console.error("Failed to activate EOG Bottleneck Analysis Provider.", error);
-  }
-}
+installBusinessDefaultOnce(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
 const evoObservatoryEnabled =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_ENABLED?.trim().toLowerCase()
   === "true";
@@ -2737,51 +2724,15 @@ if (
     console.error("Failed to activate Host Enterprise Context Provider.", error);
   }
 }
-if (
-  manager.getSnapshot().effectiveCapabilities.includes(
-    ENTERPRISE_RESOURCE_CAPABILITY_V010
-  )
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === COUNTERPARTY_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(COUNTERPARTY_PACKAGE_ID);
-    console.log("Activated EVO Counterparty plugin.");
-  } catch (error) {
-    console.error("Failed to activate EVO Counterparty plugin.", error);
-  }
-}
-if (
-  manager.getSnapshot().effectiveCapabilities.includes(
-    ENTERPRISE_RESOURCE_CAPABILITY_V010
-  )
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === OBJECT_EXTENSION_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(OBJECT_EXTENSION_PACKAGE_ID);
-    console.log("Activated EVO Object Extension application.");
-  } catch (error) {
-    console.error("Failed to activate EVO Object Extension application.", error);
-  }
-}
-if (
-  manager.getSnapshot().effectiveCapabilities.includes(
-    ENTERPRISE_RESOURCE_CAPABILITY_V010
-  )
-  && !manager.getSnapshot().installedPackages.some(
-    item => item.packageId === DATA_IMPORT_PACKAGE_ID
-  )
-) {
-  try {
-    manager.install(DATA_IMPORT_PACKAGE_ID);
-    console.log("Activated EVO Data Import application.");
-  } catch (error) {
-    console.error("Failed to activate EVO Data Import application.", error);
-  }
-}
+installBusinessDefaultOnce(COUNTERPARTY_PACKAGE_ID,
+  manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
+);
+installBusinessDefaultOnce(OBJECT_EXTENSION_PACKAGE_ID,
+  manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
+);
+installBusinessDefaultOnce(DATA_IMPORT_PACKAGE_ID,
+  manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
+);
 const hasInstalledSecretConsumer = manager.getSnapshot().installedPackages.some(installed => {
   const pkg = manager.listCatalog().find(item => item.packageId === installed.packageId);
   return (pkg?.secrets?.length ?? 0) > 0;
