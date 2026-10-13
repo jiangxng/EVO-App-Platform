@@ -4376,6 +4376,24 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
   sliceId: randomUUID
 });
 
+// Dedicated opt-in async READ Worker. Default OFF has no dynamic import,
+// database connection or additional Agent execution authority.
+const configuredAgentAsyncWorkerMode =
+  process.env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase() || "OFF";
+const optionalAgentAsyncReadWorker = configuredAgentAsyncWorkerMode === "OFF"
+  ? undefined
+  : await (await import("./agent-async-read-worker-runtime.js"))
+      .createOptionalPostgresHostAsyncReadExecutionV030(process.env, {
+        resolveProvider() {
+          return resolveLlmProvider().provider;
+        },
+        createToolCatalog(run, principal, context, requestContext, interaction) {
+          return createPersonalAgentToolCatalogV010(
+            run.input.locale, context, principal, requestContext, interaction
+          );
+        }
+      });
+
 const actionRouter = createAppActionRouter(
   [
     ...createWorkbenchActionHandlersV010({
@@ -5355,6 +5373,9 @@ const actionRouter = createAppActionRouter(
     ...createPersonalAgentRunActionHandlersV010({
       runStore: agentRunStore,
       runExecutor: agentRunExecutor,
+      ...(optionalAgentAsyncReadWorker
+        ? { asyncRunRuntime: optionalAgentAsyncReadWorker }
+        : {}),
       ...(optionalAgentAsyncRunReader
         ? { asyncRunReader: optionalAgentAsyncRunReader.read }
         : {}),
@@ -9338,6 +9359,7 @@ async function shutdown(signal: string): Promise<void> {
   contextMemorySchedulerLease.release();
   await bottleneckRuntime.stop();
   await optionalAgentAsyncRunReader?.close();
+  await optionalAgentAsyncReadWorker?.close();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
