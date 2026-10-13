@@ -2,6 +2,8 @@
 
 Document class: LIVING_RUNBOOK
 
+> **2026-10-13 最新换窗提示（优先于以下所有历史PR/分支状态）：** 请先读 [新版简短入口](WINDOW-RESEARCH-HANDOFF-ENTRY-20261013.md)、[本轮原始GitHub/外链资料索引](WINDOW-RESEARCH-SOURCE-INDEX-20261013.md)、[方案取舍与未决门禁](WINDOW-RESEARCH-DECISIONS-GAPS-20261013.md)。PA-01和Legacy External Agent五分支已完成各仓main合并/删除，旧#692 PR虽未通过自身merge，但实验历史与代码已由Platform#786纳入main。以下旧段落作为2026-10-10/11历史日志保留，不可再次当最新实施状态。本指针不调整TR/2D主线或生产。
+
 更新时间：2026-10-10。用户已授权启动并持续推进Agent线，要求留存进度；常规工程无需逐项确认。不得影响业务主线和2D线。
 
 ## 2026-10-11 换窗入口
