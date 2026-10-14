@@ -575,6 +575,7 @@ export function createDataImportMappingPageV010(input: {
       label: sourceColumn,
       semanticType: "data-import-field-mapping",
       control: "select" as const,
+      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__"] },
       required: true,
       initialValue: current.get(sourceColumn)
         ?? (input.createdMapping?.sourceColumn === sourceColumn
