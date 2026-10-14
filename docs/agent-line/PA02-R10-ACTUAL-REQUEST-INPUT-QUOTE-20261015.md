@@ -1,6 +1,6 @@
 # PA-02 R10 — 完整模型请求的可信输入计费上界前置门禁（2026-10-15）
 
-**Document class:** DELIVERY_EVIDENCE / CI_PENDING / PA02_R10_NOT_SIGNED  
+**Document class:** DELIVERY_EVIDENCE / FIRST_HEAD_CI_VERIFIED / PA02_R10_NOT_SIGNED  
 **Baseline:** `main@f09709adcb1b9817516d8d3c2479845c5900f22b`（当前基线含并行插件治理 #871；不能把前一窗口 `f5c90d2...` 当永久 HEAD）。  
 **Scope authority:** [原始 PA-02 §25 R10](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) / [当前验收](PA02-CURRENT-ACCEPTANCE.md) / [完整 R01–R10 证据账](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。
 
@@ -32,3 +32,10 @@
 (1) 真实当前绑定的 Provider/model/服务等级/货币和已审批**版本化**报价；(2) 真实 Provider 对**本次组装输入请求**的可证明最坏可计费输入上界及输出上限执行，缓存与附加费用类别按官方/合同处理；(3) Provider 原始计费凭证与 PG 持久账的差异核对；(4) 用真实审批数据完成隔离 HTTP/Host 费用硬限额正反验收。任何一项缺失只能 fail closed；不擅自调用收费供应商、不部署生产、不启用生产 WRITE。
 
 **PR 验收门槛：** 现有 Agent PA-02 PG18 Worker CI、Host/Continuity/Lightweight 等相关检查全部绿；新增用例必须证明 quote 收到了真正的 system+developer+user/tool 输入结构，缺 quote/大 quote/NaN 均零 Provider 调用且零 PG 费用行。提交当下状态 **CI_PENDING**，不得提前写 PASS。
+
+
+## 2026-10-15：第一次准确代码 HEAD 的真实 CI 证据（合并前）
+
+- [PR #872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 第一次代码+文档 HEAD `9864c64d1e1ecb79b640d5795fab8c927048b0b7` 的 **18/18 GitHub Actions 工作流 SUCCESS**；[真实 PG18 Agent PA-02 Async Read Worker workflow 38650954272](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38650954272) job `116149313153` 原始日志报告 **24 pass / 0 fail**，包括新增 `PA02_R10_REAL_REQUEST_BOUND_REQUIRED`。
+- 新负向用例检查 quote 函数收到**已组装**的 system/developer/user 消息及实际 maxOutputTokens；没有可信 quote、quote 越过输入上限及非整数/NaN 时都 `RUN_BLOCKED`，本地 Provider `infer` 0 调用、PG monetary reservations 0 行。此前合成预留/额度不足/未知费用 + R03/Owner 回归继续绿。首次 Head [全部 Actions 列表](https://github.com/jiangxng/EVO-App-Platform/pull/872/checks)。
+- 通过范围严格为**已编译 Host Worker + PostgreSQL18 + test-only synthetic quote/Provider**；不能推导实际 OpenAI/DeepSeek 的报价、最坏账单或真实生产路由。最终 PR Head 文档变更将再次触发 CI，必须重新复核，且未经正式供应商审批前 R10 / PA-02 仍 OPEN。
