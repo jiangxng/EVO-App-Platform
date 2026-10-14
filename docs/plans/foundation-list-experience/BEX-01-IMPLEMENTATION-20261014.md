@@ -1,6 +1,8 @@
 # BEX-01｜供应商表格、分页与移动端闭环记录（2026-10-14）
 
-状态：**开发集成候选 / 主线合并与真实浏览器验收分别核对**。这是可持续交接记录，不是生产验收签收文件。
+状态（截至 2026-10-14）：**CODE_MERGED + DEV_RAILWAY_DEPLOYED + CHROMIUM_VERIFIED / HUMAN_PENDING**。原文早期“唯一待合并 #827/尚未部署”的描述是当时的历史开发快照，不能用于当前结论。专项最新状态与下一步优先以 [扩展字段与 BEX-01 窗口交接](BEX-01-EXTENSION-USER-CLOSURE-20261014.md) 为准。
+
+**当前确认成果**：Platform #827（表格/分页）、#833（查询/手机链接）、#838（表格样式）、#840（导入返回/错误提示）、#843（CP-03 扩展字段从未匹配列创建、继续映射、确认导入、详情显示）均已合并；Eidos #178/#179/#180 已合并。PR #843 合并 SHA `70597a0e`，真实 Host Chromium [运行 #38516099332](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38516099332) **4/4 PASS**，原开发 Railway [供应商页](https://ledger-configurator-production.up.railway.app/#/counterparties/suppliers) 当前部署固定为 `70597a0e`（SUCCESS）。用户实际 XLSX 操作、真实物理手机、数据库物理分页性能仍未作为本次页面链路验证过；不要将开发部署视为正式生产/人工签收。
 
 ## Owner、唯一开发主线与复用
 
