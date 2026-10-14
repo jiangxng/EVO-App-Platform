@@ -107,10 +107,24 @@ export async function preparePostgresObjectExtensionOwnerSchemaV010(input:{
       "target_slot text NOT NULL,field_id text NOT NULL,"+
       "resource jsonb NOT NULL CHECK(jsonb_typeof(resource)='object'),created_at timestamptz NOT NULL,"+
       "PRIMARY KEY(context_id,extension_id),"+
-      "UNIQUE(context_id,target_object_type,target_slot,field_id),"+
       "UNIQUE(context_id,enterprise_id,extension_id),"+
       "FOREIGN KEY(context_id,enterprise_id) REFERENCES "+
         q+".pa02_contexts(context_id,enterprise_id))");
+    // A historically ARCHIVED definition may coexist with a new ACTIVE
+    // definition at the same business field slot. The legacy proof schema
+    // constrained even archived rows; converge it during explicit preparation.
+    await sql.unsafe("CREATE UNIQUE INDEX IF NOT EXISTS "+
+      "pa02_active_field_unique ON "+q+".pa02_definitions "+
+      "(context_id,target_object_type,target_slot,field_id) "+
+      "WHERE (resource->>'lifecycleState')='ACTIVE'");
+    const legacyKeys=await sql.unsafe("SELECT conname FROM pg_constraint "+
+      "WHERE conrelid=$1::regclass AND contype='u' AND "+
+      "pg_get_constraintdef(oid) LIKE 'UNIQUE (context_id, target_object_type, target_slot, field_id)%'",
+      [input.schema+".pa02_definitions"]);
+    for(const key of legacyKeys){
+      await sql.unsafe("ALTER TABLE "+q+".pa02_definitions DROP CONSTRAINT "+
+        '"'+String(key.conname).replaceAll('"','""')+'"');
+    }
     await sql.unsafe("CREATE TABLE IF NOT EXISTS "+q+".pa02_owner_evidence ("+
       "context_id text NOT NULL,enterprise_id text NOT NULL,"+
       "idempotency_hash text NOT NULL,run_id text NOT NULL,"+
@@ -141,6 +155,9 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   verifier:AgentOwnerVerifierV030;
   getResource:(scope:{contextId:string;enterpriseId:string},
     extensionId:string)=>Promise<EnterpriseResourceV010|undefined>;
+  /** Source-neutral resource envelopes, including migrated legacy definitions. */
+  listResources:(scope:{contextId:string;enterpriseId:string},
+    options?:{lifecycleState?:"ACTIVE"|"ARCHIVED"})=>Promise<EnterpriseResourceV010[]>;
   close:()=>Promise<void>;
 } {
   const {q,sql}=config(input),now=input.now??(()=>new Date());
@@ -275,6 +292,18 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         "WHERE d.context_id=$1 AND d.enterprise_id=$2 AND d.extension_id=$3",
         [id(scope.contextId),id(scope.enterpriseId),id(extensionId)]);
       return rows[0]?pgJson<EnterpriseResourceV010>(rows[0].resource):undefined;
+    },
+    async listResources(scope,options) {
+      const rows=await sql.unsafe("SELECT d.resource FROM "+q+".pa02_definitions d "+
+        "JOIN "+q+".pa02_contexts c ON c.context_id=d.context_id "+
+        "AND c.enterprise_id=d.enterprise_id "+
+        "WHERE d.context_id=$1 AND d.enterprise_id=$2 "+
+        "ORDER BY d.extension_id",
+        [id(scope.contextId),id(scope.enterpriseId)]);
+      const resources=rows.map(row=>pgJson<EnterpriseResourceV010>(row.resource));
+      return options?.lifecycleState
+        ? resources.filter(resource=>resource.lifecycleState===options.lifecycleState)
+        : resources;
     },
     close:()=>sql.end()
   };
