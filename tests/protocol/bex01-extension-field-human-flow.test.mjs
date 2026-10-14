@@ -97,6 +97,13 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.ok(refreshed.fields.find(x=>x.key==="map_2").options.some(x=>x.value===definition.fieldId));
  const restored=createDataImportMappingPageV010({job,schema,locale:"zh-CN",createdMapping:{sourceColumn:"开户银行",fieldId:definition.fieldId}});
  assert.equal(restored.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
+ const reused=createDataImportMappingPageV010({job,schema,locale:"zh-CN"});
+ assert.equal(reused.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
+ const ambiguousSchema={...schema,fields:[...schema.fields,{
+  ...schema.fields.find(x=>x.fieldId===definition.fieldId),fieldId:"ext_duplicate_same_label"
+ }]};
+ const ambiguous=createDataImportMappingPageV010({job,schema:ambiguousSchema,locale:"zh-CN"});
+ assert.equal(ambiguous.fields.find(x=>x.key==="map_2").initialValue,"__IGNORE__");
  const duplicate=await action.execute(request("开户银行","另一个名称","STRING"),ctx());
  assert.equal(duplicate.ok,false);
  assert.equal(duplicate.error.code,"OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
