@@ -25,4 +25,4 @@ Document class: DECISION_RECORD / INCREMENTAL_IMPLEMENTATION_EVIDENCE
 
 工作包 1 的“Server 装配 + 正常 Thread 运行路径”有了隔离 SQL 验收，但尚需隔离 **完整 Web Server/浏览器** 验证和 Worker 并发取消联动。PA-02 按原始 R01–R10 进入工作包 2–4；不把正式 Enterprise Resource 生产 Provider 切换变成 PA-02 功能收尾门槛，亦不声明 `PRODUCTION_READY`。
 
-**CI evidence:** 待此批最终 PR head GitHub Actions 结果；不要以旧合并/代码提交代替。
+**代码最终候选 head 证据（`29749aae09c78258063946168a4a4b6f414b5e32`）：** [Agent PA-02 Host Async READ Execution #38512808964](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38512808964) PostgreSQL18、`npm run build`、**3/3 PASS、0 fail、0 skipped**，真实标记 `PA02_SANDBOX_SERVER_THREAD_OWNER`：普通 `thread.send`、Generic Capability catalog→Host 授权发现、真实 SQL Owner 领域资源+不可变证据、Agent Receipt SUCCESS、同 Turn 不重写、撤权/错企业/文件权威冲突拒绝、生产模式拒绝。 [Agent Worker #385128...](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38512660223) 只是早期相关回归快照；准确最终 head 需看 PR 检查。 [Lightweight Host Architecture #38512809007](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38512809007) 成功，证明无新增 Host eager business dependency。最终 doc-head CI 和 PR merge SHA 以 GitHub PR 凭证为准；本阶段不得声称 Human 浏览器或生产可用。
