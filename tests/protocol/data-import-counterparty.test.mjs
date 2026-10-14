@@ -668,3 +668,46 @@ test("Data Import package is generic and exposes stage/dry-run/commit/read/error
     "enterprise.data-import.stage-file"
   ]);
 });
+
+test("Data Import prevents duplicate system target mappings even without a browser", () => {
+  const f=fixture();
+  const contextId="enterprise-context:a";
+  const job=f.service.stage({
+    contextId,
+    importJobId:"import-duplicate-target",
+    targetId:"counterparty.subject",
+    targetParameters:{relationshipRoles:["SUPPLIER"]},
+    source:parseCsvSourceV010({name:"duplicate-target.csv",csv:[
+      "code,other,subjectType","A-100,B-200,ORGANIZATION"
+    ].join("\n")}),
+    mapping:[],
+    actorSubjectId:"owner-a",
+    recordedAt:"2026-10-14T10:00:00.000Z"
+  });
+  assert.equal(job.state,"STAGED");
+  const duplicate=[
+    {sourceColumn:"code",targetFieldId:"code"},
+    {sourceColumn:"other",targetFieldId:"code"}
+  ];
+  assert.throws(()=>f.service.updateMapping({
+    contextId,
+    importJobId:job.importJobId,
+    mapping:duplicate,
+    actorSubjectId:"owner-a",
+    recordedAt:"2026-10-14T10:01:00.000Z"
+  }),/DATA_IMPORT_MAPPING_TARGET_ALREADY_USED/);
+  assert.equal(f.importRepository.get(contextId,job.importJobId).mapping.length,0);
+  // Even a job staged through a non-UI source cannot bypass dry-run protection.
+  const staged=f.service.stage({
+    contextId,importJobId:"import-duplicate-target-non-ui",
+    targetId:"counterparty.subject",
+    targetParameters:{relationshipRoles:["SUPPLIER"]},
+    source:parseCsvSourceV010({name:"duplicate-non-ui.csv",csv:"code,other\nA-100,B-200"}),
+    mapping:duplicate,
+    actorSubjectId:"owner-a",recordedAt:"2026-10-14T10:02:00.000Z"
+  });
+  assert.throws(()=>f.service.dryRun({
+    contextId,importJobId:staged.importJobId,
+    actorSubjectId:"owner-a",recordedAt:"2026-10-14T10:03:00.000Z"
+  }),/DATA_IMPORT_MAPPING_TARGET_ALREADY_USED/);
+});
