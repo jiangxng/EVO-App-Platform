@@ -23,6 +23,7 @@ export type AgentRunEventTypeV010 =
   | "RUN_CREATED"
   | "SLICE_STARTED"
   | "MODEL_DECISION_RECORDED"
+  | "MODEL_INFERENCE_FAILED"
   | "TOOL_OBSERVATION_RECORDED"
   | "SLICE_PAUSED"
   | "RUN_SUCCEEDED"
@@ -92,6 +93,8 @@ export interface AgentRunV010 {
   createdAt: string;
   updatedAt: string;
   sliceCount: number;
+  /** Consecutive durable failed model attempts; reset by a successful decision. */
+  modelFailureCount: number;
   activeSliceId?: string;
   lastEventId: string;
   decisions: AgentRunDecisionRecordV010[];
