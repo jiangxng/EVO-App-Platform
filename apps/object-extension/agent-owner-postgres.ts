@@ -31,6 +31,14 @@ function canonical(value:unknown):unknown {
   return value;
 }
 const json=(value:unknown)=>JSON.stringify(canonical(value));
+function pgJson<T>(raw:unknown):T {
+  // postgres.js sql.unsafe() returns JSONB as encoded text with this project's
+  // current driver configuration. Never cast it directly to a domain object.
+  const parsed=typeof raw==="string"?JSON.parse(raw):raw;
+  if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))
+    throw Error("PA02_OBJECT_PG_JSONB_INVALID");
+  return parsed as T;
+}
 function id(value:unknown):string {
   if(typeof value!=="string"||!value.trim())
     throw Error("PA02_OBJECT_PG_ID_REQUIRED");
@@ -168,7 +176,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           ".pa02_owner_evidence WHERE context_id=$1 AND idempotency_hash=$2",
           [s.contextId,key]);
         if(previous.length) {
-          const prior=previous[0].evidence as Evidence;
+          const prior=pgJson<Evidence>(previous[0].evidence);
           const conflicts=[
             ["runId",prior.runId!==evidence.runId],
             ["effectId",prior.effectId!==evidence.effectId],
@@ -236,12 +244,12 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         "AND e.effect_id=$4 AND e.receipt_id=$5 AND e.input_digest=$6",
         [s.contextId,s.enterpriseId,r.runId,r.effectId,r.receiptId,r.inputDigest]);
       if(matches.length!==1)return {outcome:"UNRESOLVED"};
-      const m=matches[0],e=m.evidence as Evidence;
+      const m=matches[0],e=pgJson<Evidence>(m.evidence);
       if(e.contractVersion!=="0.1.0"||
         e.contextId!==s.contextId||e.enterpriseId!==s.enterpriseId||
         e.principalSubjectId!==s.subjectId||e.principalActorType!==s.actorType||
         e.ownerPackageId!==OBJECT_EXTENSION_PACKAGE_ID||
-        e.recordId!==(m.resource as EnterpriseResourceV010).resourceId||
+        e.recordId!==pgJson<EnterpriseResourceV010>(m.resource).resourceId||
         e.inputDigest!==r.inputDigest||
         hash(e.idempotencyKey)!==m.idempotency_hash||
         hash(json(e))!==m.evidence_digest)
@@ -266,7 +274,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         "AND c.enterprise_id=d.enterprise_id "+
         "WHERE d.context_id=$1 AND d.enterprise_id=$2 AND d.extension_id=$3",
         [id(scope.contextId),id(scope.enterpriseId),id(extensionId)]);
-      return rows[0]?.resource as EnterpriseResourceV010|undefined;
+      return rows[0]?pgJson<EnterpriseResourceV010>(rows[0].resource):undefined;
     },
     close:()=>sql.end()
   };
