@@ -36,6 +36,10 @@ Those facts come from the repository, primarily `project.status.json` and the cu
 
 If chat memory conflicts with repository state, repository state wins.
 
+## Project development delivery rule (owner-approved 2026-10-14)
+
+Before starting or continuing code work, read `docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md` and follow its contract-first reuse and short-delivery workflow. One independent delivery loop defaults to one active branch and PR with successive commits; merge and retire after the loop passes its relevant CI, then continue from latest main. A large milestone may contain sequential PRs, never requires one permanently open branch. Inspect existing code/PR/test evidence before implementation; never repeat completed research or copy verified functionality. Merge conflicts are resolved in the existing PR rather than starting a duplicate branch. Production authorization stays separate.
+
 ## Continuation rule
 
 Before proposing or implementing work, answer these from repository evidence:
