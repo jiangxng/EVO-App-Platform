@@ -6,6 +6,7 @@ on:
       - "agents/enterprise-agent/pa02-governed-worker-write-port.ts"
       - "apps/object-extension/agent-owner-preview.ts"
       - "apps/object-extension/agent-owner-postgres.ts"
+      - "docs/agent-line/PA02-OBJECT-EXTENSION-POSTGRES-ATOMIC-OWNER-20261014.md"
       - "tests/agent-line/pa02-object-extension-pg-atomic-owner.test.mjs"
       - "tests/agent-line/fixtures/pa02-object-extension-pg-child.mjs"
       - "tests/agent-line/pa02-object-extension-preview-owner.test.mjs"

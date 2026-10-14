@@ -35,5 +35,5 @@
 
 ## CI / 后继状态
 
-**代码与证据：** 本 PR 完成后须填入最终 GitHub Actions ID、明确 tests/pass/fail/skip、最终 PR/head SHA。CI 通过前状态一律 CI_PENDING。
+**已执行专项证据：** [GitHub Actions run 38507479196](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38507479196)，job 115668182153，代码 head `970eb7b1b07d87c6487a544d36b48c3d9dc6a413`：PostgreSQL 18 service，`npm run build` PASS，新旧 PA02 测试 **10 tests / 10 pass / 0 fail / 0 skipped**；日志标记 `PA02_OBJECT_EXTENSION_POSTGRES_ATOMIC_OWNER`，6 独立进程、1 业务提交、COMMIT 后 ACK 丢失核验、SIGKILL 未提交回滚、证据失败回滚、不可变历史及跨企业拒绝均 PASS。旧单进程 Owner 的 `productionEligible:false` 不变。CI 曾揭露 TypeScript verifier 签名、JSONB 原始结果反序列化、JSONB 字符串标量三处问题，均在 **同一 PR #836** 修复并由本次有效测试覆盖。本次合并时需另核对最终 PR head 的必要检查。
 **下个门禁：** 接入现行共享 Enterprise Resource Provider 的真实数据权威、可审计迁移、Host 可信 Owner 可选注册与安全恢复，用户授权和生产上线仍需独立决策。不得将 PostgreSQL 隔离证明误写为 PA-02 全阶段 Production Ready。
