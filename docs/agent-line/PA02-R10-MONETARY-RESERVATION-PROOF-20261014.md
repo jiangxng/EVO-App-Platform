@@ -1,6 +1,6 @@
 # PA-02 R10 — PostgreSQL 货币预留原语与审批定价缺口（2026-10-14）
 
-**Document class:** DELIVERY_EVIDENCE / PR_CI_PENDING / NOT_R10_SIGNOFF  
+**Document class:** DELIVERY_EVIDENCE / FIRST_CODE_HEAD_PG_CI_VERIFIED / NOT_R10_SIGNOFF  
 **Start main:** `d72c14856e391a7e6a077c93af57df5f8eae8b9a`（#868 合并，2026-10-14）。  
 **Original criterion:** [PA-00～PA-06 建设总纲 §25 R10](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md)，[当前验收](PA02-CURRENT-ACCEPTANCE.md) 与 [原始证据总账](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。
 
@@ -26,3 +26,10 @@
 本批仅复用项目 [R10 usage 已存证据](PA02-R10-USAGE-EVIDENCE-20261014.md) 以及一手 GitHub 代码，**没有重新打开公开报价网站**。历史 14 条外站链接仍为 H 历史转引；未把任何广告价当作批准价。
 
 **PA-02 总状态：** R10 实际货币硬预算仍 OPEN / PA-02 NOT_SIGNED / NO_PRODUCTION_WRITE / NO_PRODUCTION_DEPLOYMENT。该证据原语完成后下一闭环应优先把受限 budget port 接到真实 Host 的模型调用前，并经批准定价负向/正向测试；否则不能最终签收。
+
+
+## 实际 GitHub CI 首轮：PostgreSQL18 正式 Runner（2026-10-14）
+
+- 初版准确 Head `c8651aa5ff60b07f14c6c96c84364d9df0f68754`：[Agent PA-02 Async Read Worker #38552517889](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38552517889) job `115813635372` **SUCCESS**。三个新增测试的实际日志分别是 `PA02_R10_MONEY_RESERVATION_PG`、`PA02_R10_MONEY_UNKNOWN_PG`、`PA02_R10_MONEY_UNAPPROVED_REFUSAL`。真实 PG18 尝试证明并发唯一预留、重启未知占额不释放、合同版本漂移拒绝、跨 Context 账隔离，未把丢失的 usage 计作 0 元。同一 Head 其他相关工作流首次执行中；必须等待**最终 PR Head 全绿**后合并。
+- 这些测试**仅调用新费用原语，不曾发送 `LlmInferenceProvider.infer`**，故所谓“pre-inference”是服务的调用顺序契约，不是 Host 已接好真正的付费接口；它是一项必要、非充分的 R10 子证据。所用每百万 token 合成费率不对应任何官方商业价格，绝不能当作客户账单。
+- 审批所缺的信息仍需独立提供/核验：当前绑定 Provider/model 的身份和具体快照、币种/区域/计费类别、缓存费率的合规最高上限与有效期、真实推理最大可收费 token 界限、模型实际请求上限得到 Provider 确认、真实 usage 原始回执。缺一则正式调用必须 fail-closed。未改变 PA-03–PA-06 范围及生产 WRITE 保护。
