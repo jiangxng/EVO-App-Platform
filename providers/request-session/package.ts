@@ -9,7 +9,7 @@ export const hostBearerSessionProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_BEARER_SESSION_PACKAGE_ID,
   displayName: "Host Bearer Session Provider",
-  description: "验证请求中的 Bearer 令牌，将请求关联到可信用户会话。",
+  description: "校验预配置令牌，供受控集成与旧系统兼容；正常登录使用托管会话。",
   displayNameTranslations: {
     "en": "Host Bearer Session Provider",
     "zh-CN": "Bearer 令牌会话服务",

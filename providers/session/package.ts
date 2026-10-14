@@ -9,7 +9,7 @@ export const hostStaticSessionProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_STATIC_SESSION_PACKAGE_ID,
   displayName: "Host Static Session Provider",
-  description: "提供静态会话身份，供开发与受控参考环境使用。",
+  description: "提供开发与受控演示的固定身份，不用于正式用户登录。",
   displayNameTranslations: {
     "en": "Host Static Session Provider",
     "zh-CN": "静态会话服务",
