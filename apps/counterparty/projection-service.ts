@@ -40,7 +40,7 @@ export interface CounterpartyProjectionResultV010 {
   projectionId: CounterpartyProjectionIdV010;
   route: string;
   count: number;
-  counterparties: CounterpartySubjectV010[];
+  counterparties: CounterpartyProjectionRecordV010[];
   readableFieldIds: string[];
   pageInfo?: CounterpartyProjectionPageInfoV010;
 }
@@ -116,7 +116,10 @@ export function createCounterpartyProjectionServiceV010(input: {
         projectionId: request.projectionId,
         route: counterpartyProjectionRouteV010(request.projectionId),
         count: paged?.pageInfo.total ?? projected.length,
-        counterparties: paged?.counterparties ?? projected,
+        counterparties: (await import("./projection-query.js"))
+          .readableCounterpartyProjectionRowsV010(
+            paged?.counterparties ?? projected, access.readableFieldIds
+          ),
         readableFieldIds: access.readableFieldIds,
         ...(paged ? { pageInfo: paged.pageInfo } : {})
       };
