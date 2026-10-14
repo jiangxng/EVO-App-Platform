@@ -267,3 +267,86 @@ test("PA02 R10: persisted whole-Run wall deadline blocks new work after 72h, pre
     finally{await db.end();}
   }
 });
+
+
+test("PA02 R10: original provider usage is durable and unknown usage is never counted as zero",{
+  skip:!url?"Needs disposable PostgreSQL18":false,timeout:90000
+},async()=>{
+  const schema="pa02_r10_usage_"+randomUUID().replaceAll("-","").slice(0,12);
+  const db=postgres(url,{max:2});
+  let runtime,calls=0;
+  const provider={providerId:"pa02-usage-evidence",modelId:"sandbox-metered",
+    async infer(){
+      calls++;
+      return {contractVersion:"0.1.0",providerId:this.providerId,
+        modelId:this.modelId,text:"Authoritative provider inference",
+        toolCalls:[],finishReason:"stop",
+        ...(calls===1?{usage:{
+          inputTokens:57,outputTokens:9,cachedInputTokens:12,
+          cacheWriteInputTokens:5
+        }}:{})
+      };
+    }
+  };
+  const catalog=()=>({list:()=>[],async invoke(){
+    throw Error("NO_BUSINESS_SIDE_EFFECT");
+  }});
+  try {
+    runtime=await createPostgresHostAsyncReadExecutionV030({
+      connectionString:url,schema,
+      deps:{resolveProvider:()=>provider,createToolCatalog:catalog}
+    });
+    const h=handlerMap(runtime,provider,catalog);
+    const first=await h.get("enterprise-agent.run.start").execute(
+      request("enterprise-agent.run.start",{message:"meter this model response"},
+        "pa02:r10:usage:known"));
+    assert.equal(first.ok,true,JSON.stringify(first.error));
+    assert.equal(first.result.run.state,"SUCCEEDED");
+    assert.deepEqual(first.result.run.modelUsages.map(x=>x.status),["REPORTED"]);
+    assert.deepEqual(first.result.run.modelUsages[0].usage,{
+      inputTokens:57,outputTokens:9,cachedInputTokens:12,
+      cacheWriteInputTokens:5
+    });
+    const runId=first.result.run.runId;
+    const audited=await db.unsafe('SELECT payload FROM "'+schema+
+      '".agent_run_events WHERE run_id=$1 ORDER BY ordinal',[runId]);
+    const events=audited.map(x=>typeof x.payload==="string"
+      ?JSON.parse(x.payload):x.payload);
+    assert.equal(events.filter(e=>e.type==="MODEL_USAGE_RECORDED").length,1);
+    assert.equal(events.find(e=>e.type==="MODEL_USAGE_RECORDED")
+      .payload.providerId,provider.providerId);
+    await runtime.close();runtime=undefined;
+    runtime=await createPostgresHostAsyncReadExecutionV030({
+      connectionString:url,schema,
+      deps:{resolveProvider:()=>provider,createToolCatalog:catalog}
+    });
+    const recovered=await runtime.read({runId,principal,context});
+    assert.deepEqual(recovered.modelUsages,first.result.run.modelUsages);
+    const duplicate=await handlerMap(runtime,provider,catalog)
+      .get("enterprise-agent.run.start").execute(
+        request("enterprise-agent.run.start",{message:"meter this model response"},
+          "pa02:r10:usage:known"));
+    assert.equal(duplicate.result.run.runId,runId);
+    assert.equal(calls,1,"reconnected duplicate must not call model again");
+    const unknown=await handlerMap(runtime,provider,catalog)
+      .get("enterprise-agent.run.start").execute(
+        request("enterprise-agent.run.start",{message:"provider returns no usage"},
+          "pa02:r10:usage:unknown"));
+    assert.equal(unknown.ok,true,JSON.stringify(unknown.error));
+    assert.equal(unknown.result.run.state,"SUCCEEDED");
+    assert.deepEqual(unknown.result.run.modelUsages.map(x=>x.status),
+      ["UNAVAILABLE"]);
+    assert.equal(unknown.result.run.modelUsages[0].usage,undefined,
+      "unknown provider costs cannot silently become zero");
+    assert.equal(calls,2);
+    console.log("PA02_R10_DURABLE_PROVIDER_USAGE="+JSON.stringify({
+      providerReportedTokensPersisted:true,providerModelBound:true,
+      unknownUsageExplicit:true,postRestartSameRunNoReInference:true,
+      noPriceAssumed:true,productionUsed:false
+    }));
+  }finally{
+    await runtime?.close();
+    try{await db.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');}
+    finally{await db.end();}
+  }
+});

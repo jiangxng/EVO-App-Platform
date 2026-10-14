@@ -30,6 +30,10 @@ export interface LlmInferenceResponseV010 {
   usage: {
     inputTokens: number;
     outputTokens: number;
+    /** A reported subset of inputTokens. Absent is unknown, never zero. */
+    cachedInputTokens?: number;
+    /** Separately billable prompt cache writes, if reported by Provider. */
+    cacheWriteInputTokens?: number;
   };
   finishReason: string;
 }

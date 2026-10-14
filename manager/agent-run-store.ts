@@ -150,6 +150,7 @@ export function materializeAgentRunsV010(
     let lastEventId = created.eventId;
     let sliceCount = 0;
     let modelFailureCount = 0;
+    const modelUsages: AgentRunV010["modelUsages"] = [];
     let activeSliceId: string | undefined;
     const decisions: AgentRunV010["decisions"] = [];
     const observations: AgentRunV010["observations"] = [];
@@ -185,6 +186,51 @@ export function materializeAgentRunsV010(
         modelFailureCount+=1;
         state="PAUSED";
         activeSliceId=undefined;
+        continue;
+      }
+
+      if (event.type === "MODEL_USAGE_RECORDED") {
+        if (!event.sliceId || event.sliceId !== activeSliceId
+          || modelUsages.some(item => item.sliceId === event.sliceId)) {
+          throw Error("AGENT_RUN_MODEL_USAGE_SLICE_INVALID");
+        }
+        const data = event.payload as {
+          providerId?: unknown; modelId?: unknown; status?: unknown; usage?: unknown;
+        };
+        if (data.providerId !== input.providerId
+          || data.modelId !== input.modelId
+          || !["REPORTED", "UNAVAILABLE"].includes(String(data.status))) {
+          throw Error("AGENT_RUN_MODEL_USAGE_SOURCE_INVALID");
+        }
+        if (data.status === "REPORTED") {
+          const usage = data.usage as Record<string, unknown> | undefined;
+          if (!usage || typeof usage !== "object" || Array.isArray(usage)
+            || !Number.isSafeInteger(usage.inputTokens)
+            || (usage.inputTokens as number) < 0
+            || !Number.isSafeInteger(usage.outputTokens)
+            || (usage.outputTokens as number) < 0
+            || (usage.cachedInputTokens !== undefined &&
+              (!Number.isSafeInteger(usage.cachedInputTokens)
+                || (usage.cachedInputTokens as number) < 0
+                || (usage.cachedInputTokens as number) > (usage.inputTokens as number)))
+            || (usage.cacheWriteInputTokens !== undefined &&
+              (!Number.isSafeInteger(usage.cacheWriteInputTokens)
+                || (usage.cacheWriteInputTokens as number) < 0))) {
+            throw Error("AGENT_RUN_MODEL_USAGE_PAYLOAD_INVALID");
+          }
+          modelUsages.push({
+            sliceId:event.sliceId,providerId:data.providerId as string,
+            modelId:data.modelId as string,status:"REPORTED",
+            usage:structuredClone(usage) as NonNullable<
+              AgentRunV010["modelUsages"][number]["usage"]>
+          });
+        } else {
+          if (data.usage !== undefined) throw Error("AGENT_RUN_MODEL_USAGE_UNKNOWN_NOT_ZERO");
+          modelUsages.push({
+            sliceId:event.sliceId,providerId:data.providerId as string,
+            modelId:data.modelId as string,status:"UNAVAILABLE"
+          });
+        }
         continue;
       }
 
@@ -353,6 +399,7 @@ export function materializeAgentRunsV010(
       updatedAt,
       sliceCount,
       modelFailureCount,
+      modelUsages,
       ...(activeSliceId ? { activeSliceId } : {}),
       lastEventId,
       decisions,

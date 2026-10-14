@@ -24,6 +24,7 @@ export type AgentRunEventTypeV010 =
   | "SLICE_STARTED"
   | "MODEL_DECISION_RECORDED"
   | "MODEL_INFERENCE_FAILED"
+  | "MODEL_USAGE_RECORDED"
   | "TOOL_OBSERVATION_RECORDED"
   | "SLICE_PAUSED"
   | "RUN_SUCCEEDED"
@@ -95,6 +96,19 @@ export interface AgentRunV010 {
   sliceCount: number;
   /** Consecutive durable failed model attempts; reset by a successful decision. */
   modelFailureCount: number;
+  /** Provider-reported evidence, not an approved monetary charge. */
+  modelUsages: Array<{
+    sliceId: string;
+    providerId: string;
+    modelId: string;
+    status: "REPORTED" | "UNAVAILABLE";
+    usage?: {
+      inputTokens: number;
+      outputTokens: number;
+      cachedInputTokens?: number;
+      cacheWriteInputTokens?: number;
+    };
+  }>;
   activeSliceId?: string;
   lastEventId: string;
   decisions: AgentRunDecisionRecordV010[];
