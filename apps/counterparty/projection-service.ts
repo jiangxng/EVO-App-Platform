@@ -1,3 +1,8 @@
+import {
+  pageCounterpartyProjectionV010,
+  type CounterpartyProjectionQueryV010,
+  type CounterpartyProjectionPageInfoV010
+} from "./projection-query.js";
 import type {
   AuthorizationProviderV010,
   EnterpriseContextRelationshipKindV010,
@@ -38,12 +43,14 @@ export interface CounterpartyProjectionResultV010 {
   count: number;
   counterparties: CounterpartySubjectV010[];
   readableFieldIds: string[];
+  pageInfo?: CounterpartyProjectionPageInfoV010;
 }
 
 export interface CounterpartyProjectionServiceV010 {
   read(input: {
     contextId: string;
     projectionId: CounterpartyProjectionIdV010;
+    query?: CounterpartyProjectionQueryV010;
     requestContext: PlatformRequestContextV010;
     enterpriseRelationshipKind?: EnterpriseContextRelationshipKindV010;
   }): Promise<CounterpartyProjectionResultV010>;
@@ -97,13 +104,21 @@ export function createCounterpartyProjectionServiceV010(input: {
         principalSubjectId: request.requestContext.principal.subjectId,
         authorizedCounterpartyIds
       });
+      const paged = request.query
+        ? pageCounterpartyProjectionV010({
+            counterparties: projected,
+            readableFieldIds: access.readableFieldIds,
+            query: request.query
+          })
+        : undefined;
       return {
         contractVersion: "0.1.0",
         projectionId: request.projectionId,
         route: counterpartyProjectionRouteV010(request.projectionId),
-        count: projected.length,
-        counterparties: projected,
-        readableFieldIds: access.readableFieldIds
+        count: paged?.pageInfo.total ?? projected.length,
+        counterparties: paged?.counterparties ?? projected,
+        readableFieldIds: access.readableFieldIds,
+        ...(paged ? { pageInfo: paged.pageInfo } : {})
       };
     }
   };
