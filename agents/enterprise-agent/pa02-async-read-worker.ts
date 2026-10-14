@@ -197,7 +197,8 @@ export function createReadOnlyFencedAgentWorkerV030(
             // but terminal attestation remains solely in Owner Receipt DB.
           };
           run=await append("TOOL_OBSERVATION_RECORDED",{
-            observation,decisionEventId:decisionRecord.decisionEventId
+            observation,decisionEventId:decisionRecord.decisionEventId,
+            receiptId:verified.receiptId
           },decisionRecord.sliceId);
           await append("SLICE_PAUSED",{},decisionRecord.sliceId);
           return output(true);
