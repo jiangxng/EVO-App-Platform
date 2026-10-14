@@ -39,7 +39,7 @@ with sync_playwright() as p:
   page.goto(HOST+"/?surface=desktop#"+route,wait_until="domcontentloaded")
   expect(page.locator('[data-eidos-catalog-has-table="true"]')).to_have_count(1,timeout=30000)
   page.wait_for_timeout(700)
-  diagnostic=page.evaluate("""() => {
+  diagnostic=page.evaluate("""async () => {
     const el=document.querySelector('[data-eidos-catalog-has-table="true"]');
     const trace=[];let target=el;
     for(let n=0;target&&n<10;n++,target=target.parentElement){
@@ -50,13 +50,20 @@ with sync_playwright() as p:
     }
     const cards=el?.querySelector('[data-eidos-catalog-items]');
     const table=el?.querySelector('[data-eidos-catalog-table]');
+    const cssLink=document.querySelector('link[rel="stylesheet"]');
+    const cssResponse=cssLink?await fetch(cssLink.href):null;
+    const cssBody=cssResponse?await cssResponse.text():"";
+    const mark=cssBody.indexOf("data-eidos-catalog-has-table");
     return {innerWidth:innerWidth,pathname:location.pathname,hash:location.hash,
+      cssStatus:cssResponse?.status,cssLength:cssBody.length,
+      cssHasTableRule:mark>=0,cssRuleExcerpt:mark>=0?cssBody.slice(mark-45,mark+105):null,
+      mobileSurface:document.querySelector("[data-mobile-surface]")?.getAttribute("data-mobile-surface"),
       cardsDisplay:cards?getComputedStyle(cards).display:null,
       tableDisplay:table?getComputedStyle(table).display:null,
       styleSheets:[...document.styleSheets].map(x=>x.href).slice(0,10),parents:trace};
   }""")
   print("BEX01_BROWSER_DOM_DIAGNOSTIC="+json.dumps(diagnostic,ensure_ascii=False),flush=True)
-  page.screenshot(path=str(OUT+Path("/bad.png")) if False else str(OUT/("initial-phone.png" if page.viewport_size["width"]<700 else "initial-desktop.png")),full_page=True)
+  page.screenshot(path=str(OUT/("initial-phone.png" if page.viewport_size["width"]<700 else "initial-desktop.png")),full_page=True)
   return page
  def desktop():
   context=make_context(1280,820,False)
