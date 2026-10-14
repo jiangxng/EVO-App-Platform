@@ -1,3 +1,19 @@
+/** A read-only server-owned page. Rows must not carry hidden fields. */
+export interface CatalogBrowserTableV010 {
+  columns: { id: string; label: string; sortRoute?: string }[];
+  rows: { itemId: string; cells: Record<string, string | number | boolean | null> }[];
+  pageInfo?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    previousRoute?: string;
+    nextRoute?: string;
+    summary: string;
+    previousLabel: string;
+    nextLabel: string;
+  };
+}
+
 import type { JsonValue } from "../runtime/contracts.js";
 import type {
   EidosContextNavigationV010
@@ -67,5 +83,6 @@ export interface CatalogBrowserV010 {
     noResultsMessage?: string;
   };
   items: CatalogBrowserItemV010[];
+  table?: CatalogBrowserTableV010;
   emptyMessage?: string;
 }
