@@ -68,6 +68,11 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
    "＋ 为本列创建企业扩展字段");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
+ const exclusive = mappingWithEntry.fields.filter(x=>x.semanticType==="data-import-field-mapping");
+ assert.equal(exclusive.length,job.source.headers.length);
+ assert.deepEqual(exclusive.map(x=>x.exclusiveSelect),Array(exclusive.length).fill({
+   group:"data-import-targets",exemptValues:["__IGNORE__"]
+ }));
  const mappingWithoutPermission=createDataImportMappingPageV010({
   job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:false
  });
