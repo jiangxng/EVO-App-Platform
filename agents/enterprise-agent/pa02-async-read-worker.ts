@@ -45,6 +45,10 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   ttlSeconds?:number;
   /** A persisted per-Run bound, not a per-request loop count. */
   maxRunSlices?:number;
+  /** Absolute Run lifetime in milliseconds from the Host's durable createdAt.
+   * Defaults to 72h and is not reset by process/Worker/browser reconnect.
+   * Pending Owner verification is deliberately handled before this deadline. */
+  maxRunElapsedMs?:number;
   /** Consecutive model errors tolerated before a terminal, truthful failure. */
   maxConsecutiveModelFailures?:number;
   /** Enable only for a Host Worker that intentionally yields after each slice. */
@@ -89,8 +93,11 @@ export function createReadOnlyFencedAgentWorkerV030(
   const time=()=> (deps.now?.()??new Date()).toISOString();
   const ttl=deps.ttlSeconds??180;
   const maxRunSlices=deps.maxRunSlices??24;
+  const maxRunElapsedMs=deps.maxRunElapsedMs??72*60*60*1000;
   const maxFailures=deps.maxConsecutiveModelFailures??3;
-  if(!Number.isInteger(maxRunSlices)||maxRunSlices<1||maxRunSlices>512||
+  if(!Number.isSafeInteger(maxRunElapsedMs)||
+    maxRunElapsedMs<60_000||maxRunElapsedMs>30*24*60*60*1000||
+    !Number.isInteger(maxRunSlices)||maxRunSlices<1||maxRunSlices>512||
     !Number.isInteger(maxFailures)||maxFailures<1||maxFailures>5)
     throw Error("PA02_WORKER_RUN_LIMIT_INVALID");
   return {
@@ -259,6 +266,21 @@ export function createReadOnlyFencedAgentWorkerV030(
         return await observe(pending,allTools.find(t=>
           pending.decision.type==="tool"&&t.id===pending.decision.call.tool
         ));
+      }
+      // R10: the persisted creation time is authoritative for the full
+      // Run deadline. A different Worker, browser or Host process cannot
+      // restart the clock by resuming the same Run. A pending Owner receipt,
+      // final model decision or other already-durable action is resolved
+      // ABOVE this gate, so timeout cannot hide committed effects.
+      if(Date.parse(time())-Date.parse(run.createdAt)>=maxRunElapsedMs) {
+        await append("RUN_BLOCKED",{
+          code:"PA02_RUN_TIME_BUDGET_EXHAUSTED",
+          reason:"This Run reached its elapsed-time deadline. No new model "+
+            "or business tool work will start. Previously confirmed effects "+
+            "and receipts remain visible. Create a fresh, narrower request "+
+            "after checking the current authoritative state."
+        });
+        return output(true);
       }
       // R10: this limit is durable across reconnects, unlike the Host's
       // max 24 slices per HTTP action. Pending decisions (especially a WRITE
