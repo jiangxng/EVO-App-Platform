@@ -136,3 +136,32 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  });
  assert.equal(noAccess.items.some(x=>x.id==="subject-1:enterprise-extension"),false);
 });
+
+
+test("BEX-01 prevents duplicate labels after different source columns and reuses same stable ID",async()=>{
+ const repository=createObjectExtensionRepositoryV010(createMemoryEnterpriseResourceRepositoryV010());
+ const altJob={...structuredClone(job),source:{
+  ...structuredClone(job.source),
+  headers:[...job.source.headers,"系统编码"]
+ }};
+ const handler=createObjectExtensionActionHandlersV010({
+  repository,canManageEnterpriseContext:()=>true,
+  getImportJob:()=>altJob
+ }).find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010);
+ assert.ok(handler);
+ const first=await handler.execute({
+  ...request("系统编码","开户银行","STRING"),
+  values:{importJobId:job.importJobId,sourceColumn:"系统编码",label:"开户银行",valueType:"STRING"}
+ },ctx());
+ assert.equal(first.ok,true,JSON.stringify(first));
+ const second=await handler.execute(request("开户银行","开户银行","STRING"),ctx());
+ assert.equal(second.ok,false);
+ assert.equal(second.error.code,"OBJECT_EXTENSION_LABEL_ALREADY_EXISTS_CHOOSE_FIELD");
+ assert.equal(repository.list(contextId,"counterparty.subject").length,1);
+ const repeat=await handler.execute({
+  ...request("系统编码","开户银行","STRING"),
+  values:{importJobId:job.importJobId,sourceColumn:"系统编码",label:"开户银行",valueType:"STRING"}
+ },ctx());
+ assert.equal(repeat.ok,true,JSON.stringify(repeat));
+ assert.equal(repository.list(contextId,"counterparty.subject").length,1);
+});
