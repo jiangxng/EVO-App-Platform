@@ -2,9 +2,6 @@ import type {
   RenderFieldV010
 } from "../../runtime/contracts.js";
 import { toRenderModel } from "../../runtime/render-model.js";
-import {
-  renderContextNavigationV010
-} from "../../navigation/context-navigation.js";
 
 function esc(value: unknown): string {
   return String(value ?? "")
@@ -24,7 +21,10 @@ function input(field: RenderFieldV010): string {
   ].filter(Boolean).join(" ");
 
   if (field.control === "select") {
-    return `<select ${common}>${(field.options ?? []).map(option =>
+    const exclusive=field.exclusiveSelect
+      ? ` data-eidos-exclusive-group="${esc(field.exclusiveSelect.group)}"`
+      : "";
+    return `<select ${common}${exclusive}>${(field.options ?? []).map(option =>
       `<option data-value-type="${typeof option.value}" value="${esc(option.value)}"${field.initialValue === option.value ? " selected" : ""}>${esc(option.label)}</option>`
     ).join("")}</select>`;
   }
@@ -67,31 +67,11 @@ export function renderToHtml(document: unknown): string {
       ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>`
       : ""}</div>`)
     .join("");
-  const agentActions = model.agentActions
-    .map(action =>
-      `<button type="button" data-eidos-agent-action="${esc(action.id)}">${esc(action.label)}</button>`
-    )
-    .join("");
   const cancels = model.cancelActions
     .map(action =>
       `<button type="button" data-eidos-action="${esc(action.id)}">${esc(action.label)}</button>`
     )
     .join("");
 
-  return `<form data-eidos-id="${esc(model.id)}" data-command="${esc(model.command.code)}" data-model-version="${model.modelVersion}">
-<header data-eidos-page-header>
-${renderContextNavigationV010(model.contextNavigation)}
-<div data-eidos-page-heading>
-<div data-eidos-page-heading-copy>
-<h1>${esc(model.title)}</h1>
-${model.description ? `<p data-eidos-page-description>${esc(model.description)}</p>` : ""}
-</div>
-</div>
-</header>
-<div data-eidos-form-fields>${fields}</div>
-<footer data-eidos-form-actions>
-<button type="submit" data-eidos-action="${esc(model.submitAction.id)}" data-eidos-primary="true">${esc(model.submitAction.label)}</button>
-${agentActions}${cancels}
-</footer>
-</form>`;
+  return `<form data-eidos-id="${esc(model.id)}" data-command="${esc(model.command.code)}" data-model-version="${model.modelVersion}"><h1>${esc(model.title)}</h1>${fields}<button type="submit" data-eidos-action="${esc(model.submitAction.id)}">${esc(model.submitAction.label)}</button>${cancels}</form>`;
 }
