@@ -32,7 +32,8 @@ jobs:
               {n:843,branch:'feat/bex01-object-extension-human-import-20261014'},
               {n:851,branch:'docs/bex01-delivery-countdown-rule-20261014',sha:'79335f031096181ee3c7e54df2b7e7e1a393e506'},
               {n:852,branch:'feat/bex01-inline-extension-discovery-20261014',sha:'55abc373c832559ba6de1ad9b60b4748933a45f8'},
-              {n:854,branch:'chore/bex01-retire-merged-851-852-20261014'}
+              {n:854,branch:'chore/bex01-retire-merged-851-852-20261014'},
+              {n:855,branch:'docs/bex01-fixed-acceptance-status-table-20261014'}
             ];
             const allOpen=(await github.paginate(github.rest.pulls.list,
               {owner,repo,state:'open',per_page:100})).filter(x=>x.head.repo?.full_name===owner+'/'+repo);

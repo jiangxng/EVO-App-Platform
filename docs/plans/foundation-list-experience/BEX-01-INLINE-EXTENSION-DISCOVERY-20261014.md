@@ -24,15 +24,23 @@
 5. **Agent 防回归**：`ai-auto-map` 原动作类型、taskKind、importJobId、targetId、完成刷新原样保留；协议测试核对 Agent context、许可与跨目标隔离；真实 Host Chromium 在点击列旁入口前先断言“自动匹配”操作仍可见。没有真实调用 PA-02 运行链，因此不宣称新 Agent 全链路已验收。
 6. 预检查与显式提交严格分开；仍保留 3 行 `subjectType` 数据质量阻塞，绝不按“供应商/往来类型”自动填“主体类型”。
 
-## 有界阶段倒计时（以已验证阶段数为准，不是分钟预计）
+## BEX-01 / CP-03 固定进度表（当前专项）
 
-- [x] 第 1 关：社区反馈核对及成熟方案选择；不自动建整表。
-- [x] 第 2 关：确认沿用 CP-03、权限边界与 Agent 不改。开发规则 `.clinerules/01-delivery.md` 已由独立 PR #851 合入。
-- [x] 第 3 关：Eidos 通用兼容扩展 #181 已合入，Platform BEX 页面 #852 的准确测试 HEAD `8048e0927e1df807a43a872440d56852c096162b` 上，Platform CI / Project Continuity / Lightweight Host / Plugin CI / BEX-01 Real Host Chromium **均成功**；CI 工作流 https://github.com/jiangxng/EVO-App-Platform/actions/runs/38536662593 （Chromium）及 https://github.com/jiangxng/EVO-App-Platform/actions/runs/38536662894 （Platform CI）。
-- [ ] 第 4 关：核实合并与过程分支清理，保留原 Railway 版本；到用户实际 Excel 页面时再进行 **Human Gate**。
+状态核对：2026-10-14。最新核对 Platform `main` 为 `54fc60175dbf3787c87f0316b16206c1b84d66ce`；Railway Ledger Configurator 最近实际部署仍为 `70597a0e1f73b5c6f10ee4dee9eadc3a615ff66c`（SUCCESS），两者不同。此表持续复用，**不按阶段 4→3→2→1 倒数**。
 
-**区别**：代码测试 PASS / GitHub main 已合并 / Railway 部署 / 用户原 Excel Human 验收是四件不同事情。该文件建立时 #852 尚待合并，不能提前把线上用户体验标记 PASS。
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| Excel 未匹配列旁的“创建企业扩展字段”入口 | ✅ 代码已合并：Platform [#852](https://github.com/jiangxng/EVO-App-Platform/pull/852)、Eidos [#181](https://github.com/jiangxng/eidos/pull/181) | 在 Railway 的原 XLSX 作业中检查入口可发现性 |
+| 既有 CP-03 创建字段 → 映射 → 预检查 → 提交 → 供应商详情 | ✅ 真实隔离 Host + Chromium 回归通过 | 用用户原 XLSX 作业完成实机人工确认 |
+| 个人 Agent“自动匹配”原按钮、上下文和完成刷新兼容 | ✅ 代码/代表性浏览器检查通过；真实 Agent 全链未跑 | 本窗口不修改 Agent；全链验证由 PA-02 负责 |
+| 核心 `subjectType` 必填与字段权限安全 | ✅ 校验规则未放宽；原文件 3 行缺失仍待处理 | 根据实际主体身份补齐 3 行并重新预检查，不能由“往来类型”推断 |
+| 工程合并、规则归档与过程分支整理 | ✅ #851、#852、#854 已合并；关联过程分支已核对删除 | 无需重复开发或清理 |
+| Railway 开发环境更新 | ⏳ 尚未部署此次升级，仍为 `70597a0e` | 先与 PA-02 部署安排协调，取得明确部署授权；不得直接部署最新 main |
+| 用户原 Excel 扩展字段操作与详情验收 | ⏳ 待验收 | 在批准的环境中完成真实数据操作并记录字段值显示、缺失行处理与结果 |
+| **BEX-01 / CP-03 本轮整体** | **进行中：工程收尾已完成，真实用户签收未完成** | **完成环境部署协调及原 XLSX 人工验收后，按证据正式收口** |
+
+**记录规则**：后续汇报每次保持同一组“验收项目｜当前状态｜下一步”，状态有变化时更新对应行；代码通过、已合并、已部署、人工签收绝不混写。只有确实新增/删除验收项时说明原因，不能靠“剩余几关”的数字倒计时替代真实状态。
 
 ## 收尾与其他窗口分工
 
-BEX 后续只看新入口是否易找、权限是否正确、字段创建后返回映射和详情；真实 Agent 长任务及 Owner PG 存储属于 PA-02，通用 Eidos 组件属于 Eidos owner。原总交接 PR #846 仍是草稿，不能为当前页面修复自动合并或部署。若无法通过当前连接能力删除已合并的过程分支，精确记录分支名称与 PR 留给有删除权限的维护窗口处理，不强制更改历史提交。
+BEX 后续只看新入口是否易找、权限是否正确、字段创建后返回映射和详情；真实 Agent 长任务及 Owner PG 存储属于 PA-02，通用 Eidos 组件属于 Eidos owner。原总交接 PR #846 仍是草稿，不因当前页面修复而自动合并或部署。#851、#852、#854 的过程分支已在严格核验后清理，不重复处理；若未来出现新分支仍按归属与合并状态逐一确认。
