@@ -27,7 +27,11 @@ interface ResponseMessage {
 interface ResponseBody {
   model?: string;
   output?: Array<ResponseFunctionCall | ResponseMessage | Record<string, unknown>>;
-  usage?: { input_tokens?: number; output_tokens?: number };
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    input_tokens_details?: { cached_tokens?: number };
+  };
   incomplete_details?: { reason?: string } | null;
   error?: { message?: string };
 }
@@ -35,6 +39,26 @@ interface ResponseBody {
 interface ModelListBody {
   data?: Array<{ id?: string }>;
   error?: { message?: string };
+}
+
+/** Trust only actually reported nonnegative integer counters. Never synthesize free tokens. */
+function providerUsage(body: ResponseBody): LlmInferenceResponseV010["usage"] {
+  const reported=body.usage;
+  if (!reported ||
+      !Number.isSafeInteger(reported.input_tokens) || reported.input_tokens! < 0 ||
+      !Number.isSafeInteger(reported.output_tokens) || reported.output_tokens! < 0) {
+    return undefined;
+  }
+  const cached=reported.input_tokens_details?.cached_tokens;
+  if (cached !== undefined &&
+      (!Number.isSafeInteger(cached) || cached < 0 || cached > reported.input_tokens!)) {
+    return undefined;
+  }
+  return {
+    inputTokens: reported.input_tokens!,
+    outputTokens: reported.output_tokens!,
+    ...(cached !== undefined ? { cachedInputTokens: cached } : {})
+  };
 }
 
 function safeArguments(value: string): Record<string, unknown> {
@@ -165,10 +189,7 @@ export function createDeepSeekResponsesLlmProvider(
         modelId: body.model ?? modelId,
         text: text.trim(),
         toolCalls,
-        usage: {
-          inputTokens: body.usage?.input_tokens ?? 0,
-          outputTokens: body.usage?.output_tokens ?? 0
-        },
+        ...(providerUsage(body) ? {usage: providerUsage(body)} : {}),
         finishReason: body.incomplete_details?.reason ?? "stop"
       };
     }
