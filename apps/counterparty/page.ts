@@ -277,7 +277,7 @@ export function createCounterpartyDirectoryPageV010(input: {
             ? "positive" as const : "neutral" as const
         }} : {}),
         metadata: {
-          ...(canRead("code")
+          ...(canRead("code") && counterparty.code
             ? { [text.code]: counterparty.code }
             : {}),
           ...(canRead("subjectType") && counterparty.subjectType
