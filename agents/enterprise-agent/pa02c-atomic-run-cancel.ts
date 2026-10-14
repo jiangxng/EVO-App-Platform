@@ -185,25 +185,95 @@ export async function createPostgresAtomicAgentRunCancellationV020(input: {
           "SELECT payload FROM "+q+".agent_run_events "+
           "WHERE run_id=$1 ORDER BY ordinal ASC",[runId]
         );
-        const event: AgentRunEventV010={
+        const events:AgentRunEventV010[]=[];
+        // A material Owner may have committed while the Human requested
+        // cancellation, before the Worker could append its observation.
+        // Preserve this *already verified* fact in the CANCELLED Run, in the
+        // very same SQL transaction. Never manufacture success from INVOKING,
+        // UNKNOWN, a self-asserted model result, or an unlinked Receipt.
+        const linkTable=await tx.unsafe("SELECT to_regclass($1) AS name",
+          [input.schema+".pa02b_owner_links"]);
+        if(linkTable[0]?.name) {
+          const effects=await tx.unsafe(
+            "SELECT w.state,w.input_digest,l.effect_id,l.receipt_id,"+
+            "l.owner_package_id,l.evidence_ref,l.evidence_digest,"+
+            "l.reconciled_at,l.terminal_payload,"+
+            "a.status AS receipt_status,a.request_payload "+
+            "FROM "+q+".pa02b_writes w "+
+            "LEFT JOIN "+q+".pa02b_owner_links l "+
+            "ON l.scope_key=w.scope_key AND l.effect_id=w.effect_id "+
+            "LEFT JOIN "+q+".agent_receipts a "+
+            "ON a.scope_key=$3 AND a.receipt_id=l.receipt_id "+
+            "WHERE w.scope_key=$1 AND w.run_id=$2 "+
+            "AND w.state IN ('SUCCEEDED','FAILED','DENIED') "+
+            "ORDER BY w.effect_id FOR UPDATE OF w",
+            [executionScope,runId,runScope]
+          );
+          for(const effect of effects) {
+            const receipt=typeof effect.request_payload==="string"
+              ?JSON.parse(effect.request_payload):effect.request_payload;
+            const terminal=typeof effect.terminal_payload==="string"
+              ?JSON.parse(effect.terminal_payload):effect.terminal_payload;
+            const decision=run.decisions.find(d=>
+              d.decisionEventId===receipt?.sourceActionId &&
+              d.decision.type==="tool" &&
+              d.decision.call.tool===receipt?.toolId);
+            if(!effect.receipt_id||!effect.evidence_ref||
+              !effect.evidence_digest||!effect.reconciled_at||
+              effect.receipt_status!==effect.state||
+              terminal?.receiptId!==effect.receipt_id||
+              terminal?.status!==effect.state||
+              receipt?.sourceInteractionId!==runId||
+              receipt?.ownerPackageId!==effect.owner_package_id||
+              receipt?.inputDigest!==effect.input_digest||
+              receipt?.principalSubjectId!==r.scope.principalSubjectId||
+              receipt?.principalActorType!==r.scope.principalActorType||
+              receipt?.context?.contextId!==r.scope.contextId||
+              !decision||!decision.sliceId)
+              throw Error("PA02C_OWNER_RECEIPT_EVIDENCE_REQUIRED");
+            if(decision.observation)continue;
+            if(decision.sliceId!==run.activeSliceId)
+              throw Error("PA02C_OWNER_DECISION_SLICE_NOT_ACTIVE");
+            const status=effect.state as "SUCCEEDED"|"FAILED"|"DENIED";
+            events.push({
+              contractVersion:"0.1.0",runId,
+              eventId:eventId+":owner:"+events.length,
+              type:"TOOL_OBSERVATION_RECORDED",
+              occurredAt:r.occurredAt,sliceId:decision.sliceId,
+              payload:{
+                decisionEventId:decision.decisionEventId,
+                receiptId:String(effect.receipt_id),
+                observation:{
+                  tool:receipt.toolId,ok:status==="SUCCEEDED",
+                  ...(status==="SUCCEEDED"
+                    ?{result:{receiptId:effect.receipt_id,status}}
+                    :{error:{code:"PA02_WORKER_OWNER_"+status,
+                        message:"Business Owner verified terminal "+status}})
+                }
+              }
+            });
+          }
+        }
+        events.push({
           contractVersion:"0.1.0",eventId,runId,type:"RUN_CANCELLED",
           occurredAt:r.occurredAt,payload:{}
-        };
-        // Same reducer that governs currently running Host V010.
-        const resulting=materialize([
-          ...original,{payload:event}
-        ]);
+        });
+        // Same reducer that governs all Host Run states, with an atomic
+        // revision/ordinal advance for Owner observations AND cancellation.
+        const resulting=materialize([...original,...events.map(payload=>({payload}))]);
         const updated=await tx.unsafe(
-          "UPDATE "+q+".agent_turns SET revision=revision+1 "+
+          "UPDATE "+q+".agent_turns SET revision=revision+$4 "+
           "WHERE scope_key=$1 AND run_id=$2 AND revision=$3 RETURNING revision",
-          [runScope,runId,revision]
+          [runScope,runId,revision,events.length]
         );
         if(updated.length!==1)throw Error("PA02C_ATOMIC_RUN_REVISION_CONFLICT");
-        await tx.unsafe(
-          "INSERT INTO "+q+".agent_run_events "+
-          "(event_id,run_id,ordinal,payload) VALUES($1,$2,$3,$4::jsonb)",
-          [eventId,runId,Number(updated[0].revision),JSON.stringify(event)]
-        );
+        for(let i=0;i<events.length;i++) {
+          await tx.unsafe(
+            "INSERT INTO "+q+".agent_run_events "+
+            "(event_id,run_id,ordinal,payload) VALUES($1,$2,$3,$4::jsonb)",
+            [events[i].eventId,runId,revision+i+1,JSON.stringify(events[i])]
+          );
+        }
         const done=await tx.unsafe(
           "UPDATE "+q+".pa02c_cancellations SET "+
           "state='CANCELLED',completed_at=clock_timestamp() "+
