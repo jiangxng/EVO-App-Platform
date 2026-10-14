@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID,createHash} from "node:crypto";
 import postgres from "postgres";
+import {materializeAgentRunsV010} from "../../dist/manager/agent-run-store.js";
 import {createPostgresAgentDurabilityProofV020}
   from "../../dist/agents/enterprise-agent/pa02a-postgres-durability-proof.js";
 import {createPostgresAgentExecutionCoordinatorV020}
@@ -117,6 +118,13 @@ test("PA02B Owner: UNKNOWN recovers only from registered owner without replaying
       scope,runId,eventId:"cancel:"+randomUUID(),
       occurredAt:"2026-10-13T00:04:00.000Z"
     })).runState,"CANCELLED");
+    const cancelledRun=materializeAgentRunsV010(
+      await repo.listRunEvents({scope,runId})
+    )[0];
+    assert.deepEqual(cancelledRun.actionReceiptIds,[receiptId],
+      "verified Owner-only Receipt survives cancellation despite no model decision");
+    assert.deepEqual(cancelledRun.observations,[],
+      "historical Owner proof must not fabricate a model tool observation");
 
     const other={...scope,enterpriseId:"other-tenant"};
     assert.equal(await owner.get({scope:other,effectId}),undefined);
