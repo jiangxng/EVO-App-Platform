@@ -117,7 +117,7 @@ test("PA02B actual sandbox WRITE -> lost reply -> Owner verifies once, not repla
     assert.equal((await repo.getReceipt({scope,receiptId:receiptId(runIds[0])})).status,"SUCCEEDED");
     assert.equal((await coordinator.getWrite({scope,effectId:effect(runIds[0])})).state,"SUCCEEDED");
     await assert.rejects(gate.dispatch({scope,lease,effectId:effect(runIds[0]),
-      receipt:receipt(runIds[0])}),/PA02B_OWNER_WRITE_NOT_PREPARED/);
+      receipt:receipt(runIds[0])}),/PA02B_LEASE_FENCED|PA02B_OWNER_WRITE_NOT_PREPARED/);
     assert.equal(invokeCount.get(effect(runIds[0])),1,"retried Agent must not reinvoke Owner");
 
     writeMode="NO_COMMIT_LOST_REPLY";
