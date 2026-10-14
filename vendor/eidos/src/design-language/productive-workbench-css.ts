@@ -411,6 +411,18 @@ form[data-eidos-id] h1,
 form[data-eidos-id] label,[data-eidos-setting]{
   display:block;margin:var(--eidos-space-lg) 0;font-size:var(--eidos-font-compact);font-weight:600;
 }
+form[data-eidos-id] [data-eidos-field-context-link]{
+  display:inline-flex;align-items:center;justify-content:center;
+  margin-top:var(--eidos-space-sm);min-height:var(--eidos-control-compact);
+  border:0;border-radius:var(--eidos-radius-sm);
+  background:transparent;color:var(--eidos-primary);
+  padding:0 var(--eidos-space-sm);font:inherit;font-weight:600;
+  text-align:left;cursor:pointer;
+}
+form[data-eidos-id] [data-eidos-field-context-link]:hover{text-decoration:underline}
+form[data-eidos-id] [data-eidos-field-context-link]:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
 form[data-eidos-id] input,form[data-eidos-id] select,
 [data-eidos-setting] input,[data-eidos-setting] select{
   display:block;width:100%;height:var(--eidos-control-normal);margin-top:var(--eidos-space-sm);
