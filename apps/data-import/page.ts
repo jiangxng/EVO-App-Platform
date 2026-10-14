@@ -448,6 +448,7 @@ export function createDataImportMappingPageV010(input: {
   target?: FoundationObjectImportTargetV010;
   locale?: string;
   canCreateExtension?: boolean;
+  createdMapping?: {sourceColumn: string; fieldId: string};
 }) {
   const t = text(input.locale);
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
@@ -567,7 +568,10 @@ export function createDataImportMappingPageV010(input: {
       semanticType: "data-import-field-mapping",
       control: "select" as const,
       required: true,
-      initialValue: current.get(sourceColumn) ?? "__IGNORE__",
+      initialValue: current.get(sourceColumn)
+        ?? (input.createdMapping?.sourceColumn === sourceColumn
+          && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
+            ? input.createdMapping.fieldId : "__IGNORE__"),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
@@ -576,7 +580,7 @@ export function createDataImportMappingPageV010(input: {
               label: zh(input.locale)
                 ? "＋ 为本列创建企业扩展字段"
                 : "+ Create enterprise field for this column",
-              route: objectExtensionImportRouteV010(input.job.importJobId)
+              route: objectExtensionImportRouteV010(input.job.importJobId, sourceColumn)
             }
           }
         : {}),
