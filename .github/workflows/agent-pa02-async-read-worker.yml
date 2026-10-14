@@ -8,13 +8,13 @@ on:
       - "tests/agent-line/pa02-object-extension-preview-owner.test.mjs"
       - "manager/agent-trusted-owner-registration.ts"
       - "manager/capability-operation-access.ts"
-      - "tests/agent-line/pa02-host-trusted-owner-registration.test.mjs tests/agent-line/pa02-object-extension-preview-owner.test.mjs"
+      - "tests/agent-line/pa02-host-trusted-owner-registration.test.mjs"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
       - "tests/agent-line/pa02-governed-worker-write.test.mjs"
       - "tests/agent-line/pa02-async-read-worker.test.mjs"
       - ".github/workflows/agent-pa02-async-read-worker.yml"
   push:
-    branches: [agent/pa02-fenced-worker-owner-write-20261014]
+    branches: [agent/pa02-object-extension-preview-owner-20261014]
     paths:
       - "agents/enterprise-agent/pa02-async-read-worker.ts"
       - "agents/enterprise-agent/pa02-governed-worker-write-port.ts"
@@ -50,4 +50,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/pa02-async-read-worker.test.mjs tests/agent-line/pa02-governed-worker-write.test.mjs tests/agent-line/pa02-host-trusted-owner-registration.test.mjs tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs tests/agent-line/pa02b-fenced-run-authority.test.mjs tests/agent-line/pa02c-atomic-run-cancel.test.mjs
+      - run: node --test tests/agent-line/pa02-async-read-worker.test.mjs tests/agent-line/pa02-governed-worker-write.test.mjs tests/agent-line/pa02-host-trusted-owner-registration.test.mjs tests/agent-line/pa02-object-extension-preview-owner.test.mjs tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs tests/agent-line/pa02b-fenced-run-authority.test.mjs tests/agent-line/pa02c-atomic-run-cancel.test.mjs
