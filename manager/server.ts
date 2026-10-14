@@ -6888,15 +6888,21 @@ const server = createServer(async (request, response) => {
           active.contextId,
           { objectType: "counterparty.subject" }
         );
+        const extensionDefinitions = objectExtensionRepository.list(
+          active.contextId,"counterparty.subject"
+        );
         const access = await resolveCounterpartyReadAccessV010({
           authorizationProvider: resolveAuthorizationProvider(),
           requestContext: readContext,
           enterpriseRelationshipKind: relationship?.kind,
           counterparties: allCounterparties,
           responsibilities,
-          fieldIds: counterpartyCoreSchemaV010.fields.map(
-            field => field.fieldId
-          )
+          fieldIds: [
+            ...counterpartyCoreSchemaV010.fields.map(field => field.fieldId),
+            ...extensionDefinitions
+              .filter(field => field.surfaces.includes("DETAIL"))
+              .map(field => field.fieldId)
+          ]
         });
         const authorizedCounterpartyIds = new Set(
           access.counterparties.map(item => item.counterpartyId)
@@ -6994,6 +7000,25 @@ const server = createServer(async (request, response) => {
                 addresses: counterpartyAddressRepository.list(
                   active.contextId,
                   counterpartyId
+                ),
+                extensionFields: objectExtensionValueRepository.listForObject({
+                  contextId:active.contextId,
+                  objectType:"counterparty.subject",
+                  objectId:counterpartyId
+                }).flatMap(valueSet =>
+                  extensionDefinitions
+                    .filter(definition =>
+                      definition.targetSlot===valueSet.targetRef.slot
+                      && definition.namespace===valueSet.namespace
+                      && definition.surfaces.includes("DETAIL")
+                      && access.readableFieldIds.includes(definition.fieldId)
+                      && Object.prototype.hasOwnProperty.call(valueSet.values,definition.fieldId)
+                    ).map(definition=>({
+                      fieldId:definition.fieldId,
+                      label:definition.label.translations?.[locale]
+                        ??definition.label.default,
+                      value:String(valueSet.values[definition.fieldId]??"")
+                    }))
                 ),
                 locale,
                 readableFieldIds: access.readableFieldIds,
