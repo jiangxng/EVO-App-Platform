@@ -1,0 +1,76 @@
+name: Agent PA-02 Real HTTP Chromium Governed SQL Owner Recovery
+on:
+  pull_request:
+    paths:
+      - "tools/agent-line/pa02-owner-http-chromium-fixture.mjs"
+      - "tests/agent-line/pa02_owner_http_chromium_recovery.py"
+      - ".github/workflows/agent-pa02-owner-chromium-recovery.yml"
+      - "docs/agent-line/PA02-R09-OWNER-CHROMIUM-RECOVERY-20261014.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  owner-chromium-pg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: agentproof
+          POSTGRES_PASSWORD: agentproof
+          POSTGRES_DB: agentproof
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agentproof -d agentproof"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA02A_PROOF_DATABASE_URL: postgres://agentproof:agentproof@127.0.0.1:5432/agentproof
+      NODE_ENV: test
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      - run: python -m pip install "playwright==1.56.0"
+      - run: python -m playwright install --with-deps chromium
+      - name: Launch isolated Host + governed Object Extension PostgreSQL Owner
+        run: |
+          mkdir -p artifacts/agent-pa02-owner-browser
+          node tools/agent-line/pa02-owner-http-chromium-fixture.mjs > artifacts/agent-pa02-owner-browser/bootstrap.log 2>&1 &
+          echo $! >/tmp/pa02-owner-browser.pid
+          ready=0
+          for i in $(seq 1 100); do
+            if grep -q 'PA02_OWNER_CHROMIUM_READY=' artifacts/agent-pa02-owner-browser/bootstrap.log; then ready=1; break; fi
+            if ! kill -0 "$(cat /tmp/pa02-owner-browser.pid)" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat artifacts/agent-pa02-owner-browser/bootstrap.log; exit 1; fi
+          cat artifacts/agent-pa02-owner-browser/fixture.json
+      - name: Real Chromium through Host to SQL Owner and durable Run recovery
+        run: python tests/agent-line/pa02_owner_http_chromium_recovery.py
+      - name: Show Host bootstrap on failure
+        if: failure()
+        run: cat artifacts/agent-pa02-owner-browser/bootstrap.log || true
+      - name: Terminate disposable fixture
+        if: always()
+        run: |
+          if [ -f /tmp/pa02-owner-browser.pid ]; then
+            kill "$(cat /tmp/pa02-owner-browser.pid)" 2>/dev/null || true
+          fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa02-owner-http-chromium-postgres-evidence
+          path: artifacts/agent-pa02-owner-browser/
+          if-no-files-found: warn
