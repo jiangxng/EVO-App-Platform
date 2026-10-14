@@ -40,3 +40,12 @@ PA-02B 的 Fencing、PostgreSQL 写入意图、完整 Receipt 和 Owner UNKNOWN 
 - 原 PostgreSQL18 Worker E2E 改为通过此 **Host 可信注册器** 提供 Owner 授权与写入，另增加无数据库门禁测试。全部沿用 `.github/workflows/agent-pa02-async-read-worker.yml`，没有新增一次性 CI。
 - **上线边界**：这项是正式 Host 可调用的可信注册机制，尚未在 `manager/server.ts` 启动真实企业插件 Owner；现有业务插件必须在自身实现真实幂等执行与可核验结果后才能注册。生产 WRITE 仍 OFF。不能把“注册器入 main”表述为“任意插件已经可安全写入”。
 
+
+## 2026-10-14：首个真实插件 Owner 预览（Object Extension）
+
+本增量在现有 `apps/object-extension` 仓库增加单进程预览 Owner，**不是**新建模拟业务插件。仅在调用者显式传入 `singleProcessDevelopmentOnly: true` 且企业资源库支持事务时创建；不接入 `manager/server.ts`、不启用生产 WRITE。
+
+- 首次受控调用通过原 `ObjectExtensionRepositoryV010.save` 保存 **全新**扩展定义，并在同一次资源事务提交固定幂等键关联的 Owner 证据。故意排除覆盖已有定义的普通 UPSERT；否则旧证据可能掩盖人工修改。
+- 重复相同幂等键只读取证据、不再次保存业务记录；同一键更换 Run、Effect、Receipt 或原始请求则拒绝。独立 Owner verifier 查询企业资源快照中的持久证据和真实扩展定义，两者仍一致时才可签发 SUCCEEDED。
+- 文件存储重开后独立核验、跨企业只读隔离、覆盖拒绝、证据提交失败回滚、现存业务对象被后续修改而无法证明原结果时保持 UNKNOWN，均由专项回归验证。
+- **明确未达到的门禁**：当前 `createFileEnterpriseResourceRepositoryV010` 用内存事务加临时文件 rename，**没有跨进程 CAS / 分布式互斥和崩溃一致性证明**。本适配只作为实际领域插件的单进程开发验证，不能声称具备多 Worker exactly-once 或可用在生产。下一闭环应优先实现可跨进程共享的原子业务写入与证据存储，再允许可信 Host 注册正式 Owner。其它 Data Import COMMIT 等非事务业务不可借此捷径放行。
