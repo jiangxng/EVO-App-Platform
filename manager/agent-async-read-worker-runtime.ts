@@ -260,18 +260,41 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
       await cancel.request({scope,runId,
         requestedBy:r.principal.subjectId,reason:valid(r.reason)});
       let state:"REQUESTED"|"CANCELLED"="REQUESTED";
+      const commit=()=>cancel.commitSafe({
+        scope,runId,eventId:"agent-run-event:"+randomUUID(),
+        occurredAt:new Date().toISOString()
+      });
       try{
-        const committed=await cancel.commitSafe({
-          scope,runId,eventId:"agent-run-event:"+randomUUID(),
-          occurredAt:new Date().toISOString()
-        });
-        state=committed.state;
+        state=(await commit()).state;
       }catch(error){
-        // Real in-flight work/uncertain WRITE or Receipt is NEVER declared
-        // cancelled. Caller can retry after worker quiescence or owner review.
-        const code=error instanceof Error?error.message:String(error);
-        if(!["PA02C_WORKER_NOT_QUIESCED","PA02C_UNCONFIRMED_WRITE",
-          "PA02C_UNCONFIRMED_RECEIPT"].includes(code))throw error;
+        // Quiesced, independently bound Owner evidence may resolve a crash
+        // after INVOKING, WITHOUT ever invoking the business Owner again.
+        // A live lease, unresolved evidence, or outstanding receipt remains
+        // REQUESTED: cancellation must never hide an uncertain material WRITE.
+        let code=error instanceof Error?error.message:String(error);
+        if(code==="PA02C_UNCONFIRMED_WRITE"&&reconciler&&execution) {
+          const pending=await reconciler.listPending({scope,runId});
+          let unresolved=false;
+          for(const effectId of pending) {
+            try {
+              await execution.markUnknown({scope,effectId});
+              const checked=await reconciler.reconcile({scope,effectId});
+              if(!checked.reconciled){unresolved=true;break;}
+            }catch(e){
+              const reason=e instanceof Error?e.message:String(e);
+              if(reason==="PA02B_OWNER_WORKER_NOT_QUIESCED"){
+                unresolved=true;break;
+              }
+              throw e;
+            }
+          }
+          if(!unresolved) {
+            try { state=(await commit()).state;code=""; }
+            catch(e){code=e instanceof Error?e.message:String(e);}
+          }
+        }
+        if(code&&!["PA02C_WORKER_NOT_QUIESCED","PA02C_UNCONFIRMED_WRITE",
+          "PA02C_UNCONFIRMED_RECEIPT"].includes(code))throw Error(code);
       }
       const run=await read(r);
       if(!run)throw Error("AGENT_RUN_NOT_FOUND");
