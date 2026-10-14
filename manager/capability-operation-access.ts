@@ -297,11 +297,18 @@ function actionError(
   };
 }
 
-export function createCapabilityOperationActionPreExecuteV010(input: {
+/**
+ * Reuse exactly the same live lifecycle/exposure/resource authorization gate
+ * from the Action Host pre-execute path when a trusted Owner (rather than an
+ * ordinary Action Router) owns idempotent material dispatch.
+ */
+export async function checkCapabilityOperationActionV010(input: {
   manager: AppManagerService;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
-}): AppActionPreExecuteV010 {
-  return async ({ request, context }) => {
+  request: AppActionRequestV010;
+  context?: PlatformRequestContextV010;
+}): Promise<AppActionExecutionResultV010 | undefined> {
+  const {request,context}=input;
     const matches = input.manager
       .listEffectiveCapabilityOperations()
       .filter(operation =>
@@ -363,7 +370,15 @@ export function createCapabilityOperationActionPreExecuteV010(input: {
     }
 
     return undefined;
-  };
+}
+
+export function createCapabilityOperationActionPreExecuteV010(input: {
+  manager: AppManagerService;
+  resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
+}): AppActionPreExecuteV010 {
+  return ({request,context})=>checkCapabilityOperationActionV010({
+    ...input,request,context
+  });
 }
 
 export function capabilityOperationPublicMetadataV010(
