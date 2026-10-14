@@ -125,3 +125,21 @@ export function counterpartyProjectionQueryRouteV010(
   params.set("pageSize", String(query.pageSize ?? 25));
   return path + "?" + params.toString();
 }
+
+/** Field-level grants apply to transmitted JSON, not merely visible columns. */
+export type CounterpartyProjectionRecordV010 =
+  Pick<CounterpartySubjectV010, "contractVersion" | "counterpartyId" | "displayName">
+  & Partial<Omit<CounterpartySubjectV010, "contractVersion" | "counterpartyId" | "displayName">>;
+
+export function readableCounterpartyProjectionRowsV010(
+  records: readonly CounterpartySubjectV010[],
+  readableFieldIds: readonly string[]
+): CounterpartyProjectionRecordV010[] {
+  const fields = new Set(readableFieldIds);
+  return records.map(record => Object.fromEntries(
+    Object.entries(record).filter(([key]) =>
+      key === "contractVersion" || key === "counterpartyId"
+      || key === "displayName" || fields.has(key)
+    )
+  ) as CounterpartyProjectionRecordV010);
+}
