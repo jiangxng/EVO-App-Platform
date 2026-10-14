@@ -24,7 +24,7 @@ const request=(code,values,actionId)=>({
   sourceInteractionId:"pa02:r03:r10:ui",actionId,
   requiresConfirmation:false
 });
-function handlerMap(runtime,provider,catalog){
+function handlerMap(runtime,provider,catalog,createdAt="2026-10-14T07:00:00.000Z"){
   return new Map(createPersonalAgentRunActionHandlersV010({
     runStore:createAgentRunStoreV010({
       eventStore:createMemoryAgentRunEventStoreV010(),eventId:randomUUID
@@ -34,7 +34,7 @@ function handlerMap(runtime,provider,catalog){
     resolveLlmProvider:()=>({installedProviderIds:[provider.providerId],provider}),
     resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
     resolveContext:()=>context,createToolCatalog:catalog,
-    runId:randomUUID,now:()=>new Date("2026-10-14T07:00:00.000Z")
+    runId:randomUUID,now:()=>new Date(createdAt)
   }).map(h=>[h.commandCode,h]));
 }
 test("PA02 R03: Host model retry 2 failures then verified final, permanent failure stops at 3 with no false success",{
@@ -196,6 +196,70 @@ test("PA02 R10: total 24 durable Run slices cannot be bypassed by repeated Host 
       perRunStepBound:24,noUnboundedResume:true,
       restartCannotResetBound:true,noExtraModelOrToolCalls:true,
       actionableBlockedState:true,productionUsed:false
+    }));
+  }finally{
+    await runtime?.close();
+    try{await db.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');}
+    finally{await db.end();}
+  }
+});
+
+test("PA02 R10: persisted whole-Run wall deadline blocks new work after 72h, preserves terminal state on Host restart",{
+  skip:!url?"Needs disposable PostgreSQL18":false,timeout:90000
+},async()=>{
+  const schema="pa02_r10_age_"+randomUUID().replaceAll("-","").slice(0,12);
+  const db=postgres(url,{max:2});
+  let runtime,calls=0;
+  const provider={providerId:"pa02:age",modelId:"fixture",async infer(){
+    calls++;
+    return {contractVersion:"0.1.0",providerId:this.providerId,
+      modelId:this.modelId,text:"On-time answer",toolCalls:[],
+      finishReason:"stop"};
+  }};
+  const catalog=()=>({list:()=>[],
+    async invoke(){throw Error("PA02_R10_NO_TOOL_DISPATCH");}});
+  try{
+    runtime=await createPostgresHostAsyncReadExecutionV030({
+      connectionString:url,schema,
+      deps:{resolveProvider:()=>provider,createToolCatalog:catalog}
+    });
+    // This is an actual Host Run; only its Host-owned creation timestamp is
+    // old. The runtime's real wall clock is October 14 (72h has elapsed).
+    const oldHandlers=handlerMap(runtime,provider,catalog,
+      "2026-10-09T00:00:00.000Z");
+    const expired=await oldHandlers.get("enterprise-agent.run.start").execute(
+      request("enterprise-agent.run.start",{
+        message:"Do not execute after the persisted task deadline"
+      },"pa02:r10:deadline:old"));
+    assert.equal(expired.ok,true,JSON.stringify(expired.error));
+    assert.equal(expired.result.run.state,"BLOCKED");
+    assert.equal(expired.result.run.blocker.code,
+      "PA02_RUN_TIME_BUDGET_EXHAUSTED");
+    assert.match(expired.result.run.blocker.reason,/fresh, narrower request/);
+    assert.equal(expired.result.run.sliceCount,0);
+    assert.equal(calls,0,"expired durable task cannot reach inference or tools");
+    const runId=expired.result.run.runId;
+    await runtime.close();runtime=undefined;
+    runtime=await createPostgresHostAsyncReadExecutionV030({
+      connectionString:url,schema,
+      deps:{resolveProvider:()=>provider,createToolCatalog:catalog}
+    });
+    const afterRestart=await runtime.resume({runId,principal,context});
+    assert.equal(afterRestart.state,"BLOCKED");
+    assert.equal(afterRestart.blocker.code,"PA02_RUN_TIME_BUDGET_EXHAUSTED");
+    assert.equal(calls,0);
+    const onTime=await handlerMap(runtime,provider,catalog).get(
+      "enterprise-agent.run.start").execute(
+      request("enterprise-agent.run.start",{
+        message:"Use the currently valid Host time budget"
+      },"pa02:r10:deadline:fresh"));
+    assert.equal(onTime.ok,true,JSON.stringify(onTime.error));
+    assert.equal(onTime.result.run.state,"SUCCEEDED");
+    assert.equal(calls,1,"fresh Run remains usable");
+    console.log("PA02_R10_WALL_TIME_BUDGET="+JSON.stringify({
+      deadlineFromDurableCreatedAt:true,expiredRunCannotCallProvider:true,
+      terminalStatePersistsAcrossRestart:true,onTimeNewRunWorks:true,
+      businessWriteDispatched:false,productionUsed:false
     }));
   }finally{
     await runtime?.close();
