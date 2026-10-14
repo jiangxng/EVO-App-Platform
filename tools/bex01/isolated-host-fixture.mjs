@@ -117,5 +117,5 @@ try{
  const fixture={hostUrl,contextId,jobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
- console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture),flush);
+ console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));
 }catch(error){console.error("BEX01_BROWSER_FIXTURE_FAILED",error);await shutdown();process.exit(1);}
