@@ -568,6 +568,18 @@ export function createDataImportMappingPageV010(input: {
       control: "select" as const,
       required: true,
       initialValue: current.get(sourceColumn) ?? "__IGNORE__",
+      ...(input.canCreateExtension === true
+        && input.job.targetId === "counterparty.subject"
+        && unmapped.includes(sourceColumn)
+        ? {
+            contextLink: {
+              label: zh(input.locale)
+                ? "＋ 为本列创建企业扩展字段"
+                : "+ Create enterprise field for this column",
+              route: objectExtensionImportRouteV010(input.job.importJobId)
+            }
+          }
+        : {}),
       options: [{
         value: "__IGNORE__",
         label: "— " + t.ignore + " —"
