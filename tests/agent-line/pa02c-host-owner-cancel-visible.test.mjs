@@ -145,9 +145,10 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
     assert.equal(persisted.ok,true);
     assert.equal(persisted.result.run.state,"CANCELLED");
     assert.deepEqual(persisted.result.run.actionReceiptIds,[receiptId]);
-    const types=(await admin.unsafe('SELECT payload->>\'type\' AS type FROM "'+
+    const types=(await admin.unsafe('SELECT payload FROM "'+
       schema+'".agent_run_events WHERE run_id=$1 ORDER BY ordinal',[runId]))
-      .map(r=>r.type);
+      .map(r=>(typeof r.payload==="string"
+        ?JSON.parse(r.payload):r.payload).type);
     assert.deepEqual(types.slice(-2),[
       "TOOL_OBSERVATION_RECORDED","RUN_CANCELLED"
     ]);
