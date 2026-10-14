@@ -364,14 +364,14 @@ export function createCounterpartyProjectionPageV010(input: {
   const columns = [
     {id:"displayName",label:text.displayName},
     ...(canRead("code") ? [{id:"code",label:text.code}] : []),
-    ...(canRead("status") ? [{id:"status",label:"Status"}] : []),
+    ...(canRead("status") ? [{id:"status",label:(input.locale ?? "").startsWith("zh") ? "状态" : "Status"}] : []),
     ...(canRead("subjectType") ? [{id:"subjectType",label:text.subjectType}] : []),
     ...(canRead("countryOrRegion") ? [{id:"countryOrRegion",label:text.countryOrRegion}] : [])
   ].map(column => ({
     ...column,
     ...(column.id === "displayName" || column.id === "code"
       ? {sortRoute:counterpartyProjectionQueryRouteV010(
-          route,{...input.tableQuery,sort:column.id,
+          route,{...input.tableQuery,sort:column.id as CounterpartyProjectionQueryV010["sort"],
             direction:input.tableQuery?.sort === column.id
               && input.tableQuery.direction !== "desc" ? "desc" : "asc"},0
         )} : {})
@@ -381,6 +381,13 @@ export function createCounterpartyProjectionPageV010(input: {
   const totalStart = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
   const table: CatalogBrowserV010["table"] | undefined = pageInfo ? {
     columns,
+    search: {
+      route: counterpartyProjectionQueryRouteV010(route,query,0),
+      label: text.search,
+      placeholder: text.search,
+      value:query.search ?? "",
+      submitLabel:(input.locale ?? "").startsWith("zh") ? "搜索" : "Search"
+    },
     rows: input.counterparties.map(subject => ({
       itemId:subject.counterpartyId,
       cells: {
