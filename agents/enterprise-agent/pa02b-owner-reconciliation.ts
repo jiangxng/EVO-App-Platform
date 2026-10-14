@@ -48,6 +48,11 @@ export interface AgentWriteReconciliationPortV030 {
     scope: HostResolvedAgentDurabilityScopeV020;
     effectId: string;
   }): Promise<AgentWriteReconciliationResultV030|undefined>;
+  /** Only effects already bound to a trusted Owner; never a dispatch list. */
+  listPending(input: {
+    scope: HostResolvedAgentDurabilityScopeV020;
+    runId: string;
+  }): Promise<string[]>;
   close(): Promise<void>;
 }
 function required(s:unknown):string {
@@ -246,6 +251,16 @@ export async function createPostgresAgentOwnerReconciliationV030(input: {
       });
     },
     get(r){return findLinked(r.scope,r.effectId);},
+    async listPending(r){
+      const {b}=keys(r.scope);
+      const rows=await sql.unsafe("SELECT l.effect_id FROM "+
+        q+".pa02b_owner_links l JOIN "+q+".pa02b_writes w "+
+        "ON l.scope_key=w.scope_key AND l.effect_id=w.effect_id "+
+        "WHERE l.scope_key=$1 AND l.run_id=$2 AND w.run_id=$2 "+
+        "AND w.state IN ('INVOKING','UNKNOWN') ORDER BY l.effect_id",
+        [b,required(r.runId)]);
+      return rows.map(x=>String(x.effect_id));
+    },
     async close(){await sql.end();}
   };
 }
