@@ -196,7 +196,10 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
       })).status;
     },
     async settle(r:{scope:import("../contracts/agent-durability-async.js").HostResolvedAgentDurabilityScopeV020;
-      runId:string;sliceId:string;usage?:{inputTokens:number;outputTokens:number}}){
+      runId:string;sliceId:string;usage?:{
+        inputTokens:number;outputTokens:number;
+        cachedInputTokens?:number;cacheWriteInputTokens?:number
+      }}){
       return (await costLedger!.settle({
         ...r,policy:testPolicy
       })).status;

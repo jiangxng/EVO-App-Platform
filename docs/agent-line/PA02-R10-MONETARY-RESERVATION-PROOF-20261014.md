@@ -33,3 +33,16 @@
 - 初版准确 Head `c8651aa5ff60b07f14c6c96c84364d9df0f68754`：[Agent PA-02 Async Read Worker #38552517889](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38552517889) job `115813635372` **SUCCESS**。三个新增测试的实际日志分别是 `PA02_R10_MONEY_RESERVATION_PG`、`PA02_R10_MONEY_UNKNOWN_PG`、`PA02_R10_MONEY_UNAPPROVED_REFUSAL`。真实 PG18 尝试证明并发唯一预留、重启未知占额不释放、合同版本漂移拒绝、跨 Context 账隔离，未把丢失的 usage 计作 0 元。同一 Head 其他相关工作流首次执行中；必须等待**最终 PR Head 全绿**后合并。
 - 这些测试**仅调用新费用原语，不曾发送 `LlmInferenceProvider.infer`**，故所谓“pre-inference”是服务的调用顺序契约，不是 Host 已接好真正的付费接口；它是一项必要、非充分的 R10 子证据。所用每百万 token 合成费率不对应任何官方商业价格，绝不能当作客户账单。
 - 审批所缺的信息仍需独立提供/核验：当前绑定 Provider/model 的身份和具体快照、币种/区域/计费类别、缓存费率的合规最高上限与有效期、真实推理最大可收费 token 界限、模型实际请求上限得到 Provider 确认、真实 usage 原始回执。缺一则正式调用必须 fail-closed。未改变 PA-03–PA-06 范围及生产 WRITE 保护。
+
+
+## 2026-10-15：额外计费缓存写入用量不应静默结算（CI 待证）
+
+基于 #872 已完成的真实请求输入上界检测，本轮审查发现在 `LlmInferenceResponseV010.usage.cacheWriteInputTokens` 已声明为**可能单独计费的缓存写入**，而 #869 原 PG 结算和 #870 Host 端只把 `inputTokens/outputTokens` 两项传入结算。若 Provider 回报 `cacheWriteInputTokens > 0`，在没有独立获批的缓存写入单价及最大量情况下仅结算两项会提早释放额度，不能称为货币硬预算。
+
+最小安全修正：保留 Provider 原始 `MODEL_USAGE_RECORDED` 的正确事实，不捏造缺失 usage；在 Host→PG cost port 中传递完整 `usage`；现有合成价账本不支持额外单列缓存写入计价，故 **positive `cacheWriteInputTokens` = `UNKNOWN`，完整最坏费用占额保持不释放，`RUN_BLOCKED` 且不再发送后续模型/工具调用**。只有明确 0 或没有该字段时沿用此前合成价的 input/output 结算测试。未报告字段不能证明真实供应商不收费，正式计价依然需要 Provider 的可信类别与版本审批。
+
+新增 PG18 + Host Run 负向要求：模拟 Provider 报告 input 25/output 5/cacheRead 10/cacheWrite 7；真实原 Run 持久 `REPORTED` usage（事实），但货币状态 `UNKNOWN`，140 合成微币不被释放；重复恢复也不会第二次付费调用。另一个独立 PG18 账本测试核定旧 UNKNOWN across restart。**创建代码与此文档时没有 CI PASS，最终仍以实际准确 PR HEAD 及测试日志为准**。
+
+**新增外部来源阅读等级**：2026-10-15 [OpenAI Pricing](https://platform.openai.com/pricing) 通过搜索结果获得 `Input`、`Cached input`、`Cache writes`、`Output` 分类 **W-SEARCH-SNIPPET**，直接打开定价 URL 页面无可读正文，**不是 W-FULL、不是用户批准的价格合同**；不采用其中浮动金额。先前遗留 14 条外站 H 级照旧 H，不借本来源升级。
+
+此安全改动仅补 PA-02 R10 合成账一致性，**不扩展 PA-03～06**、不配置或部署收费 Provider、不开生产 WRITE；真实用户/企业批准报价、真实附加费用机制及正式账单仍是阶段签收缺口。

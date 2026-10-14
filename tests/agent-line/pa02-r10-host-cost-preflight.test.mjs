@@ -271,3 +271,64 @@ test("PA02 R10: absent, malformed or oversized full-request quote blocks BEFORE 
   await admin.end();
  }
 });
+
+test("PA02 R10 Host: a reported additive cache-write charge is UNKNOWN until its own tariff is approved",{
+ skip:!url?"Requires disposable PG18":false,timeout:90000
+},async()=>{
+ const schema="pa02_cost_host_"+randomUUID().replaceAll("-","").slice(0,10);
+ const admin=postgres(url,{max:2});let runtime,ledger,calls=0;
+ const provider={providerId:price.providerId,modelId:price.modelId,
+  async infer(){
+   calls++;
+   return {contractVersion:"0.1.0",providerId:this.providerId,
+    modelId:this.modelId,text:"This answer is not accepted as a paid success",
+    finishReason:"stop",toolCalls:[],
+    usage:{inputTokens:25,outputTokens:5,cachedInputTokens:10,
+      cacheWriteInputTokens:7}};
+  }};
+ try{
+  runtime=await createPostgresHostAsyncReadExecutionV030({
+   connectionString:url,schema,
+   deps:{resolveProvider:()=>provider,createToolCatalog:emptyCatalog,
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
+  });
+  const res=await handlers(runtime,provider,emptyCatalog).get(
+   "enterprise-agent.run.start").execute(cmd("enterprise-agent.run.start",
+    {message:"do not silently discount separately billed cache writes"},
+    "cache-write-unapproved"));
+  assert.equal(res.ok,true,JSON.stringify(res.error));
+  assert.equal(res.result.run.state,"BLOCKED");
+  assert.equal(res.result.run.blocker.code,"PA02_R10_COST_USAGE_UNAVAILABLE");
+  assert.equal(calls,1);
+  assert.deepEqual(res.result.run.modelUsages.map(x=>x.status),["REPORTED"],
+    "Real reported counters remain truthful even when money is UNKNOWN");
+  assert.equal(res.result.run.finalMessage,undefined);
+  ledger=await createPa02IsolatedPostgresCostLedgerV010({connectionString:url,schema});
+  const state=await ledger.snapshot({scope,runId:res.result.run.runId});
+  assert.equal(state.usedAndHeldMicros,"140");
+  assert.equal(state.entries.length,1);
+  assert.equal(state.entries[0].status,"UNKNOWN");
+  await runtime.close();runtime=undefined;
+  runtime=await createPostgresHostAsyncReadExecutionV030({
+   connectionString:url,schema,
+   deps:{resolveProvider:()=>provider,createToolCatalog:emptyCatalog,
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
+  });
+  const recovered=await runtime.resume({
+   runId:res.result.run.runId,principal,context});
+  assert.equal(recovered.state,"BLOCKED");
+  assert.equal(calls,1);
+  console.log("PA02_R10_HOST_CACHE_WRITE_UNPRICED="+JSON.stringify({
+   actualHostRunBlocksUnpricedAdditiveCacheWrites:true,
+   providerCalls:1,reportedUsageRetained:true,
+   fullWorstChargeRemainsHeldAcrossHostRestart:true,
+   noSupplierPriceAssumed:true,productionUsed:false
+  }));
+ }finally{
+  await ledger?.close();await runtime?.close();
+  await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');
+  await admin.end();
+ }
+});

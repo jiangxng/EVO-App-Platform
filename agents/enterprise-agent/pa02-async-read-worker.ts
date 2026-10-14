@@ -69,7 +69,7 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
       inputTokenUpperBound:number}):
       Promise<"RESERVED"|"EXHAUSTED"|"ALREADY_HELD"|"UNKNOWN_HELD"|"SETTLED_ALREADY"|"UNAPPROVED">;
     settle(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
-      sliceId:string;usage?:{inputTokens:number;outputTokens:number}}):
+      sliceId:string;usage?:LlmInferenceResponseV010["usage"]}):
       Promise<"SETTLED"|"UNKNOWN">;
   };
 }
@@ -470,9 +470,7 @@ export function createReadOnlyFencedAgentWorkerV030(
       if(deps.testOnlyCostPort){
         const settled=await deps.testOnlyCostPort.settle({
           scope,runId,sliceId,
-          ...(validUsage?{
-            usage:{inputTokens:usage.inputTokens,outputTokens:usage.outputTokens}
-          }:{})
+          ...(validUsage?{usage:structuredClone(usage)}:{})
         });
         if(settled!=="SETTLED"){
           await append("RUN_BLOCKED",{
