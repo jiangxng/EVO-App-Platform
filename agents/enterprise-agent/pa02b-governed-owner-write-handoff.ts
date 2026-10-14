@@ -1,4 +1,5 @@
 import type { AgentActionReceiptBeginInputV010 } from "../../contracts/agent-action-receipt.js";
+import {createHash} from "node:crypto";
 import type { HostResolvedAgentDurabilityScopeV020, AsyncAgentRunReceiptRepositoryV020 } from "../../contracts/agent-durability-async.js";
 import type { AgentExecutionCoordinatorV020, AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import type { AgentWriteReconciliationPortV030, AgentWriteReconciliationResultV030 } from "./pa02b-owner-reconciliation.js";
@@ -20,6 +21,7 @@ export interface GovernedAgentBusinessOwnerV040 {
     idempotencyKey: string;
     inputDigest: string;
     toolId: string;
+    arguments?: Record<string, unknown>;
   }): Promise<void>;
 }
 export interface GovernedAgentWriteHandoffV040 {
@@ -28,6 +30,7 @@ export interface GovernedAgentWriteHandoffV040 {
     lease: AgentLeaseV020;
     effectId: string;
     receipt: AgentActionReceiptBeginInputV010;
+    arguments?: Record<string, unknown>;
   }): Promise<AgentWriteReconciliationResultV030>;
   /** Crash recovery never calls Owner.invoke, even when invocation is uncertain. */
   recover(input: {
@@ -36,6 +39,16 @@ export interface GovernedAgentWriteHandoffV040 {
   }): Promise<AgentWriteReconciliationResultV030>;
 }
 
+function stable(v:unknown):unknown {
+  if(Array.isArray(v))return v.map(stable);
+  if(v!==null&&typeof v==="object")
+    return Object.fromEntries(Object.entries(v as Record<string,unknown>)
+      .sort(([a],[b])=>a.localeCompare(b)).map(([k,x])=>[k,stable(x)]));
+  return v;
+}
+function hash(v:unknown):string {
+  return createHash("sha256").update(JSON.stringify(stable(v))).digest("hex");
+}
 function id(v:unknown):string {
   if(typeof v!=="string"||!v.trim())throw Error("PA02B_HANDOFF_VALUE_REQUIRED");
   return v.trim();
@@ -107,6 +120,10 @@ export function createGovernedAgentWriteHandoffV040(deps:{
       id(receipt.idempotencyKey);
       id(receipt.toolId);
       digest(receipt.inputDigest);
+      if(r.arguments!==undefined &&
+         (r.arguments===null||typeof r.arguments!=="object"||
+          Array.isArray(r.arguments)||hash(r.arguments)!==receipt.inputDigest))
+        throw Error("PA02B_HANDOFF_ARGUMENT_DIGEST_MISMATCH");
       await deps.coordinator.prepareWrite({
         scope:r.scope,lease:r.lease,effectId,inputDigest:receipt.inputDigest
       });
@@ -121,7 +138,8 @@ export function createGovernedAgentWriteHandoffV040(deps:{
         await deps.owner.invoke({
           scope:r.scope,runId,effectId,receiptId,
           idempotencyKey:receipt.idempotencyKey,
-          inputDigest:receipt.inputDigest,toolId:receipt.toolId
+          inputDigest:receipt.inputDigest,toolId:receipt.toolId,
+          ...(r.arguments?{arguments:structuredClone(r.arguments)}:{})
         });
       } catch {
         // External transport errors can occur AFTER the business Owner commits.

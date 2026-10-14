@@ -22,3 +22,11 @@ PA-02B 的 Fencing、PostgreSQL 写入意图、完整 Receipt 和 Owner UNKNOWN 
 3. 真实业务插件的查询/幂等保障（业务 Owner 端）和各租户认证范围；长时间运行/断网/取消联动。主线轻量 Host 默认 OFF；生产发布单独许可。
 
 遵照 `docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md`：一个闭环、一个短分支、一个 PR；合入并清理后才进行下一闭环。
+
+
+## 2026-10-14：真实 Fenced Worker → Owner WRITE 增量（PR 此次持续开发）
+
+- 不新增第二套 Worker。给现有 `createReadOnlyFencedAgentWorkerV030` 增加**可选、仅Host可信注入**的 `governedWrite` 端口：未注入时仍只向LLM暴露READ，WRITE仍BLOCKED；注入且精确匹配Tool+Owner后，先重新授权，再处理真实的持久化WRITE决策。
+- `pa02-governed-worker-write-port.ts` 从持久Run、模型决策事件、工具参数和Host Principal/Context构造稳定幂等键与REQUESTED Receipt。对既有PREPARED可继续首次派发；INVOKING/UNKNOWN只能调用已有Owner核验流程；已证实终态只读取Receipt，不重发。业务操作参数在真实Owner调用前完整性校验。
+- Worker不调用 `catalog.invoke` 派发WRITE。由Owner回执证实后换取新fencing令牌，把观测和Receipt ID写入真实Run事件；UNKNOWN则保留待恢复的Run、拒绝伪造成功与盲重发。
+- 扩展现有 `agent-pa02-async-read-worker.yml`：PostgreSQL18真实业务表增量测试+原READ/Fencing/Owner/Cancel回归。正式 `manager/server.ts` 仍不注入业务Owner端口，生产默认关闭。通过CI及main合并后才标注此段完成。

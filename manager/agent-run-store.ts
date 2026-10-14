@@ -203,6 +203,8 @@ export function materializeAgentRunsV010(
         const eventPayload = event.payload as {
           observation?: unknown;
           decisionEventId?: unknown;
+          /** Receipt reference verified by the fenced Owner WRITE Worker. */
+          receiptId?: unknown;
         };
         const decisionRecord = decisions.find(
           item => item.decisionEventId === eventPayload.decisionEventId
@@ -228,6 +230,16 @@ export function materializeAgentRunsV010(
         observations.push(observation);
         if (observation.receipt?.receiptId) {
           actionReceiptIds.add(observation.receipt.receiptId);
+        }
+        // The V020 Owner Receipt is authoritative in PostgreSQL. The worker
+        // records the verified Receipt ID without fabricating a V010 receipt
+        // object or terminal attestation in the model observation.
+        if (eventPayload.receiptId !== undefined) {
+          if (typeof eventPayload.receiptId !== "string"
+            || !eventPayload.receiptId.trim()) {
+            throw new Error("AGENT_RUN_RECEIPT_REFERENCE_INVALID");
+          }
+          actionReceiptIds.add(eventPayload.receiptId);
         }
         state = "PAUSED";
         continue;

@@ -8,6 +8,8 @@ import type {
   AgentModelDecision
 } from "./contracts.js";
 import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.js";
+import type { GovernedAgentWorkerWritePortV040 } from "./pa02-governed-worker-write-port.js";
+import type { AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durability-host-bridge.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 
@@ -43,6 +45,8 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   ttlSeconds?:number;
   /** Enable only for a Host Worker that intentionally yields after each slice. */
   releaseOnReturn?:boolean;
+  /** Only a trusted Host-injected Owner port may opt into material WRITE. */
+  governedWrite?:GovernedAgentWorkerWritePortV040;
 }
 function required(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_WORKER_ID_REQUIRED");
@@ -65,12 +69,13 @@ function signature(tool:string,args:unknown) {
 
 /**
  * Staged worker actually drives a Run with a real Host-resolved Principal and
- * V010 model/tool contracts. READ only: no business WRITE is dispatched here.
+ * V010 model/tool contracts. Default READ only; optional Host-injected Owner
+ * port enables governed WRITE without using catalog.invoke for side effects.
  *
  * Every transition uses a scoped PostgreSQL lease/fencing token + Run CAS.
  * Crash between READ dispatch/observation can repeat READ (by contract).
- * Crash after a durable WRITE decision does NOT dispatch it; only the
- * separately governed Owner/receipt port can supply a WRITE execution path.
+ * Crash after a durable WRITE decision consults persisted Owner intent; the
+ * separately governed Owner/Receipt path never dispatches an INVOKING WRITE again.
  *
  * NOT registered in production manager/server.ts.
  */
@@ -85,14 +90,15 @@ export function createReadOnlyFencedAgentWorkerV030(
       const scope=hostResolvedAgentDurabilityScopeV020({
         principal:input.principal,context:input.context
       });
-      const lease=await deps.authority.claim({
+      const initialLease=await deps.authority.claim({
         scope,runId,workerId,ttlSeconds:ttl
       });
-      if(!lease) {
+      if(!initialLease) {
         const state=await deps.authority.read({scope,runId});
         if(!state)throw Error("AGENT_RUN_NOT_FOUND");
         return {run:state.run,advanced:false,claimed:false,writeDeferred:false};
       }
+      let lease:AgentLeaseV020=initialLease;
       try {
       let current=await deps.authority.read({scope,runId});
       if(!current)throw Error("PA02_WORKER_RUN_MISSING_AFTER_CLAIM");
@@ -139,6 +145,10 @@ export function createReadOnlyFencedAgentWorkerV030(
       );
       const allTools=await catalog.list();
       const reads=allTools.filter(t=>t.effect==="READ");
+      const modelTools=deps.governedWrite
+        ?allTools.filter(t=>t.effect==="READ"||
+          (t.effect==="WRITE"&&deps.governedWrite!.allows(t)))
+        :reads;
 
       const observe=async (
         decisionRecord:AgentRunV010["decisions"][number],
@@ -147,6 +157,52 @@ export function createReadOnlyFencedAgentWorkerV030(
         if(decisionRecord.decision.type!=="tool")
           throw Error("PA02_WORKER_TOOL_DECISION_REQUIRED");
         const call=decisionRecord.decision.call;
+        if(descriptor?.effect==="WRITE" && deps.governedWrite?.allows(descriptor)) {
+          const stillOwned=await deps.authority.renew({scope,lease,ttlSeconds:ttl});
+          if(!stillOwned)return output(false,true);
+          // The trusted Owner port decides from persisted WRITE state whether
+          // dispatch is still possible. An INVOKING/UNKNOWN retry only queries
+          // the Owner; it never calls catalog.invoke or repeats the WRITE.
+          const verified=await deps.governedWrite.execute({
+            scope,lease,run,decision:decisionRecord,descriptor,
+            principal:input.principal,context:input.context,
+            requestContext:input.requestContext
+          });
+          await deps.authority.release({scope,lease});
+          if(!verified.reconciled)return output(false,true);
+          // Owner confirmation may take a long time and requires quiescing
+          // the old lease. Re-claim an exact new fence for the durable Agent
+          // observation; another Worker is allowed to win this handoff.
+          const resumed=await deps.authority.claim({
+            scope,runId,workerId:workerId+":receipt:"+deps.eventId(),
+            ttlSeconds:ttl
+          });
+          if(!resumed)return output(false,true);
+          lease=resumed;
+          current=await deps.authority.read({scope,runId});
+          if(!current)throw Error("PA02_WORKER_RUN_MISSING_AFTER_WRITE");
+          run=current.run;
+          const decision=run.decisions.find(d=>
+            d.decisionEventId===decisionRecord.decisionEventId);
+          if(!decision||decision.decision.type!=="tool")
+            throw Error("PA02_WORKER_WRITE_DECISION_MISMATCH");
+          if(decision.observation)return output(false);
+          const observation:AgentToolObservation={
+            tool:call.tool,ok:verified.status==="SUCCEEDED",
+            ...(verified.status==="SUCCEEDED"
+              ?{result:{receiptId:verified.receiptId,status:verified.status}}
+              :{error:{code:"PA02_WORKER_OWNER_"+verified.status,
+                  message:"Business Owner verified terminal "+verified.status}}),
+            // Receipt identity is preserved in the durable observation,
+            // but terminal attestation remains solely in Owner Receipt DB.
+          };
+          run=await append("TOOL_OBSERVATION_RECORDED",{
+            observation,decisionEventId:decisionRecord.decisionEventId,
+            receiptId:verified.receiptId
+          },decisionRecord.sliceId);
+          await append("SLICE_PAUSED",{},decisionRecord.sliceId);
+          return output(true);
+        }
         if(!descriptor||descriptor.effect!=="READ") {
           await append("RUN_BLOCKED",{
             code:"PA02_WORKER_WRITE_REQUIRES_OWNER_PORT",
@@ -216,7 +272,7 @@ export function createReadOnlyFencedAgentWorkerV030(
           ...(run.input.interactionContext?{
             interactionContext:structuredClone(run.input.interactionContext)
           }:{}),
-          tools:structuredClone(reads),
+          tools:structuredClone(modelTools),
           observations:structuredClone(run.observations),
           principal:structuredClone(input.principal),
           context:structuredClone(input.context)
