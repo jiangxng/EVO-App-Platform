@@ -10,6 +10,8 @@ import type { AgentExecutionCoordinatorV020 } from "../agents/enterprise-agent/p
 import type { AgentWriteReconciliationPortV030 } from "../agents/enterprise-agent/pa02b-owner-reconciliation.js";
 import type { GovernedAgentWorkerWritePortV040 } from "../agents/enterprise-agent/pa02-governed-worker-write-port.js";
 import type { AgentTrustedOwnerBindingV040 } from "./agent-trusted-owner-registration.js";
+import type {Pa02RunOutboxReaderV010,Pa02RunOutboxReplayV010}
+  from "./agent-pa02-run-outbox.js";
 import { createHostScopedAsyncAgentRunBridgeV020,hostResolvedAgentDurabilityScopeV020 } from "./agent-durability-host-bridge.js";
 
 
@@ -24,6 +26,10 @@ export interface HostAsyncReadExecutionV030 {
   resume(input: {runId:string; principal:PlatformPrincipalV010;
     context:ResolvedContextSetV010;requestContext?:PlatformRequestContextV010}):Promise<AgentRunV010>;
   read(input: {runId:string; principal:PlatformPrincipalV010;context:ResolvedContextSetV010}):Promise<AgentRunV010|undefined>;
+  /** R05/R06: exact authenticated Run replay or snapshot-reset instruction. */
+  replay(input:{runId:string;principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010;afterEventId?:string;limit?:number}):
+    Promise<Pa02RunOutboxReplayV010|undefined>;
   cancel(input: {runId:string; reason:string;principal:PlatformPrincipalV010;
     context:ResolvedContextSetV010}):Promise<{run:AgentRunV010;state:"REQUESTED"|"CANCELLED"}>;
   close():Promise<void>;
@@ -77,7 +83,8 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     {createReadOnlyFencedAgentWorkerV030},
     {createPostgresAgentOwnerReconciliationV030},
     {createGovernedAgentWriteHandoffV040},
-    {createGovernedAgentWorkerWritePortV040}]=await Promise.all([
+    {createGovernedAgentWorkerWritePortV040},
+    {createPostgresPa02RunOutboxReaderV010}]=await Promise.all([
     import("../agents/enterprise-agent/pa02a-postgres-durability-proof.js"),
     import("../agents/enterprise-agent/pa02b-postgres-coordination.js"),
     import("../agents/enterprise-agent/pa02b-fenced-run-authority.js"),
@@ -85,7 +92,8 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     import("../agents/enterprise-agent/pa02-async-read-worker.js"),
     import("../agents/enterprise-agent/pa02b-owner-reconciliation.js"),
     import("../agents/enterprise-agent/pa02b-governed-owner-write-handoff.js"),
-    import("../agents/enterprise-agent/pa02-governed-worker-write-port.js")
+    import("../agents/enterprise-agent/pa02-governed-worker-write-port.js"),
+    import("./agent-pa02-run-outbox.js")
   ]);
   let repo:AsyncAgentRunReceiptRepositoryV020|undefined;
   let execution:AgentExecutionCoordinatorV020|undefined;
@@ -93,13 +101,17 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
   let cancellation:AgentAtomicCancellationPortV020|undefined;
   let reconciler:AgentWriteReconciliationPortV030|undefined;
   let governedWrite:GovernedAgentWorkerWritePortV040|undefined;
+  let outbox:Pa02RunOutboxReaderV010|undefined;
   const close=async()=>{
-    for(const service of [reconciler,cancellation,authority,execution,repo]) {
+    for(const service of [outbox,reconciler,cancellation,authority,execution,repo]) {
       if(service)await service.close();
     }
   };
   try{
     repo=await createPostgresAgentDurabilityProofV020({
+      connectionString:input.connectionString,schema:input.schema
+    });
+    outbox=await createPostgresPa02RunOutboxReaderV010({
       connectionString:input.connectionString,schema:input.schema
     });
     execution=await createPostgresAgentExecutionCoordinatorV020({
@@ -244,6 +256,14 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
   };
   return {
     read,
+    replay(r) {
+      return outbox!.readSince({
+        scope:hostResolvedAgentDurabilityScopeV020(r),
+        runId:valid(r.runId),
+        ...(r.afterEventId?{afterEventId:r.afterEventId}:{}),
+        ...(r.limit!==undefined?{limit:r.limit}:{})
+      });
+    },
     claim:claimRun,
     getByTurn(r){return reader(r).getByTurn({
       threadId:valid(r.threadId),clientTurnId:valid(r.clientTurnId)
