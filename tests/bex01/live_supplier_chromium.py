@@ -168,7 +168,7 @@ with sync_playwright() as p:
    print("BEX_EXT_MAP_FIRST="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:600]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
-   open_field=page.get_by_role("button",name="创建扩展字段（处理未匹配列）")
+   open_field=page.locator('[data-eidos-context-route^="/object-extensions/from-import?job="]')
    expect(open_field).to_be_visible()
    open_field.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
