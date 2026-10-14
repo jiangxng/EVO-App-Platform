@@ -6853,9 +6853,28 @@ const server = createServer(async (request, response) => {
                   : undefined;
 
         if (projectionId) {
+          // Route/query are presentation intent only. Principal, Context, data
+          // scope and field permissions remain Host/owner-derived.
+          const projectionRoute = projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+            ? COUNTERPARTY_SUPPLIERS_ROUTE
+            : projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+              ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
+              : projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+                ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
+          const { parseCounterpartyProjectionRouteQueryV010 } =
+            await import("../apps/counterparty/projection-query.js");
+          const pagingQuery = {
+            ...parseCounterpartyProjectionRouteQueryV010(
+              url.searchParams.get("route"), projectionRoute
+            ),
+            pageSize: parseCounterpartyProjectionRouteQueryV010(
+              url.searchParams.get("route"), projectionRoute
+            ).pageSize ?? 25
+          };
           const projection = await counterpartyProjectionService.read({
             contextId: active.contextId,
             projectionId,
+            query: pagingQuery,
             requestContext: readContext,
             enterpriseRelationshipKind: relationship?.kind
           });
@@ -6865,6 +6884,8 @@ const server = createServer(async (request, response) => {
             module.createCounterpartyProjectionPageV010({
               projectionId,
               counterparties: projection.counterparties,
+              pageInfo: projection.pageInfo,
+              tableQuery: pagingQuery,
               locale,
               readableFieldIds: projection.readableFieldIds,
               canManage,
