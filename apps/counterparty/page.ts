@@ -2,6 +2,11 @@ import type {
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
+  counterpartyProjectionQueryRouteV010,
+  type CounterpartyProjectionQueryV010,
+  type CounterpartyProjectionPageInfoV010
+} from "./projection-query.js";
+import {
   fieldsForSurfaceV010,
   localizedTextV010,
   type EffectiveObjectSchemaV010,
@@ -332,6 +337,8 @@ export function createCounterpartyProjectionPageV010(input: {
   readableFieldIds?: readonly string[];
   canManage?: boolean;
   importRoute?: string;
+  pageInfo?: CounterpartyProjectionPageInfoV010;
+  tableQuery?: CounterpartyProjectionQueryV010;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const title = projectionTitleV010(
@@ -344,9 +351,68 @@ export function createCounterpartyProjectionPageV010(input: {
     readableFieldIds: input.readableFieldIds,
     canManage: input.canManage
   });
+  const route = input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+    ? COUNTERPARTY_SUPPLIERS_ROUTE
+    : input.projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+      ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
+      : input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+        ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
+  const readable = input.readableFieldIds
+    ? new Set(input.readableFieldIds)
+    : undefined;
+  const canRead = (fieldId: string) => !readable || readable.has(fieldId);
+  const columns = [
+    {id:"displayName",label:text.displayName},
+    ...(canRead("code") ? [{id:"code",label:text.code}] : []),
+    ...(canRead("status") ? [{id:"status",label:"Status"}] : []),
+    ...(canRead("subjectType") ? [{id:"subjectType",label:text.subjectType}] : []),
+    ...(canRead("countryOrRegion") ? [{id:"countryOrRegion",label:text.countryOrRegion}] : [])
+  ].map(column => ({
+    ...column,
+    ...(column.id === "displayName" || column.id === "code"
+      ? {sortRoute:counterpartyProjectionQueryRouteV010(
+          route,{...input.tableQuery,sort:column.id,
+            direction:input.tableQuery?.sort === column.id
+              && input.tableQuery.direction !== "desc" ? "desc" : "asc"},0
+        )} : {})
+  }));
+  const query = input.tableQuery ?? {};
+  const pageInfo = input.pageInfo;
+  const totalStart = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
+  const table: CatalogBrowserV010["table"] | undefined = pageInfo ? {
+    columns,
+    rows: input.counterparties.map(subject => ({
+      itemId:subject.counterpartyId,
+      cells: {
+        displayName:subject.displayName,
+        ...(canRead("code") ? {code:subject.code} : {}),
+        ...(canRead("status")
+          ? {status:subject.status === "ACTIVE" ? text.active : text.inactive} : {}),
+        ...(canRead("subjectType")
+          ? {subjectType:subjectTypeLabel(subject.subjectType,input.locale)} : {}),
+        ...(canRead("countryOrRegion")
+          ? {countryOrRegion:subject.countryOrRegion ?? ""} : {})
+      }
+    })),
+    pageInfo: {
+      ...pageInfo,
+      summary: `${pageInfo.total === 0 ? 0 : totalStart + 1}–${Math.min(
+        totalStart + input.counterparties.length,pageInfo.total
+      )} / ${pageInfo.total}`,
+      previousLabel: (input.locale ?? "").startsWith("zh") ? "上一页" : "Previous",
+      nextLabel: (input.locale ?? "").startsWith("zh") ? "下一页" : "Next",
+      ...(pageInfo.page > 0
+        ? {previousRoute:counterpartyProjectionQueryRouteV010(route,query,pageInfo.page - 1)}
+        : {}),
+      ...(pageInfo.hasMore
+        ? {nextRoute:counterpartyProjectionQueryRouteV010(route,query,pageInfo.page + 1)}
+        : {})
+    }
+  } : undefined;
   return {
     ...page,
     id: "evo-counterparty.projection." + input.projectionId,
+    ...(table ? {table} : {}),
     title,
     description: text.projectionDescription,
     contextNavigation: {
@@ -393,7 +459,8 @@ export function createCounterpartyProjectionPageV010(input: {
           primary: true
         }]
       : [])],
-    search: {
+    // Do not pretend a browser-only search covers all server pages.
+    search: table ? undefined : {
       placeholder: text.search,
       ariaLabel: text.search,
       noResultsMessage: text.projectionEmpty
