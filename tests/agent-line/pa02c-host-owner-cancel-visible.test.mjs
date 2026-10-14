@@ -112,7 +112,7 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
     const start=handlers.get("enterprise-agent.run.start");
     const cancel=handlers.get("enterprise-agent.run.cancel");
     const get=handlers.get("enterprise-agent.run.get");
-    const runId="run:pa02c:1";
+    const runId="agent-run:run:pa02c:1";
     const inFlight=start.execute(command("enterprise-agent.run.start",{
       message:"Create Object Extension safely"
     },"pa02c:source:1"),requestContext);
