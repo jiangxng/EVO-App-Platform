@@ -53,3 +53,10 @@
 - [#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) 最终 Head `9491009c8671fb9d747a41c7ced383671436867f` **18/18 CI SUCCESS**，main 合并 `f5c90d21981fb2f5876e27a7940493d77fe4608f`，Agent 过程分支已确认删除；在合成价格下证明原 Host/Worker 模型调用前持久最坏费用预留和未知保留。本行纠正旧条目“未合并”的历史描述，原始流水不删改。
 - **新增风险**：旧预留金额来自 Host 候选策略里的 `maxBillableInputTokens`，但 Agent 实际请求包含系统/开发者指令、历史、工具 schema 与工具观察数据，不能由静态填写数证明该请求的**真实可计费输入上界**。新 [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 从同步最新 main（含治理 #871）建立短分支，要求在已组装实际 `LlmInferenceRequestV010` 后检查可信上界，**再**调用同一个 PostgreSQL 费用预留，再调用模型，拒绝时没有账本占额或供应商调用。初版准确 HEAD `9864c64d1e1ecb79b640d5795fab8c927048b0b7` **18/18 CI SUCCESS**，真实 [PG18 Agent Worker 38650954272](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38650954272) job `116149313153` **24/24 PASS**，新增 quote 缺失/超额/NaN 的 Provider 调用 0 与费用预留 0。最终 PR HEAD/合并状态需再核；证据与新查阅官网等级见 [R10 Actual Request Quote](PA02-R10-ACTUAL-REQUEST-INPUT-QUOTE-20261015.md)。
 - 这仍然**只有测试替身提供合成可信 quote，没有正式绑定模型的供应商计费上界证明、审批价目和真实账单**；正式 `manager/server.ts` 未启用预算/生产 WRITE，R10 `OPEN`、PA-02 `NOT_SIGNED`。外站历史 14 条 H 类引文不因为本轮单独查阅的新网页而升级。
+
+
+## 2026-10-15：完整请求 quote 已合并；额外缓存写入计费未知不得提前结算
+
+- [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 真正 final Head `c6551aa507082a0250812237be36c1c41f24fff7` **18/18 GitHub CI 全绿**、[Worker PG18 run 38651279340](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38651279340) 24/24 PASS；main merge `b34863eddcaff75e8c5522da5206cf2828dc8ec5`，Agent 过程 branch 确认删除。之前“待合并”只反映前次提交时状态。此门禁确保模型请求完整组装后才检查测试专用可信输入上界，失败零 Provider 调用/零虚构 PG 保留；不等于收费供应商已认可真实 token 上限。
+- 新 [#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 补**可单独计费的缓存写入**风险： `LlmInferenceResponseV010.usage.cacheWriteInputTokens` 可正数，旧 PG 结算只接收 `inputTokens/outputTokens`，会在没有该类别获批单价时释放占额。新测试用真实隔离 PG18/Host Run 证明 positive additive cache write 时原始 usage 仍 `REPORTED`（事实），金钱账 `UNKNOWN`、保留此前全部费用预留、原 Run 阻断且 Host 重启不自动重发。**CI / final PR Head/merged 均待验证**，不得预填成功。完整记录见 [R10 金钱预留及增量修正](PA02-R10-MONETARY-RESERVATION-PROOF-20261014.md)。
+- 仍然没有经 Host 批准的真实模型/地区/计价版本/缓存计费条件与具确定上界的账单回执；R10 `OPEN`、PA-02 `NOT_SIGNED`，不把合成模型/官网公开报价误写为正式企业账单。未改变任何生产模式或 BEX/2D/治理窗口源文件。
