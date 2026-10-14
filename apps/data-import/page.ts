@@ -259,7 +259,7 @@ function objectWorkspaceNavigationV010(input: {
   const route = navigation.route;
   if (!route.startsWith("/") || route.startsWith("//")
     || route.includes("#") || route.includes("\\")
-    || /[\\u0000-\\u001f]/u.test(route)) {
+    || /[\u0000-\u001f]/u.test(route)) {
     return undefined;
   }
   return {
