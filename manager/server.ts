@@ -7445,6 +7445,7 @@ const server = createServer(async (request, response) => {
             200,
             module.createDataImportMappingPageV010({
               job,
+              target,
               schema: target.describe({
                 contextId: active.contextId,
                 locale,
