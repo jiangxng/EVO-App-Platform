@@ -45,6 +45,7 @@ function validateEvent(event: AgentRunEventV010): void {
     [
       "SLICE_STARTED",
       "MODEL_DECISION_RECORDED",
+      "MODEL_INFERENCE_FAILED",
       "TOOL_OBSERVATION_RECORDED",
       "SLICE_PAUSED"
     ].includes(event.type)
@@ -148,6 +149,7 @@ export function materializeAgentRunsV010(
     let updatedAt = created.occurredAt;
     let lastEventId = created.eventId;
     let sliceCount = 0;
+    let modelFailureCount = 0;
     let activeSliceId: string | undefined;
     const decisions: AgentRunV010["decisions"] = [];
     const observations: AgentRunV010["observations"] = [];
@@ -172,6 +174,20 @@ export function materializeAgentRunsV010(
         continue;
       }
 
+      if (event.type === "MODEL_INFERENCE_FAILED") {
+        if (!event.sliceId || event.sliceId !== activeSliceId) {
+          throw new Error("AGENT_RUN_MODEL_FAILURE_SLICE_MISMATCH");
+        }
+        const data=event.payload as {code?:unknown;reason?:unknown;attempt?:unknown};
+        if(typeof data.reason!=="string"||!data.reason.trim()||
+          !Number.isInteger(data.attempt)||data.attempt!==modelFailureCount+1)
+          throw Error("AGENT_RUN_MODEL_FAILURE_ATTEMPT_INVALID");
+        modelFailureCount+=1;
+        state="PAUSED";
+        activeSliceId=undefined;
+        continue;
+      }
+
       if (event.type === "MODEL_DECISION_RECORDED") {
         if (!event.sliceId || event.sliceId !== activeSliceId) {
           throw new Error("AGENT_RUN_DECISION_SLICE_MISMATCH");
@@ -186,6 +202,7 @@ export function materializeAgentRunsV010(
         ) {
           throw new Error("AGENT_RUN_MODEL_DECISION_INVALID");
         }
+        modelFailureCount=0;
         decisions.push({
           decisionEventId: event.eventId,
           sliceId: event.sliceId,
@@ -335,6 +352,7 @@ export function materializeAgentRunsV010(
       createdAt: created.occurredAt,
       updatedAt,
       sliceCount,
+      modelFailureCount,
       ...(activeSliceId ? { activeSliceId } : {}),
       lastEventId,
       decisions,
