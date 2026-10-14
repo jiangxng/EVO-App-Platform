@@ -1,5 +1,50 @@
 # BEX-01｜CP-03 扩展字段的业务页面收口（2026-10-14）
 
+
+> **2026-10-14 BEX 窗口最新交接（优先读此节）**：下方原文是开发范围和门禁记录，所写“待合并/待部署”属于编写时状态，不能覆盖此节已经核验的后续事实。本文件是 **BEX 专项状态入口**，不是全项目权威状态。跨项目总状态 `project.status.json`、生成的 `docs/roadmap/HANDOFF-LATEST.md` 由主线 owner 维护，不在本交接中改写。
+
+## 当前 BEX-01 状态、合并与开发部署
+
+| 门禁 | 2026-10-14 核验事实 |
+| --- | --- |
+| 原定产品目标 | 供应商列式表格、受权搜索与服务端分页、导入/返回、手机宽度体验；本轮补齐 CP-03 **扩展字段的人类可操作闭环** |
+| 已完成代码 | 在导入映射页针对未映射列提供企业扩展字段创建入口；由用户选择来源列、名称、数据类型；复用既有对象扩展定义/导入映射/持久化；供应商详情按字段读权限展示扩展值 |
+| 已完成此前 BEX 工作 | 供应商桌面表格、紧凑行样式、手机列表适配、分页/搜索、失败预检查返回供应商、中文必填字段错误提示 |
+| 已验证 | [PR #843](https://github.com/jiangxng/EVO-App-Platform/pull/843) 合并前最新整合头 `597e08420d4b564343f068cd37ca4466ca6dbb5a` 的五项检查成功：Platform CI、Project Continuity CI、Lightweight Host Architecture、BEX-01 Real Host Chromium、Verified Merged Branch Retirement。 [浏览器运行 #38516099332](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38516099332) **4/4 PASS**：桌面、失败导入返回、扩展字段创建→映射→确认导入→供应商详情显示、模拟触屏手机。源文件示例列“开户银行”，验证详情值 “HSBC”；使用隔离真实 Host，不是用户已有 XLSX 作业。CP-03 原有扩展值写入测试继续保留 |
+| 已合并 | Platform [#827](https://github.com/jiangxng/EVO-App-Platform/pull/827)、[#833](https://github.com/jiangxng/EVO-App-Platform/pull/833)、[#838](https://github.com/jiangxng/EVO-App-Platform/pull/838)、[#840](https://github.com/jiangxng/EVO-App-Platform/pull/840)、[#843](https://github.com/jiangxng/EVO-App-Platform/pull/843) 均已合并；扩展字段闭环合并 SHA **`70597a0e1f73b5c6f10ee4dee9eadc3a615ff66c`**。通用 Eidos 表格/移动/样式 [#178](https://github.com/jiangxng/eidos/pull/178)、[#179](https://github.com/jiangxng/eidos/pull/179)、[#180](https://github.com/jiangxng/eidos/pull/180) 均已合并 |
+| **已部署到现有开发环境** | Railway Ledger Configurator、部署 id `3218adea-04ea-4607-bc62-412b12c7d72a`、版本 **`70597a0e`**、状态 **SUCCESS**，保留原服务/数据卷/域名。页面：https://ledger-configurator-production.up.railway.app/#/counterparties/suppliers。虽服务域名含 `production`，项目 owner 明确当前按**开发环境**使用；SUCCESS 只说明 Railway 部署状态，不等于终端用户/生产验收 |
+| **GitHub main 最新对账** | 本次核对时 main `126f5ef730458999e14b51a15d388938bf769a3b`（后续已合并 PA-02 [#844](https://github.com/jiangxng/EVO-App-Platform/pull/844)）；这不是 Railway 当前固定提交。不能把最新 main 自动认作已部署，也不能因交接而自动部署 |
+| **待验证** | 用户在**原有业务 XLSX（往来账户2026_10_08_10_15_23.xlsx）**中人工实际体验：导入历史→字段映射→未匹配列创建扩展字段→映射→预检查→显式提交→供应商详情查看。该真实文件仍有 **3 行 `subjectType` 缺失错误**，不能把模拟样本成功推断为此文件也可直接提交。用户尚未回报完整体验 PASS |
+| 其他未证明边界 | 真实 iOS Safari / Android Chrome（软键盘、大字、弱网）未测；10k 数据诊断只是合成内存数据，服务端现有授权分页不等于数据库物理分页。属于独立成熟度/后续评估，不自动阻塞**本轮扩展字段**阶段，也不得宣称已做生产性能认证 |
+| 对外进度措辞 | **CODE_MERGED + DEV_RAILWAY_DEPLOYED + CHROMIUM_VERIFIED / USER_XLSX_HUMAN_ACCEPTANCE_PENDING**。不要标为“全部业务体验 CLOSED_PRODUCTION_PASS” |
+
+## 产品原则、已遇问题及操作注意
+
+1. **只补 CP-03 的用户入口，不重做 CP-03。** 正式扩展字段写到基础对象的扩展值仓库；未映射的原始列保留于**导入作业**，并不自动成为供应商的永久字段；也未证明原始 XLSX 二进制文件无限期保存。
+2. **必须由人确认**来源列、字段业务含义及类型（当前表单支持文本、数字、布尔、日期）。已有字段先映射已有字段；对于系统编码、流程/表单状态、创建修改者/时间等历史系统元数据，不因来源表有列就自动建字段。敏感账户信息的适用范围和读取权限仍需对象 owner 确认。
+3. **“主体类型” ≠ “供应商关系/往来类型”。** `subjectType` 表示机构/个人等主体身份，是核心必填项，不是可用扩展字段替代的内容。截图中三行 `DATA_IMPORT_REQUIRED_VALUE_MISSING` 已变为“主体类型”中文提示；但具体文件仍需要源数据或映射确认，不得自动猜“机构”。
+4. **真实页面入口位置**：从供应商导入/历史任务进入“字段映射”页；当存在未映射列、Object Extension 已安装且当前企业操作者有 OWNER/ADMIN 权限时，可见上下文导航 **“创建企业扩展字段（未匹配列）”**。这是当前实现，**不承诺存在单独的全局字段管理菜单**；若用户实际找不到，先查插件启用、权限、来源列映射，再做精准可见性修复，不引入新的通用配置中心。
+5. 创建扩展字段本身不触发导入；创建后返回当前映射页，重新选择目标字段，预检查通过后才由用户**明确确认提交**。导航中的“返回供应商列表”与提交是不同动作。成功后在对应供应商详情的“企业扩展字段”分组查看。
+6. 用户要求以 **真实可用** 为验收，不以截图/录屏/统计绿灯代替操作；当前是开发环境，测试数据可用，无需为了 BEX-01 建新环境或等待其他插件开发进度。发现问题同一 BEX 专项修复、尽快合并、删除已合并过程分支。
+7. 这次缺口先后是：旧桌面卡片代替列式表格 → 样式呈按钮 → 预检查失败无法回列表 → 机器错误码不明确 → 扩展字段仅有后台能力无用户入口。以上分别按已有 PR 修复，**不要在新窗口重演从零设计**。
+
+## 下一窗口唯一优先任务（不扩范围）
+
+先在现有 Railway **已部署版本 `70597a0e`** 用用户原有三行 XLSX 作业做实际体验，重点确认“字段映射”页是否易于发现创建入口、源列可选、定义保存后可重新映射、预检查未因`subjectType`继续阻塞、成功提交后对象详情能看到保存值。**若该文件主体类型未解决，应先确认含义和批次固定值/来源更新的现有可用路径，不把它混为扩展字段缺陷，也不擅自新增批量常量编辑功能。** 只有实测发现问题，才开同一范围内的最小修复 PR；别把 Item/Warehouse/BEX-02、Agent、EC、数据结构迁移或物理分页推入本轮。
+
+**交接后的关闭条件**：用户明确认可其真实工作流后，BEX 专项负责人依据证据更新 BEX-01 的 Human gate；保留真实设备与存储层性能为独立待评估项，不借此无限延长 BEX-01。
+
+## 仓库、分支、工作区与冲突边界
+
+- 主仓：https://github.com/jiangxng/EVO-App-Platform；页面共用组件 owner：https://github.com/jiangxng/eidos （核对时 Eidos `main@8d632842f256f4b08c4bedcaa69bda6822c8a3f7`，无开放 PR）。
+- 本次交接前再次读取 Platform 远端：**仅 `main@126f5ef7`，开放 PR 为 0**；此前 #827/#833/#838/#840/#843 及治理已合并过程分支已经按核验流程删除。其他窗口活动分支可能在不同时间点变化，接续者务必重新查询 GitHub 而非依赖此快照。
+- 本窗口 BEX 代码此前已全部通过 GitHub 提交与合并；**没有在本窗口另留仅本地可用的补丁或待提交文件**。此结论不覆盖其他窗口或用户本地机器，后者的未提交内容未知。
+- **BEX 本窗口负责** Counterparty 供应商列表/导入/对象扩展字段使用体验、BEX 专项文档、与 Eidos 表格既有插件接口对齐。**Agent/PA-02 owner** 单独负责 Agent Host、异步 run/outbox、Object Extension Owner PG 存储与安全恢复；Eidos owner 负责通用 UI 控件；平台治理/GOV、TR/账本、2D 由其各自窗口负责。
+- **不要修改/覆盖其他窗口权威**：`project.status.json`、由其生成的 `docs/roadmap/HANDOFF-LATEST.md`、`docs/agent-line/**`、`agents/**`、`manager/agent-*.ts`、Object Extension 的 PG/Owner 迁移、TR/账本、2D 文件；不因本次 UI 验收改共享 Host 核心权限/仓储或 `vendor/eidos` 通用设计规范。若需要改共享文件，先核对最新 main 与 owner 活动 PR，做小范围协调。
+- 本轮交接文档只在独立 docs 分支/PR 更新，不自动合入 main，不改其它窗口维护的状态。BEX 总索引 `docs/roadmap/BACKLOG.md` 仅更新 BEX-01 一行；本专项权威细节以本文件为准。
+
+---
+
 范围：只完成 **Counterparty 供应商 XLSX/CSV 导入 → 未映射列 → Human 创建企业扩展字段 → 重新映射 → 预检查/提交 → 供应商详情读取扩展值**。不重开 CP-03 已通过的机制、不开新存储、不开 Item/Warehouse 扩展 UI、不修改 Agent/EC。
 
 ## 原有已经实现且沿用的能力
