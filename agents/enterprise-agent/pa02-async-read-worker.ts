@@ -43,6 +43,10 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   sliceId():string;
   now?:()=>Date;
   ttlSeconds?:number;
+  /** A persisted per-Run bound, not a per-request loop count. */
+  maxRunSlices?:number;
+  /** Consecutive model errors tolerated before a terminal, truthful failure. */
+  maxConsecutiveModelFailures?:number;
   /** Enable only for a Host Worker that intentionally yields after each slice. */
   releaseOnReturn?:boolean;
   /** Only a trusted Host-injected Owner port may opt into material WRITE. */
@@ -84,6 +88,11 @@ export function createReadOnlyFencedAgentWorkerV030(
 ):ReadOnlyFencedAgentWorkerV030 {
   const time=()=> (deps.now?.()??new Date()).toISOString();
   const ttl=deps.ttlSeconds??180;
+  const maxRunSlices=deps.maxRunSlices??24;
+  const maxFailures=deps.maxConsecutiveModelFailures??3;
+  if(!Number.isInteger(maxRunSlices)||maxRunSlices<1||maxRunSlices>512||
+    !Number.isInteger(maxFailures)||maxFailures<1||maxFailures>5)
+    throw Error("PA02_WORKER_RUN_LIMIT_INVALID");
   return {
     async resumeOnce(input) {
       const runId=required(input.runId),workerId=required(input.workerId);
@@ -251,6 +260,20 @@ export function createReadOnlyFencedAgentWorkerV030(
           pending.decision.type==="tool"&&t.id===pending.decision.call.tool
         ));
       }
+      // R10: this limit is durable across reconnects, unlike the Host's
+      // max 24 slices per HTTP action. Pending decisions (especially a WRITE
+      // awaiting Owner reconciliation) are handled above before this gate.
+      // A crashed model in an already-started slice may safely retry there.
+      if(!(run.state==="RUNNING"&&run.activeSliceId) &&
+        run.sliceCount>=maxRunSlices) {
+        await append("RUN_BLOCKED",{
+          code:"PA02_RUN_SLICE_BUDGET_EXHAUSTED",
+          reason:"This Run reached its durable step limit. Existing completed "+
+            "tool results and receipts are preserved. Start a narrower "+
+            "request to continue; no further tools will be executed."
+        });
+        return output(true);
+      }
       const provider=deps.resolveProvider();
       if(!provider||provider.providerId!==run.input.providerId||
         provider.modelId!==run.input.modelId) {
@@ -278,8 +301,23 @@ export function createReadOnlyFencedAgentWorkerV030(
           context:structuredClone(input.context)
         });
       }catch(e){
-        await append("RUN_FAILED",{code:errorCode(e),
-          reason:e instanceof Error?e.message:String(e)});
+        const attempt=(run.modelFailureCount??0)+1;
+        const code=errorCode(e);
+        const reason=e instanceof Error?e.message:String(e);
+        // One record per failed inference is persisted before retry. A fresh
+        // Worker or a retried HTTP request MUST NOT reset the attempt budget.
+        await append("MODEL_INFERENCE_FAILED",{
+          code,reason,attempt
+        },sliceId);
+        if(attempt>=maxFailures) {
+          await append("RUN_FAILED",{
+            code:"PA02_MODEL_RETRY_EXHAUSTED",
+            reason:"Model inference failed "+attempt+" consecutive times "+
+              "(latest: "+code+"). No business success was inferred; "+
+              "previously committed effects remain visible. "+
+              "Check the provider and start a new Run to retry."
+          });
+        }
         return output(true);
       }
       run=await append("MODEL_DECISION_RECORDED",{decision},sliceId);
