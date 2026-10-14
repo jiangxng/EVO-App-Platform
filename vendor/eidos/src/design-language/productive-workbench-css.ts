@@ -448,20 +448,68 @@ form[data-eidos-id] button,
 [data-eidos-catalog-server-search]{display:flex;align-items:flex-end;gap:var(--eidos-space-sm);flex-wrap:wrap;margin-top:var(--eidos-space-lg)}
 [data-eidos-catalog-server-search] label{flex:1 1 200px;min-width:0;display:grid;gap:var(--eidos-space-xs)}
 [data-eidos-catalog-server-search] input,[data-eidos-catalog-server-search] button{min-height:44px;padding:0 var(--eidos-space-md);border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);background:var(--eidos-bg);color:var(--eidos-fg)}
+/* Keep the accessible label, but do not repeat the visible placeholder. */
+[data-eidos-catalog-search-label]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+
 
 /* Read-only collection table: compact on desktop, semantic cards on phone. */
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-has-table="true"] [data-eidos-catalog-items],
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-has-table="true"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{display:none}
-[data-eidos-catalog-table-wrap]{width:100%;max-width:100%;overflow-x:auto;margin-top:var(--eidos-space-lg)}
-[data-eidos-catalog-table]{border-collapse:collapse;width:100%;background:var(--eidos-bg);color:var(--eidos-fg)}
-[data-eidos-catalog-table] th,[data-eidos-catalog-table] td{
-  padding:var(--eidos-space-md);text-align:left;border-bottom:1px solid var(--eidos-border);vertical-align:middle;
+[data-eidos-catalog-table-wrap]{
+  width:100%;max-width:100%;overflow-x:auto;
+  margin-top:var(--eidos-space-lg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);background:var(--eidos-bg);
 }
-[data-eidos-catalog-table] th{font-weight:600;background:var(--eidos-bg-subtle)}
-[data-eidos-catalog-table] th button,[data-eidos-catalog-table] td button,
-[data-eidos-catalog-pagination] button{min-height:44px;padding:0 var(--eidos-space-md);
-  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);
-  background:var(--eidos-bg);color:var(--eidos-fg);cursor:pointer}
+[data-eidos-catalog-table]{
+  border-collapse:collapse;table-layout:fixed;width:100%;
+  background:var(--eidos-bg);color:var(--eidos-fg);
+  font-variant-numeric:tabular-nums;
+}
+[data-eidos-catalog-table] th,[data-eidos-catalog-table] td{
+  padding:10px var(--eidos-space-lg);text-align:left;
+  border-bottom:1px solid var(--eidos-border);vertical-align:middle;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+[data-eidos-catalog-table] th:first-child,
+[data-eidos-catalog-table] td:first-child{width:48%}
+[data-eidos-catalog-table] th{
+  font-size:var(--eidos-font-meta);font-weight:600;
+  background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);
+}
+[data-eidos-catalog-table] tbody tr:last-child td{border-bottom:0}
+[data-eidos-catalog-table] tbody tr:hover{background:var(--eidos-bg-hover)}
+/* Names are actionable text, not bordered form buttons; sort headers are labels. */
+[data-eidos-catalog-table] th button,
+[data-eidos-catalog-table] td:first-child button{
+  display:inline-block;max-width:100%;min-width:0;min-height:0;
+  padding:2px 0;border:0;border-radius:0;background:transparent;
+  font:inherit;font-weight:inherit;text-align:left;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;vertical-align:middle;
+  cursor:pointer;
+}
+[data-eidos-catalog-table] th button{color:inherit;font-weight:600}
+[data-eidos-catalog-table] th button::after{
+  content:"↕";margin-left:var(--eidos-space-xs);
+  color:var(--eidos-fg-muted);font-weight:400;
+}
+[data-eidos-catalog-table] td:first-child button{
+  color:var(--eidos-primary);font-weight:500;
+}
+[data-eidos-catalog-table] th button:hover,
+[data-eidos-catalog-table] td:first-child button:hover{text-decoration:underline}
+[data-eidos-catalog-table] th button:focus-visible,
+[data-eidos-catalog-table] td:first-child button:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:3px;
+}
+[data-eidos-catalog-pagination] button{
+  min-height:44px;padding:0 var(--eidos-space-md);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg);cursor:pointer;
+}
 [data-eidos-catalog-pagination]{display:flex;justify-content:space-between;align-items:center;
   flex-wrap:wrap;gap:var(--eidos-space-md);margin-top:var(--eidos-space-lg)}
 [data-eidos-catalog-pagination]>div{display:flex;flex-wrap:wrap;gap:var(--eidos-space-sm)}
