@@ -72,7 +72,7 @@
 
 用户明确要求：Excel 甲列选择系统字段 X 后，其他 Excel 列的下拉框**立即不再出现 X**；甲列取消选择或改为其他目标后，X 立即恢复。“忽略此列”允许多个 Excel 列重复使用，不算占用系统字段。这是**实时可用性规则**，不是等提交后才报错；需要同时从保存和预检查层拒绝来源列重复指向同一系统字段的异常请求。
 
-**采用方案**：Eidos 通用可选 `exclusiveSelect:{group,exemptValues}`，仅对显式声明的 select 分组启用动态排他，不影响其他 Eidos 表单（Eidos [PR #182](https://github.com/jiangxng/eidos/pull/182)，已合并）。BEX 的 `map_* ` 下拉均属于 `data-import-targets` 组，`__IGNORE__` 是豁免值。客户端实时隐藏/还原，服务端 `updateMapping` 和 `dryRun` 拒绝两个 Excel 来源列映射到同一字段；保留独立的常量映射与值变换逻辑；不触动 Agent `ai-auto-map` 动作与 `subjectType` 必填规则。旧作业中原有冲突不进行静默重排，留给用户修正。
+**采用方案**：Eidos 通用可选 `exclusiveSelect:{group,exemptValues}`，仅对显式声明的 select 分组启用动态排他，不影响其他 Eidos 表单（Eidos [PR #182](https://github.com/jiangxng/eidos/pull/182)，已合并）。BEX 的 `map_* ` 下拉均属于 `data-import-targets` 组，`__IGNORE__` 是豁免值。客户端实时隐藏/还原，沿用现有 Data Import 作业契约保存校验（`DATA_IMPORT_MAPPING_TARGET_DUPLICATE`），禁止两个来源列重复写入同一字段；无需修改服务底层或 Agent；保留独立的常量映射与值变换逻辑；不触动 Agent `ai-auto-map` 动作与 `subjectType` 必填规则。旧作业中原有冲突不进行静默重排，留给用户修正。
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
