@@ -39,3 +39,10 @@
 - [PR #872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 第一次代码+文档 HEAD `9864c64d1e1ecb79b640d5795fab8c927048b0b7` 的 **18/18 GitHub Actions 工作流 SUCCESS**；[真实 PG18 Agent PA-02 Async Read Worker workflow 38650954272](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38650954272) job `116149313153` 原始日志报告 **24 pass / 0 fail**，包括新增 `PA02_R10_REAL_REQUEST_BOUND_REQUIRED`。
 - 新负向用例检查 quote 函数收到**已组装**的 system/developer/user 消息及实际 maxOutputTokens；没有可信 quote、quote 越过输入上限及非整数/NaN 时都 `RUN_BLOCKED`，本地 Provider `infer` 0 调用、PG monetary reservations 0 行。此前合成预留/额度不足/未知费用 + R03/Owner 回归继续绿。首次 Head [全部 Actions 列表](https://github.com/jiangxng/EVO-App-Platform/pull/872/checks)。
 - 通过范围严格为**已编译 Host Worker + PostgreSQL18 + test-only synthetic quote/Provider**；不能推导实际 OpenAI/DeepSeek 的报价、最坏账单或真实生产路由。最终 PR Head 文档变更将再次触发 CI，必须重新复核，且未经正式供应商审批前 R10 / PA-02 仍 OPEN。
+
+
+## 2026-10-15：已连接 Railway 只读环境盘点（不取得密钥、不执行模型或部署）
+
+只读连接器 `Railway list_projects → list_services → list_variables` 返回当前可见项目 `EVO Ledger Runtime MVP` 的生产环境；相关服务 `Ledger Configurator` 的**已显示变量名**有 `APP_PLATFORM_CONVERSATION_DATABASE_URL`、`APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED` 和 `APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED`，但在这批变量名中**没有** `OPENAI_*/DEEPSEEK_*/APP_PLATFORM_AGENT_RUN_ASYNC_*`；`Ledger Configurator App Host Validator` 仅找到 `DATABASE_URL` 的相关变量名。连接器 `valuesRedacted=true`，本轮没有读取任何变量值、密钥、账单、Run 私有数据库或 Runtime Provider Registry，也没有开启生产 WRITE/调用真实收费模型。
+
+**证据等级：R-META / connected Railway read-only service/variable-name metadata, 2026-10-15。** 这不证明整个 EVO App Platform 没有实际可用 LLM；Provider Binding 可能由 Platform 的密钥管理器/数据层保存，连接器可见 Railway 服务也不一定代表全部部署。**不能仅凭变量名宣布真实供应商/模型身份、计价类别、费用审批或使用量已核实**；R10 正式供应商计价仍缺一手批准证据，继续 fail closed。
