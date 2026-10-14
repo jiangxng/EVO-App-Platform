@@ -695,7 +695,7 @@ test("Data Import prevents duplicate system target mappings even without a brows
     mapping:duplicate,
     actorSubjectId:"owner-a",
     recordedAt:"2026-10-14T10:01:00.000Z"
-  }),/DATA_IMPORT_MAPPING_TARGET_ALREADY_USED/);
+  }),/DATA_IMPORT_MAPPING_TARGET_DUPLICATE/);
   assert.equal(f.importRepository.get(contextId,job.importJobId).mapping.length,0);
   // The existing job contract also rejects duplicate targets during stage,
   // so invalid imported jobs never reach dry-run.
