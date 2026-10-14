@@ -246,6 +246,66 @@ with sync_playwright() as pw:
    'committedReceiptRetained':terminal['actionReceiptIds'][0],
    'uniqueOwnerRows':2,'ownerReplay':False,'browserReloadBeforeFinalResponse':True}
  case('committed-owner-effect-retained-after-browser-disconnect-cancel',committed_owner_effect_survives_browser_disconnect_and_cancel)
+ def owner_sql_committed_but_ack_lost_during_browser_cancel():
+  baseline=stats()
+  assert len(baseline['evidence'])==len(baseline['receipts'])==2,baseline
+  assert baseline['mockCalls']==5,baseline
+  earlier={x['run_id'] for x in baseline['turns']}
+  response=api.post(MOCK+'/__control',data={'mode':'owner-ack-lost'})
+  assert response.ok,response.text()
+  composer.fill('Commit one isolated Owner extension while its SQL ACK is deliberately lost.')
+  composer.press('Enter')
+  def sql_committed_before_ack():
+   st=stats()
+   return (len(st['evidence'])==3 and len(st['definitions'])==3
+    and st['ackLossCommitSeen'] and not st['ackLossInjected'])
+  until(sql_committed_before_ack,'OWNER_SQL_COMMIT_NOT_OBSERVED_BEFORE_ACK_LOSS',timeout=35)
+  current=stats()
+  candidates=[x['run_id'] for x in current['turns'] if x['run_id'] not in earlier]
+  assert len(candidates)==1,candidates
+  lost_run=candidates[0]
+  # The browser closes its in-flight HTTP connection *while Host is waiting*
+  # for a business Owner ACK that will never arrive.
+  page.reload(wait_until='domcontentloaded')
+  expect(composer).to_be_visible(timeout=30000)
+  requested=execute('enterprise-agent.run.cancel',{
+   'runId':lost_run,'reason':'Cancel while real business SQL committed but ACK is missing'})
+  assert requested['cancellationState'] in ('REQUESTED','CANCELLED'),requested
+  until(lambda:stats()['ackLossInjected'],'HOST_ACK_LOSS_NOT_INJECTED',timeout=20)
+  cancel=None
+  for attempt in range(36):
+   payload=action('enterprise-agent.run.cancel',{'runId':lost_run,
+    'reason':'Reconcile after independently verifying committed Owner SQL effect'})
+   payload['actionId']='pa02-after-owner-ack-loss-'+str(attempt)
+   reply=api.post(HOST+'/v1/actions',headers=headers,data=payload)
+   output=reply.json()
+   assert reply.status==200 and output['ok'],(reply.status,output)
+   cancel=output['result']
+   if cancel['cancellationState']=='CANCELLED':break
+   page.wait_for_timeout(200)
+  assert cancel['cancellationState']=='CANCELLED',cancel
+  run_after=execute('enterprise-agent.run.get',{'runId':lost_run})['run']
+  assert run_after['state']=='CANCELLED',run_after
+  assert len(run_after['actionReceiptIds'])==1,run_after
+  stale=execute('enterprise-agent.run.events',{'runId':lost_run,
+   'afterEventId':'missing-after-ack','limit':5})
+  assert stale['resetRequired'] is True,stale
+  assert stale['run']['state']=='CANCELLED',stale
+  assert stale['run']['actionReceiptIds']==run_after['actionReceiptIds'],stale
+  verified=stats()
+  assert len(verified['definitions'])==len(verified['evidence'])==len(verified['receipts'])==3,verified
+  assert any(x['extension_id']==fixture['extensionId']+'-acklost'
+   for x in verified['definitions']),verified
+  assert any(x['receipt_id']==run_after['actionReceiptIds'][0]
+   for x in verified['evidence']),verified
+  assert verified['mockCalls']==6,verified
+  page.screenshot(path=str(OUT/'pa02-owner-post-commit-ack-lost.png'),full_page=True)
+  return {'runId':lost_run,'terminalState':'CANCELLED','receiptRetained':True,
+   'sqlBusinessFacts':3,'independentOwnerEvidence':3,'agentReceipts':3,
+   'noBlindReinvocation':True,'realBrowserDisconnected':True,
+   'postCommitAckActuallyDroppedByHostSandboxWrapper':True}
+ case('owner-post-commit-ack-loss-browser-cancel-verifies-without-rewrite',
+  owner_sql_committed_but_ack_lost_during_browser_cancel)
  version=browser.version
  browser.close()
 report={'dateUtc':datetime.now(timezone.utc).isoformat(),
