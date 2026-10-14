@@ -9,7 +9,7 @@ export const hostManagedSessionProviderPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: HOST_MANAGED_SESSION_PACKAGE_ID,
   displayName: "Host Managed Session Provider",
-  description: "管理登录会话及其有效状态，为请求提供可信用户身份。",
+  description: "管理正常登录会话的有效期与撤销，支持 Cookie 和 Bearer 凭据。",
   displayNameTranslations: {
     "en": "Host Managed Session Provider",
     "zh-CN": "托管登录会话服务",
