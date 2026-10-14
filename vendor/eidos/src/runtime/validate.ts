@@ -7,6 +7,9 @@ import type {
   ValidationResult
 } from "./contracts.js";
 import { isPlainObject, toJsonSnapshot } from "./json.js";
+import {
+  assertContextNavigationV010
+} from "../navigation/context-navigation.js";
 
 const controls = new Set([
   "text",
@@ -22,6 +25,8 @@ const docKeys = new Set([
   "kind",
   "id",
   "title",
+  "description",
+  "contextNavigation",
   "purpose",
   "command",
   "fields",
@@ -49,7 +54,11 @@ const actionKeys = new Set([
   "label",
   "type",
   "command",
-  "requiresConfirmation"
+  "requiresConfirmation",
+  "prompt",
+  "agentCapability",
+  "context",
+  "refreshSourceOnComplete"
 ]);
 
 function d(
@@ -455,11 +464,15 @@ function parseAction(
       "Action label must be non-empty"
     ));
   }
-  if (value.type !== "submit" && value.type !== "cancel") {
+  if (
+    value.type !== "submit"
+    && value.type !== "cancel"
+    && value.type !== "agent"
+  ) {
     out.push(d(
       "EIDOS_ACTION_TYPE",
       `${path}.type`,
-      "Action type must be submit or cancel"
+      "Action type must be submit, cancel or agent"
     ));
   }
   if (value.command !== undefined && !nonEmpty(value.command)) {
@@ -480,12 +493,75 @@ function parseAction(
     ));
   }
   if (
+    value.agentCapability !== undefined
+    && !nonEmpty(value.agentCapability)
+  ) {
+    out.push(d(
+      "EIDOS_SCHEMA_TYPE",
+      `${path}.agentCapability`,
+      "agentCapability must be non-empty when present"
+    ));
+  }
+  if (
+    value.refreshSourceOnComplete !== undefined
+    && typeof value.refreshSourceOnComplete !== "boolean"
+  ) {
+    out.push(d(
+      "EIDOS_SCHEMA_TYPE",
+      `${path}.refreshSourceOnComplete`,
+      "refreshSourceOnComplete must be boolean when present"
+    ));
+  }
+  if (value.type === "agent" && !nonEmpty(value.prompt)) {
+    out.push(d(
+      "EIDOS_AGENT_ACTION_PROMPT_REQUIRED",
+      `${path}.prompt`,
+      "Agent action prompt must be a non-empty string"
+    ));
+  }
+  if (value.context !== undefined) {
+    try {
+      const snapshot = toJsonSnapshot(value.context);
+      if (!isPlainObject(snapshot)) {
+        out.push(d(
+          "EIDOS_AGENT_ACTION_CONTEXT_TYPE",
+          `${path}.context`,
+          "Agent action context must be a JSON object"
+        ));
+      }
+    } catch (error) {
+      out.push(d(
+        "EIDOS_AGENT_ACTION_CONTEXT_JSON",
+        `${path}.context`,
+        error instanceof Error
+          ? error.message
+          : "Agent action context is not JSON"
+      ));
+    }
+  }
+  if (
     !nonEmpty(value.id)
     || !nonEmpty(value.label)
-    || (value.type !== "submit" && value.type !== "cancel")
+    || (
+      value.type !== "submit"
+      && value.type !== "cancel"
+      && value.type !== "agent"
+    )
+    || (value.type === "agent" && !nonEmpty(value.prompt))
   ) {
     return;
   }
+  let parsedContext: Record<string, import("./contracts.js").JsonValue> | undefined;
+  if (value.context !== undefined) {
+    const snapshot = toJsonSnapshot(value.context);
+    if (isPlainObject(snapshot)) {
+      parsedContext = snapshot as Record<
+        string,
+        import("./contracts.js").JsonValue
+      >;
+    }
+  }
+
   return {
     id: value.id,
     label: value.label,
@@ -493,6 +569,14 @@ function parseAction(
     ...(nonEmpty(value.command) ? { command: value.command } : {}),
     ...(typeof value.requiresConfirmation === "boolean"
       ? { requiresConfirmation: value.requiresConfirmation }
+      : {}),
+    ...(nonEmpty(value.prompt) ? { prompt: value.prompt } : {}),
+    ...(nonEmpty(value.agentCapability)
+      ? { agentCapability: value.agentCapability }
+      : {}),
+    ...(parsedContext ? { context: parsedContext } : {}),
+    ...(typeof value.refreshSourceOnComplete === "boolean"
+      ? { refreshSourceOnComplete: value.refreshSourceOnComplete }
       : {})
   };
 }
@@ -559,6 +643,36 @@ export function validateUidl(
       "$.title",
       "title must be non-empty"
     ));
+  }
+
+  if (
+    document.description !== undefined
+    && !nonEmpty(document.description)
+  ) {
+    out.push(d(
+      "EIDOS_SCHEMA_TYPE",
+      "$.description",
+      "description must be non-empty when present"
+    ));
+  }
+
+  let contextNavigation:
+    import("../navigation/context-navigation.js").EidosContextNavigationV010
+    | undefined;
+  if (document.contextNavigation !== undefined) {
+    try {
+      contextNavigation = assertContextNavigationV010(
+        document.contextNavigation as import("../navigation/context-navigation.js").EidosContextNavigationV010
+      );
+    } catch (error) {
+      out.push(d(
+        "EIDOS_CONTEXT_NAVIGATION_INVALID",
+        "$.contextNavigation",
+        error instanceof Error
+          ? error.message
+          : "Context navigation is invalid"
+      ));
+    }
   }
 
   let command: { code: string; inputVersion: string } | undefined;
@@ -717,6 +831,12 @@ export function validateUidl(
       kind: "form",
       id: document.id,
       title: document.title,
+      ...(nonEmpty(document.description)
+        ? { description: document.description }
+        : {}),
+      ...(contextNavigation
+        ? { contextNavigation }
+        : {}),
       purpose: "execute-command",
       command,
       fields,
