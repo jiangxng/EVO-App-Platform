@@ -18,7 +18,7 @@
 在现有 Object Extension Owner 模块下增加**明确的离线只读取源、目标独占式导入**，而不是改写通用 Enterprise Resource Provider：
 
 1. `apps/object-extension/agent-owner-migration.ts`：显式初始化独立 `pa02_import_receipts`；输入原始 `enterprise-resources.json` 路径、完整文件 SHA256、逐项 `contextId ↔ enterpriseId` 可信绑定、`offlineSourceFrozen:true`。**只能在所有源文件写入者已经停止后**进行人工受控迁移。此模式不是生产自动切换入口。
-2. 读取既有 snapshot，筛选 `evo.object-extension / definitions / object-extension.definition`，复用已发布 schema validation，原样保存完整 `EnterpriseResourceV010`（创建者、创建/更新时间、元数据、ACTIVE/ARCHIVED 和 payload），不改动文件和其他命名空间。目标仍是 #836 已存在的 PostgreSQL 业务表，不复制新表做两套业务定义。
+2. 读取既有 snapshot，筛选 `evo.object-extension / definitions / object-extension.definition`，复用已发布 schema validation，原样保存完整 `EnterpriseResourceV010`（创建者、创建/更新时间、元数据、ACTIVE/ARCHIVED 和 payload），不改动文件和其他命名空间。目标仍是 #836 已存在的 PostgreSQL 业务表，不复制新表做两套业务定义。旧 PostgreSQL owner proof 的字段唯一键覆盖了归档行；本轮在隔离 schema 显式准备时收敛为只对 ACTIVE 定义唯一索引，允许既有业务含义中的“归档旧定义→用新 ID 重用原字段”，同时继续拒绝两个 ACTIVE 字段冲突。
 3. 同一 SQL 事务锁定目标 Context，验证企业绑定、空目标及不可变导入回执；逐个导入源资源并插入回执。两个独立进程使用同一文件/摘要并发时仅一个实际导入，另一个确认回执后安全返回。不同文件/资源摘要、目标已有写入、重复业务地址/字段、错误企业绑定都拒绝并全量回滚。
 4. 提交前重新核对源文件字节 SHA256，防止普通迁移期间文件漂移造成半成品；但此检查**不能保证提交后源文件不再被其他进程写入**。因此生产切换前必须有停写/隔离及迁移管理权限门禁。
 5. `apps/object-extension/agent-owner-postgres.ts` 添加企业作用域限定的 `listResources`，使迁移自文件的业务资源与新 Owner 的创建结果被同一 PostgreSQL 服务统一读取。Owner verifier 仍只核实真正 Owner 事务的证据，**不得将迁入的历史业务记录伪装成 Agent 执行过的成功 Receipt**。
@@ -27,9 +27,9 @@
 
 `tests/agent-line/pa02-object-extension-resource-migration.test.mjs`、独立 Node child fixture，现有 `.github/workflows/agent-pa02-async-read-worker.yml` 明确执行，PostgreSQL 18 服务：
 
-- 两个独立进程竞争迁移同一文件 → 相同效果，只一份业务数据与导入证明；完整封套及归档定义不丢。
+- 两个独立进程竞争迁移同一文件 → 相同效果，只一份业务数据与导入证明；完整封套及归档定义不丢，并验证归档历史与后续 ACTIVE 新定义共用同一字段标识不被错误拒绝。
 - 跨 Enterprise Context 数据读取隔离；与后续真实 Owner 创建的新资源在同一 SQL 查询面可见，Owner 独立核验仅证明该 Owner 新操作。
-- 旧文件及无关企业数据不变；重复相同导入不重放，源更改/哈希冲突拒绝。
+- 旧文件及无关企业数据不变；重复相同导入不重放，源更改/哈希冲突拒绝；旧 SQL proof schema 的旧全局唯一约束只能在显式隔离 schema 准备时收敛，不在 Host 自动执行迁移。
 - 源文件在迁移事务中途更改 → SQL 回滚；目标业务字段冲突或错误 enterprise binding → 所有上下文一起回滚。
 - 原 PR #836 的跨进程原子性和历史 PA-02 回归继续执行。
 
