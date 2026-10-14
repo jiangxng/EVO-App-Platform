@@ -452,3 +452,31 @@ test("Enterprise Agent uses a generic LLM provider to drive App Manager tools", 
     true
   );
 });
+
+
+test("PA02 R10 OpenAI: missing or malformed usage is unknown, valid cached tokens remain actual evidence",async()=>{
+  async function infer(usage){
+    const provider=createOpenAiResponsesLlmProvider({
+      apiKey:"sandbox",model:"gpt-test",
+      fetchImpl:async()=>Response.json({model:"gpt-test",output:[],
+        ...(usage===null?{}:{usage})})
+    });
+    return provider.infer({contractVersion:"0.1.0",
+      messages:[{role:"user",content:"do not invent model charges"}]});
+  }
+  assert.equal((await infer(null)).usage,undefined);
+  assert.equal((await infer({input_tokens:13})).usage,undefined);
+  assert.equal((await infer({input_tokens:-1,output_tokens:2})).usage,undefined);
+  assert.equal((await infer({input_tokens:3,output_tokens:2,
+    input_tokens_details:{cached_tokens:4}})).usage,undefined);
+  assert.deepEqual((await infer({input_tokens:50,output_tokens:7,
+    input_tokens_details:{cached_tokens:12}})).usage,
+    {inputTokens:50,outputTokens:7,cachedInputTokens:12});
+  assert.deepEqual((await infer({input_tokens:0,output_tokens:0})).usage,
+    {inputTokens:0,outputTokens:0},
+    "actual provider-reported zeros are distinct from an absent response");
+  console.log("PA02_R10_OPENAI_PROVIDER_USAGE_TRUTH="+JSON.stringify({
+    missingUnknown:true,partialUnknown:true,invalidUnknown:true,
+    cachedEvidenceVerified:true,trueReportedZeroPreserved:true
+  }));
+});

@@ -38,3 +38,10 @@
 ## 下一项最小真实 Gate
 
 先完成 #856 CI+merge+branch retirement，再从最新 main 开始 R10 **可硬阻断的真实货币费用预算**。如果当前 Provider 缺真实 usage、已批准价表或可担保的单次费用上界，则只实施可核实的 fail-closed 条件，R10 保持 OPEN，不能将 token 示例当成账单。随后使用隔离真实 App Host/PG + Chromium 跑 R05–R09 联合验收；最后按原始 R01–R10 做证据签收。**不提前引入 PA-03～PA-06。**
+
+## 2026-10-14：Provider 实际回执真实性复核（R10，PR 待 CI）
+
+继 #856 后查出实际安装的 `providers/openai/runtime.ts` 和 `providers/deepseek/runtime.ts` **都将缺失的 `body.usage` 用 `?? 0` 伪造为零 token**。本次在两个 Provider 适配层将只有真正回报的非负整数 usage 转成 `LlmInferenceResponseV010.usage`；缺失、部分或错误的 usage 表示**未知**，可选 `input_tokens_details.cached_tokens` 严格校验并作为已回报缓存输入传递。模型实际报告 `0/0` 的合法情形仍保留，并与未报告区分。历史 OpenAI 直连 adapter 不是正式 Host 计量真相，无需重写它。
+
+`tests/llm/provider.test.mjs` 和 `tests/llm/deepseek-provider.test.mjs` 新增正/反断言，使用各自既有 Provider CI 工作流。此次不强行指定 OpenAI/DeepSeek 的单价、不声称这个项目安装或当前绑定了哪个具体模型、也不将 Provider token 用量视作应付费用。**R10 硬货币预算保持 OPEN**，待最终 Head CI+PR 合并结果补记。
+

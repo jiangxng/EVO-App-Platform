@@ -299,3 +299,28 @@ test("OpenAI and DeepSeek coexist without silent selection and explicit binding 
     "deepseek-llm-provider"
   );
 });
+
+
+test("PA02 R10 DeepSeek: no usage is unknown rather than a synthetic zero",async()=>{
+  async function infer(usage){
+    const provider=createDeepSeekResponsesLlmProvider({
+      apiKey:"sandbox",model:"deepseek-flash",
+      fetchImpl:async()=>Response.json({model:"deepseek-flash",output:[],
+        ...(usage===null?{}:{usage})})
+    });
+    return provider.infer({contractVersion:"0.1.0",
+      messages:[{role:"user",content:"record actual usage only"}]});
+  }
+  assert.equal((await infer(null)).usage,undefined);
+  assert.equal((await infer({input_tokens:11})).usage,undefined);
+  assert.equal((await infer({input_tokens:8,output_tokens:-2})).usage,undefined);
+  assert.deepEqual((await infer({input_tokens:21,output_tokens:3,
+    input_tokens_details:{cached_tokens:5}})).usage,
+    {inputTokens:21,outputTokens:3,cachedInputTokens:5});
+  assert.deepEqual((await infer({input_tokens:0,output_tokens:0})).usage,
+    {inputTokens:0,outputTokens:0});
+  console.log("PA02_R10_DEEPSEEK_PROVIDER_USAGE_TRUTH="+JSON.stringify({
+    missingUnknown:true,partialUnknown:true,invalidUnknown:true,
+    trueReportedZeroPreserved:true
+  }));
+});
