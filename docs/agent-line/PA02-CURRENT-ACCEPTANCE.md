@@ -18,7 +18,7 @@
 | R06 事件缺口 | **服务端 PG 与 Eidos 消费端分别已验证** #844/#847 | 真实缺口 + 授权快照/回执联动验收 |
 | R07 部分成功/失败 | **隔离 Owner/Run 已验证** [#842](https://github.com/jiangxng/EVO-App-Platform/pull/842) | 汇入浏览器恢复与最终证据账 |
 | R08 运行中取消 | **隔离 PG 原子取消已验证** #842 | 浏览器取消及保留已提交效果 |
-| R09 断流重连 | **代码与局部测试通过，真实 HTTP/Chromium 未验** #844/#847 | 重连原 Run、跨作用域拒绝、不重发 WRITE |
+| R09 断流重连 | **真实 HTTP/Chromium + PG READ-only 子门槛 5/5 PASS**（[#859](https://github.com/jiangxng/EVO-App-Platform/pull/859) 初版完整证据 [run 38543099401](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38543099401)，仍待该 PR 最终 HEAD CI 及合并） | Material WRITE/Receipt 同 Run 断线恢复、取消/重复不重发仍 OPEN |
 | R10 Run 步数 | **24 slice 持久边界已验证** #845 | 纳入最终证据账 |
 | R10 Run 时间 | **72h 持久截止已验证** [#848](https://github.com/jiangxng/EVO-App-Platform/pull/848) | 纳入最终证据账 |
 | R10 实际 usage | **#856 隔离 PG/Host 局部 CI 通过，尚待最终合并**；[原始用量、未知用量的回归证据](PA02-R10-USAGE-EVIDENCE-20261014.md) | 核实真实安装 Provider 供应商回执；不编造金额 |
@@ -45,3 +45,9 @@
 
 `tests/llm/provider.test.mjs` 和 `tests/llm/deepseek-provider.test.mjs` 新增正/反断言，使用各自既有 Provider CI 工作流。此次不强行指定 OpenAI/DeepSeek 的单价、不声称这个项目安装或当前绑定了哪个具体模型、也不将 Provider token 用量视作应付费用。**R10 硬货币预算保持 OPEN**，待最终 Head CI+PR 合并结果补记。
 
+
+## 2026-10-14：R05/R06/R09 真实 HTTP + Chromium / PostgreSQL READ-only 联合 Gate
+
+[新测试与严格边界](PA02-R09-HTTP-CHROMIUM-RECOVERY-20261014.md) 已在独立短分支提交，使用实际 App Host、真实 Eidos Workbench、PG18 Run/Outbox、浏览器刷新、真实 HTTP event cursor 与 scope 否决，测试模型为本机 Loopback Responses，不调用供应商或生产。**本段提交时 PR/CI 尚未 PASS**。即便 PASS，也只能补 R05/R06/R09 的 READ-only 浏览器/Run 部分，不得替代 Owner WRITE、取消后的效果不重发和最终签收。
+
+**浏览器一手补证据（2026-10-14，#859 初版成功）：** [CI run 38543099401](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38543099401)，GitHub 实际 PG18 + HTTP App Host + Chromium Workbench，真实脚本日志 `PA02_REAL_CHROMIUM_R09={passed:5,total:5,realHTTP:true,realPG:true,productionUsed:false}`；五项分别为真实 Workbench → 持久 Run（含 usage）、Outbox 重读、缺口快照重置、刷新不二次推理、外来上下文 HTTP403。证据报告/截图在同一次 Actions Artifact。**明确限制：这是 READ-only 子门槛，不包含受治理业务 WRITE、不意味着 PA-02 全部 PASS。** 最终合入前仍核对当前 HEAD 全绿。
