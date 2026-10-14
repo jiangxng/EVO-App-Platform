@@ -60,3 +60,11 @@
 - [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 真正 final Head `c6551aa507082a0250812237be36c1c41f24fff7` **18/18 GitHub CI 全绿**、[Worker PG18 run 38651279340](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38651279340) 24/24 PASS；main merge `b34863eddcaff75e8c5522da5206cf2828dc8ec5`，Agent 过程 branch 确认删除。之前“待合并”只反映前次提交时状态。此门禁确保模型请求完整组装后才检查测试专用可信输入上界，失败零 Provider 调用/零虚构 PG 保留；不等于收费供应商已认可真实 token 上限。
 - 新 [#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 补**可单独计费的缓存写入**风险： `LlmInferenceResponseV010.usage.cacheWriteInputTokens` 可正数，旧 PG 结算只接收 `inputTokens/outputTokens`，会在没有该类别获批单价时释放占额。新测试用真实隔离 PG18/Host Run 证明 positive additive cache write 时原始 usage 仍 `REPORTED`（事实），金钱账 `UNKNOWN`、保留此前全部费用预留、原 Run 阻断且 Host 重启不自动重发。**CI / final PR Head/merged 均待验证**，不得预填成功。完整记录见 [R10 金钱预留及增量修正](PA02-R10-MONETARY-RESERVATION-PROOF-20261014.md)。
 - 仍然没有经 Host 批准的真实模型/地区/计价版本/缓存计费条件与具确定上界的账单回执；R10 `OPEN`、PA-02 `NOT_SIGNED`，不把合成模型/官网公开报价误写为正式企业账单。未改变任何生产模式或 BEX/2D/治理窗口源文件。
+
+
+## 2026-10-15：最终一手证据审计入口（阶段 R10 仍未签收）
+
+- [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 最终 Head `c6551aa507082a0250812237be36c1c41f24fff7`，18/18 CI SUCCESS，main `b34863eddcaff75e8c5522da5206cf2828dc8ec5`；历史“待合并”是过去状态。测试专属 Host 完整请求 quote→PG 预留→Provider 调用前拒绝，真实 [PG18 38651279340](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38651279340) 24/24 PASS。
+- [#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 最终 HEAD `2094c74ebaa143d67c246e742d794facfd27687d`（安全同步并行治理 main #873 后），18/18 CI SUCCESS，main merge `03cf2a15bb4c0af35cc4084c785cbe056dbb940b`，真实 [PG18 Agent Worker 38652026320](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38652026320) 26/26 PASS。Provider `cacheWriteInputTokens > 0` 却无额外收费类别的批准费率时，原 Run 的 token 事实 `REPORTED` 而货币状态 `UNKNOWN`，旧费用预留持久不放回，无第二次模型推理。过程 Agent branches 均已核实自动删除。
+- 当前统一的 [PA-02 Final Signoff Audit 2026-10-15](PA02-FINAL-SIGNOFF-AUDIT-20261015.md) 逐项复核 R01–R10：R01–R09 隔离开发一手证据 PASS，R10 的步数/时间/usage 与合成费率费用门禁 CI 已证明；**真实供应商计价授权、可计费上下界及供应商账单回执仍然缺失**，因此 **`R10 NOT_SIGNED` / `PA-02 IN_PROGRESS`**，不能写 `DEV_COMPLETE`、`PRODUCTION_READY`、`DEPLOYED`。
+- 这一判断没有重新访问 14 条历史 H 类外站；新官方文档阅读等级与 Railway 只读元数据限制见各 R10 专项。任何后续 Provider 硬预算只在获授权的严格计费合同下接原持久 Run/PG 账本，不开新执行器、不提前实现 PA-03～06、不擅自部署或打开生产 WRITE。
