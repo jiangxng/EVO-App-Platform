@@ -169,16 +169,20 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           [s.contextId,key]);
         if(previous.length) {
           const prior=previous[0].evidence as Evidence;
-          if(prior.runId!==evidence.runId||prior.effectId!==evidence.effectId||
-             prior.receiptId!==evidence.receiptId||
-             prior.inputDigest!==evidence.inputDigest||
-             prior.enterpriseId!==evidence.enterpriseId||
-             prior.principalSubjectId!==evidence.principalSubjectId||
-             prior.principalActorType!==evidence.principalActorType||
-             prior.toolId!==evidence.toolId||
-             json(prior.definition)!==json(definition)||
-             prior.idempotencyKey!==evidence.idempotencyKey)
-            throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_SOURCE");
+          const conflicts=[
+            ["runId",prior.runId!==evidence.runId],
+            ["effectId",prior.effectId!==evidence.effectId],
+            ["receiptId",prior.receiptId!==evidence.receiptId],
+            ["inputDigest",prior.inputDigest!==evidence.inputDigest],
+            ["enterpriseId",prior.enterpriseId!==evidence.enterpriseId],
+            ["principalSubjectId",prior.principalSubjectId!==evidence.principalSubjectId],
+            ["principalActorType",prior.principalActorType!==evidence.principalActorType],
+            ["toolId",prior.toolId!==evidence.toolId],
+            ["definition",json(prior.definition)!==json(definition)],
+            ["idempotencyKey",prior.idempotencyKey!==evidence.idempotencyKey]
+          ].filter(([,mismatch])=>mismatch).map(([field])=>field);
+          if(conflicts.length)
+            throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_SOURCE:"+conflicts.join(","));
           if(previous[0].evidence_digest!==hash(json(prior)))
             throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_EVIDENCE_INTEGRITY");
           return;
