@@ -378,7 +378,15 @@ export function createPersonalAgentRunActionHandlersV010(
             ...(typeof limit==="number"?{limit}:{})
           });
           if(!replay)throw Error("AGENT_RUN_NOT_FOUND");
-          return success(request,{...replay,run});
+          // A concurrent Worker may finish between initial scope checking
+          // and replay. Return a snapshot at least as fresh as the replay,
+          // so a stale PAUSED state never masks a committed terminal event.
+          const latest=await dependencies.asyncRunRuntime!.read({
+            runId,principal,context
+          });
+          if(!latest||!sameScope(latest,principal,context))
+            throw Error("AGENT_RUN_NOT_FOUND");
+          return success(request,{...replay,run:latest});
         }catch(error){return failure(request,error);}
       }
     }] : []),
