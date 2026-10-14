@@ -8,6 +8,8 @@ import {createPostgresAgentExecutionCoordinatorV020}
   from "../../dist/agents/enterprise-agent/pa02b-postgres-coordination.js";
 import {createPostgresAtomicAgentRunCancellationV020}
   from "../../dist/agents/enterprise-agent/pa02c-atomic-run-cancel.js";
+import {createPostgresFencedAgentRunAuthorityV030}
+  from "../../dist/agents/enterprise-agent/pa02b-fenced-run-authority.js";
 import {createPostgresAgentOwnerReconciliationV030}
   from "../../dist/agents/enterprise-agent/pa02b-owner-reconciliation.js";
 import {createGovernedAgentWriteHandoffV040}
@@ -27,7 +29,7 @@ test("PA02B actual sandbox WRITE -> lost reply -> Owner verifies once, not repla
 },async()=>{
   const schema="pa02_owner_handoff_"+randomUUID().replaceAll("-","").slice(0,12);
   const admin=postgres(url,{max:3});
-  let repo,coordinator,cancel,owner,ownerAfterRestart;
+  let repo,coordinator,authority,cancel,owner,ownerAfterRestart;
   const invokeCount=new Map();
   const effectRows=async()=>admin.unsafe('SELECT * FROM "'+schema+'".owner_business_effects');
   const runIds=["run:handoff-1","run:handoff-2","run:handoff-3"];
@@ -88,6 +90,7 @@ test("PA02B actual sandbox WRITE -> lost reply -> Owner verifies once, not repla
   try{
     repo=await createPostgresAgentDurabilityProofV020({connectionString:url,schema});
     coordinator=await createPostgresAgentExecutionCoordinatorV020({connectionString:url,schema});
+    authority=await createPostgresFencedAgentRunAuthorityV030({connectionString:url,schema});
     cancel=await createPostgresAtomicAgentRunCancellationV020({connectionString:url,schema});
     owner=await createPostgresAgentOwnerReconciliationV030({
       connectionString:url,schema,ownerVerifier:verifier
@@ -96,7 +99,7 @@ test("PA02B actual sandbox WRITE -> lost reply -> Owner verifies once, not repla
       "effect_id text PRIMARY KEY,run_id text NOT NULL,owner_package_id text NOT NULL,"+
       "input_digest text NOT NULL)");
     const createGate=reconciler=>createGovernedAgentWriteHandoffV040({
-      coordinator,receipts:repo,reconciler,owner:businessOwner
+      coordinator,authority,receipts:repo,reconciler,owner:businessOwner
     });
     const gate=createGate(owner);
     const lease=await claim(runIds[0]);
@@ -167,7 +170,7 @@ test("PA02B actual sandbox WRITE -> lost reply -> Owner verifies once, not repla
       actualProductionOwnerEnabled:false,formalHostWiring:false
     }));
   }finally{
-    for(const x of [ownerAfterRestart,owner,cancel,coordinator,repo])if(x)await x.close();
+    for(const x of [ownerAfterRestart,owner,cancel,authority,coordinator,repo])if(x)await x.close();
     try{await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');}
     finally{await admin.end();}
   }
