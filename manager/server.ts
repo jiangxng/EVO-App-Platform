@@ -969,6 +969,9 @@ import {
   OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+  OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
+  OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
+  parseObjectExtensionImportRouteV010,
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID
 } from "../apps/object-extension/constants.js";
@@ -5007,7 +5010,8 @@ const actionRouter = createAppActionRouter(
     ...[
       OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
       OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
-      OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010
+      OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
+      OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: OBJECT_EXTENSION_PACKAGE_ID,
@@ -5017,6 +5021,7 @@ const actionRouter = createAppActionRouter(
           const module = await import("../apps/object-extension/actions.js");
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
+            getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -7363,6 +7368,40 @@ const server = createServer(async (request, response) => {
             readableFieldIds: directory.readableFieldIds
           })
         );
+      }
+
+      if (source === OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010) {
+        if (!manager.getSnapshot().activeFeatures.some(item =>
+          item.featureId === OBJECT_EXTENSION_FEATURE_ID
+        )) return json(response,404,{code:"OBJECT_EXTENSION_NOT_INSTALLED"});
+        const session=resolveRequestIdentitySession(request);
+        const registry=createContextRegistryForSession(session);
+        const resolved=registry.resolve(
+          contextFromHeaderV010(request.headers,registry)
+        );
+        const active=resolved.activeContext;
+        if(active.kind!=="ENTERPRISE") return json(response,409,{
+          code:"OBJECT_EXTENSION_ENTERPRISE_CONTEXT_REQUIRED"
+        });
+        const canManage=(resolveEnterpriseContextRelationshipProvider()
+          ?.listForPrincipal(session.principal)??[]).some(item=>
+            item.contextId===active.contextId && item.state==="ACTIVE"
+            && (item.kind==="OWNER"||item.kind==="ADMIN")
+          );
+        if(!canManage) return json(response,403,{
+          code:"OBJECT_EXTENSION_MANAGE_ROLE_REQUIRED"
+        });
+        const jobId=parseObjectExtensionImportRouteV010(
+          url.searchParams.get("route")??undefined
+        );
+        const job=jobId?dataImportRepository.get(active.contextId,jobId):undefined;
+        if(!job||job.targetId!=="counterparty.subject") return json(response,404,{
+          code:"OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND"
+        });
+        const module=await import("../apps/object-extension/page.js");
+        return json(response,200,module.createObjectExtensionImportPageV010({
+          job,locale:requestedLocale(url)
+        }));
       }
 
       if (
