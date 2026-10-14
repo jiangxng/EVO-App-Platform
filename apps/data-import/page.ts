@@ -459,6 +459,14 @@ export function createDataImportMappingPageV010(input: {
       .filter(item => Boolean(item.sourceColumn))
       .map(item => [item.sourceColumn!, item.targetFieldId] as const)
   );
+  // Reuse a unique existing business field by its displayed name.
+  // Ambiguous duplicates are intentionally left for the user to resolve.
+  const uniqueExistingField = (column: string): string | undefined => {
+    const matches=importFields.filter(field =>
+      field.resolvedLabel.trim().toLocaleLowerCase()===column.trim().toLocaleLowerCase()
+    );
+    return matches.length===1?matches[0].fieldId:undefined;
+  };
   const fieldLabel = new Map(
     importFields.map(field => [
       field.fieldId,
@@ -571,7 +579,8 @@ export function createDataImportMappingPageV010(input: {
       initialValue: current.get(sourceColumn)
         ?? (input.createdMapping?.sourceColumn === sourceColumn
           && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
-            ? input.createdMapping.fieldId : "__IGNORE__"),
+            ? input.createdMapping.fieldId
+            : uniqueExistingField(sourceColumn) ?? "__IGNORE__"),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
