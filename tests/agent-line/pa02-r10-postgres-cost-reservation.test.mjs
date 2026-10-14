@@ -160,3 +160,43 @@ test("PA02 R10: reject a missing, malformed or fabricated tariff before reserve"
     await admin.end();
   }
 });
+
+test("PA02 R10: a separately billable cache write with no approved rate stays UNKNOWN and holds its entire reservation",{
+  skip:!url?"Requires disposable PostgreSQL18":false,timeout:90000
+},async()=>{
+  const schema="pa02_cost_"+randomUUID().replaceAll("-","").slice(0,12);
+  const admin=postgres(url,{max:2});let ledger;
+  try{
+    ledger=await createPa02IsolatedPostgresCostLedgerV010({
+      connectionString:url,schema});
+    const runId="pa02-cost:cache-write-unknown";
+    const reserve=await ledger.reserve({scope,runId,sliceId:"cache:1",policy:synthetic});
+    assert.equal(reserve.status,"RESERVED");
+    const unsettled=await ledger.settle({scope,runId,sliceId:"cache:1",
+      policy:synthetic,usage:{
+        inputTokens:25,outputTokens:5,cachedInputTokens:10,
+        cacheWriteInputTokens:7
+      }});
+    assert.equal(unsettled.status,"UNKNOWN",
+      "Input/output-only tariff cannot refund a separate cache write charge");
+    const snapshot=await ledger.snapshot({scope,runId});
+    assert.equal(snapshot.usedAndHeldMicros,"140");
+    assert.equal(snapshot.entries[0].status,"UNKNOWN");
+    assert.equal((await ledger.reserve({
+      scope,runId,sliceId:"cache:2",policy:synthetic
+    })).status,"UNKNOWN_HELD");
+    await ledger.close();ledger=undefined;
+    ledger=await createPa02IsolatedPostgresCostLedgerV010({
+      connectionString:url,schema});
+    assert.equal((await ledger.snapshot({scope,runId})).usedAndHeldMicros,"140");
+    console.log("PA02_R10_CACHE_WRITE_UNKNOWN_PG="+JSON.stringify({
+      separatelyPricedCacheWritesNeverSilentlyIgnored:true,
+      unsettledReservationHeldAcrossRestart:true,
+      noVendorTariffApproved:true,productionUsed:false
+    }));
+  }finally{
+    await ledger?.close();
+    await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');
+    await admin.end();
+  }
+});
