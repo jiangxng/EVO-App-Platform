@@ -3,7 +3,7 @@
 **Document class:** CURRENT_STATUS / LIVING_RUNBOOK
 **Last reviewed:** 2026-10-14
 **Authority:** [PA-00～PA-06 建设总纲 §25](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) 的原始 R01–R10；项目交付规范；[历史交接入口](PA02-WINDOW-CLOSURE-HANDOFF-ENTRY-20261014.md)。
-**Current verified main:** `996cb2de2e63a657438adfa12aba05044e70fed0`（[#865](https://github.com/jiangxng/EVO-App-Platform/pull/865) 已合入；本轮快照）。截至核验无开放 PA-02 PR，BEX #846/#860 是其他 owner。**原始十项证据总账：** [PA02-R01-R10-EVIDENCE-LEDGER-20261014.md](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。最新状态以该总账及本节最终 merged 补记为准，旧时间顺序段落不覆盖最新合并状态。
+**Current verified main before #868:** `791326b613ecae30529e4a6a9a85b3028e4b23b3`（[#867](https://github.com/jiangxng/EVO-App-Platform/pull/867) 十项证据总账已合入）。PA-02 [#868](https://github.com/jiangxng/EVO-App-Platform/pull/868) 为当前受控 ACK 丢失整链验收 PR；BEX #846/#860/#866 属其他 owner。**原始十项证据总账：** [PA02-R01-R10-EVIDENCE-LEDGER-20261014.md](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。最新状态以该总账及本节最终 merged 补记为准，旧时间顺序段落不覆盖最新合并状态。
 **Production:** NOT AUTHORIZED / No production WRITE deployment. **PA-02 milestone:** IN_PROGRESS, NOT SIGNED.
 
 每完成一个可验证交付闭环，**更新这张表，不使用倒数数字冒充进度**。状态必须区分局部 CI 通过、隔离真实整链通过、最终阶段签收；表格不得提前填 PASS。
@@ -13,17 +13,17 @@
 | R01 双 Worker 领取 | **隔离 PG18 竞争已验证** #799/#800 | 独立证据已纳入原始总账；生产多节点 RPO/RTO 不是本轮证明 |
 | R02 旧 Worker 复活 | **旧 fence/租约拒绝已验证** #800/#842 | 旧 Worker 拒绝不能代替外部业务回滚 |
 | R03 模型失败 | **已验证** [#845](https://github.com/jiangxng/EVO-App-Platform/pull/845) | 最终账登记连续 3 次封顶/负向场景 |
-| R04 WRITE 响应丢失 | **正式 Host + SQL Owner 已提交 ACK 丢失独立核验通过** #839/#842 | 未直接在同一浏览器/Host 故障内制造 Owner→Host ACK 丢失+旧 Worker 失租 |
+| R04 WRITE 响应丢失 | **#839/#842 独立 PG Owner 已验证；#868 同 Chromium/Host Run 模拟真实 SQL commit 后 Host ACK 丢失 9/9 初版 PASS（待最终 HEAD/合并）** | 旧 Worker 独立进程杀死/真实跨机器网络中断并非此次同场景证明 |
 | R05 Outbox 重投 | **PG/Eidos/READ/真实 governed Owner WRITE 分层已验** #844/#847/#859/#863/#865 | 重复事件/请求不二次业务 WRITE，见总账 |
 | R06 事件缺口 | **PG/Eidos/真实 HTTP 缺口及取消后 Receipt 快照均验收** #844/#847/#859/#865 | 异常游标读权威快照，不新建 Run |
 | R07 部分成功/失败 | **提交后中断，Chromium 恢复保留已发生的 Owner Receipt 验证** #842/#865 | 不代表 SQL 内部部分成功可撤销 |
-| R08 运行中取消 | **Owner 原子取消与浏览器执行前/已提交后取消均已验** #842/#863/#865 | 同一 SQL 提交时旧 Worker 失租+浏览器复合故障未直接模拟 |
-| R09 断流重连 | **READ #859 5/5、Owner WRITE #863 7/7、已提交后浏览器断线取消 #865 8/8 均 merged**（[最终 CI 38549835829](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549835829)） | 不是 SQL Owner→Host ACK 真丢的模拟；R04 独立证据仍需区分 |
+| R08 运行中取消 | **#842/#863/#865 已验证；#868 浏览器在 SQL commit 后、业务 ACK 未回到 Host 时取消，同 Run 保留已提交 Receipt 的初版 CI PASS** | 生产跨进程故障与真实 Owner 网络断路未验收 |
+| R09 断流重连 | **#859 READ 5/5、#863 WRITE 7/7、#865 commit+断线 8/8 均 merged；#868 ACK 丢失/浏览器取消 9/9 初版代码 CI PASS** ([38550940285](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940285)) | #868 尚待最终 HEAD 全绿/merge；不包含生产多节点可用性承诺 |
 | R10 Run 步数 | **24 slice 持久边界已验证** #845 | 纳入最终证据账 |
 | R10 Run 时间 | **72h 持久截止已验证** [#848](https://github.com/jiangxng/EVO-App-Platform/pull/848) | 纳入最终证据账 |
 | R10 实际 usage | **#856/#857 已合并**：真实 Provider 所回报用量持久记录，缺失用量明确标记 `UNAVAILABLE`、不伪零；[实施证据](PA02-R10-USAGE-EVIDENCE-20261014.md) | 仍缺绑定的供应商真实计费/审批费率；不能由 token 数自动推定货币费用 |
 | **R10 硬货币预算** | **OPEN / NOT IMPLEMENTED** | 审批计价版本与最坏情况预留、费用结算和崩溃保留，预算前置阻断的负向 CI |
-| **真实 HTTP／Chromium 整链** | **READ 5/5 + SQL Owner 7/7 + post-commit disconnect/cancel 8/8 均通过并合并** | 还没有单次 Owner→Host ACK 丢失＋浏览器失联＋旧 Worker fencing 的极端复合证明 |
+| **真实 HTTP／Chromium 整链** | **#859/#863/#865 已合并；#868 真实 SQL commit→Host 模拟丢 ACK→Chromium reload/取消与回执恢复 9/9 初版 PASS** | 测试模拟业务 ACK 丢失，不包含实际 TCP 中断或生产；最终 PR 合并仍待审核 |
 | **R01–R10 最终签收** | **逐项证据总账完成 / 阶段未签收** | R10 货币限额的批准计价、最坏情况原子预留/硬拒绝仍未完成 |
 | **PA-02 阶段** | **IN_PROGRESS / NOT_PRODUCTION_READY** | 全部原验收通过方可 DEV_COMPLETE；生产单独审批 |
 
@@ -86,3 +86,9 @@
 - **#865 最终 HEAD** `48b8c122fbdc8087db6d91961802a11e99831706` 的 [Chromium/PG/Host run 38549835829](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549835829)、[Continuity 38549835903](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549835903)、[Lightweight Host 38549835816](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549835816) 均 SUCCESS；首版浏览器证据 [Artifact 11885399235](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549519235/artifacts/11885399235)。
 - 原始十项详细证据分类：**[PA02-R01-R10-EVIDENCE-LEDGER-20261014.md](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)**。上方历史时间线有创建时 `#863/#865 待合并` 的文字，它是历史事实，不代表此刻还开放 PR。
 - **仍有 2 类阶段级未关闭**：R10 实际货币费用硬限额（阻止 `DEV_COMPLETE`），以及 Owner→Host 提交后 ACK 真丢 + 浏览器 + 旧 Worker 失租是否作为最高保真联合验收（与已通过的各分层证明严格区分）。生产授权与正式迁移不包含在当前隔离开发签收。
+
+## 2026-10-14：#868 SQL commit 后 Host 丢失 Owner ACK，浏览器取消同 Run 复合补证
+
+- [PR #868](https://github.com/jiangxng/EVO-App-Platform/pull/868) **首版代码 HEAD** `9cf8c2f180d112f0468678eba61902f64be0fa9f`：[真实 Chromium / Host / SQL Owner / PG18 工作流 38550940285](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940285) **9/9 PASS**，相关 [Platform 38550940149](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940149)、[Continuity 38550940191](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940191)、[Lightweight Host 38550940231](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940231) 均 SUCCESS。原始报告与浏览器截图 [Artifact 11886517409](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940285/artifacts/11886517409)，详细测试边界见 [专项证据](PA02-R04-OWNER-ACK-LOSS-CHROMIUM-20261014.md)。当前 branch 已安全对齐 #867 合入后的 main，但**最终 HEAD 文档更改和 PR 合并未预先算作已通过**。
+- 这是测试专属 `NODE_ENV=test`、`OWNER_SANDBOX`、`pa02-sandbox:*` 和隔离 PG schema 下的**真实业务 SQL commit，受控包装器在返回 Host 前丢弃 ACK**。浏览器在窗口中断原 HTTP，请求正式 `run.cancel`，原 Owner Verifier 确认实际提交，终态 `CANCELLED` 保留唯一 Receipt，重复/缺口不重发。**非真实公网 TCP 错误、非生产签收**。
+- 仍然唯一阶段阻断：**R10 实际货币费用计量/已批准费率/前置原子最坏费用保留和超限硬拒绝**。原始 R01–R10 证据总账此前 #867 已建立；本批完成后应更新该总账，才能做全阶段最终签收。
