@@ -142,6 +142,7 @@ test("PA-02 Worker: real fenced WRITE decision -> real Owner effect -> durable r
     assert.equal(ownerInvocations,1);
     assert.equal((await writes()).length,1);
     const receiptId=first.run.observations[0].result.receiptId;
+    assert.deepEqual(first.run.actionReceiptIds,[receiptId]);
     assert.equal((await repo.getReceipt({scope,receiptId})).status,"SUCCEEDED");
     const second=await resume(runId,"worker:2");
     assert.equal(second.run.state,"SUCCEEDED");
