@@ -697,17 +697,14 @@ test("Data Import prevents duplicate system target mappings even without a brows
     recordedAt:"2026-10-14T10:01:00.000Z"
   }),/DATA_IMPORT_MAPPING_TARGET_ALREADY_USED/);
   assert.equal(f.importRepository.get(contextId,job.importJobId).mapping.length,0);
-  // Even a job staged through a non-UI source cannot bypass dry-run protection.
-  const staged=f.service.stage({
+  // The existing job contract also rejects duplicate targets during stage,
+  // so invalid imported jobs never reach dry-run.
+  assert.throws(()=>f.service.stage({
     contextId,importJobId:"import-duplicate-target-non-ui",
     targetId:"counterparty.subject",
     targetParameters:{relationshipRoles:["SUPPLIER"]},
     source:parseCsvSourceV010({name:"duplicate-non-ui.csv",csv:"code,other\nA-100,B-200"}),
     mapping:duplicate,
     actorSubjectId:"owner-a",recordedAt:"2026-10-14T10:02:00.000Z"
-  });
-  assert.throws(()=>f.service.dryRun({
-    contextId,importJobId:staged.importJobId,
-    actorSubjectId:"owner-a",recordedAt:"2026-10-14T10:03:00.000Z"
-  }),/DATA_IMPORT_MAPPING_TARGET_ALREADY_USED/);
+  }),/DATA_IMPORT_MAPPING_TARGET_DUPLICATE/);
 });
