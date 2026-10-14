@@ -1,4 +1,5 @@
 import type {
+  FoundationObjectImportIssueV010,
   FoundationObjectImportTargetV010
 } from "../../contracts/foundation-object/import.js";
 import {
@@ -239,6 +240,66 @@ function importEvidenceMetadata(
   };
 }
 
+
+/**
+ * The business owner may provide a trusted local workspace destination.
+ * This is an exit link, not an import commit, and must exist even when
+ * mapping or validation fails. Do not accept arbitrary client return URLs.
+ */
+function objectWorkspaceNavigationV010(input: {
+  target?: FoundationObjectImportTargetV010;
+  parameters?: Readonly<Record<string, string | number | boolean | string[] | undefined>>;
+  locale?: string;
+}): { id: string; label: string; route: string } | undefined {
+  const navigation = input.target?.completionNavigation?.({
+    parameters: input.parameters,
+    locale: input.locale
+  });
+  if (!navigation) return undefined;
+  const route = navigation.route;
+  if (!route.startsWith("/") || route.startsWith("//")
+    || route.includes("#") || route.includes("\\")
+    || /[\u0000-\u001f]/u.test(route)) {
+    return undefined;
+  }
+  return {
+    id: "object-workspace",
+    label: localizedTextV010(navigation.label, input.locale),
+    route
+  };
+}
+
+function importContextNavigationV010(input: {
+  target?: FoundationObjectImportTargetV010;
+  parameters?: Readonly<Record<string, string | number | boolean | string[] | undefined>>;
+  locale?: string;
+  step: "upload" | "mapping" | "review";
+}) {
+  const t = text(input.locale);
+  const destination = objectWorkspaceNavigationV010(input);
+  return {
+    items: [
+      ...(destination ? [destination] : []),
+      {
+        id: "data-import",
+        label: t.title,
+        route: DATA_IMPORT_DIRECTORY_ROUTE
+      },
+      ...(input.step === "review"
+        ? [{
+            id: "mapping",
+            label: t.mappingTitle
+          }]
+        : []),
+      {
+        id: input.step,
+        label: input.step === "upload" ? t.uploadTitle
+          : input.step === "mapping" ? t.mappingTitle : t.reviewTitle
+      }
+    ]
+  };
+}
+
 export function createDataImportDirectoryPageV010(input: {
   targets: readonly FoundationObjectImportTargetV010[];
   jobs: readonly DataImportJobV010[];
@@ -314,16 +375,12 @@ export function createDataImportUploadPageV010(input: {
       input.locale
     ),
     description: t.description,
-    contextNavigation: {
-      items: [{
-        id: "data-import",
-        label: t.title,
-        route: DATA_IMPORT_DIRECTORY_ROUTE
-      }, {
-        id: "upload",
-        label: t.uploadTitle
-      }]
-    },
+    contextNavigation: importContextNavigationV010({
+      target: input.target,
+      parameters: input.initialParameters,
+      locale: input.locale,
+      step: "upload"
+    }),
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -385,6 +442,7 @@ export function createDataImportUploadPageV010(input: {
 export function createDataImportMappingPageV010(input: {
   job: DataImportJobV010;
   schema: EffectiveObjectSchemaV010;
+  target?: FoundationObjectImportTargetV010;
   locale?: string;
 }) {
   const t = text(input.locale);
@@ -465,16 +523,12 @@ export function createDataImportMappingPageV010(input: {
       : advisoryFields.length > 0
         ? t.ecRecommendationDescription + " " + t.mappingDescription
         : t.mappingDescription,
-    contextNavigation: {
-      items: [{
-        id: "data-import",
-        label: t.title,
-        route: DATA_IMPORT_DIRECTORY_ROUTE
-      }, {
-        id: "mapping",
-        label: t.mappingTitle
-      }]
-    },
+    contextNavigation: importContextNavigationV010({
+      target: input.target,
+      parameters: input.job.targetParameters,
+      locale: input.locale,
+      step: "mapping"
+    }),
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_REVIEW_COMMAND_V010,
@@ -534,10 +588,33 @@ export function createDataImportMappingPageV010(input: {
   };
 }
 
+function importReviewIssueMessageV010(input: {
+  issue: FoundationObjectImportIssueV010;
+  schema?: EffectiveObjectSchemaV010;
+  locale?: string;
+}): string {
+  const { issue, schema, locale } = input;
+  const field = schema?.fields.find(item => item.fieldId === issue.fieldId);
+  const fieldLabel = field
+    ? localizedTextV010(field.label, locale)
+    : issue.fieldId;
+  if (issue.code === "DATA_IMPORT_REQUIRED_VALUE_MISSING") {
+    const instructions = zh(locale)
+      ? "这是必填字段，目前没有值。请点击“调整字段映射”检查对应来源列；如果文件缺少该字段，需要补充数据后重新上传。"
+      : "A required value is missing. Use Adjust mapping to check its source column, or add the missing value to the file and upload it again.";
+    return (fieldLabel ? fieldLabel + "：" : "") + instructions;
+  }
+  const detail = issue.message && issue.message !== issue.code
+    ? issue.message
+    : issue.code;
+  return (fieldLabel ? fieldLabel + ": " : "") + detail;
+}
+
 export function createDataImportReviewPageV010(input: {
   job: DataImportJobV010;
   locale?: string;
   target?: FoundationObjectImportTargetV010;
+  schema?: EffectiveObjectSchemaV010;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
   const job = input.job;
@@ -545,17 +622,30 @@ export function createDataImportReviewPageV010(input: {
   const dryRun = job.dryRun;
   const receipt = job.receipt;
 
-  const summaryActions = [{
-    id: "back",
-    label: t.back,
-    type: "navigate" as const,
-    route: DATA_IMPORT_DIRECTORY_ROUTE
-  }, {
-    id: "remap",
-    label: t.remap,
-    type: "navigate" as const,
-    route: dataImportMappingRouteV010(job.importJobId)
-  }];
+  const workspace = objectWorkspaceNavigationV010({
+    target: input.target,
+    parameters: job.targetParameters,
+    locale: input.locale
+  });
+  const summaryActions = [
+    ...(workspace ? [{
+      id: "return-to-target",
+      label: workspace.label,
+      type: "navigate" as const,
+      route: workspace.route
+    }] : []),
+    {
+      id: "back",
+      label: t.back,
+      type: "navigate" as const,
+      route: DATA_IMPORT_DIRECTORY_ROUTE
+    }, {
+      id: "remap",
+      label: t.remap,
+      type: "navigate" as const,
+      route: dataImportMappingRouteV010(job.importJobId)
+    }
+  ];
   if (job.state === "DRY_RUN_READY") {
     summaryActions.push({
       id: "commit",
@@ -567,20 +657,6 @@ export function createDataImportReviewPageV010(input: {
       values: { importJobId: job.importJobId },
       primary: true
     } as never);
-  }
-  const completionNavigation = job.state === "COMMITTED"
-    ? input.target?.completionNavigation?.({
-        parameters: job.targetParameters,
-        locale: input.locale
-      })
-    : undefined;
-  if (completionNavigation) {
-    summaryActions.push({
-      id: "return-to-target",
-      label: localizedTextV010(completionNavigation.label, input.locale),
-      type: "navigate" as const,
-      route: completionNavigation.route
-    });
   }
   if ((dryRun?.invalidRows ?? 0) > 0) {
     summaryActions.push({
@@ -635,9 +711,11 @@ export function createDataImportReviewPageV010(input: {
             .slice(0, 4)
             .map(([key, value]) => key + ": " + String(value ?? ""))
             .join(" · ")
-        : row.issues.map(issue =>
-            (issue.fieldId ? issue.fieldId + ": " : "") + issue.code
-          ).join(" · "),
+        : row.issues.map(issue => importReviewIssueMessageV010({
+            issue,
+            schema: input.schema,
+            locale: input.locale
+          })).join(" · "),
       status: {
         label: row.ok ? t.ready : t.invalid,
         tone: row.ok ? "positive" : "warning"
@@ -656,18 +734,21 @@ export function createDataImportReviewPageV010(input: {
       ? t.recipeAppliedDescription
       : t.description,
     contextNavigation: {
-      items: [{
-        id: "data-import",
-        label: t.title,
-        route: DATA_IMPORT_DIRECTORY_ROUTE
-      }, {
-        id: "mapping",
-        label: t.mappingTitle,
-        route: dataImportMappingRouteV010(job.importJobId)
-      }, {
-        id: "review",
-        label: t.reviewTitle
-      }]
+      items: [
+        ...(workspace ? [workspace] : []),
+        {
+          id: "data-import",
+          label: t.title,
+          route: DATA_IMPORT_DIRECTORY_ROUTE
+        }, {
+          id: "mapping",
+          label: t.mappingTitle,
+          route: dataImportMappingRouteV010(job.importJobId)
+        }, {
+          id: "review",
+          label: t.reviewTitle
+        }
+      ]
     },
     actions: summaryActions,
     items

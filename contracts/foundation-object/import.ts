@@ -63,8 +63,10 @@ export interface FoundationObjectImportTargetV010 {
   objectType: string;
   ownerPackageId: string;
   /**
-   * Optional object-owned destination after a confirmed import.
-   * Navigation is advisory only; it grants no new object or row access.
+   * Optional object-owned workspace destination for leaving an import at any
+   * step (including validation errors), as well as after successful commit.
+   * This is a navigation hint, never an authorization grant or write action.
+   * The Host must validate it as a local app route before presenting it.
    */
   completionNavigation?(input: {
     parameters?: FoundationObjectImportTargetParametersV010;
