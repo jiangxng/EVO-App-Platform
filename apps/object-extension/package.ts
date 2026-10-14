@@ -6,6 +6,11 @@ import {
   objectExtensionCapabilityContributionsV010
 } from "./capability-manifest.js";
 import {
+  OBJECT_EXTENSION_IMPORT_PAGE_ID_V010,
+  OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
+  OBJECT_EXTENSION_IMPORT_ROUTE_V010
+} from "./constants.js";
+import {
   OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010,
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID
@@ -55,7 +60,20 @@ export const objectExtensionPackage: PackageManifestV010 = {
       OBJECT_EXTENSION_DEFINITION_CAPABILITY_V010
     ],
     contributions: [
-      ...objectExtensionCapabilityContributionsV010
+      ...objectExtensionCapabilityContributionsV010,
+      {
+        kind:"eidos.experience",
+        manifest:{
+          contractVersion:"0.1.0",
+          experienceId:OBJECT_EXTENSION_PACKAGE_ID,
+          packageId:OBJECT_EXTENSION_PACKAGE_ID,
+          featureId:OBJECT_EXTENSION_FEATURE_ID,
+          defaultRoute:OBJECT_EXTENSION_IMPORT_ROUTE_V010,
+          pages:[{id:OBJECT_EXTENSION_IMPORT_PAGE_ID_V010,title:"Create Extension Field",source:OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010}],
+          routes:[{id:OBJECT_EXTENSION_IMPORT_PAGE_ID_V010,path:OBJECT_EXTENSION_IMPORT_ROUTE_V010,pageId:OBJECT_EXTENSION_IMPORT_PAGE_ID_V010}],
+          navigation:[]
+        }
+      }
     ]
   }]
 };
