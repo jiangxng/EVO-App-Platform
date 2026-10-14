@@ -30,3 +30,13 @@ PA-02B 的 Fencing、PostgreSQL 写入意图、完整 Receipt 和 Owner UNKNOWN 
 - `pa02-governed-worker-write-port.ts` 从持久Run、模型决策事件、工具参数和Host Principal/Context构造稳定幂等键与REQUESTED Receipt。对既有PREPARED可继续首次派发；INVOKING/UNKNOWN只能调用已有Owner核验流程；已证实终态只读取Receipt，不重发。业务操作参数在真实Owner调用前完整性校验。
 - Worker不调用 `catalog.invoke` 派发WRITE。由Owner回执证实后换取新fencing令牌，把观测和Receipt ID写入真实Run事件；UNKNOWN则保留待恢复的Run、拒绝伪造成功与盲重发。
 - 扩展现有 `agent-pa02-async-read-worker.yml`：PostgreSQL18真实业务表增量测试+原READ/Fencing/Owner/Cancel回归。正式 `manager/server.ts` 仍不注入业务Owner端口，生产默认关闭。通过CI及main合并后才标注此段完成。
+
+## 2026-10-14：Host 按已安装 Capability Operation 可信注册 Owner（本轮）
+
+- 复用 `AppManagerService.listEffectiveCapabilityOperations()` 和 `manager/capability-operation-access.ts` 的**同一套** Action Host 权限门禁。提取 `checkCapabilityOperationActionV010` 供可信 Owner 在执行前检查；原 Action Router `preExecute` 原封不动使用该函数，防止两种授权规则分叉。
+- 新增 `manager/agent-trusted-owner-registration.ts`：Host 代码显式注册实现 **Owner 幂等处理 + 独立核验 + 参数验证** 的业务适配器。只有当前生效的 WRITE Capability Operation、`PERSONAL_AGENT` 可见、`writeSafety={idempotency:HOST_REQUIRED,receipt:HOST_REQUIRED}`、完全匹配的 packageId/commandCode/inputVersion 才会曝光 Owner/工具描述符。
+- 每次 WRITE 都重新核对企业上下文、真人委托的 AI 操作身份、插件生命期和资源级 INPUT 权限（例如指定 supplierId）；插件卸载、授权变更、版本变更、绑定冲突与 Owner 伪造会 fail closed。模型不能注册 Owner，也不能通过 `catalog.invoke` 绕过已证明的 Owner 写入路径。
+- `pa02-governed-worker-write-port.ts` 授权契约增加原始工具参数，使原有 ACTION_HOST 的按记录授权检查得以真正执行，避免只验证类目、不验证被操作对象。
+- 原 PostgreSQL18 Worker E2E 改为通过此 **Host 可信注册器** 提供 Owner 授权与写入，另增加无数据库门禁测试。全部沿用 `.github/workflows/agent-pa02-async-read-worker.yml`，没有新增一次性 CI。
+- **上线边界**：这项是正式 Host 可调用的可信注册机制，尚未在 `manager/server.ts` 启动真实企业插件 Owner；现有业务插件必须在自身实现真实幂等执行与可核验结果后才能注册。生产 WRITE 仍 OFF。不能把“注册器入 main”表述为“任意插件已经可安全写入”。
+
