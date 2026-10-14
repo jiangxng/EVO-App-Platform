@@ -16,6 +16,8 @@ export interface UidlField {
   accept?: string[];
   maxBytes?: number;
   validation?: { min?: number; max?: number; pattern?: string };
+  /** Optional local navigation beside a form input; never submits. */
+  contextLink?: { label: string; route: string };
 }
 export interface UidlAction {
   id: string;

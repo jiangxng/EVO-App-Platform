@@ -63,7 +63,9 @@ function input(field: RenderFieldV010): string {
 export function renderToHtml(document: unknown): string {
   const model = toRenderModel(document);
   const fields = model.fields
-    .map(field => `<label>${esc(field.label)}${input(field)}</label>`)
+    .map(field => `<div data-eidos-form-field><label>${esc(field.label)}${input(field)}</label>${field.contextLink
+      ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>`
+      : ""}</div>`)
     .join("");
   const agentActions = model.agentActions
     .map(action =>

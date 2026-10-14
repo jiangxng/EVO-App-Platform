@@ -168,9 +168,14 @@ with sync_playwright() as p:
    print("BEX_EXT_MAP_FIRST="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:600]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
-   open_field=page.locator('[data-eidos-context-route^="/object-extensions/from-import?job="]')
-   expect(open_field).to_be_visible()
-   open_field.click()
+   # Create from the unmapped column itself, without changing the Agent entry.
+   mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+   expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
+   inline=mapping_form.locator('[data-eidos-field-context-link]')
+   expect(inline).to_have_count(1)
+   expect(inline.first).to_have_attribute("data-eidos-context-route",
+     "/object-extensions/from-import?job="+job)
+   inline.first.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
    expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=15000)
