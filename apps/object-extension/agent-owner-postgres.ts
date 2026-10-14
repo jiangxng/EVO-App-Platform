@@ -141,6 +141,9 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   verifier:AgentOwnerVerifierV030;
   getResource:(scope:{contextId:string;enterpriseId:string},
     extensionId:string)=>Promise<EnterpriseResourceV010|undefined>;
+  /** Source-neutral resource envelopes, including migrated legacy definitions. */
+  listResources:(scope:{contextId:string;enterpriseId:string},
+    options?:{lifecycleState?:"ACTIVE"|"ARCHIVED"})=>Promise<EnterpriseResourceV010[]>;
   close:()=>Promise<void>;
 } {
   const {q,sql}=config(input),now=input.now??(()=>new Date());
@@ -275,6 +278,18 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         "WHERE d.context_id=$1 AND d.enterprise_id=$2 AND d.extension_id=$3",
         [id(scope.contextId),id(scope.enterpriseId),id(extensionId)]);
       return rows[0]?pgJson<EnterpriseResourceV010>(rows[0].resource):undefined;
+    },
+    async listResources(scope,options) {
+      const rows=await sql.unsafe("SELECT d.resource FROM "+q+".pa02_definitions d "+
+        "JOIN "+q+".pa02_contexts c ON c.context_id=d.context_id "+
+        "AND c.enterprise_id=d.enterprise_id "+
+        "WHERE d.context_id=$1 AND d.enterprise_id=$2 "+
+        "ORDER BY d.extension_id",
+        [id(scope.contextId),id(scope.enterpriseId)]);
+      const resources=rows.map(row=>pgJson<EnterpriseResourceV010>(row.resource));
+      return options?.lifecycleState
+        ? resources.filter(resource=>resource.lifecycleState===options.lifecycleState)
+        : resources;
     },
     close:()=>sql.end()
   };
