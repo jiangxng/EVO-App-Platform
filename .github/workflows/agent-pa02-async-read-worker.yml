@@ -5,6 +5,8 @@ on:
       - "agents/enterprise-agent/pa02-async-read-worker.ts"
       - "agents/enterprise-agent/pa02-r10-postgres-cost-reservation.ts"
       - "tests/agent-line/pa02-r10-postgres-cost-reservation.test.mjs"
+      - "tests/agent-line/pa02-r10-host-cost-preflight.test.mjs"
+      - "docs/agent-line/PA02-R10-HOST-COST-PREFLIGHT-20261014.md"
       - "docs/agent-line/PA02-R10-MONETARY-RESERVATION-PROOF-20261014.md"
       - "manager/agent-run-store.ts"
       - "contracts/agent-run.ts"
@@ -60,4 +62,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/pa02-async-read-worker.test.mjs tests/agent-line/pa02-governed-worker-write.test.mjs tests/agent-line/pa02-host-object-extension-owner-execution.test.mjs tests/agent-line/pa02-host-trusted-owner-registration.test.mjs tests/agent-line/pa02-object-extension-preview-owner.test.mjs tests/agent-line/pa02-object-extension-pg-atomic-owner.test.mjs tests/agent-line/pa02-object-extension-resource-migration.test.mjs tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs tests/agent-line/pa02b-fenced-run-authority.test.mjs tests/agent-line/pa02c-atomic-run-cancel.test.mjs tests/agent-line/pa02-r03-r10-durable-model-budget.test.mjs tests/agent-line/pa02-r10-postgres-cost-reservation.test.mjs
+      - run: node --test tests/agent-line/pa02-async-read-worker.test.mjs tests/agent-line/pa02-governed-worker-write.test.mjs tests/agent-line/pa02-host-object-extension-owner-execution.test.mjs tests/agent-line/pa02-host-trusted-owner-registration.test.mjs tests/agent-line/pa02-object-extension-preview-owner.test.mjs tests/agent-line/pa02-object-extension-pg-atomic-owner.test.mjs tests/agent-line/pa02-object-extension-resource-migration.test.mjs tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs tests/agent-line/pa02b-fenced-run-authority.test.mjs tests/agent-line/pa02c-atomic-run-cancel.test.mjs tests/agent-line/pa02-r03-r10-durable-model-budget.test.mjs tests/agent-line/pa02-r10-postgres-cost-reservation.test.mjs tests/agent-line/pa02-r10-host-cost-preflight.test.mjs
