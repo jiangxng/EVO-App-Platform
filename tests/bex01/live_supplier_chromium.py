@@ -164,18 +164,26 @@ with sync_playwright() as p:
   try:
    mapping="/data-import/jobs/"+job+"/map"
    page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
-   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=30000)
+   page.wait_for_timeout(800)
+   print("BEX_EXT_MAP_FIRST="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[:600]},ensure_ascii=False),flush=True)
+   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
    open_field=page.get_by_role("button",name="创建扩展字段（处理未匹配列）")
    expect(open_field).to_be_visible()
    open_field.click()
-   expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=30000)
+   print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
+   expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=15000)
    form=page.locator('form[data-eidos-id="evo-object-extension.import"]')
    expect(form.locator('select[name="sourceColumn"]')).to_have_value("开户银行")
    form.locator('input[name="label"]').fill("开户银行")
    form.locator('select[name="valueType"]').select_option("STRING")
    page.screenshot(path=str(OUT/"extension-field-create.png"),full_page=True)
    form.locator('button[type="submit"]').click()
-   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=30000)
+   page.wait_for_timeout(800)
+   print("BEX_EXT_AFTER_CREATE="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[:800]},ensure_ascii=False),flush=True)
+   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('select[name="map_3"] option[value="'+expected_field+'"]')).to_have_count(1)
    mapping_form.locator('select[name="map_0"]').select_option("code")
