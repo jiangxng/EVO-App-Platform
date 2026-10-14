@@ -46,3 +46,10 @@
 - [#869](https://github.com/jiangxng/EVO-App-Platform/pull/869) 最终 HEAD `ea650242960fb6a0f44b700344a3c7660e0861c5` 的 14/14 CI SUCCESS，合并 `bfb3d35883c6f0d112048a359803b2fd492081ff`，并核对删除源 Agent 分支；PG18 合成费率原子预留服务构件已成为 main 中可复用基础。
 - [#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) **首次源码 HEAD** `4138ef7dc4d6380bf9fea9bd0bb4d15bf99013cf` [Host+PG18 Actions 38553690645](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38553690645) Worker 23/23，18/18 工作流 SUCCESS。既有 Host→Fenced Worker→真实 Provider **模拟**的模型调用前执行数据库原子预留，预算不足则 Provider 只调用一次，Host 重启仍不能发第二次。失去 usage 或 provider 异常进入货币 UNKNOWN/全额占额而非盲目收费重试；未批准模型身份在推理前零调用。仅使用 `SYNTHETIC_PA02_TEST_ONLY` 合成费用，详见 [#870 专项](PA02-R10-HOST-COST-PREFLIGHT-20261014.md)。本条在 PR 最终 HEAD 全绿前不声称已合并。
 - **R10 最终仍 NOT_SIGNED**：普通 Server/生产 Host 未配置任何真实获批准 Provider/model/区域/服务等级/缓存和长上下文的版本化费率，实际用户提示的最大可收费输入 token 未证明、输出硬上限供应商实际履约未验证；没有供应商真实费用结算凭证，不能以测试示例批准费用；生产 READ/WRITE 均不因此启用。R01–R10 总账暂未宣告 `DEV_COMPLETE`。旧公共网页 H 级转引未在此 PR 中访问、不补写为已读原文。
+
+
+## 2026-10-15：R10 静态输入额度不能替代实际模型请求的可信计费上界
+
+- [#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) 最终 Head `9491009c8671fb9d747a41c7ced383671436867f` **18/18 CI SUCCESS**，main 合并 `f5c90d21981fb2f5876e27a7940493d77fe4608f`，Agent 过程分支已确认删除；在合成价格下证明原 Host/Worker 模型调用前持久最坏费用预留和未知保留。本行纠正旧条目“未合并”的历史描述，原始流水不删改。
+- **新增风险**：旧预留金额来自 Host 候选策略里的 `maxBillableInputTokens`，但 Agent 实际请求包含系统/开发者指令、历史、工具 schema 与工具观察数据，不能由静态填写数证明该请求的**真实可计费输入上界**。新 [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 从同步最新 main（含治理 #871）建立短分支，要求在已组装实际 `LlmInferenceRequestV010` 后检查可信上界，**再**调用同一个 PostgreSQL 费用预留，再调用模型，拒绝时没有账本占额或供应商调用。初版准确 HEAD `9864c64d1e1ecb79b640d5795fab8c927048b0b7` **18/18 CI SUCCESS**，真实 [PG18 Agent Worker 38650954272](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38650954272) job `116149313153` **24/24 PASS**，新增 quote 缺失/超额/NaN 的 Provider 调用 0 与费用预留 0。最终 PR HEAD/合并状态需再核；证据与新查阅官网等级见 [R10 Actual Request Quote](PA02-R10-ACTUAL-REQUEST-INPUT-QUOTE-20261015.md)。
+- 这仍然**只有测试替身提供合成可信 quote，没有正式绑定模型的供应商计费上界证明、审批价目和真实账单**；正式 `manager/server.ts` 未启用预算/生产 WRITE，R10 `OPEN`、PA-02 `NOT_SIGNED`。外站历史 14 条 H 类引文不因为本轮单独查阅的新网页而升级。
