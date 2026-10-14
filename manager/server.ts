@@ -832,14 +832,18 @@ import {
   COUNTERPARTY_CREATE_COMMAND,
   COUNTERPARTY_CREATE_PAGE_SOURCE,
   COUNTERPARTY_CUSTOMERS_PAGE_SOURCE,
+  COUNTERPARTY_CUSTOMERS_ROUTE,
   COUNTERPARTY_DETAIL_PAGE_SOURCE,
   COUNTERPARTY_DIRECTORY_PAGE_SOURCE,
   COUNTERPARTY_EDIT_PAGE_SOURCE,
   COUNTERPARTY_MY_CUSTOMERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_CUSTOMERS_ROUTE,
   COUNTERPARTY_MY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_MY_SUPPLIERS_ROUTE,
   COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
   COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
   COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
+  COUNTERPARTY_SUPPLIERS_ROUTE,
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_PACKAGE_ID,
   COUNTERPARTY_REMOVE_ROLE_COMMAND,
@@ -6853,9 +6857,24 @@ const server = createServer(async (request, response) => {
                   : undefined;
 
         if (projectionId) {
+          // Route/query are presentation intent only. Principal, Context, data
+          // scope and field permissions remain Host/owner-derived.
+          const projectionRoute = projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+            ? COUNTERPARTY_SUPPLIERS_ROUTE
+            : projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+              ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
+              : projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+                ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
+          const { parseCounterpartyProjectionRouteQueryV010 } =
+            await import("../apps/counterparty/projection-query.js");
+          const userQuery = parseCounterpartyProjectionRouteQueryV010(
+            url.searchParams.get("route"), projectionRoute
+          );
+          const pagingQuery = { ...userQuery, pageSize: userQuery.pageSize ?? 25 };
           const projection = await counterpartyProjectionService.read({
             contextId: active.contextId,
             projectionId,
+            query: pagingQuery,
             requestContext: readContext,
             enterpriseRelationshipKind: relationship?.kind
           });
@@ -6865,6 +6884,8 @@ const server = createServer(async (request, response) => {
             module.createCounterpartyProjectionPageV010({
               projectionId,
               counterparties: projection.counterparties,
+              pageInfo: projection.pageInfo,
+              tableQuery: pagingQuery,
               locale,
               readableFieldIds: projection.readableFieldIds,
               canManage,

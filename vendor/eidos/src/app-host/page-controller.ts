@@ -574,6 +574,22 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     };
   }
 
+  const serverSearchForm = container.querySelector<HTMLFormElement>("[data-eidos-catalog-server-search]");
+  if (serverSearchForm) {
+    const onServerSearch = (event: Event) => {
+      event.preventDefault();
+      const routePath = serverSearchForm.dataset.eidosSearchRoute;
+      const search = serverSearchForm.querySelector<HTMLInputElement>('input[name="search"]');
+      if (!routePath?.startsWith("/") || routePath.startsWith("//") || !search) return;
+      const route = new URL(routePath, "https://eidos.invalid");
+      if (search.value.trim()) route.searchParams.set("search", search.value.trim());
+      else route.searchParams.delete("search");
+      route.searchParams.set("page", "0");
+      void options.onNavigate?.(route.pathname + route.search);
+    };
+    serverSearchForm.addEventListener("submit", onServerSearch);
+    listeners.push(() => serverSearchForm.removeEventListener("submit", onServerSearch));
+  }
   const catalogSearch = container.querySelector<HTMLInputElement>(
     "[data-eidos-catalog-search-input]"
   );

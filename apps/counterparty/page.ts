@@ -2,6 +2,12 @@ import type {
   CatalogBrowserV010
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
+  counterpartyProjectionQueryRouteV010,
+  type CounterpartyProjectionQueryV010,
+  type CounterpartyProjectionPageInfoV010,
+  type CounterpartyProjectionRecordV010
+} from "./projection-query.js";
+import {
   fieldsForSurfaceV010,
   localizedTextV010,
   type EffectiveObjectSchemaV010,
@@ -215,7 +221,7 @@ function relationshipRoleLabel(
 }
 
 export function createCounterpartyDirectoryPageV010(input: {
-  counterparties: readonly CounterpartySubjectV010[];
+  counterparties: readonly CounterpartyProjectionRecordV010[];
   importRoute?: string;
   locale?: string;
   readableFieldIds?: readonly string[];
@@ -265,21 +271,16 @@ export function createCounterpartyDirectoryPageV010(input: {
     items: input.counterparties.map(counterparty => ({
         id: counterparty.counterpartyId,
         title: counterparty.displayName,
-        status: {
-          label:
-            counterparty.status === "ACTIVE"
-              ? text.active
-              : text.inactive,
-          tone:
-            counterparty.status === "ACTIVE"
-              ? "positive" as const
-              : "neutral" as const
-        },
+        ...(canRead("status") && counterparty.status ? {status: {
+          label:counterparty.status === "ACTIVE" ? text.active : text.inactive,
+          tone:counterparty.status === "ACTIVE"
+            ? "positive" as const : "neutral" as const
+        }} : {}),
         metadata: {
-          ...(canRead("code")
+          ...(canRead("code") && counterparty.code
             ? { [text.code]: counterparty.code }
             : {}),
-          ...(canRead("subjectType")
+          ...(canRead("subjectType") && counterparty.subjectType
             ? {
                 [text.subjectType]: subjectTypeLabel(
                   counterparty.subjectType,
@@ -327,11 +328,13 @@ function projectionTitleV010(
 
 export function createCounterpartyProjectionPageV010(input: {
   projectionId: CounterpartyProjectionIdV010;
-  counterparties: readonly CounterpartySubjectV010[];
+  counterparties: readonly CounterpartyProjectionRecordV010[];
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
   importRoute?: string;
+  pageInfo?: CounterpartyProjectionPageInfoV010;
+  tableQuery?: CounterpartyProjectionQueryV010;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const title = projectionTitleV010(
@@ -344,9 +347,75 @@ export function createCounterpartyProjectionPageV010(input: {
     readableFieldIds: input.readableFieldIds,
     canManage: input.canManage
   });
+  const route = input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+    ? COUNTERPARTY_SUPPLIERS_ROUTE
+    : input.projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+      ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
+      : input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+        ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
+  const readable = input.readableFieldIds
+    ? new Set(input.readableFieldIds)
+    : undefined;
+  const canRead = (fieldId: string) => !readable || readable.has(fieldId);
+  const columns = [
+    {id:"displayName",label:text.displayName},
+    ...(canRead("code") ? [{id:"code",label:text.code}] : []),
+    ...(canRead("status") ? [{id:"status",label:(input.locale ?? "").startsWith("zh") ? "状态" : "Status"}] : []),
+    ...(canRead("subjectType") ? [{id:"subjectType",label:text.subjectType}] : []),
+    ...(canRead("countryOrRegion") ? [{id:"countryOrRegion",label:text.countryOrRegion}] : [])
+  ].map(column => ({
+    ...column,
+    ...(column.id === "displayName" || column.id === "code"
+      ? {sortRoute:counterpartyProjectionQueryRouteV010(
+          route,{...input.tableQuery,sort:column.id as CounterpartyProjectionQueryV010["sort"],
+            direction:input.tableQuery?.sort === column.id
+              && input.tableQuery.direction !== "desc" ? "desc" : "asc"},0
+        )} : {})
+  }));
+  const query = input.tableQuery ?? {};
+  const pageInfo = input.pageInfo;
+  const totalStart = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
+  const table: CatalogBrowserV010["table"] | undefined = pageInfo ? {
+    columns,
+    search: {
+      route: counterpartyProjectionQueryRouteV010(route,query,0),
+      label: text.search,
+      placeholder: text.search,
+      value:query.search ?? "",
+      submitLabel:(input.locale ?? "").startsWith("zh") ? "搜索" : "Search"
+    },
+    rows: input.counterparties.map(subject => ({
+      itemId:subject.counterpartyId,
+      cells: {
+        displayName:subject.displayName,
+        ...(canRead("code") ? {code:subject.code ?? ""} : {}),
+        ...(canRead("status")
+          ? {status:subject.status === "ACTIVE" ? text.active : text.inactive} : {}),
+        ...(canRead("subjectType") && subject.subjectType
+          ? {subjectType:subjectTypeLabel(subject.subjectType,input.locale)} : {}),
+        ...(canRead("countryOrRegion")
+          ? {countryOrRegion:subject.countryOrRegion ?? ""} : {})
+      }
+    })),
+    pageInfo: {
+      ...pageInfo,
+      summary: `${pageInfo.total === 0 ? 0 : totalStart + 1}–${Math.min(
+        totalStart + input.counterparties.length,pageInfo.total
+      )} / ${pageInfo.total}`,
+      previousLabel: (input.locale ?? "").startsWith("zh") ? "上一页" : "Previous",
+      nextLabel: (input.locale ?? "").startsWith("zh") ? "下一页" : "Next",
+      ...(pageInfo.page > 0
+        ? {previousRoute:counterpartyProjectionQueryRouteV010(route,query,pageInfo.page - 1)}
+        : {}),
+      ...(pageInfo.hasMore
+        ? {nextRoute:counterpartyProjectionQueryRouteV010(route,query,pageInfo.page + 1)}
+        : {})
+    }
+  } : undefined;
   return {
     ...page,
     id: "evo-counterparty.projection." + input.projectionId,
+    ...(table ? {table} : {}),
     title,
     description: text.projectionDescription,
     contextNavigation: {
@@ -393,7 +462,8 @@ export function createCounterpartyProjectionPageV010(input: {
           primary: true
         }]
       : [])],
-    search: {
+    // Do not pretend a browser-only search covers all server pages.
+    search: table ? undefined : {
       placeholder: text.search,
       ariaLabel: text.search,
       noResultsMessage: text.projectionEmpty
