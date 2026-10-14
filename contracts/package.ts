@@ -412,6 +412,7 @@ export interface PlatformSnapshotV010 {
   contractVersion: "0.1.0";
   installedPackages: InstalledPackageV010[];
   activeFeatures: ActivatedFeatureV010[];
+  /** Capabilities declared by active Features; not a health probe or permission to execute a business operation. */
   effectiveCapabilities: string[];
 }
 

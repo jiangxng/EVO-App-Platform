@@ -24,6 +24,7 @@ export interface PluginRuntimeStatusV010 {
   packageId: string;
   kind: "DECLARATIVE" | "WORKER" | "PROCESS" | "REMOTE";
   isolation: "HOST" | "WORKER" | "PROCESS" | "REMOTE";
+  /** Host adapter admission/lifecycle status, not remote health or business execution authority. */
   status: "READY" | "INACTIVE" | "UNSUPPORTED" | "ERROR";
   message: string;
 }
@@ -37,7 +38,7 @@ export function inspectPluginRuntimeV010(pkg: PackageManifestV010): PluginRuntim
       kind: runtime.kind,
       isolation: runtime.isolation,
       status: "READY",
-      message: "Declarative package executes only through admitted host contracts."
+      message: "Declarative package is admitted to host contracts. External service connectivity, configuration and business execution readiness are not verified by this status."
     };
   }
 
