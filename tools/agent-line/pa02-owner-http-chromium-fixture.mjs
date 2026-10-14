@@ -57,17 +57,26 @@ const definition={contractVersion:'0.1.0',extensionId,
  semanticType:'text',valueType:'STRING',
  label:{default:'PA02 owner browser proof'},required:false,order:40,surfaces:['DETAIL']};
 let mockCalls=0,child,hostLog='',closed=false;
+let holdSecondOwnerTool=false,releaseHeldModel,holdingModel=false;
 const json=(res,status,payload)=>{res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(payload));};
 async function read(req){const chunks=[];for await(const x of req)chunks.push(x);return JSON.parse(Buffer.concat(chunks).toString()||'{}');}
 const mock=createServer(async(req,res)=>{
  try {
+  if(req.method==='POST'&&req.url==='/__control'){
+   const x=await read(req);
+   if(x.mode==='hold-owner-tool')holdSecondOwnerTool=true;
+   else if(x.mode==='release'){releaseHeldModel?.();releaseHeldModel=undefined;}
+   else return json(res,400,{error:'UNKNOWN_TEST_CONTROL'});
+   return json(res,200,{holdingModel,holdSecondOwnerTool});
+  }
   if(req.method==='GET'&&req.url==='/__report'){
-   const [definitions,evidence,receipts]=await Promise.all([
+   const [definitions,evidence,receipts,turns]=await Promise.all([
     sql.unsafe('SELECT extension_id FROM "'+ownerSchema+'".pa02_definitions'),
     sql.unsafe('SELECT run_id,receipt_id FROM "'+ownerSchema+'".pa02_owner_evidence'),
-    sql.unsafe('SELECT status FROM "'+runSchema+'".agent_receipts')
+    sql.unsafe('SELECT status FROM "'+runSchema+'".agent_receipts'),
+    sql.unsafe('SELECT run_id FROM "'+runSchema+'".agent_turns ORDER BY run_id')
    ]);
-   return json(res,200,{mockCalls,definitions,evidence,receipts});
+   return json(res,200,{mockCalls,definitions,evidence,receipts,turns,holdingModel});
   }
   if(req.method==='POST'&&req.url==='/v1/responses'){
    const request=await read(req),index=++mockCalls;
@@ -79,6 +88,17 @@ const mock=createServer(async(req,res)=>{
      output:[{type:'function_call',name:'pa02_object_extension_create',
       call_id:'pa02-owner-call-1',arguments:JSON.stringify({definition})}],
      usage:{input_tokens:17,output_tokens:12}});
+   }
+   if(holdSecondOwnerTool){
+    holdSecondOwnerTool=false;holdingModel=true;
+    await new Promise(resolve=>{releaseHeldModel=resolve});
+    holdingModel=false;
+    const second={...definition,extensionId:extensionId+'-cancelled',fieldId:'cancelledProof'};
+    return json(res,200,{id:'pa02-owner-cancel-tool-'+index,object:'response',
+     model:'pa02-browser-model',status:'completed',
+     output:[{type:'function_call',name:'pa02_object_extension_create',
+      call_id:'pa02-owner-cancel-'+index,arguments:JSON.stringify({definition:second})}],
+     usage:{input_tokens:8,output_tokens:12}});
    }
    return json(res,200,{id:'pa02-owner-response-'+index,object:'response',
     model:'pa02-browser-model',status:'completed',
@@ -122,7 +142,7 @@ async function stop(){
  if(closed)return;closed=true;
  writeFileSync(join(artifact,'host.log'),hostLog.slice(-500000));
  if(child?.exitCode===null)child.kill('SIGTERM');
- mock.close();
+ releaseHeldModel?.();mock.close();
  await sql.end({timeout:2});
  rmSync(temp,{recursive:true,force:true});
 }
