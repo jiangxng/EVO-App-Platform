@@ -29,7 +29,10 @@ const projectionOutputSchema = {
     route: { type: "string" },
     count: { type: "integer", minimum: 0 },
     counterparties: { type: "array", items: { type: "object" } },
-    readableFieldIds: { type: "array", items: { type: "string" } }
+    readableFieldIds: { type: "array", items: { type: "string" } },
+    pageInfo: { type: "object", required: ["page", "pageSize", "total", "hasMore"],
+      properties: { page: { type: "integer" }, pageSize: { type: "integer" },
+        total: { type: "integer" }, hasMore: { type: "boolean" } } }
   }
 } as const;
 
@@ -60,7 +63,13 @@ function readOperation(input: {
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        properties: {}
+        properties: {
+          search: { type: "string", maxLength: 120 },
+          sort: { type: "string", enum: ["displayName", "code", "status"] },
+          direction: { type: "string", enum: ["asc", "desc"] },
+          page: { type: "integer", minimum: 0, maximum: 100000 },
+          pageSize: { type: "integer", minimum: 1, maximum: 100 }
+        }
       },
       outputSchema: projectionOutputSchema,
       binding: {
