@@ -33,3 +33,10 @@ This test verifies **post-commit READ/replay and exact-once visible persisted Ow
 - 在同一 PR 修改浏览器测试：模型工具调用暂留在隔离 localhost Responses，用户透过正常 HTTP Action 发起取消；释放模型后重复调用正式 Host `run.cancel` 做持久 reconciliation，再断言 Run `CANCELLED`、无第二 Run 的业务 Receipt、实际 Object Extension SQL resource/owner evidence/agent receipt 仍各只有首次成功的一笔。
 - 修正后准确 HEAD `56a8ac3548f83e0e97fd51e8a414437cb9017276` 的 [真实 Chromium + PG18 + Host/Owner Actions 38548540580](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540580) job `115800539441` **7/7 PASS**；同时 [Continuity 38548540523](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540523) 与 [Lightweight Host 38548540558](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540558) 均 SUCCESS。浏览器报告、截图、bootstrap 原始证据为 [Artifact 11885457660](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540580/artifacts/11885457660)。**若后续为与最新 main 对齐追加 merge commit，仍要复核最终 HEAD 的必需检查。**
 - 该取消场景是**尚未发送业务写入前**的有界取消，不是 SQL 事务写入中取消、commit 成功但 ACK 丢失，或浏览器与 Worker 同时断线后的完整 R04/R07/R08 联合场景。它们仍须单独以证据签收；不得宣称 PA-02 已全部完成。
+
+
+## 2026-10-14：已提交业务效果后浏览器断线／取消联合门禁（新 PR 代码，CI 待证）
+
+沿用 #863 的同一条真实 `Eidos Chromium → /v1/actions → App Host → PostgreSQL Fenced Run → 受治理 Object Extension Owner`，不修改正式 Host/Owner/Worker。新的独立场景：第三个 Human Turn 先从 Host 授权的模型函数调用提交**另一条隔离业务效果+独立 Owner 回执**；模型的下一次最终文本响应在 loopback 测试端暂缓。浏览器在这期间真实 reload（客户端 HTTP 中断），随后经正式 Host `run.cancel`、释放模拟模型、按已有 PA02C 取消协议继续 reconciliation。要求第三个 Run `CANCELLED` 且保留已提交的完整 Owner Receipt；Pg 业务行/独立 Owner evidence/Run receipt 各累计恰好 2，无第三次 WRITE；`run.events` 缺口快照仍为 CANCELLED 且有已提交 receipt。屏幕截图、报告进入同一类 Artifact。
+
+**分级：** 这是业务效果已经提交、模型最终回复/浏览器 HTTP 尚未完成的断线取消；并**不等于 Host 与 SQL Owner 之间已经提交事务但 Owner ACK 真正丢失**，亦未强制模拟 SQL 事务内部取消。#839/#842 的独立 ACK 丢失/原子取消局部测试仍为那两项的一手证据。真实联合测试未通过之前不得把此场景标记 PASS，R10 货币硬预算与 PA-02 阶段最终签收维持 OPEN。外站 14 条 H 级别不变。
