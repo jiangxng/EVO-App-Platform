@@ -20,4 +20,4 @@
 
 **与 PA-02 阶段验收的关系：** 本批是 R05/R06 的 Postgres Host 服务端集成验收，不等于用户的真实 Eidos 前端或多实例 SSE 已切换到持久 Outbox。最终 R01–R10 汇总时需要检查浏览器和事件恢复的使用路径，再决定正式阶段签收。此处不要新增 UI 重构或生产 Provider 迁移。
 
-**CI 证据：** 待 PR 最终 head 的 GitHub Actions 结果。
+**已核实执行证据（代码 head `b447cd4447bca7249fc250f96058441648983ca0`）：** [Host Async READ PostgreSQL18 #38516627246](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38516627246) **5/5 PASS，0 FAIL，0 SKIP**，含 `PA02_R05_R06_HOST_OUTBOX` 真实 Run/Outbox/消费去重/序号缺口/跨主体/重启验收；[PA02A Async Uniqueness #38516627186](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38516627186)、[PA02C 原子取消 #38516627296](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38516627296)、[Lightweight Host #38516627123](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38516627123) 均成功。该 head 19/19 工作流成功。后续合并 main 的最终 head 必须另外核验，不借用旧 head 绿灯。
