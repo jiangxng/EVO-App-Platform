@@ -5,6 +5,10 @@ on:
       - "agents/enterprise-agent/pa02a-postgres-durability-proof.ts"
       - "agents/enterprise-agent/pa02b-postgres-coordination.ts"
       - "agents/enterprise-agent/pa02c-atomic-run-cancel.ts"
+      - "agents/enterprise-agent/pa02b-owner-reconciliation.ts"
+      - "manager/agent-async-read-worker-runtime.ts"
+      - "tests/agent-line/pa02c-host-owner-cancel-visible.test.mjs"
+      - "docs/agent-line/PA02C-HOST-OWNER-CANCELLATION-RECOVERY-20261014.md"
       - "tests/agent-line/pa02c-atomic-run-cancel.test.mjs"
       - ".github/workflows/agent-pa02c-atomic-run-cancel.yml"
   workflow_dispatch:

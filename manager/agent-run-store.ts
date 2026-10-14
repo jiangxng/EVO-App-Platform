@@ -299,6 +299,20 @@ export function materializeAgentRunsV010(
       }
 
       if (event.type === "RUN_CANCELLED") {
+        // Only the trusted PA-02C PostgreSQL atomic cancellation path supplies
+        // these references, after independently verifying the Owner's durable
+        // terminal Receipt. Earlier PA-02B Owner-only proof Runs may not have
+        // a model decision to attach a TOOL_OBSERVATION_RECORDED event to.
+        // This is a reference, never a claimed tool success or fake Receipt.
+        const receiptIds=(event.payload as {
+          verifiedOwnerReceiptIds?:unknown
+        }).verifiedOwnerReceiptIds;
+        if(receiptIds!==undefined) {
+          if(!Array.isArray(receiptIds)||receiptIds.length>512||
+            receiptIds.some(value=>typeof value!=="string"||!value.trim()))
+            throw Error("AGENT_RUN_CANCELLED_OWNER_RECEIPTS_INVALID");
+          for(const receiptId of receiptIds)actionReceiptIds.add(receiptId);
+        }
         state = "CANCELLED";
         terminal = true;
         activeSliceId = undefined;
