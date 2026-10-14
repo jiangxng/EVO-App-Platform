@@ -35,6 +35,7 @@ import {
 } from "../../dist/apps/data-import/constants.js";
 import {
   createDataImportUploadPageV010,
+  createDataImportMappingPageV010,
   createDataImportReviewPageV010
 } from "../../dist/apps/data-import/page.js";
 import {
@@ -126,6 +127,10 @@ test("BEX-01 import upload prefills only target-recognized role values", () => {
   });
   assert.equal(supplier.fields.find(x => x.key === "parameter__relationshipMode")?.initialValue,
     "SUPPLIER");
+  assert.equal(supplier.contextNavigation.items[0].route,
+    COUNTERPARTY_SUPPLIERS_ROUTE);
+  assert.equal(supplier.contextNavigation.items[0].label,
+    "返回供应商列表");
   const invalid = createDataImportUploadPageV010({
     target, initialParameters: { relationshipMode: "ADMIN" }
   });
@@ -165,8 +170,17 @@ test("BEX-01 confirmed supplier import returns to supplier view and reuses Recip
     recordedAt: "2026-10-12T00:01:00.000Z"
   });
   assert.equal(ready.state, "DRY_RUN_READY");
+  // Leaving the wizard must never be conditional on successful commit.
   assert.equal(createDataImportReviewPageV010({job: ready,target})
-    .actions.some(x => x.id === "return-to-target"), false);
+    .actions.find(x => x.id === "return-to-target")?.route,
+    COUNTERPARTY_SUPPLIERS_ROUTE);
+  const mappingPage = createDataImportMappingPageV010({
+    job: ready, target, schema, locale:"zh-CN"
+  });
+  assert.equal(mappingPage.contextNavigation.items[0].route,
+    COUNTERPARTY_SUPPLIERS_ROUTE);
+  assert.equal(mappingPage.contextNavigation.items.at(-1).label,
+    "字段映射");
 
   const committed = service.commit({
     contextId: ctx,
@@ -200,4 +214,33 @@ test("BEX-01 confirmed supplier import returns to supplier view and reuses Recip
     schema: target.describe({contextId:ctx,parameters:{relationshipMode:"CUSTOMER"}})
   });
   assert.notEqual(unrelated.origin, "RECIPE");
+});
+
+test("BEX-01 supplier validation failures retain return and explain missing field in Chinese", () => {
+  const { target, service } = fixture();
+  const schema = target.describe({ contextId: ctx, parameters: {relationshipMode:"SUPPLIER"}, locale:"zh-CN" });
+  service.stage({
+    contextId:ctx,importJobId:"bex-failed",targetId:target.targetId,
+    targetParameters:{relationshipMode:"SUPPLIER"},
+    source:supplierInput,mapping:mapping.filter(x=>x.targetFieldId!=="subjectType"),
+    mappingOrigin:"HUMAN",actorSubjectId:"bex-operator",recordedAt:"2026-10-14T02:00:00.000Z"
+  });
+  const result=service.dryRun({
+    contextId:ctx,importJobId:"bex-failed",actorSubjectId:"bex-operator",recordedAt:"2026-10-14T02:01:00.000Z"
+  });
+  assert.equal(result.state,"DRY_RUN_FAILED");
+  const page=createDataImportReviewPageV010({
+    job:result,target,schema,locale:"zh-CN"
+  });
+  assert.equal(page.actions.find(x=>x.id==="return-to-target")?.route,
+    COUNTERPARTY_SUPPLIERS_ROUTE);
+  assert.equal(page.contextNavigation.items[0].route,
+    COUNTERPARTY_SUPPLIERS_ROUTE);
+  assert.equal(page.actions.some(x=>x.id==="commit"),false);
+  const row=page.items.find(x=>x.id==="row:1");
+  assert.match(row.summary,/主体类型/);
+  assert.match(row.summary,/调整字段映射/);
+  assert.doesNotMatch(row.summary,/DATA_IMPORT_REQUIRED_VALUE_MISSING/);
+  assert.equal(service.get({contextId:ctx,importJobId:"bex-failed"}).state,
+    "DRY_RUN_FAILED");
 });
