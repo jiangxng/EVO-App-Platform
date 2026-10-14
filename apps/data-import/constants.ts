@@ -131,7 +131,7 @@ export function parseDataImportUploadRouteV010(route?: string): string | undefin
   return parseDataImportUploadIntentV010(route)?.targetId;
 }
 export function parseDataImportMappingRouteV010(route?: string): string | undefined {
-  const match = route?.match(/^\/data-import\/jobs\/([^/?#]+)\/map$/u);
+  const match = route?.match(/^\/data-import\/jobs\/([^/?#]+)\/map(?:\?[^#]*)?$/u);
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 export function parseDataImportReviewRouteV010(route?: string): string | undefined {
