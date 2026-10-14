@@ -192,7 +192,8 @@ test("Data Import Human experience exposes target selection, file upload and tar
   });
   assert.deepEqual(
     upload.contextNavigation.items.map(item => [item.label, item.route]),
-    [["数据导入", "/data-import"], ["上传数据文件", undefined]]
+    [["返回往来对象", "/counterparties"],
+      ["数据导入", "/data-import"], ["上传数据文件", undefined]]
   );
   assert.match(upload.description, /CSV \/ XLSX/);
 

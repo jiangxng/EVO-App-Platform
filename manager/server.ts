@@ -7455,6 +7455,7 @@ const server = createServer(async (request, response) => {
             200,
             module.createDataImportMappingPageV010({
               job,
+              target,
               schema: target.describe({
                 contextId: active.contextId,
                 locale,
@@ -7464,13 +7465,23 @@ const server = createServer(async (request, response) => {
             })
           );
         }
+        const importTarget = dataImportTargets.find(item =>
+          item.targetId === job.targetId
+        );
         return json(
           response,
           200,
           module.createDataImportReviewPageV010({
             job,
             locale,
-            target: dataImportTargets.find(item => item.targetId === job.targetId)
+            target: importTarget,
+            ...(importTarget ? {
+              schema: importTarget.describe({
+                contextId: active.contextId,
+                locale,
+                parameters: job.targetParameters
+              })
+            } : {})
           })
         );
       }
