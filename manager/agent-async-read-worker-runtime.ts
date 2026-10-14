@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { AgentRunCreateInputV010, AgentRunEventV010, AgentRunV010 } from "../contracts/agent-run.js";
 import type { PlatformPrincipalV010, PlatformRequestContextV010, ResolvedContextSetV010 } from "../contracts/platform-services.js";
 import type { LlmInferenceProvider } from "../contracts/llm.js";
+import type {Pa02CostPolicyCandidateV010,Pa02CostLedgerV010} from
+  "../agents/enterprise-agent/pa02-r10-postgres-cost-reservation.js";
 import type { AgentToolCatalogV010 } from "../agents/enterprise-agent/contracts.js";
 import type { AsyncAgentRunReceiptRepositoryV020 } from "../contracts/agent-durability-async.js";
 import type { FencedAgentRunAuthorityV030 } from "../agents/enterprise-agent/pa02b-fenced-run-authority.js";
@@ -36,6 +38,9 @@ export interface HostAsyncReadExecutionV030 {
 }
 export interface HostAsyncReadExecutionDependenciesV030 {
   resolveProvider():LlmInferenceProvider|undefined;
+  /** Synthetic contract for isolated budget integration tests only.
+   * Ordinary Server does not construct this. NEVER actual vendor pricing. */
+  testOnlyCostPolicy?:Pa02CostPolicyCandidateV010;
   createToolCatalog(run:AgentRunV010,principal:PlatformPrincipalV010,
     context:ResolvedContextSetV010,requestContext:PlatformRequestContextV010|undefined,
     interaction:{sourceInteractionId:string;sourceActionId:string}):AgentToolCatalogV010;
@@ -102,8 +107,11 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
   let reconciler:AgentWriteReconciliationPortV030|undefined;
   let governedWrite:GovernedAgentWorkerWritePortV040|undefined;
   let outbox:Pa02RunOutboxReaderV010|undefined;
+  let costLedger:Pa02CostLedgerV010|undefined;
+  if(input.deps.testOnlyCostPolicy&&process.env.NODE_ENV==="production")
+    throw Error("PA02_R10_TEST_COST_POLICY_PRODUCTION_FORBIDDEN");
   const close=async()=>{
-    for(const service of [outbox,reconciler,cancellation,authority,execution,repo]) {
+    for(const service of [costLedger,outbox,reconciler,cancellation,authority,execution,repo]) {
       if(service)await service.close();
     }
   };
@@ -111,6 +119,14 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     repo=await createPostgresAgentDurabilityProofV020({
       connectionString:input.connectionString,schema:input.schema
     });
+    if(input.deps.testOnlyCostPolicy){
+      const {createPa02IsolatedPostgresCostLedgerV010}=await import(
+        "../agents/enterprise-agent/pa02-r10-postgres-cost-reservation.js"
+      );
+      costLedger=await createPa02IsolatedPostgresCostLedgerV010({
+        connectionString:input.connectionString,schema:input.schema
+      });
+    }
     outbox=await createPostgresPa02RunOutboxReaderV010({
       connectionString:input.connectionString,schema:input.schema
     });
@@ -150,6 +166,24 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     }
   }catch(e){await close();throw e;}
   const durable=repo!,fenced=authority!,cancel=cancellation!;
+  const testPolicy=input.deps.testOnlyCostPolicy;
+  const testOnlyCostPort=costLedger&&testPolicy?{
+    maxOutputTokens:testPolicy.maxBillableOutputTokens,
+    async reserve(r:{scope:import("../contracts/agent-durability-async.js").HostResolvedAgentDurabilityScopeV020;
+      runId:string;sliceId:string;providerId:string;modelId:string}){
+      if(r.providerId!==testPolicy.providerId||r.modelId!==testPolicy.modelId)
+        return "UNAPPROVED" as const;
+      return (await costLedger!.reserve({
+        scope:r.scope,runId:r.runId,sliceId:r.sliceId,policy:testPolicy
+      })).status;
+    },
+    async settle(r:{scope:import("../contracts/agent-durability-async.js").HostResolvedAgentDurabilityScopeV020;
+      runId:string;sliceId:string;usage?:{inputTokens:number;outputTokens:number}}){
+      return (await costLedger!.settle({
+        ...r,policy:testPolicy
+      })).status;
+    }
+  }:undefined;
   const reader=(i:{principal:PlatformPrincipalV010;context:ResolvedContextSetV010})=>
     createHostScopedAsyncAgentRunBridgeV020({
       repository:durable,principal:i.principal,context:i.context
@@ -209,6 +243,7 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
       resolveProvider:input.deps.resolveProvider,
       createToolCatalog:catalog,
       ...(governedWrite?{governedWrite}:{}),
+      ...(testOnlyCostPort?{testOnlyCostPort}:{}),
       eventId:randomUUID,sliceId:randomUUID
     });
     let run=before;
