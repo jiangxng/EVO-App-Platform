@@ -107,10 +107,24 @@ export async function preparePostgresObjectExtensionOwnerSchemaV010(input:{
       "target_slot text NOT NULL,field_id text NOT NULL,"+
       "resource jsonb NOT NULL CHECK(jsonb_typeof(resource)='object'),created_at timestamptz NOT NULL,"+
       "PRIMARY KEY(context_id,extension_id),"+
-      "UNIQUE(context_id,target_object_type,target_slot,field_id),"+
       "UNIQUE(context_id,enterprise_id,extension_id),"+
       "FOREIGN KEY(context_id,enterprise_id) REFERENCES "+
         q+".pa02_contexts(context_id,enterprise_id))");
+    // A historically ARCHIVED definition may coexist with a new ACTIVE
+    // definition at the same business field slot. The legacy proof schema
+    // constrained even archived rows; converge it during explicit preparation.
+    await sql.unsafe("CREATE UNIQUE INDEX IF NOT EXISTS "+
+      "pa02_active_field_unique ON "+q+".pa02_definitions "+
+      "(context_id,target_object_type,target_slot,field_id) "+
+      "WHERE (resource->>'lifecycleState')='ACTIVE'");
+    const legacyKeys=await sql.unsafe("SELECT conname FROM pg_constraint "+
+      "WHERE conrelid=$1::regclass AND contype='u' AND "+
+      "pg_get_constraintdef(oid) LIKE 'UNIQUE (context_id, target_object_type, target_slot, field_id)%'",
+      [input.schema+".pa02_definitions"]);
+    for(const key of legacyKeys){
+      await sql.unsafe("ALTER TABLE "+q+".pa02_definitions DROP CONSTRAINT "+
+        '"'+String(key.conname).replaceAll('"','""')+'"');
+    }
     await sql.unsafe("CREATE TABLE IF NOT EXISTS "+q+".pa02_owner_evidence ("+
       "context_id text NOT NULL,enterprise_id text NOT NULL,"+
       "idempotency_hash text NOT NULL,run_id text NOT NULL,"+
