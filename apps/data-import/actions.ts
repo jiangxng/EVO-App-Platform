@@ -547,8 +547,13 @@ export function createDataImportActionHandlersV010(input: {
             .map(item => [item.sourceColumn!, item] as const)
         );
         const nextMapping: DataImportMappingV010[] = [];
+        const unhandledColumns: string[] = [];
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
+          if (value === "__PENDING_CREATE__") {
+            unhandledColumns.push(sourceColumn);
+            return;
+          }
           if (typeof value !== "string" || !value.trim()) return;
           if (value === "__IGNORE__") return;
           const targetFieldId = value.trim();
@@ -563,6 +568,9 @@ export function createDataImportActionHandlersV010(input: {
           );
         });
 
+        if (unhandledColumns.length) {
+          throw new Error("DATA_IMPORT_COLUMNS_NEED_DECISION: " + unhandledColumns.join("、"));
+        }
         const explicitlyMappedTargets = new Set(
           nextMapping.map(item => item.targetFieldId)
         );
