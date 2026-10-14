@@ -125,6 +125,17 @@ try{
  },contextId);
  assert.equal(badReview?.job?.state,"DRY_RUN_FAILED");
  assert.equal(badReview?.job?.dryRun?.invalidRows,3);
+ const extensionRows=["往来编码,往来名称,主体类型,开户银行",
+  "EXT001,Extension Field Supplier,ORGANIZATION,HSBC"];
+ const extensionCsv=Buffer.from(extensionRows.join("\n"),"utf8");
+ const extensionStage=await execute("data-import.stage-file",{
+   targetId:"counterparty.subject",
+   file:{name:"bex01-extension-supplier.csv",mediaType:"text/csv",
+     size:extensionCsv.length,contentBase64:extensionCsv.toString("base64")},
+   parameter__relationshipMode:"SUPPLIER"
+ },contextId);
+ const extensionJobId=extensionStage?.job?.importJobId;
+ assert.ok(extensionJobId,"BEX01_EXTENSION_JOB_MISSING");
  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
@@ -132,7 +143,7 @@ try{
  assert.equal(first.value.table?.rows?.length,25,"BEX01_FIRST_PAGE_NOT_BOUNDED");
  assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
- const fixture={hostUrl,contextId,jobId,failedJobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
+ const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
  console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));

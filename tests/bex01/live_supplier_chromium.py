@@ -155,6 +155,70 @@ with sync_playwright() as p:
      "stagedJobPreserved":True}
   finally: context.close()
  run("failed-supplier-import-review-mapping-upload-return",failed_precheck_navigation)
+ def extension_field_from_import():
+  import hashlib
+  ctx=make_context(1280,820,False)
+  page=ctx.new_page()
+  job=fixture["extensionJobId"]
+  expected_field="ext_"+hashlib.sha256("counterparty.subject|开户银行".encode()).hexdigest()[:16]
+  try:
+   mapping="/data-import/jobs/"+job+"/map"
+   page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
+   page.wait_for_timeout(800)
+   print("BEX_EXT_MAP_FIRST="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[:600]},ensure_ascii=False),flush=True)
+   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
+   open_field=page.locator('[data-eidos-context-route^="/object-extensions/from-import?job="]')
+   expect(open_field).to_be_visible()
+   open_field.click()
+   print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
+   expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=15000)
+   form=page.locator('form[data-eidos-id="evo-object-extension.import"]')
+   expect(form.locator('select[name="sourceColumn"]')).to_have_value("开户银行")
+   form.locator('input[name="label"]').fill("开户银行")
+   form.locator('select[name="valueType"]').select_option("STRING")
+   page.screenshot(path=str(OUT/"extension-field-create.png"),full_page=True)
+   form.locator('button[type="submit"]').click()
+   page.wait_for_timeout(800)
+   print("BEX_EXT_AFTER_CREATE="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[:800]},ensure_ascii=False),flush=True)
+   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
+   mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+   expect(mapping_form.locator('select[name="map_3"] option[value="'+expected_field+'"]')).to_have_count(1)
+   mapping_form.locator('select[name="map_0"]').select_option("code")
+   mapping_form.locator('select[name="map_1"]').select_option("displayName")
+   mapping_form.locator('select[name="map_2"]').select_option("subjectType")
+   mapping_form.locator('select[name="map_3"]').select_option(expected_field)
+   mapping_form.locator('button[type="submit"]').click()
+   expect(page.locator('[data-eidos-id="evo-data-import.review"]')).to_be_visible(timeout=30000)
+   review=page.locator('[data-eidos-id="evo-data-import.review"]')
+   expect(review.locator('[data-eidos-catalog-action="commit"]')).to_be_visible()
+   page.on("dialog",lambda dialog: dialog.accept())
+   review.locator('[data-eidos-catalog-action="commit"]').click()
+   page.wait_for_timeout(900)
+   print("BEX_EXT_AFTER_COMMIT="+json.dumps({"url":page.url,
+     "text":page.locator("body").inner_text()[-1700:]},ensure_ascii=False),flush=True)
+   expect(page.locator('[data-eidos-id="evo-data-import.review"]')).to_be_visible(timeout=30000)
+   expect(page.locator('[data-eidos-catalog-action="return-to-target"]')).to_be_visible()
+   page.goto(HOST+"/?surface=desktop#"+route,wait_until="domcontentloaded")
+   expect(page.locator('[data-eidos-catalog-table]')).to_be_visible(timeout=30000)
+   search=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
+   search.fill("Extension Field Supplier")
+   page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
+   page.wait_for_timeout(700)
+   print("BEX_EXT_SEARCH="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[-800:]},ensure_ascii=False),flush=True)
+   expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1)
+   page.locator('[data-eidos-catalog-table] tbody tr:first-child button').first.click()
+   expect(page.locator('[data-eidos-id="evo-counterparty.detail"]')).to_be_visible(timeout=30000)
+   expect(page.locator('[data-eidos-catalog-item$=":enterprise-extension"]')).to_contain_text("开户银行")
+   expect(page.locator('[data-eidos-catalog-item$=":enterprise-extension"]')).to_contain_text("HSBC")
+   page.screenshot(path=str(OUT/"extension-value-in-supplier-detail.png"),full_page=True)
+   return {"definedSourceColumn":"开户银行","mappedNewField":expected_field,
+    "committedSupplier":"EXT001","displayedSavedValue":"HSBC"}
+  finally: ctx.close()
+ run("extension-field-create-map-commit-detail",extension_field_from_import)
  def phone():
   context=make_context(390,844,True)
   page=open_supplier(context)
@@ -172,7 +236,7 @@ with sync_playwright() as p:
    control=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
    assert control.bounding_box()["height"] >= 44, "PHONE_SEARCH_TOUCH_TARGET"
    page.locator('[data-eidos-catalog-action="next-page"]').click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 53")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 54")
    expect(cards).to_have_count(25)
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0053")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()

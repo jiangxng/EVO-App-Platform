@@ -479,6 +479,7 @@ export function createCounterpartyDetailPageV010(input: {
   supplierProfile?: CounterpartyRelationshipProfileV010;
   contacts?: readonly CounterpartyContactV010[];
   addresses?: readonly CounterpartyAddressV010[];
+  extensionFields?: readonly {fieldId:string;label:string;value:string}[];
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
@@ -630,6 +631,21 @@ export function createCounterpartyDetailPageV010(input: {
         category: text.addresses,
         ...(address.isPrimary ? { badges: [text.primary] } : {}),
         metadata
+      });
+    }
+  }
+
+  if ((input.extensionFields?.length ?? 0) > 0) {
+    const extensions = input.extensionFields!
+      .filter(field => canRead(field.fieldId));
+    if (extensions.length > 0) {
+      facetItems.push({
+        id: subject.counterpartyId + ":enterprise-extension",
+        title: input.locale?.startsWith("zh") ? "企业扩展字段" : "Enterprise extension fields",
+        category: input.locale?.startsWith("zh") ? "企业扩展字段" : "Enterprise extensions",
+        metadata: Object.fromEntries(
+          extensions.map(field => [field.label, field.value])
+        )
       });
     }
   }
