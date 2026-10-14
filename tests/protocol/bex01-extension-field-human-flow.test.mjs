@@ -56,6 +56,31 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.deepEqual(form.fields.find(x=>x.key==="sourceColumn").options.map(x=>x.value),["开户银行"]);
  assert.equal(form.contextNavigation.items[1].route,
    "/data-import/jobs/bex-ext-1/map");
+ const schemaBefore=createCounterpartyEffectiveObjectSchemaV010({
+  activeRelationshipRoles:["SUPPLIER"],extensions:[]
+ });
+ const mappingWithEntry=createDataImportMappingPageV010({
+  job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:true
+ });
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,route);
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
+   "＋ 为本列创建企业扩展字段");
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
+ const mappingWithoutPermission=createDataImportMappingPageV010({
+  job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:false
+ });
+ assert.equal(mappingWithoutPermission.fields.some(x=>x.contextLink),false);
+ assert.equal(mappingWithoutPermission.contextNavigation.items.some(x=>x.id==="create-extension"),false);
+ const mapOtherObject=createDataImportMappingPageV010({
+  job:{...job,targetId:"warehouse.item"},schema:schemaBefore,locale:"zh-CN",
+  canCreateExtension:true
+ });
+ assert.equal(mapOtherObject.fields.some(x=>x.contextLink),false);
+ const agentAction=mappingWithEntry.actions.find(x=>x.id==="ai-auto-map");
+ assert.equal(agentAction?.type,"agent");
+ assert.equal(agentAction.context?.importJobId,job.importJobId);
+ assert.equal(agentAction.context?.targetId,"counterparty.subject");
+ assert.equal(agentAction.refreshSourceOnComplete,true);
  const created=await action.execute(request("开户银行","开户银行","STRING"),ctx());
  assert.equal(created.ok,true,JSON.stringify(created));
  assert.equal(created.result.navigateTo,"/data-import/jobs/bex-ext-1/map");
