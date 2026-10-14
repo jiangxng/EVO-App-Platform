@@ -241,6 +241,6 @@ test("BEX-01 supplier validation failures retain return and explain missing fiel
   assert.match(row.summary,/主体类型/);
   assert.match(row.summary,/调整字段映射/);
   assert.doesNotMatch(row.summary,/DATA_IMPORT_REQUIRED_VALUE_MISSING/);
-  assert.equal(service.get({contextId:ctx,importJobId:"bex-failed"}).state,
-    "DRY_RUN_FAILED");
+  // Reading the review / navigating home must not change the job state.
+  assert.equal(result.state,"DRY_RUN_FAILED");
 });
