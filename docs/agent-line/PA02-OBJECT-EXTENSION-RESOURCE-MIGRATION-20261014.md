@@ -41,4 +41,4 @@
 
 **来源等级：** 本轮直接阅读 GitHub 当前 `main` 源码、测试、权威文件和实际 GitHub Actions；本轮**没有逐页打开任何额外外部技术网站**。先前 H01–H14 仍是历史转引/未重新核验；#836 记录的 PostgreSQL 官方文档等级沿用其原记载，不冒称本轮又查原文。
 
-**CI evidence:** PENDING（只能在最终 PR head 实际测试运行后补入），CI PASS 不等于上线。
+**CI evidence（首次真实专项 PASS）：** [GitHub Actions #38508584764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38508584764)（job `115671640621`；PR #837；commit `dd8d6cfa9df2316008eaa6a811c4a52c6c7c500f`）：PostgreSQL 18、`npm run build` PASS、`node --test` 实际执行 **12 tests / 12 pass / 0 fail / 0 skipped**。日志标记 `PA02_OBJECT_EXTENSION_RESOURCE_MIGRATION` / `PA02_OBJECT_EXTENSION_IMPORT_ROLLBACK`：跨进程 2 importers、同库 Owner 读写、历史+归档封套保留、文件漂移/SQL 业务冲突和绑定错误事务回滚。原 #836 原子 Owner 回归继续 PASS。**最终合并需要最终 PR head 的相关检查 PASS**；成功仅限隔离开发数据库，不等于生产 WRITE、生产文件冻结或 Host Provider 切换。
