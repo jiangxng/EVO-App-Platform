@@ -9,19 +9,22 @@ import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "./constants.js";
 export function createObjectExtensionImportPageV010(input: {
   job: DataImportJobV010;
   locale?: string;
+  sourceColumn?: string;
 }) {
   const {job}=input;
   const zh=input.locale?.startsWith("zh")??false;
   const used=new Set(job.mapping.filter(x=>x.sourceColumn).map(x=>x.sourceColumn));
   const remaining=job.source.headers.filter(x=>!used.has(x));
   const returnRoute=dataImportMappingRouteV010(job.importJobId);
+  const selected = input.sourceColumn && remaining.includes(input.sourceColumn)
+    ? input.sourceColumn : remaining[0] ?? "";
   return {
     contractVersion:"0.1.1" as const,
     kind:"form" as const,
     id:"evo-object-extension.import",
     title:zh?"创建企业扩展字段":"Create enterprise extension field",
     description:zh
-      ? "未匹配列和行数据已保留在当前导入作业中。请只将真实业务属性定义为字段；系统日志、历史状态等保持不映射。创建后返回映射页面，选择新字段并重新预检查。"
+      ? "未匹配列和行数据已保留在当前导入作业中。请只将真实业务属性定义为字段；系统日志、历史状态等保持不映射。创建后自动带回刚创建的映射建议，请确认并重新预检查。"
       : "Unmapped columns remain preserved in this job. Create a field for real business data, not source system metadata. Then map and validate it.",
     contextNavigation:{items:[
       {id:"data-import",label:zh?"数据导入":"Data Import",route:DATA_IMPORT_DIRECTORY_ROUTE},
@@ -36,10 +39,11 @@ export function createObjectExtensionImportPageV010(input: {
         options:[{value:job.importJobId,label:job.importJobId}]},
       {key:"sourceColumn",label:zh?"未匹配来源列":"Unmapped source column",
         semanticType:"object-extension-source",control:"select" as const,
-        required:true,initialValue:remaining[0]??"",
+        required:true,initialValue:selected,
         options:remaining.map(x=>({value:x,label:x}))},
       {key:"label",label:zh?"字段业务名称":"Field label",
-        semanticType:"object-extension-label",control:"text" as const,required:true},
+        semanticType:"object-extension-label",control:"text" as const,required:true,
+        initialValue:selected},
       {key:"valueType",label:zh?"数据类型":"Value type",
         semanticType:"object-extension-value-type",control:"select" as const,required:true,
         initialValue:"STRING",options:[
