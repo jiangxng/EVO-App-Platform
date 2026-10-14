@@ -972,6 +972,7 @@ import {
   OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
   parseObjectExtensionImportRouteV010,
+  parseObjectExtensionImportColumnV010,
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID
 } from "../apps/object-extension/constants.js";
@@ -5022,6 +5023,26 @@ const actionRouter = createAppActionRouter(
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
+            async applyImportMapping({contextId,importJobId,sourceColumn,targetFieldId,actorSubjectId,recordedAt}) {
+              const targets=await resolveEffectiveDataImportTargetsV010();
+              const service=createDataImportServiceV010({
+                repository:dataImportRepository,
+                recipeRepository:dataImportRecipeRepository,
+                targets
+              });
+              const current=dataImportRepository.get(contextId,importJobId);
+              if(!current||current.targetId!=="counterparty.subject"){
+                throw new Error("OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND");
+              }
+              if(current.mapping.some(x=>x.sourceColumn===sourceColumn)){
+                throw new Error("OBJECT_EXTENSION_SOURCE_ALREADY_MAPPED");
+              }
+              await service.updateMapping({
+                contextId,importJobId,
+                mapping:[...current.mapping,{sourceColumn,targetFieldId}],
+                mappingOrigin:"HUMAN",actorSubjectId,recordedAt
+              });
+            },
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -7425,7 +7446,10 @@ const server = createServer(async (request, response) => {
         });
         const module=await import("../apps/object-extension/page.js");
         return json(response,200,module.createObjectExtensionImportPageV010({
-          job,locale:requestedLocale(url)
+          job,locale:requestedLocale(url),
+          sourceColumn:parseObjectExtensionImportColumnV010(
+            url.searchParams.get("route")??undefined
+          )
         }));
       }
 
