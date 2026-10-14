@@ -1,3 +1,4 @@
+import { parseCounterpartyProjectionQueryV010 } from "./projection-query.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -68,7 +69,7 @@ export function createCounterpartyProjectionActionHandlersV010(input: {
     featureId: COUNTERPARTY_FEATURE_ID,
     commandCode,
     async execute(
-      _request: AppActionRequestV010,
+      request: AppActionRequestV010,
       context?: PlatformRequestContextV010
     ): Promise<AppActionExecutionResultV010> {
       try {
@@ -77,6 +78,9 @@ export function createCounterpartyProjectionActionHandlersV010(input: {
         const result = await input.service.read({
           contextId: active.contextId,
           projectionId,
+          ...(Object.keys(request.values).length
+            ? { query: parseCounterpartyProjectionQueryV010(request.values) }
+            : {}),
           requestContext: context,
           enterpriseRelationshipKind:
             input.resolveEnterpriseRelationshipKind(
