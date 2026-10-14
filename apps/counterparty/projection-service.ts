@@ -1,7 +1,6 @@
-import {
-  pageCounterpartyProjectionV010,
-  type CounterpartyProjectionQueryV010,
-  type CounterpartyProjectionPageInfoV010
+import type {
+  CounterpartyProjectionQueryV010,
+  CounterpartyProjectionPageInfoV010
 } from "./projection-query.js";
 import type {
   AuthorizationProviderV010,
@@ -104,8 +103,9 @@ export function createCounterpartyProjectionServiceV010(input: {
         principalSubjectId: request.requestContext.principal.subjectId,
         authorizedCounterpartyIds
       });
+      // BEX queries are optional; do not eagerly load an uninstalled feature.
       const paged = request.query
-        ? pageCounterpartyProjectionV010({
+        ? (await import("./projection-query.js")).pageCounterpartyProjectionV010({
             counterparties: projected,
             readableFieldIds: access.readableFieldIds,
             query: request.query
