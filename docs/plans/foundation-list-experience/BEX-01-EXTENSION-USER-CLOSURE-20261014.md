@@ -55,6 +55,15 @@
 **人类验收关闭标准**：实际用户确认入口易找、字段选择与类型清楚、返回映射和预检查可操作，且合法数据成功提交后供应商详情显示字段值，方可将 BEX-01/CP-03 本轮标记 `HUMAN_ACCEPTED`。若缺失 `subjectType` 阻止提交，应标记“扩展字段创建/映射已验，原始数据质量阻塞导入提交”，而非虚报整体 PASS。当前状态继续为 **`HUMAN_ACCEPTANCE_PENDING`**。不纳入 Item、Warehouse、Agent、物理分页、共享 Host/Owner 存储改造；不擅自部署。
 
 
+
+## 2026-10-14 真实映射下拉框反馈与 Excel 驱动设计研究
+
+用户在原 Railway 映射页打开“系统编码”的目标字段选择框，截图证实该**下拉框**只有“忽略此列”与已存在的字段，未提供“创建企业扩展字段”动作。已部署 #843 仅把创建入口放在 `contextNavigation`，与单列操作分离；用户直观找不到，已构成**可发现性 UX 待改善**，但当前截图不足以证明整个页面入口完全缺失或权限有误。原三行 `subjectType` 核心必填错误继续独立记录。
+
+按用户要求调研勤哲 Excel 服务器官方“模板/数据项”教程及 Microsoft SharePoint / Microsoft Lists 官方 Excel 创建列表文档；逐项证据、原文阅读状态、适用边界和备选设计见 [本目录 REFERENCES.md §7](REFERENCES.md)。区分“Excel → 新列表（SharePoint）”、“Excel 模板 → 表单数据项/业务表（勤哲）”与“Excel 未映射列 → 已有 EVO Counterparty 企业扩展字段（BEX-01）”。
+
+**最小设计候选，待用户审定**：在未匹配列所在映射行增加明确可见的 **“+ 创建企业字段”**，以当前列预选既有 CP-03 创建页；人工确认名称/数据类型，保存返回原映射并出现新字段，再预检查/显式提交。已存在字段优先映射；原始系统元数据不自动生成字段；不能通过扩展字段绕过 `subjectType` 核心验证。不据此启动通用“Excel 创建新对象”框架，也不重写 Object Extension Owner 或 Eidos 通用 UI。**截至本条仅完成研究与候选记录，未修改功能、未重新部署、未完成 Human 签收。**
+
 ## 仓库、分支、工作区与冲突边界
 
 - 主仓：https://github.com/jiangxng/EVO-App-Platform；页面共用组件 owner：https://github.com/jiangxng/eidos （核对时 Eidos `main@8d632842f256f4b08c4bedcaa69bda6822c8a3f7`，无开放 PR）。
