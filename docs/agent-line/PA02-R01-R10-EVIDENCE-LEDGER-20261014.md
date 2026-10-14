@@ -32,3 +32,10 @@
 - 在 `docs/agent-line/PA02-CURRENT-ACCEPTANCE.md` 维护项目/状态/剩余验收固定进度；已合并历史 PR 的初版 `CI_PENDING` 文字只是创建当时的快照，不优先于最终合并 SHA/Job 日志。
 - 过程分支：[#859](https://github.com/jiangxng/EVO-App-Platform/pull/859)、[#863](https://github.com/jiangxng/EVO-App-Platform/pull/863)、[#865](https://github.com/jiangxng/EVO-App-Platform/pull/865) 的 `agent/*` 源 ref 合并后自动删除。历史 docs/治理 branch 有 ahead=0 但 GitHub 工具缺少删除 ref；发布使用的 BEX release branch 与 BEX owner 的独有提交分支不能清理。禁止通过强制修改 ref 冒充删除。
 - **无生产部署、无生产 WRITE、未修改** `project.status.json`、生成的全局 `HANDOFF-LATEST.md`、BEX/2D/插件治理 owner 的文件，未提前纳入 PA-03～PA-06。
+
+
+## 2026-10-14：后续精确增量证据（不回写历史当时结论）
+
+- **R04/R08/R09 额外复合场景已合并：** [#868](https://github.com/jiangxng/EVO-App-Platform/pull/868) 最终 HEAD `9d0f6d6e1bb7c743e6da6d502c40ab8a71e71f4c`，main merge `d72c14856e391a7e6a077c93af57df5f8eae8b9a`，[Chromium + real HTTP Host + PostgreSQL18 Owner 38551397649](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38551397649) 9/9 PASS。受控 test-only 包装器在 **SQL business + immutable Owner 事务真实提交之后** 丢弃向 Host 的业务 ACK；浏览器同 Run reload、调用正式取消、恢复后的权威快照保留一份已发生业务 Receipt，无盲重复 WRITE。业务网络 TCP 真断路与生产不在本层证据范围，详见 [R04 专项](PA02-R04-OWNER-ACK-LOSS-CHROMIUM-20261014.md)。此前“没有在浏览器模拟 Owner ACK 真丢”的限制只对本增量以前有效；**旧 Worker 独立进程 SIGKILL 与浏览器同故障**仍未直接复合证明。
+- **R10 独立 PostgreSQL 货币预留原语：** [#869](https://github.com/jiangxng/EVO-App-Platform/pull/869) 首轮代码 HEAD `c8651aa5ff60b07f14c6c96c84364d9df0f68754`，[真实 PG18 Agent worker CI 38552517889](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38552517889) 3 项新测试全部通过。范围严格为合成测试费率下的原子最大费用预留、并发单赢家、重启未知保留/额度超限拒绝、版本漂移、缺少定价 fail-closed。**尚未接入正式 Host/Worker 真实推理调用，不是实际供应商收费账单或金额硬限额**；最终 HEAD CI 与 PR 合并另核。来源及限制见 [R10 专项](PA02-R10-MONETARY-RESERVATION-PROOF-20261014.md)。
+- **阶段状态不变：** R10 仍 `NOT_SIGNED`，PA-02 仍 `IN_PROGRESS`；未获批准的真实模型上界、计价口径和生产 WRITE 授权不能由测试中杜撰。历史 14 条外站 H 级转引不提升。
