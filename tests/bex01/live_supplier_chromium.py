@@ -117,6 +117,44 @@ with sync_playwright() as p:
    return {"table":True,"pages":[25,25,3],"backRestoresPage":True,"serverSearch":True}
   finally: context.close()
  run("desktop-live-Host-search-page-and-browser-back",desktop)
+ def failed_precheck_navigation():
+  context=make_context(1280,820,False)
+  page=context.new_page()
+  bad_id=fixture["failedJobId"]
+  try:
+   review_route="/data-import/jobs/"+bad_id+"/review"
+   page.goto(HOST+"/?surface=desktop#"+review_route,wait_until="domcontentloaded")
+   review=page.locator('[data-eidos-id="evo-data-import.review"]')
+   expect(review).to_be_visible(timeout=30000)
+   expect(review.locator('[data-eidos-catalog-item="row:1"]')).to_contain_text("主体类型")
+   expect(review.locator('[data-eidos-catalog-item="row:1"]')).to_contain_text("调整字段映射")
+   expect(review.locator('[data-eidos-catalog-action="commit"]')).to_have_count(0)
+   back=review.locator('[data-eidos-catalog-action="return-to-target"]')
+   expect(back).to_be_visible()
+   expect(back).to_have_text("返回供应商列表")
+   assert back.get_attribute("data-eidos-route")==route
+   assert review.locator('[data-eidos-context-route="'+route+'"]').count()==1
+   page.screenshot(path=str(OUT/"supplier-invalid-import-return.png"),full_page=True)
+   back.click()
+   expect(page.locator('[data-eidos-id="evo-counterparty.projection.counterparty.suppliers"]')).to_have_count(1,timeout=15000)
+   # Direct revisit must still show the staged failed job (exit is navigation only).
+   page.goto(HOST+"/?surface=desktop#"+review_route,wait_until="domcontentloaded")
+   expect(page.locator('[data-eidos-catalog-item="row:3"]')).to_contain_text("主体类型")
+   # Same safe workspace exit is present from field mapping.
+   mapping_route="/data-import/jobs/"+bad_id+"/map"
+   page.goto(HOST+"/?surface=desktop#"+mapping_route,wait_until="domcontentloaded")
+   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=20000)
+   assert page.locator('[data-eidos-context-route="'+route+'"]').count()==1
+   # The upload step also retains the originating business workspace.
+   upload="/data-import/new/counterparty.subject?parameter__relationshipMode=SUPPLIER"
+   page.goto(HOST+"/?surface=desktop#"+upload,wait_until="domcontentloaded")
+   expect(page.locator('[data-eidos-id="evo-data-import.upload"]')).to_be_visible(timeout=20000)
+   assert page.locator('[data-eidos-context-route="'+route+'"]').count()==1
+   return {"failedRows":3,"safeExitAllSteps":True,
+     "noAccidentalCommit":True,"localizedErrors":True,
+     "stagedJobPreserved":True}
+  finally: context.close()
+ run("failed-supplier-import-review-mapping-upload-return",failed_precheck_navigation)
  def phone():
   context=make_context(390,844,True)
   page=open_supplier(context)
