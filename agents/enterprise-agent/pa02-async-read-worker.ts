@@ -9,6 +9,7 @@ import type {
 } from "./contracts.js";
 import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.js";
 import type { GovernedAgentWorkerWritePortV040 } from "./pa02-governed-worker-write-port.js";
+import type { AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durability-host-bridge.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 
@@ -89,14 +90,15 @@ export function createReadOnlyFencedAgentWorkerV030(
       const scope=hostResolvedAgentDurabilityScopeV020({
         principal:input.principal,context:input.context
       });
-      let lease=await deps.authority.claim({
+      const initialLease=await deps.authority.claim({
         scope,runId,workerId,ttlSeconds:ttl
       });
-      if(!lease) {
+      if(!initialLease) {
         const state=await deps.authority.read({scope,runId});
         if(!state)throw Error("AGENT_RUN_NOT_FOUND");
         return {run:state.run,advanced:false,claimed:false,writeDeferred:false};
       }
+      let lease:AgentLeaseV020=initialLease;
       try {
       let current=await deps.authority.read({scope,runId});
       if(!current)throw Error("PA02_WORKER_RUN_MISSING_AFTER_CLAIM");
