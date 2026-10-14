@@ -3,7 +3,7 @@
 **Document class:** CURRENT_STATUS / LIVING_RUNBOOK
 **Last reviewed:** 2026-10-14
 **Authority:** [PA-00～PA-06 建设总纲 §25](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) 的原始 R01–R10；项目交付规范；[历史交接入口](PA02-WINDOW-CLOSURE-HANDOFF-ENTRY-20261014.md)。
-**Current verified main at #870 start:** `bfb3d35883c6f0d112048a359803b2fd492081ff`（[#869](https://github.com/jiangxng/EVO-App-Platform/pull/869) 已合并）。PA-02 [#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) 仅为合成定价的 Host 模型调用前预留验收，不是实际收费硬预算签收；BEX 修改继续独立。**原始十项证据总账：** [PA02-R01-R10-EVIDENCE-LEDGER-20261014.md](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。最新状态以该总账及本节最终 merged 补记为准，旧时间顺序段落不覆盖最新合并状态。
+**Current verified main at #872 start:** `f09709adcb1b9817516d8d3c2479845c5900f22b`（[#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) 与并行插件治理 [#871](https://github.com/jiangxng/EVO-App-Platform/pull/871) 均已合并）。本窗口只接续 PA-02 的 R10 请求真实上界验收，不修改并行 BEX/插件治理。**原始十项证据总账：** [PA02-R01-R10-EVIDENCE-LEDGER-20261014.md](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。最新状态以本表新增补记、实际 GitHub HEAD 和 PR CI 为准，旧段落保留其历史意义。
 **Production:** NOT AUTHORIZED / No production WRITE deployment. **PA-02 milestone:** IN_PROGRESS, NOT SIGNED.
 
 每完成一个可验证交付闭环，**更新这张表，不使用倒数数字冒充进度**。状态必须区分局部 CI 通过、隔离真实整链通过、最终阶段签收；表格不得提前填 PASS。
@@ -22,7 +22,7 @@
 | R10 Run 步数 | **24 slice 持久边界已验证** #845 | 纳入最终证据账 |
 | R10 Run 时间 | **72h 持久截止已验证** [#848](https://github.com/jiangxng/EVO-App-Platform/pull/848) | 纳入最终证据账 |
 | R10 实际 usage | **#856/#857 已合并**：真实 Provider 所回报用量持久记录，缺失用量明确标记 `UNAVAILABLE`、不伪零；[实施证据](PA02-R10-USAGE-EVIDENCE-20261014.md) | 仍缺绑定的供应商真实计费/审批费率；不能由 token 数自动推定货币费用 |
-| **R10 硬货币预算** | **OPEN**；#869 PG 原语已合并；#870 **合成价 Host/Worker 模型调用前**预留、额度阻断与未知账占额首版 CI 通过，待最终 HEAD/merge | 仍缺真实 Provider/model 的 Host 费用审批与可证计费上界、正式 Server 受治理开关、真实厂商回执/计费版本一致性验收 |
+| **R10 硬货币预算** | **OPEN**：#869/#870 已合并并验证隔离 PG+Host 合成费用；[#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 初版完整模型请求上界检查 24/24 PG18、18/18 CI PASS（待最终 HEAD/merge） | 缺真实已绑定模型可证明的完整请求计费上界、Host 批准费率版本/币种、真实收费凭证与接入前受治理验收，暂不签收 |
 | **真实 HTTP／Chromium 整链** | **#859/#863/#865/#868 已完成隔离真实 HTTP+Chromium+PostgreSQL 的分层与 ACK 丢失复合验收** | 生产多节点、高延迟真实远程业务网络不在本次准入范围 |
 | **R01–R10 最终签收** | **逐项证据总账完成 / 阶段未签收** | R10 货币限额的批准计价、最坏情况原子预留/硬拒绝仍未完成 |
 | **PA-02 阶段** | **IN_PROGRESS / NOT_PRODUCTION_READY** | 全部原验收通过方可 DEV_COMPLETE；生产单独审批 |
@@ -105,3 +105,16 @@
 - [#869](https://github.com/jiangxng/EVO-App-Platform/pull/869) 最终 head `ea650242960fb6a0f44b700344a3c7660e0861c5` 的 **14/14 工作流 SUCCESS**，合并 `bfb3d35883c6f0d112048a359803b2fd492081ff`；过程 Agent branch 已在合并后自动删除。真实 [PG18 Worker Actions 38552895612](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38552895612) 的新预留/并发/未知/负向价格测试通过。所有货币费率都是合成数据。
 - 当前 [#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) **初版代码 HEAD `4138ef7dc4d6380bf9fea9bd0bb4d15bf99013cf`**，真实 [Host Run + PostgreSQL18 CI 38553690645](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38553690645) 23 pass / 0 fail，且此准确 Head 的 **18/18 GitHub Actions 全绿**。原始日志 `PA02_R10_HOST_MONEY_PREFLIGHT`（额度不足阻止第二推理/Host 重启不旁路）、`PA02_R10_HOST_UNKNOWN_CHARGE`（缺 usage / 模型调用异常可能已计费，原 Run 阻断并保留最大额）、`PA02_R10_HOST_TARIFF_IDENTITY_DENIED`（Provider/model 不符则不调用）。此 Head **不是文档更新后的最终 Head**；不得提前宣布 #870 merged。详见 [专项记录](PA02-R10-HOST-COST-PREFLIGHT-20261014.md)。
 - 这只通过可信测试依赖在现有 Run/Worker 注入**合成费率**。普通 `manager/server.ts` **没有装载生产价表，也没有启用对真实收费 Provider 的金额硬限额**。尚无供应商真实价格审核/计费上限或账单回执；R10/PA-02 均 `NOT_SIGNED`，不因 CI 全绿声称已完成。历史外站 14 个 H 级引文不升级。
+
+
+## 2026-10-15：#870 合并与 R10 完整请求计费上界修正（等待本轮 CI）
+
+- [#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) 最终 Head `9491009c8671fb9d747a41c7ced383671436867f` **18/18 CI SUCCESS**，main merge `f5c90d21981fb2f5876e27a7940493d77fe4608f`，过程 Agent 分支已确认删除。核心 [Host PG18 Worker run 38554138771](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38554138771) 继续证明预算不足则无法发第二次合成 Provider 请求。随后并行治理 [#871](https://github.com/jiangxng/EVO-App-Platform/pull/871) 合并使最新接续基线为 `f09709adcb1b9817516d8d3c2479845c5900f22b`，本轮 branch 取自这一确切 HEAD。
+- **新增发现**：此前费用预留依据 `maxBillableInputTokens` 静态策略，而非真正 model request（包含 system/developer/user/history/tool schema/observations）已得到输入计费上界证明。为避免实际可计费输入增长突破保留额，本轮测试专属 Host 需在完成请求组装后、付费 `provider.infer` 前，取得绑定完整请求的可信输入上界。无法取得/超限时立即 `RUN_BLOCKED`，不发请求、亦不虚构已占费用。[专项证据与外站阅读等级](PA02-R10-ACTUAL-REQUEST-INPUT-QUOTE-20261015.md)已记录；**未收到本轮最终 CI 前不得填 PASS**。
+- 真实报价/真实 Provider quote/生产授权并未取得；不以合成测试、GitHub CI 绿冒充 R10 `DEV_COMPLETE`。生产 WRITE 未打开，旧 14 条 H 级外站转引保持 H。
+
+
+### 2026-10-15 #872 首轮真实 PG CI 与阅读分级
+
+- [Actions #38650954272](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38650954272) job `116149313153` 对代码 HEAD `9864c64d1e1ecb79b640d5795fab8c927048b0b7`：Agent Worker **24/24 PASS**、初版该 SHA 全 **18/18 GitHub Workflows SUCCESS**。新增负向 `PA02_R10_REAL_REQUEST_BOUND_REQUIRED` 在缺失/畸形/过大可信输入上界时 `provider.infer=0`、PG reservation=0；其余原有测试 PASS。新 [专项记录](PA02-R10-ACTUAL-REQUEST-INPUT-QUOTE-20261015.md) 中记录本轮首次独立访问的官网 URL/2026-10-15 阅读深度，原交接外站 14 条 H 维持历史转引；没有编造真正收费价格。
+- **这不是实际 Provider 报价/收费验证**：合成 quote 回调完全只在测试依赖中，正式 Host 没有获审批价目或真实供应商输入计数服务。#872 最终代码/文档 Head CI 和合并仍须复核，R10/PA-02 不提前升级。

@@ -42,6 +42,15 @@ function handlers(runtime,provider,catalog){
   now:()=>new Date()
  }).map(x=>[x.commandCode,x]));
 }
+// Synthetic ONLY: assert the quote receives the fully assembled request,
+ // including system/developer messages and the Host-imposed output limit.
+ // This fixture is NOT an actual billed-token count from a real supplier.
+const syntheticFullRequestQuote=async request=>{
+ assert.equal(request.maxOutputTokens,price.maxBillableOutputTokens);
+ assert.ok(request.messages.some(x=>x.role==="system"&&x.content.length>100));
+ assert.ok(request.messages.some(x=>x.role==="developer"&&x.content.length>100));
+ return 75;
+};
 const emptyCatalog=()=>({list:()=>[],async invoke(){
  throw Error("UNEXPECTED_BUSINESS_WRITE");
 }});
@@ -71,7 +80,8 @@ test("PA02 R10 actual Host Run: pre-inference PostgreSQL monetary reserve preven
   runtime=await createPostgresHostAsyncReadExecutionV030({
    connectionString:url,schema,
    deps:{resolveProvider:()=>provider,createToolCatalog:catalog,
-    testOnlyCostPolicy:price}
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
   });
   const start=await handlers(runtime,provider,catalog).get(
    "enterprise-agent.run.start").execute(cmd("enterprise-agent.run.start",
@@ -93,7 +103,8 @@ test("PA02 R10 actual Host Run: pre-inference PostgreSQL monetary reserve preven
   runtime=await createPostgresHostAsyncReadExecutionV030({
    connectionString:url,schema,
    deps:{resolveProvider:()=>provider,createToolCatalog:catalog,
-    testOnlyCostPolicy:price}
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
   });
   const after=await runtime.resume({runId:run.runId,principal,context});
   assert.equal(after.state,"BLOCKED");
@@ -128,7 +139,8 @@ test("PA02 R10 Host Run: provider missing usage or error holds money and forbids
   runtime=await createPostgresHostAsyncReadExecutionV030({
    connectionString:url,schema,
    deps:{resolveProvider:()=>provider,createToolCatalog:emptyCatalog,
-    testOnlyCostPolicy:price}
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
   });
   const start=handlers(runtime,provider,emptyCatalog).get("enterprise-agent.run.start");
   const missing=await start.execute(cmd("enterprise-agent.run.start",
@@ -154,7 +166,8 @@ test("PA02 R10 Host Run: provider missing usage or error holds money and forbids
   runtime=await createPostgresHostAsyncReadExecutionV030({
    connectionString:url,schema,
    deps:{resolveProvider:()=>provider,createToolCatalog:emptyCatalog,
-    testOnlyCostPolicy:price}
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
   });
   const again=await runtime.resume({runId:ambiguous.result.run.runId,
    principal,context});
@@ -182,7 +195,8 @@ test("PA02 R10 Host rejects synthetic tariff/provider mismatch before inference"
   runtime=await createPostgresHostAsyncReadExecutionV030({
    connectionString:url,schema,
    deps:{resolveProvider:()=>provider,createToolCatalog:emptyCatalog,
-    testOnlyCostPolicy:price}
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:syntheticFullRequestQuote}
   });
   const start=await handlers(runtime,provider,emptyCatalog).get(
    "enterprise-agent.run.start").execute(cmd("enterprise-agent.run.start",
@@ -198,6 +212,61 @@ test("PA02 R10 Host rejects synthetic tariff/provider mismatch before inference"
   }));
  }finally{
   await runtime?.close();
+  await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');
+  await admin.end();
+ }
+});
+
+test("PA02 R10: absent, malformed or oversized full-request quote blocks BEFORE any cost reservation or Provider infer",{
+ skip:!url?"Requires disposable PG18":false,timeout:90000
+},async()=>{
+ const schema="pa02_cost_host_"+randomUUID().replaceAll("-","").slice(0,10);
+ const admin=postgres(url,{max:2});
+ let runtime,ledger,calls=0,quoteSeen=0;
+ const provider={providerId:price.providerId,modelId:price.modelId,
+  async infer(){calls++;throw Error("QUOTE_GUARD_BYPASSED");}};
+ try{
+  runtime=await createPostgresHostAsyncReadExecutionV030({
+   connectionString:url,schema,
+   deps:{resolveProvider:()=>provider,createToolCatalog:emptyCatalog,
+    testOnlyCostPolicy:price,
+    testOnlyBilledInputUpperBound:async request=>{
+     quoteSeen++;
+     assert.ok(request.messages.some(m=>m.role==="system"));
+     assert.ok(request.messages.some(m=>m.role==="developer"));
+     assert.ok(request.messages.some(m=>m.role==="user"));
+     assert.equal(request.maxOutputTokens,20);
+     return quoteSeen===1?undefined:quoteSeen===2?101:NaN;
+    }}
+  });
+  const start=handlers(runtime,provider,emptyCatalog).get("enterprise-agent.run.start");
+  const runIds=[];
+  for(let i=1;i<=3;i++){
+   const result=await start.execute(cmd("enterprise-agent.run.start",
+    {message:"entire request must be checked before billing"},
+    "quote-denied-"+i));
+   assert.equal(result.ok,true,JSON.stringify(result.error));
+   assert.equal(result.result.run.state,"BLOCKED");
+   assert.equal(result.result.run.blocker.code,
+    "PA02_R10_COST_INPUT_UPPER_BOUND_UNVERIFIED");
+   runIds.push(result.result.run.runId);
+  }
+  assert.equal(quoteSeen,3);
+  assert.equal(calls,0,"unverified full request must never hit billable model");
+  ledger=await createPa02IsolatedPostgresCostLedgerV010({connectionString:url,schema});
+  for(const runId of runIds){
+   const snap=await ledger.snapshot({scope,runId});
+   assert.equal(snap.entries.length,0,"no fictional charge held before a request");
+   assert.equal(snap.capMicros,undefined);
+  }
+  console.log("PA02_R10_REAL_REQUEST_BOUND_REQUIRED="+JSON.stringify({
+   fullRequestMaterializedBeforeInputQuote:true,
+   absentOversizeMalformedQuoteRejected:true,providerCalls:0,
+   noSpuriousMonetaryReservations:true,syntheticQuoteOnly:true,
+   productionUsed:false
+  }));
+ }finally{
+  await ledger?.close();await runtime?.close();
   await admin.unsafe('DROP SCHEMA IF EXISTS "'+schema+'" CASCADE');
   await admin.end();
  }
