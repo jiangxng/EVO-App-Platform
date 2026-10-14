@@ -96,6 +96,39 @@ export async function createPostgresAgentDurabilityProofV020(input:{
       await tx.unsafe("CREATE TABLE IF NOT EXISTS "+q+".agent_run_events ("+
         "event_id text PRIMARY KEY,run_id text NOT NULL REFERENCES "+q+".agent_turns(run_id),"+
         "ordinal integer NOT NULL,payload jsonb NOT NULL,UNIQUE(run_id,ordinal))");
+      // PA-02 R05/R06: the same transaction that records ANY durable Run
+      // event (claim, fenced Worker append, cancellation) also emits one
+      // stable, uniquely identified Outbox row. No separate after-commit
+      // publish window and no independent event sequence to fabricate.
+      await tx.unsafe("CREATE TABLE IF NOT EXISTS "+q+".agent_run_outbox ("+
+        "sequence bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,"+
+        "event_id text NOT NULL UNIQUE,run_id text NOT NULL,"+
+        "scope_key text NOT NULL,ordinal integer NOT NULL,payload jsonb NOT NULL,"+
+        "UNIQUE(run_id,ordinal))");
+      await tx.unsafe("CREATE INDEX IF NOT EXISTS pa02_run_outbox_scope_run_seq "+
+        "ON "+q+".agent_run_outbox(scope_key,run_id,sequence)");
+      await tx.unsafe("CREATE OR REPLACE FUNCTION "+q+
+        ".pa02_capture_run_event() RETURNS trigger LANGUAGE plpgsql AS $body$ "+
+        "BEGIN INSERT INTO "+q+".agent_run_outbox "+
+        "(event_id,run_id,scope_key,ordinal,payload) "+
+        "SELECT NEW.event_id,NEW.run_id,t.scope_key,NEW.ordinal,NEW.payload "+
+        "FROM "+q+".agent_turns t WHERE t.run_id=NEW.run_id "+
+        "ON CONFLICT (event_id) DO NOTHING; RETURN NEW; END; $body$");
+      await tx.unsafe("DROP TRIGGER IF EXISTS pa02_run_outbox_append ON "+
+        q+".agent_run_events");
+      await tx.unsafe("CREATE TRIGGER pa02_run_outbox_append AFTER INSERT ON "+
+        q+".agent_run_events FOR EACH ROW EXECUTE FUNCTION "+
+        q+".pa02_capture_run_event()");
+      // Adopt older sandbox Run events from before the trigger existed.
+      // They are already authoritative, and each eventId remains stable.
+      await tx.unsafe("INSERT INTO "+q+".agent_run_outbox "+
+        "(event_id,run_id,scope_key,ordinal,payload) "+
+        "SELECT e.event_id,e.run_id,t.scope_key,e.ordinal,e.payload "+
+        "FROM "+q+".agent_run_events e JOIN "+q+".agent_turns t "+
+        "ON t.run_id=e.run_id "+
+        "WHERE NOT EXISTS (SELECT 1 FROM "+q+".agent_run_outbox o "+
+        "WHERE o.event_id=e.event_id) "+
+        "ORDER BY e.run_id,e.ordinal ON CONFLICT (event_id) DO NOTHING");
       await tx.unsafe("CREATE TABLE IF NOT EXISTS "+q+".agent_receipts ("+
         "receipt_id text PRIMARY KEY,scope_key text NOT NULL,idempotency_key text NOT NULL,"+
         "input_digest text NOT NULL,status text NOT NULL DEFAULT 'REQUESTED',"+
