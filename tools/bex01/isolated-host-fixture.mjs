@@ -107,6 +107,24 @@ try{
  assert.equal(reviewed?.job?.state,"DRY_RUN_READY");
  const committed=await execute("data-import.commit",{importJobId:jobId},contextId);
  assert.equal(committed?.job?.state,"COMMITTED");
+ // A second real import intentionally fails the required subjectType field.
+ // Its review page must still offer an exit to the supplier workspace.
+ const badRows=["往来编码,往来名称,主体类型",
+   "E0101,Bad supplier 1,","E0102,Bad supplier 2,","E0103,Bad supplier 3,"];
+ const badCsv=Buffer.from(badRows.join("\n"),"utf8");
+ const badStaged=await execute("data-import.stage-file",{
+   targetId:"counterparty.subject",
+   file:{name:"bex01-bad-supplier-mapping.csv",mediaType:"text/csv",
+     size:badCsv.length,contentBase64:badCsv.toString("base64")},
+   parameter__relationshipMode:"SUPPLIER"
+ },contextId);
+ const failedJobId=badStaged?.job?.importJobId;
+ assert.ok(failedJobId,"BEX01_FAILED_JOB_MISSING");
+ const badReview=await execute("data-import.review",{
+   importJobId:failedJobId,map_0:"code",map_1:"displayName",map_2:"subjectType"
+ },contextId);
+ assert.equal(badReview?.job?.state,"DRY_RUN_FAILED");
+ assert.equal(badReview?.job?.dryRun?.invalidRows,3);
  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
@@ -114,7 +132,7 @@ try{
  assert.equal(first.value.table?.rows?.length,25,"BEX01_FIRST_PAGE_NOT_BOUNDED");
  assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
- const fixture={hostUrl,contextId,jobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
+ const fixture={hostUrl,contextId,jobId,failedJobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
  console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));
