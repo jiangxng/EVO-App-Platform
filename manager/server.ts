@@ -4389,9 +4389,15 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
 });
 
 
-/** Opt-in development-only PostgreSQL READ worker; default OFF stays lazy. */
+/** Opt-in isolated PA-02 Owner only; no general Enterprise Resource cutover. */
 const configuredAgentAsyncWorkerMode =
   process.env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase() || "OFF";
+const optionalPa02ObjectExtensionOwner = configuredAgentAsyncWorkerMode === "OWNER_SANDBOX"
+  ? await (await import("./agent-pa02-sandbox-object-extension.js"))
+      .createOptionalPa02SandboxObjectOwnerV010(process.env, {
+        manager,resolveAuthorizationProvider,resources:enterpriseResourceRepository
+      })
+  : undefined;
 const optionalAgentAsyncReadWorker = configuredAgentAsyncWorkerMode === "OFF"
   ? undefined
   : await (await import("./agent-async-read-worker-runtime.js"))
@@ -4399,6 +4405,10 @@ const optionalAgentAsyncReadWorker = configuredAgentAsyncWorkerMode === "OFF"
         resolveProvider() {
           return resolveLlmProvider().provider;
         },
+        ...(optionalPa02ObjectExtensionOwner ? {
+          trustedOwner:optionalPa02ObjectExtensionOwner.binding,
+          discoverTrustedOwner:optionalPa02ObjectExtensionOwner.isAuthorized
+        } : {}),
         createToolCatalog(run, principal, context, requestContext, interaction) {
           return createPersonalAgentToolCatalogV010(
             run.input.locale, context, principal, requestContext, interaction
@@ -9433,6 +9443,7 @@ async function shutdown(signal: string): Promise<void> {
   }
   await optionalAgentAsyncRunReader?.close();
   await optionalAgentAsyncReadWorker?.close();
+  await optionalPa02ObjectExtensionOwner?.close();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(shutdownFailed ? 1 : 0));
   setTimeout(() => process.exit(1), 5000).unref();

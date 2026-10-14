@@ -39,6 +39,17 @@ export interface HostAsyncReadExecutionDependenciesV030 {
    * Never accept a model/provider-supplied Owner or expose a new tool here.
    */
   trustedOwner?: AgentTrustedOwnerBindingV040;
+  /**
+   * Host checks the installed, actively authorized Capability Operation for
+   * the exact scoped Human/enterprise on each catalogue discovery. The base
+   * generic Capability Fabric exposes operations through indirect tools, so
+   * its authorized operation list is also a legitimate discovery source.
+   */
+  discoverTrustedOwner?(input:{
+    principal:PlatformPrincipalV010;
+    context:ResolvedContextSetV010;
+    requestContext?:PlatformRequestContextV010;
+  }):Promise<boolean>;
 }
 function valid(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_HOST_RUN_ID_REQUIRED");
@@ -153,11 +164,24 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
           const listed=await base.list();
           // Ordinary catalog authorization MUST have exposed this operation.
           // A trusted registration alone never broadens tool discoverability.
-          return listed.map(item=>item.id===trusted.descriptor.id &&
+          // Generic Capability Fabric exposes operations through its search
+          // tool, not as one descriptor per operation. Only a separate current
+          // Host-authorization check may append this exact trusted operation.
+          const matched=listed.filter(item=>item.id===trusted.descriptor.id &&
             item.effect==="WRITE" &&
             item.ownerPackageId===trusted.descriptor.ownerPackageId &&
-            item.capability===trusted.descriptor.capability
-            ?structuredClone(trusted.descriptor):item);
+            item.capability===trusted.descriptor.capability);
+          if(matched.length===1)
+            return listed.map(item=>item===matched[0]
+              ?structuredClone(trusted.descriptor):item);
+          if(matched.length>1||
+            listed.some(item=>item.id===trusted.descriptor.id||
+              item.modelName===trusted.descriptor.modelName))
+            return listed;
+          const authorized=await input.deps.discoverTrustedOwner?.({
+            principal,context,requestContext
+          });
+          return authorized?[...listed,structuredClone(trusted.descriptor)]:listed;
         },
         async invoke(call,observations) {
           // Material WRITE only travels through governedWrite, never through
