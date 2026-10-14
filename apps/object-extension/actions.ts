@@ -268,7 +268,7 @@ export function createObjectExtensionActionHandlersV010(input: {
         const definitions=input.repository.list(active.contextId,job.targetId);
         const existing=definitions.find(x=>x.fieldId===fieldId);
         // One business label cannot silently create another active same-name field.
-        const normalizeLabel=(x:string)=>x.normalize("NFKC").replace(/\\s+/gu,"")
+        const normalizeLabel=(x:string)=>x.normalize("NFKC").replace(/\s+/gu,"")
           .toLocaleLowerCase();
         const colliding=definitions.filter(x=>
           x.fieldId!==fieldId && x.targetSlot===slot
