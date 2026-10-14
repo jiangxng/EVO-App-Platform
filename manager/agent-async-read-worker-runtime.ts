@@ -7,6 +7,9 @@ import type { AsyncAgentRunReceiptRepositoryV020 } from "../contracts/agent-dura
 import type { FencedAgentRunAuthorityV030 } from "../agents/enterprise-agent/pa02b-fenced-run-authority.js";
 import type { AgentAtomicCancellationPortV020 } from "../agents/enterprise-agent/pa02c-atomic-run-cancel.js";
 import type { AgentExecutionCoordinatorV020 } from "../agents/enterprise-agent/pa02b-postgres-coordination.js";
+import type { AgentWriteReconciliationPortV030 } from "../agents/enterprise-agent/pa02b-owner-reconciliation.js";
+import type { GovernedAgentWorkerWritePortV040 } from "../agents/enterprise-agent/pa02-governed-worker-write-port.js";
+import type { AgentTrustedOwnerBindingV040 } from "./agent-trusted-owner-registration.js";
 import { createHostScopedAsyncAgentRunBridgeV020,hostResolvedAgentDurabilityScopeV020 } from "./agent-durability-host-bridge.js";
 
 
@@ -30,6 +33,12 @@ export interface HostAsyncReadExecutionDependenciesV030 {
   createToolCatalog(run:AgentRunV010,principal:PlatformPrincipalV010,
     context:ResolvedContextSetV010,requestContext:PlatformRequestContextV010|undefined,
     interaction:{sourceInteractionId:string;sourceActionId:string}):AgentToolCatalogV010;
+  /**
+   * Explicit, already Host-registered business Owner. The same installed,
+   * authorized Capability Operation must also appear in the ordinary catalog.
+   * Never accept a model/provider-supplied Owner or expose a new tool here.
+   */
+  trustedOwner?: AgentTrustedOwnerBindingV040;
 }
 function valid(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_HOST_RUN_ID_REQUIRED");
@@ -37,8 +46,9 @@ function valid(s:unknown):string {
 }
 /**
  * Explicit development-mode async Run execution. Uses real fenced persisted Run
- * state and optional cooperative READ-worker yielding. No material WRITE is
- * dispatched: an undecided or WRITE tool causes a visible BLOCKED state.
+ * state and optional cooperative READ-worker yielding. Default is READ-only.
+ * A trusted Host-injected Owner enables only its exact installed operation,
+ * with the existing Fencing/Receipt/independent Owner verifier machinery.
  *
  * Not a substitute for the existing ordinary-chat Thread/Receipt pipeline.
  */
@@ -53,19 +63,27 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     {createPostgresAgentExecutionCoordinatorV020},
     {createPostgresFencedAgentRunAuthorityV030},
     {createPostgresAtomicAgentRunCancellationV020},
-    {createReadOnlyFencedAgentWorkerV030}]=await Promise.all([
+    {createReadOnlyFencedAgentWorkerV030},
+    {createPostgresAgentOwnerReconciliationV030},
+    {createGovernedAgentWriteHandoffV040},
+    {createGovernedAgentWorkerWritePortV040}]=await Promise.all([
     import("../agents/enterprise-agent/pa02a-postgres-durability-proof.js"),
     import("../agents/enterprise-agent/pa02b-postgres-coordination.js"),
     import("../agents/enterprise-agent/pa02b-fenced-run-authority.js"),
     import("../agents/enterprise-agent/pa02c-atomic-run-cancel.js"),
-    import("../agents/enterprise-agent/pa02-async-read-worker.js")
+    import("../agents/enterprise-agent/pa02-async-read-worker.js"),
+    import("../agents/enterprise-agent/pa02b-owner-reconciliation.js"),
+    import("../agents/enterprise-agent/pa02b-governed-owner-write-handoff.js"),
+    import("../agents/enterprise-agent/pa02-governed-worker-write-port.js")
   ]);
   let repo:AsyncAgentRunReceiptRepositoryV020|undefined;
   let execution:AgentExecutionCoordinatorV020|undefined;
   let authority:FencedAgentRunAuthorityV030|undefined;
   let cancellation:AgentAtomicCancellationPortV020|undefined;
+  let reconciler:AgentWriteReconciliationPortV030|undefined;
+  let governedWrite:GovernedAgentWorkerWritePortV040|undefined;
   const close=async()=>{
-    for(const service of [cancellation,authority,execution,repo]) {
+    for(const service of [reconciler,cancellation,authority,execution,repo]) {
       if(service)await service.close();
     }
   };
@@ -82,6 +100,31 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     cancellation=await createPostgresAtomicAgentRunCancellationV020({
       connectionString:input.connectionString,schema:input.schema
     });
+    if(input.deps.trustedOwner) {
+      const binding=input.deps.trustedOwner;
+      if(binding.descriptor.effect!=="WRITE"||
+        binding.descriptor.ownerPackageId!==binding.owner.ownerPackageId||
+        !binding.descriptor.id?.trim()||!binding.descriptor.modelName?.trim()||
+        !binding.descriptor.capability?.trim()||
+        typeof binding.authorize!=="function"||
+        typeof binding.verifier?.verify!=="function")
+        throw Error("PA02_HOST_OWNER_TRUSTED_BINDING_INVALID");
+      reconciler=await createPostgresAgentOwnerReconciliationV030({
+        connectionString:input.connectionString,schema:input.schema,
+        ownerVerifier:binding.verifier
+      });
+      const handoff=createGovernedAgentWriteHandoffV040({
+        coordinator:execution!,authority:authority!,receipts:repo!,
+        reconciler,owner:binding.owner
+      });
+      governedWrite=createGovernedAgentWorkerWritePortV040({
+        toolId:binding.descriptor.id,
+        ownerPackageId:binding.descriptor.ownerPackageId,
+        authorize:binding.authorize,
+        coordinator:execution!,authority:authority!,
+        handoff,reconciler
+      });
+    }
   }catch(e){await close();throw e;}
   const durable=repo!,fenced=authority!,cancel=cancellation!;
   const reader=(i:{principal:PlatformPrincipalV010;context:ResolvedContextSetV010})=>
@@ -95,10 +138,41 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     const runId=valid(r.runId);
     const before=await read(r);
     if(!before)throw Error("AGENT_RUN_NOT_FOUND");
+    const trusted=input.deps.trustedOwner;
+    const catalog=(
+      run:AgentRunV010,principal:PlatformPrincipalV010,
+      context:ResolvedContextSetV010,requestContext:PlatformRequestContextV010|undefined,
+      interaction:{sourceInteractionId:string;sourceActionId:string}
+    ):AgentToolCatalogV010=>{
+      const base=input.deps.createToolCatalog(
+        run,principal,context,requestContext,interaction
+      );
+      if(!trusted)return base;
+      return {
+        async list(){
+          const listed=await base.list();
+          // Ordinary catalog authorization MUST have exposed this operation.
+          // A trusted registration alone never broadens tool discoverability.
+          return listed.map(item=>item.id===trusted.descriptor.id &&
+            item.effect==="WRITE" &&
+            item.ownerPackageId===trusted.descriptor.ownerPackageId &&
+            item.capability===trusted.descriptor.capability
+            ?structuredClone(trusted.descriptor):item);
+        },
+        async invoke(call,observations) {
+          // Material WRITE only travels through governedWrite, never through
+          // an arbitrary Action Host handler with no idempotent Owner contract.
+          if(call.tool===trusted.descriptor.id)
+            throw Error("PA02_HOST_OWNER_CATALOG_DISPATCH_FORBIDDEN");
+          return base.invoke(call,observations);
+        }
+      };
+    };
     const worker=createReadOnlyFencedAgentWorkerV030({
       authority:fenced,releaseOnReturn:true,ttlSeconds:180,
       resolveProvider:input.deps.resolveProvider,
-      createToolCatalog:input.deps.createToolCatalog,
+      createToolCatalog:catalog,
+      ...(governedWrite?{governedWrite}:{}),
       eventId:randomUUID,sliceId:randomUUID
     });
     let run=before;
@@ -188,7 +262,15 @@ export async function createOptionalPostgresHostAsyncReadExecutionV030(
 ):Promise<HostAsyncReadExecutionV030|undefined>{
   const mode=env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase()||"OFF";
   if(mode==="OFF")return undefined;
-  if(mode!=="READ_ONLY")throw Error("PA02_HOST_WORKER_MODE_INVALID");
+  if(mode!=="READ_ONLY"&&mode!=="OWNER_SANDBOX")
+    throw Error("PA02_HOST_WORKER_MODE_INVALID");
+  if(mode==="READ_ONLY"&&deps.trustedOwner)
+    throw Error("PA02_HOST_WORKER_READ_ONLY_OWNER_FORBIDDEN");
+  if(mode==="OWNER_SANDBOX"&&(
+      !deps.trustedOwner||
+      env.APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK!=="ISOLATED_NO_PRODUCTION_DATA"||
+      env.NODE_ENV==="production"
+    ))throw Error("PA02_HOST_WORKER_SANDBOX_NOT_ADMITTED");
   if((env.APP_PLATFORM_AGENT_RUN_ASYNC_READ_MODE?.trim().toUpperCase()||"OFF")!=="OFF")
     throw Error("PA02_HOST_WORKER_READ_MODE_CONFLICT");
   const connectionString=env.APP_PLATFORM_AGENT_RUN_ASYNC_DATABASE_URL?.trim();
@@ -196,5 +278,7 @@ export async function createOptionalPostgresHostAsyncReadExecutionV030(
   const schema=env.APP_PLATFORM_AGENT_RUN_ASYNC_SCHEMA?.trim();
   if(!schema||!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
     throw Error("PA02_HOST_WORKER_SCHEMA_INVALID");
+  if(mode==="OWNER_SANDBOX"&&!schema.startsWith("pa02_"))
+    throw Error("PA02_HOST_WORKER_SANDBOX_SCHEMA_REQUIRED");
   return createPostgresHostAsyncReadExecutionV030({connectionString,schema,deps});
 }
