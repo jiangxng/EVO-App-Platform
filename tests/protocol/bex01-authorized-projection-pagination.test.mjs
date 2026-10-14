@@ -61,6 +61,8 @@ test("BEX-01 pagination scopes and filters before slicing; result is bounded and
   assert.deepEqual(first.pageInfo,{page:0,pageSize:25,total:35,hasMore:true});
   assert.deepEqual(second.pageInfo,{page:1,pageSize:25,total:35,hasMore:false});
   assert.equal(first.counterparties.length,25);
+  assert.ok(first.counterparties.every(x => !Object.hasOwn(x,"email")
+    && !Object.hasOwn(x,"status")));
   assert.equal(second.counterparties.length,10);
   assert.equal(new Set([...first.counterparties,...second.counterparties].map(x=>x.counterpartyId)).size,35);
   assert.ok([...first.counterparties,...second.counterparties].every(x=>authorized.has(x.counterpartyId)));
