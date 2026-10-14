@@ -10,7 +10,7 @@ import type { GovernedAgentBusinessOwnerV040 } from
 import type { AgentOwnerVerifierV030 } from
   "../agents/enterprise-agent/pa02b-owner-reconciliation.js";
 import {
-  createCapabilityOperationActionPreExecuteV010,
+  checkCapabilityOperationActionV010,
   type EffectiveCapabilityOperationV010
 } from "./capability-operation-access.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "./agent-durability-host-bridge.js";
@@ -149,10 +149,6 @@ export function createHostRegisteredAgentOwnerRegistryV040(input:{
     registrations.set(operationId,entry);
     modelNames.add(modelName);
   }
-  const preExecute=createCapabilityOperationActionPreExecuteV010({
-    manager:input.manager,
-    resolveAuthorizationProvider:input.resolveAuthorizationProvider
-  });
   const currentOperation=(entry:AgentTrustedOwnerRegistrationV040)=>{
     const operations=input.manager.listEffectiveCapabilityOperations();
     // Reject conflicting or ambiguous Action Host bindings, including another
@@ -217,7 +213,11 @@ export function createHostRegisteredAgentOwnerRegistryV040(input:{
             // resource authorization policy. This does NOT invoke the Action
             // Router because an arbitrary Action handler has no idempotency
             // or trusted reconciliation contract.
-            const denied=await preExecute({request:action,context:ctx});
+            const denied=await checkCapabilityOperationActionV010({
+              manager:input.manager,
+              resolveAuthorizationProvider:input.resolveAuthorizationProvider,
+              request:action,context:ctx
+            });
             if(denied && !denied.ok)return false;
             const after=currentOperation(entry);
             return Boolean(after&&contractKey(after)===expected);
