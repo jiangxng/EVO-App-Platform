@@ -1,4 +1,4 @@
-import type { LlmInferenceProvider } from "../../contracts/llm.js";
+import type { LlmInferenceProvider, LlmInferenceResponseV010 } from "../../contracts/llm.js";
 import type { AgentRunEventV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type {
   PlatformPrincipalV010, ResolvedContextSetV010, PlatformRequestContextV010
@@ -296,6 +296,18 @@ export function createReadOnlyFencedAgentWorkerV030(
         });
         return output(true);
       }
+      // A response was metered and persisted, but the Worker crashed before
+      // writing its decision. No second charge-inducing inference is allowed.
+      if(run.state==="RUNNING" && run.activeSliceId &&
+        run.modelUsages.some(item=>item.sliceId===run.activeSliceId)) {
+        await append("RUN_BLOCKED",{
+          code:"PA02_MODEL_USAGE_RECORDED_DECISION_UNKNOWN",
+          reason:"This model slice already has durable usage but its decision "+
+            "was not recovered. No additional model or business operation "+
+            "was sent. Inspect the original Run evidence."
+        });
+        return output(true);
+      }
       const provider=deps.resolveProvider();
       if(!provider||provider.providerId!==run.input.providerId||
         provider.modelId!==run.input.modelId) {
@@ -308,8 +320,19 @@ export function createReadOnlyFencedAgentWorkerV030(
       if(!(run.state==="RUNNING"&&run.activeSliceId))
         run=await append("SLICE_STARTED",{},sliceId);
       let decision:AgentModelDecision;
+      let inferenceResponse:LlmInferenceResponseV010|undefined;
       try{
-        decision=await createProviderBackedAgentModel(provider).decide({
+        decision=await createProviderBackedAgentModel({
+          providerId:provider.providerId,modelId:provider.modelId,
+          async infer(request) {
+            const response=await provider.infer(request);
+            if(response.providerId!==provider.providerId ||
+              response.modelId!==provider.modelId)
+              throw Error("PA02_MODEL_USAGE_PROVIDER_IDENTITY_MISMATCH");
+            inferenceResponse=response;
+            return response;
+          }
+        }).decide({
           userMessage:run.input.message,
           ...(run.input.conversationHistory.length?{
             conversationHistory:structuredClone(run.input.conversationHistory)
@@ -342,6 +365,24 @@ export function createReadOnlyFencedAgentWorkerV030(
         }
         return output(true);
       }
+      // A missing/malformed provider usage report is not a free inference.
+      // There is no approved tariff yet: do not represent these token counts
+      // as billable dollars or an enforceable money budget.
+      const usage=inferenceResponse?.usage;
+      const validUsage=usage &&
+        Number.isSafeInteger(usage.inputTokens)&&usage.inputTokens>=0 &&
+        Number.isSafeInteger(usage.outputTokens)&&usage.outputTokens>=0 &&
+        (usage.cachedInputTokens===undefined ||
+          (Number.isSafeInteger(usage.cachedInputTokens)&&
+           usage.cachedInputTokens>=0&&usage.cachedInputTokens<=usage.inputTokens)) &&
+        (usage.cacheWriteInputTokens===undefined ||
+          (Number.isSafeInteger(usage.cacheWriteInputTokens)&&
+           usage.cacheWriteInputTokens>=0));
+      run=await append("MODEL_USAGE_RECORDED",{
+        providerId:provider.providerId,modelId:provider.modelId,
+        status:validUsage?"REPORTED":"UNAVAILABLE",
+        ...(validUsage?{usage:structuredClone(usage)}:{})
+      },sliceId);
       run=await append("MODEL_DECISION_RECORDED",{decision},sliceId);
       if(decision.type==="final") {
         await append("RUN_SUCCEEDED",{message:decision.message});
