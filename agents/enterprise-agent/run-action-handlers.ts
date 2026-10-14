@@ -350,6 +350,38 @@ export function createPersonalAgentRunActionHandlersV010(
         }
       }
     },
+    // PA-02 R05/R06 is only available when the authenticated Host owns the
+    // durable PostgreSQL Run. Never serve an unrelated legacy or foreign Run.
+    ...(dependencies.asyncRunRuntime ? [{
+      ...base,
+      commandCode: "enterprise-agent.run.events",
+      async execute(request:AppActionRequestV010,requestContext?:PlatformRequestContextV010) {
+        try {
+          const {principal,context}=scopeForRequest(dependencies,request,requestContext);
+          const runId=runIdFromRequest(request);
+          if(dependencies.runStore.get(runId))throw Error("AGENT_RUN_NOT_FOUND");
+          const after=request.values.afterEventId;
+          if(after!==undefined&&(typeof after!=="string"||!after.trim()))
+            throw Error("PA02_OUTBOX_CURSOR_INVALID");
+          const limit=request.values.limit;
+          if(limit!==undefined&&(!Number.isInteger(limit)||typeof limit!=="number"||
+            limit<1||limit>100))
+            throw Error("PA02_OUTBOX_LIMIT_INVALID");
+          // Snapshot is read under the exact Host principal + Context and
+          // included even for a missed delta. The browser can always recover
+          // a terminal run without resurrecting an already-completed action.
+          const run=await dependencies.asyncRunRuntime!.read({runId,principal,context});
+          if(!run||!sameScope(run,principal,context))throw Error("AGENT_RUN_NOT_FOUND");
+          const replay=await dependencies.asyncRunRuntime!.replay({
+            runId,principal,context,
+            ...(typeof after==="string"?{afterEventId:after}:{}),
+            ...(typeof limit==="number"?{limit}:{})
+          });
+          if(!replay)throw Error("AGENT_RUN_NOT_FOUND");
+          return success(request,{...replay,run});
+        }catch(error){return failure(request,error);}
+      }
+    }] : []),
     ...(dependencies.asyncRunRuntime ? [{
       ...base,
       commandCode: "enterprise-agent.run.cancel",
