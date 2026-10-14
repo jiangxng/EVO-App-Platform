@@ -64,6 +64,11 @@ function createSource(file) {
   }
   repository.archive({contextId:bindingA.contextId,extensionId:"ext:archived",
     actorSubjectId:"human:archive",recordedAt:"2026-10-14T01:00:00.000Z"});
+  // Existing Object Extension semantics allow new ACTIVE field definitions
+  // to reuse a business slot after its earlier definition is archived.
+  repository.save({contextId:bindingA.contextId,
+    definition:{...mkdef("reused"),fieldId:"fieldarchived"},
+    actorSubjectId:"human:new",recordedAt:"2026-10-14T02:00:00.000Z"});
   resources.put({contextId:bindingA.contextId,
     namespace:"evo.counterparty",collectionId:"subjects",
     resourceType:"counterparty.subject",resourceId:"cp:unrelated",
@@ -96,10 +101,10 @@ test("PA02 Enterprise Resource -> PostgreSQL Object Extension: frozen file impor
         [false,true]);
       const importedA=await owner.listResources(bindingA);
       const importedB=await owner.listResources(bindingB);
-      assert.equal(importedA.length,2);
+      assert.equal(importedA.length,3);
       assert.equal(importedB.length,1);
       assert.equal((await owner.listResources(bindingA,
-        {lifecycleState:"ACTIVE"})).length,1);
+        {lifecycleState:"ACTIVE"})).length,2);
       assert.equal((await owner.listResources(bindingA,
         {lifecycleState:"ARCHIVED"})).length,1);
       assert.deepEqual(importedA,source.list({contextId:bindingA.contextId,
@@ -116,7 +121,7 @@ test("PA02 Enterprise Resource -> PostgreSQL Object Extension: frozen file impor
         "migration must leave legacy source and unrelated resources unchanged");
       const receipt=await readPostgresObjectExtensionImportReceiptV010({
         ...dbInput(pgschema),...bindingA});
-      assert.equal(receipt.resourceCount,2);
+      assert.equal(receipt.resourceCount,3);
       assert.equal(receipt.sourceDigest,sha);
       assert.equal(await readPostgresObjectExtensionImportReceiptV010({
         ...dbInput(pgschema),contextId:bindingA.contextId,
@@ -141,7 +146,7 @@ test("PA02 Enterprise Resource -> PostgreSQL Object Extension: frozen file impor
         inputDigest:hash(args),arguments:args
       };
       await owner.owner.invoke(create);
-      assert.equal((await owner.listResources(bindingA)).length,3);
+      assert.equal((await owner.listResources(bindingA)).length,4);
       assert.equal((await owner.getResource(bindingA,"ext:new-owner"))
         ?.payload?.fieldId,"fieldnew-owner");
       assert.equal((await owner.verifier.verify({
@@ -171,7 +176,7 @@ test("PA02 Enterprise Resource -> PostgreSQL Object Extension: frozen file impor
       // True two-connection, durable cross-process re-open after migration.
       const reopened=createPostgresObjectExtensionAtomicOwnerV010(dbInput(pgschema));
       try{
-        assert.equal((await reopened.listResources(bindingA)).length,3);
+        assert.equal((await reopened.listResources(bindingA)).length,4);
         assert.equal((await reopened.getResource(bindingB,"ext:second"))
           ?.createdBySubjectId,"human:legacy");
       }finally{await reopened.close();}
