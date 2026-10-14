@@ -62,7 +62,9 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  const mappingWithEntry=createDataImportMappingPageV010({
   job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:true
  });
- assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,route);
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,objectExtensionImportRouteV010(job.importJobId,"开户银行"));
+ const prefilled=createObjectExtensionImportPageV010({job,locale:"zh-CN",sourceColumn:"开户银行"});
+ assert.equal(prefilled.fields.find(x=>x.key==="label").initialValue,"开户银行");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
    "＋ 为本列创建企业扩展字段");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
@@ -83,7 +85,7 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.equal(agentAction.refreshSourceOnComplete,true);
  const created=await action.execute(request("开户银行","开户银行","STRING"),ctx());
  assert.equal(created.ok,true,JSON.stringify(created));
- assert.equal(created.result.navigateTo,"/data-import/jobs/bex-ext-1/map");
+ assert.equal(created.result.navigateTo,"/data-import/jobs/bex-ext-1/map?createdColumn=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C&createdField="+created.result.definition.fieldId);
  const definition=repo.list(contextId,"counterparty.subject")[0];
  assert.equal(definition.targetSlot,"counterparty.supplier-profile");
  assert.deepEqual(definition.applicability.relationshipRoles,["SUPPLIER"]);
@@ -93,6 +95,15 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  });
  const refreshed=createDataImportMappingPageV010({job,schema,target:undefined,locale:"zh-CN"});
  assert.ok(refreshed.fields.find(x=>x.key==="map_2").options.some(x=>x.value===definition.fieldId));
+ const restored=createDataImportMappingPageV010({job,schema,locale:"zh-CN",createdMapping:{sourceColumn:"开户银行",fieldId:definition.fieldId}});
+ assert.equal(restored.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
+ const reused=createDataImportMappingPageV010({job,schema,locale:"zh-CN"});
+ assert.equal(reused.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
+ const ambiguousSchema={...schema,fields:[...schema.fields,{
+  ...schema.fields.find(x=>x.fieldId===definition.fieldId),fieldId:"ext_duplicate_same_label"
+ }]};
+ const ambiguous=createDataImportMappingPageV010({job,schema:ambiguousSchema,locale:"zh-CN"});
+ assert.equal(ambiguous.fields.find(x=>x.key==="map_2").initialValue,"__IGNORE__");
  const duplicate=await action.execute(request("开户银行","另一个名称","STRING"),ctx());
  assert.equal(duplicate.ok,false);
  assert.equal(duplicate.error.code,"OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
