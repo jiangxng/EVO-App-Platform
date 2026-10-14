@@ -262,7 +262,15 @@ export async function createOptionalPostgresHostAsyncReadExecutionV030(
 ):Promise<HostAsyncReadExecutionV030|undefined>{
   const mode=env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase()||"OFF";
   if(mode==="OFF")return undefined;
-  if(mode!=="READ_ONLY")throw Error("PA02_HOST_WORKER_MODE_INVALID");
+  if(mode!=="READ_ONLY"&&mode!=="OWNER_SANDBOX")
+    throw Error("PA02_HOST_WORKER_MODE_INVALID");
+  if(mode==="READ_ONLY"&&deps.trustedOwner)
+    throw Error("PA02_HOST_WORKER_READ_ONLY_OWNER_FORBIDDEN");
+  if(mode==="OWNER_SANDBOX"&&(
+      !deps.trustedOwner||
+      env.APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK!=="ISOLATED_NO_PRODUCTION_DATA"||
+      env.NODE_ENV==="production"
+    ))throw Error("PA02_HOST_WORKER_SANDBOX_NOT_ADMITTED");
   if((env.APP_PLATFORM_AGENT_RUN_ASYNC_READ_MODE?.trim().toUpperCase()||"OFF")!=="OFF")
     throw Error("PA02_HOST_WORKER_READ_MODE_CONFLICT");
   const connectionString=env.APP_PLATFORM_AGENT_RUN_ASYNC_DATABASE_URL?.trim();
@@ -270,5 +278,7 @@ export async function createOptionalPostgresHostAsyncReadExecutionV030(
   const schema=env.APP_PLATFORM_AGENT_RUN_ASYNC_SCHEMA?.trim();
   if(!schema||!/^[a-z][a-z0-9_]{0,62}$/.test(schema))
     throw Error("PA02_HOST_WORKER_SCHEMA_INVALID");
+  if(mode==="OWNER_SANDBOX"&&!schema.startsWith("pa02_"))
+    throw Error("PA02_HOST_WORKER_SANDBOX_SCHEMA_REQUIRED");
   return createPostgresHostAsyncReadExecutionV030({connectionString,schema,deps});
 }
