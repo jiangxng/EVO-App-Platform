@@ -29,6 +29,14 @@ export interface Pa02CostPolicyCandidateV010 {
   worstOutputMicrosPerMillion:number;
 }
 type State="HELD"|"UNKNOWN"|"SETTLED";
+export interface Pa02MeteredUsageV010 {
+  inputTokens:number;
+  outputTokens:number;
+  cachedInputTokens?:number;
+  /** May be separately billed. Current synthetic tariff has no approved
+   * additive cache-write charge / bound, so any positive value is UNKNOWN. */
+  cacheWriteInputTokens?:number;
+}
 export interface Pa02CostLedgerV010 {
   reserve(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
     sliceId:string;policy:Pa02CostPolicyCandidateV010}):
@@ -36,7 +44,7 @@ export interface Pa02CostLedgerV010 {
       worstMicros:string;remainingMicros:string}>;
   settle(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
     sliceId:string;policy:Pa02CostPolicyCandidateV010;
-    usage?:{inputTokens:number;outputTokens:number}}):
+    usage?:Pa02MeteredUsageV010}):
     Promise<{status:"SETTLED"|"UNKNOWN";chargedMicros:string}>;
   snapshot(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string}):
     Promise<{currency?:string;approvalId?:string;pricingVersion?:string;
@@ -93,12 +101,19 @@ function cost(p:ReturnType<typeof validate>,input:number,output:number){
   return ceiling(BigInt(input)*BigInt(p.worstInputMicrosPerMillion)+
     BigInt(output)*BigInt(p.worstOutputMicrosPerMillion),1_000_000n);
 }
-function validUsage(v:{inputTokens:number;outputTokens:number}|undefined,
-  p:ReturnType<typeof validate>):v is {inputTokens:number;outputTokens:number}{
+function validUsage(v:Pa02MeteredUsageV010|undefined,
+  p:ReturnType<typeof validate>):v is Pa02MeteredUsageV010{
   return !!v&&Number.isSafeInteger(v.inputTokens)&&v.inputTokens>=0&&
     v.inputTokens<=p.maxBillableInputTokens&&
     Number.isSafeInteger(v.outputTokens)&&v.outputTokens>=0&&
-    v.outputTokens<=p.maxBillableOutputTokens;
+    v.outputTokens<=p.maxBillableOutputTokens&&
+    (v.cachedInputTokens===undefined||(
+      Number.isSafeInteger(v.cachedInputTokens)&&v.cachedInputTokens>=0&&
+      v.cachedInputTokens<=v.inputTokens))&&
+    // Never settle/release money using only input/output counters when
+    // an additional cache WRITE usage class is present but the Host has no
+    // independently approved upper bound and rate for that charge.
+    (v.cacheWriteInputTokens===undefined||v.cacheWriteInputTokens===0);
 }
 export async function createPa02IsolatedPostgresCostLedgerV010(input:{
   connectionString:string;schema:string
