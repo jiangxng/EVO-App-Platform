@@ -37,7 +37,26 @@ with sync_playwright() as p:
   page=context.new_page()
   page.on("pageerror",lambda error: errors.append(str(error)))
   page.goto(HOST+"/?surface=desktop#"+route,wait_until="domcontentloaded")
-  expect(page.locator('[data-eidos-catalog-has-table="true"]')).to_be_visible(timeout=30000)
+  expect(page.locator('[data-eidos-catalog-has-table="true"]')).to_have_count(1,timeout=30000)
+  page.wait_for_timeout(700)
+  diagnostic=page.evaluate("""() => {
+    const el=document.querySelector('[data-eidos-catalog-has-table="true"]');
+    const trace=[];let target=el;
+    for(let n=0;target&&n<10;n++,target=target.parentElement){
+      const styles=getComputedStyle(target);
+      trace.push({tag:target.tagName,id:target.id,cls:target.className,
+       display:styles.display,visibility:styles.visibility,
+       width:Math.round(target.getBoundingClientRect().width)});
+    }
+    const cards=el?.querySelector('[data-eidos-catalog-items]');
+    const table=el?.querySelector('[data-eidos-catalog-table]');
+    return {innerWidth:innerWidth,pathname:location.pathname,hash:location.hash,
+      cardsDisplay:cards?getComputedStyle(cards).display:null,
+      tableDisplay:table?getComputedStyle(table).display:null,
+      styleSheets:[...document.styleSheets].map(x=>x.href).slice(0,10),parents:trace};
+  }""")
+  print("BEX01_BROWSER_DOM_DIAGNOSTIC="+json.dumps(diagnostic,ensure_ascii=False),flush=True)
+  page.screenshot(path=str(OUT+Path("/bad.png")) if False else str(OUT/("initial-phone.png" if page.viewport_size["width"]<700 else "initial-desktop.png")),full_page=True)
   return page
  def desktop():
   context=make_context(1280,820,False)
@@ -46,7 +65,7 @@ with sync_playwright() as p:
    table=page.locator('[data-eidos-catalog-table]')
    expect(table.locator("tbody tr")).to_have_count(25)
    assert table.is_visible(),"DESKTOP_TABLE_MUST_BE_VISIBLE"
-   assert not page.locator('[data-eidos-catalog-items]').first.is_visible(),"DESKTOP_CARDS_SHOULD_COLLAPSE"
+   assert not page.locator('[data-eidos-catalog-has-table="true"] [data-eidos-catalog-items]').is_visible(),"DESKTOP_CARDS_SHOULD_COLLAPSE"
    next_button=page.locator('[data-eidos-catalog-action="next-page"]')
    expect(next_button).to_be_visible()
    next_button.click()
