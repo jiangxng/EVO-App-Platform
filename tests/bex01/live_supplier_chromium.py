@@ -173,15 +173,16 @@ with sync_playwright() as p:
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    inline=mapping_form.locator('[data-eidos-field-context-link]')
    expect(inline).to_have_count(1)
+   from urllib.parse import quote
    expect(inline.first).to_have_attribute("data-eidos-context-route",
-     "/object-extensions/from-import?job="+job)
+     "/object-extensions/from-import?job="+job+"&column="+quote("开户银行"))
    inline.first.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
    expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=15000)
    form=page.locator('form[data-eidos-id="evo-object-extension.import"]')
    expect(form.locator('select[name="sourceColumn"]')).to_have_value("开户银行")
-   form.locator('input[name="label"]').fill("开户银行")
+   expect(form.locator('input[name="label"]')).to_have_value("开户银行")
    form.locator('select[name="valueType"]').select_option("STRING")
    page.screenshot(path=str(OUT/"extension-field-create.png"),full_page=True)
    form.locator('button[type="submit"]').click()
@@ -190,6 +191,8 @@ with sync_playwright() as p:
       "text":page.locator("body").inner_text()[:800]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+   expect(mapping_form.locator('select[name="map_3"]')).to_have_value(expected_field)
+   expect(mapping_form.locator('[data-eidos-field-context-link]')).to_have_count(0)
    expect(mapping_form.locator('select[name="map_3"] option[value="'+expected_field+'"]')).to_have_count(1)
    mapping_form.locator('select[name="map_0"]').select_option("code")
    mapping_form.locator('select[name="map_1"]').select_option("displayName")
