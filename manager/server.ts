@@ -6802,49 +6802,10 @@ const server = createServer(async (request, response) => {
         );
         const canManage = relationship?.kind === "OWNER"
           || relationship?.kind === "ADMIN";
-        const allCounterparties =
-          counterpartyRepository.list(active.contextId);
-        const responsibilities = responsibilityRepository.list(
-          active.contextId,
-          { objectType: "counterparty.subject" }
-        );
-        const access = await resolveCounterpartyReadAccessV010({
-          authorizationProvider: resolveAuthorizationProvider(),
-          requestContext: readContext,
-          enterpriseRelationshipKind: relationship?.kind,
-          counterparties: allCounterparties,
-          responsibilities,
-          fieldIds: counterpartyCoreSchemaV010.fields.map(
-            field => field.fieldId
-          )
-        });
-        const authorizedCounterpartyIds = new Set(
-          access.counterparties.map(item => item.counterpartyId)
-        );
         const module = await import("../apps/counterparty/page.js");
-
-        if (source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE) {
-          return json(
-            response,
-            200,
-            module.createCounterpartyDirectoryPageV010({
-              counterparties: access.counterparties,
-              ...(manager.listEffectiveDataImportTargets().some(target =>
-                target.targetId === "counterparty.subject"
-              )
-                ? {
-                    importRoute: dataImportUploadRouteV010(
-                      "counterparty.subject"
-                    )
-                  }
-                : {}),
-              locale,
-              readableFieldIds: access.readableFieldIds,
-              canManage
-            })
-          );
-        }
-
+        // Projection pages have their own governed read. Avoid loading and
+        // authorizing the full collection here before the same owner read.
+        // Directory/detail/edit retain their existing access path.
         const projectionId: CounterpartyProjectionIdV010 | undefined =
           source === COUNTERPARTY_CUSTOMERS_PAGE_SOURCE
             ? COUNTERPARTY_CUSTOMER_PROJECTION_V010
@@ -6902,6 +6863,48 @@ const server = createServer(async (request, response) => {
                     )
                   }
                 : {})
+            })
+          );
+        }
+
+        const allCounterparties =
+          counterpartyRepository.list(active.contextId);
+        const responsibilities = responsibilityRepository.list(
+          active.contextId,
+          { objectType: "counterparty.subject" }
+        );
+        const access = await resolveCounterpartyReadAccessV010({
+          authorizationProvider: resolveAuthorizationProvider(),
+          requestContext: readContext,
+          enterpriseRelationshipKind: relationship?.kind,
+          counterparties: allCounterparties,
+          responsibilities,
+          fieldIds: counterpartyCoreSchemaV010.fields.map(
+            field => field.fieldId
+          )
+        });
+        const authorizedCounterpartyIds = new Set(
+          access.counterparties.map(item => item.counterpartyId)
+        );
+
+        if (source === COUNTERPARTY_DIRECTORY_PAGE_SOURCE) {
+          return json(
+            response,
+            200,
+            module.createCounterpartyDirectoryPageV010({
+              counterparties: access.counterparties,
+              ...(manager.listEffectiveDataImportTargets().some(target =>
+                target.targetId === "counterparty.subject"
+              )
+                ? {
+                    importRoute: dataImportUploadRouteV010(
+                      "counterparty.subject"
+                    )
+                  }
+                : {}),
+              locale,
+              readableFieldIds: access.readableFieldIds,
+              canManage
             })
           );
         }
