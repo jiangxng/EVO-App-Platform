@@ -1,6 +1,7 @@
 import type {
   CounterpartyProjectionQueryV010,
-  CounterpartyProjectionPageInfoV010
+  CounterpartyProjectionPageInfoV010,
+  CounterpartyProjectionRecordV010
 } from "./projection-query.js";
 import type {
   AuthorizationProviderV010,
