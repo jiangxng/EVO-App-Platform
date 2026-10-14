@@ -218,7 +218,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           "ON CONFLICT DO NOTHING RETURNING extension_id",
           [s.contextId,s.enterpriseId,definition.extensionId,
             definition.targetObjectType,definition.targetSlot,definition.fieldId,
-            sql.json(record),evidence.recordedAt]);
+            sql.json(JSON.parse(JSON.stringify(record))),evidence.recordedAt]);
         if(!inserted.length)throw Error("PA02_OBJECT_PG_CREATE_ONLY_OR_FIELD_CONFLICT");
         if(input.testOnlyAfterBusinessInsert)
           await input.testOnlyAfterBusinessInsert();
@@ -228,7 +228,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::timestamptz)",
           [s.contextId,s.enterpriseId,key,evidence.runId,evidence.effectId,
             evidence.receiptId,evidence.inputDigest,evidence.recordId,
-            sql.json(evidence),hash(json(evidence)),evidence.recordedAt]);
+            sql.json(JSON.parse(JSON.stringify(evidence))),hash(json(evidence)),evidence.recordedAt]);
       });
     }
   };
