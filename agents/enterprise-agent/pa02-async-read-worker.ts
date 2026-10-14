@@ -11,6 +11,7 @@ import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.j
 import type { GovernedAgentWorkerWritePortV040 } from "./pa02-governed-worker-write-port.js";
 import type { AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durability-host-bridge.js";
+import type {HostResolvedAgentDurabilityScopeV020} from "../../contracts/agent-durability-async.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 
 interface ResumeInputV030 {
@@ -55,6 +56,16 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   releaseOnReturn?:boolean;
   /** Only a trusted Host-injected Owner port may opt into material WRITE. */
   governedWrite?:GovernedAgentWorkerWritePortV040;
+  /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
+  testOnlyCostPort?:{
+    maxOutputTokens:number;
+    reserve(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
+      sliceId:string;providerId:string;modelId:string}):
+      Promise<"RESERVED"|"EXHAUSTED"|"ALREADY_HELD"|"UNKNOWN_HELD"|"SETTLED_ALREADY"|"UNAPPROVED">;
+    settle(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
+      sliceId:string;usage?:{inputTokens:number;outputTokens:number}}):
+      Promise<"SETTLED"|"UNKNOWN">;
+  };
 }
 function required(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_WORKER_ID_REQUIRED");
@@ -317,6 +328,26 @@ export function createReadOnlyFencedAgentWorkerV030(
       }
       const sliceId=run.state==="RUNNING"&&run.activeSliceId
         ?run.activeSliceId:"agent-run-slice:"+deps.sliceId();
+      // A durable budget reservation must commit BEFORE any possibly charged
+      // provider request. A crash with an already-held slice is UNKNOWN, never
+      // a reason to send another request on a new Host.
+      if(deps.testOnlyCostPort){
+        const status=await deps.testOnlyCostPort.reserve({
+          scope,runId,sliceId,providerId:provider.providerId,modelId:provider.modelId
+        });
+        if(status!=="RESERVED"){
+          await append("RUN_BLOCKED",{
+            code:status==="EXHAUSTED"?"PA02_R10_COST_BUDGET_EXHAUSTED":
+              status==="UNAPPROVED"?"PA02_R10_COST_PROVIDER_NOT_APPROVED":
+              "PA02_R10_COST_PREVIOUS_CHARGE_UNCERTAIN",
+            reason:"No paid inference has been sent in this attempt. "+
+              "The approved model budget is insufficient, mismatched, or "+
+              "contains a previous reserved or unknown charge. Inspect the "+
+              "durable Run and monetary ledger; do not resend automatically."
+          });
+          return output(true);
+        }
+      }
       if(!(run.state==="RUNNING"&&run.activeSliceId))
         run=await append("SLICE_STARTED",{},sliceId);
       let decision:AgentModelDecision;
@@ -325,7 +356,12 @@ export function createReadOnlyFencedAgentWorkerV030(
         decision=await createProviderBackedAgentModel({
           providerId:provider.providerId,modelId:provider.modelId,
           async infer(request) {
-            const response=await provider.infer(request);
+            const response=await provider.infer({
+              ...request,
+              ...(deps.testOnlyCostPort?{
+                maxOutputTokens:deps.testOnlyCostPort.maxOutputTokens
+              }:{})
+            });
             if(response.providerId!==provider.providerId ||
               response.modelId!==provider.modelId)
               throw Error("PA02_MODEL_USAGE_PROVIDER_IDENTITY_MISMATCH");
@@ -346,6 +382,23 @@ export function createReadOnlyFencedAgentWorkerV030(
           context:structuredClone(input.context)
         });
       }catch(e){
+        if(deps.testOnlyCostPort){
+          // A failed HTTP inference could still have been billed. Preserve
+          // the full pre-reserved amount; budget-mode retries require an
+          // independently approved billing reconciliation, not a blind call.
+          await deps.testOnlyCostPort.settle({scope,runId,sliceId});
+          await append("MODEL_INFERENCE_FAILED",{
+            code:errorCode(e),reason:e instanceof Error?e.message:String(e),
+            attempt:(run.modelFailureCount??0)+1
+          },sliceId);
+          await append("RUN_BLOCKED",{
+            code:"PA02_R10_COST_INFERENCE_UNCERTAIN",
+            reason:"The provider request may have incurred an unknown charge. "+
+              "The reservation remains held. Do not retry the inference "+
+              "without independently verifying billing evidence."
+          });
+          return output(true);
+        }
         const attempt=(run.modelFailureCount??0)+1;
         const code=errorCode(e);
         const reason=e instanceof Error?e.message:String(e);
@@ -383,6 +436,23 @@ export function createReadOnlyFencedAgentWorkerV030(
         status:validUsage?"REPORTED":"UNAVAILABLE",
         ...(validUsage?{usage:structuredClone(usage)}:{})
       },sliceId);
+      if(deps.testOnlyCostPort){
+        const settled=await deps.testOnlyCostPort.settle({
+          scope,runId,sliceId,
+          ...(validUsage?{
+            usage:{inputTokens:usage.inputTokens,outputTokens:usage.outputTokens}
+          }:{})
+        });
+        if(settled!=="SETTLED"){
+          await append("RUN_BLOCKED",{
+            code:"PA02_R10_COST_USAGE_UNAVAILABLE",
+            reason:"Model use was not reliably billable within approved bounds. "+
+              "The original maximum charge remains reserved; inspect "+
+              "provider evidence before taking any further paid step."
+          });
+          return output(true);
+        }
+      }
       run=await append("MODEL_DECISION_RECORDED",{decision},sliceId);
       if(decision.type==="final") {
         await append("RUN_SUCCEEDED",{message:decision.message});
