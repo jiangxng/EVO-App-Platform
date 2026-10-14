@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { AgentRunCreateInputV010, AgentRunEventV010, AgentRunV010 } from "../contracts/agent-run.js";
 import type { PlatformPrincipalV010, PlatformRequestContextV010, ResolvedContextSetV010 } from "../contracts/platform-services.js";
-import type { LlmInferenceProvider } from "../contracts/llm.js";
+import type { LlmInferenceProvider, LlmInferenceRequestV010 } from "../contracts/llm.js";
 import type {Pa02CostPolicyCandidateV010,Pa02CostLedgerV010} from
   "../agents/enterprise-agent/pa02-r10-postgres-cost-reservation.js";
 import type { AgentToolCatalogV010 } from "../agents/enterprise-agent/contracts.js";
@@ -41,6 +41,12 @@ export interface HostAsyncReadExecutionDependenciesV030 {
   /** Synthetic contract for isolated budget integration tests only.
    * Ordinary Server does not construct this. NEVER actual vendor pricing. */
   testOnlyCostPolicy?:Pa02CostPolicyCandidateV010;
+  /** This must be an independently certified upper bound for the COMPLETE
+   * final model request, not a raw prompt estimate. Synthetic proof only.
+   * No installed production Provider supplies such an attestation yet. */
+  testOnlyBilledInputUpperBound?:(
+    request:LlmInferenceRequestV010
+  )=>Promise<number|undefined>;
   createToolCatalog(run:AgentRunV010,principal:PlatformPrincipalV010,
     context:ResolvedContextSetV010,requestContext:PlatformRequestContextV010|undefined,
     interaction:{sourceInteractionId:string;sourceActionId:string}):AgentToolCatalogV010;
@@ -169,9 +175,21 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
   const testPolicy=input.deps.testOnlyCostPolicy;
   const testOnlyCostPort=costLedger&&testPolicy?{
     maxOutputTokens:testPolicy.maxBillableOutputTokens,
+    async quoteBilledInputUpperBound(request:LlmInferenceRequestV010){
+      if(!input.deps.testOnlyBilledInputUpperBound)return undefined;
+      const quoted=await input.deps.testOnlyBilledInputUpperBound(
+        structuredClone(request));
+      if(!Number.isSafeInteger(quoted)||quoted!<=0||
+        quoted!>testPolicy.maxBillableInputTokens)return undefined;
+      return quoted!;
+    },
     async reserve(r:{scope:import("../contracts/agent-durability-async.js").HostResolvedAgentDurabilityScopeV020;
-      runId:string;sliceId:string;providerId:string;modelId:string}){
-      if(r.providerId!==testPolicy.providerId||r.modelId!==testPolicy.modelId)
+      runId:string;sliceId:string;providerId:string;modelId:string;
+      inputTokenUpperBound:number}){
+      if(r.providerId!==testPolicy.providerId||r.modelId!==testPolicy.modelId||
+        !Number.isSafeInteger(r.inputTokenUpperBound)||
+        r.inputTokenUpperBound<=0||
+        r.inputTokenUpperBound>testPolicy.maxBillableInputTokens)
         return "UNAPPROVED" as const;
       return (await costLedger!.reserve({
         scope:r.scope,runId:r.runId,sliceId:r.sliceId,policy:testPolicy
