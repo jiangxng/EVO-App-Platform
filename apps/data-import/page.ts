@@ -527,12 +527,23 @@ export function createDataImportMappingPageV010(input: {
       : advisoryFields.length > 0
         ? t.ecRecommendationDescription + " " + t.mappingDescription
         : t.mappingDescription,
-    contextNavigation: importContextNavigationV010({
-      target: input.target,
-      parameters: input.job.targetParameters,
-      locale: input.locale,
-      step: "mapping"
-    }),
+    contextNavigation: {
+      items: [
+        ...importContextNavigationV010({
+          target: input.target,
+          parameters: input.job.targetParameters,
+          locale: input.locale,
+          step: "mapping"
+        }).items,
+        ...(input.job.targetId === "counterparty.subject" && unmapped.length > 0
+          ? [{
+              id:"create-extension",
+              label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
+              route:objectExtensionImportRouteV010(input.job.importJobId)
+            }]
+          : [])
+      ]
+    },
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_REVIEW_COMMAND_V010,
@@ -564,15 +575,7 @@ export function createDataImportMappingPageV010(input: {
         label: field.resolvedLabel + " · " + field.fieldId
       }))]
     })), ...advisoryFields, ...advancedFields],
-    actions: [...(input.job.targetId === "counterparty.subject" && unmapped.length > 0
-      ? [{
-          id:"create-extension",
-          label:zh(input.locale)?"创建扩展字段（处理未匹配列）":"Create extension from unmapped columns",
-          type:"navigate" as const,
-          route:objectExtensionImportRouteV010(input.job.importJobId),
-          requiresConfirmation:false
-        }]
-      : []), {
+    actions: [{
       id: "review",
       label: t.validate,
       type: "submit" as const,
