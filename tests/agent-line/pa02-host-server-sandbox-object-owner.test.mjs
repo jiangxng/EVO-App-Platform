@@ -129,9 +129,9 @@ test("PA02 Server sandbox composition: ordinary thread.send discovers authorized
       async invoke(){readCalls++;throw Error("UNEXPECTED_CATALOG_INVOKE");}
     });
     const wrappedProvider={...provider,async infer(params){
-      sawAuthorizedOwner=sawAuthorizedOwner||params.tools.some(t=>t.id===operation.operationId&&
-        t.modelName==="pa02_object_extension_create");
-      assert.equal(params.tools.some(t=>t.id==="untrusted.write"),false);
+      sawAuthorizedOwner=sawAuthorizedOwner||params.tools.some(t=>
+        t.name==="pa02_object_extension_create");
+      assert.equal(params.tools.some(t=>t.name==="untrusted_write"),false);
       return provider.infer(params);
     }};
     runtime=await createOptionalPostgresHostAsyncReadExecutionV030(options,{
