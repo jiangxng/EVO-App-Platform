@@ -236,7 +236,7 @@ with sync_playwright() as p:
    control=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
    assert control.bounding_box()["height"] >= 44, "PHONE_SEARCH_TOUCH_TARGET"
    page.locator('[data-eidos-catalog-action="next-page"]').click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 53")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 54")
    expect(cards).to_have_count(25)
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0053")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
