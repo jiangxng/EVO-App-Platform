@@ -3,15 +3,13 @@ import type {AuthorizationProviderV010,PlatformPrincipalV010,
   PlatformRequestContextV010,ResolvedContextSetV010} from "../contracts/platform-services.js";
 import type {EnterpriseResourceRepositoryV010} from "../contracts/enterprise-resource.js";
 import type {AgentTrustedOwnerBindingV040} from "./agent-trusted-owner-registration.js";
-import {createHostRegisteredAgentOwnerRegistryV040} from "./agent-trusted-owner-registration.js";
-import {listAuthorizedCapabilityOperationsV010} from "./capability-operation-access.js";
-import {personalAgentCapabilityRequestContextV010} from
-  "../agents/enterprise-agent/capability-fabric-tools.js";
+
+
+
 import {assertObjectExtensionDefinitionV010,
   type ObjectExtensionDefinitionV010} from "../contracts/foundation-object/extension.js";
-import {OBJECT_EXTENSION_PACKAGE_ID,OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
-  OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010} from "../apps/object-extension/constants.js";
-import {OBJECT_EXTENSION_NAMESPACE_V010} from "../apps/object-extension/repository.js";
+
+
 
 /**
  * PA-02 DEVELOPMENT SANDBOX ONLY.
@@ -42,6 +40,20 @@ export async function createOptionalPa02SandboxObjectOwnerV010(
 ):Promise<Pa02SandboxObjectOwnerV010|undefined> {
   const mode=env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase()||"OFF";
   if(mode!=="OWNER_SANDBOX")return undefined;
+  const [
+    {createHostRegisteredAgentOwnerRegistryV040},
+    {listAuthorizedCapabilityOperationsV010},
+    {personalAgentCapabilityRequestContextV010},
+    {OBJECT_EXTENSION_PACKAGE_ID,OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+      OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010},
+    {OBJECT_EXTENSION_NAMESPACE_V010}
+  ]=await Promise.all([
+    import("./agent-trusted-owner-registration.js"),
+    import("./capability-operation-access.js"),
+    import("../agents/enterprise-agent/capability-fabric-tools.js"),
+    import("../apps/object-extension/constants.js"),
+    import("../apps/object-extension/repository.js")
+  ]);
   if(env.NODE_ENV==="production"||
     env.APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK!=="ISOLATED_NO_PRODUCTION_DATA")
     throw Error("PA02_HOST_OBJECT_SANDBOX_NOT_ADMITTED");
