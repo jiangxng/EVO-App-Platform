@@ -112,6 +112,21 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
   job:liveJob,schema,target:undefined,locale:"zh-CN"
  });
  assert.equal(refreshed.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
+ const duplicateLegacySchema=createCounterpartyEffectiveObjectSchemaV010({
+  activeRelationshipRoles:["SUPPLIER"],
+  extensions:[definition,{
+   ...structuredClone(definition),
+   extensionId:"import.ext_a3ed6c689c1baa0a",
+   fieldId:"ext_a3ed6c689c1baa0a",
+   semanticType:"enterprise-custom-ext_a3ed6c689c1baa0a"
+  }]
+ });
+ const recovered=createDataImportMappingPageV010({
+  job,schema:duplicateLegacySchema,locale:"zh-CN",canCreateExtension:true
+ });
+ assert.equal(recovered.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
+ assert.equal(recovered.fields.find(x=>x.key==="map_2").contextLink,undefined);
+
  const duplicate=await action.execute(request("开户银行","另一个名称","STRING"),ctx());
  assert.equal(duplicate.ok,false);
  assert.equal(duplicate.error.code,"OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED");
