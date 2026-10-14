@@ -256,6 +256,16 @@ export function createObjectExtensionActionHandlersV010(input: {
           .some(x=>x.fieldId===fieldId)) {
           throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
         }
+        // A second upload or alternate source heading must not create a duplicate business field.
+        const sameLabel=input.repository.list(active.contextId,job.targetId)
+          .filter(x=>x.label.default.trim().toLocaleLowerCase()===label.toLocaleLowerCase()
+            && (x.applicability?.relationshipRoles?.length
+              ? x.applicability.relationshipRoles.includes(
+                  job.targetParameters?.relationshipMode==="CUSTOMER"?"CUSTOMER":"SUPPLIER")
+              : true));
+        if(sameLabel.length>0) {
+          throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
+        }
         const mode=job.targetParameters?.relationshipMode;
         const role=mode==="SUPPLIER"?"SUPPLIER":mode==="CUSTOMER"?"CUSTOMER":undefined;
         const slot=role==="SUPPLIER"?"counterparty.supplier-profile"
@@ -287,6 +297,8 @@ export function createObjectExtensionActionHandlersV010(input: {
           result:JSON.parse(JSON.stringify({
             contractVersion:"0.1.0",definition:saved,
             navigateTo:dataImportMappingRouteV010(jobId)
+              + "?createdColumn=" + encodeURIComponent(column)
+              + "&createdField=" + encodeURIComponent(fieldId)
           })) as JsonValue
         };
       } catch(error) { return failure(error,context); }
