@@ -162,13 +162,23 @@ with sync_playwright() as pw:
    assert cancellation['cancellationState'] in ('REQUESTED','CANCELLED'),cancellation
   finally:
    api.post(MOCK+'/__control',data={'mode':'release'})
-  def complete_cancel():
-   try:
-    state=execute('enterprise-agent.run.get',{'runId':second_run_id})
-    return state['run']['state']=='CANCELLED'
-   except Exception:return False
-  until(complete_cancel,'RUN_NOT_DURABLY_CANCELLED',timeout=25)
+  # Cancellation can initially return REQUESTED while the old Worker owns
+  # the lease. Follow the existing PA02C contract: after the held model is
+  # released, retry the formal Host cancel action to reconcile to CANCELLED.
+  final_cancel=None
+  for attempt in range(24):
+   recheck=action('enterprise-agent.run.cancel',{'runId':second_run_id,
+    'reason':'Reconcile cancellation after model reply was released'})
+   recheck['actionId']='pa02-owner-reconcile-'+str(attempt)
+   result=api.post(HOST+'/v1/actions',headers=headers,data=recheck)
+   value=result.json()
+   assert result.status==200 and value['ok'],(result.status,value)
+   final_cancel=value['result']
+   if final_cancel['cancellationState']=='CANCELLED':break
+   page.wait_for_timeout(250)
+  assert final_cancel['cancellationState']=='CANCELLED',final_cancel
   after=execute('enterprise-agent.run.get',{'runId':second_run_id})
+  assert after['run']['state']=='CANCELLED',after
   assert not after['run']['actionReceiptIds'],after
   page.wait_for_timeout(350)
   s=stats()
