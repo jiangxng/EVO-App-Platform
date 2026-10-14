@@ -447,6 +447,7 @@ export function createDataImportMappingPageV010(input: {
   schema: EffectiveObjectSchemaV010;
   target?: FoundationObjectImportTargetV010;
   locale?: string;
+  canCreateExtension?: boolean;
 }) {
   const t = text(input.locale);
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
@@ -535,7 +536,7 @@ export function createDataImportMappingPageV010(input: {
           locale: input.locale,
           step: "mapping"
         }).items,
-        ...(input.job.targetId === "counterparty.subject" && unmapped.length > 0
+        ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
           ? [{
               id:"create-extension",
               label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
