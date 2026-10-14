@@ -194,7 +194,11 @@ with sync_playwright() as p:
    expect(page.locator('[data-eidos-id="evo-data-import.review"]')).to_be_visible(timeout=30000)
    review=page.locator('[data-eidos-id="evo-data-import.review"]')
    expect(review.locator('[data-eidos-catalog-action="commit"]')).to_be_visible()
+   page.on("dialog",lambda dialog: dialog.accept())
    review.locator('[data-eidos-catalog-action="commit"]').click()
+   page.wait_for_timeout(900)
+   print("BEX_EXT_AFTER_COMMIT="+json.dumps({"url":page.url,
+     "text":page.locator("body").inner_text()[-1700:]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.review"]')).to_be_visible(timeout=30000)
    expect(page.locator('[data-eidos-catalog-action="return-to-target"]')).to_be_visible()
    page.goto(HOST+"/?surface=desktop#"+route,wait_until="domcontentloaded")
@@ -202,6 +206,9 @@ with sync_playwright() as p:
    search=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
    search.fill("Extension Field Supplier")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
+   page.wait_for_timeout(700)
+   print("BEX_EXT_SEARCH="+json.dumps({"url":page.url,
+      "text":page.locator("body").inner_text()[-800:]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1)
    page.locator('[data-eidos-catalog-table] tbody tr:first-child button').first.click()
    expect(page.locator('[data-eidos-id="evo-counterparty.detail"]')).to_be_visible(timeout=30000)
