@@ -1,3 +1,6 @@
+import {
+  objectExtensionImportRouteV010
+} from "../object-extension/constants.js";
 import type {
   FoundationObjectImportIssueV010,
   FoundationObjectImportTargetV010
@@ -448,6 +451,7 @@ export function createDataImportMappingPageV010(input: {
   const t = text(input.locale);
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
     .filter(field => field.writable);
+  const unmapped = unmappedSourceColumns(input.job);
   const current = new Map(
     input.job.mapping
       .filter(item => Boolean(item.sourceColumn))
@@ -560,7 +564,15 @@ export function createDataImportMappingPageV010(input: {
         label: field.resolvedLabel + " · " + field.fieldId
       }))]
     })), ...advisoryFields, ...advancedFields],
-    actions: [{
+    actions: [...(input.job.targetId === "counterparty.subject" && unmapped.length > 0
+      ? [{
+          id:"create-extension",
+          label:zh(input.locale)?"创建扩展字段（处理未匹配列）":"Create extension from unmapped columns",
+          type:"navigate" as const,
+          route:objectExtensionImportRouteV010(input.job.importJobId),
+          requiresConfirmation:false
+        }]
+      : []), {
       id: "review",
       label: t.validate,
       type: "submit" as const,
