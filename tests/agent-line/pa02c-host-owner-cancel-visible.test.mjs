@@ -56,6 +56,9 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
   let runtime,ackRelease,committedResolve;
   const ackHold=new Promise(resolve=>ackRelease=resolve);
   const ownerCommitted=new Promise(resolve=>committedResolve=resolve);
+  let crashedRelease,crashedCommittedResolve;
+  const crashedHold=new Promise(resolve=>crashedRelease=resolve);
+  const crashedCommitted=new Promise(resolve=>crashedCommittedResolve=resolve);
   let businessCalls=0,modelCalls=0,runNumber=0;
   const descriptor={
     contractVersion:"0.1.0",
@@ -72,8 +75,13 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
       async invoke(input){
         businessCalls++;
         await business.owner.invoke(input);
-        committedResolve();
-        await ackHold;
+        if(input.arguments?.definition?.extensionId==="ext:pa02c:crash") {
+          crashedCommittedResolve();
+          await crashedHold;
+        }else{
+          committedResolve();
+          await ackHold;
+        }
         // Real business commit succeeded, but Host never receives its ACK.
         throw Error("PA02C_POST_COMMIT_ACK_LOST");
       }},
@@ -82,10 +90,11 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
   const provider={providerId:"pa02c:fixture",modelId:"fixture",
     async infer(){
       modelCalls++;
-      if(modelCalls===1)return {contractVersion:"0.1.0",
+      if(modelCalls<=2)return {contractVersion:"0.1.0",
         providerId:this.providerId,modelId:this.modelId,text:"",
         toolCalls:[{name:descriptor.modelName,
-          arguments:{definition:definition("cancel-race")}}],finishReason:"tool_calls"};
+          arguments:{definition:definition(modelCalls===1?"cancel-race":"crash")}}],
+        finishReason:"tool_calls"};
       throw Error("CANCELLED_RUN_MUST_NOT_INFER_AGAIN");
     }
   };
@@ -178,16 +187,57 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
     assert.equal((await runtime.resume({runId,principal,context,requestContext})).state,
       "CANCELLED");
     assert.equal(businessCalls,1);
+
+    // Simulate the Worker disappearing after its Owner committed but BEFORE
+    // the Host marked INVOKING as UNKNOWN. Force its lease to expire while the
+    // old worker is held; the Human's cancellation retry must reconcile ONLY
+    // the independent Owner proof. It must never dispatch business again.
+    const crashActions=actions();
+    const crashRunId="agent-run:run:pa02c:2";
+    const crashedInFlight=crashActions.get("enterprise-agent.run.start").execute(
+      command("enterprise-agent.run.start",{
+        message:"Create a second Object Extension safely"
+      },"pa02c:source:crash"),requestContext);
+    await crashedCommitted;
+    const crashRequested=await crashActions.get("enterprise-agent.run.cancel").execute(
+      command("enterprise-agent.run.cancel",{runId:crashRunId,
+        reason:"Stop after lost worker"},"pa02c:cancel:crash:1"),requestContext);
+    assert.equal(crashRequested.ok,true);
+    assert.equal(crashRequested.result.cancellationState,"REQUESTED");
+    await admin.unsafe('UPDATE "'+schema+'".pa02b_leases '+
+      "SET expires_at=clock_timestamp()-interval '3 seconds' WHERE run_id=$1",
+      [crashRunId]);
+    const crashRecovered=await crashActions.get("enterprise-agent.run.cancel").execute(
+      command("enterprise-agent.run.cancel",{runId:crashRunId,
+        reason:"Stop after lost worker"},"pa02c:cancel:crash:2"),requestContext);
+    assert.equal(crashRecovered.ok,true,JSON.stringify(crashRecovered.error));
+    assert.equal(crashRecovered.result.cancellationState,"CANCELLED");
+    assert.deepEqual(crashRecovered.result.run.observations.map(o=>o.ok),[true]);
+    assert.equal(crashRecovered.result.run.actionReceiptIds.length,1);
+    assert.equal(businessCalls,2,"cancel recovery MUST NOT re-invoke business");
+    crashedRelease();
+    const staleAfterRecovery=await crashedInFlight;
+    assert.equal(staleAfterRecovery.ok,false,
+      "Old fenced Worker must not overwrite independently reconciled cancellation");
+    const afterCrash=await runtime.read({runId:crashRunId,principal,context});
+    assert.equal(afterCrash.state,"CANCELLED");
+    assert.equal(afterCrash.actionReceiptIds.length,1);
+    assert.equal((await admin.unsafe('SELECT count(*)::int AS n FROM "'+
+      objectSchema+'".pa02_owner_evidence'))[0].n,2);
+    assert.equal(modelCalls,2);
     console.log("PA02C_HOST_OWNER_CANCEL_VISIBLE="+JSON.stringify({
       status:"PASS",realHostAction:true,activeWriteCancelRequested:true,
       realBusinessCommittedBeforeAck:true,staleWorkerBlockedAfterCancel:true,
       verifiedReceiptRecordedAtomicallyWithCancel:true,
       terminalCancelledRetainsCommittedEffect:true,
       duplicateCancelIdempotent:true,restartedHostRestoresHistory:true,
+      crashedLeaseRecoveredByTrustedOwner:true,
+      oldWorkerRejectedAfterFenceExpired:true,
       ownerInvocations:businessCalls,productionUsed:false
     }));
   }finally{
     ackRelease?.();
+    crashedRelease?.();
     if(runtime)await runtime.close();
     await business.close();
     for(const name of [schema,objectSchema])
