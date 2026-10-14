@@ -25,6 +25,7 @@ type Evidence = {
   contractVersion:"0.1.0";
   runId:string;effectId:string;receiptId:string;idempotencyKey:string;
   inputDigest:string;ownerPackageId:string;recordId:string;
+  principalSubjectId:string;enterpriseId:string;
   definition:ObjectExtensionDefinitionV010;
   recordedAt:string;
 };
@@ -113,6 +114,8 @@ export function createObjectExtensionSingleProcessPreviewOwnerV010(input:{
           contractVersion:"0.1.0",runId:r.runId,effectId:r.effectId,
           receiptId:r.receiptId,idempotencyKey:r.idempotencyKey,
           inputDigest:r.inputDigest,ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
+          principalSubjectId:r.scope.principalSubjectId,
+          enterpriseId:r.scope.enterpriseId!,
           recordId:saved.extensionId,definition:saved,
           recordedAt:now().toISOString()
         };
@@ -140,6 +143,8 @@ export function createObjectExtensionSingleProcessPreviewOwnerV010(input:{
            e.receiptId!==r.receiptId||
            e.ownerPackageId!==r.ownerPackageId||
            e.inputDigest!==r.inputDigest||
+           e.principalSubjectId!==r.scope.principalSubjectId||
+           e.enterpriseId!==r.scope.enterpriseId||
            r.ownerPackageId!==OBJECT_EXTENSION_PACKAGE_ID)
           continue;
         if(item.resourceId!==hash(e.idempotencyKey))continue;
