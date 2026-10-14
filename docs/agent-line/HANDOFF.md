@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-14 PA-02 最新换窗交接（优先于下方所有历史 PA-00～PA-02 阶段状态）**：请先读 [本窗口 PA-02 简短入口](PA02-WINDOW-CLOSURE-HANDOFF-ENTRY-20261014.md) 和 [详细 GitHub／外站参考索引、方案比较、未决项](PA02-WINDOW-CLOSURE-REFERENCE-INDEX-20261014.md)。截至该入口创建时，#839、#841、#842、#844、#845、#847、#848 均已合入 main；R10 真实费用硬预算、真实 HTTP／浏览器恢复整链及 R01–R10 综合签收**仍未完成**。本行只是交接导航，实际进展/PR 以 GitHub 最新 main、检查结果与新入口为准。下方 10-10/11/13 文字保留历史，不要当当前门禁；原 14 外部链接仍是历史转引，**不是本窗口已读外站**。
+
+
 Document class: LIVING_RUNBOOK
 
 > **2026-10-13 最新换窗提示（优先于以下所有历史PR/分支状态）：** 请先读 [新版简短入口](WINDOW-RESEARCH-HANDOFF-ENTRY-20261013.md)、[本轮原始GitHub/外链资料索引](WINDOW-RESEARCH-SOURCE-INDEX-20261013.md)、[方案取舍与未决门禁](WINDOW-RESEARCH-DECISIONS-GAPS-20261013.md)。PA-01和Legacy External Agent五分支已完成各仓main合并/删除，旧#692 PR虽未通过自身merge，但实验历史与代码已由Platform#786纳入main。以下旧段落作为2026-10-10/11历史日志保留，不可再次当最新实施状态。本指针不调整TR/2D主线或生产。
