@@ -105,7 +105,7 @@ export async function preparePostgresObjectExtensionOwnerSchemaV010(input:{
       "context_id text NOT NULL,enterprise_id text NOT NULL,"+
       "extension_id text NOT NULL,target_object_type text NOT NULL,"+
       "target_slot text NOT NULL,field_id text NOT NULL,"+
-      "resource jsonb NOT NULL,created_at timestamptz NOT NULL,"+
+      "resource jsonb NOT NULL CHECK(jsonb_typeof(resource)='object'),created_at timestamptz NOT NULL,"+
       "PRIMARY KEY(context_id,extension_id),"+
       "UNIQUE(context_id,target_object_type,target_slot,field_id),"+
       "UNIQUE(context_id,enterprise_id,extension_id),"+
@@ -116,7 +116,7 @@ export async function preparePostgresObjectExtensionOwnerSchemaV010(input:{
       "idempotency_hash text NOT NULL,run_id text NOT NULL,"+
       "effect_id text NOT NULL,receipt_id text NOT NULL,"+
       "input_digest text NOT NULL,resource_id text NOT NULL,"+
-      "evidence jsonb NOT NULL,evidence_digest text NOT NULL,"+
+      "evidence jsonb NOT NULL CHECK(jsonb_typeof(evidence)='object'),evidence_digest text NOT NULL,"+
       "recorded_at timestamptz NOT NULL,"+
       "PRIMARY KEY(context_id,idempotency_hash),"+
       "UNIQUE(context_id,run_id,effect_id),"+
@@ -218,7 +218,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           "ON CONFLICT DO NOTHING RETURNING extension_id",
           [s.contextId,s.enterpriseId,definition.extensionId,
             definition.targetObjectType,definition.targetSlot,definition.fieldId,
-            JSON.stringify(record),evidence.recordedAt]);
+            sql.json(record),evidence.recordedAt]);
         if(!inserted.length)throw Error("PA02_OBJECT_PG_CREATE_ONLY_OR_FIELD_CONFLICT");
         if(input.testOnlyAfterBusinessInsert)
           await input.testOnlyAfterBusinessInsert();
@@ -228,7 +228,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::timestamptz)",
           [s.contextId,s.enterpriseId,key,evidence.runId,evidence.effectId,
             evidence.receiptId,evidence.inputDigest,evidence.recordId,
-            JSON.stringify(evidence),hash(json(evidence)),evidence.recordedAt]);
+            sql.json(evidence),hash(json(evidence)),evidence.recordedAt]);
       });
     }
   };
