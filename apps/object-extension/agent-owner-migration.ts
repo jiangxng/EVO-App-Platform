@@ -87,7 +87,7 @@ function select(
       !r.payload||typeof r.payload!=="object"||Array.isArray(r.payload))
       throw Error("PA02_OBJECT_IMPORT_ENVELOPE_INVALID");
     const definition=assertObjectExtensionDefinitionV010(
-      structuredClone(r.payload) as Parameters<typeof assertObjectExtensionDefinitionV010>[0]);
+      structuredClone(r.payload) as unknown as Parameters<typeof assertObjectExtensionDefinitionV010>[0]);
     if(definition.extensionId!==r.resourceId)
       throw Error("PA02_OBJECT_IMPORT_DEFINITION_ADDRESS_MISMATCH");
   }
@@ -189,7 +189,7 @@ export async function importFileObjectExtensionsToPostgresV010(input:{
           throw Error("PA02_OBJECT_IMPORT_DESTINATION_NOT_EMPTY");
         for(const resource of item.resources){
           const definition=assertObjectExtensionDefinitionV010(
-            resource.payload as Parameters<typeof assertObjectExtensionDefinitionV010>[0]);
+            resource.payload as unknown as Parameters<typeof assertObjectExtensionDefinitionV010>[0]);
           const inserted=await tx.unsafe("INSERT INTO "+q+".pa02_definitions "+
             "(context_id,enterprise_id,extension_id,target_object_type,"+
             "target_slot,field_id,resource,created_at) "+
