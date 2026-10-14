@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   objectExtensionImportRouteV010
 } from "../object-extension/constants.js";
@@ -572,7 +573,12 @@ export function createDataImportMappingPageV010(input: {
           sourceColumn.trim().toLocaleLowerCase()
         && ![...current.values()].includes(field.fieldId)
       ) : [];
-      const reuse = candidates.length === 1 ? candidates[0] : undefined;
+      const stableSourceFieldId = "ext_" + createHash("sha256")
+        .update(input.job.targetId+"|"+sourceColumn).digest("hex").slice(0,16);
+      // When old imports already produced duplicate labels, the field created
+      // from this exact source column is an unambiguous safe suggestion.
+      const reuse = candidates.find(field => field.fieldId === stableSourceFieldId)
+        ?? (candidates.length === 1 ? candidates[0] : undefined);
       return {
         key: "map_" + index,
         label: sourceColumn,
