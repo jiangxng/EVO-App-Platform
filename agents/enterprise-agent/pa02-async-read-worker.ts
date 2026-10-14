@@ -1,4 +1,4 @@
-import type { LlmInferenceProvider, LlmInferenceResponseV010 } from "../../contracts/llm.js";
+import type { LlmInferenceProvider, LlmInferenceRequestV010, LlmInferenceResponseV010 } from "../../contracts/llm.js";
 import type { AgentRunEventV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type {
   PlatformPrincipalV010, ResolvedContextSetV010, PlatformRequestContextV010
@@ -59,8 +59,14 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
   testOnlyCostPort?:{
     maxOutputTokens:number;
+    /** Only a trusted model-specific certified upper bound may approve the
+     * actual fully assembled messages + tools. A mere estimate is not proof.
+     * The injected synthetic fixture is test-only, never vendor attestation. */
+    quoteBilledInputUpperBound(request:LlmInferenceRequestV010):
+      Promise<number|undefined>;
     reserve(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
-      sliceId:string;providerId:string;modelId:string}):
+      sliceId:string;providerId:string;modelId:string;
+      inputTokenUpperBound:number}):
       Promise<"RESERVED"|"EXHAUSTED"|"ALREADY_HELD"|"UNKNOWN_HELD"|"SETTLED_ALREADY"|"UNAPPROVED">;
     settle(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
       sliceId:string;usage?:{inputTokens:number;outputTokens:number}}):
@@ -328,40 +334,54 @@ export function createReadOnlyFencedAgentWorkerV030(
       }
       const sliceId=run.state==="RUNNING"&&run.activeSliceId
         ?run.activeSliceId:"agent-run-slice:"+deps.sliceId();
-      // A durable budget reservation must commit BEFORE any possibly charged
-      // provider request. A crash with an already-held slice is UNKNOWN, never
-      // a reason to send another request on a new Host.
-      if(deps.testOnlyCostPort){
-        const status=await deps.testOnlyCostPort.reserve({
-          scope,runId,sliceId,providerId:provider.providerId,modelId:provider.modelId
-        });
-        if(status!=="RESERVED"){
-          await append("RUN_BLOCKED",{
-            code:status==="EXHAUSTED"?"PA02_R10_COST_BUDGET_EXHAUSTED":
-              status==="UNAPPROVED"?"PA02_R10_COST_PROVIDER_NOT_APPROVED":
-              "PA02_R10_COST_PREVIOUS_CHARGE_UNCERTAIN",
-            reason:"No paid inference has been sent in this attempt. "+
-              "The approved model budget is insufficient, mismatched, or "+
-              "contains a previous reserved or unknown charge. Inspect the "+
-              "durable Run and monetary ledger; do not resend automatically."
-          });
-          return output(true);
-        }
-      }
+      // An actual model request must be assembled before its trusted input
+      // upper bound can be evaluated. Only then may its durable reservation
+      // be persisted, immediately before contacting the Provider.
       if(!(run.state==="RUNNING"&&run.activeSliceId))
         run=await append("SLICE_STARTED",{},sliceId);
       let decision:AgentModelDecision;
       let inferenceResponse:LlmInferenceResponseV010|undefined;
+      let preflightDenied:string|undefined;
+      let modelChargeReserved=false;
       try{
         decision=await createProviderBackedAgentModel({
           providerId:provider.providerId,modelId:provider.modelId,
           async infer(request) {
-            const response=await provider.infer({
+            const actualRequest:LlmInferenceRequestV010={
               ...request,
               ...(deps.testOnlyCostPort?{
                 maxOutputTokens:deps.testOnlyCostPort.maxOutputTokens
               }:{})
-            });
+            };
+            if(deps.testOnlyCostPort){
+              const port=deps.testOnlyCostPort;
+              // This sees the entire materialized system/developer/user
+              // messages, observations, tool descriptions and output cap.
+              // Counting only the Human's raw text is NOT sufficient.
+              let quote:number|undefined;
+              try{ quote=await port.quoteBilledInputUpperBound(
+                structuredClone(actualRequest)); }
+              catch{ quote=undefined; }
+              if(!Number.isSafeInteger(quote)||quote!<=0){
+                preflightDenied="PA02_R10_COST_INPUT_UPPER_BOUND_UNVERIFIED";
+                throw Error(preflightDenied);
+              }
+              const status=await port.reserve({
+                scope,runId,sliceId,
+                providerId:provider.providerId,modelId:provider.modelId,
+                inputTokenUpperBound:quote!
+              });
+              if(status!=="RESERVED"){
+                preflightDenied=status==="EXHAUSTED"
+                  ?"PA02_R10_COST_BUDGET_EXHAUSTED":
+                  status==="UNAPPROVED"
+                  ?"PA02_R10_COST_PROVIDER_NOT_APPROVED":
+                  "PA02_R10_COST_PREVIOUS_CHARGE_UNCERTAIN";
+                throw Error(preflightDenied);
+              }
+              modelChargeReserved=true;
+            }
+            const response=await provider.infer(actualRequest);
             if(response.providerId!==provider.providerId ||
               response.modelId!==provider.modelId)
               throw Error("PA02_MODEL_USAGE_PROVIDER_IDENTITY_MISMATCH");
@@ -383,6 +403,17 @@ export function createReadOnlyFencedAgentWorkerV030(
         });
       }catch(e){
         if(deps.testOnlyCostPort){
+          if(!modelChargeReserved){
+            // No inference was dispatched and no money was held. Keep the
+            // reason distinct from an ambiguous possibly billable response.
+            await append("RUN_BLOCKED",{
+              code:preflightDenied??"PA02_R10_COST_PREFLIGHT_FAILED",
+              reason:"The fully assembled model request had no verified "+
+                "billable input upper bound, or failed provider/amount "+
+                "admission. No paid model request was sent."
+            });
+            return output(true);
+          }
           // A failed HTTP inference could still have been billed. Preserve
           // the full pre-reserved amount; budget-mode retries require an
           // independently approved billing reconciliation, not a blind call.
