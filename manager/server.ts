@@ -7520,6 +7520,13 @@ const server = createServer(async (request, response) => {
             module.createDataImportMappingPageV010({
               job,
               target,
+              canCreateExtension: manager.getSnapshot().activeFeatures.some(x =>
+                x.featureId === OBJECT_EXTENSION_FEATURE_ID
+              ) && (resolveEnterpriseContextRelationshipProvider()
+                ?.listForPrincipal(session.principal)??[]).some(x=>
+                  x.contextId===active.contextId && x.state==="ACTIVE"
+                  && (x.kind==="OWNER"||x.kind==="ADMIN")
+                ),
               schema: target.describe({
                 contextId: active.contextId,
                 locale,
