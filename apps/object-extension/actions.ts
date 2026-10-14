@@ -110,6 +110,14 @@ export function createObjectExtensionActionHandlersV010(input: {
     contextId: string
   ): boolean;
   now?: () => Date;
+  applyImportMapping?(input: {
+    contextId: string;
+    importJobId: string;
+    sourceColumn: string;
+    targetFieldId: string;
+    actorSubjectId: string;
+    recordedAt: string;
+  }): void | Promise<void>;
   getImportJob?(contextId: string, jobId: string): {
     targetId: string;
     targetParameters?: Record<string,string | number | boolean | string[] | undefined>;
@@ -252,33 +260,54 @@ export function createObjectExtensionActionHandlersV010(input: {
         const { createHash } = await import("node:crypto");
         const fieldId = "ext_" + createHash("sha256")
           .update(job.targetId+"|"+column).digest("hex").slice(0,16);
-        if (input.repository.list(active.contextId,job.targetId)
-          .some(x=>x.fieldId===fieldId)) {
-          throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
-        }
         const mode=job.targetParameters?.relationshipMode;
         const role=mode==="SUPPLIER"?"SUPPLIER":mode==="CUSTOMER"?"CUSTOMER":undefined;
         const slot=role==="SUPPLIER"?"counterparty.supplier-profile"
           :role==="CUSTOMER"?"counterparty.customer-profile"
           :"counterparty.identity";
-        const definition = assertObjectExtensionDefinitionV010({
-          contractVersion:"0.1.0",
-          extensionId:"import."+fieldId,
-          targetObjectType:"counterparty.subject",
-          targetSlot:slot,
-          namespace:"enterprise.counterparty",
-          fieldId,semanticType:"enterprise-custom-"+fieldId,
-          valueType:valueType as "STRING"|"NUMBER"|"BOOLEAN"|"DATE",
-          label:{default:label},
-          required:false,order:1000,
-          ...(role?{applicability:{relationshipRoles:[role]}}:{}),
-          surfaces:["DETAIL","EDIT","IMPORT"],
-          importable:true,exportable:true,
-          agentReadable:false,agentWritable:false
-        });
-        const saved=input.repository.save({
-          contextId:active.contextId,definition,
-          actorSubjectId:context.principal.subjectId,recordedAt:now().toISOString()
+        const definitions=input.repository.list(active.contextId,job.targetId);
+        const existing=definitions.find(x=>x.fieldId===fieldId);
+        // One business label cannot silently create another active same-name field.
+        const normalizeLabel=(x:string)=>x.normalize("NFKC").replace(/\\s+/gu,"")
+          .toLocaleLowerCase();
+        const colliding=definitions.filter(x=>
+          x.fieldId!==fieldId && x.targetSlot===slot
+          && normalizeLabel(x.label.default)===normalizeLabel(label));
+        if (colliding.length) {
+          throw new Error("OBJECT_EXTENSION_LABEL_ALREADY_EXISTS_CHOOSE_FIELD");
+        }
+        if(existing && existing.valueType!==valueType){
+          throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_DIFFERENT_TYPE");
+        }
+        const recordedAt=now().toISOString();
+        let saved=existing;
+        if(!saved){
+          const definition = assertObjectExtensionDefinitionV010({
+            contractVersion:"0.1.0",
+            extensionId:"import."+fieldId,
+            targetObjectType:"counterparty.subject",
+            targetSlot:slot,
+            namespace:"enterprise.counterparty",
+            fieldId,semanticType:"enterprise-custom-"+fieldId,
+            valueType:valueType as "STRING"|"NUMBER"|"BOOLEAN"|"DATE",
+            label:{default:label},
+            required:false,order:1000,
+            ...(role?{applicability:{relationshipRoles:[role]}}:{}),
+            surfaces:["DETAIL","EDIT","IMPORT"],
+            importable:true,exportable:true,
+            agentReadable:false,agentWritable:false
+          });
+          saved=input.repository.save({
+            contextId:active.contextId,definition,
+            actorSubjectId:context.principal.subjectId,recordedAt
+          });
+        }
+        // Only the existing owner-managed import service may persist mappings.
+        // A retry after a partial failure reuses the same deterministic field ID.
+        await input.applyImportMapping?.({
+          contextId:active.contextId,importJobId:jobId,sourceColumn:column,
+          targetFieldId:fieldId,actorSubjectId:context.principal.subjectId,
+          recordedAt
         });
         const { dataImportMappingRouteV010 } =
           await import("../data-import/constants.js");
@@ -286,6 +315,7 @@ export function createObjectExtensionActionHandlersV010(input: {
           ok:true,correlationId:context.correlationId,
           result:JSON.parse(JSON.stringify({
             contractVersion:"0.1.0",definition:saved,
+            mappedSourceColumn:column,mappedTargetFieldId:fieldId,
             navigateTo:dataImportMappingRouteV010(jobId)
           })) as JsonValue
         };
