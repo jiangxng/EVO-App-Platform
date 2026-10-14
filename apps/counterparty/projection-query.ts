@@ -88,3 +88,40 @@ export function pageCounterpartyProjectionV010(input: {
     }
   };
 }
+
+/** Decode only the current projection path's public query; no external redirects. */
+export function parseCounterpartyProjectionRouteQueryV010(
+  route: string | null | undefined,
+  expectedPath: string
+): CounterpartyProjectionQueryV010 {
+  if (!route) return {};
+  if (!route.startsWith("/") || route.startsWith("//")
+    || route.includes("#") || route.includes("\\")
+    || route.length > 600) throw new Error("COUNTERPARTY_QUERY_ROUTE_INVALID");
+  const parsed = new URL(route, "https://evo.invalid");
+  if (parsed.pathname !== expectedPath) {
+    throw new Error("COUNTERPARTY_QUERY_ROUTE_INVALID");
+  }
+  const values: Record<string, unknown> = {};
+  for (const [key, value] of parsed.searchParams) {
+    if (Object.prototype.hasOwnProperty.call(values,key)) {
+      throw new Error("COUNTERPARTY_QUERY_DUPLICATE_PARAMETER");
+    }
+    values[key] = key === "page" || key === "pageSize" ? Number(value) : value;
+  }
+  return parseCounterpartyProjectionQueryV010(values);
+}
+
+export function counterpartyProjectionQueryRouteV010(
+  path: string,
+  query: CounterpartyProjectionQueryV010,
+  page: number
+): string {
+  const params = new URLSearchParams();
+  if (query.search) params.set("search", query.search);
+  if (query.sort) params.set("sort", query.sort);
+  if (query.direction) params.set("direction", query.direction);
+  params.set("page", String(page));
+  params.set("pageSize", String(query.pageSize ?? 25));
+  return path + "?" + params.toString();
+}
