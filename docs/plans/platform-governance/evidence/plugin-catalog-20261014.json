@@ -1,0 +1,1434 @@
+{
+  "baseline": "11a4355316051f3f0d4b31e0aca86807f054734f",
+  "date": "2026-10-14",
+  "scope": "server catalog declarations; not installed runtime snapshot",
+  "count": 41,
+  "packages": [
+    {
+      "packageId": "evo-bi-workbench",
+      "title": "EVO 个人工作台",
+      "description": "按个人职责组织业务任务与视图，提供日常工作的统一入口。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "biWorkbenchPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-bi-workbench.default",
+          "requires": [],
+          "provides": [
+            "experience.bi.workbench"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/bi-workbench/package.ts"
+    },
+    {
+      "packageId": "company-notes",
+      "title": "企业笔记",
+      "description": "提供企业笔记示例页面，演示插件安装、启用与内容展示。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "companyNotesPackage",
+      "excluded": true,
+      "features": [
+        {
+          "id": "company-notes.default",
+          "requires": [],
+          "provides": [
+            "company-notes"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "catalog/seed.ts"
+    },
+    {
+      "packageId": "evo-counterparty",
+      "title": "EVO 往来对象",
+      "description": "统一管理客户、供应商等往来对象资料，供业务流程引用。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "counterpartyPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-counterparty.default",
+          "requires": [
+            "enterprise.directory",
+            "enterprise.resource.repository",
+            "enterprise.responsibility"
+          ],
+          "provides": [
+            "enterprise.counterparty.directory",
+            "enterprise.counterparty.relationship-role",
+            "enterprise.counterparty.projection"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation",
+            "platform.data-import-target",
+            "eidos.workbench-home-item",
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/counterparty/package.ts"
+    },
+    {
+      "packageId": "evo-item",
+      "title": "EVO 物料",
+      "description": "管理物料基础资料，为采购、销售等业务提供统一物料引用。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "itemPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-item.default",
+          "requires": [
+            "enterprise.directory",
+            "enterprise.resource.repository",
+            "enterprise.responsibility"
+          ],
+          "provides": [
+            "enterprise.item.directory",
+            "enterprise.item.projection"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation",
+            "platform.data-import-target",
+            "eidos.workbench-home-item",
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/item/package.ts"
+    },
+    {
+      "packageId": "evo-warehouse",
+      "title": "EVO 仓库与库位",
+      "description": "管理仓库与库位基础资料，供业务单据引用存放位置。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "warehousePackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-warehouse.default",
+          "requires": [
+            "enterprise.directory",
+            "enterprise.resource.repository",
+            "enterprise.responsibility"
+          ],
+          "provides": [
+            "enterprise.warehouse.directory",
+            "enterprise.warehouse.projection"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation",
+            "platform.data-import-target",
+            "eidos.workbench-home-item",
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/warehouse/package.ts"
+    },
+    {
+      "packageId": "evo-trading-reference",
+      "title": "EVO 交易参考流程",
+      "description": "提供采购等交易参考流程，验证基础对象与业务插件的协作。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "tradingReferencePackageV010",
+      "excluded": true,
+      "features": [
+        {
+          "id": "evo-trading-reference.default",
+          "requires": [],
+          "provides": [
+            "enterprise.trading-reference.purchase-operations"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation",
+            "eidos.workbench-home-item",
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/trading-reference/package.ts"
+    },
+    {
+      "packageId": "evo-data-import",
+      "title": "EVO 数据导入",
+      "description": "导入表格数据，匹配字段并预览校验结果，再确认写入。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "dataImportPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-data-import.default",
+          "requires": [
+            "enterprise.resource.repository"
+          ],
+          "provides": [
+            "enterprise.data-import"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation",
+            "eidos.workbench-home-item",
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/data-import/package.ts"
+    },
+    {
+      "packageId": "enterprise-agent",
+      "title": "个人代理",
+      "description": "在授权范围内协助处理个人任务、检索资料并调用插件能力。",
+      "type": "AGENT",
+      "source": "catalog/seed.ts",
+      "symbol": "enterpriseAgentPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "enterprise-agent.default",
+          "requires": [],
+          "provides": [
+            "agent.personal",
+            "agent.personal.tool-discovery",
+            "agent.enterprise",
+            "agent.enterprise.app-manager-tools",
+            "agent.enterprise.tool-discovery"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.workbench-activity",
+            "eidos.workbench-home-item",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "agents/enterprise-agent/package.ts"
+    },
+    {
+      "packageId": "evo-enterprise-context-governance",
+      "title": "企业上下文",
+      "description": "管理企业上下文、成员关系与共享资源，组织企业协作空间。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "enterpriseContextGovernanceAppPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-enterprise-context-governance.default",
+          "requires": [
+            "enterprise.directory",
+            "authorization.check"
+          ],
+          "provides": [
+            "enterprise.context.governance-experience"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/enterprise-context-governance/package.ts"
+    },
+    {
+      "packageId": "evo-enterprise-observatory",
+      "title": "企业运营观测",
+      "description": "汇总企业运行事实与分析结果，辅助观察业务运行情况。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "enterpriseObservatoryPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-enterprise-observatory.2d",
+          "requires": [
+            "enterprise.business-definition.repository"
+          ],
+          "provides": [
+            "enterprise.observatory.2d"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience"
+          ]
+        },
+        {
+          "id": "evo-enterprise-observatory.3d",
+          "requires": [
+            "enterprise.business-definition.repository"
+          ],
+          "provides": [
+            "enterprise.observatory.3d"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience"
+          ]
+        }
+      ],
+      "manifestSource": "apps/enterprise-observatory/package.ts"
+    },
+    {
+      "packageId": "evo-eog-2d",
+      "title": "EOG 二维运行图",
+      "description": "以二维视图设计和查看企业运行图，编辑业务结构与关联。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "eog2dPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-eog-2d.viewer",
+          "requires": [
+            "enterprise.business-definition.repository"
+          ],
+          "provides": [
+            "enterprise.operating-graph.viewer.2d",
+            "visual.viewer.2d"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience"
+          ]
+        },
+        {
+          "id": "evo-eog-2d.designer",
+          "requires": [
+            "enterprise.business-definition.repository",
+            "authorization.check"
+          ],
+          "provides": [
+            "enterprise.operating-graph.designer.2d"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience"
+          ]
+        }
+      ],
+      "manifestSource": "apps/eog-2d/package.ts"
+    },
+    {
+      "packageId": "evo-eog-3d",
+      "title": "EOG 三维运行图",
+      "description": "以三维视图查看企业运行图及关联信息，辅助理解业务结构。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "eog3dPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-eog-3d.viewer",
+          "requires": [
+            "enterprise.business-definition.repository"
+          ],
+          "provides": [
+            "enterprise.operating-graph.viewer.3d"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience"
+          ]
+        }
+      ],
+      "manifestSource": "apps/eog-3d/package.ts"
+    },
+    {
+      "packageId": "evo.core",
+      "title": "EVO 基础运行时",
+      "description": "提供基础运行时能力，支撑依赖它的业务插件。",
+      "type": "FOUNDATION_RUNTIME",
+      "source": "catalog/seed.ts",
+      "symbol": "evoFoundationPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo.business-data",
+          "requires": [],
+          "provides": [
+            "evo.business-data"
+          ],
+          "defaultActivation": false,
+          "providers": [],
+          "kinds": []
+        },
+        {
+          "id": "evo.posting",
+          "requires": [
+            "evo.business-data"
+          ],
+          "provides": [
+            "evo.posting"
+          ],
+          "defaultActivation": false,
+          "providers": [],
+          "kinds": []
+        },
+        {
+          "id": "evo.ledger",
+          "requires": [
+            "evo.posting"
+          ],
+          "provides": [
+            "evo.ledger"
+          ],
+          "defaultActivation": false,
+          "providers": [],
+          "kinds": []
+        },
+        {
+          "id": "evo.balance",
+          "requires": [
+            "evo.ledger"
+          ],
+          "provides": [
+            "evo.balance"
+          ],
+          "defaultActivation": false,
+          "providers": [],
+          "kinds": []
+        }
+      ],
+      "manifestSource": "catalog/seed.ts"
+    },
+    {
+      "packageId": "evo.external-agent-governance",
+      "title": "EVO 外部代理授权管理",
+      "description": "管理外部代理的接入授权与访问范围，支持审计和撤销。",
+      "type": "FOUNDATION_RUNTIME",
+      "source": "manager/external-agent-governance-package.ts",
+      "symbol": "externalAgentGovernancePackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo.external-agent-governance.default",
+          "requires": [],
+          "provides": [
+            "external.agent.governance"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": []
+        }
+      ],
+      "manifestSource": "manager/external-agent-governance-package.ts"
+    },
+    {
+      "packageId": "evo-ledger-manager",
+      "title": "EVO 账本管理",
+      "description": "管理账本定义、版本与相关投影，组织企业账本配置。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "ledgerManagerPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-ledger-manager.default",
+          "requires": [
+            "enterprise.business-definition.repository",
+            "authorization.check",
+            "evo.posting",
+            "evo.ledger"
+          ],
+          "provides": [
+            "evo.ledger-manager"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/ledger-manager/package.ts"
+    },
+    {
+      "packageId": "evo-ledger-runtime-configurator",
+      "title": "EVO 账本运行时编译器",
+      "description": "将业务定义编译为账本运行时配置，支持校验与导入导出。",
+      "type": "RUNTIME_EXTENSION",
+      "source": "catalog/seed.ts",
+      "symbol": "ledgerRuntimeConfiguratorPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-ledger-runtime-configurator.default",
+          "requires": [
+            "evo.posting",
+            "evo.ledger"
+          ],
+          "provides": [
+            "evo.ledger-runtime.configurator",
+            "ledger.runtime.configuration"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation"
+          ]
+        }
+      ],
+      "manifestSource": "catalog/seed.ts"
+    },
+    {
+      "packageId": "evo-object-extension",
+      "title": "EVO 对象扩展",
+      "description": "为基础对象配置企业自定义字段，满足不同业务的信息需求。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "objectExtensionPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-object-extension.default",
+          "requires": [
+            "enterprise.resource.repository"
+          ],
+          "provides": [
+            "enterprise.object-extension.definition"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "platform.capability-operation"
+          ]
+        }
+      ],
+      "manifestSource": "apps/object-extension/package.ts"
+    },
+    {
+      "packageId": "evo-responsibility",
+      "title": "EVO 职责管理",
+      "description": "定义职责及其业务范围，为个人工作视图提供职责依据。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "responsibilityPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-responsibility.default",
+          "requires": [
+            "enterprise.resource.repository"
+          ],
+          "provides": [
+            "enterprise.responsibility"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": []
+        }
+      ],
+      "manifestSource": "apps/responsibility/package.ts"
+    },
+    {
+      "packageId": "openai-llm-provider",
+      "title": "OpenAI 模型服务",
+      "description": "连接 OpenAI 模型，为已授权的代理任务提供模型推理能力。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/openai/package.ts",
+      "symbol": "openAiLlmProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "openai-llm-provider.default",
+          "requires": [
+            "secrets.resolve"
+          ],
+          "provides": [
+            "llm.inference",
+            "llm.tool-calling"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "openai.responses",
+              "capability": "llm.inference",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://openai.responses"
+              }
+            },
+            {
+              "id": "openai.responses",
+              "capability": "llm.tool-calling",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://openai.responses"
+              }
+            }
+          ],
+          "kinds": [
+            "eidos.settings",
+            "eidos.localization-bundle",
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/openai/package.ts"
+    },
+    {
+      "packageId": "deepseek-llm-provider",
+      "title": "DeepSeek 模型服务",
+      "description": "连接 DeepSeek 模型，为已授权的代理任务提供模型推理能力。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/deepseek/package.ts",
+      "symbol": "deepSeekLlmProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "deepseek-llm-provider.default",
+          "requires": [
+            "secrets.resolve"
+          ],
+          "provides": [
+            "llm.inference",
+            "llm.tool-calling"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "deepseek.responses",
+              "capability": "llm.inference",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://deepseek.responses"
+              }
+            },
+            {
+              "id": "deepseek.responses",
+              "capability": "llm.tool-calling",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://deepseek.responses"
+              }
+            }
+          ],
+          "kinds": [
+            "eidos.settings",
+            "eidos.localization-bundle",
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/deepseek/package.ts"
+    },
+    {
+      "packageId": "host-remote-credential-provider",
+      "title": "远程连接凭据服务",
+      "description": "为远程插件连接解析受管凭据，避免在插件清单中保存密钥。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/remote-credential/package.ts",
+      "symbol": "hostRemoteCredentialProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-remote-credential-provider.default",
+          "requires": [],
+          "provides": [
+            "plugin.remote-credential"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.remote-bearer",
+              "capability": "plugin.remote-credential",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.remote-bearer"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/remote-credential/package.ts"
+    },
+    {
+      "packageId": "host-static-authorization-provider",
+      "title": "静态权限策略服务",
+      "description": "按静态权限策略检查操作请求，为宿主提供授权判断。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/authorization/package.ts",
+      "symbol": "hostStaticAuthorizationProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-static-authorization-provider.default",
+          "requires": [],
+          "provides": [
+            "authorization.check"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.static-authorization",
+              "capability": "authorization.check",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.static-authorization"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/authorization/package.ts"
+    },
+    {
+      "packageId": "host-encrypted-secrets-provider",
+      "title": "加密凭据管理服务",
+      "description": "加密保管模型密钥等敏感凭据，向获授权插件提供凭据解析。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/secrets/package.ts",
+      "symbol": "hostEncryptedSecretsProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-encrypted-secrets-provider.default",
+          "requires": [],
+          "provides": [
+            "secrets.resolve"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.encrypted-secrets",
+              "capability": "secrets.resolve",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.encrypted-secrets"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/secrets/package.ts"
+    },
+    {
+      "packageId": "host-enterprise-context-provider",
+      "title": "企业上下文资源服务",
+      "description": "提供企业上下文资源查询，支持插件访问当前授权企业信息。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/enterprise-context/package.ts",
+      "symbol": "hostEnterpriseContextProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-enterprise-context-provider.default",
+          "requires": [],
+          "provides": [
+            "enterprise.directory",
+            "enterprise.business-definition.repository",
+            "enterprise.template-transfer",
+            "enterprise.resource.repository"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.enterprise-context",
+              "capability": "enterprise.directory",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.enterprise-context"
+              }
+            },
+            {
+              "id": "host.enterprise-context.business-definitions",
+              "capability": "enterprise.business-definition.repository",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.enterprise-context.business-definitions"
+              }
+            },
+            {
+              "id": "host.enterprise-context.template-transfer",
+              "capability": "enterprise.template-transfer",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.enterprise-context.template-transfer"
+              }
+            },
+            {
+              "id": "host.enterprise-context.resources",
+              "capability": "enterprise.resource.repository",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.enterprise-context.resources"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/enterprise-context/package.ts"
+    },
+    {
+      "packageId": "host-static-session-provider",
+      "title": "静态会话服务",
+      "description": "提供静态会话身份，供开发与受控参考环境使用。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/session/package.ts",
+      "symbol": "hostStaticSessionProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-static-session-provider.default",
+          "requires": [],
+          "provides": [
+            "identity.session"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.static-session",
+              "capability": "identity.session",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.static-session"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/session/package.ts"
+    },
+    {
+      "packageId": "host-bearer-session-provider",
+      "title": "Bearer 令牌会话服务",
+      "description": "验证请求中的 Bearer 令牌，将请求关联到可信用户会话。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/request-session/package.ts",
+      "symbol": "hostBearerSessionProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-bearer-session-provider.default",
+          "requires": [],
+          "provides": [
+            "identity.session.request"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.bearer-session",
+              "capability": "identity.session.request",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.bearer-session"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/request-session/package.ts"
+    },
+    {
+      "packageId": "host-managed-session-provider",
+      "title": "托管登录会话服务",
+      "description": "管理登录会话及其有效状态，为请求提供可信用户身份。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/managed-session/package.ts",
+      "symbol": "hostManagedSessionProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-managed-session-provider.default",
+          "requires": [],
+          "provides": [
+            "identity.session.request"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.managed-session",
+              "capability": "identity.session.request",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.managed-session"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/managed-session/package.ts"
+    },
+    {
+      "packageId": "host-identity-user-directory-provider",
+      "title": "用户身份目录服务",
+      "description": "提供用户身份目录查询，供成员管理等功能查找用户。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/identity-directory/package.ts",
+      "symbol": "hostIdentityUserDirectoryProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-identity-user-directory-provider.default",
+          "requires": [],
+          "provides": [
+            "identity.user-directory"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.identity-user-directory",
+              "capability": "identity.user-directory",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.identity-user-directory"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/identity-directory/package.ts"
+    },
+    {
+      "packageId": "generic-oidc-identity-provider",
+      "title": "OIDC 身份认证服务",
+      "description": "通过 OIDC 对接身份服务，支持用户登录与身份认证。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/oidc/package.ts",
+      "symbol": "genericOidcIdentityProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "generic-oidc-identity-provider.default",
+          "requires": [
+            "secrets.resolve"
+          ],
+          "provides": [
+            "identity.authenticate"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "generic.oidc",
+              "capability": "identity.authenticate",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://generic.oidc"
+              }
+            }
+          ],
+          "kinds": [
+            "eidos.settings",
+            "eidos.localization-bundle",
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/oidc/package.ts"
+    },
+    {
+      "packageId": "host-enterprise-context-grant-provider",
+      "title": "企业上下文访问授权服务",
+      "description": "提供企业上下文访问授权查询，确定用户可访问的企业空间。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/enterprise-context-grant/package.ts",
+      "symbol": "hostEnterpriseContextGrantProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-enterprise-context-grant-provider.default",
+          "requires": [],
+          "provides": [
+            "enterprise.membership"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.enterprise-context-grant",
+              "capability": "enterprise.membership",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.enterprise-context-grant"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/enterprise-context-grant/package.ts"
+    },
+    {
+      "packageId": "host-enterprise-relationship-provider",
+      "title": "企业成员关系服务",
+      "description": "管理企业成员关系与邀请状态，支持成员加入、退出和角色治理。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/enterprise-relationship/package.ts",
+      "symbol": "hostEnterpriseRelationshipProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-enterprise-relationship-provider.default",
+          "requires": [],
+          "provides": [
+            "enterprise.relationship"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.enterprise-relationship",
+              "capability": "enterprise.relationship",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.enterprise-relationship"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/enterprise-relationship/package.ts"
+    },
+    {
+      "packageId": "host-context-memory-provider",
+      "title": "上下文记忆服务",
+      "description": "管理个人与企业上下文记忆，支持授权读写及来源追溯。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/context-memory/package.ts",
+      "symbol": "hostContextMemoryProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-context-memory-provider.default",
+          "requires": [],
+          "provides": [
+            "context.memory.read",
+            "context.memory.inventory",
+            "context.memory.write",
+            "context.memory.governance"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.context-memory-reader",
+              "capability": "context.memory.read",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.context-memory-reader"
+              }
+            },
+            {
+              "id": "host.context-memory-inventory",
+              "capability": "context.memory.inventory",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.context-memory-inventory"
+              }
+            },
+            {
+              "id": "host.context-memory-writer",
+              "capability": "context.memory.write",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.context-memory-writer"
+              }
+            },
+            {
+              "id": "host.context-memory-governance",
+              "capability": "context.memory.governance",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.context-memory-governance"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/context-memory/package.ts"
+    },
+    {
+      "packageId": "host-memory-intake-provider",
+      "title": "记忆资料接入服务",
+      "description": "接收记忆来源资料并保留证据，支持后续提案与人工审核。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/memory-intake/package.ts",
+      "symbol": "hostMemoryIntakeProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "host-memory-intake-provider.default",
+          "requires": [],
+          "provides": [
+            "context.memory.intake-source",
+            "context.memory.evidence-source"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "host.memory-intake-source",
+              "capability": "context.memory.intake-source",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.memory-intake-source"
+              }
+            },
+            {
+              "id": "host.memory-evidence-source",
+              "capability": "context.memory.evidence-source",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://host.memory-evidence-source"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/memory-intake/package.ts"
+    },
+    {
+      "packageId": "remote-context-memory-semantic-provider",
+      "title": "远程记忆语义检索服务",
+      "description": "连接远程语义检索服务，辅助查找当前上下文中的相关记忆。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/context-memory-semantic/package.ts",
+      "symbol": "remoteContextMemorySemanticProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "remote-context-memory-semantic-provider.default",
+          "requires": [
+            "secrets.resolve"
+          ],
+          "provides": [
+            "context.memory.semantic-retrieval"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "remote.context-memory-semantic",
+              "capability": "context.memory.semantic-retrieval",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://remote.context-memory-semantic"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "providers/context-memory-semantic/package.ts"
+    },
+    {
+      "packageId": "remote-context-memory-dlp-provider",
+      "title": "远程记忆数据防泄漏服务",
+      "description": "连接远程数据防泄漏服务，辅助检查记忆内容中的敏感信息。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/context-memory-dlp/package.ts",
+      "symbol": "remoteContextMemoryDlpProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "remote-context-memory-dlp-provider.default",
+          "requires": [
+            "secrets.resolve"
+          ],
+          "provides": [
+            "context.memory.dlp-classification"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "remote.context-memory-dlp",
+              "capability": "context.memory.dlp-classification",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://remote.context-memory-dlp"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "providers/context-memory-dlp/package.ts"
+    },
+    {
+      "packageId": "experience-compiler-memory-intake-provider",
+      "title": "Experience Compiler 记忆接入服务",
+      "description": "接入经验编译器的记忆资料与证据，供审核后纳入上下文记忆。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/experience-compiler-memory/package.ts",
+      "symbol": "experienceCompilerMemoryIntakeProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "experience-compiler-memory-intake-provider.default",
+          "requires": [
+            "secrets.resolve"
+          ],
+          "provides": [
+            "context.memory.intake-source",
+            "context.memory.evidence-source"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "experience-compiler.memory-intake",
+              "capability": "context.memory.intake-source",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://experience-compiler.memory-intake"
+              }
+            },
+            {
+              "id": "experience-compiler.evidence-source",
+              "capability": "context.memory.evidence-source",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://experience-compiler.evidence-source"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "providers/experience-compiler-memory/package.ts"
+    },
+    {
+      "packageId": "evo-runtime-observatory-provider",
+      "title": "EVO 运行时事实观测服务",
+      "description": "读取运行时事实与观测数据，为企业运行分析提供依据。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/evo-runtime-observatory/package.ts",
+      "symbol": "evoRuntimeObservatoryProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-runtime-observatory-provider.default",
+          "requires": [],
+          "provides": [
+            "enterprise.operating-graph.runtime-facts"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "evo.runtime-observatory",
+              "capability": "enterprise.operating-graph.runtime-facts",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://evo.runtime-observatory"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/evo-runtime-observatory/package.ts"
+    },
+    {
+      "packageId": "eog-bottleneck-analysis-provider",
+      "title": "EOG 运行瓶颈分析服务",
+      "description": "分析企业运行图与运行事实，辅助识别业务瓶颈。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/eog-bottleneck-analysis/package.ts",
+      "symbol": "eogBottleneckAnalysisProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "eog-bottleneck-analysis-provider.default",
+          "requires": [],
+          "provides": [
+            "enterprise.operating-graph.analysis"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "eog.bottleneck-analysis",
+              "capability": "enterprise.operating-graph.analysis",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://eog.bottleneck-analysis"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/eog-bottleneck-analysis/package.ts"
+    },
+    {
+      "packageId": "evo-application-runtime-binding-provider",
+      "title": "企业应用运行时绑定服务",
+      "description": "解析企业应用与运行时的绑定，确定应用使用的执行环境。",
+      "type": "PLATFORM_PROVIDER",
+      "source": "providers/application-runtime-binding/package.ts",
+      "symbol": "applicationRuntimeBindingProviderPackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-application-runtime-binding-provider.default",
+          "requires": [],
+          "provides": [
+            "enterprise.application-runtime-binding"
+          ],
+          "defaultActivation": true,
+          "providers": [
+            {
+              "id": "evo.application-runtime-binding",
+              "capability": "enterprise.application-runtime-binding",
+              "binding": {
+                "type": "IN_PROCESS",
+                "ref": "runtime://evo.application-runtime-binding"
+              }
+            }
+          ],
+          "kinds": [
+            "platform.service-provider"
+          ]
+        }
+      ],
+      "manifestSource": "providers/application-runtime-binding/package.ts"
+    },
+    {
+      "packageId": "evo-template-store",
+      "title": "EVO 模板商店",
+      "description": "浏览可复用业务模板，将模板复制为企业独立定义草稿。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "templateStorePackage",
+      "excluded": false,
+      "features": [
+        {
+          "id": "evo-template-store.default",
+          "requires": [],
+          "provides": [
+            "template.store.browse"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "apps/template-store/package.ts"
+    },
+    {
+      "packageId": "trading-lite",
+      "title": "轻量交易示例",
+      "description": "展示轻量交易示例及其运行时依赖，验证插件协作流程。",
+      "type": "APPLICATION",
+      "source": "catalog/seed.ts",
+      "symbol": "tradingLitePackage",
+      "excluded": true,
+      "features": [
+        {
+          "id": "trading-lite.default",
+          "requires": [
+            "evo.business-data",
+            "evo.posting",
+            "evo.ledger",
+            "evo.balance",
+            "enterprise.application-runtime-binding"
+          ],
+          "provides": [
+            "trading-lite"
+          ],
+          "defaultActivation": true,
+          "providers": [],
+          "kinds": [
+            "eidos.experience",
+            "eidos.localization-bundle"
+          ]
+        }
+      ],
+      "manifestSource": "catalog/seed.ts"
+    }
+  ],
+  "scopeCounts": {
+    "defaultCatalog": 41,
+    "reviewed": 38,
+    "excluded": 3
+  }
+}
