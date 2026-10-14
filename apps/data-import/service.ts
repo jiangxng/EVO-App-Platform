@@ -453,16 +453,6 @@ export function createDataImportServiceV010(input: {
         contextId: mappingInput.contextId,
         parameters: job.targetParameters
       });
-      // A source column has exactly one target, and a target must not receive
-      // values from two different source columns. Constants remain separate.
-      const usedSourceTargets=new Set<string>();
-      for (const item of mappingInput.mapping) {
-        if (!item.sourceColumn) continue;
-        if (usedSourceTargets.has(item.targetFieldId)) {
-          throw new Error("DATA_IMPORT_MAPPING_TARGET_ALREADY_USED");
-        }
-        usedSourceTargets.add(item.targetFieldId);
-      }
       assertAgentMappingSemanticSafety({
         schema,
         mapping: mappingInput.mapping,
@@ -552,14 +542,6 @@ export function createDataImportServiceV010(input: {
         locale: dryRunInput.locale,
         parameters: job.targetParameters
       });
-      const sourceTargets=new Set<string>();
-      for (const item of job.mapping) {
-        if (!item.sourceColumn) continue;
-        if (sourceTargets.has(item.targetFieldId)) {
-          throw new Error("DATA_IMPORT_MAPPING_TARGET_ALREADY_USED");
-        }
-        sourceTargets.add(item.targetFieldId);
-      }
       const importable = new Set(
         fieldsForSurfaceV010(schema, "IMPORT")
           .filter(field => field.writable)
