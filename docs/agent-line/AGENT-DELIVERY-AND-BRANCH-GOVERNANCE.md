@@ -1,6 +1,8 @@
 # Agent 开发交付与分支治理规范
 
-Status: ACTIVE_POLICY_PROPOSAL_IN_PR_823
+> 项目级规范：[`DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md`](../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md)。本文件是 Agent 线补充，下面 2026-10-13 的分支表属于历史快照，不代表当前活动分支。
+
+Status: CURRENT_AGENT_SPECIFIC_POLICY / project-wide authority takes precedence
 Scope: EVO-App-Platform 的 PA / External Agent 独立开发线。其他 owner 的分支不得代为更改或删除。
 
 ## 目标与原则
