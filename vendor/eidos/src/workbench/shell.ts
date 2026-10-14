@@ -334,7 +334,12 @@ export async function mountWorkbenchShell(
   root.setAttribute("data-eidos-app-host", "0.1.0");
   root.setAttribute("data-eidos-app-host-layout", "workbench");
   root.setAttribute("data-side-panel-visible", state.sidePanelVisible ? "true" : "false");
-  root.setAttribute("data-mobile-surface", "panel");
+  // A direct task/deep link must expose its workspace on narrow screens;
+  // otherwise the mobile panel obscures an already mounted business page.
+  const initialHashRoute = currentHashPath();
+  root.setAttribute("data-mobile-surface",
+    workspaceMode === "app" && initialHashRoute?.startsWith("/")
+      ? "workspace" : "panel");
   root.setAttribute("data-eidos-workspace-mode", workspaceMode);
   root.style.setProperty("--eidos-side-panel-width", `${state.sidePanelWidth}px`);
 
