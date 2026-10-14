@@ -7424,8 +7424,10 @@ const server = createServer(async (request, response) => {
           code:"OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND"
         });
         const module=await import("../apps/object-extension/page.js");
+        const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
         return json(response,200,module.createObjectExtensionImportPageV010({
-          job,locale:requestedLocale(url)
+          job,locale:requestedLocale(url),
+          sourceColumn:importRoute.searchParams.get("column") ?? undefined
         }));
       }
 
@@ -7520,6 +7522,13 @@ const server = createServer(async (request, response) => {
             module.createDataImportMappingPageV010({
               job,
               target,
+              createdMapping:(() => {
+                const parsed = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
+                const sourceColumn = parsed.searchParams.get("createdColumn");
+                const fieldId = parsed.searchParams.get("createdField");
+                return sourceColumn && fieldId && job.source.headers.includes(sourceColumn)
+                  ? {sourceColumn, fieldId} : undefined;
+              })(),
               canCreateExtension: manager.getSnapshot().activeFeatures.some(x =>
                 x.featureId === OBJECT_EXTENSION_FEATURE_ID
               ) && (resolveEnterpriseContextRelationshipProvider()
