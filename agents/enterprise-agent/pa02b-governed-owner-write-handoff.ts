@@ -2,6 +2,7 @@ import type { AgentActionReceiptBeginInputV010 } from "../../contracts/agent-act
 import type { HostResolvedAgentDurabilityScopeV020, AsyncAgentRunReceiptRepositoryV020 } from "../../contracts/agent-durability-async.js";
 import type { AgentExecutionCoordinatorV020, AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import type { AgentWriteReconciliationPortV030, AgentWriteReconciliationResultV030 } from "./pa02b-owner-reconciliation.js";
+import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.js";
 
 /**
  * Trusted, Host-registered business Owner only. This is NOT a model-callable
@@ -71,13 +72,14 @@ function sameScope(
  */
 export function createGovernedAgentWriteHandoffV040(deps:{
   coordinator:AgentExecutionCoordinatorV020;
+  authority:Pick<FencedAgentRunAuthorityV030,"release">;
   receipts:Pick<AsyncAgentRunReceiptRepositoryV020,"beginReceipt">;
   reconciler:Pick<AgentWriteReconciliationPortV030,"bind"|"reconcile">;
   owner:GovernedAgentBusinessOwnerV040;
 }):GovernedAgentWriteHandoffV040 {
   if(typeof deps.owner?.invoke!=="function"||!deps.owner.ownerPackageId?.trim())
     throw Error("PA02B_HANDOFF_TRUSTED_OWNER_REQUIRED");
-  if(!deps.coordinator||!deps.receipts||!deps.reconciler)
+  if(!deps.coordinator||!deps.authority?.release||!deps.receipts||!deps.reconciler)
     throw Error("PA02B_HANDOFF_PORTS_REQUIRED");
 
   const recover=async (r:{scope:HostResolvedAgentDurabilityScopeV020;effectId:string})=>{
@@ -125,7 +127,11 @@ export function createGovernedAgentWriteHandoffV040(deps:{
         // External transport errors can occur AFTER the business Owner commits.
         // They cannot safely be interpreted as failure or retried here.
       }
-      return recover({scope:r.scope,effectId});
+      // Yield the exact fenced lease before Owner confirmation. A stale worker
+      // cannot release a successor; reconciliation rejects a live worker.
+      await deps.coordinator.markUnknown({scope:r.scope,effectId});
+      await deps.authority.release({scope:r.scope,lease:r.lease});
+      return deps.reconciler.reconcile({scope:r.scope,effectId});
     }
   };
 }
