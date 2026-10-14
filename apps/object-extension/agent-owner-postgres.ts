@@ -62,7 +62,7 @@ type Evidence={
   principalActorType:string;toolId:string;recordId:string;
   definition:ObjectExtensionDefinitionV010;recordedAt:string;
 };
-function scoped(source:Source) {
+function scoped(source:{scope:Source["scope"]}) {
   if(source.scope?.contextKind!=="ENTERPRISE"||
      !source.scope.enterpriseId?.trim()||!source.scope.contextId?.trim()||
      !source.scope.principalSubjectId?.trim()||
