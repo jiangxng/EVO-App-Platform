@@ -28,3 +28,14 @@
 ## 接续准则
 
 先核对PR #827、main和Eidos #178实际状态。CI门禁通过则及时合main；若平台仍有页面/访问权限上的缺陷，继续用原PR修复，不另开替代PR。仅在真实设备/产品流程的缺口被关闭后，才将BEX-01标记完全PASS。
+
+
+## 第二轮代码与真实浏览器闭环（2026-10-14）
+
+- 既有 Eidos 公共表格与 Platform 投影继续复用，不另造表格引擎、不重新编写 Data Import。
+- Platform PR [#833](https://github.com/jiangxng/EVO-App-Platform/pull/833) 将投影视图的 Host 入口提前分流，**取消原来先全表授权一轮、再进入同一授权分页服务的重复读取**。目录/详情的原有读取与权限路径保持不变。
+- Eidos PR [#179](https://github.com/jiangxng/eidos/pull/179) 已合并 `7895eaf08cd47318f076b991ddec4e93d36e7b75`，修复手机直接打开业务链接时默认停留在侧面板、工作区隐藏，以及紧凑列表样式遮盖表格显示策略的问题。Platform 的 pinned Eidos 代码与该修复同步。
+- **真实浏览器证据：** [BEX-01 Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38504544536) 在隔离真实 Host 上通过 **2/2**：桌面搜索、三页导航、浏览器返回；390px 触摸 Chromium 模拟器下的记录卡、分页、搜索、无横向溢出、跳转导入并预选 `SUPPLIER`。测试环境使用原有真实 Data Import 命令导入并提交 **53 条隔离供应商**，并非静态 HTML 演示。浏览器为 Headless Chromium 141.0.7390.37，自动生成 `report.json`、截图与 Host 日志。
+- **10k 诊断：** 同一次 CI 的领域服务使用 10,000 条*合成内存数据*，4 次分页读取耗时 41.1/32.5/24.0/33.8 ms；p95(四样本)=41.1 ms、每次仅一次领域列表读取、40016 次授权检查（四页合计）、每页最多 25 条。该数字 **不是** PostgreSQL / Enterprise Resource 物理分页证据，也 **不是**线上 p95 承诺。当前底层 `EnterpriseResourceRepositoryV010.list` 仍需读取全集，未来如规模指标需要，应由资源 owner 扩展物理查询，不在 BEX-01 伪造 DB cursor。
+
+**收口分级：** BEX-01 的桌面与模拟触摸浏览器开发闭环已验证；还未在真实 iOS Safari、真实 Android Chrome（软键盘、大字号、弱网场景）及实际 10k 持久层负载上取得证据。因此只能标记 **DEV_VERIFIED_CHROMIUM / PHYSICAL_MOBILE_AND_DB_PERF_PENDING**，不得写成生产全面验收或擅自部署。
