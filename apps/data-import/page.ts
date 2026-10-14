@@ -1,4 +1,5 @@
 import type {
+  FoundationObjectImportIssueV010,
   FoundationObjectImportTargetV010
 } from "../../contracts/foundation-object/import.js";
 import {
@@ -587,10 +588,33 @@ export function createDataImportMappingPageV010(input: {
   };
 }
 
+function importReviewIssueMessageV010(input: {
+  issue: FoundationObjectImportIssueV010;
+  schema?: EffectiveObjectSchemaV010;
+  locale?: string;
+}): string {
+  const { issue, schema, locale } = input;
+  const field = schema?.fields.find(item => item.fieldId === issue.fieldId);
+  const fieldLabel = field
+    ? localizedTextV010(field.label, locale)
+    : issue.fieldId;
+  if (issue.code === "DATA_IMPORT_REQUIRED_VALUE_MISSING") {
+    const instructions = zh(locale)
+      ? "这是必填字段，目前没有值。请点击“调整字段映射”检查对应来源列；如果文件缺少该字段，需要补充数据后重新上传。"
+      : "A required value is missing. Use Adjust mapping to check its source column, or add the missing value to the file and upload it again.";
+    return (fieldLabel ? fieldLabel + "：" : "") + instructions;
+  }
+  const detail = issue.message && issue.message !== issue.code
+    ? issue.message
+    : issue.code;
+  return (fieldLabel ? fieldLabel + ": " : "") + detail;
+}
+
 export function createDataImportReviewPageV010(input: {
   job: DataImportJobV010;
   locale?: string;
   target?: FoundationObjectImportTargetV010;
+  schema?: EffectiveObjectSchemaV010;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
   const job = input.job;
@@ -687,9 +711,11 @@ export function createDataImportReviewPageV010(input: {
             .slice(0, 4)
             .map(([key, value]) => key + ": " + String(value ?? ""))
             .join(" · ")
-        : row.issues.map(issue =>
-            (issue.fieldId ? issue.fieldId + ": " : "") + issue.code
-          ).join(" · "),
+        : row.issues.map(issue => importReviewIssueMessageV010({
+            issue,
+            schema: input.schema,
+            locale: input.locale
+          })).join(" · "),
       status: {
         label: row.ok ? t.ready : t.invalid,
         tone: row.ok ? "positive" : "warning"
