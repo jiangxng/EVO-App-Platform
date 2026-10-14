@@ -187,6 +187,65 @@ with sync_playwright() as pw:
   return {'secondRunId':second_run_id,'state':'CANCELLED',
    'futureOwnerDispatchRejected':True,'businessRowsRemainOne':True}
  case('browser-cancel-inference-before-future-owner-write',cancelled_before_future_owner_dispatch)
+ def committed_owner_effect_survives_browser_disconnect_and_cancel():
+  baseline=stats()
+  assert len(baseline['evidence'])==1 and baseline['mockCalls']==3,baseline
+  known_runs={t['run_id'] for t in baseline['turns']}
+  control=api.post(MOCK+'/__control',data={'mode':'owner-commit-hold-final'})
+  assert control.ok,control.text()
+  composer.fill('Commit one further isolated owner extension; disconnect before the final assistant response.')
+  composer.press('Enter')
+  third_run=None
+  try:
+   def owner_committed_and_model_held():
+    state=stats()
+    return len(state['evidence'])==2 and len(state['definitions'])==2 and state['holdingModel']
+   until(owner_committed_and_model_held,'OWNER_COMMIT_NOT_VISIBLE_BEFORE_DISCONNECT',timeout=35)
+   now=stats()
+   new_runs=[x['run_id'] for x in now['turns'] if x['run_id'] not in known_runs]
+   assert len(new_runs)==1,new_runs
+   third_run=new_runs[0]
+   assert now['mockCalls']==5,now
+   # The actual browser client disappears while an existing durable Owner
+   # receipt has committed and the Host awaits final provider completion.
+   page.reload(wait_until='domcontentloaded')
+   expect(composer).to_be_visible(timeout=30000)
+   after_reload=stats()
+   assert len(after_reload['evidence'])==2 and after_reload['mockCalls']==5,after_reload
+   first_cancel=execute('enterprise-agent.run.cancel',{
+    'runId':third_run,'reason':'Human disconnected after Owner business commit'})
+   assert first_cancel['cancellationState'] in ('REQUESTED','CANCELLED'),first_cancel
+  finally:
+   api.post(MOCK+'/__control',data={'mode':'release'})
+  final_cancel=None
+  for attempt in range(32):
+   request=action('enterprise-agent.run.cancel',{
+    'runId':third_run,'reason':'Verify committed effect after disconnected client'})
+   request['actionId']='pa02-owner-committed-cancel-'+str(attempt)
+   response=api.post(HOST+'/v1/actions',headers=headers,data=request)
+   result=response.json()
+   assert response.status==200 and result['ok'],(response.status,result)
+   final_cancel=result['result']
+   if final_cancel['cancellationState']=='CANCELLED':break
+   page.wait_for_timeout(200)
+  assert final_cancel['cancellationState']=='CANCELLED',final_cancel
+  terminal=execute('enterprise-agent.run.get',{'runId':third_run})['run']
+  assert terminal['state']=='CANCELLED' and len(terminal['actionReceiptIds'])==1,terminal
+  snapshot=execute('enterprise-agent.run.events',{
+   'runId':third_run,'afterEventId':'gap-after-commit','limit':5})
+  assert snapshot['resetRequired'] is True,snapshot
+  assert snapshot['run']['state']=='CANCELLED',snapshot
+  assert snapshot['run']['actionReceiptIds']==terminal['actionReceiptIds'],snapshot
+  stable=stats()
+  assert len(stable['definitions'])==len(stable['evidence'])==len(stable['receipts'])==2,stable
+  assert any(x['receipt_id']==terminal['actionReceiptIds'][0]
+   for x in stable['evidence']),stable
+  assert stable['mockCalls']==5,stable
+  page.screenshot(path=str(OUT/'pa02-owner-committed-cancel-recovered.png'),full_page=True)
+  return {'cancelledRun':third_run,'cancellation':'CANCELLED',
+   'committedReceiptRetained':terminal['actionReceiptIds'][0],
+   'uniqueOwnerRows':2,'ownerReplay':False,'browserReloadBeforeFinalResponse':True}
+ case('committed-owner-effect-retained-after-browser-disconnect-cancel',committed_owner_effect_survives_browser_disconnect_and_cancel)
  version=browser.version
  browser.close()
 report={'dateUtc':datetime.now(timezone.utc).isoformat(),
