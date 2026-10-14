@@ -13,14 +13,6 @@ on:
       - "tests/agent-line/pa02-governed-worker-write.test.mjs"
       - "tests/agent-line/pa02-async-read-worker.test.mjs"
       - ".github/workflows/agent-pa02-async-read-worker.yml"
-  push:
-    branches: [agent/pa02-object-extension-preview-owner-20261014]
-    paths:
-      - "agents/enterprise-agent/pa02-async-read-worker.ts"
-      - "agents/enterprise-agent/pa02-governed-worker-write-port.ts"
-      - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
-      - "tests/agent-line/pa02-governed-worker-write.test.mjs"
-      - ".github/workflows/agent-pa02-async-read-worker.yml"
   workflow_dispatch:
 permissions:
   contents: read
