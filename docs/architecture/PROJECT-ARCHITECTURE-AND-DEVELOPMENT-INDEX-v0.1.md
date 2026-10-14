@@ -152,9 +152,42 @@ context registry; a request may only **select** a context, never manufacture one
   (OPEN). Note: `enterprise-business-data-http-adapter` / Host-owned business data work is **gated
   by the EOG v0.1 target model**, i.e. deferred by decision — not cancelled. Confirm against the
   EOG authority before touching it.
-- Not visible from this repository: EVO and Experience-Compiler internal implementations
-  (repositories not available locally this round). Treat cross-project claims as pending
-  cross-repository verification.
+- Cross-project claims: see §7.1 below.
+
+### 7.1 Cross-project contract verification (2026-10-14)
+
+The EVO, Eidos and Experience-Compiler repositories are present locally
+(`D:\Documents\EVO`, `D:\Documents\eidos`, `D:\Documents\Experience-Compiler`) and were fetched;
+all three local `main` equal their `origin/main` at the time of this pass.
+
+- **EVO — verified.** App Platform `contracts/evo-business-data.ts` is field-for-field identical to
+  EVO `modules/business-data/api/contracts.ts` (same `contractVersion 0.1.0`, submission and result
+  fields, `QUEUED | BLOCKED_REPLAY_REQUIRED`, and the relation enum
+  `CAUSES/FULFILLS/ALLOCATES_TO/DERIVES_FROM/REFERENCES/REVERSES`). The endpoint App Platform calls
+  (`POST /api/v1/business-data`, `manager/evo-business-data-http-adapter.ts`) is implemented at EVO
+  `apps/api/src/business-data-submission-route.ts`. EVO
+  `docs/architecture/EVO-CURRENT-AUTHORITY-BOUNDARY-v0.1.md` states the same ownership split
+  (owns BusinessData → PostingRule → LedgerEntry/Balance; does not own identity, lifecycle, UI or
+  knowledge), and EVO modules include `allocation`, `cost`, `valuation` and `replay`. The EVO SHA
+  pinned in this repository's continuity evidence (`d5ce0513…`) equals EVO `main` HEAD.
+- **Eidos — verified as a deliberate scoped pin, not drift.** `vendor/eidos/source.manifest.json`
+  records `sourceCommit 22b487ff…` plus per-component pins (2D `3fde…`, extension-manager
+  `7b346ca6…`, owner PR #175) and explicit EVO-App-Platform host overlays. Both checked SHAs exist in
+  the Eidos repository and are ancestors of Eidos `main` (`78d8384b…`); vendored Eidos intentionally
+  trails Eidos `main`, so it must not be treated as "the Eidos version".
+- **Experience-Compiler — partially verified.** App Platform
+  `apps/data-import/experience-advisor.ts` calls EC `POST /v1/data-import/mapping-recommendations`
+  and `POST /v1/data-import/mapping-experiences`, which EC implements in `src/ec/api.py`; it is wired
+  in `manager/server.ts` only when the EC base URL is configured, and is advisory-only
+  (`advisoryOnly: true`). EC `docs/architecture/EC-CURRENT-AUTHORITY-BOUNDARY-v0.1.md` states the same
+  ownership split. **Not verified / apparently not implemented on the EC side:** the
+  `providers/experience-compiler-memory` Context Memory intake pull contract
+  (`{contractVersion, records[], nextCursor}`) — EC's API currently exposes only `/health` and the two
+  data-import endpoints. EC's own EVO/Eidos gateways are documented as preview adapters only.
+
+Recorded cross-project SHAs: EVO `d5ce051325c4572c7a5fd713560d7d7d06e4b401`,
+Eidos `78d8384ba92e7a302bfe1cfc82ec2ef71d6c605c`,
+Experience-Compiler `5f06a6224b6ffe434a9a3c0793b0384943121ac9`.
 
 Authority for current state: `project.status.json` and `docs/roadmap/HANDOFF-LATEST.md`.
 
@@ -231,7 +264,14 @@ inspect the public contracts and authorities before coding.
   `agents/enterprise-agent/host-tool-catalog.ts` and `run-runtime.ts` (1-170),
   `apps/data-import/service.ts` (1-170), `apps/ledger-runtime-configurator/capability-operations.ts`
   (1-120), `docs/agent-line/WINDOW-RESEARCH-SOURCE-INDEX-20261013.md` (1-114).
-- Not read / not available: EVO and Experience-Compiler repositories.
+- Cross-project (fetched 2026-10-14; see §7.1): EVO `docs/architecture/EVO-CURRENT-AUTHORITY-BOUNDARY-v0.1.md`,
+  `docs/interfaces/command-business-data.md`, `modules/business-data/api/contracts.ts`,
+  `apps/api/src/business-data-submission-route.ts`, `contracts/enterprise-package-api-v0.1.openapi.yaml`;
+  Eidos `vendor/eidos/source.manifest.json` (in this repo) cross-checked against SHAs in the Eidos repo;
+  Experience-Compiler `docs/architecture/EC-CURRENT-AUTHORITY-BOUNDARY-v0.1.md`, `src/ec/api.py`,
+  `src/ec/integration/http.py`, `contracts/jsonschema/*`.
+- Not read: the remainder of the EVO, Eidos and Experience-Compiler repositories; EVO business-data
+  route internals, EC runtime behavior and Eidos renderer internals were not executed.
 
 This index records what the repository shows, not proof that behavior was executed. Tests were not
 run as part of producing this index.
