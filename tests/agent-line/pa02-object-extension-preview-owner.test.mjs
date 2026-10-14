@@ -89,6 +89,12 @@ test("PA02 real Object Extension Owner: one atomic business write, evidence, rep
     assert.equal((await restarted.verifier.verify({
       ...verifyRequest,inputDigest:h("forged")
     })).outcome,"UNRESOLVED");
+    assert.equal((await restarted.verifier.verify({
+      ...verifyRequest,scope:{...scope,enterpriseId:"org:other"}
+    })).outcome,"UNRESOLVED","same contextId cannot spoof Enterprise identity");
+    assert.equal((await restarted.verifier.verify({
+      ...verifyRequest,scope:{...scope,principalSubjectId:"other-human"}
+    })).outcome,"UNRESOLVED","Owner attestation bound to original principal");
     await assert.rejects(restarted.owner.invoke({
       ...base,runId:"run:new",effectId:"effect:new",
       receiptId:"receipt:new",idempotencyKey:"idem:new"
