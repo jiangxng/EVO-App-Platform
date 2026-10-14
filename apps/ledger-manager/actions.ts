@@ -19,9 +19,6 @@ import type {
   PlatformPrincipalV010,
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
-import {
-  createLedgerRuntimeConfiguratorService
-} from "../ledger-runtime-configurator/service.js";
 import type {
   LedgerRuntimeTemplateV010
 } from "../ledger-runtime-configurator/contracts.js";
@@ -303,18 +300,11 @@ export function createLedgerManagerActionHandlersV010(input: {
         }
 
         const template = revision.payload as unknown as LedgerRuntimeTemplateV010;
-        const compiler = createLedgerRuntimeConfiguratorService();
-        const validation = compiler.importTemplate(template);
-        if (!validation.ok || !validation.burn.ready) {
-          throw new Error(
-            "LEDGER_MANAGER_TEMPLATE_NOT_RUNTIME_READY: "
-            + JSON.stringify({
-                errors: validation.errors,
-                blockers: validation.burn.blockers
-              })
-          );
-        }
-        const compiled = compiler.compileCurrent();
+        // Compilation belongs to this publish operation, not a second installed app.
+        const { compileLedgerDefinitionForPublicationV010 } = await import(
+          "./internal/publication-compiler.js"
+        );
+        const compiled = compileLedgerDefinitionForPublicationV010(template);
         const runtimeResult = await input.publishToLedgerRuntime({
           enterpriseId: scope.enterpriseId,
           enterpriseDisplayName:

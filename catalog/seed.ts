@@ -234,13 +234,13 @@ export const evoFoundationPackage: PackageManifestV010 = {
 export const ledgerRuntimeConfiguratorPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo-ledger-runtime-configurator",
-  displayName: "EVO Ledger Runtime Compiler",
-  description: "将业务定义编译为账本运行时配置，支持校验与导入导出。",
+  displayName: "EVO Ledger Compiler (Legacy Compatibility)",
+  description: "兼容旧编译接口及配置读取；新账本请在账本管理中校验并发布，无需另装此插件。",
   displayNameTranslations: {
-    "en": "EVO Ledger Runtime Compiler",
-    "zh-CN": "EVO 账本运行时编译器",
-    "ja": "EVO 台帳ランタイムコンパイラ",
-    "zh-TW": "EVO 帳本執行環境編譯器"
+    "en": "EVO Ledger Compiler (Legacy Compatibility)",
+    "zh-CN": "EVO 账本编译兼容接口",
+    "ja": "EVO 台帳コンパイラ（旧版互換）",
+    "zh-TW": "EVO 帳本編譯相容介面"
   },
   version: "0.1.0",
   type: "RUNTIME_EXTENSION",
