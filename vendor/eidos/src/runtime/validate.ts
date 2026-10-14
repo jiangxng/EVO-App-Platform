@@ -45,7 +45,8 @@ const fieldKeys = new Set([
   "options",
   "accept",
   "maxBytes",
-  "validation"
+  "validation",
+  "contextLink"
 ]);
 const actionKeys = new Set([
   "id",
@@ -112,7 +113,8 @@ function parseField(
     options,
     accept,
     maxBytes,
-    validation
+    validation,
+    contextLink
   } = value;
 
   if (!nonEmpty(key)) {
@@ -214,6 +216,25 @@ function parseField(
       `${path}.initialValue`,
       "file controls do not support initialValue"
     ));
+  }
+
+  let parsedContextLink: UidlField["contextLink"];
+  if (contextLink !== undefined) {
+    if (!isPlainObject(contextLink)) {
+      out.push(d("EIDOS_FIELD_CONTEXT_LINK_INVALID", `${path}.contextLink`, "Context link must be object"));
+    } else {
+      extraKeys(contextLink, new Set(["label", "route"]), `${path}.contextLink`, out);
+      const linkLabel = contextLink.label;
+      const route = contextLink.route;
+      if (!nonEmpty(linkLabel) || !linkLabel.trim()
+        || typeof route !== "string" || !route.startsWith("/")
+        || route.startsWith("//") || route.includes("\\")
+        || route.length > 2048) {
+        out.push(d("EIDOS_FIELD_CONTEXT_LINK_INVALID", `${path}.contextLink`, "Context link requires a label and a local route"));
+      } else {
+        parsedContextLink = {label:linkLabel,route};
+      }
+    }
   }
 
   let parsedOptions: { value: UidlOptionValue; label: string }[] | undefined;
@@ -394,7 +415,8 @@ function parseField(
         ? { maxBytes }
         : {}
     ),
-    ...(parsedValidation ? { validation: parsedValidation } : {})
+    ...(parsedValidation ? { validation: parsedValidation } : {}),
+    ...(parsedContextLink ? { contextLink: parsedContextLink } : {})
   };
 }
 
