@@ -1,0 +1,64 @@
+name: BEX-01 Verified Merged Branch Retirement
+on:
+  pull_request:
+    paths: [".github/workflows/bex01-merged-branch-retirement.yml"]
+  push:
+    branches: [main]
+    paths: [".github/workflows/bex01-merged-branch-retirement.yml"]
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  retire-verified-heads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Verify exact merged PR and unchanged branch before deletion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner=context.repo.owner, repo=context.repo.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform') throw Error('Unexpected repo');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            const targets=[
+              {n:824,branch:'docs/governance-plugin-review-20261014',sha:'c55e776fb285de0ea5e2490a6078516ca165bafb'},
+              {n:826,branch:'fix/governance-ledger-compiler-boundary-20261014',sha:'1346150668a20def061a52ac3ec5758d6a6a18e7'},
+              {n:817,branch:'feat/governance-provider-lifecycle-ui-20261013',sha:'289c429c473bdcf40f46ccbdcbdc6c08d1e134dd'},
+              {n:796,branch:'fix/governance-revision-resource-lifecycle-20261013',sha:'8a4f0ef844042c7b774434b5c934b78d92a8b65e'},
+              {n:827,branch:'feat/bex01-supplier-table-paging-20261014',sha:'a153fc4da03aa1d41b0bf4b8a23dbfc1d888b317'},
+              {n:833,branch:'fix/bex01-authorized-query-mobile-closure-20261014',sha:'7bdd3c48b6bbd043138e9c991b0a56839909b4f9'},
+              {n:838,branch:'fix/bex01-table-editorial-skin-20261014',sha:'c9963a67eee41d14a4ef39c6066baa0c4efd3b5c'},
+              {n:840,branch:'fix/bex01-import-workspace-navigation-20261014',sha:'ebabaf7d493dc60c71f7421caa79d94271c3b463'},
+              {n:843,branch:'feat/bex01-object-extension-human-import-20261014'}
+            ];
+            const allOpen=(await github.paginate(github.rest.pulls.list,
+              {owner,repo,state:'open',per_page:100})).filter(x=>x.head.repo?.full_name===owner+'/'+repo);
+            const reserved=new Set(['main',...allOpen.map(x=>x.head.ref),...allOpen.map(x=>x.base.ref)]);
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            for(const x of targets){
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:x.n})).data;
+              // During pull_request CI, #843 is expected to remain open.
+              if(!execute&&x.n===843){core.info('PENDING_MERGE '+x.branch);continue;}
+              if(!pr.merged||pr.state!=='closed'||pr.base.ref!=='main'
+                ||pr.head.repo?.full_name!==owner+'/'+repo||pr.head.ref!==x.branch
+                ||(x.sha&&pr.head.sha!==x.sha))
+                throw Error('Merged PR provenance mismatch '+x.n);
+              const expected=x.sha??pr.head.sha;
+              const comparison=(await github.rest.repos.compareCommits({
+                owner,repo,base:pr.merge_commit_sha,head:main
+              })).data;
+              if(comparison.behind_by!==0)throw Error('Merge not in main '+x.n);
+              if(reserved.has(x.branch))throw Error('Branch still used by an open PR '+x.branch);
+              let current;
+              try{current=(await github.rest.git.getRef({owner,repo,ref:'heads/'+x.branch})).data;}
+              catch(e){if(e.status===404){core.info('ALREADY_ABSENT '+x.branch);continue;}throw e;}
+              if(current.object.sha!==expected)throw Error('Branch head changed '+x.branch);
+              const metadata=(await github.rest.repos.getBranch({owner,repo,branch:x.branch})).data;
+              if(metadata.protected)throw Error('Protected branch '+x.branch);
+              core.info('VERIFIED '+x.branch+' '+expected);
+              if(!execute)continue;
+              const last=(await github.rest.git.getRef({owner,repo,ref:'heads/'+x.branch})).data;
+              if(last.object.sha!==expected)throw Error('Lease lost '+x.branch);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+x.branch});
+              core.info('DELETED_MERGED_BRANCH '+x.branch);
+            }

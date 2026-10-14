@@ -969,6 +969,9 @@ import {
   OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
+  OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
+  OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
+  parseObjectExtensionImportRouteV010,
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID
 } from "../apps/object-extension/constants.js";
@@ -5007,7 +5010,8 @@ const actionRouter = createAppActionRouter(
     ...[
       OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
       OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
-      OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010
+      OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
+      OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: OBJECT_EXTENSION_PACKAGE_ID,
@@ -5017,6 +5021,7 @@ const actionRouter = createAppActionRouter(
           const module = await import("../apps/object-extension/actions.js");
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
+            getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -6883,15 +6888,21 @@ const server = createServer(async (request, response) => {
           active.contextId,
           { objectType: "counterparty.subject" }
         );
+        const extensionDefinitions = objectExtensionRepository.list(
+          active.contextId,"counterparty.subject"
+        );
         const access = await resolveCounterpartyReadAccessV010({
           authorizationProvider: resolveAuthorizationProvider(),
           requestContext: readContext,
           enterpriseRelationshipKind: relationship?.kind,
           counterparties: allCounterparties,
           responsibilities,
-          fieldIds: counterpartyCoreSchemaV010.fields.map(
-            field => field.fieldId
-          )
+          fieldIds: [
+            ...counterpartyCoreSchemaV010.fields.map(field => field.fieldId),
+            ...extensionDefinitions
+              .filter(field => field.surfaces.includes("DETAIL"))
+              .map(field => field.fieldId)
+          ]
         });
         const authorizedCounterpartyIds = new Set(
           access.counterparties.map(item => item.counterpartyId)
@@ -6989,6 +7000,25 @@ const server = createServer(async (request, response) => {
                 addresses: counterpartyAddressRepository.list(
                   active.contextId,
                   counterpartyId
+                ),
+                extensionFields: objectExtensionValueRepository.listForObject({
+                  contextId:active.contextId,
+                  objectType:"counterparty.subject",
+                  objectId:counterpartyId
+                }).flatMap(valueSet =>
+                  extensionDefinitions
+                    .filter(definition =>
+                      definition.targetSlot===valueSet.targetRef.slot
+                      && definition.namespace===valueSet.namespace
+                      && definition.surfaces.includes("DETAIL")
+                      && access.readableFieldIds.includes(definition.fieldId)
+                      && Object.prototype.hasOwnProperty.call(valueSet.values,definition.fieldId)
+                    ).map(definition=>({
+                      fieldId:definition.fieldId,
+                      label:definition.label.translations?.[locale]
+                        ??definition.label.default,
+                      value:String(valueSet.values[definition.fieldId]??"")
+                    }))
                 ),
                 locale,
                 readableFieldIds: access.readableFieldIds,
@@ -7365,6 +7395,40 @@ const server = createServer(async (request, response) => {
         );
       }
 
+      if (source === OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010) {
+        if (!manager.getSnapshot().activeFeatures.some(item =>
+          item.featureId === OBJECT_EXTENSION_FEATURE_ID
+        )) return json(response,404,{code:"OBJECT_EXTENSION_NOT_INSTALLED"});
+        const session=resolveRequestIdentitySession(request);
+        const registry=createContextRegistryForSession(session);
+        const resolved=registry.resolve(
+          contextFromHeaderV010(request.headers,registry)
+        );
+        const active=resolved.activeContext;
+        if(active.kind!=="ENTERPRISE") return json(response,409,{
+          code:"OBJECT_EXTENSION_ENTERPRISE_CONTEXT_REQUIRED"
+        });
+        const canManage=(resolveEnterpriseContextRelationshipProvider()
+          ?.listForPrincipal(session.principal)??[]).some(item=>
+            item.contextId===active.contextId && item.state==="ACTIVE"
+            && (item.kind==="OWNER"||item.kind==="ADMIN")
+          );
+        if(!canManage) return json(response,403,{
+          code:"OBJECT_EXTENSION_MANAGE_ROLE_REQUIRED"
+        });
+        const jobId=parseObjectExtensionImportRouteV010(
+          url.searchParams.get("route")??undefined
+        );
+        const job=jobId?dataImportRepository.get(active.contextId,jobId):undefined;
+        if(!job||job.targetId!=="counterparty.subject") return json(response,404,{
+          code:"OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND"
+        });
+        const module=await import("../apps/object-extension/page.js");
+        return json(response,200,module.createObjectExtensionImportPageV010({
+          job,locale:requestedLocale(url)
+        }));
+      }
+
       if (
         source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE
         || source === DATA_IMPORT_UPLOAD_PAGE_SOURCE
@@ -7456,6 +7520,13 @@ const server = createServer(async (request, response) => {
             module.createDataImportMappingPageV010({
               job,
               target,
+              canCreateExtension: manager.getSnapshot().activeFeatures.some(x =>
+                x.featureId === OBJECT_EXTENSION_FEATURE_ID
+              ) && (resolveEnterpriseContextRelationshipProvider()
+                ?.listForPrincipal(session.principal)??[]).some(x=>
+                  x.contextId===active.contextId && x.state==="ACTIVE"
+                  && (x.kind==="OWNER"||x.kind==="ADMIN")
+                ),
               schema: target.describe({
                 contextId: active.contextId,
                 locale,

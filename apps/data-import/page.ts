@@ -1,3 +1,6 @@
+import {
+  objectExtensionImportRouteV010
+} from "../object-extension/constants.js";
 import type {
   FoundationObjectImportIssueV010,
   FoundationObjectImportTargetV010
@@ -444,10 +447,12 @@ export function createDataImportMappingPageV010(input: {
   schema: EffectiveObjectSchemaV010;
   target?: FoundationObjectImportTargetV010;
   locale?: string;
+  canCreateExtension?: boolean;
 }) {
   const t = text(input.locale);
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
     .filter(field => field.writable);
+  const unmapped = unmappedSourceColumns(input.job);
   const current = new Map(
     input.job.mapping
       .filter(item => Boolean(item.sourceColumn))
@@ -523,12 +528,23 @@ export function createDataImportMappingPageV010(input: {
       : advisoryFields.length > 0
         ? t.ecRecommendationDescription + " " + t.mappingDescription
         : t.mappingDescription,
-    contextNavigation: importContextNavigationV010({
-      target: input.target,
-      parameters: input.job.targetParameters,
-      locale: input.locale,
-      step: "mapping"
-    }),
+    contextNavigation: {
+      items: [
+        ...importContextNavigationV010({
+          target: input.target,
+          parameters: input.job.targetParameters,
+          locale: input.locale,
+          step: "mapping"
+        }).items,
+        ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
+          ? [{
+              id:"create-extension",
+              label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
+              route:objectExtensionImportRouteV010(input.job.importJobId)
+            }]
+          : [])
+      ]
+    },
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_REVIEW_COMMAND_V010,
