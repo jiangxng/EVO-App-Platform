@@ -25,4 +25,4 @@
 
 PA-02 下一步按原始 R01–R10：让真实 Server 受控模式在单一企业资源权威下启用，完成 `thread.send` 工作台入口的 Owner WRITE 和掉线恢复/取消联动；补 R03/R05/R06/R07/R10 实验缺口。整个 Provider 生产迁移和其他插件拓展不自动纳入 PA-02；生产准入仍独立。
 
-**CI evidence:** 待最终 PR head 运行结果登记，不能先报 PASS。
+**CI evidence（已在源码头 `81da67db8eeed8e036c88038da31b9c9da5867ac` 验证）：** [PostgreSQL18 real Host/Worker/Owner CI #38511340118](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38511340118)：`npm run build` 成功，**13/13 tests PASS，0 fail，0 skipped**，正式标记 `PA02_HOST_OBJECT_EXTENSION_GOVERNED_WRITE` 证实业务 Owner invoke=1、实际 Agent Receipt、真实 Owner 业务资源、丢 ACK 校验、Host action 幂等、异租户不可见、插件卸载拒绝、无 catalog WRITE 旁路、无生产 Server 模式。另 [Host Async READ CI #38511339896](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38511339896)、[Lightweight Host Architecture #38511340095](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38511340095)、[Platform CI #38511340024](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38511340024)、[Continuity #38511339940](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38511339940) 均成功。最终 PR head 在合并前仍须有真实 CI；此证据不能推断生产启用、浏览器体验或 PA-02 阶段验收。
