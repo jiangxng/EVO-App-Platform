@@ -42,15 +42,27 @@ const request=(column,label,type)=>({
 });
 test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import mapping schema",async()=>{
  const repo=createObjectExtensionRepositoryV010(createMemoryEnterpriseResourceRepositoryV010());
+ let liveJob=structuredClone(job);
  const handlers=createObjectExtensionActionHandlersV010({
   repository:repo,
   canManageEnterpriseContext:()=>true,
-  getImportJob:(id,jobId)=>id===contextId&&jobId===job.importJobId?job:undefined
+  getImportJob:(id,jobId)=>id===contextId&&jobId===job.importJobId?liveJob:undefined,
+  applyImportMapping:async ({sourceColumn,targetFieldId})=>{
+   liveJob={...liveJob,mapping:[...liveJob.mapping,{sourceColumn,targetFieldId}]};
+  }
  });
  const action=handlers.find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010);
  assert.ok(action);
  const route=objectExtensionImportRouteV010(job.importJobId);
  assert.equal(parseObjectExtensionImportRouteV010(route),job.importJobId);
+ const selectedRoute=objectExtensionImportRouteV010(job.importJobId,"开户银行");
+ assert.match(selectedRoute,/column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C/);
+ assert.equal(parseObjectExtensionImportRouteV010(selectedRoute),job.importJobId);
+ const prefilled=createObjectExtensionImportPageV010({
+  job,locale:"zh-CN",sourceColumn:"开户银行"
+ });
+ assert.equal(prefilled.fields.find(x=>x.key==="label").initialValue,"开户银行");
+ assert.equal(prefilled.fields.find(x=>x.key==="sourceColumn").options.length,1);
  assert.equal(parseObjectExtensionImportRouteV010("//bad"),undefined);
  const form=createObjectExtensionImportPageV010({job,locale:"zh-CN"});
  assert.deepEqual(form.fields.find(x=>x.key==="sourceColumn").options.map(x=>x.value),["开户银行"]);
@@ -62,9 +74,11 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  const mappingWithEntry=createDataImportMappingPageV010({
   job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:true
  });
- assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,route);
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,selectedRoute);
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.initialValue,"__PENDING_CREATE__");
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.options.at(-1)?.value,"__IGNORE__");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
-   "＋ 为本列创建企业扩展字段");
+   "＋ 创建“开户银行”企业字段");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
  const mappingWithoutPermission=createDataImportMappingPageV010({
   job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:false
@@ -83,6 +97,9 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.equal(agentAction.refreshSourceOnComplete,true);
  const created=await action.execute(request("开户银行","开户银行","STRING"),ctx());
  assert.equal(created.ok,true,JSON.stringify(created));
+ assert.deepEqual(liveJob.mapping.at(-1),{
+  sourceColumn:"开户银行",targetFieldId:created.result.mappedTargetFieldId
+ });
  assert.equal(created.result.navigateTo,"/data-import/jobs/bex-ext-1/map");
  const definition=repo.list(contextId,"counterparty.subject")[0];
  assert.equal(definition.targetSlot,"counterparty.supplier-profile");
@@ -91,11 +108,13 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  const schema=createCounterpartyEffectiveObjectSchemaV010({
   activeRelationshipRoles:["SUPPLIER"],extensions:repo.list(contextId,"counterparty.subject")
  });
- const refreshed=createDataImportMappingPageV010({job,schema,target:undefined,locale:"zh-CN"});
- assert.ok(refreshed.fields.find(x=>x.key==="map_2").options.some(x=>x.value===definition.fieldId));
+ const refreshed=createDataImportMappingPageV010({
+  job:liveJob,schema,target:undefined,locale:"zh-CN"
+ });
+ assert.equal(refreshed.fields.find(x=>x.key==="map_2").initialValue,definition.fieldId);
  const duplicate=await action.execute(request("开户银行","另一个名称","STRING"),ctx());
  assert.equal(duplicate.ok,false);
- assert.equal(duplicate.error.code,"OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
+ assert.equal(duplicate.error.code,"OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED");
  const unsafe=await action.execute(request("隐藏列","来源不允许","STRING"),ctx());
  assert.equal(unsafe.ok,false);
  assert.equal(unsafe.error.code,"OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED");
