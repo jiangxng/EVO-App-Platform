@@ -73,6 +73,30 @@ with sync_playwright() as p:
    expect(table.locator("tbody tr")).to_have_count(25)
    assert table.is_visible(),"DESKTOP_TABLE_MUST_BE_VISIBLE"
    assert not page.locator('[data-eidos-catalog-has-table="true"] [data-eidos-catalog-items]').is_visible(),"DESKTOP_CARDS_SHOULD_COLLAPSE"
+   styling=page.evaluate("""() => {
+     const table=document.querySelector('[data-eidos-catalog-table]');
+     const heading=table.querySelector('thead th button');
+     const name=table.querySelector('tbody td:first-child button');
+     const label=document.querySelector('[data-eidos-catalog-search-label]');
+     const rect=table.getBoundingClientRect();
+     return {
+       headingBorder:getComputedStyle(heading).borderTopWidth,
+       nameBorder:getComputedStyle(name).borderTopWidth,
+       headingBackground:getComputedStyle(heading).backgroundColor,
+       tableBackground:getComputedStyle(table).backgroundColor,
+       firstColumnShare:table.querySelector('thead th').getBoundingClientRect().width/rect.width,
+       firstRowHeight:table.querySelector('tbody tr').getBoundingClientRect().height,
+       visuallyHiddenSearchLabel:getComputedStyle(label).position==='absolute',
+       overflow:document.documentElement.scrollWidth>innerWidth+2
+     };
+   }""")
+   assert styling["headingBorder"]=="0px","SORT_HEADER_MUST_NOT_LOOK_LIKE_FORM_BUTTON: "+str(styling)
+   assert styling["nameBorder"]=="0px","SUPPLIER_NAME_MUST_LOOK_LIKE_TEXT_LINK: "+str(styling)
+   assert .38<=styling["firstColumnShare"]<=.56,"UNBALANCED_COLUMNS: "+str(styling)
+   assert styling["firstRowHeight"]<=56,"TABLE_ROW_NOT_COMPACT: "+str(styling)
+   assert styling["visuallyHiddenSearchLabel"],"DUPLICATED_VISIBLE_SEARCH_CAPTION"
+   assert not styling["overflow"],"DESKTOP_HORIZONTAL_OVERFLOW"
+   page.screenshot(path=str(OUT/"desktop-supplier-table-polished.png"),full_page=True)
    next_button=page.locator('[data-eidos-catalog-action="next-page"]')
    expect(next_button).to_be_visible()
    next_button.click()
