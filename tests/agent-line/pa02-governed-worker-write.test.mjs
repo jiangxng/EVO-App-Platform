@@ -16,6 +16,8 @@ import {createGovernedAgentWriteHandoffV040}
   from "../../dist/agents/enterprise-agent/pa02b-governed-owner-write-handoff.js";
 import {createGovernedAgentWorkerWritePortV040}
   from "../../dist/agents/enterprise-agent/pa02-governed-worker-write-port.js";
+import {createHostRegisteredAgentOwnerRegistryV040}
+  from "../../dist/manager/agent-trusted-owner-registration.js";
 import {createReadOnlyFencedAgentWorkerV030}
   from "../../dist/agents/enterprise-agent/pa02-async-read-worker.js";
 
@@ -38,6 +40,11 @@ const tool={contractVersion:"0.1.0",id:"sandbox.owner.update",
   modelName:"sandbox_write",title:"Sandbox Write",
   description:"Trusted sandbox Owner write",inputSchema:{type:"object"},
   effect:"WRITE",ownerPackageId:"sandbox.owner"};
+
+const requestContext={contractVersion:"0.1.0",principal,
+  context,correlationId:"host:persistent-agent-write",
+  scope:{contractVersion:"0.1.0",enterpriseId:scope.enterpriseId,
+    userId:principal.subjectId}};
 
 test("PA-02 Worker: real fenced WRITE decision -> real Owner effect -> durable receipt and final",{
   skip:!url?"Requires isolated PostgreSQL 18":false,timeout:90000
@@ -82,12 +89,13 @@ test("PA-02 Worker: real fenced WRITE decision -> real Owner effect -> durable r
         i.arguments.recordId,i.arguments.value]);
     throw Error("LOST_AFTER_OWNER_COMMIT");
   }};
-  const catalog=()=>({list(){return [tool] },
+  let trustedBinding;
+  const catalog=()=>({list(){return [trustedBinding.descriptor] },
     invoke(){throw Error("CATALOG_WRITE_INVOKE_MUST_NEVER_BE_USED");}});
   let event=0,slice=0;
   let worker,port;
   const resume=async(runId,name)=>worker.resumeOnce({
-    runId,workerId:name,principal,context
+    runId,workerId:name,principal,context,requestContext
   });
   const createRun=async(runId,message)=>{
     await repo.claimTurn({scope,threadId:"thread:"+runId,
@@ -115,13 +123,47 @@ test("PA-02 Worker: real fenced WRITE decision -> real Owner effect -> durable r
       coordinator:coord,authority:fenced,receipts:repo,reconciler:owner,
       owner:trustedOwner
     });
+    const effectiveOperation={
+      contractVersion:"0.1.0",operationId:tool.id,
+      capability:"sandbox.supplier",operationVersion:"0.1.0",
+      title:tool.title,description:tool.description,
+      effect:"WRITE",packageId:tool.ownerPackageId,featureId:"supplier",
+      dataScope:"ENTERPRISE",exposure:["HUMAN","PERSONAL_AGENT"],
+      authorization:{action:"supplier.update",resource:{
+        type:"supplier",idSource:"INPUT",inputKey:"recordId"
+      }},
+      binding:{type:"ACTION_HOST",commandCode:"sandbox.owner.update",inputVersion:"0.1.0"},
+      writeSafety:{idempotency:"HOST_REQUIRED",receipt:"HOST_REQUIRED"},
+      inputSchema:tool.inputSchema,outputSchema:{type:"object"}
+    };
+    const manager={listEffectiveCapabilityOperations(){return [effectiveOperation];}};
+    const authProvider={providerId:"sandbox.auth",check(i){
+      authorizationCalls++;
+      return {contractVersion:"0.1.0",allowed:
+        i.principal.actorType==="AI" &&
+        i.scope.enterpriseId===scope.enterpriseId &&
+        i.resource.id==="sandbox:record:1",
+        policyProviderId:"sandbox.auth",reasonCodes:[]};
+    }};
+    const registry=createHostRegisteredAgentOwnerRegistryV040({
+      manager,resolveAuthorizationProvider:()=>authProvider,
+      registrations:[{
+        operationId:tool.id,packageId:tool.ownerPackageId,
+        commandCode:effectiveOperation.binding.commandCode,
+        inputVersion:effectiveOperation.binding.inputVersion,
+        modelName:tool.modelName,owner:trustedOwner,verifier,
+        validateArguments:a=>a.recordId==="sandbox:record:1" &&
+          Number.isInteger(a.value)
+      }]
+    });
+    trustedBinding=registry.resolve(tool.id);
+    assert.ok(trustedBinding);
+    assert.equal(trustedBinding.owner,trustedOwner);
+    assert.equal(trustedBinding.verifier,verifier);
     port=createGovernedAgentWorkerWritePortV040({
-      toolId:tool.id,ownerPackageId:tool.ownerPackageId,
-      authorize:async({principal:p,context:c,descriptor:d})=>{
-        authorizationCalls++;
-        return p.subjectId===principal.subjectId&&
-          c.activeContext.enterpriseId===scope.enterpriseId&&d.id===tool.id;
-      },
+      toolId:trustedBinding.descriptor.id,
+      ownerPackageId:trustedBinding.descriptor.ownerPackageId,
+      authorize:trustedBinding.authorize,
       coordinator:coord,authority:fenced,handoff:gate,reconciler:owner
     });
     assert.equal(port.allows({...tool,ownerPackageId:"other.owner"}),false);
