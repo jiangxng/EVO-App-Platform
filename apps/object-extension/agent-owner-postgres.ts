@@ -176,10 +176,11 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
              prior.principalSubjectId!==evidence.principalSubjectId||
              prior.principalActorType!==evidence.principalActorType||
              prior.toolId!==evidence.toolId||
-             !json(prior.definition)||json(prior.definition)!==json(definition)||
-             prior.idempotencyKey!==evidence.idempotencyKey||
-             previous[0].evidence_digest!==hash(json(prior)))
-            throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT");
+             json(prior.definition)!==json(definition)||
+             prior.idempotencyKey!==evidence.idempotencyKey)
+            throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_SOURCE");
+          if(previous[0].evidence_digest!==hash(json(prior)))
+            throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_EVIDENCE_INTEGRITY");
           return;
         }
         const record:EnterpriseResourceV010={
