@@ -4,7 +4,8 @@ import type {
 import {
   counterpartyProjectionQueryRouteV010,
   type CounterpartyProjectionQueryV010,
-  type CounterpartyProjectionPageInfoV010
+  type CounterpartyProjectionPageInfoV010,
+  type CounterpartyProjectionRecordV010
 } from "./projection-query.js";
 import {
   fieldsForSurfaceV010,
@@ -220,7 +221,7 @@ function relationshipRoleLabel(
 }
 
 export function createCounterpartyDirectoryPageV010(input: {
-  counterparties: readonly CounterpartySubjectV010[];
+  counterparties: readonly CounterpartyProjectionRecordV010[];
   importRoute?: string;
   locale?: string;
   readableFieldIds?: readonly string[];
@@ -270,21 +271,16 @@ export function createCounterpartyDirectoryPageV010(input: {
     items: input.counterparties.map(counterparty => ({
         id: counterparty.counterpartyId,
         title: counterparty.displayName,
-        status: {
-          label:
-            counterparty.status === "ACTIVE"
-              ? text.active
-              : text.inactive,
-          tone:
-            counterparty.status === "ACTIVE"
-              ? "positive" as const
-              : "neutral" as const
-        },
+        ...(canRead("status") && counterparty.status ? {status: {
+          label:counterparty.status === "ACTIVE" ? text.active : text.inactive,
+          tone:counterparty.status === "ACTIVE"
+            ? "positive" as const : "neutral" as const
+        }} : {}),
         metadata: {
           ...(canRead("code")
             ? { [text.code]: counterparty.code }
             : {}),
-          ...(canRead("subjectType")
+          ...(canRead("subjectType") && counterparty.subjectType
             ? {
                 [text.subjectType]: subjectTypeLabel(
                   counterparty.subjectType,
@@ -332,7 +328,7 @@ function projectionTitleV010(
 
 export function createCounterpartyProjectionPageV010(input: {
   projectionId: CounterpartyProjectionIdV010;
-  counterparties: readonly CounterpartySubjectV010[];
+  counterparties: readonly CounterpartyProjectionRecordV010[];
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
@@ -392,10 +388,10 @@ export function createCounterpartyProjectionPageV010(input: {
       itemId:subject.counterpartyId,
       cells: {
         displayName:subject.displayName,
-        ...(canRead("code") ? {code:subject.code} : {}),
+        ...(canRead("code") ? {code:subject.code ?? ""} : {}),
         ...(canRead("status")
           ? {status:subject.status === "ACTIVE" ? text.active : text.inactive} : {}),
-        ...(canRead("subjectType")
+        ...(canRead("subjectType") && subject.subjectType
           ? {subjectType:subjectTypeLabel(subject.subjectType,input.locale)} : {}),
         ...(canRead("countryOrRegion")
           ? {countryOrRegion:subject.countryOrRegion ?? ""} : {})
