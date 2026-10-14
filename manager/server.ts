@@ -6863,14 +6863,10 @@ const server = createServer(async (request, response) => {
                 ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
           const { parseCounterpartyProjectionRouteQueryV010 } =
             await import("../apps/counterparty/projection-query.js");
-          const pagingQuery = {
-            ...parseCounterpartyProjectionRouteQueryV010(
-              url.searchParams.get("route"), projectionRoute
-            ),
-            pageSize: parseCounterpartyProjectionRouteQueryV010(
-              url.searchParams.get("route"), projectionRoute
-            ).pageSize ?? 25
-          };
+          const userQuery = parseCounterpartyProjectionRouteQueryV010(
+            url.searchParams.get("route"), projectionRoute
+          );
+          const pagingQuery = { ...userQuery, pageSize: userQuery.pageSize ?? 25 };
           const projection = await counterpartyProjectionService.read({
             contextId: active.contextId,
             projectionId,
