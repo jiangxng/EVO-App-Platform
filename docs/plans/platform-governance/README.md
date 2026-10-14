@@ -6,6 +6,7 @@
 
 用户目标：轻量宿主、按需安装卸载；安装能力少时降低装载与后台资源开销；个人Agent千人千面，企业具有跨部门整体分析与改进能力。
 
+- [账本编译边界整改及兼容清单](LEDGER-COMPILER-BOUNDARY.md)
 - [整体规划与执行路线](PLAN.md)
 - [GOV-00 首轮代码对账](BASELINE-20261013.md)
 - [生命周期管理页面](ADMIN-LIFECYCLE-UI.md)
