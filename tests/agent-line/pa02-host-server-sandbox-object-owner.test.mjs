@@ -161,7 +161,8 @@ test("PA02 Server sandbox composition: ordinary thread.send discovers authorized
       resolveIdentitySession:()=>({contractVersion:"0.1.0",
         sessionId:"fixture-session",principal}),
       resolveContext:()=>context,createToolCatalog:catalog,
-      runId:randomUUID,now:()=>new Date("2026-10-14T00:00:00.000Z")
+      runId:randomUUID,now:(()=>{let n=0;return ()=>
+        new Date(Date.parse("2026-10-14T00:00:03.000Z")+(n++)*1000);})()
     }).map(h=>[h.commandCode,h]));
     const send=handlers.get("enterprise-agent.thread.send");
     const request=action(threadId,"Create Object Extension");
