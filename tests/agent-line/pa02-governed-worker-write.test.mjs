@@ -27,7 +27,10 @@ const context={contractVersion:"0.1.0",
   personalContext:{contractVersion:"0.1.0",kind:"PERSONAL",
     contextId:"personal:write-worker-human",ownerSubjectId:principal.subjectId},
   activeContext:{contractVersion:"0.1.0",kind:"ENTERPRISE",
-    contextId:"enterprise:write-worker",enterpriseId:"sandbox-enterprise"}};
+    contextId:"enterprise:write-worker",enterpriseId:"sandbox-enterprise"},
+  enterpriseContext:{contractVersion:"0.1.0",kind:"ENTERPRISE",
+    contextId:"enterprise:write-worker",enterpriseId:"sandbox-enterprise",
+    lifecycleState:"ACTIVE"}};
 const scope={principalSubjectId:principal.subjectId,principalActorType:"HUMAN",
   contextKind:"ENTERPRISE",contextId:context.activeContext.contextId,
   enterpriseId:context.activeContext.enterpriseId};
