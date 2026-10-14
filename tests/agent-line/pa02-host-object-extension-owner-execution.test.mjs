@@ -119,8 +119,21 @@ test("PA02 real Host Run handlers: trusted Object Extension SQL Owner WRITE, imm
       APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE:"UNTRUSTED_WRITE"
     },{resolveProvider:()=>provider,createToolCatalog:catalog,
       trustedOwner:binding}),/PA02_HOST_WORKER_MODE_INVALID/);
+    await assert.rejects(createOptionalPostgresHostAsyncReadExecutionV030({
+      APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE:"READ_ONLY"
+    },{resolveProvider:()=>provider,createToolCatalog:catalog,
+      trustedOwner:binding}),/PA02_HOST_WORKER_READ_ONLY_OWNER_FORBIDDEN/);
+    await assert.rejects(createOptionalPostgresHostAsyncReadExecutionV030({
+      APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE:"OWNER_SANDBOX",
+      APP_PLATFORM_AGENT_RUN_ASYNC_DATABASE_URL:url,
+      APP_PLATFORM_AGENT_RUN_ASYNC_SCHEMA:agentSchema,
+      NODE_ENV:"production",
+      APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK:"ISOLATED_NO_PRODUCTION_DATA"
+    },{resolveProvider:()=>provider,createToolCatalog:catalog,
+      trustedOwner:binding}),/PA02_HOST_WORKER_SANDBOX_NOT_ADMITTED/);
     runtime=await createOptionalPostgresHostAsyncReadExecutionV030({
-      APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE:"READ_ONLY",
+      APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE:"OWNER_SANDBOX",
+      APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK:"ISOLATED_NO_PRODUCTION_DATA",
       APP_PLATFORM_AGENT_RUN_ASYNC_DATABASE_URL:url,
       APP_PLATFORM_AGENT_RUN_ASYNC_SCHEMA:agentSchema
     },{resolveProvider:()=>provider,createToolCatalog:catalog,
