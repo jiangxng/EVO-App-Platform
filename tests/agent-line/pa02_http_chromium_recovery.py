@@ -124,11 +124,15 @@ with sync_playwright() as playwright:
  def other_scope():
   wrong={'x-evo-context-id':'personal:PA02-FOREIGN-CONTEXT',
     'content-type':'application/json'}
-  answer=exec_action('enterprise-agent.run.events',{'runId':run_id,'limit':10},
-    headers_override=wrong)
-  assert not answer['ok'],answer
+  response=api.post(HOST+'/v1/actions',headers=wrong,
+    data=action('enterprise-agent.run.events',{'runId':run_id,'limit':10}))
+  answer=response.json()
+  assert response.status in (403,404) and not answer['ok'],(response.status,answer)
+  assert answer.get('error',{}).get('code') in (
+    'CONTEXT_NOT_AVAILABLE','AGENT_RUN_NOT_FOUND'),answer
   assert len(model_calls())==before+1
-  return {'crossContextDenied':True,'errorCode':answer.get('error',{}).get('code')}
+  return {'crossContextDenied':True,'httpStatus':response.status,
+    'errorCode':answer.get('error',{}).get('code')}
  run('real-http-foreign-context-fails-closed',other_scope)
  browser_version=browser.version
  browser.close()
