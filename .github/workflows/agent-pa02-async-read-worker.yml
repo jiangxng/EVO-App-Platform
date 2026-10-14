@@ -7,6 +7,7 @@ on:
       - "apps/object-extension/agent-owner-preview.ts"
       - "apps/object-extension/agent-owner-postgres.ts"
       - "apps/object-extension/agent-owner-migration.ts"
+      - "docs/agent-line/PA02-OBJECT-EXTENSION-RESOURCE-MIGRATION-20261014.md"
       - "tests/agent-line/pa02-object-extension-resource-migration.test.mjs"
       - "tests/agent-line/fixtures/pa02-object-extension-import-child.mjs"
       - "docs/agent-line/PA02-OBJECT-EXTENSION-POSTGRES-ATOMIC-OWNER-20261014.md"
