@@ -3,7 +3,7 @@
 **Document class:** CURRENT_STATUS / LIVING_RUNBOOK
 **Last reviewed:** 2026-10-14
 **Authority:** [PA-00～PA-06 建设总纲 §25](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) 的原始 R01–R10；项目交付规范；[历史交接入口](PA02-WINDOW-CLOSURE-HANDOFF-ENTRY-20261014.md)。
-**Current verified main at #872 start:** `f09709adcb1b9817516d8d3c2479845c5900f22b`（[#870](https://github.com/jiangxng/EVO-App-Platform/pull/870) 与并行插件治理 [#871](https://github.com/jiangxng/EVO-App-Platform/pull/871) 均已合并）。本窗口只接续 PA-02 的 R10 请求真实上界验收，不修改并行 BEX/插件治理。**原始十项证据总账：** [PA02-R01-R10-EVIDENCE-LEDGER-20261014.md](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)。最新状态以本表新增补记、实际 GitHub HEAD 和 PR CI 为准，旧段落保留其历史意义。
+**Latest verified main at final audit start:** `03cf2a15bb4c0af35cc4084c785cbe056dbb940b`（[#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 已合并，2026-10-15 审计快照；不是永久 HEAD）。本轮 [PA02 Final Signoff Audit](PA02-FINAL-SIGNOFF-AUDIT-20261015.md) 是签收否决/剩余权威证据入口；原始 R01–R10 [详细证据总账](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md) 保留不同源码/CI 的分层证据。历史段落中 #872/#874 尚待 CI/合并为其形成时状态，最终以本节与实际 GitHub 状态为准。
 **Production:** NOT AUTHORIZED / No production WRITE deployment. **PA-02 milestone:** IN_PROGRESS, NOT SIGNED.
 
 每完成一个可验证交付闭环，**更新这张表，不使用倒数数字冒充进度**。状态必须区分局部 CI 通过、隔离真实整链通过、最终阶段签收；表格不得提前填 PASS。
@@ -22,7 +22,7 @@
 | R10 Run 步数 | **24 slice 持久边界已验证** #845 | 纳入最终证据账 |
 | R10 Run 时间 | **72h 持久截止已验证** [#848](https://github.com/jiangxng/EVO-App-Platform/pull/848) | 纳入最终证据账 |
 | R10 实际 usage | **#856/#857 已合并**：真实 Provider 所回报用量持久记录，缺失用量明确标记 `UNAVAILABLE`、不伪零；[实施证据](PA02-R10-USAGE-EVIDENCE-20261014.md) | 仍缺绑定的供应商真实计费/审批费率；不能由 token 数自动推定货币费用 |
-| **R10 硬货币预算** | **OPEN**：#869/#870/#872 均已合并，PG 预留、Host 调用前阻断与完整请求 quote 隔离门禁已验证；[#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 追加缓存写入费用类别未批准时阻断（CI/merge 待核） | 真实已绑定供应商 model/币种/服务等级/价格版本、输入及输出收费上界、缓存与额外收费类别和真实账单尚未核准，不能签收 |
+| **R10 硬货币预算** | **NOT SIGNED**：#869、#870、#872、#874 均 merged + 各自 CI 全绿；隔离合成费率下 PG 原子预留、Host 前置阻断、完整请求 quote、额外 cache-write 未知保留完成 | 仍缺**企业实际绑定模型 + 获批币种/费率版本/额外收费类别 + 供应商真实计数及费用上限凭证**；详细逐项 [签收审计](PA02-FINAL-SIGNOFF-AUDIT-20261015.md) |
 | **真实 HTTP／Chromium 整链** | **#859/#863/#865/#868 已完成隔离真实 HTTP+Chromium+PostgreSQL 的分层与 ACK 丢失复合验收** | 生产多节点、高延迟真实远程业务网络不在本次准入范围 |
 | **R01–R10 最终签收** | **逐项证据总账完成 / 阶段未签收** | R10 货币限额的批准计价、最坏情况原子预留/硬拒绝仍未完成 |
 | **PA-02 阶段** | **IN_PROGRESS / NOT_PRODUCTION_READY** | 全部原验收通过方可 DEV_COMPLETE；生产单独审批 |
@@ -125,3 +125,10 @@
 - [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) 最终 Head `c6551aa507082a0250812237be36c1c41f24fff7` 的 **18/18 CI SUCCESS**，main merge `b34863eddcaff75e8c5522da5206cf2828dc8ec5`，真实 [PG18 Agent Worker 38651279340](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38651279340) 24/24 PASS；该 Agent 过程分支确认已自动删除。使用测试专用 quote 检测完整组装模型请求的可信输入上界，在不合格时 0 次 Provider 调用与 0 条假费用预留。**没有实际供应商 quote 或批准的账单费率**。
 - 本轮[#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 继续审查 `cacheWriteInputTokens` 的可能单独收费：若真实 Provider usage 报告 positive 缓存写入，而当前合成费用契约仅有 input/output 单价，旧调用方会丢掉该字段、错误释放预留额；新负向要求 `REPORTED` usage 保留、PG 结算 `UNKNOWN` 全额占额、Run `BLOCKED`、重启不二次推理。测试通过前不填 PASS；[原 R10 费用证据页](PA02-R10-MONETARY-RESERVATION-PROOF-20261014.md) 已保存方案差异、来源阅读深度和限制。
 - 对公共 OpenAI 官网定价分类只使用本轮搜索摘要支持的 **W-SEARCH-SNIPPET**，没有采用动态数值或在未批准的真实企业账上计费。外站历史 14 条 H 等级不变。没有部署生产、没有启用生产 WRITE。
+
+
+## 2026-10-15：真实 R10 费用授权前最终审计状态（非 PA-02 签收）
+
+- 原始 R01–R09：**隔离开发证据按项 PASS**，参见 [逐项签收审计](PA02-FINAL-SIGNOFF-AUDIT-20261015.md)。R10 步数 24、连续失败 3、72h、诚实 usage 已过，唯 R10 **实际货币预算**仍未签收；项目阶段 **IN_PROGRESS / NOT_DEV_COMPLETE**，生产准入另议。
+- [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) main `b34863eddcaff75e8c5522da5206cf2828dc8ec5`、最终 18/18 CI；[#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) main `03cf2a15bb4c0af35cc4084c785cbe056dbb940b`、最终 18/18 CI，26/26 PG18 Agent Worker。#874 完整 Host Run 的缓存写入额外收费不被未批准 input/output tariff 静默结算，金额 UNKNOWN 占额跨重启保留。二者 Agent 过程分支均实际核实已自动删除。
+- 真实企业计价/模型身份/输入上限与供应商费用账单**无已批准证据**；既有报价截图/公开定价网页无权替企业批准。当前可交付的是**功能门禁和精确缺口清单**，而非真实付费模式；不对生产发送模型或 WRITE，不改 BEX/治理/2D。
