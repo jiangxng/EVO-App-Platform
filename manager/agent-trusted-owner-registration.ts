@@ -1,4 +1,4 @@
-import type { AppActionRequestV010 } from "../actions/contracts.js";
+import type { AppActionRequestV010,JsonValue } from "../actions/contracts.js";
 import type { AppManagerService } from "./service.js";
 import type {
   AuthorizationProviderV010, PlatformPrincipalV010,
@@ -101,7 +101,7 @@ function sameActorScope(input:{
     current.contextId===request.contextId &&
     current.enterpriseId===request.enterpriseId;
 }
-function jsonArgs(value:Record<string,unknown>):Record<string,unknown> {
+function jsonArgs(value:Record<string,unknown>):Record<string,JsonValue> {
   if(!value||Array.isArray(value)||typeof value!=="object")
     throw Error("PA02_HOST_OWNER_ARGUMENTS_INVALID");
   try{
@@ -111,7 +111,7 @@ function jsonArgs(value:Record<string,unknown>):Record<string,unknown> {
     const parsed=JSON.parse(text) as unknown;
     if(!parsed||Array.isArray(parsed)||typeof parsed!=="object")
       throw Error("PA02_HOST_OWNER_ARGUMENTS_INVALID");
-    return parsed as Record<string,unknown>;
+    return parsed as Record<string,JsonValue>;
   }catch{throw Error("PA02_HOST_OWNER_ARGUMENTS_INVALID");}
 }
 
