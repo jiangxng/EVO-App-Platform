@@ -5135,30 +5135,19 @@ const actionRouter = createAppActionRouter(
             }) {
               const runtimeEnterpriseId =
                 evoRuntimeScopeMap.get(enterpriseId);
-              const result = await evoJson(
-                "/api/v1/configurator/burn",
-                {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    ...compiled,
-                    target: runtimeEnterpriseId
-                      ? { enterpriseId: runtimeEnterpriseId }
-                      : {
-                          enterpriseCode: enterpriseId,
-                          enterpriseName:
-                            enterpriseDisplayName ?? enterpriseId
-                        }
-                  })
-                }
+              const { publishLedgerRuntimeConfigurationV010 } = await import(
+                "../apps/ledger-manager/internal/publication-runtime.js"
               );
-              if (result.status < 200 || result.status >= 300) {
-                throw new Error(
-                  "LEDGER_MANAGER_RUNTIME_PUBLISH_FAILED: "
-                  + JSON.stringify(result.body)
-                );
-              }
-              return result.body;
+              return publishLedgerRuntimeConfigurationV010({
+                baseUrl: evoBaseUrl,
+                compiled,
+                target: runtimeEnterpriseId
+                  ? { enterpriseId: runtimeEnterpriseId }
+                  : {
+                      enterpriseCode: enterpriseId,
+                      enterpriseName: enterpriseDisplayName ?? enterpriseId
+                    }
+              });
             },
             resolveEnterpriseDisplayName(enterpriseId) {
               const item = enterpriseGovernanceStore.snapshot().contexts
