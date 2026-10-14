@@ -146,6 +146,37 @@ with sync_playwright() as pw:
   s=stats();assert len(s['evidence'])==1 and s['mockCalls']==2,s
   return {'scopeDenied':True,'httpStatus':response.status}
  case('foreign-context-cannot-read-or-replay-owner-run',wrong_scope)
+ def cancelled_before_future_owner_dispatch():
+  control=api.post(MOCK+'/__control',data={'mode':'hold-owner-tool'})
+  assert control.ok,control.text()
+  composer.fill('Propose a second authorized extension; the Human will cancel before tool execution.')
+  composer.press('Enter')
+  try:
+   until(lambda:stats()['holdingModel'] is True,'SECOND_MODEL_TOOL_NOT_HELD',timeout=25)
+   pending=[t['run_id'] for t in stats()['turns'] if t['run_id']!=run_id]
+   assert len(pending)==1,pending
+   second_run_id=pending[0]
+   cancellation=execute('enterprise-agent.run.cancel',{
+    'runId':second_run_id,'reason':'Human cancelled before the future SQL write'})
+   assert cancellation['run']['runId']==second_run_id,cancellation
+   assert cancellation['cancellationState'] in ('REQUESTED','CANCELLED'),cancellation
+  finally:
+   api.post(MOCK+'/__control',data={'mode':'release'})
+  def complete_cancel():
+   try:
+    state=execute('enterprise-agent.run.get',{'runId':second_run_id})
+    return state['run']['state']=='CANCELLED'
+   except Exception:return False
+  until(complete_cancel,'RUN_NOT_DURABLY_CANCELLED',timeout=25)
+  after=execute('enterprise-agent.run.get',{'runId':second_run_id})
+  assert not after['run']['actionReceiptIds'],after
+  page.wait_for_timeout(350)
+  s=stats()
+  assert len(s['definitions'])==len(s['evidence'])==len(s['receipts'])==1,s
+  assert s['mockCalls']==3,s
+  return {'secondRunId':second_run_id,'state':'CANCELLED',
+   'futureOwnerDispatchRejected':True,'businessRowsRemainOne':True}
+ case('browser-cancel-inference-before-future-owner-write',cancelled_before_future_owner_dispatch)
  version=browser.version
  browser.close()
 report={'dateUtc':datetime.now(timezone.utc).isoformat(),
