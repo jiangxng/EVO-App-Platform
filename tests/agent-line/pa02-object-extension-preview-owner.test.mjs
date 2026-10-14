@@ -15,6 +15,9 @@ import {createObjectExtensionSingleProcessPreviewOwnerV010}
 import {OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010}
   from "../../dist/apps/object-extension/constants.js";
 
+const stable=x=>Array.isArray(x)?x.map(stable):
+  x&&typeof x==="object"?Object.fromEntries(Object.entries(x)
+    .sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>[k,stable(v)])):x;
 const h=s=>createHash("sha256").update(s).digest("hex");
 const scope={principalSubjectId:"human",principalActorType:"HUMAN",
   contextKind:"ENTERPRISE",contextId:"enterprise:one",enterpriseId:"org:one"};
@@ -29,7 +32,7 @@ const argumentsValue={definition};
 const base={
   scope,runId:"run:preview:1",effectId:"effect:preview:1",
   receiptId:"receipt:preview:1",idempotencyKey:"idempotency:preview:1",
-  inputDigest:h(JSON.stringify(argumentsValue)),
+  inputDigest:h(JSON.stringify(stable(argumentsValue))),
   toolId:OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010,
   arguments:argumentsValue
 };
