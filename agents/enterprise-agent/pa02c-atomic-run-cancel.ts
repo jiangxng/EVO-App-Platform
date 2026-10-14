@@ -186,6 +186,7 @@ export async function createPostgresAtomicAgentRunCancellationV020(input: {
           "WHERE run_id=$1 ORDER BY ordinal ASC",[runId]
         );
         const events:AgentRunEventV010[]=[];
+        const verifiedOwnerReceiptIds:string[]=[];
         // A material Owner may have committed while the Human requested
         // cancellation, before the Worker could append its observation.
         // Preserve this *already verified* fact in the CANCELLED Run, in the
@@ -229,8 +230,21 @@ export async function createPostgresAtomicAgentRunCancellationV020(input: {
               receipt?.principalSubjectId!==r.scope.principalSubjectId||
               receipt?.principalActorType!==r.scope.principalActorType||
               receipt?.context?.contextId!==r.scope.contextId||
-              !decision||!decision.sliceId)
+              (run.context.kind==="ENTERPRISE"&&
+                receipt?.context?.enterpriseId!==r.scope.enterpriseId))
               throw Error("PA02C_OWNER_RECEIPT_EVIDENCE_REQUIRED");
+            // Older isolated PA-02B proof Runs have durable Owner receipts
+            // but deliberately never had model decisions. Retain only their
+            // already VERIFIED receipt reference, never forge an observation.
+            // A real Run with any decisions MUST match the original model
+            // decision exactly (no fallback for a mismatched tool).
+            if(!decision||!decision.sliceId) {
+              if(run.decisions.length>0)
+                throw Error("PA02C_OWNER_RECEIPT_DECISION_MISMATCH");
+              verifiedOwnerReceiptIds.push(String(effect.receipt_id));
+              continue;
+            }
+            verifiedOwnerReceiptIds.push(String(effect.receipt_id));
             if(decision.observation)continue;
             if(decision.sliceId!==run.activeSliceId)
               throw Error("PA02C_OWNER_DECISION_SLICE_NOT_ACTIVE");
@@ -256,7 +270,9 @@ export async function createPostgresAtomicAgentRunCancellationV020(input: {
         }
         events.push({
           contractVersion:"0.1.0",eventId,runId,type:"RUN_CANCELLED",
-          occurredAt:r.occurredAt,payload:{}
+          occurredAt:r.occurredAt,
+          payload:verifiedOwnerReceiptIds.length
+            ?{verifiedOwnerReceiptIds}:{} 
         });
         // Same reducer that governs all Host Run states, with an atomic
         // revision/ordinal advance for Owner observations AND cancellation.
