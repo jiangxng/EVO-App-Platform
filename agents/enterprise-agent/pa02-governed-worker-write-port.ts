@@ -48,6 +48,8 @@ export function createGovernedAgentWorkerWritePortV040(deps:{
     principal:PlatformPrincipalV010;
     context:ResolvedContextSetV010;
     requestContext?:PlatformRequestContextV010;
+    /** Original immutable model arguments for resource-level authorization. */
+    arguments:Record<string,unknown>;
   }):Promise<boolean>;
   coordinator:Pick<AgentExecutionCoordinatorV020,"getWrite">;
   authority:Pick<FencedAgentRunAuthorityV030,"release">;
@@ -77,11 +79,11 @@ export function createGovernedAgentWorkerWritePortV040(deps:{
          r.scope.principalSubjectId!==r.principal.subjectId ||
          r.scope.contextId!==r.run.context.contextId)
         throw Error("PA02_WORKER_WRITE_SCOPE_MISMATCH");
+      const call=r.decision.decision.call;
       if(!await deps.authorize({
         descriptor:r.descriptor,principal:r.principal,context:r.context,
-        requestContext:r.requestContext
+        requestContext:r.requestContext,arguments:structuredClone(call.arguments)
       })) throw Error("PA02_WORKER_WRITE_NOT_AUTHORIZED");
-      const call=r.decision.decision.call;
       const digest=hash(call.arguments);
       const identity=hash([r.run.runId,r.decision.decisionEventId,call.tool,call.arguments]);
       const effectId="agent-effect:"+identity;
