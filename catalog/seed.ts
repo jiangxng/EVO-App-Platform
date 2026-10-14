@@ -182,7 +182,7 @@ export const evoFoundationPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: "evo.core",
   displayName: "EVO Foundation",
-  description: "提供基础运行时能力，支撑依赖它的业务插件。",
+  description: "声明业务数据、记账与账本依赖；实际执行还需连接并配置账本服务。",
   displayNameTranslations: {
     "en": "EVO Foundation",
     "zh-CN": "EVO 基础运行时",
