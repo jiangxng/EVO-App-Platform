@@ -561,33 +561,50 @@ export function createDataImportMappingPageV010(input: {
         value: input.job.importJobId,
         label: input.job.importJobId
       }]
-    }, ...input.job.source.headers.map((sourceColumn, index) => ({
-      key: "map_" + index,
-      label: sourceColumn,
-      semanticType: "data-import-field-mapping",
-      control: "select" as const,
-      required: true,
-      initialValue: current.get(sourceColumn) ?? "__IGNORE__",
-      ...(input.canCreateExtension === true
+    }, ...input.job.source.headers.map((sourceColumn, index) => {
+      const canCreate = input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
-        && unmapped.includes(sourceColumn)
-        ? {
-            contextLink: {
-              label: zh(input.locale)
-                ? "＋ 为本列创建企业扩展字段"
-                : "+ Create enterprise field for this column",
-              route: objectExtensionImportRouteV010(input.job.importJobId)
-            }
+        && unmapped.includes(sourceColumn);
+      // Exact display-name matches are only suggestions; never infer core identities
+      // or auto-generate attributes from arbitrary source-system metadata.
+      const candidates = canCreate ? importFields.filter(field =>
+        field.resolvedLabel.trim().toLocaleLowerCase() ===
+          sourceColumn.trim().toLocaleLowerCase()
+        && ![...current.values()].includes(field.fieldId)
+      ) : [];
+      const reuse = candidates.length === 1 ? candidates[0] : undefined;
+      return {
+        key: "map_" + index,
+        label: sourceColumn,
+        semanticType: "data-import-field-mapping",
+        control: "select" as const,
+        required: true,
+        initialValue: current.get(sourceColumn)
+          ?? reuse?.fieldId
+          ?? (canCreate ? "__PENDING_CREATE__" : "__IGNORE__"),
+        ...(canCreate && candidates.length === 0 ? {
+          contextLink: {
+            label: zh(input.locale)
+              ? "＋ 创建“" + sourceColumn + "”企业字段"
+              : "+ Create enterprise field: " + sourceColumn,
+            route: objectExtensionImportRouteV010(input.job.importJobId,sourceColumn)
           }
-        : {}),
-      options: [{
-        value: "__IGNORE__",
-        label: "— " + t.ignore + " —"
-      }, ...importFields.map(field => ({
-        value: field.fieldId,
-        label: field.resolvedLabel + " · " + field.fieldId
-      }))]
-    })), ...advisoryFields, ...advancedFields],
+        } : {}),
+        options: [
+          ...(canCreate && !reuse ? [{
+            value: "__PENDING_CREATE__",
+            label: candidates.length > 1
+              ? (zh(input.locale) ? "已有同名字段，请选择一个或忽略" : "Multiple matching fields: choose one or skip")
+              : (zh(input.locale) ? "建议创建企业字段（点击下方链接）" : "Create enterprise field (use link below)")
+          }] : []),
+          ...importFields.map(field => ({
+            value: field.fieldId,
+            label: field.resolvedLabel + " · " + field.fieldId
+          })),
+          {value: "__IGNORE__",label: "— " + t.ignore + " —"}
+        ]
+      };
+    }), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
       label: t.validate,
