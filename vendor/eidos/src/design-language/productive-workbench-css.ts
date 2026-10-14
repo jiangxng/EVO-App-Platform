@@ -445,6 +445,10 @@ form[data-eidos-id] button,
 [data-eidos-catalog-search-empty]{margin:var(--eidos-space-lg) 0 0;color:var(--eidos-fg-muted)}
 
 
+[data-eidos-catalog-server-search]{display:flex;align-items:flex-end;gap:var(--eidos-space-sm);flex-wrap:wrap;margin-top:var(--eidos-space-lg)}
+[data-eidos-catalog-server-search] label{flex:1 1 200px;min-width:0;display:grid;gap:var(--eidos-space-xs)}
+[data-eidos-catalog-server-search] input,[data-eidos-catalog-server-search] button{min-height:44px;padding:0 var(--eidos-space-md);border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);background:var(--eidos-bg);color:var(--eidos-fg)}
+
 /* Read-only collection table: compact on desktop, semantic cards on phone. */
 [data-eidos-catalog-has-table="true"] [data-eidos-catalog-items]{display:none}
 [data-eidos-catalog-table-wrap]{width:100%;max-width:100%;overflow-x:auto;margin-top:var(--eidos-space-lg)}

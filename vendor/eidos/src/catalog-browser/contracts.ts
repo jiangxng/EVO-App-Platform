@@ -1,6 +1,7 @@
 /** A read-only server-owned page. Rows must not carry hidden fields. */
 export interface CatalogBrowserTableV010 {
   columns: { id: string; label: string; sortRoute?: string }[];
+  search?: { route: string; label: string; placeholder: string; value?: string; submitLabel: string };
   rows: { itemId: string; cells: Record<string, string | number | boolean | null> }[];
   pageInfo?: {
     page: number;
