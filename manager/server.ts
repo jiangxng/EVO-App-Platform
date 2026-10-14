@@ -1,3 +1,4 @@
+import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -4383,8 +4384,8 @@ const agentRunExecutor = createResumableAgentRunExecutorV010({
   sliceId: randomUUID
 });
 
-// Dedicated opt-in async READ Worker. Default OFF has no dynamic import,
-// database connection or additional Agent execution authority.
+
+/** Opt-in development-only PostgreSQL READ worker; default OFF stays lazy. */
 const configuredAgentAsyncWorkerMode =
   process.env.APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE?.trim().toUpperCase() || "OFF";
 const optionalAgentAsyncReadWorker = configuredAgentAsyncWorkerMode === "OFF"
@@ -5351,9 +5352,14 @@ const actionRouter = createAppActionRouter(
         : {}),
       runStore: agentRunStore,
       runExecutor: agentRunExecutor,
-      ...(optionalAgentAsyncReadWorker
-        ? { asyncRunRuntime: optionalAgentAsyncReadWorker }
-        : {}),
+      // Reuse the existing scoped async Thread ports from main. Do not replace
+      // them with a second competing V010/V020 orchestration contract.
+      ...(optionalAgentAsyncReadWorker ? {
+        asyncRunReader: optionalAgentAsyncReadWorker.read,
+        asyncRunResumer: optionalAgentAsyncReadWorker.resume,
+        asyncTurnLookup: optionalAgentAsyncReadWorker.getByTurn,
+        asyncTurnClaimer: optionalAgentAsyncReadWorker.claim
+      } : {}),
       resolveLlmProvider,
       resolveIdentitySession,
       resolveContext(selection, session) {
@@ -6628,7 +6634,7 @@ const server = createServer(async (request, response) => {
       return jsonVersioned(request, response, 200, [
         pluginStoreExperienceManifest,
         createSettingsExperienceManifest(manager, requestedLocale(url)),
-        createProviderManagerExperienceManifest(manager),
+        createProviderManagerExperienceManifest(manager, requestedLocale(url)),
         createMemoryGovernanceExperienceManifestV010(),
         createHelpExperienceManifestV010(helpCorpus, requestedLocale(url)),
         ...manager.listEffectiveExperiences()
@@ -8449,12 +8455,16 @@ const server = createServer(async (request, response) => {
           )
         );
       }
+      if (source === providerLifecyclePageSource) {
+        return json(response, 200, createProviderLifecyclePage(requestedLocale(url)));
+      }
       if (source === providerManagerIndexPageSource) {
         return json(response, 200, createProviderManagerIndexPage(
           manager,
           providerRuntimeRegistry,
           providerBindings,
-          { installationId: "default" }
+          { installationId: "default" },
+          requestedLocale(url)
         ));
       }
       const providerCapability = capabilityFromProviderManagerSource(source);

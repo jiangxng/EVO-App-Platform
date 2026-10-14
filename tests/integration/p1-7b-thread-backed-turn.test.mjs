@@ -55,7 +55,7 @@ function request(code, values) {
   };
 }
 
-function harness() {
+function harness(options = {}) {
   const threadStore = createConversationThreadStoreV010({
     eventStore: createMemoryConversationThreadEventStoreV010(),
     eventId: ids("thread-event-")
@@ -155,6 +155,7 @@ function harness() {
     threadStore,
     runStore,
     runExecutor,
+    ...(options.handlerDependencies ?? {}),
     resolveLlmProvider() {
       return {
         installedProviderIds: [provider.providerId],
@@ -223,6 +224,74 @@ function harness() {
     requestContext
   };
 }
+
+test("thread.resume explicitly bridges a scoped async Run without bypassing V010 ownership",async()=>{
+  let remote,readCount=0,resumeCount=0;
+  const h=harness({handlerDependencies:{
+    async asyncRunReader({runId,principal:p,context:ctx}){
+      readCount++;
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return runId===remote?.runId ? structuredClone(remote):undefined;
+    },
+    async asyncRunResumer({runId,principal:p,context:ctx}){
+      resumeCount++;
+      assert.equal(runId,remote.runId);
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return {...remote,state:"SUCCEEDED",finalMessage:"async resumed final"};
+    }
+  }});
+  const local=createAgentRunStoreV010({
+    eventStore:createMemoryAgentRunEventStoreV010(),
+    eventId:ids("remote-")
+  });
+  remote=local.create({
+    runId:"agent-run:remote",principalSubjectId:principal.subjectId,
+    principalActorType:principal.actorType,context:context.activeContext,
+    sourceInteractionId:"conversation-thread:1",sourceActionId:"thread.send:remote",
+    input:{message:"resumable async task",conversationHistory:[],locale:"en",
+      providerId:"test.llm",modelId:"thread-model"},
+    createdAt:"2026-09-28T02:00:00.000Z"
+  });
+  const resume=runId=>h.byCode.get("enterprise-agent.thread.resume").execute(
+    request("enterprise-agent.thread.resume",{
+      threadId:"conversation-thread:1",runId
+    }),h.requestContext
+  );
+  const withoutUser=await resume(remote.runId);
+  assert.equal(withoutUser.ok,false);
+  assert.equal(withoutUser.error.code,"CONVERSATION_THREAD_RUN_USER_MESSAGE_REQUIRED");
+  assert.equal(resumeCount,0);
+  await h.threadStore.appendMessage({
+    threadId:"conversation-thread:1",messageId:"user:remote",role:"USER",
+    runId:remote.runId,content:"resumable async task",
+    createdAt:"2026-09-28T02:00:00.000Z"
+  });
+  const done=await resume(remote.runId);
+  assert.equal(done.ok,true);
+  assert.equal(done.result.run.state,"SUCCEEDED");
+  assert.equal(done.result.run.runId,remote.runId);
+  assert.equal(resumeCount,1);
+  assert.equal(readCount,2);
+  const newMessages=await h.threadStore.get("conversation-thread:1");
+  assert.equal(newMessages.messages.filter(x=>x.role==="ASSISTANT"&&x.runId===remote.runId).length,1);
+  const missing=await resume("agent-run:missing");
+  assert.equal(missing.ok,false);
+  assert.equal(missing.error.code,"AGENT_RUN_NOT_FOUND");
+  assert.equal(resumeCount,1);
+  h.runStore.create({
+    runId:"agent-run:legacy-foreign",principalSubjectId:"someone-else",
+    principalActorType:principal.actorType,context:context.activeContext,
+    sourceInteractionId:"conversation-thread:1",sourceActionId:"foreign",
+    input:remote.input,createdAt:"2026-09-28T02:00:00.000Z"
+  });
+  const before=readCount;
+  const foreign=await resume("agent-run:legacy-foreign");
+  assert.equal(foreign.ok,false);
+  assert.equal(foreign.error.code,"AGENT_RUN_NOT_FOUND");
+  assert.equal(readCount,before);
+});
 
 test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is exactly-once", async () => {
   const h = harness();
@@ -300,6 +369,70 @@ test("thread-backed turn persists USER -> durable run -> ASSISTANT and resume is
     ).length,
     1
   );
+});
+
+test("opt-in async thread.send atomically claims a canonical V020 Run before USER persistence",async()=>{
+  const remoteStore=createAgentRunStoreV010({
+    eventStore:createMemoryAgentRunEventStoreV010(),eventId:ids("async-event-")
+  });
+  let canonical,lookups=0,claims=0,resumes=0;
+  const h=harness({handlerDependencies:{
+    async asyncTurnLookup({threadId,clientTurnId,principal:p,context:ctx}){
+      lookups++;
+      assert.equal(threadId,"conversation-thread:1");
+      assert.equal(clientTurnId,"client-turn:async-1");
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return canonical;
+    },
+    async asyncTurnClaimer({clientTurnId,create,principal:p,context:ctx}){
+      claims++;
+      assert.equal(clientTurnId,"client-turn:async-1");
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      assert.equal(create.sourceActionId,"enterprise-agent.thread.send:client-turn:async-1");
+      canonical=remoteStore.create({...create,runId:"agent-run:canonical"});
+      return canonical;
+    },
+    async asyncRunResumer({runId,principal:p,context:ctx}){
+      resumes++;
+      assert.equal(runId,"agent-run:canonical");
+      assert.equal(p.subjectId,principal.subjectId);
+      assert.equal(ctx.activeContext.contextId,context.activeContext.contextId);
+      return canonical;
+    }
+  }});
+  const original={threadId:"conversation-thread:1",
+    message:"Help with mapping",clientTurnId:"client-turn:async-1"};
+  const send=values=>h.byCode.get("enterprise-agent.thread.send").execute(
+    request("enterprise-agent.thread.send",values),h.requestContext
+  );
+  const first=await send(original);
+  assert.equal(first.ok,true,JSON.stringify(first.error));
+  assert.equal(first.result.run.runId,"agent-run:canonical");
+  assert.equal(first.result.run.state,"READY");
+  assert.equal(claims,1);
+  assert.equal(resumes,1);
+  assert.equal(h.runStore.list({
+    principalSubjectId:principal.subjectId,context:context.activeContext
+  }).length,0,"V020 create cannot mutate legacy Store");
+  assert.equal((await h.threadStore.get(original.threadId)).messages.length,1);
+  assert.equal((await h.threadStore.get(original.threadId)).messages[0].runId,"agent-run:canonical");
+  const second=await send(original);
+  assert.equal(second.ok,true,JSON.stringify(second.error));
+  assert.equal(second.result.run.runId,"agent-run:canonical");
+  assert.equal(claims,1);
+  assert.equal(resumes,2);
+  assert.equal((await h.threadStore.get(original.threadId)).messages.length,1);
+  assert.equal(lookups,2);
+  const changed=await send({...original,message:"Different import mapping"});
+  assert.equal(changed.ok,false);
+  assert.equal(changed.error.code,"CONVERSATION_THREAD_CLIENT_TURN_ID_REUSED");
+  assert.equal(claims,1);
+  assert.equal(resumes,2);
+  const missingTurn=await send({threadId:original.threadId,message:"No client turn"});
+  assert.equal(missingTurn.ok,false);
+  assert.equal(missingTurn.error.code,"AGENT_ASYNC_THREAD_CLIENT_TURN_ID_REQUIRED");
 });
 
 test("thread-backed send is idempotent for the same client turn id", async () => {

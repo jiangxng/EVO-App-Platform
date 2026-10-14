@@ -1,10 +1,10 @@
-name: One-time PA-02 Host READ execution branch retirement
+name: One-time PA-02 Async Read Worker short branch retirement
 on:
   pull_request:
-    paths: [".github/workflows/agent-pa02-host-read-execution-ref-retirement.yml"]
+    paths: [".github/workflows/agent-pa02-cross-cancel-ref-retirement.yml"]
   push:
     branches: [main]
-    paths: [".github/workflows/agent-pa02-host-read-execution-ref-retirement.yml"]
+    paths: [".github/workflows/agent-pa02-cross-cancel-ref-retirement.yml"]
 permissions:
   contents: write
   pull-requests: read
@@ -16,13 +16,13 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
-            const {owner,repo}=context.repo,target='agent/pa02-host-async-read-execution-20261013',full='jiangxng/EVO-App-Platform';
+            const {owner,repo}=context.repo,target='agent/pa02-cross-process-cancel-after-crash-20261013',full='jiangxng/EVO-App-Platform';
             if(owner+'/'+repo!==full)throw Error('Unexpected repository');
             const get=async()=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+target})).data.object.sha;}catch(e){if(e.status===404)return null;throw e;}};
             if(context.eventName==='pull_request'){
               const p=context.payload.pull_request;
               if(p.head.ref!==target||p.base.ref!=='main'||p.head.repo?.full_name!==full||await get()!==p.head.sha)throw Error('Unexpected PR source');
-              core.info('PA02_HOST_READ_EXEC_WORKER_AUDIT_ONLY '+p.head.sha);return;
+              core.info('PA02_CANCEL_CRASH_WORKER_AUDIT_ONLY '+p.head.sha);return;
             }
             if(context.ref!=='refs/heads/main'||context.sha!==(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha)
               throw Error('Main changed; fail closed');
@@ -32,10 +32,10 @@ jobs:
             const cmp=(await github.rest.repos.compareCommits({owner,repo,base:merged.head.sha,head:context.sha})).data;
             if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==merged.head.sha)throw Error('Source ancestry mismatch');
             const current=await get();
-            if(current===null){core.info('ALREADY_ABSENT_PA02_HOST_READ_EXEC_WORKER');return;}
+            if(current===null){core.info('ALREADY_ABSENT_PA02_CANCEL_CRASH_WORKER');return;}
             if(current!==merged.head.sha)throw Error('Source ref changed');
             const opened=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
             if(opened.some(p=>p.base.ref===target||(p.head.ref===target&&p.head.repo?.full_name===full)))throw Error('Active PR still owns source');
             if((await github.rest.repos.getBranch({owner,repo,branch:target})).data.protected)throw Error('Protected source');
             await github.rest.git.deleteRef({owner,repo,ref:'heads/'+target});
-            core.info('PA02_HOST_READ_EXEC_WORKER_SOURCE_RETIRED '+target);
+            core.info('PA02_CANCEL_CRASH_WORKER_SOURCE_RETIRED '+target);
