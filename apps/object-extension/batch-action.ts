@@ -109,8 +109,10 @@ export function executeObjectExtensionBatchImportV010(input: {
     }
     choices.push({ column, fieldId, type: "NEW", label, valueType });
   }
-  if (!choices.length) {
-    throw new Error("OBJECT_EXTENSION_BATCH_NO_MAPPINGS_SELECTED");
+  // Explicitly ignoring all optional columns is a valid, reversible
+  // decision. It must be saved instead of forcing a meaningless field write.
+  if (!choices.length && !ignored.length) {
+    throw new Error("OBJECT_EXTENSION_BATCH_NO_DECISIONS_SELECTED");
   }
   const created: string[] = [];
   const reused: string[] = [];
