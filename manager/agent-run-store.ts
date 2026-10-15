@@ -308,6 +308,48 @@ export function materializeAgentRunsV010(
         continue;
       }
 
+      if (event.type === "READ_REFRESH_RECORDED") {
+        // Refreshes only an existing successful READ result. The prior
+        // TOOL_OBSERVATION_RECORDED event remains immutable audit evidence.
+        // The materialized model view uses the most recent Host-verified
+        // observation instead of replaying a possibly stale old value.
+        const data = event.payload as {
+          decisionEventId?: unknown;
+          observation?: unknown;
+          sourceVersion?: unknown;
+        };
+        const record = decisions.find(d =>
+          d.decisionEventId === data.decisionEventId);
+        if (!record || record.decision.type !== "tool"
+          || !record.observation?.ok || record.observation.receipt
+          || (record.observation.result
+            && typeof record.observation.result === "object"
+            && "receiptId" in record.observation.result)
+          || typeof data.sourceVersion !== "string"
+          || !data.sourceVersion.trim()
+          || !data.observation || typeof data.observation !== "object"
+          || (data.observation as { ok?: unknown }).ok !== true
+          || (data.observation as { tool?: unknown }).tool !== record.decision.call.tool
+          || (data.observation as { receipt?: unknown }).receipt !== undefined
+        ) {
+          throw Error("AGENT_RUN_READ_REFRESH_INVALID");
+        }
+        const observationIndex = decisions
+          .slice(0, decisions.indexOf(record))
+          .filter(d => d.observation !== undefined).length;
+        if (observationIndex >= observations.length
+          || observations[observationIndex].tool !== record.decision.call.tool) {
+          throw Error("AGENT_RUN_READ_REFRESH_OBSERVATION_MISMATCH");
+        }
+        const observation = structuredClone(data.observation) as
+          AgentRunV010["observations"][number];
+        record.observation = observation;
+        record.refreshedAt = event.occurredAt;
+        record.refreshSourceVersion = data.sourceVersion.trim();
+        observations[observationIndex] = observation;
+        continue;
+      }
+
       if (event.type === "SLICE_PAUSED") {
         if (!event.sliceId || event.sliceId !== activeSliceId) {
           throw new Error("AGENT_RUN_PAUSE_SLICE_MISMATCH");
