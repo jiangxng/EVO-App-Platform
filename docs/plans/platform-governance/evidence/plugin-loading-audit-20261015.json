@@ -1,21 +1,22 @@
 {
   "schemaVersion": 1,
-  "measuredAt": "2026-10-15T04:11:31.431Z",
-  "sourceCommit": "ed36c2af8dadba207939f65b9379e637739e69dc",
+  "measuredAt": "2026-10-15T04:18:36.339Z",
+  "sourceCommit": "6d9da29847f19cac462df5213e523b4662ed7b77",
   "sourceState": "working tree; file hashes identify measured source",
   "measuredFilesSha256": {
     "manager/server.ts": "42de2cd971ccc9ecd2517f4a518ccb68468d22bab32613e387c47a72693af5fe",
     "dist/manager/server.js": "30be2ac192e03413c09a28a504595c0dd746ef22583d45a9e534ce5f90200037",
-    "tools/plugin-loading-audit.mjs": "b3cc926150f5604fc2938c384bbc9eda85ebee9bf9411c0a2e9a86b985759e8e",
-    "tools/plugin-loading-audit-probe.mjs": "9299a7a08be227724e1a73d851e758758b59fe2fb35d65624bdf61e024468116",
+    "tools/plugin-loading-audit.mjs": "968f88e1831d4fa3cb5eb00e00c12e6adc2fdafd4a113436309bfdc38722e1c4",
+    "tools/plugin-loading-audit-probe.mjs": "661bf79c21108d9fd446415627245b783c8f1af2277deb4ca71cdac174d3f599",
+    "tools/plugin-loading-audit-loader.mjs": "813742f85b7ee9e6bb032bb41120aa8bd0501cb69737ba67f74f5646dd21b764",
     "tools/lightweight-host-probe.mjs": "de736a1930f862472eb05d05270b64b0002134da20f860bfbbe235f74dfd235d"
   },
   "environment": {
-    "node": "v24.19.0",
+    "node": "v22.22.2",
     "platform": "linux",
     "architecture": "x64"
   },
-  "scope": "Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Load hooks prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.",
+  "scope": "Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Async load hooks inventory dist ESM only (not CommonJS require graphs); they prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.",
   "loadedModuleSets": {
     "c79746f6e929e2f0325dceeb5cc120b7206d1230e44a570e2e22cd24adbc36df": [
       "dist/actions/lazy-handler.js",
@@ -386,7 +387,7 @@
     {
       "profile": "minimal-uninstalled",
       "kind": "host-baseline",
-      "idleWindowMs": 501.27073800000005,
+      "idleWindowMs": 501.19372,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -504,7 +505,7 @@
     {
       "profile": "compatible-installed-unused",
       "kind": "host-baseline",
-      "idleWindowMs": 501.1104889999999,
+      "idleWindowMs": 500.1050100000001,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -679,7 +680,7 @@
     {
       "profile": "compatible-disabled-restart",
       "kind": "host-baseline",
-      "idleWindowMs": 500.09243399999997,
+      "idleWindowMs": 501.1282560000001,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -827,7 +828,7 @@
     {
       "profile": "minimal-scheduler-configured",
       "kind": "host-baseline",
-      "idleWindowMs": 501.324288,
+      "idleWindowMs": 501.2216410000001,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -838,7 +839,7 @@
       "registeredIntervals": [
         {
           "delayMs": 60000,
-          "origin": "    at file://<repo>/dist/manager/server.js:2293:34\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)",
+          "origin": "    at file://<repo>/dist/manager/server.js:2293:34",
           "referenced": false
         }
       ],

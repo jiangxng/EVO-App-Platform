@@ -98,10 +98,11 @@ const report = {
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
   sourceState: 'working tree; file hashes identify measured source',
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
-    'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs', 'tools/lightweight-host-probe.mjs']
+    'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
+    'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs']
     .map(file => [file, createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])),
   environment: { node: process.version, platform: process.platform, architecture: process.arch },
-  scope: 'Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Load hooks prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.',
+  scope: 'Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Async load hooks inventory dist ESM only (not CommonJS require graphs); they prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.',
   loadedModuleSets, samples
 };
 fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });

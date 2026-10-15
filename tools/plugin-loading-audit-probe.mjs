@@ -1,17 +1,21 @@
 // Isolated audit instrumentation only. Never imported by the application.
-import { registerHooks } from 'node:module';
+import { register } from 'node:module';
+import { MessageChannel, receiveMessageOnPort } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const loaded = new Set();
-registerHooks({ load(url, context, next) {
-  const result = next(url, context);
-  if (url.startsWith('file:')) {
-    const relative = path.relative(root, fileURLToPath(url)).split(path.sep).join('/');
-    if (relative.startsWith('dist/')) loaded.add(relative);
-  }
-  return result;
-}});
+// Keep Node 22 CommonJS dependencies on the default loader. The synchronous
+// hook caused ERR_VM_MODULE_LINK_FAILURE for @npmcli/agent's require('net').
+const { port1, port2 } = new MessageChannel();
+port1.unref();
+register('./plugin-loading-audit-loader.mjs', {
+  parentURL: import.meta.url, data: { port: port2 }, transferList: [port2]
+});
+function drainLoadedModules() {
+  let entry;
+  while ((entry = receiveMessageOnPort(port1))) loaded.add(entry.message);
+  return [...loaded].sort();
+}
 const intervals = new Map();
 const set = globalThis.setInterval;
 const clear = globalThis.clearInterval;
@@ -25,7 +29,7 @@ globalThis.clearInterval = function (timer) { intervals.delete(timer); return cl
 const send = process.send?.bind(process);
 process.send = function (message, ...args) {
   if (message?.kind === 'host-baseline') message = { ...message,
-    loadedModules: [...loaded].sort(),
+    loadedModules: drainLoadedModules(),
     registeredIntervals: [...intervals].map(([timer, value]) => ({ ...value, referenced: timer.hasRef() }))
   };
   return send?.(message, ...args);

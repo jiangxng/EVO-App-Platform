@@ -12,7 +12,7 @@
 
 命令：先在干净 dist 上 `npm run build`，再 `node tools/plugin-loading-audit.mjs docs/plans/platform-governance/evidence/plugin-loading-audit-20261015.json`。
 
-[原始报告](evidence/plugin-loading-audit-20261015.json)含源码与构建哈希、Node/系统、完整项目模块集合、安装包/激活 Feature、定时器来源、非资源归档文件名称/大小、归档分类及正常退出证据。各样本引用同一内容哈希的模块集合，避免重复清单。
+[原始报告](evidence/plugin-loading-audit-20261015.json)含源码与构建哈希、Node/系统、观测到的 dist ESM 模块集合、安装包/激活 Feature、定时器来源、非资源归档文件名称/大小、归档分类及正常退出证据。各样本引用同一内容哈希的模块集合，避免重复清单。
 
 | 组合 | 安装包数 | 启动加载项目模块数 | 注册 interval | 非资源归档文件数 | 资源归档文件数 |
 |---|---:|---:|---:|---:|---:|
@@ -25,7 +25,7 @@
 
 七个停用包：`evo-counterparty`、`evo-object-extension`、`evo-data-import`、`evo-eog-2d`、`evo-eog-3d`、`evo-enterprise-observatory`、`eog-bottleneck-analysis-provider`。审计断言重启后没有恢复这些 Feature。
 
-每组仅约 500ms 观察窗，注册的 60 秒调度器未到执行时间；不能证明 tick 执行、长时后台行为或业务负载。加载 hook 和 interval 记录用于归因，不作性能比较。interval 记录覆盖 global setInterval，不声称覆盖所有原生/第三方资源。项目模块数只统计 dist 内经 Node load hook 观察到的模块，不含 node_modules，也不同于静态扫描的 visitedModules/依赖边数量。
+每组仅约 500ms 观察窗，注册的 60 秒调度器未到执行时间；不能证明 tick 执行、长时后台行为或业务负载。加载 hook 和 interval 记录用于归因，不作性能比较。interval 记录覆盖 global setInterval，不声称覆盖所有原生/第三方资源。项目模块数只统计 dist 内经异步 Node load hook 观察到的 ESM 模块，不覆盖 CommonJS require 子图，不含 node_modules，也不同于静态扫描的 visitedModules/依赖边数量。
 
 ## 源码与实测对应的缺口
 
@@ -46,7 +46,7 @@
 
 ## 资料索引与方案比较
 
-本批无新增外网检索。以下为固定基线仓库原文，不是搜索摘要或生产观察。
+以下项目资料为固定基线仓库原文，不是搜索摘要或生产观察。修复 CI 探针时另查阅 Node 文档；未将搜索摘要当作缺陷根因证据。
 
 | 原始资料 | 实际阅读范围 / 用途 |
 |---|---|
@@ -55,12 +55,14 @@
 | [web-asset-archive.ts](https://github.com/jiangxng/EVO-App-Platform/blob/ed36c2af8dadba207939f65b9379e637739e69dc/manager/web-asset-archive.ts) | copyJavaScriptTree、ensureCurrent、保留旧版本策略；解释磁盘证据 |
 | [现有探针](https://github.com/jiangxng/EVO-App-Platform/blob/ed36c2af8dadba207939f65b9379e637739e69dc/tools/lightweight-host-probe.mjs)与[静态门禁](https://github.com/jiangxng/EVO-App-Platform/blob/ed36c2af8dadba207939f65b9379e637739e69dc/tools/lightweight-host-validate.mjs) | 已读原文，复用网络隔离/启动观察与静态依赖判断；新审计不替代既有门禁 |
 
+补充资料（2026-10-15）：[Node 22.23.3 Modules 文档](https://nodejs.org/download/release/v22.23.3/docs/api/module.html)，已读 “Communication with module customization hooks” 与 “Caveat in the asynchronous load hook” 小节。异步 hook 使用独立线程和 MessageChannel；CommonJS source 的返回方式会影响 require 路径。探针采用异步旁观 hook，保持 nextLoad 返回值不变，通过消息队列采集 dist ESM；不改写第三方模块。运行版本仍为 CI 固定的 22.22.2，并非该文档版本。搜索命中的 nodejs/node #57327、#59384 仅看摘要，未据此认定与本项目为同一缺陷。
+
 采用“静态调用定位 + 隔离实际模块/interval/文件观察”，因为单看包数量或 RSS 无法区分责任。排除按源码行数推断内存收益、把全目录文件归档算作插件执行，以及在没有资源证据前扩大 Provider 试点。缺口优先级是工程判断；表中观测与源函数行为是事实。
 
 ## CI 与进度
 
 沿用 Lightweight Host 工作流，增加一次四组合审计并把报告放进现有 artifact；不新建工作流。审计会检查正常启动/退出、零捕获 TCP 出站和指定业务 Feature 停用保持。模块数与文件体积是报告指标，**没有把当前 362/612 固化成允许债务永存的断言，也没有新设未经校准的性能阈值**。既有静态门禁仍禁止新增提前依赖。
 
-本地干净构建、四组审计与 2 项静态门禁测试通过；静态边保持 297。准确 CI 和提交见本批 PR。首次复测前保留旧 dist 并干净构建，两个观察结果一致；归档数没有混用其他窗口的工作目录。
+本地干净构建、四组审计与 2 项静态门禁测试通过；静态边保持 297。准确 CI 和提交见本批 PR。首轮 CI 在新增同步探针下出现 `ERR_VM_MODULE_LINK_FAILURE`（@npmcli/agent require net）；本地 Node 22.22.2 已复现。改为异步只读观察后，Node 22.22.2 与 Node 24.19.0 四组复测均通过，模块集合一致；保存报告采用 Node 22.22.2。没有屏蔽 stderr、改变 CI Node 版本或放宽原有断言。首次复测前保留旧 dist 并干净构建，两个观察结果一致；归档数没有混用其他窗口的工作目录。
 
 **总进度仍为 7 项 / 4 项闭环 / 3 项部分完成。** A01 本次完成“当前提前装载与资源缺口证据”，未完成全平台按需装载；下一批只收敛账本兼容服务的提前构造。后续按具体合同逐批验收，不将上述四行拆成新的整体任务分母，也不承诺固定还需几个 PR。
