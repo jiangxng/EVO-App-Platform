@@ -156,3 +156,21 @@ test("BEX batch offers core targets first, and two same-name opening bank fields
     .filter(x=>x.label.startsWith("开户银行")).map(x=>x.value),
     ["ext_bank_1","ext_bank_2"]);
 });
+
+
+test("BEX batch accepts ignore-only decisions and keeps every original cell for later correction",async()=>{
+  const x=setup();
+  const choices=columns.map(()=>"__IGNORE__");
+  const original=structuredClone(x.getJob().source.rows);
+  const result=await x.action.execute(request(x.getJob(),choices),ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.state,"MAPPED");
+  assert.equal(result.result.created.length,0);
+  assert.deepEqual(x.getJob().ignoredSourceColumns,columns);
+  assert.deepEqual(x.getJob().source.rows,original);
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  const page=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:[],locale:"zh-CN"
+  });
+  assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__IGNORE__");
+});
