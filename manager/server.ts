@@ -7482,9 +7482,13 @@ const server = createServer(async (request, response) => {
             definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
           }));
         }
+        const requestedColumn = importRoute.searchParams.get("column") ?? undefined;
+        if (requestedColumn && (!job.source.headers.includes(requestedColumn)
+          || job.mapping.some(item => item.sourceColumn === requestedColumn))) {
+          return json(response,409,{code:"OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED"});
+        }
         return json(response,200,module.createObjectExtensionImportPageV010({
-          job,locale:requestedLocale(url),
-          sourceColumn:importRoute.searchParams.get("column") ?? undefined
+          job,locale:requestedLocale(url),sourceColumn:requestedColumn
         }));
       }
 
