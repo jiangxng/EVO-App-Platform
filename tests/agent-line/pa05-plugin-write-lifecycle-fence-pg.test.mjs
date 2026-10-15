@@ -213,9 +213,13 @@ test("PA05-04B real PG18: begin first blocks disable, UNKNOWN persists across co
       { status: "BLOCKED_PENDING_WRITE", pendingCount: 1 });
     await h.coordinator.markUnknown(first);
     assert.equal((await h.gate.freeze(packageId)).pendingStates.UNKNOWN, 1);
-    await h.coordinator.releaseLease({
-      scope, lease: first.lease
-    });
+    // Simulate a dead worker whose lease has expired; Owner reconciliation
+    // must not pretend an actively leased worker has been quiesced.
+    await h.admin.unsafe(
+      'UPDATE "' + h.schema + '".pa02b_leases SET ' +
+      "expires_at=clock_timestamp()-interval '5 seconds' WHERE run_id=$1",
+      [first.lease.runId]
+    );
     assert.equal((await h.reconciler.reconcile({
       scope, effectId: first.effectId
     })).status, "UNKNOWN");
