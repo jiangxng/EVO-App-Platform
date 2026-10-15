@@ -415,7 +415,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
           "  RAISE EXCEPTION 'PA05_XDB_CENTRAL_OWNER_IMMUTABLE'; END IF;",
           "END IF;",
           "RETURN NEW; END;"
-        ].join("\\n");
+        ].join("\n");
         await tx.unsafe("CREATE OR REPLACE FUNCTION "+a+
           ".pa05_xdb_host_only() RETURNS trigger LANGUAGE plpgsql "+
           "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
