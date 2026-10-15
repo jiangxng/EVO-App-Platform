@@ -5,6 +5,12 @@ export type Pa05PluginLifecycleOperationV010 = "DISABLE" | "UNINSTALL" | "UPGRAD
 export type Pa05PluginWriteGateStateV010 = "ACTIVE" | "FROZEN";
 
 export interface Pa05PluginWriteLifecycleGateV010 {
+  /**
+   * Persist FROZEN before Host install/enable can expose any Agent WRITE.
+   * A successful reservation deliberately does NOT grant operation admission.
+   */
+  reserveActivation(packageId: string, expectedPackageVersion: string):
+    Promise<{state: "FROZEN"; pendingCount: number}>;
   register(packageId: string): Promise<void>;
   freeze(packageId: string): Promise<{
     state: "FROZEN";
@@ -120,6 +126,40 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     Object.values(states).reduce((sum, value) => sum + value, 0);
 
   const api: Pa05PluginWriteLifecycleGateV010 = {
+    async reserveActivation(packageId, expectedPackageVersion) {
+      packageId = required(packageId);
+      const version = required(expectedPackageVersion);
+      const manifest = input.manager.listCatalog().find(pkg => pkg.packageId === packageId);
+      if (!manifest || manifest.version !== version ||
+        !manifest.features.some(feature =>
+          feature.contributions?.some(contribution =>
+            contribution.kind === "platform.capability-operation" &&
+            contribution.operation.effect === "WRITE" &&
+            contribution.operation.exposure.includes("PERSONAL_AGENT")
+          ))) {
+        throw Error("PA05_LIFECYCLE_OWNER_MANIFEST_INVALID");
+      }
+      return sql.begin(async tx => {
+        // A missing row must become FROZEN *before* Host manager activation.
+        // An existing row is locked using the same authority as beginWrite.
+        await tx.unsafe(
+          "INSERT INTO " + q + ".pa05_plugin_write_lifecycle_gates "+
+          "(owner_package_id,package_version,state) VALUES($1,$2,'FROZEN') "+
+          "ON CONFLICT (owner_package_id) DO NOTHING",
+          [packageId,version]
+        );
+        const current = await locked(tx,packageId);
+        if (current.state === "ACTIVE" && current.package_version !== version)
+          throw Error("PA05_LIFECYCLE_VERSION_CHANGED");
+        await tx.unsafe(
+          "UPDATE " + q + ".pa05_plugin_write_lifecycle_gates "+
+          "SET state='FROZEN',updated_at=clock_timestamp() WHERE owner_package_id=$1",
+          [packageId]
+        );
+        const outstanding = await pending(tx,packageId);
+        return {state:"FROZEN" as const,pendingCount:count(outstanding)};
+      });
+    },
     async register(packageId) {
       packageId = required(packageId);
       const version = installedVersion(packageId);
