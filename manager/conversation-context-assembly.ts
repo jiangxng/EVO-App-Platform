@@ -56,6 +56,17 @@ function excerpt(
   return role + ": " + clipped;
 }
 
+/** Invalidates a derived summary if any covered message was removed, replaced or redacted. */
+function sourceDigest(messages: readonly ConversationMessageV010[]): string {
+  return createHash("sha256")
+    .update(JSON.stringify(messages.map(message => ({
+      messageId: message.messageId,
+      role: message.role,
+      content: message.content
+    }))))
+    .digest("hex");
+}
+
 function unique(values: string[]): string[] {
   return [...new Set(values.map(value => value.trim()).filter(Boolean))];
 }
@@ -257,10 +268,15 @@ export function createConversationContextAssemblerV010(input: {
           policyId: policy.policyId,
           policyVersion: policy.version
         });
+        const digest = sourceDigest(older);
         const coverageMatches = latest
           && latest.sourceLastMessageId === older.at(-1)!.messageId
           && latest.sourceFirstMessageId === older[0].messageId
-          && latest.sourceMessageCount === older.length;
+          && latest.sourceMessageCount === older.length
+          && latest.sourceMessageIds.length === older.length
+          && latest.sourceMessageIds.every((id, index) => id === older[index].messageId)
+          // Legacy summaries without a source fingerprint cannot prove freshness.
+          && latest.provenance.sourceDigest === digest;
         const summary = coverageMatches
           ? latest
           : await compressor.compress({
@@ -269,7 +285,10 @@ export function createConversationContextAssemblerV010(input: {
               policy,
               generatedAt: request.now,
               artifactVersion: (latest?.artifactVersion ?? 0) + 1
-            });
+            }).then(result => ({
+              ...result,
+              provenance: { ...result.provenance, sourceDigest: digest }
+            }));
         if (!coverageMatches) {
           await input.artifactStore.saveSummary(summary);
           await input.artifactStore.saveCheckpoint({
