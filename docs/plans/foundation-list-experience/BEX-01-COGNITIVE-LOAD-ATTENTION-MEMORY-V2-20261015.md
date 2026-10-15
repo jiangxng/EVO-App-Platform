@@ -186,3 +186,40 @@
 | Railway 固定开发环境 | — 未动 | 业务实现和真实验收后再处理 |
 
 原始文件名为 `往来账户2026_10_08_10_15_23.xlsx`；本次复查当前可访问 Library 的 XLSX 文件列表仅有另一份无关物流工作簿，因此不能宣称取得该文件；无原 Job 登录后的可授权完整数据。保持设计与真实业务的验收边界。
+
+
+---
+
+## 九、2026-10-15 新增 Chromium 实机测试 — 仅针对模拟设计原型
+
+**准确源和运行记录**：在同一 [Draft PR #909](https://github.com/jiangxng/EVO-App-Platform/pull/909) 中，新增**专项隔离测试** `tests/bex01/v2-prototype-chromium.mjs` 和 `.github/workflows/bex01-v2-prototype-chromium-review.yml`，由 GitHub Actions 使用实际系统 Chrome/Chromium + Playwright 对 `BEX-01-IMPORT-V2-HUMAN-REVIEW-PROTOTYPE-20261015.html` 进行本地 file:// 操作。执行 [run #38678793663](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38678793663)，结果 **7 PASS / 0 FAIL / 0 page errors**。不是对真实 Railway、用户原 Excel 或 Host 的浏览器验收。
+
+**长期证据**：[截图与 JSON 报告 artifact `bex-v2-synthetic-prototype-chromium-evidence`，ID 11947496968](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38678793663/artifacts/11947496968)。包含桌面首屏、两次独立确认、失败预检、字段核对、通过预检、模拟完成、模拟手机窄屏展开、200% CSS zoom 截图。截图已由浏览器生成并上传；本窗口没有直接打开逐张截图做主观像素审阅，因此**不得写成 Human 视觉签收**。CI PASS 说明脚本列出的浏览器断言通过，不证明业务体验绝对合格。
+
+### 9.1 Chromium 结果与证据边界
+
+| 浏览器自动测试 | 实际结果 | 说明 |
+|---|---|---|
+| 桌面布局、业务标题、模拟数据标识、横向溢出 | ✅ PASS | 浏览器断言只对 7 列演示数据有效 |
+| 创建字段清单独立确认；未决状态禁止正式提交 | ✅ PASS | 校验按钮状态及模拟阻断原因 |
+| 同名开户银行候选人工选择、三条模拟行补录、独立模拟提交 | ✅ PASS | 仅 DEMO-A/B 与虚构行，不包含用户真实字段 ID |
+| 浏览器草稿恢复、返回修改、失效旧检查并重新验证 | ✅ PASS | 浏览器 localStorage 不是 Host 可审计持久化 |
+| 390px 模拟手机宽度、触控目标与折叠可达 | ✅ PASS | 不等于真机与真实 Eidos 移动体验 |
+| 键盘 Enter 激活展开控件及焦点可见 | ✅ PASS | 不等于屏幕阅读器实际验收 |
+| 200% CSS zoom 水平溢出检查 | ✅ PASS | 不等于原生浏览器 400% zoom / 全量 WCAG 2.2 AA |
+
+未执行：真实 Excel 的 22 列数据分类与值正确性、同名银行字段真 ID/引用检查、原 Import Job、实际企业权限与审核、Host 持久化、正式 Schema 创建、真实 dry-run/commit、Agent 真调用、真实手机/屏幕阅读器及 Human 判断。原 Selenium/Playwright 的文件演示验证**不得升级为本机用户登录 Host 的实测**。如用户未正式签收，则仍保持设计验收中。
+
+### 9.2 固定验收进度表（最新）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| 两仓规范与此前三层研究 | ✅ 已核验/继承 | 实现时继续引用权威 |
+| V2 原型源代码与 7 项 Chromium 自动行为 | ✅ **7/7 PASS，截图已存 Actions artifact** | Human 查看截图并操作、补真机/400% |
+| 静态安全/控件结构 | ✅ 源码级检查通过 | 业务实现时再跑真实安全门禁 |
+| 同一真实 Job 的历史映射/完整 Excel | ⏳ 不可获取真实附件或授权 Host 数据 | 使用原 Excel + import-33ff3446-80c5-4992-b5c6-710f415535b3 |
+| U1–U6 交互与权限边界 | 🟡 有优选方案，仍待产品签收 | 不在本研究 PR 擅自冻结正式 Host 合同 |
+| 正式 BEX V2 UI 与 Host 业务实现 | ❌ 尚未实施 | Human 设计确认后独立业务 PR |
+| Railway 固定版本 | — 未部署本轮研究 | 后续实业务通过 CI 后固定 SHA 发布 |
+
+**当前结论**：设计交互原型已达到“能够在 Chromium 上执行并由测试证据复核”的程度，仍未达到 Human 视觉签收/真实用户业务可用的程度。原第七、八节的“未运行浏览器”表述描述**当时尚无自动化的审查时间点**；本第九节是最新有效增量，不可再把它当成当前状态。
