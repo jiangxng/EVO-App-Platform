@@ -6,7 +6,8 @@ import { dataImportMappingRouteV010 } from "../data-import/constants.js";
 import type { ObjectExtensionRepositoryV010 } from "./repository.js";
 import {
   BEX_BATCH_CREATE, BEX_BATCH_IGNORE, BEX_BATCH_REVIEW,
-  batchApplicableDefinitionsV010, batchUnmappedColumnsV010
+  batchApplicableDefinitionsV010, batchUnmappedColumnsV010,
+  type BexImportTargetField
 } from "./batch-page.js";
 
 type TypeChoice = "STRING" | "NUMBER" | "BOOLEAN" | "DATE";
@@ -28,6 +29,7 @@ export function executeObjectExtensionBatchImportV010(input: {
   actorSubjectId: string;
   recordedAt: string;
   values: Record<string, JsonValue>;
+  importableTargets?: BexImportTargetField[];
   getCurrentJob(): DataImportJobV010 | undefined;
   applyMapping(input: MappingUpdate): void;
 }): JsonValue {
@@ -46,6 +48,9 @@ export function executeObjectExtensionBatchImportV010(input: {
     job, input.repository.list(input.contextId, job.targetId)
   );
   const allDefinitions = input.repository.list(input.contextId, job.targetId);
+  const allowedTargets = input.importableTargets ?? definitions.map(x => ({
+    fieldId: x.fieldId, label: x.label.default, valueType: x.valueType
+  }));
   const reserved = new Set(job.mapping.map(x => x.targetFieldId));
   const labels = new Set<string>();
   const choices: Array<{
@@ -60,13 +65,13 @@ export function executeObjectExtensionBatchImportV010(input: {
     if (choice === BEX_BATCH_IGNORE) { ignored.push(column); continue; }
     if (choice === BEX_BATCH_REVIEW) throw new Error("OBJECT_EXTENSION_BATCH_REVIEW_REQUIRED");
     if (choice !== BEX_BATCH_CREATE) {
-      const existing = definitions.find(x => x.fieldId === choice);
+      const existing = allowedTargets.find(x => x.fieldId === choice);
       if (!existing || reserved.has(choice)) {
         throw new Error("OBJECT_EXTENSION_BATCH_TARGET_UNAVAILABLE");
       }
       reserved.add(choice);
       choices.push({ column, fieldId: choice, type: "EXISTING",
-        label: existing.label.default, valueType: existing.valueType as TypeChoice });
+        label: existing.label, valueType: existing.valueType as TypeChoice });
       continue;
     }
     const label = requiredString(input.values["label_" + index],
@@ -91,7 +96,9 @@ export function executeObjectExtensionBatchImportV010(input: {
       choices.push({ column, fieldId, type: "EXISTING", label, valueType });
       continue;
     }
-    if (allDefinitions.some(x =>
+    if (allowedTargets.some(x =>
+      x.label.trim().toLocaleLowerCase() === labelKey
+    ) || allDefinitions.some(x =>
       x.fieldId === fieldId
       || x.label.default.trim().toLocaleLowerCase() === labelKey
         && (!x.applicability?.relationshipRoles?.length || !role
