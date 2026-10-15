@@ -868,3 +868,109 @@ test("PA05-04D5 PG18 SQL trigger serializes legacy begin versus central freeze",
     finally{await a.close();await b.close();}
   }
 });
+
+
+test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but cannot alter Host authority", {
+  skip: !url ? "requires isolated PostgreSQL 18" : false,
+  timeout: 90000
+}, async () => {
+  const a=await setup(),b=await setup();
+  const central="pa05_acl_"+randomUUID().replaceAll("-","").slice(0,12);
+  const roleA="pa05_worker_a_"+randomUUID().replaceAll("-","").slice(0,10);
+  const roleB="pa05_worker_b_"+randomUUID().replaceAll("-","").slice(0,10);
+  let gate;
+  async function asRole(role, statement, params=[]) {
+    return a.admin.begin(async tx=>{
+      await tx.unsafe('SET LOCAL ROLE "'+role+'"');
+      return tx.unsafe(statement,params);
+    });
+  }
+  try {
+    const workerSchemas=[a.schema,b.schema].sort();
+    for(const [role,schema] of [[roleA,a.schema],[roleB,b.schema]]) {
+      await a.admin.unsafe('CREATE ROLE "'+role+'" LOGIN');
+      await a.admin.unsafe('GRANT USAGE ON SCHEMA "'+schema+'" TO "'+role+'"');
+      await a.admin.unsafe(
+        'GRANT SELECT,UPDATE ON "'+schema+'".pa02b_writes TO "'+role+'"'
+      );
+    }
+    gate=await createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas,
+      enforceSqlOwnerAdmission:true,
+      workerIdentities:[
+        {schema:a.schema,role:roleA},{schema:b.schema,role:roleB}
+      ]
+    });
+    await gate.register(packageId);
+
+    const first=await a.prepare("run:pa05-least-priv-approved");
+    const approved=await asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=\'INVOKING\' '+
+      'WHERE state=\'PREPARED\' RETURNING state');
+    assert.equal(approved.length,1);
+    assert.equal(approved[0].state,"INVOKING");
+    assert.deepEqual((await gate.freeze(packageId)).pendingStates,{INVOKING:1});
+    // The Worker may manipulate its authorized business write row, but it
+    // cannot drop Host-owned admission guard or revive the central Owner.
+    await assert.rejects(asRole(roleA,
+      'DROP TRIGGER pa05_owner_write_admission ON "'+a.schema+'".pa02b_writes'),
+      /permission denied|must be owner|not owner/i);
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+central+'".pa05_plugin_write_lifecycle_gates SET state=\'ACTIVE\''),
+      /permission denied/i);
+    await assert.rejects(asRole(roleB,
+      'DELETE FROM "'+central+'".pa05_plugin_write_worker_schemas'),
+      /permission denied/i);
+    const second=await b.prepare("run:pa05-least-priv-denied");
+    await assert.rejects(asRole(roleB,
+      'UPDATE "'+b.schema+'".pa02b_writes SET state=\'INVOKING\' '+
+      'WHERE state=\'PREPARED\''),
+      /PA05_WRITE_SQL_OWNER_GATE_FROZEN/);
+    assert.equal((await b.coordinator.getWrite({
+      scope,effectId:second.effectId
+    })).state,"PREPARED");
+    assert.deepEqual(await gate.transition({
+      packageId,operation:"DISABLE"
+    }),{status:"BLOCKED_PENDING_WRITE",pendingCount:2});
+
+    // Superuser, table owner or an Owner-gate editor MUST NEVER pass
+    // the opt-in Host role audit, even when a trigger exists.
+    await assert.rejects(createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas,
+      enforceSqlOwnerAdmission:true,
+      workerIdentities:[
+        {schema:a.schema,role:"agentproof"},{schema:b.schema,role:roleB}
+      ]
+    }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    await a.admin.unsafe(
+      'GRANT UPDATE ON "'+central+
+      '".pa05_plugin_write_lifecycle_gates TO "'+roleA+'"');
+    await assert.rejects(createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas,
+      enforceSqlOwnerAdmission:true,
+      workerIdentities:[{schema:a.schema,role:roleA},{schema:b.schema,role:roleB}]
+    }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    console.log("PA05_PG_WORKER_ROLE_ACL="+JSON.stringify({
+      postgres18:true,distinctWorkerSchemas:2,distinctLoginRoles:2,
+      workerDmlAllowedWithActiveGate:true,
+      triggerRemovalDenied:true,centralGateMutationDenied:true,
+      centralInventoryMutationDenied:true,sqlTriggerBlocksFrozenWorker:true,
+      superuserRejected:true,overprivilegedRoleRejected:true,
+      productionWriteEnabled:false
+    }));
+  } finally {
+    if(gate)await gate.close();
+    try{
+      await a.admin.unsafe('DROP SCHEMA IF EXISTS "'+central+'" CASCADE');
+      for(const role of [roleA,roleB]) {
+        await a.admin.unsafe('DROP OWNED BY "'+role+'"');
+        await a.admin.unsafe('DROP ROLE IF EXISTS "'+role+'"');
+      }
+    }finally{
+      await a.close();await b.close();
+    }
+  }
+});
