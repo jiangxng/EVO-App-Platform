@@ -24,7 +24,7 @@ function validate(ledger) {
     assert.ok(gate.owner?.trim());
     assert.ok(gate.executionStage?.trim());
     for(const path of gate.proofPaths) {
-      assert.match(path,/^tests\\/(?:agent-line|protocol)\\/[a-z0-9-]+\\.test\\.mjs$/);
+      assert.match(path,new RegExp("^tests/(?:agent-line|protocol)/[a-z0-9-]+[.]test[.]mjs$"));
       assert.ok(existsSync(resolve(root,path)),"Missing proof file: "+path);
     }
     if(gate.signed) {
@@ -41,10 +41,10 @@ function validate(ledger) {
     "isolated successes cannot silently become a signed PA-04 phase");
   if(ledger.phaseSigned) {
     assert.equal(ledger.phaseStatus,"SIGNED");
-    assert.equal(ledger.fixedDependencies.pa02MonetaryR10,"SIGNED",
-      "PA-02 R10 is independently binding for full phase signoff");
-    assert.equal(ledger.fixedDependencies.firstLocalOpenSourceModel,
-      "CERTIFIED_OR_APPROVED_CLOUD_EQUIVALENT");
+    // PA-02 R10 is a separate, deferred monetary release gate. Even an
+    // accepted PA-04 engineering phase must not auto-close it.
+    assert.equal(ledger.releaseEligibility,"NOT_APPROVED",
+      "PA-04 signoff never independently grants production release");
   } else {
     assert.equal(ledger.phaseStatus,"IN_PROGRESS");
   }
