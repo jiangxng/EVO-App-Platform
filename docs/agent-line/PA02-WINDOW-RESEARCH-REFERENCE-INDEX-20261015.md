@@ -94,3 +94,67 @@
 | [#877](https://github.com/jiangxng/EVO-App-Platform/pull/877) merge `54aadc62206a8f9b0b1b5750fedca21950d916f4`、[#880](https://github.com/jiangxng/EVO-App-Platform/pull/880) merge `991ac3e030884b69586b3c1732db9953dc17ef91` | 四条历史 PA-02 docs refs 的正确 SHA-pinned 安全退休清单 | [Manifest](https://github.com/jiangxng/EVO-App-Platform/blob/main/repository-hygiene/retired-branches.json)，每 PR 2/2 CI；**未实际执行 workflow 删除这四条历史 docs branches** |
 
 这些是 **merge 后状态**。旧专项文档中为保留历史撰写时点会出现 `CI_PENDING`、`PR 尚未合入`；不能把这类文字覆盖较晚真实 PR merged/Actions，也不应倒改它们成为伪造当日已合并的历史。
+
+
+## 5. 关键易失资源：CI Job、报告、Chromium 截图和保全层级
+
+GitHub Actions 的日志和 Artifact 有保留期限。**以下 URL 经过前面本窗口原始 CI／项目专项文档记录**，但本次整理没有重新下载二进制图像、录屏或将其复制成永久附件。Artifact 号码、Run 号码必须配对，**初版 Artifact 不等于最终 PR HEAD 的同一次执行**。
+
+| 场景及原始位置 | 已保存的证据结构、事实 | 时效与局限 |
+| --- | --- | --- |
+| #859 READ-only Chromium | [最终 Run 38545777724](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38545777724)；[初版 Artifact 11883745457](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38543376224/artifacts/11883745457) | 初版 5/5 记录包括 `PA02_REAL_CHROMIUM_R09`、`r09-http-browser-report.json` 和 Chromium 截图/Host 日志。**仅 READ**，不得冒充企业 WRITE 复核。 |
+| #863 真正受治理 SQL Owner 浏览器 | [最终 Run 38548975998](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548975998)、[中间一次 7/7 Artifact 11885457660](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540580/artifacts/11885457660) | `owner-http-browser-report.json`、`pa02-owner-workbench.png`、`pa02-owner-reloaded.png`、`bootstrap.log`；曾发现新增取消测试 6/7，后通过正确 `REQUESTED→CANCELLED` 正式 Host 协议修复并 7/7。失败是**测试错误使用旧取消流程**，不可改写成首次通过。 |
+| #865 已提交业务/浏览器断线取消 | [最终 Run 38549835829](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549835829)；[中间 8/8 Artifact 11885399235](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549519235/artifacts/11885399235) | 原 Run SQL 业务/evidence/Receipt 各一条，重连后终态取消仍留已发生回执。`pa02-owner-committed-cancel-recovered.png` 及报告/Host 日志在中间 Artifact。**当时尚未模拟 Owner→Host 丢 ACK**。 |
+| #868 SQL commit 后模拟业务 ACK 丢失 | [最终 Run 38551397649](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38551397649)；[初版 9/9 Artifact 11886517409](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38550940285/artifacts/11886517409) | `pa02-owner-post-commit-ack-lost.png`、`owner-http-browser-report.json`、`bootstrap.log`；宿主测试专用包装器在真实 PG commit 后丢弃 ACK。**不是抓到一次真实公网 TCP 故障**。 |
+| R10 PG/Host 真正可重跑测试 | [#869 PG18](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38552517889)、[#870 Host PG18](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38553690645)、[#872 Host PG18](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38651279340)、[#874 Host PG18](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38652026320) | 关键日志 markers：`PA02_R10_MONEY_RESERVATION_PG`、`PA02_R10_HOST_MONEY_PREFLIGHT`、`PA02_R10_REAL_REQUEST_BOUND_REQUIRED`、`PA02_R10_HOST_CACHE_WRITE_UNPRICED`。断言永久在 `tests/agent-line/` 内；没有向 GitHub 另存全部原始 Job 日志。 |
+| 原 R01–R10 条款位置 | [总纲](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) 的 `25`、`26.2`、`27`。上轮历史索引记作大约 745–754、850–860、887–892 行 | 新增源码会改变行号，**按节标题而非旧固定行号检索**。 |
+| 四条历史 PA-02 docs 分支 | [retired-branches.json](https://github.com/jiangxng/EVO-App-Platform/blob/main/repository-hygiene/retired-branches.json) 的四个 `expectedHeadSha`；[Branch Hygiene workflow](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/branch-hygiene.yml) | #877/#880 清单与 SHA 已入 main；本窗口**没有手动运行** `workflow_dispatch execute=true`，还无 `DELETED` 日志/删后确认。 |
+
+**保全办法：** 固定 commit/PR SHA、真实 Runner ID、关键 Job 测试名、脚本/断言路径和官方来源级别优先；有权限时在 Artifact 到期前下载，但**当前没有已验证的持久存档附件路径**。不能编造 `sandbox:/mnt/data/...` 文件或假定旧文件可跨窗口自动使用。
+
+## 6. 项目方案比较：已采用、排除与适用条件
+
+**决策来源：** 项目用户已确认的交付边界 + 当前 GitHub 一手代码/CI + 本窗口工程判断 J。**不是**未读 H01–H14 外站给出的“官方最优解”。
+
+| 议题 | 采用的路线、工程理由（J） | 明确排除/延期及原因（J） | 一手证据支持的条件与限制 |
+| --- | --- | --- | --- |
+| Run/Worker 引擎 | **复用已有** PG Fenced Worker、Host Thread/Run、Owner verifier、Receipt、原 Eidos Workbench；已满足当前原始 R01–R09，避免重复建设 | 不另建 Temporal 式新调度器、第二套 Agent executor 或全平台状态引擎。H10 原文未读，不能据此断言 Temporal 不可用。 | **G** #839/#842/#845/#868。现在验证过的是隔离 Owner/PG/Chromium，而非生产多地域可靠性。 |
+| WRITE 结果不明 | PG 业务 Owner 的独立幂等/不可变 evidence，`UNKNOWN` 只查询验证已提交效果；迟到响应和取消按原 Receipt 结算 | 不让模型的“成功”文本替代回执，不在丢 ACK 时再调用 Owner 重复 WRITE | **G** #839/#842/#865/#868；需要业务插件有可独立核实的 Owner evidence；不擅自迁移既有企业文件型资源到生产 PG |
+| 客户端事件恢复 | Run Outbox 与业务事件事务一致，`eventId`+ordinal 去重、缺口返回权威 Run 快照，原 Thread 重连继续同 Run | 不拿旧内存 SSE ring 充当唯一跨进程权威，不因 UI reload 生成新 Human Turn/业务写入 | **G** #844/#847/#859/#863/#865；浏览器联测 PASS 仅受控本地 Host |
+| 运行边界 | 连续 3 次模型错误上限；整 Run 24 slices、创建时间默认 72h，持久状态不可因进程重启清零 | 不无限重试模型，也不按单个 HTTP action 单独 reset run limits | **G** #845/#848；费用是另外一个必须验收的 R10 gate |
+| R10 金钱模型 | 同原 Host Worker 的 PG 最坏费用预留、未知费用不放回、完整最终 Request 被可信 quote 拒绝时不得发模型、cache write 未批准不结算 | 不把公开价格摘要写死、不把供应商 usage 缺失当 0、不用 Human text token 估整个系统请求、不提前释放未知额外计费 | **G** #869/#870/#872/#874 **都是合成费率/quote**；**W01** 只有计数 API 信息、**W04** 只有搜索摘要，均不是批准合同 |
+| 真实费率与付款审计 | 企业有权 owner 批准实际 Provider/model/tier、版本化币种/费率及最坏计费项；要求供应商可信使用量和账单对账 | 拒绝模型自己口述费用、公开营销价、根据 Railway 变量名揣测收费合同 | **M/R-META** [Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879)，目前**实际合同/原始账单仍未取得**；没有权威只能保持 R10 OPEN |
+| 团队分支/权限 | 一项独立成果一条短期 `agent/` branch/PR，修复同 PR，最新 Head CI→merge→自动清理；历史 docs branch 使用准确 SHA 的现成工作流退休 | 不 Force-push/强行移动历史 refs、不凭文件删除伪装删分支、不覆盖 BEX/治理/2D、不绕过保护 | **G** #877/#880 与 [Branch Hygiene](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/branch-hygiene.yml)；四条历史 refs **仍待人工 execute=true** |
+
+## 7. 冲突、未解问题与下一步最有价值的查阅
+
+1. **历史 `CI_PENDING` vs 真实 merged：** 2026-10-13/14 旧快照常写“尚未 Host Owner 接线／未验证浏览器”。#839～#874 后续 PR 已改善；**保留历史文档原样**，以 GitHub 真实 merge SHA、最终 Head、现行 [R01–R10 audit](PA02-FINAL-SIGNOFF-AUDIT-20261015.md) 界定当前状态。
+2. **“26/26 CI”不等于真实货币硬预算：** R10 合成 token 价和 synthetic quote 已验证但没有供应商真实合同、账单、实际额外类别与可靠全费用 upper bound。按原 `25` 仍 `PA-02 IN_PROGRESS / R10 NOT_SIGNED`。若无额外权限事实，不应靠再做一个模拟功能关闭 Issue #879。
+3. **W01 计数 API vs 最大可收费金额：** 返回模型输入计数≠输入上限证明，更不覆盖缓存写入、reasoning/output、tier 长上下文、额外收费或异常重试。最值得查阅的下一材料：**真实绑定** Provider/model/端点的对应官方 API 适用章节、合同版本和供应商可核账单，而不是泛搜不知当前使用的模型。
+4. **W02 DeepSeek Chat 端点 vs 现 Responses Adapter：** `max_tokens` 文档不能直接支持这个仓库的 `max_output_tokens`。得到真实部署绑定端点后再定位**准确端点**的限制/费用资料；未完成以前 fail closed。
+5. **已报告 token vs 金钱可结算：** `MODEL_USAGE_RECORDED(REPORTED)` 是来源事实，`UNKNOWN` 金钱是收费证据不足；#874 证明 cache write 增费分类未知时完整占额不能释放。二者不矛盾，不要强行改成已支付/免费。
+6. **正式 Host 与测试注入的边界：** `testOnlyCostPolicy` 与 `testOnlyBilledInputUpperBound` 不等于已载入生产价表。已连接 Railway 只读 variable names 并不能证实实际 provider binding/币种；绝不读取或在文档粘贴密钥。
+7. **四条历史 docs branch 真正是否删除：** [#877](https://github.com/jiangxng/EVO-App-Platform/pull/877)/[#880](https://github.com/jiangxng/EVO-App-Platform/pull/880) 只是 SHA pin 清单，必须手动现有 Workflow `Run workflow→execute=true`，要求 `DELETED <branch> @ <exact sha>` 日志且删后 GitHub branches list 不含其名称。如果没有 workflow dispatch 写权限，只能报告“待执行”，不拿其他 API 强制替代。
+8. **未完结的 owner 授权：** [Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879)：真实 Provider/model/区域/tier/端点、批准价目/币种/版本/时间、全部收费类别、可信最大 billable 上下界、原始 usage/收费凭证；在取得前不应发起付费 API 调用或宣布阶段签收。
+9. **未来研究的优先级：** (高) 实际批准的真实 Provider 费用合同和计算边界；(高) 准确端点模型输入和输出 cap + 账单核对；(中) 必要时 H13 OTel GenAI instrumentation/H12 W3C status messages；(低) H01–H10 等在 PA-03/04/05 未来 scope 变更后才重访。**14 条 H 不应因本轮其他外站阅读“升级”。**
+
+## 8. 项目模块映射、下一任务与当前源分支约定
+
+| 项目 owner 与现存模块/路径 | 已有成果，下一任务 |
+| --- | --- |
+| Host/Agent：`manager/agent-async-read-worker-runtime.ts`、`agents/enterprise-agent/pa02-async-read-worker.ts`、`tests/agent-line/pa02-r10-host-cost-preflight.test.mjs` | 正式同一 Run/Worker 加合成计价预留与完整请求 quote 负向 **已合并**；无批准 Provider 不得打开真实收费模式，也不用重做 executor |
+| PostgreSQL 费用账：`agents/enterprise-agent/pa02-r10-postgres-cost-reservation.ts` | 原子 reserve、UNKNOWN 持有/重启、不合法额外费用 fail closed 已验证；只在实际定价合同给全量可计费项目上限后接真实费率 |
+| Provider：`contracts/llm.ts`、`providers/openai/runtime.ts`、`providers/deepseek/runtime.ts` | 原始 `usage` 已真实区分 REPORTED/UNAVAILABLE；需要**获授权**的实际绑定 Provider/model、端点、tier、准确计费/凭证 |
+| 业务 Owner：`manager/agent-pa02-sandbox-object-extension.ts`、`apps/object-extension/agent-owner-postgres.ts` | R04/R07/R08/R09 受控真实 SQL/Host/Chromium 联测已验证，不转化为生产 WRITE 授权 |
+| Eidos Thread/Run：`vendor/eidos` 的既有消费端恢复路径 | 不重做 #847/#859/#863/#865/#868；如果将来另改 UI，由 Eidos owner 依自身规则负责 |
+| 阶段签收：`docs/agent-line/PA02-CURRENT-ACCEPTANCE.md`、`PA02-R01-R10-EVIDENCE-LEDGER-20261014.md`、`PA02-FINAL-SIGNOFF-AUDIT-20261015.md` | 若 [Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879) 有**真实新增已获批准的** Provider 凭据，再建**一个**最小成本正/负闭环短 PR；否则 R10 保持 OPEN |
+| Branch Governance：[retirement manifest](https://github.com/jiangxng/EVO-App-Platform/blob/main/repository-hygiene/retired-branches.json)、[Branch Hygiene](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/branch-hygiene.yml) | 四条旧 PA-02 docs branches 已 pin exact SHA，**未真实删除**；下一窗口或有权限用户执行现成安全 workflow；BEX/gov/2D branches 严禁碰 |
+| 本次交接两档文档：[入口](PA02-WINDOW-HANDOFF-ENTRY-20261015.md) + [本详细索引](PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md) | 新窗口先简短入口，再按需本索引；历史 10-14 索引保留，不能当作最新 main |
+
+编制基线时开放 PR 是 BEX [#846](https://github.com/jiangxng/EVO-App-Platform/pull/846)、[#860](https://github.com/jiangxng/EVO-App-Platform/pull/860)、[#866](https://github.com/jiangxng/EVO-App-Platform/pull/866)、[#878](https://github.com/jiangxng/EVO-App-Platform/pull/878)，**仅属 2026-10-15 此刻的快照**。本交接只在独立 `agent/pa02-session-research-handoff-20261015` 短分支工作；合并后**从最新 main 接续，不复用此短分支**。不改 `project.status.json`、全局 `docs/roadmap/HANDOFF-LATEST.md`、其他 BEX/治理文件，不提前做 PA-03～06，绝不启用生产 WRITE。
+
+## 9. 本次确已保存和确实未保存的内容
+
+- **保存在 GitHub 文本中的内容**：本窗口 W01–W04 URL／日期／精确阅读层级；H01–H14 URL／历史非访问状态；源码/PR/CI/截图附件 URL 与使用限制；方案比较及来源事实/J 判断区别；冲突与待研究方向；R10 Issue #879 和四条 docs branch 退休状况；模块到下一任务映射。只有**资料 PR 实际 merged**才可称这些新文档已进入 main。
+- **未额外上传为新永久附件**：全部 Actions Job raw logs、截图二进制、Browser Trace/录屏。仅记录了 **Run/Artifact 原始可复核 URL + 日志 marker + 测试源代码**，某些 Artifact 以后可能因保留期过期；本次不宣称已打开或下载所有旧 ZIP。
+- **根本没有得到、不能造的资料**：H01–H14 的本窗口原站全文和截图；W03 原文/W04 原站定价正文；当前企业获批真实价表、实际 LLM 凭证、可信供应商计费上下界与原始账单；生产可靠性/生产 WRITE 授权；未发生的安全分支删除日志。它们都是**待核/未取得**，不是被遗漏未贴的“已阅附件”。
