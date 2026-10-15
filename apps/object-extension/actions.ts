@@ -1,4 +1,5 @@
 import { executeObjectExtensionBatchImportV010 } from "./batch-action.js";
+import type { BexImportTargetField } from "./batch-page.js";
 import type { DataImportJobV010, DataImportMappingV010 } from "../data-import/types.js";
 import type {
   AppActionExecutionResultV010,
@@ -117,6 +118,7 @@ export function createObjectExtensionActionHandlersV010(input: {
     contextId: string; importJobId: string; mapping: DataImportMappingV010[];
     actorSubjectId: string; recordedAt: string;
   }): void;
+  getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
 }): AppActionHandler[] {
   const now = input.now ?? (() => new Date());
 
@@ -249,6 +251,7 @@ export function createObjectExtensionActionHandlersV010(input: {
             actorSubjectId: context.principal.subjectId,
             recordedAt: now().toISOString(),
             values: request.values,
+            importableTargets: input.getImportableTargets?.(active.contextId,job),
             getCurrentJob: () => input.getImportJob?.(active.contextId,jobId),
             applyMapping: input.applyImportMapping
           });
