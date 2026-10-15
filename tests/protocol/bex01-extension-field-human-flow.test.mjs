@@ -108,7 +108,7 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
   ...schema.fields.find(x=>x.fieldId===definition.fieldId),fieldId:"ext_duplicate_same_label"
  }]};
  const ambiguous=createDataImportMappingPageV010({job,schema:ambiguousSchema,locale:"zh-CN"});
- assert.equal(ambiguous.fields.find(x=>x.key==="map_2").initialValue,"__IGNORE__");
+ assert.equal(ambiguous.fields.find(x=>x.key==="map_2").initialValue,"__PENDING__");
  const duplicate=await action.execute(request("开户银行","另一个名称","STRING"),ctx());
  assert.equal(duplicate.ok,false);
  assert.equal(duplicate.error.code,"OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");

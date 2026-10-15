@@ -204,6 +204,7 @@ export interface DataImportServiceV010 {
     schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
   }): {
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     origin: "DETERMINISTIC" | "RECIPE";
     recipeId?: string;
   };
@@ -230,6 +231,7 @@ export interface DataImportServiceV010 {
     contextId: string;
     importJobId: string;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     mappingOrigin?: DataImportMappingOriginV010;
     appliedRecipeId?: string;
     actorSubjectId: string;
@@ -242,6 +244,7 @@ export interface DataImportServiceV010 {
     targetParameters?: DataImportJobV010["targetParameters"];
     source: DataImportSourceV010;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     mappingOrigin?: DataImportMappingOriginV010;
     appliedRecipeId?: string;
     actorSubjectId: string;
@@ -329,6 +332,8 @@ export function createDataImportServiceV010(input: {
       ) {
         return {
           mapping: structuredClone(recipe.mapping),
+          ...(recipe.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...recipe.ignoredSourceColumns] } : {}),
           origin: "RECIPE" as const,
           recipeId: recipe.recipeId
         };
@@ -365,10 +370,68 @@ export function createDataImportServiceV010(input: {
       if (historical) {
         return {
           mapping: structuredClone(historical.mapping),
+          ...(historical.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...historical.ignoredSourceColumns] } : {}),
           origin: "RECIPE" as const,
           ...(historical.appliedRecipeId
             ? { recipeId: historical.appliedRecipeId }
             : {})
+        };
+      }
+
+      // A field added to the enterprise extension schema changes the whole
+      // schema digest, but should not erase earlier valid column decisions.
+      // Recover same-enterprise, same-source mappings as *reviewable* suggestions,
+      // never as an automatically validated/committed Recipe after schema drift.
+      const previousMappings = [
+        ...(recipe ? [recipe.mapping] : []),
+        ...input.repository.list(mappingInput.contextId)
+          .filter(job =>
+            job.targetId === mappingInput.targetId
+            && job.mappingOrigin === "HUMAN"
+            && job.mapping.length > 0
+            && dataImportSourceFingerprintV010({
+              targetId: job.targetId,
+              targetParameters: job.targetParameters,
+              source: job.source
+            }) === sourceFingerprint
+          ).map(job => job.mapping)
+      ];
+      for (const previous of previousMappings) {
+        const sources = new Set<string>();
+        const targets = new Set<string>();
+        const preserved = previous.filter(item => {
+          if (!importable.has(item.targetFieldId)
+            || targets.has(item.targetFieldId)) return false;
+          if (item.transform?.kind !== "CONSTANT"
+            && (!item.sourceColumn
+              || !mappingInput.source.headers.includes(item.sourceColumn)
+              || sources.has(item.sourceColumn))) return false;
+          if (item.sourceColumn) sources.add(item.sourceColumn);
+          targets.add(item.targetFieldId);
+          return true;
+        });
+        if (!preserved.length) continue;
+        // Fill only other unambiguous matches; never displace an old decision.
+        const extra = suggestDataImportMappingV010({
+          schema: mappingInput.schema,
+          source: mappingInput.source
+        }).filter(item =>
+          !sources.has(item.sourceColumn!)
+          && !targets.has(item.targetFieldId)
+        );
+        // A schema-drift fallback never auto-confirms an ignore.
+        // The current job still retains its own explicit ignore choices.
+        const priorIgnored = recipe?.mapping === previous
+          ? (recipe.ignoredSourceColumns ?? [])
+          : [];
+        return {
+          mapping: [...preserved, ...extra],
+          ignoredSourceColumns: priorIgnored.filter(column =>
+            mappingInput.source.headers.includes(column)
+            && ![...preserved, ...extra].some(item => item.sourceColumn === column)
+          ),
+          origin: "DETERMINISTIC" as const
         };
       }
 
@@ -462,6 +525,10 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: "STAGED",
         mapping: structuredClone(mappingInput.mapping),
+        ignoredSourceColumns: (mappingInput.ignoredSourceColumns
+          ?? job.ignoredSourceColumns ?? []).filter(column =>
+            !mappingInput.mapping.some(item => item.sourceColumn === column)
+          ),
         ...(mappingInput.mappingOrigin
           ? { mappingOrigin: mappingInput.mappingOrigin }
           : {}),
@@ -507,6 +574,9 @@ export function createDataImportServiceV010(input: {
         state: "STAGED",
         source: structuredClone(stageInput.source),
         mapping: structuredClone(stageInput.mapping),
+        ...(stageInput.ignoredSourceColumns
+          ? { ignoredSourceColumns: [...stageInput.ignoredSourceColumns] }
+          : {}),
         ...(stageInput.mappingOrigin
           ? { mappingOrigin: stageInput.mappingOrigin }
           : {}),
@@ -618,6 +688,7 @@ export function createDataImportServiceV010(input: {
           source: saved.source,
           targetSchemaDigest: saved.dryRun!.schemaDigest,
           mapping: saved.mapping,
+          ignoredSourceColumns: saved.ignoredSourceColumns,
           importJobId: saved.importJobId,
           actorSubjectId: dryRunInput.actorSubjectId,
           recordedAt: dryRunInput.recordedAt
@@ -784,6 +855,7 @@ export function createDataImportServiceV010(input: {
           source: saved.source,
           targetSchemaDigest: saved.dryRun!.schemaDigest,
           mapping: saved.mapping,
+          ignoredSourceColumns: saved.ignoredSourceColumns,
           importJobId: saved.importJobId,
           actorSubjectId: commitInput.actorSubjectId,
           recordedAt: commitInput.recordedAt
