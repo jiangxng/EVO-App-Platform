@@ -17,6 +17,10 @@ import type {
   DataImportJobV010
 } from "./types.js";
 import {
+  dataImportIssueSourceEvidenceV010,
+  dataImportSourceAuditItemsV010
+} from "./source-audit.js";
+import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_ROUTE,
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
@@ -830,7 +834,15 @@ export function createDataImportReviewPageV010(input: {
     }
   }];
 
-  for (const row of (dryRun?.rows ?? []).slice(0, 30)) {
+  // Exceptions are reviewed first regardless of their Excel row position.
+  // Preserve a bounded result list; the complete source-column audit below
+  // still covers every original header, without changing the Host job.
+  const reviewedRows = dryRun?.rows ?? [];
+  const visibleRows = [
+    ...reviewedRows.filter(row => !row.ok),
+    ...reviewedRows.filter(row => row.ok).slice(0, 10)
+  ].slice(0, 30);
+  for (const row of visibleRows) {
     items.push({
       id: "row:" + row.rowNumber,
       title: rowLabel(t.row, row.rowNumber),
@@ -847,9 +859,26 @@ export function createDataImportReviewPageV010(input: {
       status: {
         label: row.ok ? t.ready : t.invalid,
         tone: row.ok ? "positive" : "warning"
-      }
+      },
+      category: row.ok
+        ? (zh(input.locale) ? "通过预检查" : "Validated")
+        : (zh(input.locale) ? "需要处理" : "Needs attention"),
+      ...(row.ok ? {} : {
+        metadata: dataImportIssueSourceEvidenceV010({
+          job,
+          row,
+          locale: input.locale
+        })
+      })
     });
   }
+  // Audit every actual source header (mapped, ignored and unresolved).
+  // Source cells stay in the persisted enterprise job, not in browser state.
+  items.push(...dataImportSourceAuditItemsV010({
+    job,
+    schema: input.schema,
+    locale: input.locale
+  }));
 
   return {
     contractVersion: "0.1.0",
