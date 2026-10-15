@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import {createHash} from "node:crypto";
 import type { AppManagerService, InstallAuthorizationV010 } from "./service.js";
 
 export type Pa05PluginLifecycleOperationV010 = "DISABLE" | "UNINSTALL" | "UPGRADE";
@@ -63,12 +64,21 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
   authoritySchema?: string;
   /** Complete trusted Worker schema inventory; all must already have WRITE/Owner tables. */
   workerSchemas?: readonly string[];
+  /**
+   * Opt-in defense in depth for legacy coordinators which do not set the
+   * JavaScript lifecycle fence. A Host-owned PostgreSQL trigger still locks
+   * the central Owner row before PREPARED -> INVOKING.
+   * Requires shared Worker inventory on the same PostgreSQL database.
+   */
+  enforceSqlOwnerAdmission?: boolean;
 }): Promise<Pa05PluginWriteLifecycleGateV010> {
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema))
     throw Error("PA05_LIFECYCLE_SCHEMA_INVALID");
   if (!input.manager || typeof input.manager.getSnapshot !== "function")
     throw Error("PA05_LIFECYCLE_MANAGER_REQUIRED");
   const shared = input.workerSchemas !== undefined;
+  if(input.enforceSqlOwnerAdmission && !shared)
+    throw Error("PA05_SQL_OWNER_ADMISSION_INVENTORY_REQUIRED");
   const workerSchemas = shared ? [...input.workerSchemas!] : [input.schema];
   const authSchema = shared ? input.authoritySchema : input.schema;
   if (!authSchema || !/^[a-z][a-z0-9_]{0,62}$/.test(authSchema) ||
@@ -129,6 +139,56 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
           await tx.unsafe("INSERT INTO " + a +
             ".pa05_plugin_write_worker_schemas (schema_name) VALUES($1)",
             [workerSchema]);
+        }
+      }
+      if(input.enforceSqlOwnerAdmission) {
+        // DDL and the Host inventory commit together. The trigger runs even
+        // for a legacy unfenced coordinator, on the *business* schema table.
+        // A Worker account that OWNS its write table can drop a trigger;
+        // least-privilege PG role separation remains a release requirement.
+        for(const workerSchema of declared) {
+          const wq='"'+workerSchema+'"';
+          const suffix=createHash("sha256").update(workerSchema).digest("hex").slice(0,20);
+          const functionName="pa05_guard_"+suffix;
+          const fq=a+'."'+functionName+'"';
+          const funcBody=`
+DECLARE gate_state text;
+BEGIN
+  IF OLD.state = 'PREPARED' AND NEW.state = 'INVOKING' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM ${a}.pa05_plugin_write_worker_schemas
+      WHERE schema_name = '${workerSchema}'
+    ) THEN
+      RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_NOT_REGISTERED';
+    END IF;
+    SELECT g.state INTO gate_state
+    FROM ${a}.pa05_plugin_write_lifecycle_gates g
+    JOIN ${wq}.pa02b_owner_links l
+      ON l.owner_package_id = g.owner_package_id
+    WHERE l.scope_key = NEW.scope_key
+      AND l.effect_id = NEW.effect_id
+      AND l.run_id = NEW.run_id
+    FOR UPDATE OF g;
+    IF gate_state IS DISTINCT FROM 'ACTIVE' THEN
+      RAISE EXCEPTION 'PA05_WRITE_SQL_OWNER_GATE_FROZEN';
+    END IF;
+  END IF;
+  RETURN NEW;
+END`;
+          await tx.unsafe(
+            "CREATE OR REPLACE FUNCTION "+fq+"() RETURNS trigger "+
+            "LANGUAGE plpgsql SECURITY DEFINER "+
+            "SET search_path = pg_catalog AS $pa05$"+funcBody+"$pa05$"
+          );
+          await tx.unsafe(
+            "DROP TRIGGER IF EXISTS pa05_owner_write_admission ON "+
+            wq+".pa02b_writes"
+          );
+          await tx.unsafe(
+            "CREATE TRIGGER pa05_owner_write_admission "+
+            "BEFORE UPDATE OF state ON "+wq+".pa02b_writes "+
+            "FOR EACH ROW EXECUTE FUNCTION "+fq+"()"
+          );
         }
       }
     });
