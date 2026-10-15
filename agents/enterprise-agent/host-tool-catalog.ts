@@ -4,7 +4,6 @@ import type { AppManagerService } from "../../manager/service.js";
 import type { ProviderBindingV010 } from "../../manager/provider-resolution.js";
 import type { ProviderRuntimeHealthV010 } from "../../providers/runtime-registry.js";
 import type { HelpContextSelectorsV010, HelpSearchResultV010 } from "../../manager/help-system.js";
-import { guardPa04ContextMemoryDisclosureV010 } from "./pa04-memory-reference-disclosure.js";
 import type { Pa04MemoryDisclosureAuthorityV010 } from "./pa04-memory-reference-disclosure.js";
 import type {
   ActiveContextRefV010,
@@ -1255,6 +1254,10 @@ export function createEnterpriseAgentHostToolCatalogV010(
 
   const secureMemoryResult = async (result: unknown): Promise<void> => {
     if (!dependencies.memoryDisclosureAuthority) return;
+    // Preserve the lightweight Host boundary. Source disclosure checks are
+    // loaded only for a Host that explicitly installs the optional gate.
+    const { guardPa04ContextMemoryDisclosureV010 } =
+      await import("./pa04-memory-reference-disclosure.js");
     await guardPa04ContextMemoryDisclosureV010({
       result,
       principal:dependencies.principal,
