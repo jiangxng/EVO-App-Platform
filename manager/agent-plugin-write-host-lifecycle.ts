@@ -57,6 +57,12 @@ export function createPa05HostWriteLifecycleV010(input: {
    * implemented, a different schema is unsupported and must fail at startup.
    */
   workerSchemas?: readonly string[];
+  /**
+   * Explicit experimental opt-in. All schemas MUST reside on the SAME PG
+   * database URL and share a single Host-owned Owner row/inventory. Never
+   * interpret this as cross-database or unauthenticated Worker federation.
+   */
+  sharedWorkerSchemaAuthority?: boolean;
   /** A trusted Host test seam only. It never comes from a request. */
   gateFactory?: () => Promise<Pa05PluginWriteLifecycleGateV010>;
 }): {
@@ -101,9 +107,16 @@ export function createPa05HostWriteLifecycleV010(input: {
   if (guarded.size && input.workerSchemas?.length) {
     const unique = new Set(input.workerSchemas);
     if (unique.size !== input.workerSchemas.length ||
-      input.workerSchemas.some(value => !value || value.trim() !== input.schema)) {
+      !input.workerSchemas.includes(input.schema ?? "") ||
+      input.workerSchemas.some(value =>
+        !value || !/^[a-z][a-z0-9_]{0,62}$/.test(value) ||
+        (!input.sharedWorkerSchemaAuthority && value !== input.schema))) {
       throw new Error("PA05_HOST_WORKER_SCHEMA_NOT_SHARED");
     }
+  }
+  if (input.sharedWorkerSchemaAuthority &&
+      (!guarded.size || !input.workerSchemas?.length || !configured)) {
+    throw new Error("PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE");
   }
   assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
   let connection: Promise<Pa05PluginWriteLifecycleGateV010> | undefined;
@@ -113,7 +126,11 @@ export function createPa05HostWriteLifecycleV010(input: {
       : createPa05PluginWriteLifecycleGateV010({
         manager: input.manager,
         connectionString: input.databaseUrl!,
-        schema: input.schema!
+        schema: input.schema!,
+        ...(input.sharedWorkerSchemaAuthority ? {
+          authoritySchema: input.schema!,
+          workerSchemas: input.workerSchemas!
+        } : {})
       })).catch(error => {
         // Fail closed on this request; allow a recovered database to be
         // reconnected only after a subsequent explicit Host operation.
@@ -305,6 +322,8 @@ export function pa05HostLifecycleConfigurationV010(env: NodeJS.ProcessEnv) {
     protectedPackageIds: ids,
     databaseUrl: env.PA05_WRITE_LIFECYCLE_DATABASE_URL?.trim(),
     schema: env.PA05_WRITE_LIFECYCLE_SCHEMA?.trim(),
+    ...(env.PA05_SHARED_SCHEMA_AUTHORITY_ENABLED?.trim() === "1"
+      ? {sharedWorkerSchemaAuthority: true} : {}),
     ...(env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS?.trim()
       ? {workerSchemas: env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS
           .split(",").map(x => x.trim())}
