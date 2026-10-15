@@ -158,3 +158,24 @@ BEX 后续只看新入口是否易找、权限是否正确、字段创建后返�
 | Railway 开发环境 | 上一版 `ceec8b65` SUCCESS | 仅新 PR 合并且验收后固定版发布 |
 | 用户原 Excel 和供应商详情 | 仍未取得 Import Job 实证 | 实机核对历史映射原因、三个 core 字段及四字段闭环 |
 | **BEX-01 / CP-03 整体** | **已部署批量 B 版本仍未 Human Accepted，本反馈新修复待验证** | **工程回归→准确版本发布→原作业签收** |
+
+
+## 2026-10-15 实际收口证据：恢复历史映射与保留未匹配 Excel 列
+
+- **实现与合并：** [PR #894](https://github.com/jiangxng/EVO-App-Platform/pull/894) 已经从 Draft 转正式并合并，合并 SHA **`7620f15f703d7e65775ccd55e1c19a215fdc40a5`**。合并前精确测试提交 `11ea5d220f152fb76c153558bab6f464e60709a0` 与合并提交的 Git 树 SHA 同为 `7a1a9b061aa4499f1ffb3c6197dce8bb361f9882`。该提交 Platform CI、BEX-01 Real Host Chromium、Project Continuity CI、Lightweight Host Architecture 四类工作流均 SUCCESS，保留原 Agent 原入口、已有字段排他、单字段和批量流程。此版本以复用最新 main 中 PA-04 修改的无冲突树为基础，不覆盖 PA-04 工作文件。
+- **发布：** 仅前移 `release/bex01-dev-20261014` 至固定提交 `7620f15f`；原 Railway 开发服务 Ledger Configurator 部署 **`30ae1850-9279-40ca-a0b4-fd7ca5e09f78`**，状态 SUCCESS，运行 1/1、0 crashed，启动日志 `EVO App Manager listening on http://localhost:8080`。没有新建环境/服务/数据卷。此前固定版本 `ceec8b65` 的成功部署 `0bc02a13-853f-4cc8-9981-7118291ed464` 是回退核查入口，不能把其历史成功等同于新版本。
+- **确切变更：** 新作业初始映射先尝试既有 Recipe；整份 Schema 改变时，在相同企业/对象/来源结构下只恢复现仍可导入的历史人工映射作待复核建议。映射页对无目标列建议 `__CREATE__` 而非默认忽略，原有 AI 按钮保留，B 方案批量入口变为表单内显眼链接。明确忽略 `__IGNORE__` 与暂不处理 `__PENDING__` 分离，已忽略列以可撤销状态写入 Import Job、已确认规则可随 Recipe 再次复用；原 Excel 来源值不因忽略而被删。批量全部明确忽略也允许保存，不强迫建字段；企业字段创建和数据提交仍受 Owner、dry-run、人类明确提交约束。
+- **尚未证实的根因及用户验收：** 原截图没有 Import Job ID 或历史 Job JSON，不能断言这次“编码/名称/往来类型”确切是 Recipe Schema 摘要变化、既有作业预检查失败（原三行 subjectType 缺失）还是来源文件结构变化中的哪一种。当前无权读取用户登录企业的历史 Import Job；原 Excel 文件本体也未收到。**新代码不会擅自修改已存在的旧作业**；源文件重新导入后的恢复路径已经有自动化证据，但用户原作业的实际映射恢复、B 入口和供应商详情仍须 Human 验收。
+- **可修复范围：** 用户可以在未提交作业里修改映射、选择/取消忽略、重新审核扩展字段；已提交业务数据的更正仍须走合法更正/重导入路径，不宣称已提供导后直接重写正式供应商数据功能。禁止从“往来类型”臆造 `subjectType`，不删除历史两个同名“开户银行”。
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| 旧映射恢复（含 Schema 漂移、未通过 precheck 的旧人工映射） | #894 已合并，协议 CI PASS | 用原 Import Job 核对真实历史候选与字段授权 |
+| AI 自动匹配原入口 | 保留；真实 Host Chromium 回归通过 | 真实用户触发后复核已匹配字段 |
+| B 方案集中审核入口与默认创建建议 | 已合并、真实 Host Chromium PASS | 用户页面核对首屏链接与批量动作 |
+| Excel 原始行保留、忽略可撤销 | 协议和 Chromium PASS；不自动写新 Schema | 用户原 Excel 执行一轮保留/忽略/恢复 |
+| 原批量创建、权限、主体类型、显式提交 | 回归通过；无正式业务数据提交 | 核对三行缺失并确认供应商详情值 |
+| Railway 现有开发环境 | `7620f15f` SUCCESS/Online 1/1 | 固定此版本，不部署移动 main |
+| 历史两个“开户银行” | 未核实引用/值 | 只在业务确认后处理，不自动归并 |
+| 原 Excel 与旧 Import Job 实际验收 | 未完成，缺具体 Import Job 链接及原文件 | 真实浏览器和原作业核对 |
+| **BEX-01/CP-03 整体** | **工程与开发环境已完成，Human Accepted 尚未关闭** | **历史作业与用户原 Excel 签收** |
