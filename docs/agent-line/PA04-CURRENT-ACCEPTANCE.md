@@ -60,3 +60,12 @@
 - **算法**：既有 Agent 模型请求构造格式 `system + history + current user + Host developer` 必须与 Host 已持久化历史逐项匹配；结构不匹配直接阻断。完整请求先调用经认证 Quote；**仅**当异常是容量不足时按历史最旧 25% / 50% / 75% / 全部可裁剪部分（最多额外四次 Quote）逐步排除历史，最少保留近四条，每个候选对包含全部工具/输出额度的**实际最终请求**重新 Quote。未知/错误 Quote、模型身份错配、必要区域自身超限立即阻断。上下文缩减在 PA-02 R10 合成成本预留之前，成本凭证仍针对同一份最终发送请求；未发生无界重复模型推理。
 - **验证**：`tests/protocol/pa04-prioritized-context-history.test.mjs` 覆盖核心区原样保留、低优先级历史边界、源 Run 不改、最坏超限、不可信 Quote 不退让、历史区域伪造 fail-closed 等；原 `tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs` 新增隔离 Host→Worker→PostgreSQL18 场景，要求真实持久历史完整、模型只见精简上下文、恢复不重复推理。相关 CI 为 `.github/workflows/agent-pa04-c01-context-window.yml`；运行前不能视为通过。
 - **限制**：这仍不是完整 C01 PASS。当前优先级只是**结构性保护**：经 Host 提供的有效 Working State/工具观察保留，但早期仅出现在聊天文字中的重要决定可能随着旧历史移除。因此正式的 Working State 选择、来源治理/失效传播、权限更新、实际本地模型 tokenizer/模板认证和 Human 长会话验证仍待后续闭环；不能宣称“所有关键约束已自动抽取并永久保留”。本轮不修改 BEX/CP-03、`manager/server.ts`、主线状态、生产部署或 R10 真实计费授权。
+
+## 2026-10-15：C02 Host 显式来源撤销与派生数据原子清理（第四个局部闭环）
+
+- **发现的缺口**：#889 中的摘要来源指纹只防止读取时误用过期摘要，但旧摘要文本、目标/决策信号和 checkpoint 仍留存在内存/PostgreSQL。原始 Conversation `ConversationThreadStoreV010` 没有正式消息删除/遮蔽接口，仅有归档，不能假定用户已授权物理删除，也不能把归档等同删除。
+- **最小可信实现**：新增只供获授权 Host/保留策略 Owner 使用的 `ConversationSourceRevocationPortV010.revokeSourceMessages(threadId, sourceMessageIds)`。对一个准确线程按来源消息 ID 标注永久派生拒写 tombstone，并在**单个事务**中删除所有引用该来源的压缩摘要及关联 checkpoint；不局限当前 policyVersion，跨策略与历史版本一起清理。PG 采用线程级事务互斥，处理“旧 Worker 先开始压缩、随后来源被撤销、最后又试图写回”的并发窗口。已撤销来源的新摘要、旧 checkpoint 不能复活，重连仍保持 tombstone；其他线程/来源不能被误删。Memory 与 PostgreSQL 双实现。
+- **严格范围**：没有添加模型可用的删除工具，不修改业务 Conversation 原文/审计事件/Run 证据，不触碰企业 Memory、EC 索引或外部检索；也**未把该 Port 接到一个尚不存在的正式来源删除工作流**。必须先由上游合法授权的来源变更/删除流程验证身份、权属、保留义务和真实删除/遮蔽结果，再调用此 Port。保留原始数据保护与可能的法定留存不因本次自动变化；不能据此宣称已完成用户数据的全面擦除。
+- **证据范围**：专用 `Agent PA-04 C02 Derived Source Revocation` 工作流在 PostgreSQL18 上验证跨政策多版本、跨线程隔离、摘要与 checkpoint 精确删除、重复调用幂等、失效 Worker 重写阻断及数据库重新连接；AF-02 与 C02 先前的摘要摘要来源指纹用同一 CI 回归。验证日志及 PR 是此子门禁的唯一工程事实，CI 未跑时不得标 PASS。
+- **剩余 C02**：合法来源删除入口、已删原消息对长期 Run/Conversation/Memory/EC 及所有可检索副本的传播、真实权限/法定保留审批、异步复用与崩溃重试时完整删改闭环。整体仍 `PA-04 IN_PROGRESS / NOT_SIGNED`，C01 本地模型 tokenizer 仍未认证，PA-02 R10 仍 OPEN。没有发布/生产 WRITE，也不修改并行 BEX/CP-03。
+
