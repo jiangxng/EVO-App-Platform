@@ -113,12 +113,12 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
       "GROUP BY w.state ORDER BY w.state",
       [packageId]
     );
-    return Object.fromEntries(rows.map(x => [String(x.state), Number(x.amount)]));
+    return Object.fromEntries(rows.map((x: {state: string; amount: string | number}) => [String(x.state), Number(x.amount)]));
   }
   const count = (states: Record<string, number>) =>
     Object.values(states).reduce((sum, value) => sum + value, 0);
 
-  return {
+  const api: Pa05PluginWriteLifecycleGateV010 = {
     async register(packageId) {
       packageId = required(packageId);
       const version = installedVersion(packageId);
@@ -165,7 +165,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
       packageId = required(packageId);
       if (!["DISABLE","UNINSTALL","UPGRADE"].includes(operation))
         throw Error("PA05_LIFECYCLE_OPERATION_INVALID");
-      const frozen = await this.freeze(packageId);
+      const frozen = await api.freeze(packageId);
       if (frozen.pendingCount)
         return { status: "BLOCKED_PENDING_WRITE" as const,
           pendingCount: frozen.pendingCount };
@@ -220,4 +220,5 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     },
     async close() { await sql.end(); }
   };
+  return api;
 }
