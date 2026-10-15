@@ -207,13 +207,25 @@ function fixture() {
   return { manager, router, tool, invoke, state };
 }
 
-test("PA05-01 uses two real business-plugin manifests and published Host operations", () => {
+test("PA05-01 pins existing trading manifest namespace debt; no validator weakening", () => {
+  const ledger = validatePluginManifestV010(ledgerRuntimeConfiguratorPackage);
+  assert.equal(ledger.ok, true, JSON.stringify(ledger.issues));
+
+  // Existing public operation IDs and Capability IDs must not be silently
+  // renamed by a certification test. PA05-M01 is an explicit BLOCKER.
+  const trading = validatePluginManifestV010(tradingReferencePackageV010);
+  assert.equal(trading.ok, false, "PA05-M01 debt resolved: update this gate to require PASS");
+  assert.deepEqual(trading.issues.map(issue => [issue.code, issue.path]), [
+    ["PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH",
+      "features[0].contributions[0].operation.operationId"],
+    ["PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH",
+      "features[0].contributions[5].operation.operationId"]
+  ]);
+
   for (const pkg of [
     ledgerRuntimeConfiguratorPackage,
     tradingReferencePackageV010
   ]) {
-    const validation = validatePluginManifestV010(pkg);
-    assert.equal(validation.ok, true, JSON.stringify(validation.issues));
     assert.ok(pkg.features.some(feature =>
       feature.contributions?.some(contribution =>
         contribution.kind === "platform.capability-operation"
