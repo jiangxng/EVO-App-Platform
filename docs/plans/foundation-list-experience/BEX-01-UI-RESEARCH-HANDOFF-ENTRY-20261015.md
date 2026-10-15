@@ -116,3 +116,18 @@
 | 项目真实 22 列来源、同名银行归属及三行缺失 | ⏳ 无真实授权数据 | 原 Excel + Import Job |
 | 正式 BEX V2 Host/数据操作 | ❌ 未开始 | 设计经认可后独立代码 PR |
 | 现有 Railway 开发版本 | — 没有修改 | 真正功能 CI/业务验收后固定 SHA |
+
+
+## 11. 2026-10-15 来源列编辑闭环与审批状态证明（最新）
+
+- [Draft PR #909](https://github.com/jiangxng/EVO-App-Platform/pull/909) 的 V2 原型从只读 7 列摘要升级为 7/7 个示例来源行均有操作入口：五个来源行在详情中可改处理选择，“开户银行/主体类型”首屏独立展开，元数据待定有显著入口。不声称已解析真实 Excel 22 列。
+- 模拟已有目标一对一排他、忽略可撤销、全部来源选择可重进复核、核心编码和名称出错则阻断；新建字段方案动态更新，清单一变就要求独立重新批准，0 新建时不强迫走创建确认。
+- 新的 [run #38679932512](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38679932512) **10/10 Chrome/Chromium 自动测试 PASS**；证据含截图和 JSON：[artifact #11947504213](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38679932512/artifacts/11947504213)。本轮首次 [run #38679856210](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38679856210) 为 8 PASS/2 FAIL，确实发现原型把“下一步审批”误计为当前来源异常，已按语义修复后重测成功。完整细节参考 [认知 V2 文档第十节](BEX-01-COGNITIVE-LOAD-ATTENTION-MEMORY-V2-20261015.md)。
+- 仍无原 XLSX、实际授权 Import Job、真实企业字段引用和实际 Supplier details Human 签收。本轮没有改变 PA/Eidos/Host 正式业务文件、Railway、主线合并；研究 PR 继续保持 Draft。
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| 7 列完整模拟来源处理与双审批行为 | ✅ 10/10 独立 Chromium 场景通过 | Human 亲自验证 |
+| 原 Excel 22 列/字段 ID/缺失类型 | ⏳ 缺真实证据 | 用原 Job/文件逐项核查 |
+| V2 业务实现与固定 SHA 发布 | ❌ 未实施 | 设计批准→独立业务 PR |
+| Human 视觉、真机与无障碍签收 | ⏳ 未完成 | 主观设计评审与真实 Eidos 测试 |
