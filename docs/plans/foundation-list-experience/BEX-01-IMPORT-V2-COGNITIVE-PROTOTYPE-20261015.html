@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EVO · 导入供应商 V2（研究原型）</title>
+<style>
+:root{color-scheme:light;--bg:#f5f7fa;--white:#fff;--text:#17283b;--sub:#576b80;--line:#dfe7ee;--blue:#215b96;--tint:#f4f8fc;--amber:#8a530b;--amberbg:#fff9ed}
+*{box-sizing:border-box}html{font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}body{background:var(--bg);color:var(--text);margin:0}
+.shell{max-width:1020px;margin:44px auto;padding:0 24px}.screen{background:#fff;border:1px solid var(--line);box-shadow:0 10px 44px #20354d0b;border-radius:18px;padding:34px 42px 30px}
+.top{display:flex;justify-content:space-between;gap:12px;color:var(--sub);font-size:14px}.micro{font-size:13px;color:var(--sub)}.prototype{margin:0 0 20px;font-size:13px;color:#6c5a3c;background:#fff9ed;border:1px solid #f1e5cc;padding:10px 14px;border-radius:9px}
+h1{font-size:29px;font-weight:650;letter-spacing:-.02em;margin:23px 0 4px}h2{font-size:18px;font-weight:650;margin:28px 0 9px}p{margin:7px 0}.subtitle{color:var(--sub);font-size:15px}.file{margin:25px 0;padding:14px 18px;background:var(--tint);border-radius:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.file .name{font-weight:620;overflow-wrap:anywhere}.file .saving{margin-left:auto;color:#385c47;font-size:14px}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}.summary>div{padding:15px 15px 14px;border:1px solid var(--line);border-radius:11px}.summary strong{display:block;font-size:16px}.summary span{font-size:13px;color:var(--sub);display:block;margin-top:4px}
+.issue{padding:17px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:26px 1fr auto;align-items:start;gap:12px}.issue:last-child{border:0}
+.dot{border-radius:100%;background:#fff2d7;color:var(--amber);font-size:14px;height:25px;width:25px;display:grid;place-items:center;font-weight:bold}.issue strong{display:block}.issue p{font-size:14px;color:var(--sub);margin:2px 0 0}
+button{font:inherit;cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #77a9e3;outline-offset:3px}.link{border:0;background:transparent;color:var(--blue);padding:7px 0;text-decoration:underline;text-underline-offset:3px;font-weight:580}.compact{font-size:14px}.button{border:0;border-radius:10px;background:#1c4f80;color:white;padding:12px 22px;font-weight:650}.button[disabled]{opacity:.5;cursor:not-allowed}
+.mini{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:12px 0 5px;font-size:14px}.mini select{max-width:100%;border:1px solid #a8baca;padding:9px 12px;border-radius:8px;background:#fff;color:var(--text);font:inherit}
+.details{border-top:1px solid var(--line);margin-top:10px;padding-top:16px}.details table{width:100%;border-collapse:collapse;font-size:14px}.details th{text-align:left;background:#f6f8fb;color:#42576e}.details td,.details th{padding:12px 10px;border-bottom:1px solid #e9eef2;vertical-align:top}.details td:first-child{font-weight:600}.details .small{color:var(--sub);font-size:12px}
+.footer{border-top:1px solid var(--line);margin-top:26px;padding-top:18px;display:flex;align-items:center;gap:16px;justify-content:space-between}.footer .small{font-size:13px;color:var(--sub)}.help{color:var(--sub);font-size:14px;padding:9px 0}
+.validation{background:#fffaf0;border:1px solid #f1deb9;padding:14px 16px;border-radius:11px;margin:18px 0}.validation strong{color:#755016}.hide{display:none!important}
+@media(max-width:680px){.shell{margin:8px auto;padding:6px}.screen{padding:22px 18px;border-radius:13px}.summary{grid-template-columns:1fr}.issue{grid-template-columns:24px 1fr}.issue .link{grid-column:2;justify-self:start}.top{font-size:13px}.file .saving{margin-left:0}.footer{flex-direction:column;align-items:stretch}.button{width:100%}h1{font-size:25px}.details{overflow:auto}}
+</style>
+</head>
+<body><main class="shell"><div class="prototype">研究设计稿 · 交互数据仅为示意，并未连接真实 EVO 作业或创建任何字段、供应商。</div><div class="screen">
+<div class="top"><span>‹ 供应商管理</span><span>第 2 阶段：核对并导入</span></div>
+<h1>导入供应商</h1><p class="subtitle">EVO 已整理字段建议。你只需检查需要确认的地方。</p>
+<div class="file"><span aria-hidden="true" style="font-size:24px">▤</span><div><div class="name">往来账户2026_10_08_10_15_23.xlsx</div><div class="micro">原始列和值保留 · 可返回修改</div></div><div class="saving" id="saved">✓ 本次选择已保留（演示）</div></div>
+<div id="review">
+<div class="summary">
+<div><strong>已识别的字段</strong><span>优先复用以前的映射</span></div>
+<div><strong>建议新增字段</strong><span>统一确认，不逐列新建</span></div>
+<div><strong>保留的原始列</strong><span>不写入业务字段，但数据不丢失</span></div>
+</div>
+<h2>需要你确认</h2>
+<div class="issue"><span class="dot">!</span><div><strong>开户银行</strong><p>示例：有两个同名目标。请查看来源并选择正确的字段。</p><div class="mini hide" id="bankPanel"><div>Excel 来源：开户银行</div><div class="micro">这里需要显示两条真实候选字段的业务描述、归属与原始来源样例。</div><label for="bank">选择目标字段（演示选项）</label><div><select id="bank"><option value="">尚未选择</option><option value="a">开户银行 · 候选字段 A</option><option value="b">开户银行 · 候选字段 B</option></select></div></div></div><button class="link compact" id="bankBtn" type="button">查看并选择 ›</button></div>
+<div class="issue"><span class="dot">!</span><div><strong>主体类型</strong><p>历史验收中有 3 行缺少真实主体类型。这里只提示核查，不自动推断为企业。</p><div class="mini hide" id="typePanel">当前设计原型没有加载原 Excel 行数据。正式页面应显示问题行号、来源原值及合法修正入口，不能自行把“供应商”转换成主体类型。</div></div><button class="link compact" id="typeBtn" type="button">查看说明 ›</button></div>
+<div class="details"><button class="link compact" id="detailBtn" type="button" aria-expanded="false" aria-controls="detailPanel">查看全部来源列与系统建议 ▾</button>
+<div id="detailPanel" class="hide"><p class="micro">仅列出部分示意列；真实 22 列应在正式系统中完整展示，支持逐项修改与保存。</p><table><thead><tr><th scope="col">Excel 来源</th><th scope="col">系统处理建议</th><th scope="col">结果</th></tr></thead><tbody>
+<tr><td>编码</td><td>优先恢复历史编码映射</td><td>待核对</td></tr>
+<tr><td>名称</td><td>优先恢复历史名称映射</td><td>待核对</td></tr>
+<tr><td>默认支付方式</td><td>复用已有字段或建议新增</td><td>待统一审核</td></tr>
+<tr><td>结算方式</td><td>复用已有字段或建议新增</td><td>待统一审核</td></tr>
+<tr><td>系统编码</td><td>仅保留来源，用户可修改</td><td>不丢失原值</td></tr>
+</tbody></table></div></div>
+<div class="footer"><div class="small">来源已保存 · 更改建议不影响正式供应商数据</div><button id="precheck" class="button" type="button">确认字段并查看预检查 →</button></div>
+</div>
+<div id="check" class="hide"><h2>预检查结果</h2><p>这里模拟预检查**未通过**的情况，确保错误可被找到并修复，而不是自动越过校验。</p><div class="validation"><strong>存在待处理问题，尚不能确认导入</strong><p>示例：3 行来源主体类型缺失；且开户银行目标可能仍需明确选择。</p><p class="micro">正式页面将显示精确行号、原值、原因和可修复入口，并在合法补正后重新运行预检查。</p></div><div class="footer"><button id="back" class="link" type="button">‹ 返回字段核对（保留选择）</button><button class="button" type="button" disabled>确认导入供应商（未通过校验）</button></div></div>
+</div></main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+function toggle(id){$(id).classList.toggle("hide")}
+$("bankBtn").onclick=()=>toggle("bankPanel");
+$("typeBtn").onclick=()=>toggle("typePanel");
+$("detailBtn").onclick=()=>{toggle("detailPanel");$("detailBtn").setAttribute("aria-expanded",String(!$("detailPanel").classList.contains("hide")))}
+$("precheck").onclick=()=>{$("review").classList.add("hide");$("check").classList.remove("hide");window.scrollTo({top:0,behavior:"smooth"})};
+$("back").onclick=()=>{$("check").classList.add("hide");$("review").classList.remove("hide");window.scrollTo({top:0,behavior:"smooth"})};
+$("bank").onchange=()=>{$("saved").textContent="✓ 选项已保留在本次原型（并未存入服务器）"}
+})();
+</script></body></html>
