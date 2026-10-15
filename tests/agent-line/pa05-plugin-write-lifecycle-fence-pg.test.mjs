@@ -912,6 +912,21 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
     await gate.register(packageId);
 
     const first=await a.prepare("run:pa05-least-priv-approved");
+    // A least-privileged Worker has UPDATE on the effect table, but cannot
+    // turn an unverified PREPARED effect into a fake terminal or change the
+    // immutable columns to escape the Host's pending-Owner inventory.
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=\'SUCCEEDED\' '+
+      'WHERE state=\'PREPARED\' RETURNING state'),
+      /PA05_WRITE_SQL_ILLEGAL_TRANSITION/);
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET effect_id=effect_id||\'_forged\' '+
+      'WHERE state=\'PREPARED\' RETURNING effect_id'),
+      /PA05_WRITE_SQL_IMMUTABLE_IDENTITY/);
+    await assert.rejects(asRole(roleC,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=state '+
+      'WHERE state=\'PREPARED\' RETURNING state'),
+      /PA05_WRITE_SQL_WORKER_LOGIN_DENIED/);
     await assert.rejects(asRole(roleC,
       'UPDATE "'+a.schema+'".pa02b_writes SET state=\'INVOKING\' '+
       'WHERE state=\'PREPARED\' RETURNING state'),
@@ -930,6 +945,14 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
       'WHERE state=\'PREPARED\' RETURNING state');
     assert.equal(approved.length,1);
     assert.equal(approved[0].state,"INVOKING");
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=\'SUCCEEDED\' '+
+      'WHERE state=\'INVOKING\' RETURNING state'),
+      /PA05_WRITE_SQL_WORKER_TERMINAL_FORBIDDEN/);
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET scope_key=\'forged-tenant\' '+
+      'WHERE state=\'INVOKING\' RETURNING scope_key'),
+      /PA05_WRITE_SQL_IMMUTABLE_IDENTITY/);
     assert.deepEqual((await gate.freeze(packageId)).pendingStates,{INVOKING:1});
     // The Worker may manipulate its authorized business write row, but it
     // cannot drop Host-owned admission guard or revive the central Owner.
@@ -978,6 +1001,27 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
       enforceSqlOwnerAdmission:true,
       workerIdentities:[{schema:a.schema,role:roleA},{schema:b.schema,role:roleB}]
     }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    await a.admin.unsafe(
+      'REVOKE UPDATE ON "'+central+
+      '".pa05_plugin_write_lifecycle_gates FROM "'+roleA+'"');
+    await a.admin.unsafe(
+      'GRANT DELETE ON "'+a.schema+'".pa02b_writes TO "'+roleA+'"');
+    await assert.rejects(createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas,
+      enforceSqlOwnerAdmission:true,
+      workerIdentities:[{schema:a.schema,role:roleA},{schema:b.schema,role:roleB}]
+    }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    console.log("PA05_PG_WRITE_STATE_INTEGRITY="+JSON.stringify({
+      actualPostgres18:true,
+      preparedCannotForgeTerminal:true,
+      immutableEffectIdentity:true,
+      wrongLoginDeniedOnAnyUpdate:true,
+      workerTerminalAfterInvokingDenied:true,
+      writeTableDeletePrivilegeRejected:true,
+      pendingOwnerCannotDisappear:true,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_PG_WORKER_LOGIN="+JSON.stringify({
       postgres18:true,authenticatedLoginRole:true,
       distinctWorkerIdentityDenied:true,setRoleSpoofDenied:true,
