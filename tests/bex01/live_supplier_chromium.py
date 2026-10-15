@@ -270,6 +270,13 @@ with sync_playwright() as p:
     expect(form.locator('select[name="choice_'+str(i)+'"]')).to_have_value("__CREATE__")
     expect(form.locator('input[name="label_'+str(i)+'"]')).to_have_value(name)
    expect(form.locator('select[name="type_3"]')).to_have_value("NUMBER")
+   # Business samples come from the authorized staged Host job, not HTML mock values.
+   expect(form.locator('input[name="sample_0"]')).to_have_value(
+     "非空 1 / 1 行 · 来源样本：转账"
+   )
+   expect(form.locator('input[name="sample_3"]')).to_have_value(
+     "非空 1 / 1 行 · 来源样本：30"
+   )
    expect(form.locator('select[name="choice_4"]')).to_have_value("__REVIEW__")
    form.locator('select[name="choice_4"]').select_option("__IGNORE__")
    page.screenshot(path=str(OUT/"extension-batch-review-before-confirm.png"),full_page=True)
