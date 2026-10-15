@@ -6,6 +6,8 @@ on:
       - ".github/workflows/agent-pa05-cross-business-read.yml"
       - "tests/agent-line/pa05-cross-business-read-certification.test.mjs"
       - "tests/agent-line/pa05-schema-cert-fixture.test.mjs"
+      - "tests/agent-line/pa05-read-runtime-guard.test.mjs"
+      - "certification/pa05-read-action-gateway.mjs"
       - "certification/capability-operation-schema-fixture.mjs"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - "certification/README.md"
@@ -20,6 +22,8 @@ on:
       - ".github/workflows/agent-pa05-cross-business-read.yml"
       - "tests/agent-line/pa05-cross-business-read-certification.test.mjs"
       - "tests/agent-line/pa05-schema-cert-fixture.test.mjs"
+      - "tests/agent-line/pa05-read-runtime-guard.test.mjs"
+      - "certification/pa05-read-action-gateway.mjs"
       - "certification/capability-operation-schema-fixture.mjs"
       - "apps/trading-reference/**"
       - "apps/ledger-runtime-configurator/**"
@@ -50,6 +54,7 @@ jobs:
           node --test
           tests/agent-line/pa05-cross-business-read-certification.test.mjs
           tests/agent-line/pa05-schema-cert-fixture.test.mjs
+          tests/agent-line/pa05-read-runtime-guard.test.mjs
           tests/protocol/personal-agent-capability-fabric.test.mjs
           tests/protocol/tr01-purchase-operational-capability.test.mjs
           tests/configurator/capability-operations.test.mjs
