@@ -182,6 +182,10 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         " NEW.input_digest IS DISTINCT FROM OLD.input_digest OR",
         " NEW.fence IS DISTINCT FROM OLD.fence THEN",
         " RAISE EXCEPTION 'PA05_XDB_REMOTE_IMMUTABLE_EFFECT'; END IF;",
+        // Reject a third SQL LOGIN first; an untrusted caller should not
+        // learn whether a specific Host-staged ticket already exists.
+        "IF SESSION_USER!='"+role+"' AND SESSION_USER!='"+hostLogin+"' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_REMOTE_WRONG_LOGIN'; END IF;",
         // Local STOP applies to both restricted Worker SQL and the real
         // Host-side PA-02 coordinator. Host identity does not bypass freeze.
         "IF OLD.state='PREPARED' AND NEW.state='INVOKING' THEN",
@@ -191,15 +195,18 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         " AND c.worker_login='"+role+"' AND c.state='ACTIVE'",
         " FOR SHARE) THEN",
         "  RAISE EXCEPTION 'PA05_XDB_REMOTE_LOCALLY_FROZEN'; END IF;",
-        "END IF;",
-        "IF SESSION_USER = '"+role+"' THEN",
-        " IF NOT (OLD.state='PREPARED' AND NEW.state='INVOKING') THEN",
-        "  RAISE EXCEPTION 'PA05_XDB_REMOTE_WORKER_STATE_DENIED'; END IF;",
+        // The real PA-02 coordinator uses the HOST SQL login. Requiring
+        // the exact Host-staged central ticket only in the Worker LOGIN
+        // branch allowed Host-side beginWrite to bypass reservation.
         " IF NOT EXISTS(SELECT 1 FROM "+tickets+" t",
         " WHERE t.scope_key=OLD.scope_key AND t.effect_id=OLD.effect_id",
         " AND t.run_id=OLD.run_id AND t.input_digest=OLD.input_digest",
         " AND t.fence=OLD.fence) THEN",
         "  RAISE EXCEPTION 'PA05_XDB_REMOTE_CENTRAL_TICKET_REQUIRED'; END IF;",
+        "END IF;",
+        "IF SESSION_USER = '"+role+"' THEN",
+        " IF NOT (OLD.state='PREPARED' AND NEW.state='INVOKING') THEN",
+        "  RAISE EXCEPTION 'PA05_XDB_REMOTE_WORKER_STATE_DENIED'; END IF;",
         "ELSIF SESSION_USER != '"+hostLogin+"' THEN",
         " RAISE EXCEPTION 'PA05_XDB_REMOTE_WRONG_LOGIN'; END IF;",
         "RETURN NEW; END;"
