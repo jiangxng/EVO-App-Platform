@@ -63,6 +63,15 @@ export interface ContextMemoryProposalServiceV010 {
   }): Promise<{ proposal: ContextMemoryProposalV010; memory: ContextMemoryItemV010 }>;
 }
 
+/** Human authority is required in the service as well as in UI actions.
+ * Direct Host consumers must not be able to let an Agent accept, edit or
+ * reject its own tentative Memory proposal by bypassing the Review page. */
+function requireHumanMemoryReviewV010(principal: PlatformPrincipalV010): void {
+  if (principal.actorType !== "HUMAN") {
+    throw new Error("CONTEXT_MEMORY_PROPOSAL_HUMAN_REQUIRED");
+  }
+}
+
 function normalizedSummary(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
@@ -290,6 +299,7 @@ export function createContextMemoryProposalServiceV010(input: {
     summary?: string;
   }): Promise<ContextMemoryProposalV010> {
     const { proposalId, principal, kind, summary } = inputEdit;
+    requireHumanMemoryReviewV010(principal);
     const snapshot = input.store.snapshot();
     const proposal = snapshot.proposals.find(item => item.proposalId === proposalId);
     if (!proposal) throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
@@ -478,6 +488,7 @@ export function createContextMemoryProposalServiceV010(input: {
     },
 
     reject({ proposalId, principal, reason }) {
+      requireHumanMemoryReviewV010(principal);
       const snapshot = input.store.snapshot();
       const proposal = snapshot.proposals.find(item => item.proposalId === proposalId);
       if (!proposal) throw new Error("CONTEXT_MEMORY_PROPOSAL_NOT_FOUND");
@@ -505,6 +516,7 @@ export function createContextMemoryProposalServiceV010(input: {
     },
 
     async accept({ proposalId, principal, kind, summary }) {
+      requireHumanMemoryReviewV010(principal);
       let proposal = input.store.snapshot().proposals.find(
         item => item.proposalId === proposalId
       );
