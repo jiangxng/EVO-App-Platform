@@ -279,7 +279,7 @@ export function createConversationContextAssemblerV010(input: {
           && latest.provenance.sourceDigest === digest;
         const summary = coverageMatches
           ? latest
-          : (() => compressor.compress({
+          : await compressor.compress({
               threadId: thread.threadId,
               messages: older,
               policy,
@@ -288,7 +288,7 @@ export function createConversationContextAssemblerV010(input: {
             }).then(result => ({
               ...result,
               provenance: { ...result.provenance, sourceDigest: digest }
-            })))();
+            }));
         if (!coverageMatches) {
           await input.artifactStore.saveSummary(summary);
           await input.artifactStore.saveCheckpoint({
