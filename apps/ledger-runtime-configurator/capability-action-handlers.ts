@@ -55,7 +55,7 @@ function sectionValue(
 }
 
 export function createLedgerRuntimeConfiguratorCapabilityActionHandlers(
-  service: LedgerRuntimeConfiguratorService
+  source: LedgerRuntimeConfiguratorService | (() => Promise<LedgerRuntimeConfiguratorService>)
 ): AppActionHandler[] {
   const describe: AppActionHandler = {
     packageId: "evo-ledger-runtime-configurator",
@@ -68,6 +68,7 @@ export function createLedgerRuntimeConfiguratorCapabilityActionHandlers(
             "LEDGER_RUNTIME_CONFIGURATION_INPUT_VERSION_UNSUPPORTED"
           );
         }
+        const service = typeof source === "function" ? await source() : source;
         return {
           ok: true,
           correlationId:
@@ -112,6 +113,7 @@ export function createLedgerRuntimeConfiguratorCapabilityActionHandlers(
         const pageSize = pageSizeValue as number | undefined;
         const cursor = cursorValue as string | undefined;
 
+        const service = typeof source === "function" ? await source() : source;
         return {
           ok: true,
           correlationId:
