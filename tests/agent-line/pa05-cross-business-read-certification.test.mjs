@@ -288,6 +288,52 @@ test("PA05-M01 makes real Trading Reference manifest conformant while retaining 
   }
 });
 
+test("PA05-M01 installed 0.1.0 plugin upgrades to 0.1.1 without losing activation or legacy dependency", () => {
+  // Build the historical manifest shape to exercise the real lifecycle store,
+  // not a new mock upgrade implementation. The historical namespace violation
+  // was present on that version; we never weaken the current validator.
+  const previous = structuredClone(tradingReferencePackageV010);
+  previous.version = "0.1.0";
+  previous.features[0].version = "0.1.0";
+  previous.features[0].providesCapabilities = [
+    PURCHASE_OPERATIONS_CAPABILITY_V010
+  ];
+  for (const contribution of previous.features[0].contributions) {
+    if (contribution.kind === "platform.capability-operation") {
+      contribution.operation.capability = PURCHASE_OPERATIONS_CAPABILITY_V010;
+    }
+  }
+
+  const store = createMemoryLifecycleStore();
+  const oldManager = createAppManagerService(
+    createPackageCatalog([previous]), store
+  );
+  oldManager.install(previous.packageId);
+  assert.ok(oldManager.listEffectiveCapabilityOperations().length === 2);
+
+  const manager = createAppManagerService(
+    createPackageCatalog([tradingReferencePackageV010]), store
+  );
+  const plan = manager.planUpgrade(tradingReferencePackageV010.packageId);
+  assert.deepEqual(plan.blockers, []);
+  assert.equal(plan.fromVersion, "0.1.0");
+  assert.equal(plan.toVersion, "0.1.1");
+  assert.equal(plan.requiresUserApproval, false);
+  manager.upgrade(tradingReferencePackageV010.packageId);
+  assert.deepEqual(
+    manager.listEffectiveCapabilityOperations()
+      .map(op => op.operationId).sort(),
+    [
+      PURCHASE_OPERATIONS_ENTRY_OPEN_OPERATION_V010,
+      PURCHASE_OPERATIONS_READ_OPERATION_V010
+    ].sort()
+  );
+  assert.ok(manager.getSnapshot().activeFeatures.some(item =>
+    item.featureId === tradingReferencePackageV010.features[0].featureId
+    && item.version === "0.1.1"
+  ));
+});
+
 test("PA05-01 Agent discovers both owners and returns the same direct business results", async () => {
   const f = fixture();
   const ledgerList = await f.tool(PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID)
