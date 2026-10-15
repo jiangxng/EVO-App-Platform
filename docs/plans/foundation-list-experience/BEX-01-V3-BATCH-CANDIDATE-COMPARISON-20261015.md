@@ -20,9 +20,9 @@
 
 | 验收项目 | 当前状态 | 下一步 |
 | --- | --- | --- |
-| 同名候选用途、类型、field ID 并列比较 | 已实现代码，等待 CI | 真实有效 Schema 下核对收款和付款两种“开户银行” |
-| 未说明用途 / 目标占用 | 已实现代码，等待 CI | 测试不得偷偷复用或创建 |
-| 企业来源样本就地核对 | 已实现代码，等待 CI | 隔离 Host Chromium 验证真实页面 |
+| 同名候选用途、类型、field ID 并列比较 | 已合并 #933，隔离协议与 Host 浏览器测试 PASS | 真实有效 Schema 下核对收款和付款两种“开户银行” |
+| 未说明用途 / 目标占用 | 已合并 #933，隔离协议与 Host 浏览器测试 PASS | 测试不得偷偷复用或创建 |
+| 企业来源样本就地核对 | 已合并 #933，隔离协议与 Host 浏览器测试 PASS | 隔离 Host Chromium 验证真实页面 |
 | 原批量一键建字段/映射/确认/重试 | 原 main 已存在、原流程保留 | 继续现有 Host/协议回归 |
 | 22 列与三处 `subjectType` 缺失 | 本轮不动原值，不根据 SUPPLIER 推断 | 用户授权原始 Excel/Job 后真实逐行确认 |
 | 人工 Human、手机可用性及本地 Schema | 未签收 | 真实浏览器/390px/键盘与 Human 评审 |
@@ -38,3 +38,10 @@
 - 本次仅开发增量候选，未得到客户原始 XLSX、授权 Import Job JSON 和同名银行实际字段所有权，不能以合成字段 ID 作事实签收。
 
 **下阶段要注意**：与 #860 的映射页面交互收敛（直接候选选择与批量确认）可能需要单独做 UI 一致性工作，不能为了少一步自动忽略来源数据或隐藏 Host 权限。
+
+## 合并后验证与决策回写（2026-10-15）
+
+- 功能 [PR #933](https://github.com/jiangxng/EVO-App-Platform/pull/933) 正常合入 `main@32a98c90f38722ddfce39f11da3065c3addd26c7`，不是合并 #909 Draft HTML 原型。同步并行 PA05 的 `main@d1c36e1815a48c1cf05b752b29a641f3e45226cf` 后，**42/42 条 GitHub Actions 通过**；GitHub `mergeable_state=clean` 后按保护规则合并，没有触碰 Railway。
+- 证据：[Platform CI #38712269571](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38712269571)、[真实 Host/Chromium #38712269544](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38712269544)、[Human UI #38712269688](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38712269688)、[Project Continuity #38712269653](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38712269653)、[Lightweight Host #38712269642](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38712269642)。真实隔离 Host 浏览器日志含 **BEX01_BROWSER_SUMMARY 5/5**，来源核对与行修正 desktop/phone 均通过，批量业务端到端未退化。
+- 协议覆盖假设的两种同名银行字段用途描述、目标占用拒绝复用、需要 Human 决定、原行不可更改；这些 **field ID 和描述是合成测试样例**。生产客户的两个同名“开户银行”究竟映射哪个 `fieldId`，仍需原始 XLSX、有效企业 Schema 与授权 Job 核验，不得将测试数据视作事实。
+- **开发结论：`DEV_COMPLETE`，仅限此候选比较和真实来源样本增强**；不是 V3 整体完成、实际客户批量导入完成、真实 Human 及生产部署签收。#860 独立映射交互方案仍需相互对齐，#878 旧文档不应再描述“批量功能尚未实现”。本轮不重写历史原始参考资料阅读等级。
