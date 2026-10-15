@@ -1,7 +1,7 @@
 # PA-02 — R01–R10 当前验收与最终收口表
 
 **Document class:** CURRENT_STATUS / LIVING_RUNBOOK
-**Last reviewed:** 2026-10-14
+**Last reviewed:** 2026-10-15
 **Authority:** [PA-00～PA-06 建设总纲 §25](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) 的原始 R01–R10；项目交付规范；[历史交接入口](PA02-WINDOW-CLOSURE-HANDOFF-ENTRY-20261014.md)。
 **Latest verified main at final audit start:** `03cf2a15bb4c0af35cc4084c785cbe056dbb940b`（[#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) 已合并，2026-10-15 审计快照；不是永久 HEAD）。本轮 [PA02 Final Signoff Audit](PA02-FINAL-SIGNOFF-AUDIT-20261015.md) 是签收否决/剩余权威证据入口；原始 R01–R10 [详细证据总账](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md) 保留不同源码/CI 的分层证据。历史段落中 #872/#874 尚待 CI/合并为其形成时状态，最终以本节与实际 GitHub 状态为准。
 **Production:** NOT AUTHORIZED / No production WRITE deployment. **PA-02 milestone:** IN_PROGRESS, NOT SIGNED.
@@ -132,3 +132,15 @@
 - 原始 R01–R09：**隔离开发证据按项 PASS**，参见 [逐项签收审计](PA02-FINAL-SIGNOFF-AUDIT-20261015.md)。R10 步数 24、连续失败 3、72h、诚实 usage 已过，唯 R10 **实际货币预算**仍未签收；项目阶段 **IN_PROGRESS / NOT_DEV_COMPLETE**，生产准入另议。
 - [#872](https://github.com/jiangxng/EVO-App-Platform/pull/872) main `b34863eddcaff75e8c5522da5206cf2828dc8ec5`、最终 18/18 CI；[#874](https://github.com/jiangxng/EVO-App-Platform/pull/874) main `03cf2a15bb4c0af35cc4084c785cbe056dbb940b`、最终 18/18 CI，26/26 PG18 Agent Worker。#874 完整 Host Run 的缓存写入额外收费不被未批准 input/output tariff 静默结算，金额 UNKNOWN 占额跨重启保留。二者 Agent 过程分支均实际核实已自动删除。
 - 真实企业计价/模型身份/输入上限与供应商费用账单**无已批准证据**；既有报价截图/公开定价网页无权替企业批准。当前可交付的是**功能门禁和精确缺口清单**，而非真实付费模式；不对生产发送模型或 WRITE，不改 BEX/治理/2D。
+
+## 2026-10-15：新窗口从最新 main 复核 Issue #879 和四条历史 docs 分支（无真实费用签收）
+
+- **检验时刻的主线与并行情况：** 起始 [PR #882](https://github.com/jiangxng/EVO-App-Platform/pull/882) 交接 merge `43d51abaa5ebe0e58bebe2df4ebd49b4922025a0`；本轮只读检查过程中 BEX 并行 [#866](https://github.com/jiangxng/EVO-App-Platform/pull/866) 正常合并，随后 main 为 `590a5a91b4c75779263b2fcb820845c6876522be`。未碰 BEX/2D/治理的代码、状态或 PR。此处为 2026-10-15 的**历史时间点**，不是永远最新 HEAD。
+- **R10 唯一真实门禁仍 OPEN：** [Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879) 此次直接读取为 Open，0 条评论；Issue 内的 Provider/model/区域/tier 真实绑定、企业授权的币种/金额/计价版本、完整收费类别与严格最坏费用上界、实际供应商 usage/账单对账等勾选条目仍未提供权威附件。**只证明该 Issue 未取得可签收证据，不推断运行时凭证值或企业合同事实上不存在。** 禁止拿公开单价或合成 quote 冒签、不得试用生产 WRITE；R10 = NOT_SIGNED，PA-02 = IN_PROGRESS / NOT_DEV_COMPLETE。
+- **已核实可安全交给既有 Branch Hygiene 的精确候选（main 为其后代、没有独有提交、均未受保护，且不被当时的开放 PR 引用）：**
+  - `docs/pa02-final-cost-authority-readiness-20261015` @ `7db56f11e75d79d520372d2fdff059e0265a4e54`
+  - `docs/pa02-acceptance-branch-reconcile-20261014` @ `b44cf20854c1131d185355634cac8ae230669280`
+  - `docs/pa02-window-closure-research-handoff-20261014` @ `40d1505af0991d44fd88cf68a447bf8b195eb445`
+  - `docs/pa02-safe-retired-branches-20261015` @ `38d04a94226e8fea6327834597134ac9ae919c94`
+- 四条精确 SHA 均已登记在 [retired-branches.json](../../repository-hygiene/retired-branches.json)；[Branch Hygiene](../../.github/workflows/branch-hygiene.yml) 的 `workflow_dispatch execute=true` 才会逐项重新核 ref、祖先、开放 PR 和 race 并实际 DELETE。**本轮 GitHub 连接器不提供 dispatch 操作；没有执行 execute=true、没有删除任何上述 ref、没有 DELETED 日志**。最近可见的 `pull_request` 触发 Branch Hygiene 成功运行**不能证明手工删除**。有操作入口的维护者需 [手动执行该 workflow](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/branch-hygiene.yml)，随后逐条核实 `DELETED` 或合理的 `SKIP_*` / `ALREADY_ABSENT` 日志和 ref 实际不存在。
+- **来源及可重复性：** 本轮直接取得 GitHub main/ref/compare、Issue #879、开放 PR、Branch Hygiene YAML 与退休 manifest 内容；没有新读取任何 W01–W04 公网原文，也没有读取 H01–H14 原文，沿用[研究来源等级索引](PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)。重复验证合成计价或重造 Host/Worker/PG 执行链没有价值；后续仅在真实有权证据到位时续做同一 R10 费用正向/负向闭环。
