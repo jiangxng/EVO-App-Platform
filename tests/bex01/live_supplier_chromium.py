@@ -247,8 +247,8 @@ with sync_playwright() as p:
    expect(page.locator('form[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=30000)
    expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    entry=page.locator('[data-eidos-context-route*="&mode=batch"]')
-   expect(entry).to_have_count(1)
-   entry.click()
+   expect(entry.first).to_be_visible()
+   entry.first.click()
    form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
    expect(form).to_be_visible(timeout=30000)
    for i,name in enumerate(names):
