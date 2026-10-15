@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createDataImportReviewPageV010 } from "../../dist/apps/data-import/page.js";
-import { renderToHtml } from "../../dist/vendor/eidos/src/renderers/html/index.js";
 import { dataImportMappingRouteV010 } from "../../dist/apps/data-import/constants.js";
 
 const headers = [
@@ -109,9 +108,9 @@ test("same-name bank candidates expose distinct field IDs and business purpose",
   assert.match(comparison, /用于对供应商付款/);
   assert.equal(bank.metadata["目标字段标识"], "bank.receiving",
     "A saved mapping is shown, not silently changed to its same-name alternative");
-  const html = renderToHtml(page);
-  assert.match(html, /同名字段需核对/);
-  assert.match(html, /供应商.xlsx/);
+  assert.match(JSON.stringify(page), /同名字段需核对/);
+  assert.match(JSON.stringify(page), /供应商.xlsx/);
+  // Live Eidos HTML rendering is independently exercised by Chromium.
 });
 
 test("committed imports offer no remapping action from source audit", () => {
