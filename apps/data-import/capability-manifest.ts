@@ -265,7 +265,10 @@ export const dataImportCapabilityContributionsV010:
         required: ["importJobId", "rowNumber", "sourceColumn", "mode", "expectedRevision"],
         properties: {
           importJobId: { type: "string", minLength: 1 },
-          rowNumber: { type: "integer", minimum: 1 },
+          rowNumber: { oneOf: [
+            { type: "integer", minimum: 1 },
+            { type: "string", pattern: "^[1-9][0-9]*$" }
+          ] },
           sourceColumn: { type: "string", minLength: 1 },
           mode: { type: "string", enum: ["SET", "REVERT"] },
           expectedRevision: { type: "string", minLength: 32, maxLength: 32 },
