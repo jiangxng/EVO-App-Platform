@@ -183,7 +183,9 @@ with sync_playwright() as p:
    expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=15000)
    form=page.locator('form[data-eidos-id="evo-object-extension.import"]')
    expect(form.locator('select[name="sourceColumn"]')).to_have_value("开户银行")
+   expect(form.locator('select[name="sourceColumn"] option')).to_have_count(1)
    expect(form.locator('input[name="label"]')).to_have_value("开户银行")
+   expect(form.locator('input[name="sourceSample"]')).to_have_value("HSBC")
    form.locator('select[name="valueType"]').select_option("STRING")
    page.screenshot(path=str(OUT/"extension-field-create.png"),full_page=True)
    form.locator('button[type="submit"]').click()
@@ -194,6 +196,7 @@ with sync_playwright() as p:
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('select[name="map_3"] option[value="'+expected_field+'"]')).to_have_count(1)
    expect(mapping_form.locator('select[name="map_3"]')).to_have_value(expected_field)
+   expect(mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')).to_have_count(0)
    mapping_form.locator('select[name="map_0"]').select_option("code")
    # A mapped system field must disappear from every other Excel column.
    expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
