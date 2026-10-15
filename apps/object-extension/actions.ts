@@ -1,3 +1,6 @@
+import { executeObjectExtensionBatchImportV010 } from "./batch-action.js";
+import type { BexImportTargetField } from "./batch-page.js";
+import type { DataImportJobV010, DataImportMappingV010 } from "../data-import/types.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -110,12 +113,12 @@ export function createObjectExtensionActionHandlersV010(input: {
     contextId: string
   ): boolean;
   now?: () => Date;
-  getImportJob?(contextId: string, jobId: string): {
-    targetId: string;
-    targetParameters?: Record<string,string | number | boolean | string[] | undefined>;
-    source: { headers: string[] };
-    mapping: Array<{sourceColumn?: string}>;
-  } | undefined;
+  getImportJob?(contextId: string, jobId: string): DataImportJobV010 | undefined;
+  applyImportMapping?(input: {
+    contextId: string; importJobId: string; mapping: DataImportMappingV010[];
+    actorSubjectId: string; recordedAt: string;
+  }): void;
+  getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
 }): AppActionHandler[] {
   const now = input.now ?? (() => new Date());
 
@@ -237,6 +240,24 @@ export function createObjectExtensionActionHandlersV010(input: {
         const job = input.getImportJob?.(active.contextId,jobId);
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
+        }
+        if (request.values.batchMode === "BATCH") {
+          if (!input.applyImportMapping) {
+            throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
+          }
+          const result = executeObjectExtensionBatchImportV010({
+            repository: input.repository, job,
+            contextId: active.contextId,
+            actorSubjectId: context.principal.subjectId,
+            recordedAt: now().toISOString(),
+            values: request.values,
+            importableTargets: input.getImportableTargets?.(active.contextId,job),
+            getCurrentJob: () => input.getImportJob?.(active.contextId,jobId),
+            applyMapping: input.applyImportMapping
+          });
+          return {
+            ok: true, correlationId: context.correlationId, result
+          };
         }
         const column = required(request.values.sourceColumn,"OBJECT_EXTENSION_SOURCE_REQUIRED");
         if (!job.source.headers.includes(column)

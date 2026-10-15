@@ -5030,9 +5030,30 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/object-extension/actions.js");
+          const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
+          const batchImportService = createDataImportServiceV010({
+            repository: dataImportRepository,
+            recipeRepository: dataImportRecipeRepository,
+            targets: batchImportTargets
+          });
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
+            getImportableTargets: (contextId, job) => {
+              const target = batchImportTargets.find(x => x.targetId === job.targetId);
+              return (target?.describe({
+                contextId, parameters: job.targetParameters
+              }).fields ?? [])
+                .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
+                .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
+            },
+            // BEX-owned glue only: reuse the existing import service; no Host
+            // authorization, Agent, storage, or transaction changes.
+            applyImportMapping: values => {
+              batchImportService.updateMapping({
+                ...values, mappingOrigin: "HUMAN"
+              });
+            },
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -7425,6 +7446,21 @@ const server = createServer(async (request, response) => {
         });
         const module=await import("../apps/object-extension/page.js");
         const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
+        if (importRoute.searchParams.get("mode") === "batch") {
+          const batch = await import("../apps/object-extension/batch-page.js");
+          const targets = await resolveEffectiveDataImportTargetsV010();
+          const target = targets.find(x => x.targetId === job.targetId);
+          const importableTargets = (target?.describe({
+            contextId: active.contextId, parameters: job.targetParameters,
+            locale: requestedLocale(url)
+          }).fields ?? [])
+            .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
+            .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
+          return json(response,200,batch.createObjectExtensionBatchImportPageV010({
+            job,locale:requestedLocale(url),importableTargets,
+            definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
+          }));
+        }
         return json(response,200,module.createObjectExtensionImportPageV010({
           job,locale:requestedLocale(url),
           sourceColumn:importRoute.searchParams.get("column") ?? undefined

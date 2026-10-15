@@ -547,6 +547,12 @@ export function createDataImportMappingPageV010(input: {
         }).items,
         ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
           ? [{
+              id:"batch-review",
+              label:zh(input.locale)
+                ? "集中审核 " + unmapped.length + " 个未匹配字段"
+                : "Review " + unmapped.length + " unmatched fields together",
+              route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+            }, {
               id:"create-extension",
               label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
               route:objectExtensionImportRouteV010(input.job.importJobId)

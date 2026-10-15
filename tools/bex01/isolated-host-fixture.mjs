@@ -136,6 +136,28 @@ try{
  },contextId);
  const extensionJobId=extensionStage?.job?.importJobId;
  assert.ok(extensionJobId,"BEX01_EXTENSION_JOB_MISSING");
+ // Separate real Host job for multi-column extension acceptance.
+ const batchRows=["往来编码,往来名称,主体类型,默认支付方式,结算方式,默认账期方式,账期天数,系统编码",
+   "BATCH001,Batch Extension Supplier,ORGANIZATION,转账,月结,月末,30,LEGACY-001"];
+ const batchCsv=Buffer.from(batchRows.join("\n"),"utf8");
+ const batchStaged=await execute("data-import.stage-file",{
+   targetId:"counterparty.subject",
+   file:{name:"bex01-batch-extensions.csv",mediaType:"text/csv",
+     size:batchCsv.length,contentBase64:batchCsv.toString("base64")},
+   parameter__relationshipMode:"SUPPLIER"
+ },contextId);
+ const batchJobId=batchStaged?.job?.importJobId;
+ assert.ok(batchJobId,"BEX01_BATCH_JOB_MISSING");
+ const batchPageProbe=await request("/v1/experience-pages?"+new URLSearchParams({
+   source:"evo-object-extension.from-import",
+   route:"/object-extensions/from-import?job="+batchJobId+"&mode=batch",
+   locale:"zh-CN"
+ }).toString(),"GET",undefined,contextId);
+ console.log("BEX_BATCH_HOST_PAGE_PROBE="+JSON.stringify({
+   status:batchPageProbe.status,body:JSON.stringify(batchPageProbe.value).slice(0,2200)
+ }));
+ assert.equal(batchPageProbe.status,200,"BEX_BATCH_PAGE_HOST_HTTP_FAILURE: "+JSON.stringify(batchPageProbe).slice(0,1800));
+ assert.equal(batchPageProbe.value.id,"evo-object-extension.batch-import","BEX_BATCH_PAGE_OWNER_NOT_RENDERED");
  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
@@ -143,7 +165,7 @@ try{
  assert.equal(first.value.table?.rows?.length,25,"BEX01_FIRST_PAGE_NOT_BOUNDED");
  assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
- const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
+ const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
  console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));
