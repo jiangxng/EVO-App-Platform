@@ -16,6 +16,7 @@ import type {
 import type {
   DataImportJobV010
 } from "./types.js";
+import { dataImportCorrectableSourceV010 } from "./row-correction.js";
 import {
   dataImportIssueSourceEvidenceV010,
   dataImportSourceAuditItemsV010
@@ -28,6 +29,7 @@ import {
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
   dataImportMappingRouteV010,
   dataImportReviewRouteV010,
+  dataImportRowCorrectRouteV010,
   dataImportUploadRouteV010
 } from "./constants.js";
 
@@ -838,11 +840,36 @@ export function createDataImportReviewPageV010(input: {
   // Preserve a bounded result list; the complete source-column audit below
   // still covers every original header, without changing the Host job.
   const reviewedRows = dryRun?.rows ?? [];
+  const correctedRowNumbers = new Set(
+    (job.rowCorrections ?? []).map(item => item.rowNumber)
+  );
   const visibleRows = [
     ...reviewedRows.filter(row => !row.ok),
-    ...reviewedRows.filter(row => row.ok).slice(0, 10)
+    ...reviewedRows.filter(row => row.ok && correctedRowNumbers.has(row.rowNumber)),
+    ...reviewedRows.filter(row => row.ok && !correctedRowNumbers.has(row.rowNumber))
   ].slice(0, 30);
   for (const row of visibleRows) {
+    const targetCorrection = (job.rowCorrections ?? [])
+      .find(item => item.rowNumber === row.rowNumber);
+    const sourceMapping = targetCorrection
+      ? job.mapping.find(item => item.sourceColumn === targetCorrection.sourceColumn)
+      : job.mapping.find(item => item.sourceColumn && row.issues.some(issue =>
+          issue.fieldId === item.targetFieldId));
+    const correctionColumn = sourceMapping?.sourceColumn;
+    let correctionRoute: string | undefined;
+    if (correctionColumn && input.schema) {
+      try {
+        dataImportCorrectableSourceV010({
+          job, schema: input.schema, rowNumber: row.rowNumber,
+          sourceColumn: correctionColumn
+        });
+        correctionRoute = dataImportRowCorrectRouteV010(
+          job.importJobId, row.rowNumber, job.source.headers.indexOf(correctionColumn)
+        );
+      } catch {
+        // Some invalid fields require a mapping or file-level repair, not a cell patch.
+      }
+    }
     items.push({
       id: "row:" + row.rowNumber,
       title: rowLabel(t.row, row.rowNumber),
@@ -865,11 +892,19 @@ export function createDataImportReviewPageV010(input: {
         : (zh(input.locale) ? "需要处理" : "Needs attention"),
       ...(row.ok ? {} : {
         metadata: dataImportIssueSourceEvidenceV010({
-          job,
-          row,
-          locale: input.locale
+          job, row, locale: input.locale
         })
-      })
+      }),
+      ...(correctionRoute ? {
+        primaryAction: {
+          id: "correct-row:" + row.rowNumber,
+          label: targetCorrection
+            ? (zh(input.locale) ? "查看或撤销本行更正" : "Review or revert correction")
+            : (zh(input.locale) ? "修正本行问题" : "Correct this row"),
+          type: "navigate" as const,
+          route: correctionRoute
+        }
+      } : {})
     });
   }
   // Audit every actual source header (mapped, ignored and unresolved).
