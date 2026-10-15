@@ -5044,7 +5044,7 @@ const actionRouter = createAppActionRouter(
               return (target?.describe({
                 contextId, parameters: job.targetParameters
               }).fields ?? [])
-                .filter(x => x.surfaces.includes("IMPORT") && x.writable)
+                .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
                 .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
             },
             // BEX-owned glue only: reuse the existing import service; no Host
@@ -7454,7 +7454,7 @@ const server = createServer(async (request, response) => {
             contextId: active.contextId, parameters: job.targetParameters,
             locale: requestedLocale(url)
           }).fields ?? [])
-            .filter(x => x.surfaces.includes("IMPORT") && x.writable)
+            .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
             .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
           return json(response,200,batch.createObjectExtensionBatchImportPageV010({
             job,locale:requestedLocale(url),importableTargets,
