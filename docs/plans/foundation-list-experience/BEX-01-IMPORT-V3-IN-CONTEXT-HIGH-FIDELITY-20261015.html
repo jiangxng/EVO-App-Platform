@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>导入供应商 · EVO</title>
+<style>
+:root{color-scheme:light;--page:#f5f7fa;--surface:#fff;--text:#172b44;--muted:#6a7c91;--line:#e3e9ef;--line-strong:#ced9e4;--primary:#2563a6;--primary-weak:#eaf2fb;--success:#18765a;--success-bg:#eaf7f1;--warning:#a66712;--warning-bg:#fff6e7;--danger:#b54738;--danger-bg:#fff1ee}
+*{box-sizing:border-box}html{font-size:16px}body{margin:0;background:var(--page);font:14px/1.6 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--text)}
+button,input,select{font:inherit}button,select{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #73aaf4;outline-offset:2px}
+button:disabled{opacity:.48;cursor:not-allowed}
+header.topbar{background:white;border-bottom:1px solid var(--line);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 max(26px,calc((100vw - 1240px)/2));gap:20px}
+.brand{display:flex;gap:10px;align-items:center;font-weight:700;letter-spacing:.02em;font-size:16px}.mark{width:26px;height:26px;background:var(--primary);border-radius:7px;display:grid;place-items:center;color:#fff;font-size:13px}
+.product{font-weight:500;color:#718196;font-size:13px;border-left:1px solid var(--line-strong);padding-left:12px}.header-right{display:flex;gap:20px;align-items:center;color:var(--muted);font-size:13px}
+main{max-width:1200px;margin:0 auto;padding:24px 28px 70px}.breadcrumbs{display:flex;gap:9px;color:var(--muted);font-size:13px;margin:2px 0 21px}.breadcrumbs b{color:#526a83;font-weight:500}
+.pagehead{display:flex;gap:24px;align-items:flex-start;justify-content:space-between;margin-bottom:22px}h1{font-size:25px;line-height:1.4;margin:0;font-weight:700;letter-spacing:-.025em}h2{font-size:17px;margin:0;font-weight:650}h3{font-size:15px;font-weight:650;margin:0}.subtitle{color:var(--muted);margin:5px 0 0}.subnote{color:var(--muted);font-size:12px}
+.stage{display:flex;align-items:center;gap:11px;margin-top:10px;color:var(--muted);white-space:nowrap}.stepdot{height:25px;width:25px;border-radius:50%;display:inline-grid;place-items:center;border:1px solid var(--line-strong);font-weight:700;font-size:12px}.stepdot.done{background:#e6f6ed;color:var(--success);border-color:#cee8d9}.stepdot.active{background:var(--primary);color:white;border-color:var(--primary)}.stageline{width:42px;height:1px;background:var(--line-strong)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 2px 9px #13284006}.fileinfo{display:flex;align-items:center;gap:15px;padding:19px 22px}.fileicon{border-radius:9px;background:#eaf5ed;color:#198354;width:46px;height:46px;display:grid;place-items:center;font-weight:700;font-size:12px;flex-shrink:0}.filemeta{flex:1;min-width:0}.filename{font-size:15px;font-weight:650;overflow-wrap:anywhere}.fileprops{color:var(--muted);font-size:13px;margin-top:2px}.filepill{display:inline-flex;gap:6px;align-items:center;border-radius:6px;background:var(--success-bg);color:var(--success);font-size:12px;padding:6px 11px}
+.section{margin-top:20px}.sectionhead{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 13px}.sectionhead p{margin:4px 0 0;color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px}.metric{border:1px solid var(--line);border-radius:9px;background:white;padding:18px 21px}.metric .num{font-size:27px;line-height:1.4;font-weight:650;font-variant-numeric:tabular-nums}.metric .desc{color:var(--muted);margin-top:4px}.metric.emphasis{border-color:#e8d9bd;background:#fffdfa}
+.sectionbar{display:flex;align-items:center;gap:9px}.pill{border-radius:30px;padding:4px 10px;font-size:12px;background:#edf2f7;color:#52677c;white-space:nowrap}.pill.warn{background:var(--warning-bg);color:var(--warning)}.pill.ok{background:var(--success-bg);color:var(--success)}
+.issuebox{border:1px solid #eddfc6;border-radius:10px;background:white;overflow:hidden}.issue{display:grid;grid-template-columns:34px 1fr auto;gap:14px;align-items:start;padding:18px 21px;border-bottom:1px solid var(--line)}.issue:last-child{border-bottom:0}.issueindex{border-radius:50%;background:var(--warning-bg);color:var(--warning);width:29px;height:29px;display:grid;place-items:center;font-weight:650}.issue p{margin:3px 0 0;color:var(--muted)}.issue.action-done .issueindex{background:var(--success-bg);color:var(--success)}
+button.secondary,button.primary,button.light{border-radius:7px;min-height:40px;padding:8px 16px;font-weight:550}.secondary{border:1px solid #a8bfd4;color:#245f98;background:white}.primary{border:1px solid var(--primary);background:var(--primary);color:white}.light{border:1px solid var(--line-strong);background:white;color:var(--text)}.textbutton{padding:6px 0;min-height:36px;border:0;background:transparent;color:var(--primary);font-weight:550}.secondary:hover,.light:hover{background:#f4f8fc}.primary:hover{background:#1d538d}
+.issuedetail{padding:15px 21px 20px 69px;background:#fafcfe;border-bottom:1px solid var(--line)}.issuedetail[hidden],section[hidden],div[hidden]{display:none!important}.formrow{display:flex;align-items:start;gap:17px;flex-wrap:wrap}.formitem{min-width:200px;flex:1}label{display:block;font-weight:600;font-size:13px;margin-bottom:7px}select{min-height:42px;border:1px solid #b5c5d4;background:white;border-radius:6px;color:var(--text);width:100%;max-width:560px;padding:7px 34px 7px 11px}.explain{margin-top:8px;color:var(--muted);font-size:12px}.recordgrid{display:grid;grid-template-columns:minmax(160px,1fr) minmax(120px,.65fr) minmax(170px,.9fr);align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.recordgrid:last-child{border-bottom:0}.company{font-weight:600}.recordid{color:var(--muted);font-size:12px}.recordgrid label{margin:0}.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:4px;color:var(--muted);background:#f0f3f6}.tag.pending{color:var(--warning);background:var(--warning-bg)}.tag.existing{color:var(--success);background:var(--success-bg)}.tag.new{color:#2b65aa;background:#eef5fd}
+.mappingpanel{padding:0}.maphead{padding:19px 22px 14px;display:flex;align-items:start;justify-content:space-between;gap:12px}.maptoolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.maptoolbar select{max-width:155px}.tablewrap{max-height:none;overflow-x:auto;border-top:1px solid var(--line)}table{width:100%;border-collapse:collapse;font-size:13px;min-width:775px}thead th{background:#f7f9fb;color:#596d82;font-weight:600;text-align:left;padding:13px 15px;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:11px 15px;border-bottom:1px solid #edf0f4;vertical-align:middle}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fafdff}.source{font-weight:600}.sample{color:var(--muted);max-width:235px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mappingselect{max-width:330px;min-width:220px}.mappingselect:disabled{opacity:.62}.metaHint{padding:12px 20px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.actionbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:21px;padding:20px 0;border-top:1px solid var(--line)}.actions{display:flex;gap:10px;align-items:center}.save{color:var(--muted);font-size:12px}
+.backlink{background:transparent;border:0;color:var(--muted);padding:8px 0;font-weight:500}.backlink:hover{color:var(--primary)}.panelbody{padding:23px 26px}.panelbody>p{margin:5px 0 21px;color:var(--muted)}.reviewtable{max-height:none}.reviewtable th,.reviewtable td{padding:13px 16px}.reviewtable table{min-width:600px}.message{padding:13px 17px;border-radius:8px;margin-bottom:17px;background:var(--warning-bg);color:#79501c}.message.ok{color:var(--success);background:var(--success-bg)}.successpage{text-align:center;padding:55px 30px}.successicon{margin:0 auto 16px;width:64px;height:64px;background:var(--success-bg);color:var(--success);border-radius:50%;display:grid;place-items:center;font-size:27px}.successpage p{color:var(--muted)}
+.smalltext{font-size:12px;color:var(--muted)}.countline{font-weight:550}.alerttext{color:var(--warning)}
+@media(max-width:850px){.stage{margin-top:18px}.pagehead{display:block}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.issue{grid-template-columns:30px 1fr}.issue>button{grid-column:2;justify-self:start}.recordgrid{grid-template-columns:1fr 1fr}.recordgrid>div:last-child{grid-column:1/-1}.issuedetail{padding-left:22px}}
+@media(max-width:520px){header.topbar{padding:0 16px}.header-right span:nth-child(2){display:none}main{padding:18px 14px 60px}h1{font-size:23px}.metrics{gap:9px}.metric{padding:13px 15px}.metric .num{font-size:24px}.fileinfo{padding:16px}.filepill{display:none}.stage{font-size:12px}.stageline{width:22px}.sectionhead{display:block}.sectionhead .sectionbar{margin-top:5px}.issue{padding:16px}.issuedetail{padding:13px 16px}.recordgrid{display:block}.recordgrid>div{padding:3px 0}.recordgrid select{margin-top:7px}.actionbar{display:block}.actions{margin-top:10px;display:grid;grid-template-columns:1fr}.actionbar button{width:100%}.panelbody{padding:18px}.maphead{display:block}.maptoolbar{margin-top:12px}}
+@media(prefers-reduced-motion:no-preference){button{transition:background-color .14s ease}}
+
+@media(max-width:680px){
+ .mappingpanel .tablewrap{overflow:visible}
+ .mappingpanel table,.mappingpanel tbody,.mappingpanel tr,.mappingpanel td{display:block;width:100%;min-width:0}
+ .mappingpanel table{min-width:0}
+ .mappingpanel thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+ .mappingpanel tbody tr{position:relative;padding:12px 15px 16px;border-bottom:1px solid var(--line)}
+ .mappingpanel tbody tr:last-child{border-bottom:0}
+ .mappingpanel tbody td{padding:3px 0;border:0}
+ .mappingpanel tbody td:nth-child(1){font-size:14px;padding-right:96px}
+ .mappingpanel tbody td:nth-child(2){font-size:12px;max-width:none;padding-right:0}
+ .mappingpanel tbody td:nth-child(2)::before{content:"示例：";color:var(--muted)}
+ .mappingpanel tbody td:nth-child(3){margin-top:8px}
+ .mappingpanel tbody td:nth-child(4){position:absolute;top:12px;right:15px;width:auto}
+ .mappingpanel .mappingselect{min-width:0;max-width:none;width:100%}
+}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="brand"><div class="mark">E</div><span>EVO</span><span class="product">基础数据</span></div><div class="header-right"><span>企业工作台</span><span>数据管理</span></div></header>
+<main>
+<nav class="breadcrumbs" aria-label="当前位置"><span>基础数据</span><span>›</span><span>供应商</span><span>›</span><b>导入数据</b></nav>
+<div class="pagehead"><div><h1 id="pageTitle">导入供应商</h1><p class="subtitle" id="pageDescription">选择已有导入任务，继续完成数据核对。</p></div><div class="stage" aria-label="导入步骤"><span class="stepdot active" id="stageOne">1</span><span>选择文件</span><span class="stageline"></span><span class="stepdot" id="stageTwo">2</span><strong>核对并导入</strong></div></div>
+<section class="panel" id="upload" aria-labelledby="uploadTitle">
+ <div class="panelbody" style="padding:28px 30px">
+  <h2 id="uploadTitle">继续未完成的导入</h2>
+  <p>上次的文件和字段选择已为你保留，可以从上次中断的位置继续。</p>
+  <div class="resume" style="display:flex;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:18px;flex-wrap:wrap">
+   <div class="fileicon">XLSX</div><div style="flex:1;min-width:220px"><div class="filename">供应商资料_2026年10月.xlsx</div><div class="fileprops">供应商清单 · 172 条记录 · 22 列</div><div class="smalltext" id="resumeProgress">字段已自动匹配，可继续核对</div></div>
+   <button class="primary" id="resumeImport" type="button">继续核对 <span aria-hidden="true">→</span></button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap">
+   <span class="subnote">导入时可恢复上次保存的字段对应关系。</span>
+   <button class="textbutton" id="clearImportDraft" type="button">清除本次保存的选择</button>
+  </div>
+ </div>
+</section>
+<section class="panel fileinfo" aria-label="当前导入文件" hidden><div class="fileicon">XLSX</div><div class="filemeta"><div class="filename">供应商资料_2026年10月.xlsx</div><div class="fileprops">工作表：供应商清单 <span aria-hidden="true">·</span> 共 172 条记录 <span aria-hidden="true">·</span> 22 列</div></div><div class="filepill">✓ 文件已读取</div></section>
+<div id="review" hidden>
+<div class="metrics" aria-label="字段核对汇总">
+<div class="metric"><div class="num" id="mappedCount">16</div><div class="desc">已匹配字段</div></div>
+<div class="metric"><div class="num" id="createCount">4</div><div class="desc">待新增字段</div></div>
+<div class="metric"><div class="num" id="skipCount">0</div><div class="desc">不导入的列</div></div>
+<div class="metric emphasis"><div class="num" id="issueCount">3</div><div class="desc">需要处理的问题</div></div>
+</div>
+<section class="section" aria-labelledby="issuesTitle">
+<div class="sectionhead"><div><h2 id="issuesTitle">需要处理</h2><p>先解决可能影响导入结果的问题。</p></div><div class="sectionbar"><span class="pill warn" id="issueBadge">3 项待处理</span></div></div>
+<div class="issuebox">
+<div class="issue" id="bankIssue"><div class="issueindex" id="bankIcon">1</div><div><h3>开户银行存在多个对应字段</h3><p id="bankStatus">请确认这列数据应写入哪个业务字段。</p></div><button type="button" class="secondary" id="bankToggle" aria-expanded="false" aria-controls="bankBody">选择字段</button></div>
+<div class="issuedetail" id="bankBody" hidden><div class="formrow"><div class="formitem"><label for="bank">Excel 列「开户银行」对应到</label><select id="bank"><option value="">请选择</option><option value="BANK_SETTLEMENT">开户银行 · 供应商结算资料</option><option value="BANK_ARCHIVE">开户银行 · 财务归档资料</option></select><p class="explain">这两个字段名称相同，但业务用途不同。请根据数据用途选择。</p></div></div></div>
+<div class="issue" id="subjectIssue"><div class="issueindex" id="subjectIcon">2</div><div><h3>3 条记录缺少主体类型</h3><p id="subjectStatus">请为以下记录选择正确的主体类型。</p></div><button type="button" class="secondary" id="typeToggle" aria-expanded="false" aria-controls="typeBody">查看记录</button></div>
+<div class="issuedetail" id="typeBody" hidden><div class="smalltext">问题记录</div><div id="recordRows"></div></div>
+<div class="issue" id="metadataIssue"><div class="issueindex" id="metadataIcon">3</div><div><h3>「系统编码」尚未选择处理方式</h3><p id="metadataStatus">请确认是否需要导入为业务字段。原文件内容会保留在导入记录中。</p></div><button type="button" class="secondary" id="metaToggle">处理此列</button></div>
+</div></section>
+<section class="section" aria-labelledby="mappingTitle"><div class="sectionhead"><div><h2 id="mappingTitle">字段对应关系</h2><p>系统已保留原有匹配结果。您可以检查、调整，或选择不导入。</p></div><div class="sectionbar"><span class="pill">22 列</span><button class="textbutton" id="toggleAll" type="button">查看全部字段</button></div></div>
+<div class="panel mappingpanel"><div class="maphead"><div><strong class="countline" id="tableCaption">优先显示需要确认和新增的字段</strong><div class="smalltext">修改字段对应关系不会更改原 Excel 文件。</div></div><div class="maptoolbar"><label for="tableFilter" style="margin:0;white-space:nowrap">显示</label><select id="tableFilter" aria-label="筛选字段"><option value="attention">需要关注</option><option value="all">全部字段</option><option value="unmatched">待处理</option></select></div></div>
+<div class="tablewrap"><table aria-label="Excel 字段对应表"><thead><tr><th scope="col" style="width:20%">Excel 列名</th><th scope="col" style="width:25%">示例值</th><th scope="col" style="width:35%">对应系统字段</th><th scope="col" style="width:20%">状态</th></tr></thead><tbody id="mappingRows"></tbody></table></div>
+<div class="metaHint">每个系统字段只能对应一个 Excel 列。选择“不导入”只影响本次写入，源文件仍可追溯。</div></div></section>
+<div class="actionbar"><div class="save" id="saveStatus" aria-live="polite">更改将自动保存</div><div class="actions"><button class="light" id="backToFiles" type="button">返回文件</button><button class="light" id="reset" type="button">恢复初始选择</button><button class="primary" id="prepare" type="button">预检查并继续</button></div></div>
+</div>
+<section class="panel" id="confirm" hidden aria-labelledby="confirmTitle"><div class="panelbody"><h2 id="confirmTitle">确认新增字段</h2><p>下列字段将在当前企业中创建，并用于本次导入。请核对字段名称和类型。</p><div class="tablewrap reviewtable"><table><thead><tr><th scope="col">Excel 列</th><th scope="col">新增字段名称</th><th scope="col">字段类型</th></tr></thead><tbody id="schemaRows"></tbody></table></div><div class="actionbar"><button class="backlink" id="confirmBack" type="button">← 返回核对</button><div class="actions"><button class="primary" id="schemaConfirm" type="button">确认创建并预检查</button></div></div></div></section>
+<section class="panel" id="precheck" hidden aria-labelledby="precheckTitle"><div class="panelbody"><h2 id="precheckTitle">导入预检查</h2><p>请查看预检查结果。确认无误后再导入数据。</p><div id="checkNotice" class="message" aria-live="polite"></div><div id="blockers" aria-live="polite"></div><div class="actionbar"><button class="backlink" id="checkBack" type="button">← 返回修改</button><div class="actions"><button class="light" id="rerun" type="button">重新预检查</button><button class="primary" id="submit" type="button" disabled>确认导入 172 条记录</button></div></div></div></section>
+<section class="panel" id="done" hidden aria-labelledby="doneTitle"><div class="successpage"><div class="successicon">✓</div><h2 id="doneTitle">导入完成</h2><p>已成功导入 172 条供应商数据。</p><div style="margin-top:22px"><button id="doneBack" class="secondary" type="button">查看字段对应关系</button></div></div></section>
+</main>
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id),K="bex-v3-in-context-import-draft-v1";
+const targets=[
+ ["code","往来对象编码"],["name","往来对象名称"],["relation","往来类型"],["subjectType","主体类型"],
+ ["taxNo","统一社会信用代码"],["shortName","简称"],["contact","联系人"],["phone","联系电话"],["email","电子邮箱"],["address","详细地址"],
+ ["country","国家/地区"],["province","省份"],["city","城市"],["currency","结算币种"],["bankAccount","银行账号"],["remark","备注"],
+ ["payExisting","支付方式"],["settleExisting","结算方式"],["termExisting","账期方式"],["daysExisting","账期天数"],
+ ["BANK_SETTLEMENT","开户银行 · 供应商结算资料"],["BANK_ARCHIVE","开户银行 · 财务归档资料"]
+ ];
+const definitions=[
+ ["code","编码","GYS-0001","code"],
+ ["name","名称","深圳市华昇科技有限公司","name"],
+ ["relation","往来类型","供应商","relation"],
+ ["subjectType","主体类型","企业","subjectType"],
+ ["taxNo","统一社会信用代码","91440300XXXXXXXXXX","taxNo"],
+ ["shortName","简称","华昇科技","shortName"],
+ ["contact","联系人","陈经理","contact"],
+ ["phone","联系电话","138****2716","phone"],
+ ["email","邮箱","service@example.cn","email"],
+ ["address","详细地址","南山区科技园","address"],
+ ["country","国家/地区","中国","country"],
+ ["province","省份","广东省","province"],
+ ["city","城市","深圳市","city"],
+ ["currency","结算币种","CNY","currency"],
+ ["pay","默认支付方式","银行转账","__CREATE__"],
+ ["settle","结算方式","月结","__CREATE__"],
+ ["term","默认账期方式","月结30天","__CREATE__"],
+ ["days","账期天数","30","__CREATE__"],
+ ["bank","开户银行","招商银行深圳科技园支行","__PENDING__"],
+ ["bankAccount","银行账号","**** **** **** 2088","bankAccount"],
+ ["systemCode","系统编码","EXT-000172","__PENDING__"],
+ ["remark","备注","开票后月结","remark"]
+];
+const rowMeta={code:["codeCell","编码"],name:["nameCell","名称"],pay:["payCell","默认支付方式"],settle:["settleCell","结算方式"],system:["systemCell","系统编码"]};
+const optionSet=new Set(["__PENDING__","__CREATE__","__IGNORE__",...targets.map(x=>x[0])]);
+const initial=()=>({bank:"",types:["","",""],maps:Object.fromEntries(definitions.map(([k,,,v])=>[k,v])),approved:"",typesForNew:{days:"NUMBER"}});
+let state=initial(),valid=false,filter="attention";
+try{const saved=JSON.parse(localStorage.getItem(K)||"null");if(saved&&typeof saved==="object"){
+ const baseline=initial();Object.keys(baseline.maps).forEach(k=>{if(optionSet.has(saved.maps?.[k]))baseline.maps[k]=saved.maps[k];});
+ if(["","BANK_SETTLEMENT","BANK_ARCHIVE"].includes(saved.bank))baseline.bank=saved.bank;
+ if(Array.isArray(saved.types)&&saved.types.length===3)baseline.types=saved.types.map(x=>["","ORG","PERSON"].includes(x)?x:"");
+ baseline.approved=typeof saved.approved==="string"?saved.approved:"";
+ baseline.typesForNew={...baseline.typesForNew,...(saved.typesForNew||{})};
+ state=baseline;
+}}catch{}
+function save(){try{localStorage.setItem(K,JSON.stringify(state));$("saveStatus").textContent="草稿已保存";}catch{$("saveStatus").textContent="暂时无法保存草稿";}}
+function proposed(){return definitions.filter(([k])=>state.maps[k]==="__CREATE__");}
+function planKey(){return JSON.stringify(proposed().map(([k])=>[k,state.typesForNew[k]||"TEXT"]));}
+function approved(){return proposed().length===0||state.approved===planKey();}
+function isTarget(x){return targets.some(([v])=>v===x);}
+function faults(){
+ const issues=[];if(!state.bank)issues.push("请确认「开户银行」对应的系统字段。");
+ const missing=state.types.filter(x=>!x).length;if(missing)issues.push(missing+" 条记录尚未填写主体类型。");
+ const pending=definitions.filter(([k])=>state.maps[k]==="__PENDING__");if(pending.length)issues.push(pending.map(x=>"「"+x[1]+"」").join("、")+"尚未选择处理方式。");
+ if(state.maps.code!=="code"||state.maps.name!=="name")issues.push("编码或名称的字段对应关系需要修正。");
+ const used=new Set();for(const [k]of definitions){const val=state.maps[k];if(isTarget(val)){if(used.has(val))issues.push("存在重复对应的系统字段。");used.add(val);}}
+ return issues;
+}
+function setOpen(btn,body,open){$(body).hidden=!open;$(btn).setAttribute("aria-expanded",String(open));}
+function setView(id){
+ for(const x of ["upload","review","confirm","precheck","done"])$(x).hidden=x!==id;
+ document.querySelector(".fileinfo").hidden=id==="upload";
+ $("stageOne").className="stepdot "+(id==="upload"?"active":"done");$("stageOne").textContent=id==="upload"?"1":"✓";$("stageTwo").className="stepdot "+(id==="upload"?"":"active");
+ $("pageTitle").textContent=id==="upload"?"导入供应商":id==="review"?"核对导入数据":id==="confirm"?"确认新增字段":id==="precheck"?"导入预检查":"导入完成";
+ $("pageDescription").textContent=id==="upload"?"选择已有导入任务，继续完成数据核对。":id==="review"?"确认字段对应关系，处理数据问题后导入供应商。":id==="confirm"?"检查新字段的名称与类型。":id==="precheck"?"确认数据无误后完成导入。":"";
+ window.scrollTo(0,0);
+ const focusEl=id==="upload"?$("uploadTitle"):id==="review"?$("pageTitle"):$({confirm:"confirmTitle",precheck:"precheckTitle",done:"doneTitle"}[id]);focusEl.tabIndex=-1;focusEl.focus({preventScroll:true});
+}
+function bankSelect(){state.bank=$("bank").value;state.maps.bank=state.bank||"__PENDING__";changed();}
+function renderRecords(){
+ const companies=[["GYS-0036","广州市悦星电子有限公司"],["GYS-0102","杭州恒远商贸有限公司"],["GYS-0147","深圳市创联供应链有限公司"]];
+ const host=$("recordRows");host.replaceChildren();
+ companies.forEach(([code,name],i)=>{
+  const row=document.createElement("div");row.className="recordgrid";
+  const c=document.createElement("div");c.innerHTML='<div class="company"></div><div class="recordid"></div>';
+  c.querySelector(".company").textContent=name;c.querySelector(".recordid").textContent=code;
+  const f=document.createElement("div");const typeStatus=document.createElement("span");typeStatus.className="tag "+(state.types[i]?"existing":"pending");typeStatus.textContent=state.types[i]?"已填写":"未填写主体类型";f.append(typeStatus);
+  const slot=document.createElement("div"),lab=document.createElement("label"),input=document.createElement("select");
+  input.id="type_"+i;lab.htmlFor=input.id;lab.textContent="主体类型";input.innerHTML='<option value="">请选择</option><option value="ORG">企业</option><option value="PERSON">个人</option>';
+  input.value=state.types[i];input.onchange=()=>{state.types[i]=input.value;changed(input.id);};slot.append(lab,input);row.append(c,f,slot);host.append(row);
+ });
+}
+function fillMappings(){
+ const tbody=$("mappingRows");tbody.replaceChildren();const occupancy=new Map();
+ definitions.forEach(([k])=>{const value=state.maps[k];if(isTarget(value))occupancy.set(value,k);});
+ let list=definitions;
+ if(filter==="attention")list=definitions.filter(([k,, ,v])=>["__CREATE__","__PENDING__"].includes(state.maps[k])||["bank","subjectType"].includes(k));
+ if(filter==="unmatched")list=definitions.filter(([k])=>state.maps[k]==="__PENDING__");
+ $("tableCaption").textContent="显示 "+list.length+" / "+definitions.length+" 列";
+ for(const [k,label,sample]of list){
+  const tr=document.createElement("tr");
+  const one=document.createElement("td");one.className="source";one.textContent=label;
+  const two=document.createElement("td");two.className="sample";two.title=sample;two.textContent=sample;
+  const three=document.createElement("td"),four=document.createElement("td");
+  if(k==="bank"){const btn=document.createElement("button");btn.className="textbutton";btn.textContent=state.bank?targets.find(x=>x[0]===state.bank)?.[1]:"选择对应字段";btn.onclick=()=>{setOpen("bankToggle","bankBody",true);$("bank").focus();};three.append(btn);}
+  else if(k==="subjectType"){const btn=document.createElement("button");btn.className="textbutton";btn.textContent="查看数据问题";btn.onclick=()=>{setOpen("typeToggle","typeBody",true);$("type_0").focus();};three.append(btn);}
+  else{
+   const sel=document.createElement("select");sel.className="mappingselect";sel.id="map_"+k;sel.setAttribute("aria-label",label+" 对应字段");
+   const opts=[["__PENDING__","请选择对应字段"],["__IGNORE__","不导入此列"],["__CREATE__","新建字段： "+label],...targets];
+   for(const [v,text]of opts){
+    if(k==="code"||k==="name"){if(v==="__CREATE__")continue;}
+    const opt=document.createElement("option");opt.value=v;opt.textContent=text;
+    if(isTarget(v)&&occupancy.has(v)&&occupancy.get(v)!==k){opt.disabled=true;opt.textContent=text+" · 已占用";}
+    sel.append(opt);
+   }
+   sel.value=state.maps[k];sel.onchange=()=>{state.maps[k]=sel.value;changed(sel.id);};
+   three.append(sel);
+  }
+  const status=document.createElement("span");let val=state.maps[k];
+  if(k==="subjectType"){val=state.types.every(Boolean)?"complete":"issue";}
+  if(val==="__PENDING__"||val==="issue"){status.className="tag pending";status.textContent="待处理";}
+  else if(val==="__CREATE__"){status.className="tag new";status.textContent="待新增";}
+  else if(val==="__IGNORE__"){status.className="tag";status.textContent="不导入";}
+  else{status.className="tag existing";status.textContent="已匹配";}
+  four.append(status);tr.append(one,two,three,four);tbody.append(tr);
+ }
+}
+function updateIssues(){
+ const bankOK=!!state.bank,typesOK=state.types.every(Boolean),systemOK=state.maps.systemCode!=="__PENDING__";
+ const set=(id,ok)=>{$(id).classList.toggle("action-done",ok);};
+ set("bankIssue",bankOK);set("subjectIssue",typesOK);set("metadataIssue",systemOK);
+ $("bankIcon").textContent=bankOK?"✓":"1";$("subjectIcon").textContent=typesOK?"✓":"2";$("metadataIcon").textContent=systemOK?"✓":"3";
+ $("bankStatus").textContent=bankOK?"已选择："+targets.find(x=>x[0]===state.bank)?.[1]:"请确认这列数据应写入哪个业务字段。";
+ $("subjectStatus").textContent=typesOK?"3 条记录已补充主体类型":"还剩 "+state.types.filter(x=>!x).length+" 条记录需要补充主体类型。";
+ $("metadataStatus").textContent=systemOK?"已选择处理方式，可在下方字段列表中修改。":"请确认是否需要导入为业务字段。原文件内容会保留在导入记录中。";
+ $("bankToggle").textContent=bankOK?"修改选择":"选择字段";$("typeToggle").textContent=typesOK?"查看并修改":"查看记录";
+ $("metaToggle").textContent=systemOK?"修改处理方式":"处理此列";
+ const total=Number(!bankOK)+Number(!typesOK)+Number(!systemOK);
+ $("issueBadge").textContent=total?total+" 项待处理":"已处理全部问题";
+ $("issueBadge").className="pill "+(total?"warn":"ok");
+}
+function render(){
+ $("bank").value=state.bank;
+ renderRecords();updateIssues();fillMappings();
+ $("mappedCount").textContent=String(definitions.filter(([k])=>isTarget(state.maps[k])).length);
+ $("createCount").textContent=String(proposed().length);
+ $("skipCount").textContent=String(definitions.filter(([k])=>state.maps[k]==="__IGNORE__").length);
+ $("issueCount").textContent=String(faults().length);
+ $("toggleAll").textContent=filter==="all"?"只看需要关注":"查看全部字段";
+ $("tableFilter").value=filter;
+}
+function changed(focusId){valid=false;$("submit").disabled=true;save();render();if(focusId&&$(focusId))$(focusId).focus({preventScroll:true});}
+$("bank").onchange=bankSelect;
+$("bankToggle").onclick=()=>setOpen("bankToggle","bankBody",$("bankBody").hidden);
+$("typeToggle").onclick=()=>setOpen("typeToggle","typeBody",$("typeBody").hidden);
+$("metaToggle").onclick=()=>{filter="all";render();$("map_systemCode").focus();};
+$("toggleAll").onclick=()=>{filter=filter==="all"?"attention":"all";render();};
+$("tableFilter").onchange=()=>{filter=$("tableFilter").value;render();};
+$("prepare").onclick=()=>{
+ const issues=faults();
+ if(issues.length){$("checkNotice").textContent=issues.length+" 项问题需要先处理";setView("precheck");precheck();return;}
+ if(proposed().length&&!approved()){renderPlan();setView("confirm");return;}
+ precheck();setView("precheck");
+};
+function renderPlan(){
+ const rows=$("schemaRows");rows.replaceChildren();
+ for(const [k,label]of proposed()){
+  const tr=document.createElement("tr"),col=document.createElement("td"),title=document.createElement("td"),type=document.createElement("td");
+  col.textContent=label;title.textContent=label;
+  const select=document.createElement("select");select.id="newtype_"+k;select.setAttribute("aria-label",label+" 字段类型");
+  for(const [v,text] of [["TEXT","文本"],["NUMBER","数字"],["DATE","日期"]]){
+   const o=document.createElement("option");o.value=v;o.textContent=text;select.append(o);
+  }
+  select.value=state.typesForNew[k]||"TEXT";
+  select.onchange=()=>{state.typesForNew[k]=select.value;state.approved="";save();};
+  type.append(select);tr.append(col,title,type);rows.append(tr);
+ }
+}
+$("confirmBack").onclick=()=>setView("review");
+$("schemaConfirm").onclick=()=>{state.approved=planKey();save();precheck();setView("precheck");};
+function precheck(){
+ const issues=faults();if(!approved())issues.push("请重新确认新增字段的名称和类型。");
+ valid=issues.length===0;
+ $("submit").disabled=!valid;
+ $("checkNotice").className="message "+(valid?"ok":"");
+ $("checkNotice").textContent=valid?"预检查通过 · 172 条记录可以导入":issues.length+" 项问题需要处理，暂不能导入";
+ const node=$("blockers");node.replaceChildren();
+ if(issues.length){const ul=document.createElement("ul");ul.style.paddingLeft="21px";ul.style.color="var(--danger)";issues.forEach(msg=>{const li=document.createElement("li");li.textContent=msg;ul.append(li);});node.append(ul);}
+ else{const div=document.createElement("p");div.className="smalltext";div.textContent="字段对应关系已确认。点击「确认导入」后开始写入供应商数据。";node.append(div);}
+}
+$("checkBack").onclick=()=>setView("review");
+$("rerun").onclick=precheck;
+$("submit").onclick=()=>{if(!valid||faults().length||!approved())return;setView("done");};
+$("doneBack").onclick=()=>{setView("review");};
+$("reset").onclick=()=>{state=initial();valid=false;filter="attention";save();setOpen("bankToggle","bankBody",false);setOpen("typeToggle","typeBody",false);render();};
+$("resumeImport").onclick=()=>{render();setView("review");};
+$("backToFiles").onclick=()=>setView("upload");
+$("clearImportDraft").onclick=()=>{state=initial();valid=false;filter="attention";try{localStorage.removeItem(K);}catch{}render();$("resumeProgress").textContent="字段对应关系已恢复初始建议";};
+render();
+if(localStorage.getItem(K)){$("saveStatus").textContent="草稿已保存";$("resumeProgress").textContent="上次的字段修改已保存，点击继续核对";}
+setView("upload");
+})();
+</script>
+</body></html>
