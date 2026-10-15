@@ -1,0 +1,43 @@
+# BEX-01 / CP-03 V3｜真实导入异常单元格受控修正（2026-10-15）
+
+**状态：** 实施 PR 候选，必须以 GitHub CI / 隔离 Host Chromium 实际结果为准；不代表真实客户 Excel 验收。
+
+## 继承与没有重复的研究
+
+继续沿用 [V3 交接](https://github.com/jiangxng/EVO-App-Platform/blob/docs/bex01-v2-human-design-review-20261015/docs/plans/foundation-list-experience/BEX-01-UI-V3-SESSION-HANDOFF-20261015.md) 与 [详细来源/证据等级索引](https://github.com/jiangxng/EVO-App-Platform/blob/docs/bex01-v2-human-design-review-20261015/docs/plans/foundation-list-experience/BEX-01-UI-V3-SESSION-RESEARCH-INDEX-20261015.md)；没有新增外网搜索，也没有把 CN08–09 摘要升级为完整阅读。正式设计规范：Eidos #186。已有 #921 继续导入和 #925 全列原始核对直接复用，不重建。
+
+本 PR 起始 `main@9b15e0a392130f5f337e1b90a25023d5318ca14a`。#860 的业务字段映射/单列创建仍 OPEN；#878 的批量设计及其它 Host 改动仍 OPEN；#909 是原型与研究 Draft。只在 **Data Import owner** 内追加导入行级更正契约，Host 共享文件仅追加原模块路由和 lazy command，不涉及其它窗口的认证逻辑或 Eidos 通用运行代码。合并前必须对齐最新 main 和公共文件差异。
+
+## 功能边界与决定
+
+- **保留原件**：`job.source.headers/rows` 保持上传时单元格原值；`rowCorrections` 作为 Job 内、当前企业上下文可持久化的独立更正层，记录行号、来源列、新值、操作者和时间。不是浏览器 `localStorage`。
+- **异常直达**：预检查失败行旁提供“修正本行问题”，进入带原值、字段用途和候选枚举的上下文表单；已有更正行优先显示“查看或撤销本行更正”。不声称与原表格同卡嵌入式编辑已完成。
+- **不乱改**：仅支持当前已映射的、IMPORT 可写的 `STRING/ENUM` 字段；只能修正被真实 dry-run 标为该字段有问题的行或修改已有更正；同名字段仍依真实 target field ID；转换映射、忽略列、提交后作业拒绝修改。
+- **不猜身份**：`subjectType` 只能由 Human 挑选合法枚举值，不能用 `SUPPLIER` 关系角色推断，也不能用任意新枚举代替身份。
+- **重新预检**：每次 SET/REVERT 都让旧 dry-run/receipt 失效成 STAGED，保存后以现有目标验证器重新 dry-run；直到所有行通过仍须原明确 commit。若重新预检失败，Job 已保存为 STAGED 可恢复，不得以旧预检许可 commit。
+- **回退与保存**：REVERT 删除本次更正，恢复原来源值；新映射若改变目标或变为转换映射，会丢弃不再合法的对应更正，保留其它同一来源及目标未变的更正；`RECIPE` 与其它字段映射保留。
+- **权限与并发**：正式能力标注 `HUMAN` + `WRITE` + 企业 Job resource + Host-required idempotency/receipt，服务再次检查 ENTERPRISE 上下文和 ACTIVE OWNER/ADMIN；不存在授权时拒绝。表单带当前特定行/列/映射/已保存修正的 revision token，旧页面提交拒绝，避免静默覆盖。没有客户端自由输入 target field ID。
+- **范围限定**：本轮不支持 NUMBER/DATE/BOOLEAN、未经标记的行、同名列合并、批量任意行值静默修补；不改变 Object Extension Schema 或权限 owner。受控修正不是上传 Excel 二进制回写。
+- **真实数据未到**：用户原始 `往来账户2026_10_08_10_15_23.xlsx`、授权 Import Job、真实字段业务用途未取得；绝不声称真实 172 行、三缺失记录或同名银行归属已人工签收。
+
+## 验收项目｜当前状态｜下一步
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| 原始值及更正审计持久化 | 已编写代码，等待 CI | 验证真实 Host Job 持久重新读取及恢复 |
+| 预检查失效/回退 | 已编写代码，等待 CI | 定向协议 + Chromium 修正/撤销与禁止旧 commit |
+| `subjectType` 合法人工选择 | 已编写代码，等待 CI | 原客户三行真实身份逐行验收 |
+| WRITE/OWNER/ADMIN/AI 权限边界 | 已编码，等待 CI | 现有 Host 权限与隔离安全回归 |
+| 390px 手机/中文 | Eidos 原生控件复用，待截图审核 | 实际 Host Chromium 及 Human 点按确认 |
+| 同名银行 / 批量字段方案 | 未由本 PR 重新实现 | 吸收 #860/#878，真实 field ID 核验 |
+| 用户原始 XLSX 与生产写入 | 未取得/未授权 | 私有附件与正式授权后单独验收 |
+| Railway | 未部署 | 不擅自上线 |
+
+## 代码与证据入口
+
+- 领域：`apps/data-import/types.ts`、`row-correction.ts`、`service.ts`、`repository.ts`（仍复用存储）。
+- Host 与 UI：`actions.ts`、`capability-manifest.ts`、`constants.ts`、`package.ts`、`row-correction-page.ts`、`page.ts` review、`manager/server.ts` 定向注册。
+- 回归：`tests/protocol/bex01-v3-row-correction.test.mjs`、`tests/bex01/v3_row_correction_chromium.py`，及原供应商/安全/平台工作流。
+- Human Review：`docs/ui-design-reviews/bex01-v3-governed-row-correction-20261015.md`。
+
+**后续设计缺口**：避免表单需要看到行号、列名、修正版本等低价值固定输入。未来可在 Eidos 标准上进一步支持上下文动作携带只读 Host-owned 参数，不通过 BEX 私造隐藏 HTML/CSS 或降低请求验证。

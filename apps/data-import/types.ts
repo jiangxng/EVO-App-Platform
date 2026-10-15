@@ -5,6 +5,14 @@ import type {
   FoundationObjectImportTargetParametersV010
 } from "../../contracts/foundation-object/import.js";
 
+export type DataImportRowCorrectionV010 = {
+  rowNumber: number;
+  sourceColumn: string;
+  value: FoundationObjectImportCellV010;
+  actorSubjectId: string;
+  recordedAt: string;
+};
+
 export type DataImportJobStateV010 =
   | "STAGED"
   | "DRY_RUN_READY"
@@ -115,6 +123,8 @@ export interface DataImportJobV010 {
   mapping: DataImportMappingV010[];
   /** Explicitly ignored source columns. All original cells remain in source.rows. */
   ignoredSourceColumns?: string[];
+  /** Human-confirmed overrides; original Excel cells remain in source.rows. */
+  rowCorrections?: DataImportRowCorrectionV010[];
   mappingOrigin?: DataImportMappingOriginV010;
   appliedRecipeId?: string;
   stagedAt: string;
@@ -274,6 +284,29 @@ export function assertDataImportJobV010(
       mapping.some(item => item.sourceColumn === column))) {
     throw new Error("DATA_IMPORT_IGNORED_COLUMN_INVALID");
   }
+
+  const corrections = (value.rowCorrections ?? []).map(item => {
+    if (!Number.isInteger(item.rowNumber) || item.rowNumber < 1
+      || item.rowNumber > value.source.rows.length
+      || !headerSet.has(item.sourceColumn)
+      || !mapping.some(entry => entry.sourceColumn === item.sourceColumn)
+      || ignoredSourceColumns.includes(item.sourceColumn)
+      || typeof item.actorSubjectId !== "string" || !item.actorSubjectId.trim()
+      || typeof item.recordedAt !== "string" || !item.recordedAt.trim()
+      || !("value" in item)
+      || !(item.value === null || typeof item.value === "string"
+        || (typeof item.value === "number" && Number.isFinite(item.value))
+        || typeof item.value === "boolean")) {
+      throw new Error("DATA_IMPORT_ROW_CORRECTION_INVALID");
+    }
+    return { rowNumber: item.rowNumber, sourceColumn: item.sourceColumn,
+      value: item.value, actorSubjectId: item.actorSubjectId.trim(),
+      recordedAt: item.recordedAt.trim() };
+  });
+  const correctionKeys = corrections.map(item => item.rowNumber + "|" + item.sourceColumn);
+  if (new Set(correctionKeys).size !== correctionKeys.length) {
+    throw new Error("DATA_IMPORT_ROW_CORRECTION_DUPLICATE");
+  }
   let experienceLearning: DataImportExperienceLearningV010 | undefined;
   if (value.experienceLearning) {
     const item = value.experienceLearning;
@@ -325,6 +358,7 @@ export function assertDataImportJobV010(
     },
     mapping,
     ...(ignoredSourceColumns.length ? { ignoredSourceColumns } : {}),
+    ...(corrections.length ? { rowCorrections: corrections } : {}),
     ...(value.mappingOrigin
       ? { mappingOrigin: value.mappingOrigin }
       : {}),

@@ -941,12 +941,15 @@ import {
   DATA_IMPORT_PACKAGE_ID,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_REVIEW_PAGE_SOURCE,
+  DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+  DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
   DATA_IMPORT_UPLOAD_PAGE_SOURCE,
   dataImportUploadRouteV010,
   parseDataImportMappingRouteV010,
   parseDataImportReviewRouteV010,
+  parseDataImportRowCorrectRouteV010,
   parseDataImportUploadIntentV010
 } from "../apps/data-import/constants.js";
 import {
@@ -5096,6 +5099,7 @@ const actionRouter = createAppActionRouter(
       DATA_IMPORT_GET_COMMAND_V010,
       DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
       DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+      DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
       DATA_IMPORT_ERROR_CSV_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
@@ -7484,6 +7488,7 @@ const server = createServer(async (request, response) => {
         || source === DATA_IMPORT_UPLOAD_PAGE_SOURCE
         || source === DATA_IMPORT_MAPPING_PAGE_SOURCE
         || source === DATA_IMPORT_REVIEW_PAGE_SOURCE
+        || source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
       ) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
@@ -7541,12 +7546,28 @@ const server = createServer(async (request, response) => {
           );
         }
 
+        const rowCorrection = source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
+          ? parseDataImportRowCorrectRouteV010(routeValue || undefined)
+          : undefined;
         const importJobId = source === DATA_IMPORT_MAPPING_PAGE_SOURCE
           ? parseDataImportMappingRouteV010(routeValue || undefined)
-          : parseDataImportReviewRouteV010(routeValue || undefined);
+          : source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
+            ? rowCorrection?.importJobId
+            : parseDataImportReviewRouteV010(routeValue || undefined);
         if (!importJobId) {
           return json(response, 400, {
             code: "DATA_IMPORT_ROUTE_INVALID"
+          });
+        }
+        if (source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE) {
+          const mayCorrect = session.principal.actorType === "HUMAN"
+            && (resolveEnterpriseContextRelationshipProvider()
+              ?.listForPrincipal(session.principal) ?? []).some(item =>
+                item.contextId === active.contextId && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+          if (!mayCorrect) return json(response, 403, {
+            code: "DATA_IMPORT_CORRECTION_MANAGE_ROLE_REQUIRED"
           });
         }
         const job = dataImportRepository.get(active.contextId, importJobId);
@@ -7554,6 +7575,27 @@ const server = createServer(async (request, response) => {
           return json(response, 404, {
             code: "DATA_IMPORT_JOB_NOT_FOUND"
           });
+        }
+        if (source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE) {
+          const target = dataImportTargets.find(item => item.targetId === job.targetId);
+          if (!target || !rowCorrection) return json(response, 404, {
+            code: "DATA_IMPORT_CORRECTION_TARGET_NOT_FOUND"
+          });
+          const fix = await import("../apps/data-import/row-correction-page.js");
+          try {
+            return json(response, 200, fix.createDataImportRowCorrectionPageV010({
+              job, rowNumber: rowCorrection.rowNumber,
+              columnIndex: rowCorrection.columnIndex,
+              locale,
+              schema: target.describe({
+                contextId: active.contextId, locale, parameters: job.targetParameters
+              })
+            }));
+          } catch {
+            return json(response, 409, {
+              code: "DATA_IMPORT_CORRECTION_NOT_AVAILABLE"
+            });
+          }
         }
         if (source === DATA_IMPORT_MAPPING_PAGE_SOURCE) {
           const target = dataImportTargets.find(item =>
