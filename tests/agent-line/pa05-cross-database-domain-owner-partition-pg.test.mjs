@@ -167,9 +167,12 @@ test("PA05-04D14C: actual SQL business Owner bypass, physical restart, frozen do
     }),{state:"FROZEN",pendingCount:3,remoteWorkerCount:2});
     // Confirm a real PostgreSQL backend is terminated, not only an in-memory
     // callback; the local persisted FROZEN gate survives a new connection.
-    const pid=Number((await dbB.unsafe("SELECT pg_backend_pid() AS pid"))[0].pid);
+    const victim=postgres(urls[2],{max:1});
+    const pid=Number((await victim.unsafe("SELECT pg_backend_pid() AS pid"))[0].pid);
     assert.ok(pid>0);
-    await dbB.unsafe("SELECT pg_terminate_backend($1) AS ended",[pid]);
+    const ended=await dbB.unsafe("SELECT pg_terminate_backend($1) AS ended",[pid]);
+    assert.equal(ended[0].ended,true);
+    await victim.end().catch(()=>{});
     await remoteB.close();remoteB=null;
     remoteB=await createPa05CrossDatabaseRemoteSqlAdmissionV010({
       connectionString:urls[2],workerSchema:schemaB,
