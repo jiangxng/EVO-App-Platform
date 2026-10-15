@@ -274,7 +274,7 @@ test("mapping and review pages keep validation and commit explicit", () => {
     mappingPage.contextNavigation.items.map(item => [item.label, item.route]),
     [["数据导入", "/data-import"], ["字段映射", undefined]]
   );
-  assert.match(mappingPage.description, /确认每一列对应的 EVO 字段/);
+  assert.match(mappingPage.description, /先恢复本企业之前的映射/);
   assert.equal(
     mappingPage.fields.find(field => field.key === "map_0").initialValue,
     "code"
