@@ -5,6 +5,11 @@ import type {
 import {
   fieldsForSurfaceV010
 } from "../../contracts/foundation-object/schema.js";
+import {
+  dataImportCorrectableSourceV010,
+  dataImportCorrectedRowV010,
+  dataImportRowCorrectionRevisionV010
+} from "./row-correction.js";
 import type {
   DataImportMappingV010,
   DataImportSourceV010,
@@ -227,6 +232,12 @@ export interface DataImportServiceV010 {
     unmappedColumns: string[];
     rawSourcePreserved: true;
   };
+  correctRow(input: {
+    contextId: string; importJobId: string; rowNumber: number;
+    sourceColumn: string; expectedRevision: string;
+    mode: "SET" | "REVERT"; value?: string;
+    actorSubjectId: string; recordedAt: string;
+  }): DataImportJobV010;
   updateMapping(input: {
     contextId: string;
     importJobId: string;
@@ -502,6 +513,67 @@ export function createDataImportServiceV010(input: {
       };
     },
 
+    correctRow(correctionInput) {
+      const job = input.repository.get(correctionInput.contextId, correctionInput.importJobId);
+      if (!job) throw new Error("DATA_IMPORT_JOB_NOT_FOUND");
+      const schema = targetFor(job).describe({
+        contextId: correctionInput.contextId, parameters: job.targetParameters
+      });
+      const field = dataImportCorrectableSourceV010({
+        job, schema, rowNumber: correctionInput.rowNumber,
+        sourceColumn: correctionInput.sourceColumn
+      });
+      if (dataImportRowCorrectionRevisionV010(job, correctionInput.rowNumber,
+        correctionInput.sourceColumn) !== correctionInput.expectedRevision) {
+        throw new Error("DATA_IMPORT_CORRECTION_STALE");
+      }
+      const previous = job.rowCorrections ?? [];
+      const existing = previous.find(item =>
+        item.rowNumber === correctionInput.rowNumber
+          && item.sourceColumn === correctionInput.sourceColumn);
+      if (correctionInput.mode === "REVERT" && !existing) {
+        throw new Error("DATA_IMPORT_CORRECTION_NOT_FOUND");
+      }
+      if (correctionInput.mode !== "SET" && correctionInput.mode !== "REVERT") {
+        throw new Error("DATA_IMPORT_CORRECTION_MODE_INVALID");
+      }
+      if (correctionInput.mode === "SET"
+        && (typeof correctionInput.value !== "string"
+          || correctionInput.value.length > 2000)) {
+        throw new Error("DATA_IMPORT_CORRECTION_VALUE_INVALID");
+      }
+      if (correctionInput.mode === "SET" && field.valueType === "ENUM") {
+        const definition = schema.fields.find(item => item.fieldId === field.fieldId);
+        if (!definition?.enumOptions?.some(item => item.value === correctionInput.value)) {
+          throw new Error("DATA_IMPORT_CORRECTION_ENUM_INVALID");
+        }
+      }
+      const raw = job.source.rows[correctionInput.rowNumber - 1][
+        correctionInput.sourceColumn] ?? null;
+      const nextValue = correctionInput.mode === "SET"
+        ? (correctionInput.value === "" ? null : correctionInput.value!)
+        : raw;
+      const nextCorrections = previous.filter(item =>
+        item.rowNumber !== correctionInput.rowNumber
+          || item.sourceColumn !== correctionInput.sourceColumn);
+      if (correctionInput.mode === "SET" && nextValue !== raw) {
+        nextCorrections.push({
+          rowNumber: correctionInput.rowNumber, sourceColumn: correctionInput.sourceColumn,
+          value: nextValue, actorSubjectId: correctionInput.actorSubjectId,
+          recordedAt: correctionInput.recordedAt
+        });
+      }
+      return input.repository.save({
+        contextId: correctionInput.contextId,
+        job: {
+          ...job, state: "STAGED", rowCorrections: nextCorrections,
+          dryRun: undefined, receipt: undefined
+        },
+        actorSubjectId: correctionInput.actorSubjectId,
+        recordedAt: correctionInput.recordedAt
+      });
+    },
+
     updateMapping(mappingInput) {
       const job = input.repository.get(
         mappingInput.contextId,
@@ -525,6 +597,14 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: "STAGED",
         mapping: structuredClone(mappingInput.mapping),
+        rowCorrections: (job.rowCorrections ?? []).filter(item =>
+          mappingInput.mapping.some(nextMap =>
+            nextMap.sourceColumn === item.sourceColumn
+            && nextMap.targetFieldId === job.mapping.find(old =>
+              old.sourceColumn === item.sourceColumn)?.targetFieldId
+            && !nextMap.transform
+          )
+        ),
         ignoredSourceColumns: (mappingInput.ignoredSourceColumns
           ?? job.ignoredSourceColumns ?? []).filter(column =>
             !mappingInput.mapping.some(item => item.sourceColumn === column)
@@ -623,7 +703,8 @@ export function createDataImportServiceV010(input: {
         }
       }
       const seenDedupeKeys = new Set<string>();
-      const rows = job.source.rows.map((sourceRow, index) => {
+      const rows = job.source.rows.map((_sourceRow, index) => {
+        const sourceRow = dataImportCorrectedRowV010(job, index + 1);
         const rowNumber = index + 1;
         const validation = target.validateRow({
           contextId: dryRunInput.contextId,
