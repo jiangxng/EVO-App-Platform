@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | C01 | 上下文超过预算；保留核心约束，总预算含工具/输出 | **IN_PROGRESS**。新增可选的真实模型请求前完整 Token 上界校验、输出额度预留、不可证明时 fail-closed；尚缺经认证的具体本地/云端模型 tokenizer/上下文窗口绑定与重要 Working State 优先保留组装，不能签收完整 C01。 |
 | C02 | 删除原消息；派生摘要/索引按政策失效 | **IN_PROGRESS**。首批只解决已持久摘要在源内容更改、遮蔽/删除后不能再被旧条件错误复用；原摘要/索引物理失效、删除传播仍未全证。 |
-| C03 | 旧 READ 恢复，有新鲜度要求时重新读取 | **OPEN**。需读取 Host 当前授权/资源版本与恢复边界，不使用旧模型快照冒充现时事实。 |
+| C03 | 旧 READ 恢复，有新鲜度要求时重新读取 | **IN_PROGRESS**。已新增可选 Host 源版本/新鲜度核验、失效 READ 重新授权读取并留存新证据、失败阻断推理。正式数据源版本与失权后的用户展示仍未全覆盖。 |
 | C04 | 记忆误推断，可查看纠正，不写成企业事实 | **OPEN**。复用现有 Memory Proposal Review、Human 确认与 Host 授权。 |
 | C05 | 注入文件，不触发未授权工具或外发 | **OPEN**。需要确定性敌对内容、权限及 egress 负向验收。 |
 | C06 | 引用失权，不展示标题/正文/下载 | **OPEN**。需要权限撤销之后端到端引用/检索/附件负向验收。 |
@@ -69,3 +69,11 @@
 - **证据范围**：专用 `Agent PA-04 C02 Derived Source Revocation` 工作流在 PostgreSQL18 上验证跨政策多版本、跨线程隔离、摘要与 checkpoint 精确删除、重复调用幂等、失效 Worker 重写阻断及数据库重新连接；AF-02 与 C02 先前的摘要摘要来源指纹用同一 CI 回归。验证日志及 PR 是此子门禁的唯一工程事实，CI 未跑时不得标 PASS。
 - **剩余 C02**：合法来源删除入口、已删原消息对长期 Run/Conversation/Memory/EC 及所有可检索副本的传播、真实权限/法定保留审批、异步复用与崩溃重试时完整删改闭环。整体仍 `PA-04 IN_PROGRESS / NOT_SIGNED`，C01 本地模型 tokenizer 仍未认证，PA-02 R10 仍 OPEN。没有发布/生产 WRITE，也不修改并行 BEX/CP-03。
 
+
+## 2026-10-15：C03 已持久 READ 在恢复推理前的新鲜度验证（第五个局部闭环）
+
+- **具体风险**：PA-02 的可靠 Run 将旧成功 READ 的观察结果跨浏览器/Worker/Host 重启长期保存在事件流中。此前恢复后的模型可直接接收这份观察，难以判断对象已变更、来源失权或 READ 需要实时重查；旧事实不能冒充当前企业事实。
+- **已实现的 opt-in Host 治理**：在原 `manager/agent-async-read-worker-runtime.ts` → `pa02-async-read-worker.ts` 端口新增仅由 Host 注入的 `readFreshness.assess`。每次实际新模型推理前，对历史成功 READ 的当前目录权限和来源版本/新鲜度逐一检查（最大八项）。Host 只能给出 `CURRENT`（已核实时效）、`REFRESH_REQUIRED`（必须重新读）或 `UNVERIFIED`（阻断）；LLM 不能伪造新鲜度身份，也不会用历史 READ 绕过新权限。
+- **需更新时**，以当前 Principal/Context 及当前 Host READ 目录重新调用保存的原始 READ 参数；READ 成功才追加 `READ_REFRESH_RECORDED` 持久事件（含 `sourceVersion`、新的 Host 观察）。不可篡改的原 `TOOL_OBSERVATION_RECORDED` 仍保留供审计，Run 物化结果和下一次模型请求则仅使用最新成功观察。模型未知、源版本未知、工具失权、重读失败或观测内容不匹配均 `RUN_BLOCKED`，不继续推理，也不允许凭旧 READ 继续业务 WRITE。
+- **验证**：专用 `.github/workflows/agent-pa04-c03-read-freshness.yml` 在 PostgreSQL18 上测试：旧 READ 返回 v1、恢复前重读得到 v2、模型只能见 v2、事件仍记录旧 v1、进程重启后只读一次且不重复推理；模拟工具失权、来源版本不可证时阻断推理。沿用既有 PA-02 Worker 及 PA-04 C01 预算回归。只能以准确 HEAD CI 日志确认通过。
+- **边界与未决**：只是**默认不启用的 Host 注入治理**，尚没有为所有实际业务插件接入独立的资源版本证据/失权查询。此端口不会自行改变业务来源，不会清理旧审计事件，不解决已生成但未落库的模型文本或外部引用失权（C06），也不自动拒绝历史已记录 `RUN_SUCCEEDED` 或复写已提交 Owner 回执。若 Host 无法认证业务源的时效，不能宣称 C03 完整签收。PA-04 保持 `IN_PROGRESS / NOT_SIGNED`；PA-02 R10 费用验收保留 OPEN，不触碰对象导入 BEX。
