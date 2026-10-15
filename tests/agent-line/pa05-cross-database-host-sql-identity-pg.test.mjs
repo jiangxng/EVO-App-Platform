@@ -139,7 +139,10 @@ test("PA05-04D13 three physical PG18: real central Host LOGIN, Worker ACL drift,
     await host1.reserve(value);
     assert.deepEqual(await host2.freeze(owner),{state:"FROZEN",pendingCount:1});
     const settlement={...value,verifyOwnerTerminal:async()=>proof()};
-    assert.equal((await host1.settleVerified(settlement)).state,"SETTLED");
+    const resolved=await Promise.all([
+      host1.settleVerified(settlement),host2.settleVerified(settlement)
+    ]);
+    assert.deepEqual(resolved.map(x=>x.state).sort(),["ALREADY_SETTLED","SETTLED"]);
     await assert.rejects(sessions[0].unsafe("UPDATE "+q+
       ".pa05_xdb_reservations SET state='PENDING' WHERE reservation_id=$1",
       [value.reservationId]),/PA05_XDB_CENTRAL_SETTLED_IMMUTABLE/);
