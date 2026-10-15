@@ -1,0 +1,129 @@
+{
+  "contractVersion": "0.1.0",
+  "phase": "PA-04",
+  "phaseStatus": "IN_PROGRESS",
+  "phaseSigned": false,
+  "policy": "Only authenticated current business/source/Provider evidence, Human verification, and approved environment checks can sign a gate. Isolated tests never equal production acceptance.",
+  "fixedDependencies": {
+    "pa02MonetaryR10": "OPEN / NOT_SIGNED (issue #879)",
+    "firstLocalOpenSourceModel": "NOT_SELECTED / TOKENIZER_NOT_CERTIFIED",
+    "productionWriteEnabled": false,
+    "pa03BexImport": "PARALLEL / NOT_CLOSED_BY_PA04"
+  },
+  "gates": [
+    {
+      "id": "C01",
+      "title": "完整上下文及模型输出预算",
+      "engineering": "ISOLATED_PROVEN",
+      "signed": false,
+      "proofPaths": [
+        "tests/protocol/pa04-certified-context-window.test.mjs",
+        "tests/protocol/pa04-prioritized-context-history.test.mjs",
+        "tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs"
+      ],
+      "mergedPRs": [
+        891,
+        892
+      ],
+      "missingEvidence": [
+        "Provider/local-model 真实 tokenizer、模板与上下文长度认证",
+        "Human 长对话与重要早期决策的 Working State 保留验收"
+      ],
+      "owner": "Personal Agent + Provider/Platform",
+      "executionStage": "LOCAL_MODEL_OR_STAGING"
+    },
+    {
+      "id": "C02",
+      "title": "来源变更和删除后派生物失效",
+      "engineering": "ISOLATED_PROVEN",
+      "signed": false,
+      "proofPaths": [
+        "tests/protocol/pa04-source-summary-invalidation.test.mjs",
+        "tests/protocol/pa04-c02-derived-source-revocation.test.mjs"
+      ],
+      "mergedPRs": [
+        889,
+        893
+      ],
+      "missingEvidence": [
+        "获授权的原文删除/保留入口与冲突政策",
+        "Conversation/Run/Memory/EC 索引/缓存及备份恢复后的删除传播"
+      ],
+      "owner": "Platform Data Retention + EC + Personal Agent",
+      "executionStage": "CROSS_SYSTEM_INTEGRATION"
+    },
+    {
+      "id": "C03",
+      "title": "旧任务恢复时 READ 来源新鲜度",
+      "engineering": "ISOLATED_PROVEN",
+      "signed": false,
+      "proofPaths": [
+        "tests/agent-line/pa04-c03-resumed-read-freshness-pg-e2e.test.mjs"
+      ],
+      "mergedPRs": [
+        895
+      ],
+      "missingEvidence": [
+        "真实业务插件资源版本/授权/撤销策略接入",
+        "跨进程实际业务失效/恢复与 Human 显示验收"
+      ],
+      "owner": "Business Tool Owner + Platform Authorization",
+      "executionStage": "STAGING_BUSINESS_INTEGRATION"
+    },
+    {
+      "id": "C04",
+      "title": "记忆误推断人工纠正与企业事实隔离",
+      "engineering": "ISOLATED_PROVEN",
+      "signed": false,
+      "proofPaths": [
+        "tests/protocol/pa04-c04-human-memory-correction.test.mjs"
+      ],
+      "mergedPRs": [
+        898
+      ],
+      "missingEvidence": [
+        "真实 Human 登录及工作台编辑/纠错/撤销端到端验收",
+        "企业事实须获得拥有方核验及现行授权"
+      ],
+      "owner": "Personal Agent Experience + Enterprise Context Owner",
+      "executionStage": "STAGING_HUMAN_ACCEPTANCE"
+    },
+    {
+      "id": "C05",
+      "title": "不可信文档注入与外发防护",
+      "engineering": "ISOLATED_PROVEN",
+      "signed": false,
+      "proofPaths": [
+        "tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs"
+      ],
+      "mergedPRs": [
+        900
+      ],
+      "missingEvidence": [
+        "真实 Host 注入工具目标及外发 allowlist/网络隔离",
+        "文件解析器/插件 API/浏览器重定向与敏感来源端到端对抗测试"
+      ],
+      "owner": "Platform Security + Tool/Network Owner",
+      "executionStage": "STAGING_SECURITY_INTEGRATION"
+    },
+    {
+      "id": "C06",
+      "title": "来源失权后引用正文及下载阻断",
+      "engineering": "ISOLATED_PROVEN",
+      "signed": false,
+      "proofPaths": [
+        "tests/agent-line/pa04-c06-memory-reference-disclosure.test.mjs"
+      ],
+      "mergedPRs": [
+        897
+      ],
+      "missingEvidence": [
+        "生产来源资源级实时授权接线",
+        "历史 Run/Conversation/已生成结果/附件签名下载与检索索引失权测试"
+      ],
+      "owner": "Platform Authorization + Artifact/Context Owners",
+      "executionStage": "STAGING_SECURITY_INTEGRATION"
+    }
+  ],
+  "releaseEligibility": "NOT_APPROVED"
+}

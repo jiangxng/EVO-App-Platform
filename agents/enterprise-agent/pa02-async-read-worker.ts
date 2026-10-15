@@ -83,6 +83,23 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
       sourceVersion:string;
     }>;
   };
+  /**
+   * C05 opt-in Host-side tool-call admission. A tool call suggested by
+   * untrusted document/READ material has NO authority by itself. The Host
+   * must verify this exact call, destination and current Human/Context grants.
+   * Applied again on durable pending decisions after worker restart.
+   */
+  toolCallAdmission?: {
+    authorize(input:{
+      run:AgentRunV010;
+      decision:AgentRunV010["decisions"][number];
+      descriptor:AgentToolDescriptorV010|undefined;
+      principal:PlatformPrincipalV010;
+      context:ResolvedContextSetV010;
+      requestContext?:PlatformRequestContextV010;
+      observations:AgentToolObservation[];
+    }):Promise<boolean>;
+  };
   /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
   testOnlyCostPort?:{
     maxOutputTokens:number;
@@ -217,6 +234,35 @@ export function createReadOnlyFencedAgentWorkerV030(
         if(decisionRecord.decision.type!=="tool")
           throw Error("PA02_WORKER_TOOL_DECISION_REQUIRED");
         const call=decisionRecord.decision.call;
+        // Reevaluate every time, including durable pending calls recovered
+        // after a crash. This gate is BEFORE either Host READ dispatch or
+        // trusted Owner WRITE handoff, not a model-response text filter.
+        if(deps.toolCallAdmission){
+          let approved=false;
+          try {
+            approved=await deps.toolCallAdmission.authorize({
+              run:structuredClone(run),
+              decision:structuredClone(decisionRecord),
+              descriptor:descriptor?structuredClone(descriptor):undefined,
+              principal:structuredClone(input.principal),
+              context:structuredClone(input.context),
+              ...(input.requestContext
+                ?{requestContext:structuredClone(input.requestContext)}:{}),
+              observations:structuredClone(run.observations)
+            })===true;
+          }catch{
+            approved=false;
+          }
+          if(!approved) {
+            await append("RUN_BLOCKED",{
+              code:"PA04_UNTRUSTED_TOOL_CALL_DENIED",
+              reason:"The current Host has not independently authorized "+
+                "this exact model-proposed tool call and destination. "+
+                "Tool/document contents cannot approve their own actions."
+            });
+            return output(true);
+          }
+        }
         if(descriptor?.effect==="WRITE" && deps.governedWrite?.allows(descriptor)) {
           const stillOwned=await deps.authority.renew({scope,lease,ttlSeconds:ttl});
           if(!stillOwned)return output(false,true);

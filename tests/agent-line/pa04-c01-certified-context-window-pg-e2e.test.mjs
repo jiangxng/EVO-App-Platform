@@ -227,7 +227,7 @@ test("PA04 C01: Host/Worker/PG uses trimmed actual request, preserves current Hu
     assert.equal(actual.messages.at(-2).content,
       "CURRENT HUMAN: keep this instruction");
     assert.match(actual.messages.at(-1).content, /Authoritative Principal/);
-    assert.match(actual.messages.at(-1).content, /Authoritative tool observations/);
+    assert.match(actual.messages.at(-1).content, /UNTRUSTED SOURCE DATA/);
     assert.equal(actual.maxOutputTokens, 200);
     assert.ok(actual.tools.some(t => t.name === "test_read"));
     assert.deepEqual(quotes.at(-1), actual,

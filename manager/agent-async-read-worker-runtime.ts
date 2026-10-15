@@ -46,6 +46,9 @@ export interface HostAsyncReadExecutionDependenciesV030 {
   /** Optional exact Host-owned C03 source freshness verification and re-READ.
    * Unconfigured staged workers preserve current PA-02 behavior. */
   readFreshness?:NonNullable<import("../agents/enterprise-agent/pa02-async-read-worker.js").ReadOnlyFencedWorkerDependenciesV030["readFreshness"]>;
+  /** C05: optional Host-reviewed exact tool call/destination admission,
+   * checked even when resuming a persisted model decision. */
+  toolCallAdmission?:NonNullable<import("../agents/enterprise-agent/pa02-async-read-worker.js").ReadOnlyFencedWorkerDependenciesV030["toolCallAdmission"]>;
   /** Synthetic contract for isolated budget integration tests only.
    * Ordinary Server does not construct this. NEVER actual vendor pricing. */
   testOnlyCostPolicy?:Pa02CostPolicyCandidateV010;
@@ -275,6 +278,7 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
       ...(testOnlyCostPort?{testOnlyCostPort}:{}),
       ...(input.deps.contextWindow?{contextWindow:input.deps.contextWindow}:{}),
       ...(input.deps.readFreshness?{readFreshness:input.deps.readFreshness}:{}),
+      ...(input.deps.toolCallAdmission?{toolCallAdmission:input.deps.toolCallAdmission}:{}),
       eventId:randomUUID,sliceId:randomUUID
     });
     let run=before;
