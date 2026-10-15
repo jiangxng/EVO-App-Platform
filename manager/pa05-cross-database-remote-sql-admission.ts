@@ -63,7 +63,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
   authority:Pa05CrossDatabaseReservationAuthorityV010;
   /** D14B1 optional fresh-login cross-PG Host attestation preflight.
    * It is NOT an atomic credential revocation with central reserve. */
-  hostPrincipal?:{assertActive():Promise<void>};
+  hostPrincipal?:{readonly hostId:string;readonly revision:number;assertActive():Promise<void>};
 }):Promise<Pa05RemoteSqlAdmissionV010> {
   const workerId=id(input.workerId),owner=id(input.ownerPackageId),
     version=versionName(input.ownerVersion),role=roleName(input.workerLoginRole);
@@ -73,6 +73,12 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
   if(!input.connectionString || !input.authority ||
     typeof input.authority.reserve!=="function")
     throw Error("PA05_XDB_REMOTE_AUTHORITY_REQUIRED");
+  // An opt-in D14B2 central authority may never accept ticket staging via
+  // another Host principal (or bypass preflight entirely).
+  if(input.authority.boundHostId && (
+    input.hostPrincipal?.hostId!==input.authority.boundHostId ||
+    input.hostPrincipal?.revision!==input.authority.boundHostRevision))
+    throw Error("PA05_XDB_REMOTE_CENTRAL_HOST_BINDING_MISMATCH");
   const db=postgres(input.connectionString,{max:4,connect_timeout:10,idle_timeout:15});
   try {
     const hostLogin=roleName(String((await db.unsafe("SELECT SESSION_USER AS name"))[0].name));

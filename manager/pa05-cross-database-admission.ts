@@ -7,6 +7,9 @@ import postgres from "postgres";
  * trusted principal, DB role and Owner verifier are independently certified.
  */
 export interface Pa05CrossDatabaseReservationAuthorityV010 {
+  /** D14B2 opt-in immutable trusted Host binding, if configured. */
+  readonly boundHostId?: string;
+  readonly boundHostRevision?: number;
   /** Explicit certified Owner activation: registration always starts FROZEN. */
   registerFrozenOwner(packageId: string, version: string): Promise<void>;
   reopenOwner(input: {
@@ -83,6 +86,16 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
   enforceCentralSqlIdentity?: boolean;
   centralHostLoginRole?: string;
   centralWorkerLoginRoles?: readonly string[];
+  /**
+   * D14B2: Host-provisioned identity, NOT an Agent/Worker argument.
+   * The central manifest is administrator-owned; its ACTIVE state and
+   * revision are locked in the SAME tx that inserts a reservation.
+   * This checks an out-of-band identity declaration, not a cryptographic
+   * machine identity or a remote credential atomic transaction.
+   */
+  boundHost?: {
+    hostId:string; revision:number; centralLogin:string; manifestSchema:string;
+  };
 }): Promise<Pa05CrossDatabaseReservationAuthorityV010> {
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.authoritySchema))
     throw Error("PA05_XDB_SCHEMA_INVALID");
@@ -108,6 +121,16 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     new Set(workerLogins).size !== workerLogins.length ||
     workerLogins.includes(expectedHost)))
     throw Error("PA05_XDB_CENTRAL_SQL_MEMBERSHIP_INVALID");
+  const principal = input.boundHost ? {
+    hostId:name(input.boundHost.hostId),
+    revision:input.boundHost.revision,
+    centralLogin:roleName(input.boundHost.centralLogin),
+    schema:input.boundHost.manifestSchema
+  } : undefined;
+  if(principal && (!Number.isSafeInteger(principal.revision)||
+     principal.revision<1||typeof principal.schema!=="string"||
+     !/^[a-z][a-z0-9_]{0,62}$/.test(principal.schema)))
+    throw Error("PA05_XDB_PRINCIPAL_FENCE_CONFIG_INVALID");
   const a = '"' + input.authoritySchema + '"';
   const sql = postgres(input.authorityConnectionString, {
     max: 8, connect_timeout: 10, idle_timeout: 15
@@ -295,6 +318,25 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
   if (strict) {
     try {await auditWorkerRoles(sql);} catch(error) {await sql.end();throw error;}
   }
+  async function lockPrincipalManifest(tx:any,ownerId:string,workerId:string){
+    if(!principal)return;
+    const allowed=workers.filter(w=>w.ownerPackageId===ownerId)
+      .map(w=>w.workerId).sort();
+    // SELECT FOR SHARE takes row locks that conflict with a trusted
+    // administrator's UPDATE REVOKED / revision rotation; revocation and
+    // reservation therefore have an unambiguous central commit order.
+    const rows=await tx.unsafe(
+      'SELECT host_id,revision,worker_id,central_login,state FROM "'+
+      principal.schema+'".pa05_xdb_host_identity_bindings '+
+      'WHERE host_id=$1 ORDER BY worker_id FOR SHARE',[principal.hostId]);
+    if(rows.length!==allowed.length||
+       rows.some((r:any,i:number)=>r.host_id!==principal.hostId||
+         Number(r.revision)!==principal.revision||
+         r.worker_id!==allowed[i]||
+         r.central_login!==principal.centralLogin||r.state!=="ACTIVE")||
+       !allowed.includes(workerId))
+      throw Error("PA05_XDB_PRINCIPAL_FENCE_REVOKED_OR_MISMATCHED");
+  }
   const pending = async (tx: any, id: string): Promise<number> => {
     const rows = await tx.unsafe("SELECT count(*)::integer AS n FROM " + a +
       ".pa05_xdb_reservations WHERE owner_package_id=$1 AND state='PENDING'", [id]);
@@ -308,6 +350,10 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     return rows[0] as {package_version: string;state: string};
   };
   return {
+    ...(principal ? {
+      boundHostId:principal.hostId,
+      boundHostRevision:principal.revision
+    } : {}),
     async registerFrozenOwner(packageId, version) {
       packageId = name(packageId); version = versionId(version);
       await auditWorkerRoles(sql);
@@ -347,6 +393,10 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
         const owner = await lock(tx,packageId);
         if (owner.state !== "ACTIVE" || owner.package_version !== version)
           throw Error("PA05_XDB_ADMISSION_FROZEN_OR_VERSION_CHANGED");
+        // The central transaction locks current Host identity rows, not an
+        // earlier client-side preflight snapshot. A committed revoke cannot
+        // admit a new reservation; a concurrent revoke waits for our commit.
+        await lockPrincipalManifest(tx,packageId,workerId);
         const membership = await tx.unsafe("SELECT 1 FROM " + a +
           ".pa05_xdb_workers WHERE worker_id=$1 AND owner_package_id=$2",
           [workerId,packageId]);

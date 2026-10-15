@@ -14,6 +14,7 @@ on:
       - "tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - ".github/workflows/agent-pa05-cross-database-admission.yml"
   push:
@@ -83,7 +84,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs | tee pa05-xdb.log
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq '"physicalClusters":3' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
@@ -94,6 +95,9 @@ jobs:
           grep -Fq 'PA05_XDB_CENTRAL_SQL_HOST_IDENTITY_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_REMOTE_MONOTONE_FREEZE_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_HOST_PRINCIPAL_BINDING_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_TRANSACTIONAL_HOST_FENCE_PG=' pa05-xdb.log
+          grep -Fq '"realD10PreflightToReserveRaceDenied":true' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           grep -Fq '"rotatedPasswordDeniesNextRealTicket":true' pa05-xdb.log
           grep -Fq '"atomicCrossDatabaseRevocationCertified":false' pa05-xdb.log
           grep -Fq '"remotePartitionCannotClaimGlobalFreeze":true' pa05-xdb.log
