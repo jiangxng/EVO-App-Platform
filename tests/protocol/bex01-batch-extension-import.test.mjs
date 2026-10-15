@@ -131,3 +131,22 @@ test("BEX batch recovers from post-definition mapping failure without duplicate 
   assert.equal(x.getJob().mapping.length,6);
   assert.equal(x.getCalls(),2);
 });
+
+test("BEX batch offers core targets first, and two same-name opening bank fields require Human review",()=>{
+  const job=fixture();
+  job.source.headers.push("开户银行");
+  job.source.rows.forEach(row=>{row["开户银行"]="Test Bank";});
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],locale:"zh-CN",
+    importableTargets:[
+      {fieldId:"core_payment",label:"默认支付方式",valueType:"STRING"},
+      {fieldId:"ext_bank_1",label:"开户银行",valueType:"STRING"},
+      {fieldId:"ext_bank_2",label:"开户银行",valueType:"STRING"}
+    ]
+  });
+  assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"core_payment");
+  assert.equal(page.fields.find(x=>x.key==="choice_5").initialValue,"__REVIEW__");
+  assert.deepEqual(page.fields.find(x=>x.key==="choice_5").options
+    .filter(x=>x.label.startsWith("开户银行")).map(x=>x.value),
+    ["ext_bank_1","ext_bank_2"]);
+});
