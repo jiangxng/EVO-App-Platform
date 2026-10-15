@@ -1,0 +1,78 @@
+name: Agent PA-04 C01-C06 Consolidated Acceptance
+on:
+  pull_request:
+    paths:
+      - "docs/agent-line/PA04-C01-C06-READINESS-LEDGER.json"
+      - "docs/agent-line/PA04-C01-C06-CONVERGENCE.md"
+      - "docs/agent-line/PA04-CURRENT-ACCEPTANCE.md"
+      - "tests/protocol/pa04-convergence-readiness.test.mjs"
+      - "tests/protocol/pa04-certified-context-window.test.mjs"
+      - "tests/protocol/pa04-prioritized-context-history.test.mjs"
+      - "tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs"
+      - "tests/protocol/pa04-source-summary-invalidation.test.mjs"
+      - "tests/protocol/pa04-c02-derived-source-revocation.test.mjs"
+      - "tests/agent-line/pa04-c03-resumed-read-freshness-pg-e2e.test.mjs"
+      - "tests/protocol/pa04-c04-human-memory-correction.test.mjs"
+      - "tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs"
+      - "tests/agent-line/pa04-c06-memory-reference-disclosure.test.mjs"
+      - ".github/workflows/agent-pa04-c01-c06-consolidated.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  c01-c06-consolidated-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: agentproof
+          POSTGRES_PASSWORD: agentproof
+          POSTGRES_DB: agentproof
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agentproof -d agentproof"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA02A_PROOF_DATABASE_URL: postgres://agentproof:agentproof@127.0.0.1:5432/agentproof
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Run all C01-C06 protocol and isolated PostgreSQL18 proof suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test \
+            tests/protocol/pa04-convergence-readiness.test.mjs \
+            tests/protocol/pa04-certified-context-window.test.mjs \
+            tests/protocol/pa04-prioritized-context-history.test.mjs \
+            tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs \
+            tests/protocol/pa04-source-summary-invalidation.test.mjs \
+            tests/protocol/pa04-c02-derived-source-revocation.test.mjs \
+            tests/agent-line/pa04-c03-resumed-read-freshness-pg-e2e.test.mjs \
+            tests/protocol/pa04-c04-human-memory-correction.test.mjs \
+            tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs \
+            tests/agent-line/pa04-c06-memory-reference-disclosure.test.mjs \
+            | tee pa04-consolidated-evidence.log
+          # A skipped PostgreSQL proof is not an acceptance pass. Require
+          # the actual PG-only success markers from each relevant run.
+          grep -Fq 'PA04_C01_CERTIFIED_CONTEXT_WINDOW=' pa04-consolidated-evidence.log
+          grep -Fq 'PA04_C01_HISTORY_PRIORITY_PG=' pa04-consolidated-evidence.log
+          grep -Fq 'PA04_C02_DERIVED_REVOCATION_PG=' pa04-consolidated-evidence.log
+          grep -Fq 'PA04_C03_FRESH_READ_PG=' pa04-consolidated-evidence.log
+          grep -Fq 'PA04_C05_TOOL_INJECTION_PG=' pa04-consolidated-evidence.log
+      - name: Retain isolated-test proof log (not a production acceptance certificate)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa04-c01-c06-isolated-evidence
+          path: pa04-consolidated-evidence.log
+          if-no-files-found: warn
+          retention-days: 14
