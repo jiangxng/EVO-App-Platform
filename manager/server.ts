@@ -9207,7 +9207,7 @@ const server = createServer(async (request, response) => {
         if (!itemId) {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
         }
-        const snapshot = manager.enable(itemId);
+        const snapshot = await pa05WriteLifecycleHost.admitActivation("ENABLE", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9287,7 +9287,7 @@ const server = createServer(async (request, response) => {
         }
         const confirmed = action.values.confirmed === true;
         const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
-        const snapshot = manager.install(itemId, {
+        const snapshot = await pa05WriteLifecycleHost.admitActivation("INSTALL", itemId, {
           trustApproved: confirmed,
           approvedPermissions: confirmed
             ? target?.permissions?.map(permission => permission.id) ?? []
@@ -9312,7 +9312,7 @@ const server = createServer(async (request, response) => {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
         }
         try {
-          const snapshot = manager.enable(itemId);
+          const snapshot = await pa05WriteLifecycleHost.admitActivation("ENABLE", itemId);
           return json(response, 200, {
             ok: true,
             correlationId: action.sourceInteractionId,
@@ -9432,7 +9432,7 @@ const server = createServer(async (request, response) => {
           plan: current
         });
       }
-      const snapshot = manager.install(body.packageId, {
+      const snapshot = await pa05WriteLifecycleHost.admitActivation("INSTALL", body.packageId, {
         trustApproved: body.trustApproved === true,
         approvedPermissions: body.approvedPermissions ?? []
       });
@@ -9474,7 +9474,7 @@ const server = createServer(async (request, response) => {
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
       try {
         return json(response, 200, {
-          snapshot: manager.enable(body.packageId),
+          snapshot: await pa05WriteLifecycleHost.admitActivation("ENABLE", body.packageId),
           effectiveExperiences: manager.listEffectiveExperiences()
         });
       } catch (error) {
