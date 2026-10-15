@@ -144,3 +144,11 @@
   - `docs/pa02-safe-retired-branches-20261015` @ `38d04a94226e8fea6327834597134ac9ae919c94`
 - 四条精确 SHA 均已登记在 [retired-branches.json](../../repository-hygiene/retired-branches.json)；[Branch Hygiene](../../.github/workflows/branch-hygiene.yml) 的 `workflow_dispatch execute=true` 才会逐项重新核 ref、祖先、开放 PR 和 race 并实际 DELETE。**本轮 GitHub 连接器不提供 dispatch 操作；没有执行 execute=true、没有删除任何上述 ref、没有 DELETED 日志**。最近可见的 `pull_request` 触发 Branch Hygiene 成功运行**不能证明手工删除**。有操作入口的维护者需 [手动执行该 workflow](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/branch-hygiene.yml)，随后逐条核实 `DELETED` 或合理的 `SKIP_*` / `ALREADY_ABSENT` 日志和 ref 实际不存在。
 - **来源及可重复性：** 本轮直接取得 GitHub main/ref/compare、Issue #879、开放 PR、Branch Hygiene YAML 与退休 manifest 内容；没有新读取任何 W01–W04 公网原文，也没有读取 H01–H14 原文，沿用[研究来源等级索引](PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)。重复验证合成计价或重造 Host/Worker/PG 执行链没有价值；后续仅在真实有权证据到位时续做同一 R10 费用正向/负向闭环。
+
+## 2026-10-15：Owner 确认方案 B — R10 真实货币验收暂缓（不变更原始标准）
+
+- **Owner 已选择方案 B：暂缓 R10 真实计费验收**；这是时间/授权策略决策，**并非** R10 费用硬预算验收通过或原始要求缩减。决策已写入 [Issue #879 的 2026-10-15 Owner 决定评论](https://github.com/jiangxng/EVO-App-Platform/issues/879#issuecomment-6181795560)；Issue 继续 OPEN，R10 保持 `NOT_SIGNED`，PA-02 保持 `IN_PROGRESS / NOT_DEV_COMPLETE / NOT_PRODUCTION_READY`。
+- **不重做已完成成果**：R01–R09 隔离开发 PASS，R10 次数/时间/usage 与合成费率的 PostgreSQL 原子预留、Host 模型调用前阻断、完整请求可信上界和 cache-write 计费 UNKNOWN 保留均沿用原 CI/证据；不重建 Run executor、不复制已完成技术方案、也不为凑进度再跑同类合成计费验收。
+- **安全约束不变**：未经独立授权，不发起本项真实付费验收调用，不启用生产 WRITE、不擅自部署、不用公开/示例费率或 loopback usage 冒充合同与供应商账单、不提前推进 PA-03～PA-06。
+- **恢复条件**：在 Issue #879 取得经授权的实际 Provider/model/区域/tier/端点绑定、币种/Run 预算/合同计价版本及所有收费类别、可信最大可计费输入/输出与附加收费上界、实际 Provider usage 和供应商可对账凭证后，使用**既有** Host/Worker/PostgreSQL cost ledger 执行受限真实计费正/负向验证。需要 Human/财务/供应商有权 Owner 提供一手批准凭证；证据未齐时本阶段不做真实金额签收。
+- 四条历史 PA-02 docs 分支的 SHA-pinned Branch Hygiene 清理是独立运维事项，允许另行操作并核实删除日志；其结果**不影响** R10 未签收结论。本记录没有重读 W01–W04 或 H01–H14 官方原文，不改变交接索引既有阅读等级。
