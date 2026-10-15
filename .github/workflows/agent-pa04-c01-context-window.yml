@@ -3,9 +3,11 @@ on:
   pull_request:
     paths:
       - "agents/enterprise-agent/pa04-certified-context-window.ts"
+      - "agents/enterprise-agent/pa04-prioritized-context-history.ts"
       - "agents/enterprise-agent/pa02-async-read-worker.ts"
       - "manager/agent-async-read-worker-runtime.ts"
       - "tests/protocol/pa04-certified-context-window.test.mjs"
+      - "tests/protocol/pa04-prioritized-context-history.test.mjs"
       - "tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs"
       - ".github/workflows/agent-pa04-c01-context-window.yml"
   workflow_dispatch:
@@ -37,4 +39,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/protocol/pa04-certified-context-window.test.mjs tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs
+      - run: node --test tests/protocol/pa04-certified-context-window.test.mjs tests/protocol/pa04-prioritized-context-history.test.mjs tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs
