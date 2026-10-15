@@ -138,10 +138,10 @@ function renderRecords(){
   const row=document.createElement("div");row.className="recordgrid";
   const c=document.createElement("div");c.innerHTML='<div class="company"></div><div class="recordid"></div>';
   c.querySelector(".company").textContent=name;c.querySelector(".recordid").textContent=code;
-  const f=document.createElement("div");f.innerHTML='<span class="tag pending">未填写主体类型</span>';
+  const f=document.createElement("div");const typeStatus=document.createElement("span");typeStatus.className="tag "+(state.types[i]?"existing":"pending");typeStatus.textContent=state.types[i]?"已填写":"未填写主体类型";f.append(typeStatus);
   const slot=document.createElement("div"),lab=document.createElement("label"),input=document.createElement("select");
   input.id="type_"+i;lab.htmlFor=input.id;lab.textContent="主体类型";input.innerHTML='<option value="">请选择</option><option value="ORG">企业</option><option value="PERSON">个人</option>';
-  input.value=state.types[i];input.onchange=()=>{state.types[i]=input.value;changed();};slot.append(lab,input);row.append(c,f,slot);host.append(row);
+  input.value=state.types[i];input.onchange=()=>{state.types[i]=input.value;changed(input.id);};slot.append(lab,input);row.append(c,f,slot);host.append(row);
  });
 }
 function fillMappings(){
@@ -167,7 +167,7 @@ function fillMappings(){
     if(isTarget(v)&&occupancy.has(v)&&occupancy.get(v)!==k){opt.disabled=true;opt.textContent=text+" · 已占用";}
     sel.append(opt);
    }
-   sel.value=state.maps[k];sel.onchange=()=>{state.maps[k]=sel.value;changed();};
+   sel.value=state.maps[k];sel.onchange=()=>{state.maps[k]=sel.value;changed(sel.id);};
    three.append(sel);
   }
   const status=document.createElement("span");let val=state.maps[k];
@@ -203,7 +203,7 @@ function render(){
  $("toggleAll").textContent=filter==="all"?"只看需要关注":"查看全部字段";
  $("tableFilter").value=filter;
 }
-function changed(){valid=false;$("submit").disabled=true;save();render();}
+function changed(focusId){valid=false;$("submit").disabled=true;save();render();if(focusId&&$(focusId))$(focusId).focus({preventScroll:true});}
 $("bank").onchange=bankSelect;
 $("bankToggle").onclick=()=>setOpen("bankToggle","bankBody",$("bankBody").hidden);
 $("typeToggle").onclick=()=>setOpen("typeToggle","typeBody",$("typeBody").hidden);
