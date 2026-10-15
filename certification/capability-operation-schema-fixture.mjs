@@ -161,3 +161,93 @@ export function certifyCapabilitySchemaValueV010(schema, value, {
     issues
   };
 }
+
+
+/**
+ * PA05-02B: traverse *all* schema branches before admitting runtime validation.
+ * Validating one instance does not visit absent optional properties; therefore
+ * an unsupported keyword in such a branch must be refused up front.
+ * This is a deliberately constrained subset, not Draft 2020-12 validation.
+ */
+export function certifyCapabilitySchemaDefinitionV010(schema, {
+  maxDepth = 12
+} = {}) {
+  const issues = [];
+  const add = (code, path) => {
+    if (issues.length < 100) issues.push({ code, path });
+  };
+  const pathSet = new Set();
+  const bounded = keyword => keyword === "minimum" || keyword === "maximum";
+  function visit(spec, path, depth) {
+    if (depth > maxDepth) {
+      add("PA05_CERT_SCHEMA_DEPTH_EXCEEDED", path);
+      return;
+    }
+    if (!record(spec) || pathSet.has(spec)) {
+      add("PA05_CERT_SCHEMA_NOT_OBJECT", path);
+      return;
+    }
+    pathSet.add(spec);
+    for (const keyword of Object.keys(spec)) {
+      if (!KEYWORDS.has(keyword)) {
+        add("PA05_CERT_SCHEMA_KEYWORD_UNSUPPORTED", path + "." + keyword);
+      }
+    }
+    if (Object.hasOwn(spec, "type")) {
+      const types = Array.isArray(spec.type) ? spec.type : [spec.type];
+      if (types.length === 0 || types.some(t => !STANDARD_TYPES.has(t))
+        || new Set(types).size !== types.length) {
+        add("PA05_CERT_SCHEMA_TYPE_UNSUPPORTED", path + ".type");
+      }
+    }
+    if (spec.properties !== undefined && !record(spec.properties)) {
+      add("PA05_CERT_SCHEMA_PROPERTIES_INVALID", path + ".properties");
+    }
+    if (spec.required !== undefined && (
+      !Array.isArray(spec.required)
+      || spec.required.some(key => typeof key !== "string")
+      || new Set(spec.required).size !== spec.required.length
+    )) {
+      add("PA05_CERT_SCHEMA_REQUIRED_INVALID", path + ".required");
+    }
+    if (spec.additionalProperties !== undefined
+      && typeof spec.additionalProperties !== "boolean") {
+      add("PA05_CERT_SCHEMA_ADDITIONAL_PROPERTIES_UNSUPPORTED", path + ".additionalProperties");
+    }
+    if (spec.items !== undefined && !record(spec.items)) {
+      add("PA05_CERT_SCHEMA_ITEMS_UNSUPPORTED", path + ".items");
+    }
+    if (spec.enum !== undefined && (!Array.isArray(spec.enum) || spec.enum.length === 0)) {
+      add("PA05_CERT_SCHEMA_ENUM_INVALID", path + ".enum");
+    }
+    for (const key of ["minLength", "maxLength", "minItems", "maxItems", "minimum", "maximum"]) {
+      const n = spec[key];
+      if (n !== undefined && (
+        typeof n !== "number" || !Number.isFinite(n)
+        || (!bounded(key) && (!Number.isSafeInteger(n) || n < 0))
+        // The existing instance validator only implements nonnegative bounds.
+        || (bounded(key) && n < 0)
+      )) {
+        add("PA05_CERT_SCHEMA_BOUND_INVALID", path + "." + key);
+      }
+    }
+    for (const key of ["title", "description"]) {
+      if (spec[key] !== undefined && typeof spec[key] !== "string") {
+        add("PA05_CERT_SCHEMA_KEYWORD_INVALID", path + "." + key);
+      }
+    }
+    if (record(spec.properties)) {
+      for (const [key, child] of Object.entries(spec.properties)) {
+        visit(child, path + ".properties." + key, depth + 1);
+      }
+    }
+    if (record(spec.items)) visit(spec.items, path + ".items", depth + 1);
+    pathSet.delete(spec);
+  }
+  visit(schema, "$.schema", 0);
+  return {
+    contractVersion: "0.1.0",
+    ok: issues.length === 0,
+    issues
+  };
+}
