@@ -100,6 +100,16 @@ test("PA05-04D13 three physical PG18: real central Host LOGIN, Worker ACL drift,
       assert.equal((await host1.getState(owner)).pendingCount,0);
     }
 
+    // Regardless of which side won the reservation/freeze race, supply a
+    // deterministically existing row for the hostile SQL UPDATE: a 0-row
+    // UPDATE does not fire a PostgreSQL FOR EACH ROW trigger.
+    await host1.reopenOwner({packageId:owner,version:"1.0.0",
+      trustedOwnerReady:()=>true});
+    const guaranteed=reserve("worker-drift-row");
+    await host1.reserve(guaranteed);
+    assert.deepEqual(await host2.freeze(owner),
+      {state:"FROZEN",pendingCount:1});
+
     // Schema/table ownership is Host-only, but test actual GRANT drift and
     // SQL triggers: even accidentally GRANTed Worker UPDATE must NOT forge
     // a central terminal or open a gate.
@@ -121,6 +131,11 @@ test("PA05-04D13 three physical PG18: real central Host LOGIN, Worker ACL drift,
       /PA05_XDB_CENTRAL_WORKER_SQL_PRIVILEGE_DRIFT/);
     await admin.unsafe('REVOKE UPDATE ON '+q+'.pa05_xdb_owners FROM "'+roleB+'"');
     assert.equal((await host2.getState(owner)).state,"FROZEN");
+    // The hostile UPDATE really targeted a row. Settle this only with a
+    // trusted verifier so the later new-provisioning proof starts drained.
+    assert.deepEqual(await host1.settleVerified({
+      ...guaranteed,verifyOwnerTerminal:async()=>proof()
+    }),{state:"SETTLED",pendingCount:0});
 
     // A SQL superuser SET ROLE session does NOT become an authenticated
     // Host LOGIN. Only SESSION_USER is authoritative inside the trigger.

@@ -61,6 +61,9 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
   workerLoginRole:string;
   /** Host-owned central D9 authority, not supplied by a remote Worker. */
   authority:Pa05CrossDatabaseReservationAuthorityV010;
+  /** D14B1 optional fresh-login cross-PG Host attestation preflight.
+   * It is NOT an atomic credential revocation with central reserve. */
+  hostPrincipal?:{assertActive():Promise<void>};
 }):Promise<Pa05RemoteSqlAdmissionV010> {
   const workerId=id(input.workerId),owner=id(input.ownerPackageId),
     version=versionName(input.ownerVersion),role=roleName(input.workerLoginRole);
@@ -229,6 +232,10 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
       },
       async stagePreparedEffect({scopeKey,effectId}) {
         scopeKey=scope(scopeKey);effectId=scope(effectId);
+        // Never accept model/Worker assertion of Host identity. This trusted
+        // process-injected capability reauthenticates all three PostgreSQL
+        // sessions BEFORE any new Owner reservation or remote ticket.
+        if(input.hostPrincipal)await input.hostPrincipal.assertActive();
         const rows=await db.unsafe("SELECT scope_key,effect_id,run_id,input_digest,fence,state "+
           "FROM "+table+" WHERE scope_key=$1 AND effect_id=$2",[scopeKey,effectId]);
         if(rows.length!==1||rows[0].state!=="PREPARED")
@@ -241,6 +248,9 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         await input.authority.reserve({
           packageId:owner,version,workerId,reservationId,effectDigest
         });
+        // Recheck before local ticket stage; failure conservatively retains
+        // central PENDING. This still is NOT an atomic cross-DB revocation.
+        if(input.hostPrincipal)await input.hostPrincipal.assertActive();
         await db.begin(async tx=>{
           // Prevent a late ticket being installed after local freeze.
           // FOR SHARE serializes with freezeRemote's UPDATE of the same row.
