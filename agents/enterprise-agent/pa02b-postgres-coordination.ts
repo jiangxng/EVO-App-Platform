@@ -86,14 +86,35 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
    * Existing isolated PA-02 paths remain unchanged when this is omitted.
    */
   hostLifecycleAuthoritySchema?: string;
+  /**
+   * Opt-in shared authority, single PostgreSQL DATABASE only. Worker owns
+   * writes/receipts in `schema`, but must use the Host-owned central gate row
+   * in hostLifecycleAuthoritySchema. The Host explicitly names every Worker
+   * schema; unregistered Worker admission must fail closed.
+   */
+  sharedLifecycleWorkerSchemas?: readonly string[];
 }): Promise<AgentExecutionCoordinatorV020> {
-  if (input.requirePluginWriteLifecycleFence &&
-      input.hostLifecycleAuthoritySchema !== undefined &&
-      input.hostLifecycleAuthoritySchema !== input.schema)
-    throw Error("PA05_WRITE_WORKER_SCHEMA_MISMATCH");
   const url = required(input.connectionString);
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema)) throw Error("PA02B_SCHEMA_INVALID");
+  const shared = input.requirePluginWriteLifecycleFence &&
+    input.sharedLifecycleWorkerSchemas !== undefined;
+  if (shared) {
+    const allowed = input.sharedLifecycleWorkerSchemas!;
+    if (!input.hostLifecycleAuthoritySchema ||
+      !/^[a-z][a-z0-9_]{0,62}$/.test(input.hostLifecycleAuthoritySchema) ||
+      !Array.isArray(allowed) || !allowed.length ||
+      allowed.some(x => !/^[a-z][a-z0-9_]{0,62}$/.test(x)) ||
+      new Set(allowed).size !== allowed.length ||
+      !allowed.includes(input.schema))
+      throw Error("PA05_WRITE_SHARED_AUTHORITY_CONFIGURATION_INVALID");
+  } else if (input.requirePluginWriteLifecycleFence &&
+      input.hostLifecycleAuthoritySchema !== undefined &&
+      input.hostLifecycleAuthoritySchema !== input.schema) {
+    throw Error("PA05_WRITE_WORKER_SCHEMA_MISMATCH");
+  }
   const q = '"' + input.schema + '"';
+  const authoritySchema = shared ? input.hostLifecycleAuthoritySchema! : input.schema;
+  const a = '"' + authoritySchema + '"';
   const sql = postgres(url,{max:8,connect_timeout:10,idle_timeout:15});
   try {
     await sql.begin(async tx => {
@@ -115,6 +136,19 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
         "PRIMARY KEY(scope_key,effect_id))");
     });
   } catch (e) { await sql.end(); throw e; }
+  if (shared) {
+    try {
+      // The central worker inventory is installed by the trusted Host Gate,
+      // not by this Worker. Matching schema strings alone are insufficient.
+      const rows = await sql.unsafe(
+        "SELECT schema_name FROM " + a +
+        ".pa05_plugin_write_worker_schemas ORDER BY schema_name"
+      );
+      const declared = [...input.sharedLifecycleWorkerSchemas!].sort();
+      if (JSON.stringify(rows.map(x => x.schema_name)) !== JSON.stringify(declared))
+        throw Error("PA05_WRITE_SHARED_WORKER_INVENTORY_MISMATCH");
+    } catch (error) { await sql.end(); throw error; }
+  }
 
   async function scopedWrite(scope: HostResolvedAgentDurabilityScopeV020,effectId: string) {
     const rows = await sql.unsafe("SELECT * FROM " + q + ".pa02b_writes WHERE scope_key=$1 AND effect_id=$2",
@@ -202,8 +236,17 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
           if(links.length!==1)throw Error("PA05_WRITE_OWNER_LINK_REQUIRED");
           // Exact same row/transaction as freeze(): either INVOKING commits
           // before the freeze sees it, or frozen state refuses invocation.
+          if (shared) {
+            // Fail closed if Host inventory has changed since Worker init.
+            // This check and Owner row lock share the effect admission tx.
+            const rows=await tx.unsafe("SELECT schema_name FROM "+
+              a+".pa05_plugin_write_worker_schemas ORDER BY schema_name");
+            const declared=[...input.sharedLifecycleWorkerSchemas!].sort();
+            if(JSON.stringify(rows.map(x=>x.schema_name))!==JSON.stringify(declared))
+              throw Error("PA05_WRITE_SHARED_WORKER_INVENTORY_MISMATCH");
+          }
           const gates=await tx.unsafe("SELECT state FROM "+
-            q+".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1 FOR UPDATE",
+            a+".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1 FOR UPDATE",
             [links[0].owner_package_id]);
           if(gates.length!==1||gates[0].state!=="ACTIVE")
             throw Error("PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN");
