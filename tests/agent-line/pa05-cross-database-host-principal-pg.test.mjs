@@ -38,7 +38,7 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
   const delegatedRole="pa05delegate_"+suffix;
   const central=postgres(cUrl,{max:3});
   const a=postgres(aUrl,{max:3}),b=postgres(bUrl,{max:3});
-  let authority,remoteGateway;
+  let authority,remoteGateway,guardedGateway;
   const q=x=>'"'+x+'"';
   const name="pa05_xdb_host_identity_bindings";
   const t=s=>q(s)+"."+name;
@@ -218,6 +218,16 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
     const protectedBeta=guarded(profiles[1],1,pass);
     await protectedAlpha.assertActive();
     await protectedBeta.assertActive();
+    guardedGateway=await createPa05CrossDatabaseRemoteSqlAdmissionV010({
+      connectionString:aUrl,workerSchema:remoteA,workerId:"remote-a",
+      ownerPackageId:owner,ownerVersion:"1.0.0",
+      workerLoginRole:workerRole,authority,hostPrincipal:protectedAlpha
+    });
+    await a.unsafe("INSERT INTO "+rq+
+      ".pa02b_writes(scope_key,effect_id,run_id,input_digest,fence,state) "+
+      "VALUES('tenant:d14b','acl-drift','run:acl-drift',$1,1,'PREPARED')",
+      [digest("d14b:acl-drift")]);
+    const beforeDrift=(await authority.getState(owner)).pendingCount;
 
     // Host identity may read manifest, but never mutate the actual
     // central gate or remote ticket/config/WRITE tables, including through
@@ -226,6 +236,10 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
       '".pa05_xdb_reservations TO "'+profiles[0].centralRole+'"');
     await assert.rejects(protectedAlpha.assertActive(),
       /PA05_XDB_HOST_IDENTITY_CENTRAL_UNVERIFIED/);
+    await assert.rejects(guardedGateway.stagePreparedEffect({
+      scopeKey:"tenant:d14b",effectId:"acl-drift"
+    }),/PA05_XDB_HOST_IDENTITY_CENTRAL_UNVERIFIED/);
+    assert.equal((await authority.getState(owner)).pendingCount,beforeDrift);
     await central.unsafe('REVOKE UPDATE ON "'+ownerSchema+
       '".pa05_xdb_reservations FROM "'+profiles[0].centralRole+'"');
     await protectedAlpha.assertActive();
@@ -234,6 +248,10 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
       '.pa05_xdb_remote_tickets TO "'+profiles[0].remoteA+'"');
     await assert.rejects(protectedAlpha.assertActive(),
       /PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
+    await assert.rejects(guardedGateway.stagePreparedEffect({
+      scopeKey:"tenant:d14b",effectId:"acl-drift"
+    }),/PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
+    assert.equal((await authority.getState(owner)).pendingCount,beforeDrift);
     await a.unsafe('REVOKE UPDATE ON '+rq+
       '.pa05_xdb_remote_tickets FROM "'+profiles[0].remoteA+'"');
     await protectedAlpha.assertActive();
@@ -288,6 +306,7 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
       physicalClusters:3,distinctActualHostLogins:2,
       centralReservationDmlDriftRejected:true,
       remoteTicketDmlDriftRejected:true,
+      actualD10TicketMintRejectedOnPrivilegeDrift:true,
       nonInheritedDelegatedRoleWriteRejected:true,
       noLoginFailsNewAttestation:true,
       rotatedOldPasswordDenied:true,
@@ -322,6 +341,7 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
     }));
   }finally{
     if(remoteGateway)try{await remoteGateway.close();}catch{}
+    if(guardedGateway)try{await guardedGateway.close();}catch{}
     if(authority)try{await authority.close();}catch{}
     try{await central.unsafe("DROP SCHEMA IF EXISTS "+q(ownerSchema)+" CASCADE");}catch{}
     for(const [db,schema] of [[central,centralSchema],[a,remoteA],[b,remoteB]])
