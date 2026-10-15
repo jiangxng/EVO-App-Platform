@@ -230,6 +230,7 @@ export interface DataImportServiceV010 {
     contextId: string;
     importJobId: string;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     mappingOrigin?: DataImportMappingOriginV010;
     appliedRecipeId?: string;
     actorSubjectId: string;
@@ -242,6 +243,7 @@ export interface DataImportServiceV010 {
     targetParameters?: DataImportJobV010["targetParameters"];
     source: DataImportSourceV010;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     mappingOrigin?: DataImportMappingOriginV010;
     appliedRecipeId?: string;
     actorSubjectId: string;
@@ -509,6 +511,10 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: "STAGED",
         mapping: structuredClone(mappingInput.mapping),
+        ignoredSourceColumns: (mappingInput.ignoredSourceColumns
+          ?? job.ignoredSourceColumns ?? []).filter(column =>
+            !mappingInput.mapping.some(item => item.sourceColumn === column)
+          ),
         ...(mappingInput.mappingOrigin
           ? { mappingOrigin: mappingInput.mappingOrigin }
           : {}),
@@ -554,6 +560,9 @@ export function createDataImportServiceV010(input: {
         state: "STAGED",
         source: structuredClone(stageInput.source),
         mapping: structuredClone(stageInput.mapping),
+        ...(stageInput.ignoredSourceColumns
+          ? { ignoredSourceColumns: [...stageInput.ignoredSourceColumns] }
+          : {}),
         ...(stageInput.mappingOrigin
           ? { mappingOrigin: stageInput.mappingOrigin }
           : {}),
