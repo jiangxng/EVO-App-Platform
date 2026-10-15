@@ -15,6 +15,8 @@ export interface ConversationSummaryProvenanceV010 {
   strategy: "DETERMINISTIC_EXTRACTIVE" | "MODEL";
   policyId: string;
   policyVersion: string;
+  /** Exact SHA-256 fingerprint of the ordered source messages used for this derived summary. */
+  sourceDigest?: string;
   providerId?: string;
   modelId?: string;
   promptVersion?: string;
