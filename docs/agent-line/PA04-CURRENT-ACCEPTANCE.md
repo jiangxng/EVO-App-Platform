@@ -22,7 +22,7 @@
 | C03 | 旧 READ 恢复，有新鲜度要求时重新读取 | **IN_PROGRESS**。已新增可选 Host 源版本/新鲜度核验、失效 READ 重新授权读取并留存新证据、失败阻断推理。正式数据源版本与失权后的用户展示仍未全覆盖。 |
 | C04 | 记忆误推断，可查看纠正，不写成企业事实 | **OPEN**。复用现有 Memory Proposal Review、Human 确认与 Host 授权。 |
 | C05 | 注入文件，不触发未授权工具或外发 | **OPEN**。需要确定性敌对内容、权限及 egress 负向验收。 |
-| C06 | 引用失权，不展示标题/正文/下载 | **OPEN**。需要权限撤销之后端到端引用/检索/附件负向验收。 |
+| C06 | 引用失权，不展示标题/正文/下载 | **IN_PROGRESS**。已新增可选 Host 当前 Memory/来源授权门禁，并在代理的检索、回忆、清单、精确审计响应前校验；历史 Run 回放、附件下载入口及全源授权接线仍未覆盖。 |
 
 **PA-04 阶段 = IN_PROGRESS / NOT_SIGNED**，所有 C gate 完成后还需在真实长对话、不同 Context、权限变化和模型切换条件下验证。不得将某一个单元测试称作 C02 整体或阶段 PASS。
 
@@ -77,3 +77,12 @@
 - **需更新时**，以当前 Principal/Context 及当前 Host READ 目录重新调用保存的原始 READ 参数；READ 成功才追加 `READ_REFRESH_RECORDED` 持久事件（含 `sourceVersion`、新的 Host 观察）。不可篡改的原 `TOOL_OBSERVATION_RECORDED` 仍保留供审计，Run 物化结果和下一次模型请求则仅使用最新成功观察。模型未知、源版本未知、工具失权、重读失败或观测内容不匹配均 `RUN_BLOCKED`，不继续推理，也不允许凭旧 READ 继续业务 WRITE。
 - **验证**：专用 `.github/workflows/agent-pa04-c03-read-freshness.yml` 在 PostgreSQL18 上测试：旧 READ 返回 v1、恢复前重读得到 v2、模型只能见 v2、事件仍记录旧 v1、进程重启后只读一次且不重复推理；模拟工具失权、来源版本不可证时阻断推理。沿用既有 PA-02 Worker 及 PA-04 C01 预算回归。只能以准确 HEAD CI 日志确认通过。
 - **边界与未决**：只是**默认不启用的 Host 注入治理**，尚没有为所有实际业务插件接入独立的资源版本证据/失权查询。此端口不会自行改变业务来源，不会清理旧审计事件，不解决已生成但未落库的模型文本或外部引用失权（C06），也不自动拒绝历史已记录 `RUN_SUCCEEDED` 或复写已提交 Owner 回执。若 Host 无法认证业务源的时效，不能宣称 C03 完整签收。PA-04 保持 `IN_PROGRESS / NOT_SIGNED`；PA-02 R10 费用验收保留 OPEN，不触碰对象导入 BEX。
+
+## 2026-10-15：C06 Memory 来源引用出站授权门禁（第六个局部闭环）
+
+- **明确的真实风险**：Personal Agent 已有 Context Memory 的 `search`、`recall`、`inventory` 和精确 ID `audit` 工具。原有 Host 当前 Context 读权限虽然隔离 Memory 所属作用域，但 Memory 的 `provenance.evidenceRefs/evidenceSources/sourceContext` 可能指向另外的来源资源；过去能看到 Memory 或来源，**不等于当前仍能展示来源标题、正文和下载入口**。
+- **本轮的局部保护**：新增 `Pa04MemoryDisclosureAuthorityV010`（Host 可信回调），对读取所得每条 Memory 在发给模型前检查**当前 Principal、当前 Context、准确 memoryId、来源 Context、引用 IDs、证据来源 IDs**；只允许 Host 明确返回 `true` 放行。返回 denied、抛错或结果缺失必要作用域/来源结构时 **fail closed**；整批 READ 不返回任何摘要、来源标题、片段或 URL，也不在错误码中回显敏感标识。跨 Context 的来源须有独立 Host 当前授权；单凭 Memory 内容或模型建议无效。
+- **调用路径**：在 `agents/enterprise-agent/host-tool-catalog.ts` 对 `context.memory.search`、`context.memory.recall`（包括每个展开查询的原始结果，防 top-N 外 ID 泄漏）、`context.memory.inventory.list`、`context.memory.audit.get` 及 `context.memory.audit.compare` 的查询结果执行门禁。数据通过时保持原有效检索行为，失权时返回严格的 `PA04_REFERENCE_DISCLOSURE_DENIED` 或 `PA04_REFERENCE_DISCLOSURE_UNVERIFIED`；不通过正文错误恢复旧资料。
+- **测试证据**：`tests/agent-line/pa04-c06-memory-reference-disclosure.test.mjs` 用隔离 Host 目录模拟当前授予→撤销，验证来源 title/body/downloadUrl 同步失权、全类 Memory READ 禁止旁路、异常授权拒绝、跨 Context/缺 provenance 拒绝、授权来源仍可正常读。专用 `.github/workflows/agent-pa04-c06-memory-reference-disclosure.yml` 还回归现有 Agent 目录测试；以最终准确 HEAD CI 为准。
+- **关键限制（不能提前签收）**：门禁是**Host 可选注入**，当前产品尚未给全部来源类型绑定实际的资源级 `authorize` 策略；不能把模拟的撤权理解为已接入生产授权。历史 Run、Conversation、已生成回答展示、Memory Proposal、外部 EC 索引、业务直接页面、静态文件/真实下载 URL 的重新验证与缓存失效均**未被本 PR 覆盖**。真实附件下载路径不能依赖模型过滤，应在打开/下载当刻由资源 Owner 二次授权。C06 仍部分完成，PA-04 `IN_PROGRESS / NOT_SIGNED`。
+- **隔离边界**：不修改任何 BEX/CP-03、2D、`manager/server.ts`、生产 WRITE 和主线全局状态文件；PA-02 R10 真实费用仍 OPEN，本地开源模型部署只是计划而非已签收的 Provider。
