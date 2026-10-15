@@ -88,6 +88,11 @@
       "name": "docs/pa02-window-closure-research-handoff-20261014",
       "expectedHeadSha": "40d1505af0991d44fd88cf68a447bf8b195eb445",
       "reason": "PA02 historical source-index handoff merged into main; zero unique commits; no open PR references"
+    },
+    {
+      "name": "docs/pa02-safe-retired-branches-20261015",
+      "expectedHeadSha": "38d04a94226e8fea6327834597134ac9ae919c94",
+      "reason": "PA02 SHA-pinned retirement manifest PR #877 is merged on main, no unique commits, safe to retire itself"
     }
   ]
 }
