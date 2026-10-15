@@ -29,6 +29,7 @@ export interface DataImportRecipeV010 {
   sourceHeaders: string[];
   targetSchemaDigest: string;
   mapping: DataImportMappingV010[];
+  ignoredSourceColumns?: string[];
   createdAt: string;
   createdBySubjectId: string;
   updatedAt: string;
@@ -155,6 +156,10 @@ function fromPayload(
       "DATA_IMPORT_RECIPE_SCHEMA_DIGEST_REQUIRED"
     ),
     mapping: structuredClone(value.mapping),
+    ...(value.ignoredSourceColumns?.length
+      ? { ignoredSourceColumns: value.ignoredSourceColumns.map(column =>
+          required(column, "DATA_IMPORT_IGNORED_COLUMN_INVALID")) }
+      : {}),
     createdAt: required(value.createdAt, "DATA_IMPORT_RECIPE_CREATED_AT_REQUIRED"),
     createdBySubjectId: required(
       value.createdBySubjectId,
@@ -196,6 +201,7 @@ export interface DataImportRecipeRepositoryV010 {
     source: Pick<DataImportSourceV010, "headers">;
     targetSchemaDigest: string;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     importJobId: string;
     actorSubjectId: string;
     recordedAt: string;
@@ -207,6 +213,7 @@ export interface DataImportRecipeRepositoryV010 {
     source: Pick<DataImportSourceV010, "headers">;
     targetSchemaDigest: string;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     importJobId: string;
     actorSubjectId: string;
     recordedAt: string;
@@ -274,6 +281,8 @@ export function createDataImportRecipeRepositoryV010(
           "DATA_IMPORT_RECIPE_SCHEMA_DIGEST_REQUIRED"
         ),
         mapping: structuredClone(input.mapping),
+        ...(input.ignoredSourceColumns?.length
+          ? { ignoredSourceColumns: [...input.ignoredSourceColumns] } : {}),
         createdAt: current?.createdAt ?? input.recordedAt,
         createdBySubjectId:
           current?.createdBySubjectId ?? input.actorSubjectId,
@@ -336,6 +345,8 @@ export function createDataImportRecipeRepositoryV010(
           "DATA_IMPORT_RECIPE_SCHEMA_DIGEST_REQUIRED"
         ),
         mapping: structuredClone(input.mapping),
+        ...(input.ignoredSourceColumns?.length
+          ? { ignoredSourceColumns: [...input.ignoredSourceColumns] } : {}),
         createdAt: current?.createdAt ?? input.recordedAt,
         createdBySubjectId:
           current?.createdBySubjectId ?? input.actorSubjectId,

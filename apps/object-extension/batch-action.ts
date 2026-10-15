@@ -13,6 +13,7 @@ import {
 type TypeChoice = "STRING" | "NUMBER" | "BOOLEAN" | "DATE";
 type MappingUpdate = {
   contextId: string; importJobId: string; mapping: DataImportMappingV010[];
+  ignoredSourceColumns?: string[];
   actorSubjectId: string; recordedAt: string;
 };
 const allowedTypes: TypeChoice[] = ["STRING","NUMBER","BOOLEAN","DATE"];
@@ -108,8 +109,10 @@ export function executeObjectExtensionBatchImportV010(input: {
     }
     choices.push({ column, fieldId, type: "NEW", label, valueType });
   }
-  if (!choices.length) {
-    throw new Error("OBJECT_EXTENSION_BATCH_NO_MAPPINGS_SELECTED");
+  // Explicitly ignoring all optional columns is a valid, reversible
+  // decision. It must be saved instead of forcing a meaningless field write.
+  if (!choices.length && !ignored.length) {
+    throw new Error("OBJECT_EXTENSION_BATCH_NO_DECISIONS_SELECTED");
   }
   const created: string[] = [];
   const reused: string[] = [];
@@ -171,6 +174,12 @@ export function executeObjectExtensionBatchImportV010(input: {
       mapping: [...latest.mapping, ...choices.map(item => ({
         sourceColumn: item.column, targetFieldId: item.fieldId
       }))],
+      ignoredSourceColumns: [...new Set([
+        ...(latest.ignoredSourceColumns ?? []).filter(column =>
+          !choices.some(item => item.column === column)
+        ),
+        ...ignored
+      ])],
       actorSubjectId: input.actorSubjectId, recordedAt: input.recordedAt
     });
     return {

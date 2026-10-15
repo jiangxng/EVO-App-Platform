@@ -70,9 +70,11 @@ export function createObjectExtensionBatchImportPageV010(input: {
       const same = all.filter(x =>
         x.label.trim().toLocaleLowerCase() === column.trim().toLocaleLowerCase()
       );
-      const action = same.length === 1 && !usedTargets.has(same[0].fieldId)
-        ? same[0].fieldId
-        : same.length > 0 || metadataLike.test(column) ? BEX_BATCH_REVIEW : BEX_BATCH_CREATE;
+      const action = job.ignoredSourceColumns?.includes(column)
+        ? BEX_BATCH_IGNORE
+        : same.length === 1 && !usedTargets.has(same[0].fieldId)
+          ? same[0].fieldId
+          : same.length > 0 || metadataLike.test(column) ? BEX_BATCH_REVIEW : BEX_BATCH_CREATE;
       const count = job.source.rows.filter(row =>
         row[column] !== null && row[column] !== undefined && String(row[column]).trim() !== ""
       ).length;

@@ -16,6 +16,9 @@ import {
   fieldsForSurfaceV010
 } from "../../contracts/foundation-object/schema.js";
 import {
+  objectExtensionImportRouteV010
+} from "../object-extension/constants.js";
+import {
   parseCsvSourceV010
 } from "./csv.js";
 import {
@@ -476,6 +479,8 @@ export function createDataImportActionHandlersV010(input: {
           ...(parameters ? { targetParameters: parameters } : {}),
           source,
           mapping: resolvedMapping,
+          ...(initial.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...initial.ignoredSourceColumns] } : {}),
           mappingOrigin: initial.origin,
           ...(initial.recipeId
             ? { appliedRecipeId: initial.recipeId }
@@ -547,10 +552,26 @@ export function createDataImportActionHandlersV010(input: {
             .map(item => [item.sourceColumn!, item] as const)
         );
         const nextMapping: DataImportMappingV010[] = [];
+        const ignoredSourceColumns: string[] = [];
+        let proposedNewFields = 0;
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
-          if (typeof value !== "string" || !value.trim()) return;
-          if (value === "__IGNORE__") return;
+          if (typeof value !== "string" || !value.trim()) {
+            if (current.ignoredSourceColumns?.includes(sourceColumn)) {
+              ignoredSourceColumns.push(sourceColumn);
+            }
+            return;
+          }
+          if (value === "__CREATE__") {
+            proposedNewFields += 1;
+            return;
+          }
+          // Explicit ignore is a reversible job choice, not loss of source data.
+          if (value === "__IGNORE__") {
+            ignoredSourceColumns.push(sourceColumn);
+            return;
+          }
+          if (value === "__PENDING__") return;
           const targetFieldId = value.trim();
           const existing = existingBySource.get(sourceColumn);
           nextMapping.push(
@@ -575,14 +596,27 @@ export function createDataImportActionHandlersV010(input: {
           }
         }
         const recordedAt = now().toISOString();
-        input.service.updateMapping({
+        const staged = input.service.updateMapping({
           contextId: active.contextId,
           importJobId,
           mapping: nextMapping,
+          ignoredSourceColumns,
           mappingOrigin: mappingOrigin(context.principal),
           actorSubjectId: context.principal.subjectId,
           recordedAt
         });
+        if (proposedNewFields > 0 && staged.targetId === "counterparty.subject") {
+          return {
+            ok: true,
+            correlationId: context.correlationId,
+            result: JSON.parse(JSON.stringify({
+              contractVersion: "0.1.0",
+              message: "Existing selections saved. Review proposed enterprise fields together; source rows remain preserved. No supplier data imported.",
+              navigateTo: objectExtensionImportRouteV010(importJobId) + "&mode=batch",
+              job: staged
+            })) as JsonValue
+          };
+        }
         const job = input.service.dryRun({
           contextId: active.contextId,
           importJobId,
