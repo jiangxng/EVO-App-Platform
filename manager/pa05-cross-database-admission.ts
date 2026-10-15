@@ -35,6 +35,11 @@ const name = (value: string): string => {
     throw Error("PA05_XDB_TRUSTED_ID_INVALID");
   return value;
 };
+const versionId = (value: string): string => {
+  if (typeof value !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(value))
+    throw Error("PA05_XDB_VERSION_INVALID");
+  return value;
+};
 const sha256 = (value: string): string => {
   if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))
     throw Error("PA05_XDB_DIGEST_INVALID");
@@ -120,7 +125,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
   };
   return {
     async registerFrozenOwner(packageId, version) {
-      packageId = name(packageId); version = name(version);
+      packageId = name(packageId); version = versionId(version);
       if (!workers.some(w => w.ownerPackageId === packageId))
         throw Error("PA05_XDB_OWNER_UNTRUSTED");
       await sql.begin(async tx => {
@@ -135,7 +140,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
       });
     },
     async reopenOwner({packageId,version,trustedOwnerReady}) {
-      packageId = name(packageId); version = name(version);
+      packageId = name(packageId); version = versionId(version);
       if (typeof trustedOwnerReady !== "function" || !await trustedOwnerReady())
         throw Error("PA05_XDB_OWNER_RECERTIFICATION_REQUIRED");
       await sql.begin(async tx => {
@@ -150,7 +155,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
       });
     },
     async reserve({packageId,version,workerId,reservationId,effectDigest}) {
-      packageId = name(packageId); version = name(version);
+      packageId = name(packageId); version = versionId(version);
       workerId = name(workerId); reservationId = sha256(reservationId);
       effectDigest = sha256(effectDigest);
       await sql.begin(async tx => {
