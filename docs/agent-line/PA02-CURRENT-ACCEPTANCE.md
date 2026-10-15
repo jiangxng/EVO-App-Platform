@@ -152,3 +152,15 @@
 - **安全约束不变**：未经独立授权，不发起本项真实付费验收调用，不启用生产 WRITE、不擅自部署、不用公开/示例费率或 loopback usage 冒充合同与供应商账单、不提前推进 PA-03～PA-06。
 - **恢复条件**：在 Issue #879 取得经授权的实际 Provider/model/区域/tier/端点绑定、币种/Run 预算/合同计价版本及所有收费类别、可信最大可计费输入/输出与附加收费上界、实际 Provider usage 和供应商可对账凭证后，使用**既有** Host/Worker/PostgreSQL cost ledger 执行受限真实计费正/负向验证。需要 Human/财务/供应商有权 Owner 提供一手批准凭证；证据未齐时本阶段不做真实金额签收。
 - 四条历史 PA-02 docs 分支的 SHA-pinned Branch Hygiene 清理是独立运维事项，允许另行操作并核实删除日志；其结果**不影响** R10 未签收结论。本记录没有重读 W01–W04 或 H01–H14 官方原文，不改变交接索引既有阅读等级。
+
+## 2026-10-15：四条历史 PA-02 docs 分支实际删除完成（GitHub Actions 可核验）
+
+- **闭环结论：历史文档分支清理 = DONE（4/4）**。此前本页 2026-10-15「待执行」记载是检查发生时的真实历史快照，已被本节的正式执行日志与再次查询分支结果覆盖；不抹除或伪改原交接研究内容。
+- Owner 在 GitHub Actions 手动触发原有 [Branch Hygiene run #38663269408](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38663269408)，事件为 `workflow_dispatch`，run 使用 `main@5e226e588666e9c64a5d9b5aea8f6f10eeeddc7f`。`safe-retired-branch-audit` Job `116189248352` 原始日志确认环境 `EXECUTE: true`，Job 成功、四条 `DELETED`，最终 `Retirement execute complete`。
+- 精确日志证据：
+  - `DELETED docs/pa02-final-cost-authority-readiness-20261015 @ 7db56f11e75d79d520372d2fdff059e0265a4e54`
+  - `DELETED docs/pa02-acceptance-branch-reconcile-20261014 @ b44cf20854c1131d185355634cac8ae230669280`
+  - `DELETED docs/pa02-window-closure-research-handoff-20261014 @ 40d1505af0991d44fd88cf68a447bf8b195eb445`
+  - `DELETED docs/pa02-safe-retired-branches-20261015 @ 38d04a94226e8fea6327834597134ac9ae919c94`
+- 再次读取 GitHub `git/ref/heads/*` 对这四条分支全部返回 404/NOT_FOUND；此前 [#885](https://github.com/jiangxng/EVO-App-Platform/pull/885) 的短 Agent 决策文档分支也复核为不存在。没有删除 BEX/2D/治理并行分支，未更改费用策略或生产。
+- **PA-02 整体状态绝不因分支卫生通过而升级**：Owner 已选择 B 暂缓真实货币预算验收；[Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879) 继续 `OPEN`，R10 `NOT_SIGNED`，PA-02 `IN_PROGRESS / NOT_DEV_COMPLETE / NOT_PRODUCTION_READY`。已通过的 R01–R09 和 R10 合成计费/usage 技术证据不重做；授权凭证齐备前无实际付费测试、无生产 WRITE 或部署。原有 W01–W04 与 H01–H14 外部资料的阅读等级未更改。
