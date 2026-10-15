@@ -13,6 +13,12 @@ import type { AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durability-host-bridge.js";
 import type {HostResolvedAgentDurabilityScopeV020} from "../../contracts/agent-durability-async.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
+import {
+  admitCertifiedModelContextWindowV010
+} from "./pa04-certified-context-window.js";
+import type {
+  CertifiedModelContextWindowV010
+} from "./pa04-certified-context-window.js";
 
 interface ResumeInputV030 {
   runId: string;
@@ -56,6 +62,9 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   releaseOnReturn?:boolean;
   /** Only a trusted Host-injected Owner port may opt into material WRITE. */
   governedWrite?:GovernedAgentWorkerWritePortV040;
+  /** Optional exact Provider/model C01 window + certified full-request guard.
+   * Unconfigured staged workers keep their existing behavior. */
+  contextWindow?:CertifiedModelContextWindowV010;
   /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
   testOnlyCostPort?:{
     maxOutputTokens:number;
@@ -342,6 +351,7 @@ export function createReadOnlyFencedAgentWorkerV030(
       let decision:AgentModelDecision;
       let inferenceResponse:LlmInferenceResponseV010|undefined;
       let preflightDenied:string|undefined;
+      let contextWindowDenied:string|undefined;
       let modelChargeReserved=false;
       try{
         decision=await createProviderBackedAgentModel({
@@ -351,8 +361,28 @@ export function createReadOnlyFencedAgentWorkerV030(
               ...request,
               ...(deps.testOnlyCostPort?{
                 maxOutputTokens:deps.testOnlyCostPort.maxOutputTokens
+              }:deps.contextWindow?{
+                maxOutputTokens:deps.contextWindow.maxOutputTokens
               }:{})
             };
+            // C01 is independent from the PA-02 R10 monetary ledger. Verify
+            // the final request (system, tool schema, observations and output
+            // reserve) BEFORE any potentially charge-inducing Provider call.
+            if(deps.contextWindow){
+              try {
+                await admitCertifiedModelContextWindowV010({
+                  providerId:provider.providerId,
+                  modelId:provider.modelId,
+                  request:actualRequest,
+                  port:deps.contextWindow
+                });
+              }catch(e){
+                const code=e instanceof Error?e.message:"";
+                contextWindowDenied=/^PA04_CONTEXT_WINDOW_[A-Z_]+$/.test(code)
+                  ?code:"PA04_CONTEXT_WINDOW_INPUT_BOUND_UNVERIFIED";
+                throw Error(contextWindowDenied);
+              }
+            }
             if(deps.testOnlyCostPort){
               const port=deps.testOnlyCostPort;
               // This sees the entire materialized system/developer/user
@@ -402,6 +432,17 @@ export function createReadOnlyFencedAgentWorkerV030(
           context:structuredClone(input.context)
         });
       }catch(e){
+        if(contextWindowDenied){
+          await append("RUN_BLOCKED",{
+            code:contextWindowDenied,
+            reason:"The fully assembled model request could not fit a "+
+              "certified Provider/model context window with its output "+
+              "reservation. No inference or business action was dispatched. "+
+              "Reduce the context with an authorized assembler, or approve "+
+              "a model-specific certified window before resuming."
+          });
+          return output(true);
+        }
         if(deps.testOnlyCostPort){
           if(!modelChargeReserved){
             // No inference was dispatched and no money was held. Keep the
