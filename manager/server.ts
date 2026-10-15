@@ -1,3 +1,4 @@
+import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
 import { createHash, randomUUID } from "node:crypto";
@@ -2256,6 +2257,14 @@ const manager = createAppManagerService(
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
   evaluateRuntimeForHost
 );
+
+// PA05-04C: a single lifecycle adapter protects all Host action and /v1
+// mutation entrypoints when the trusted Host opts in. Production Agent WRITE
+// remains disabled; unconfigured deployments retain their existing behavior.
+const pa05WriteLifecycleHost = createPa05HostWriteLifecycleV010({
+  manager,
+  ...pa05HostLifecycleConfigurationV010(process.env)
+});
 
 function itemFeatureActiveV010(): boolean {
   return manager.getSnapshot().activeFeatures.some(feature =>
@@ -9175,7 +9184,7 @@ const server = createServer(async (request, response) => {
         }
         const confirmed = action.values.confirmed === true;
         const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
-        const snapshot = manager.upgrade(itemId, {
+        const snapshot = await pa05WriteLifecycleHost.apply("UPGRADE", itemId, {
           trustApproved: confirmed,
           approvedPermissions: confirmed
             ? target?.permissions?.map(permission => permission.id) ?? []
@@ -9222,7 +9231,7 @@ const server = createServer(async (request, response) => {
             error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) }
           });
         }
-        const snapshot = manager.disable(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9247,7 +9256,7 @@ const server = createServer(async (request, response) => {
             error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) }
           });
         }
-        const snapshot = manager.uninstall(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9330,7 +9339,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = manager.disable(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9352,7 +9361,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = manager.uninstall(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9452,7 +9461,7 @@ const server = createServer(async (request, response) => {
       }
       return json(response, 200, {
         plan,
-        snapshot: manager.upgrade(body.packageId, {
+        snapshot: await pa05WriteLifecycleHost.apply("UPGRADE", body.packageId, {
           trustApproved: body.trustApproved === true,
           approvedPermissions: body.approvedPermissions ?? []
         }),
@@ -9486,7 +9495,7 @@ const server = createServer(async (request, response) => {
       if (plan.blockers.length > 0) return json(response, 409, { code: "DISABLE_BLOCKED", plan });
       return json(response, 200, {
         plan,
-        snapshot: manager.disable(body.packageId),
+        snapshot: await pa05WriteLifecycleHost.apply("DISABLE", body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }
@@ -9504,13 +9513,19 @@ const server = createServer(async (request, response) => {
       if (plan.blockers.length > 0) return json(response, 409, { code: "UNINSTALL_BLOCKED", plan });
       return json(response, 200, {
         plan,
-        snapshot: manager.uninstall(body.packageId),
+        snapshot: await pa05WriteLifecycleHost.apply("UNINSTALL", body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }
 
     return json(response, 404, { code: "NOT_FOUND" });
   } catch (error) {
+    if (error instanceof Pa05HostLifecycleDeniedV010) {
+      return json(response, 409, {
+        code: error.code,
+        message: "Protected plugin lifecycle change rejected."
+      });
+    }
     const securityFailure = requestSecurityHttpFailureV010(error);
     if (securityFailure) {
       return json(response, securityFailure.status, {
@@ -9560,6 +9575,7 @@ async function shutdown(signal: string): Promise<void> {
   await optionalAgentAsyncRunReader?.close();
   await optionalAgentAsyncReadWorker?.close();
   await optionalPa02ObjectExtensionOwner?.close();
+  await pa05WriteLifecycleHost.close();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(shutdownFailed ? 1 : 0));
   setTimeout(() => process.exit(1), 5000).unref();
