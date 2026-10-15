@@ -44,3 +44,29 @@ test("the synthetic XLSX generator is deterministic and structurally isolated", 
   assert.deepEqual(x.headers.filter(h=>h==="开户银行"),["开户银行"],
     "The user's two ambiguous names refer to target fields; this generator does not invent a duplicate source header.");
 });
+
+test("second isolated XLSX has distinct identities while preserving every mapped 22-column value", () => {
+  const retained = syntheticV3WorkbookV010({
+    codePrefix:"RET-",namePrefix:"Retained Supplier "
+  });
+  const parsed = parseXlsxSourceV010({bytes:retained.bytes});
+  assert.deepEqual(parsed.headers,SYNTHETIC_V3_HEADERS);
+  assert.deepEqual(parsed.rows,retained.rows);
+  assert.equal(parsed.rows.length,172);
+  assert.equal(parsed.rows[0]["往来编码"],"RET-0001");
+  assert.equal(parsed.rows[171]["往来名称"],"Retained Supplier 0172");
+  assert.equal(parsed.rows[171]["企业属性17"],"synthetic-20-0172");
+  assert.equal(parsed.rows[171]["开户银行"],"测试银行-2");
+  assert.deepEqual(
+    parsed.rows.flatMap((row,index)=>row["主体类型"]===""?[index+1]:[]),
+    SYNTHETIC_V3_MISSING_ROWS
+  );
+  const originals = syntheticV3WorkbookV010();
+  assert.equal(new Set([...originals.rows,...retained.rows]
+    .map(row=>row["往来编码"])).size,344,
+    "two independent imports must never reuse source identities");
+  assert.ok(!retained.rows.some(row=>row["往来名称"].startsWith("Synthetic Supplier ")));
+  assert.throws(()=>syntheticV3WorkbookV010({
+    codePrefix:"../PRODUCTION-",namePrefix:"customer"
+  }),/BEX01_SYNTHETIC_XLSX_PREFIX_INVALID/);
+});

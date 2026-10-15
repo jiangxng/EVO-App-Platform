@@ -56,15 +56,21 @@ function storedZip(entries) {
   end.writeUInt32LE(offset,16);
   return Buffer.concat([...locals,listing,end]);
 }
-export function syntheticV3WorkbookV010() {
+export function syntheticV3WorkbookV010(options = {}) {
+  const codePrefix = options.codePrefix ?? "SYN-";
+  const namePrefix = options.namePrefix ?? "Synthetic Supplier ";
+  if (!/^[A-Z]{3,6}-$/.test(codePrefix)
+    || !/^[-A-Za-z ]{6,48}$/.test(namePrefix)) {
+    throw new Error("BEX01_SYNTHETIC_XLSX_PREFIX_INVALID");
+  }
   const headers=[...SYNTHETIC_V3_HEADERS];
   const rows=Array.from({length:172},(_,i)=>{
     const index=i+1,seq=String(index).padStart(4,"0");
     const missing=SYNTHETIC_V3_MISSING_ROWS.includes(index);
     return Object.fromEntries(headers.map((column,col)=>[
       column,
-      col===0?"SYN-"+seq:
-      col===1?"Synthetic Supplier "+seq:
+      col===0?codePrefix+seq:
+      col===1?namePrefix+seq:
       col===2?(missing?"":"ORGANIZATION"):
       col===3?"测试银行-"+(index%3+1):
       col===21?"legacy-"+seq:
