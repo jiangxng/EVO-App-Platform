@@ -661,3 +661,119 @@ test("PA05-04D3 real PG18: failed startup attestation never releases unresolved 
     await h.close();
   }
 });
+
+test("PA05-04D4 PG18 distinct Worker Schemas: one central Owner row quarantines the other schema UNKNOWN", {
+  skip: !url ? "requires isolated PostgreSQL18" : false,
+  timeout: 90000
+}, async () => {
+  const a = await setup(), b = await setup();
+  const central = "pa05_global_" + randomUUID().replaceAll("-", "").slice(0,12);
+  let shared, workerA, workerB;
+  try {
+    const inventory = [a.schema, b.schema].sort();
+    shared = await createPa05PluginWriteLifecycleGateV010({
+      connectionString: url, schema: a.schema,
+      manager: a.manager, authoritySchema: central, workerSchemas: inventory
+    });
+    await shared.register(packageId);
+    workerA = await createPostgresAgentExecutionCoordinatorV020({
+      connectionString: url, schema: a.schema,
+      requirePluginWriteLifecycleFence: true,
+      hostLifecycleAuthoritySchema: central, sharedLifecycleWorkerSchemas: inventory
+    });
+    workerB = await createPostgresAgentExecutionCoordinatorV020({
+      connectionString: url, schema: b.schema,
+      requirePluginWriteLifecycleFence: true,
+      hostLifecycleAuthoritySchema: central, sharedLifecycleWorkerSchemas: inventory
+    });
+    const effectA = await a.prepare("run:global-schema-a");
+    const effectB = await b.prepare("run:global-schema-b");
+    assert.equal((await workerB.beginWrite(effectB)).state, "INVOKING");
+    await workerB.markUnknown(effectB);
+    assert.deepEqual(await shared.freeze(packageId), {
+      state: "FROZEN", pendingCount: 2,
+      pendingStates: {PREPARED: 1, UNKNOWN: 1}
+    });
+    await assert.rejects(workerA.beginWrite(effectA),
+      /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/);
+    assert.deepEqual(await shared.transition({
+      packageId, operation: "DISABLE"
+    }), {status: "BLOCKED_PENDING_WRITE", pendingCount: 2});
+    assert.equal((await shared.getState(packageId)).state, "FROZEN");
+    assert.ok(a.manager.listEffectiveCapabilityOperations().length > 0);
+    await assert.rejects(
+      createPostgresAgentExecutionCoordinatorV020({
+        connectionString: url, schema: b.schema,
+        requirePluginWriteLifecycleFence: true,
+        hostLifecycleAuthoritySchema: central,
+        sharedLifecycleWorkerSchemas: [b.schema]
+      }), /PA05_WRITE_SHARED_WORKER_INVENTORY_MISMATCH/
+    );
+    // Inventory mutations must be rejected by a previously started Worker;
+    // the next dispatch cannot trust a stale local declaration.
+    await a.admin.unsafe(
+      'DELETE FROM "' + central +
+      '".pa05_plugin_write_worker_schemas WHERE schema_name=$1',
+      [b.schema]
+    );
+    await assert.rejects(workerA.beginWrite(effectA),
+      /PA05_WRITE_SHARED_WORKER_INVENTORY_MISMATCH/);
+    await assert.rejects(shared.freeze(packageId),
+      /PA05_LIFECYCLE_SHARED_WORKER_INVENTORY_CHANGED/);
+    console.log("PA05_SHARED_SCHEMA_OWNER_PG=" + JSON.stringify({
+      actualPostgres18: true, separateBusinessWorkerSchemas: 2,
+      centralizedOwnerRowLock: true, unknownFromOtherSchemaBlocksDisable: true,
+      frozenRejectsOtherWorker: true, workerInventoryFailClosed: true,
+      productionWriteEnabled: false
+    }));
+  } finally {
+    for(const x of [workerA,workerB,shared]) if(x) await x.close();
+    try { await a.admin.unsafe('DROP SCHEMA IF EXISTS "' + central + '" CASCADE'); }
+    finally { await a.close(); await b.close(); }
+  }
+});
+
+test("PA05-04D4 PG18 different Schema concurrent BEGIN versus FREEZE always serializes", {
+  skip: !url ? "requires isolated PostgreSQL18" : false,
+  timeout: 90000
+}, async () => {
+  const a=await setup(),b=await setup();
+  const central="pa05_global_"+randomUUID().replaceAll("-", "").slice(0,12);
+  let shared,worker;
+  try {
+    const inventory=[a.schema,b.schema].sort();
+    shared=await createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas:inventory
+    });
+    await shared.register(packageId);
+    worker=await createPostgresAgentExecutionCoordinatorV020({
+      connectionString:url,schema:b.schema,
+      requirePluginWriteLifecycleFence:true,
+      hostLifecycleAuthoritySchema:central,sharedLifecycleWorkerSchemas:inventory
+    });
+    const effect=await b.prepare("run:global-schema-b-race");
+    const outcomes=await Promise.allSettled([
+      shared.freeze(packageId),worker.beginWrite(effect)
+    ]);
+    assert.equal(outcomes[0].status,"fulfilled");
+    const freeze=outcomes[0].value;
+    assert.equal(freeze.pendingCount,1);
+    if(outcomes[1].status==="fulfilled"){
+      assert.equal(outcomes[1].value.state,"INVOKING");
+      assert.deepEqual(freeze.pendingStates,{INVOKING:1});
+    }else{
+      assert.match(String(outcomes[1].reason),
+        /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/);
+      assert.deepEqual(freeze.pendingStates,{PREPARED:1});
+    }
+    assert.equal((await shared.getState(packageId)).state,"FROZEN");
+    assert.deepEqual(await shared.transition({
+      packageId,operation:"UPGRADE"
+    }),{status:"BLOCKED_PENDING_WRITE",pendingCount:1});
+  } finally {
+    for(const x of [worker,shared]) if(x) await x.close();
+    try{await a.admin.unsafe('DROP SCHEMA IF EXISTS "'+central+'" CASCADE');}
+    finally{await a.close();await b.close();}
+  }
+});
