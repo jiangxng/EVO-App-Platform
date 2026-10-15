@@ -27,6 +27,18 @@ export function imports(source, filename) {
         found.push({ specifier: argument.text, kind: isRequire ? 'require' : 'eager-dynamic' });
       }
     }
+    // An immediately invoked function is startup work, not a lazy factory.
+    // Preserve the surrounding deferred context: an IIFE inside an uncalled
+    // factory is still deferred. Do not treat arbitrary callbacks as immediate.
+    if (ts.isCallExpression(node)) {
+      let callee = node.expression;
+      while (ts.isParenthesizedExpression(callee)) callee = callee.expression;
+      if (ts.isArrowFunction(callee) || ts.isFunctionExpression(callee)) {
+        ts.forEachChild(callee, child => visit(child, deferred));
+        node.arguments.forEach(argument => visit(argument, deferred));
+        return;
+      }
+    }
     ts.forEachChild(node, child => visit(child, deferred || ts.isFunctionLike(node)));
   }
   visit(ast);

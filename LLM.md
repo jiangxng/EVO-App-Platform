@@ -311,7 +311,7 @@ surface opened / capability invoked
 → load the owning implementation on demand
 ```
 
-App Platform Host may eagerly own only generic lifecycle, authorization, Contribution discovery and lazy dispatch mechanisms. First-party status does not justify eager plugin runtime loading. Background initialization requires an explicit active Feature/runtime reason.
+App Platform Host may eagerly own only generic lifecycle, authorization, Contribution discovery and lazy dispatch mechanisms. First-party status does not justify eager plugin runtime loading. Background initialization requires an explicit active Feature/runtime reason. New plugins and loading/resource changes MUST follow §11 of that authority: declare ownership, triggers, scoped resources and stop/recovery behavior, and provide applicable lifecycle behavior tests. Static CI or an unchanged module count alone is not acceptance. Existing eager-loading debt is not a template for new code.
 
 ## Plugin-First Extension Rule
 
