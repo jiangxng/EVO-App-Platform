@@ -71,6 +71,13 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
    * Requires shared Worker inventory on the same PostgreSQL database.
    */
   enforceSqlOwnerAdmission?: boolean;
+  /**
+   * Optional opt-in trusted PG identities to certify at startup. No HTTP or
+   * model input can populate this map. Each registered Worker schema must
+   * have exactly one distinct LOGIN role with no authority to remove the SQL
+   * admission trigger or mutate the Host-owned gate / inventory.
+   */
+  workerIdentities?: readonly {schema: string; role: string}[];
 }): Promise<Pa05PluginWriteLifecycleGateV010> {
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema))
     throw Error("PA05_LIFECYCLE_SCHEMA_INVALID");
@@ -80,6 +87,18 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
   if(input.enforceSqlOwnerAdmission && !shared)
     throw Error("PA05_SQL_OWNER_ADMISSION_INVENTORY_REQUIRED");
   const workerSchemas = shared ? [...input.workerSchemas!] : [input.schema];
+  const identityAudited = input.workerIdentities !== undefined;
+  if (identityAudited) {
+    const identities = input.workerIdentities!;
+    if (!input.enforceSqlOwnerAdmission || !shared ||
+      identities.length !== workerSchemas.length ||
+      identities.some(x => !/^[a-z][a-z0-9_]{0,62}$/.test(x.schema) ||
+        !/^[a-z_][a-z0-9_]{0,62}$/.test(x.role)) ||
+      new Set(identities.map(x => x.schema)).size !== identities.length ||
+      new Set(identities.map(x => x.role)).size !== identities.length ||
+      workerSchemas.some(x => !identities.some(role => role.schema === x)))
+      throw Error("PA05_SQL_WORKER_IDENTITY_COVERAGE_INVALID");
+  }
   const authSchema = shared ? input.authoritySchema : input.schema;
   if (!authSchema || !/^[a-z][a-z0-9_]{0,62}$/.test(authSchema) ||
     !workerSchemas.length ||
@@ -192,6 +211,51 @@ END`;
         }
       }
     });
+    if (identityAudited) {
+      // The Host must verify REAL database privileges after installing its
+      // SQL admission trigger. A merely declared Worker role is no proof.
+      // A table-owner, privileged role or central-gate writer could bypass
+      // the trigger and forge material effects.
+      for (const identity of input.workerIdentities!) {
+        const workerTable = '"' + identity.schema + '"."pa02b_writes"';
+        const ownerGate = a + '."pa05_plugin_write_lifecycle_gates"';
+        const inventory = a + '."pa05_plugin_write_worker_schemas"';
+        const checked = await sql.unsafe(
+          "SELECT r.rolcanlogin, r.rolsuper, r.rolcreaterole, r.rolcreatedb," +
+          " r.rolreplication, r.rolbypassrls," +
+          " pg_has_role(r.oid, wt.relowner, 'MEMBER') AS owns_worker_table," +
+          " pg_has_role(r.oid, gt.relowner, 'MEMBER') AS owns_host_gate," +
+          " pg_has_role(r.oid, it.relowner, 'MEMBER') AS owns_inventory," +
+          " pg_has_role(r.oid, d.datdba, 'MEMBER') AS owns_database," +
+          " has_table_privilege(r.oid, wt.oid, 'UPDATE') AS can_write_effect," +
+          " has_table_privilege(r.oid, wt.oid, 'TRIGGER') AS can_change_triggers," +
+          " has_table_privilege(r.oid, gt.oid, 'INSERT') AS can_insert_gate," +
+          " has_table_privilege(r.oid, gt.oid, 'UPDATE') AS can_update_gate," +
+          " has_table_privilege(r.oid, gt.oid, 'DELETE') AS can_delete_gate," +
+          " has_table_privilege(r.oid, it.oid, 'INSERT') AS can_insert_inventory," +
+          " has_table_privilege(r.oid, it.oid, 'UPDATE') AS can_update_inventory," +
+          " has_table_privilege(r.oid, it.oid, 'DELETE') AS can_delete_inventory," +
+          " has_schema_privilege(r.oid, an.oid, 'CREATE') AS can_create_authority," +
+          " has_schema_privilege(r.oid, wn.oid, 'CREATE') AS can_create_worker" +
+          " FROM pg_roles r, pg_class wt, pg_class gt, pg_class it," +
+          " pg_namespace an, pg_namespace wn, pg_database d" +
+          " WHERE r.rolname=$1 AND wt.oid=to_regclass($2)" +
+          " AND gt.oid=to_regclass($3) AND it.oid=to_regclass($4)" +
+          " AND an.nspname=$5 AND wn.nspname=$6" +
+          " AND d.datname=current_database()",
+          [identity.role,workerTable,ownerGate,inventory,authSchema,identity.schema]
+        );
+        const result = checked[0];
+        if (!result || !result.rolcanlogin || !result.can_write_effect ||
+          ["rolsuper","rolcreaterole","rolcreatedb","rolreplication","rolbypassrls",
+            "owns_worker_table","owns_host_gate","owns_inventory","owns_database",
+            "can_change_triggers","can_insert_gate","can_update_gate",
+            "can_delete_gate","can_insert_inventory","can_update_inventory",
+            "can_delete_inventory","can_create_authority","can_create_worker"
+          ].some(key => result[key] === true))
+          throw Error("PA05_SQL_WORKER_PRIVILEGES_UNSAFE");
+      }
+    }
   } catch (error) {
     await sql.end();
     throw error;
