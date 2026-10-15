@@ -19,7 +19,7 @@ button,select{font:inherit;cursor:pointer}button{min-height:44px}button:focus-vi
 .controls{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-top:26px;padding-top:20px;border-top:1px solid var(--border)}
 fieldset{border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:12px 15px}legend{font-weight:600;padding:0 5px}label{display:block;margin:10px 0 4px;font-size:14px;font-weight:600}select{min-height:44px;background:white;border:1px solid #879bab;border-radius:6px;padding:8px;width:100%;max-width:440px;color:var(--ink)}
 details{margin:18px 0;padding:12px 0;border-top:1px solid var(--border)}summary{cursor:pointer;color:var(--blue);font-weight:600;min-height:44px;padding:9px 0}
-.tablewrap{overflow:auto;border:1px solid var(--border);border-radius:8px}table{border-collapse:collapse;width:100%;min-width:690px;font-size:14px}th,td{padding:11px 10px;border-bottom:1px solid #e4e9ee;text-align:left;vertical-align:top}th{background:#f5f7f9}td:first-child{font-weight:600}
+.tablewrap{overflow:auto;border:1px solid var(--border);border-radius:8px}table{border-collapse:collapse;width:100%;min-width:780px;font-size:14px}th,td{padding:11px 10px;border-bottom:1px solid #e4e9ee;text-align:left;vertical-align:top}th{background:#f5f7f9}td:first-child{font-weight:600}td select{min-width:185px;width:100%}td label{margin:0 0 5px;font-size:13px}
 .inline{display:grid;grid-template-columns:1fr 1fr;gap:14px}.rowinput{padding:12px 0;border-bottom:1px solid var(--border)}.rowinput:last-child{border:0}.status{font-size:14px;color:var(--sub)}
 [hidden]{display:none!important}.error{color:#8a352f}.success{color:#1e6651}
 @media(max-width:680px){.shell{padding:0 6px;margin:5px auto}.surface{padding:20px 16px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.issue,.inline{display:block}.controls{flex-direction:column}.controls button{width:100%}.issue button{margin-top:4px}h1{font-size:23px}.metric strong{font-size:21px}}
@@ -36,7 +36,7 @@ details{margin:18px 0;padding:12px 0;border-top:1px solid var(--border)}summary{
 <section class="context" aria-label="当前文件和保存状态"><div><div class="filename">往来账户2026_10_08_10_15_23.xlsx <span class="hint">（仅文件名示意）</span></div><div class="hint">演示 7 列 · 未读取实际文件 · 没有正式写入</div></div><div id="saveStatus" class="status" role="status" aria-live="polite">模拟草稿尚未修改</div></section>
 <div id="review">
 <div class="metrics" aria-label="模拟字段处理概览">
-<div class="metric"><strong>2</strong><span>演示已识别</span></div><div class="metric"><strong>2</strong><span>演示拟新增</span></div><div class="metric"><strong>1</strong><span>仅保留来源</span></div><div class="metric"><strong id="blockCount">2</strong><span>待核对事项</span></div>
+<div class="metric"><strong id="matchedCount">2</strong><span>演示已识别</span></div><div class="metric"><strong id="createCount">2</strong><span>演示拟新增</span></div><div class="metric"><strong id="retainCount">0</strong><span>明确忽略、仍保留来源</span></div><div class="metric"><strong id="blockCount">3</strong><span>待核对事项</span></div>
 </div>
 <h2>需要你确认</h2>
 <div class="issue"><div><strong>开户银行 · 同名目标</strong><p>两个不同的历史字段具有相同的名称。下面的业务用途和 ID 都是演示数据，正式系统必须显示真实依据，不自动合并。</p></div><button class="secondary" id="bankToggle" type="button" aria-expanded="false" aria-controls="bankBody">比较两个候选</button></div>
@@ -54,20 +54,20 @@ details{margin:18px 0;padding:12px 0;border-top:1px solid var(--border)}summary{
 <div class="rowinput"><label for="t3">示意行 C · 主体类型</label><select id="t3" class="typeSelect"><option value="">待核实</option><option value="ORG">企业（演示选择）</option><option value="PERSON">个人（演示选择）</option></select></div>
 </div></fieldset></div>
 <details id="allFields"><summary>查看全部演示列与处理建议（7 列；正式页面必须显示真实完整来源列）</summary>
-<div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">演示建议及依据</th><th scope="col">处理状态</th></tr></thead><tbody>
-<tr><td>编码</td><td>复用有效历史映射：主体编码</td><td>已识别</td></tr>
-<tr><td>名称</td><td>复用有效历史映射：主体名称</td><td>已识别</td></tr>
-<tr><td>开户银行</td><td>两个同名历史字段须人工区分</td><td id="bankCell">待核对</td></tr>
-<tr><td>主体类型</td><td>原始身份信息不可从供应商关系推断</td><td id="typeCell">待人工补正</td></tr>
-<tr><td>默认支付方式</td><td>模拟建议新建企业扩展字段，文本</td><td>待创建确认</td></tr>
-<tr><td>结算方式</td><td>模拟建议新建企业扩展字段，文本</td><td>待创建确认</td></tr>
-<tr><td>系统编码</td><td>模拟为来源元数据：默认仅保留原值，可修订</td><td>不写正式字段</td></tr>
-</tbody></table></div><p class="hint">演示表格不可编辑全部字段。正式产品须允许逐列修改、撤销忽略、遵守一对一映射。</p></details>
-<div class="tip"><strong>拟新增 2 个企业扩展字段（演示）</strong><p>默认支付方式（文本）、结算方式（文本）。必须先查看完整清单、得到独立 Human 确认，且不能擅自创建业务 Schema。</p></div>
+<div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">演示建议及依据</th><th scope="col">处理状态</th><th scope="col">处理选择（模拟）</th></tr></thead><tbody>
+<tr><td>编码</td><td>演示历史建议：主体编码（可更改、须复核）</td><td id="codeCell">已识别</td><td><label for="map_code">编码的处理</label><select id="map_code" class="mapping" data-column="code"></select></td></tr>
+<tr><td>名称</td><td>演示历史建议：主体名称（可更改、须复核）</td><td id="nameCell">已识别</td><td><label for="map_name">名称的处理</label><select id="map_name" class="mapping" data-column="name"></select></td></tr>
+<tr><td>开户银行</td><td>两个同名历史字段须人工区分</td><td id="bankCell">待核对</td><td>使用上方“比较两个候选”逐项核对</td></tr>
+<tr><td>主体类型</td><td>原始身份信息不可从供应商关系推断</td><td id="typeCell">待人工补正</td><td>使用上方“查看模拟问题行”逐行核对</td></tr>
+<tr><td>默认支付方式</td><td>建议新建企业扩展字段，文本；可改选已有/待定/忽略</td><td id="payCell">待创建确认</td><td><label for="map_pay">默认支付方式的处理</label><select id="map_pay" class="mapping" data-column="pay"></select></td></tr>
+<tr><td>结算方式</td><td>建议新建企业扩展字段，文本；可改选已有/待定/忽略</td><td id="settleCell">待创建确认</td><td><label for="map_settle">结算方式的处理</label><select id="map_settle" class="mapping" data-column="settle"></select></td></tr>
+<tr><td>系统编码</td><td>来源元数据含义未核实，默认待定，不得静默忽略</td><td id="systemCell">待核对</td><td><label for="map_system">系统编码的处理</label><select id="map_system" class="mapping" data-column="system"></select></td></tr>
+</tbody></table></div><p class="hint">本次 7 列模拟均有核对入口；“忽略此列”是用户明确选择，可恢复为待定、复用或拟新增。正式产品须显示真实完整来源列及原始值。</p><p class="hint" id="mappingNotice" role="status" aria-live="polite">已占用目标将在其他来源列选项中禁用。</p></details>
+<div class="tip"><strong id="proposalSummary">拟新增 2 个企业扩展字段（演示）</strong><p id="proposalDetails">默认支付方式（文本）、结算方式（文本）。必须先确认创建清单，再独立预检查与提交。</p></div>
 <div class="controls"><button type="button" class="quiet" id="reset">清除本地演示草稿</button><button type="button" class="primary" id="prepare">检查字段并预检查</button></div>
 </div>
 <div id="confirm" hidden><h2>确认企业字段创建清单（演示）</h2><p>创建定义与正式导入是两个不同的业务副作用。真实系统必须再检查权限、名称、类型、重复目标与部分失败补偿。</p>
-<div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">拟创建名称</th><th scope="col">类型</th></tr></thead><tbody><tr><td>默认支付方式</td><td>默认支付方式</td><td>文本</td></tr><tr><td>结算方式</td><td>结算方式</td><td>文本</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">拟创建名称</th><th scope="col">类型</th></tr></thead><tbody id="schemaRows"></tbody></table></div>
 <div class="controls"><button class="secondary" id="confirmBack" type="button">返回字段核对</button><button class="primary" id="schemaConfirm" type="button">确认创建字段方案（模拟）</button></div>
 </div>
 <div id="precheck" hidden><h2>预检查结果（模拟）</h2><p id="checkNotice" role="status" aria-live="polite"></p><div id="blockers" class="tip"></div>
@@ -79,29 +79,122 @@ details{margin:18px 0;padding:12px 0;border-top:1px solid var(--border)}summary{
 (function(){
 "use strict";
 const $=id=>document.getElementById(id),key="bex-v2-demo-state-20261015";
-let draft={bank:"",types:["","",""],schema:false};
-try{const raw=JSON.parse(localStorage.getItem(key)||"null");if(raw&&typeof raw.bank==="string"&&Array.isArray(raw.types)&&raw.types.length===3){draft={bank:raw.bank,types:raw.types,schema:!!raw.schema};}}catch{}
+const cols={code:"编码",name:"名称",pay:"默认支付方式",settle:"结算方式",system:"系统编码"};
+const defaults=()=>({code:"CORE_CODE",name:"CORE_NAME",pay:"__CREATE__",settle:"__CREATE__",system:"__PENDING__"});
+const targetOptions=[["CORE_CODE","主体编码（演示目标）"],["CORE_NAME","主体名称（演示目标）"],["EXT_PAY","已有付款属性（DEMO-PAY）"]];
+const choices=[["__PENDING__","待定（仍需处理）"],["__CREATE__","建议新建企业字段（待确认）"],["__IGNORE__","明确忽略（保留原值）"],...targetOptions];
+let draft={bank:"",types:["","",""],schema:false,schemaKey:"",maps:defaults()};
+try{
+ const raw=JSON.parse(localStorage.getItem(key)||"null");
+ if(raw&&typeof raw.bank==="string"&&Array.isArray(raw.types)&&raw.types.length===3){
+  const valid=["__PENDING__","__CREATE__","__IGNORE__",...targetOptions.map(x=>x[0])];
+  const maps=defaults();
+  Object.keys(maps).forEach(k=>{if(valid.includes(raw.maps?.[k]))maps[k]=raw.maps[k];});
+  draft={bank:["","A","B"].includes(raw.bank)?raw.bank:"",types:raw.types.map(v=>["","ORG","PERSON"].includes(v)?v:""),schema:!!raw.schema,schemaKey:typeof raw.schemaKey==="string"?raw.schemaKey:"",maps};
+ }
+}catch{}
 let checked=false;
+function activeCreate(){return Object.keys(cols).filter(k=>draft.maps[k]==="__CREATE__");}
+function schemaKey(){return activeCreate().sort().join("|");}
+function schemaReady(){return !activeCreate().length||(draft.schema&&draft.schemaKey===schemaKey());}
+function duplicateTargets(){
+ const seen=new Set(),duplicated=[];
+ Object.entries(draft.maps).forEach(([k,v])=>{
+  if(targetOptions.some(x=>x[0]===v)){if(seen.has(v))duplicated.push(k);seen.add(v);}
+ });
+ return duplicated;
+}
+function issueList(){
+ const issues=[];
+ if(!draft.bank)issues.push("开户银行：尚未区分两个同名目标字段");
+ const missing=draft.types.filter(x=>!x).length;
+ if(missing)issues.push("主体类型：3 条模拟行还有 "+missing+" 条未填写");
+ const pending=Object.keys(cols).filter(k=>draft.maps[k]==="__PENDING__");
+ if(pending.length)issues.push("来源列待定："+pending.map(k=>cols[k]).join("、"));
+ const duplicates=duplicateTargets();
+ if(duplicates.length)issues.push("来源列重复占用同一字段："+duplicates.map(k=>cols[k]).join("、"));
+ if(draft.maps.code!=="CORE_CODE"||draft.maps.name!=="CORE_NAME")issues.push("演示核心编码和名称目标不正确，请恢复对应来源与目标");
+ if(!schemaReady())issues.push("拟创建字段的清单尚未确认或已发生变化，需重新确认");
+ return issues;
+}
 function store(){try{localStorage.setItem(key,JSON.stringify(draft));$("saveStatus").textContent="演示状态已保存在此浏览器（非 Host）";}catch{$("saveStatus").textContent="演示状态未能保存，离开页面后可能丢失";}}
 function show(id){["review","confirm","precheck","done"].forEach(s=>$(s).hidden=s!==id);$("step").textContent="阶段 2 / 2 · "+(id==="review"?"核对":id==="confirm"?"创建方案确认":id==="precheck"?"预检查":"演示结果");const h=$(id).querySelector("h2");if(h){h.tabIndex=-1;h.focus({preventScroll:true});}}
 function setOpen(btn,panel,open){$(panel).hidden=!open;$(btn).setAttribute("aria-expanded",String(open));}
-function unresolved(){return Number(!draft.bank)+Number(draft.types.some(x=>!x));}
-function refresh(){ $("bank").value=draft.bank;["t1","t2","t3"].forEach((id,i)=>$(id).value=draft.types[i]||"");$("blockCount").textContent=String(unresolved());$("bankCell").textContent=draft.bank?"演示已选候选 "+draft.bank:"待核对";$("typeCell").textContent=draft.types.every(Boolean)?"模拟已填写 3 行":"待人工核实";}
-function invalidate(){checked=false;store();refresh();}
+function redrawSelects(){
+ const occupied=new Map();
+ Object.entries(draft.maps).forEach(([k,v])=>{if(targetOptions.some(t=>t[0]===v))occupied.set(v,k);});
+ Object.keys(cols).forEach(k=>{
+  const el=$("map_"+k);el.replaceChildren();
+  for(const [value,label] of choices){
+   // Do not propose arbitrary new core fields or a second freeform core target.
+   if((k==="code"||k==="name")&&value==="__CREATE__")continue;
+   const option=document.createElement("option");option.value=value;option.textContent=label;
+   const owner=occupied.get(value);
+   option.disabled=!!owner&&owner!==k;
+   if(option.disabled)option.textContent=label+"（已由 "+cols[owner]+" 占用）";
+   el.append(option);
+  }
+  el.value=draft.maps[k];
+ });
+}
+function redrawPlan(){
+ const keys=activeCreate(),tbody=$("schemaRows");tbody.replaceChildren();
+ keys.forEach(k=>{const tr=document.createElement("tr");[cols[k],cols[k],"文本（待人工确认）"].forEach(label=>{const td=document.createElement("td");td.textContent=label;tr.append(td);});tbody.append(tr);});
+ $("proposalSummary").textContent="拟新增 "+keys.length+" 个企业扩展字段（演示）";
+ $("proposalDetails").textContent=keys.length?keys.map(k=>cols[k]).join("、")+"。清单或类型有变化必须重新明确确认。":"没有拟创建字段：本次可直接进行模拟预检查，绝不会因为跳过创建而自动导入。";
+}
+function refresh(){
+ $("bank").value=draft.bank;
+ ["t1","t2","t3"].forEach((id,i)=>$(id).value=draft.types[i]||"");
+ redrawSelects();redrawPlan();
+ const val=x=>Object.values(draft.maps).filter(v=>x(v)).length;
+ $("matchedCount").textContent=String(val(v=>targetOptions.some(x=>x[0]===v)));
+ $("createCount").textContent=String(activeCreate().length);
+ $("retainCount").textContent=String(val(v=>v==="__IGNORE__"));
+ $("blockCount").textContent=String(issueList().length);
+ $("bankCell").textContent=draft.bank?"演示已选候选 "+draft.bank:"待核对";
+ $("typeCell").textContent=draft.types.every(Boolean)?"模拟已填写 3 行":"待人工核实";
+ Object.entries({code:"codeCell",name:"nameCell",pay:"payCell",settle:"settleCell",system:"systemCell"}).forEach(([k,id])=>{
+  const v=draft.maps[k];
+  $(id).textContent=v==="__PENDING__"?"待处理":v==="__IGNORE__"?"明确忽略，保留原值":v==="__CREATE__"?"拟新增待确认":targetOptions.find(x=>x[0]===v)?.[1]||"待核实";
+ });
+ $("mappingNotice").textContent="已占用目标对其他列禁用；当前有 "+Object.keys(draft.maps).filter(k=>draft.maps[k]==="__PENDING__").length+" 列待定。忽略仅控制正式字段写入，不删除来源值。";
+}
+function invalidate(){checked=false;$("submit").disabled=true;store();refresh();}
 $("bankToggle").onclick=()=>setOpen("bankToggle","bankBody",$("bankBody").hidden);
 $("typeToggle").onclick=()=>setOpen("typeToggle","typeBody",$("typeBody").hidden);
 $("bank").onchange=()=>{draft.bank=$("bank").value;invalidate();};
 ["t1","t2","t3"].forEach((id,i)=>$(id).onchange=()=>{draft.types[i]=$(id).value;invalidate();});
-$("prepare").onclick=()=>{if(draft.schema){runCheck();show("precheck");}else show("confirm");};
+Object.keys(cols).forEach(k=>$("map_"+k).onchange=()=>{
+ const value=$("map_"+k).value;
+ const used=Object.entries(draft.maps).some(([other,target])=>other!==k&&target===value&&targetOptions.some(t=>t[0]===target));
+ if(used){refresh();return;}
+ draft.maps[k]=value;invalidate();
+});
+$("prepare").onclick=()=>{if(schemaReady()){runCheck();show("precheck");}else{redrawPlan();show("confirm");}};
 $("confirmBack").onclick=()=>show("review");
-$("schemaConfirm").onclick=()=>{draft.schema=true;store();runCheck();show("precheck");};
-function runCheck(){checked=!!draft.schema&&!!draft.bank&&draft.types.every(Boolean);$("submit").disabled=!checked;$("rerun").className=checked?"secondary":"primary";$("checkNotice").textContent=checked?"模拟预检查通过：仅演示交互，不代表真实数据合格。":"模拟预检查未通过：存在待核实问题，不允许继续正式导入。";const items=[];if(!draft.bank)items.push("开户银行：尚未选择真实意义对应的目标字段");if(draft.types.some(x=>!x))items.push("主体类型：演示三行有 "+draft.types.filter(x=>!x).length+" 行仍未模拟填写");$("blockers").textContent=items.length?items.join("；"):"无剩余模拟阻断项，仍须真实 Host 验证。";$("blockers").className="tip "+(items.length?"error":"success");}
+$("schemaConfirm").onclick=()=>{
+ draft.schema=true;draft.schemaKey=schemaKey();store();runCheck();show("precheck");
+};
+function runCheck(){
+ const items=issueList();checked=items.length===0;
+ $("submit").disabled=!checked;$("rerun").className=checked?"secondary":"primary";
+ $("checkNotice").textContent=checked?"模拟预检查通过：仅演示交互，不代表真实数据合格。":"模拟预检查未通过：存在待核实问题，不允许继续正式导入。";
+ $("blockers").textContent=items.length?items.join("；"):"无剩余模拟阻断项，仍须真实 Host 验证。";
+ $("blockers").className="tip "+(items.length?"error":"success");
+}
 $("rerun").onclick=runCheck;
 $("checkBack").onclick=()=>show("review");
-$("submit").onclick=()=>{if(!checked||!draft.schema||!draft.bank||draft.types.some(x=>!x))return;show("done");};
+$("submit").onclick=()=>{if(!checked||issueList().length)return;show("done");};
 $("doneBack").onclick=()=>show("review");
-$("reset").onclick=()=>{draft={bank:"",types:["","",""],schema:false};try{localStorage.removeItem(key);}catch{}$("saveStatus").textContent="模拟草稿已重置";refresh();setOpen("bankToggle","bankBody",false);setOpen("typeToggle","typeBody",false);};
-refresh();if(draft.bank||draft.types.some(Boolean)||draft.schema)$("saveStatus").textContent="已恢复此浏览器保存的演示选择（非 Host）";
+$("reset").onclick=()=>{
+ draft={bank:"",types:["","",""],schema:false,schemaKey:"",maps:defaults()};checked=false;
+ try{localStorage.removeItem(key);}catch{}
+ $("saveStatus").textContent="模拟草稿已重置";refresh();
+ setOpen("bankToggle","bankBody",false);setOpen("typeToggle","typeBody",false);
+};
+refresh();
+if(draft.bank||draft.types.some(Boolean)||Object.keys(defaults()).some(k=>draft.maps[k]!==defaults()[k])||draft.schema)$("saveStatus").textContent="已恢复此浏览器保存的演示选择（非 Host）";
 })();
 </script>
 </body></html>
