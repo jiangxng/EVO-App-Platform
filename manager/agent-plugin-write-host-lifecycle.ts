@@ -63,6 +63,8 @@ export function createPa05HostWriteLifecycleV010(input: {
    * interpret this as cross-database or unauthenticated Worker federation.
    */
   sharedWorkerSchemaAuthority?: boolean;
+  /** Optional dedicated central Owner authority schema in same PostgreSQL DB. */
+  sharedAuthoritySchema?: string;
   /** A trusted Host test seam only. It never comes from a request. */
   gateFactory?: () => Promise<Pa05PluginWriteLifecycleGateV010>;
 }): {
@@ -115,9 +117,13 @@ export function createPa05HostWriteLifecycleV010(input: {
     }
   }
   if (input.sharedWorkerSchemaAuthority &&
-      (!guarded.size || !input.workerSchemas?.length || !configured)) {
+      (!guarded.size || !input.workerSchemas?.length || !configured ||
+        (input.sharedAuthoritySchema !== undefined &&
+          !/^[a-z][a-z0-9_]{0,62}$/.test(input.sharedAuthoritySchema)))) {
     throw new Error("PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE");
   }
+  if (!input.sharedWorkerSchemaAuthority && input.sharedAuthoritySchema)
+    throw new Error("PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE");
   assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
   let connection: Promise<Pa05PluginWriteLifecycleGateV010> | undefined;
   const gate = () => {
@@ -128,7 +134,7 @@ export function createPa05HostWriteLifecycleV010(input: {
         connectionString: input.databaseUrl!,
         schema: input.schema!,
         ...(input.sharedWorkerSchemaAuthority ? {
-          authoritySchema: input.schema!,
+          authoritySchema: input.sharedAuthoritySchema ?? input.schema!,
           workerSchemas: input.workerSchemas!
         } : {})
       })).catch(error => {
@@ -324,6 +330,8 @@ export function pa05HostLifecycleConfigurationV010(env: NodeJS.ProcessEnv) {
     schema: env.PA05_WRITE_LIFECYCLE_SCHEMA?.trim(),
     ...(env.PA05_SHARED_SCHEMA_AUTHORITY_ENABLED?.trim() === "1"
       ? {sharedWorkerSchemaAuthority: true} : {}),
+    ...(env.PA05_WRITE_LIFECYCLE_AUTHORITY_SCHEMA?.trim()
+      ? {sharedAuthoritySchema: env.PA05_WRITE_LIFECYCLE_AUTHORITY_SCHEMA.trim()} : {}),
     ...(env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS?.trim()
       ? {workerSchemas: env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS
           .split(",").map(x => x.trim())}
