@@ -104,6 +104,13 @@
 - 项目原截图存在于 2026-10-15 这段聊天而**未附着到 GitHub**。临时工具容器曾挂载 `/mnt/data/image(20261015-015021).png`（22 列相关）与 `/mnt/data/image(20261015-023214).png`（截图版本请按聊天消息核查）；**容器路径不保证下个窗口可访问**。源文件 `往来账户2026_10_08_10_15_23.xlsx` 的二进制原件也未保存到研究 PR。
 - 实际 Import Job `import-33ff3446-80c5-4992-b5c6-710f415535b3` 的私有内容尚无被授权的完整读取证据，不能凭截图判断 Recipe 丢失原因；不要反向修改历史正式业务数据。
 
+
+### 2026-10-15 后续治理证据（由本轮实际合并核实）
+
+- Eidos 研究及必检规范：PR #183 合并 `5d832200f10a423179928dc1cd467217c9167e79`；必经 `release-check` 接线 PR #184 合并 `5d6a49f0bfa27a1fec931217b7e850f2759066aa`，CI SUCCESS。
+- Platform LLM/审查规则：PR #904 合并 `1970c06238ff1e45930219f499e028609305c2e5`；必经 `continuity` 接线 PR #906 合并 `97b51955b14a8c647eefa177b90c4bcc441ad754`，CI SUCCESS。
+- 以上是规范与机器检查的合并，不是 BEX V2 用户界面已开发/部署/人工验收的证据。
+
 ## 8. 与实现、分支和文档的连接
 
 - Eidos 设计权威/色彩导航来源 → [Eidos PR #183](https://github.com/jiangxng/eidos/pull/183)，研究索引 `docs/product/EIDOS-VISUAL-COGNITIVE-RESEARCH-REFERENCE-INDEX-v1.0.md`、设计必检 `docs/product/EIDOS-HUMAN-UI-DESIGN-REVIEW-CHECKLIST-v1.0.md`。
