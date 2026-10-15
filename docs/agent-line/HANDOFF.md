@@ -1,5 +1,9 @@
 # 独立 Agent 线交接入口
 
+
+> **2026-10-15 PA-02 新窗口最新研究资料包（优先于下方历史入口）：** [简短交接入口](PA02-WINDOW-HANDOFF-ENTRY-20261015.md) · [完整来源／网页阅读等级／PR CI／方案决策索引](PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)。本包编制基线 `main@991ac3e030884b69586b3c1732db9953dc17ef91`，**不是合并后永久 HEAD**；新窗口先按 `AI-BOOTSTRAP.md` 查最新 main 与实际 PR。R01–R09 隔离验证已证明，R10 **实际货币硬预算 NOT_SIGNED**，权威阻断 [Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879)，不能用合成费用签收。历史外部 H01–H14 仍未在本窗口访问原文。四条旧 PA02 文档分支的 SHA 退休清单已合并，但删除需要安全 Workflow 的手动 execute=true，**不得声称已删除**。不部署生产、不开生产 WRITE、不开 PA-03～06 范围。
+
+
 > **2026-10-14 PA-02 当前可更新验收表（优先查看）：** [R01–R10 固定验收状态与下一门槛](PA02-CURRENT-ACCEPTANCE.md)；本次 [R10 Provider usage 持久证据、官方阅读等级、货币硬预算缺口](PA02-R10-USAGE-EVIDENCE-20261014.md)；相应代码 PR [#856](https://github.com/jiangxng/EVO-App-Platform/pull/856)。原 10-14 交接入口和详细索引仍是不可改写的历史快照，不以新研究混淆旧 14 条 H 级外链。此导航不宣称 PA-02 已签收或生产 WRITE 已批准。
 
 
