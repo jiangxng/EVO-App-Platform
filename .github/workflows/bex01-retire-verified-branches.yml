@@ -1,0 +1,172 @@
+name: BEX-01 Retire Verified Process Branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - repository-hygiene/bex01-retired-branches-20261015.json
+      - .github/workflows/bex01-retire-verified-branches.yml
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  verified-bex-retirement:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Delete only SHA-pinned merged BEX heads without active users
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const manifestPath = 'repository-hygiene/bex01-retired-branches-20261015.json';
+            const file = await github.rest.repos.getContent({
+              owner, repo, path: manifestPath, ref: 'main'
+            });
+            if (Array.isArray(file.data) || file.data.type !== 'file') {
+              throw new Error('BEX retirement manifest must be a file');
+            }
+            const manifest = JSON.parse(Buffer.from(file.data.content, 'base64').toString('utf8'));
+            const entries = manifest.retiredBranches ?? [];
+            if (manifest.schemaVersion !== 1 || entries.length !== 20) {
+              throw new Error('Unexpected BEX retirement entry count or format');
+            }
+            const open = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: 'open', per_page: 100
+            });
+            const active = new Set(['main']);
+            for (const pr of open) {
+              active.add(pr.base.ref);
+              if (pr.head.repo?.full_name === owner + '/' + repo) active.add(pr.head.ref);
+            }
+            const allowed = /^(?:docs|feat|fix|test)\/bex01-|^release\/bex01-dev-20261014$/;
+            const unique = new Set();
+            const outcome = {deleted: [], skipped: []};
+            for (const entry of entries) {
+              const {name, expectedHeadSha, pr: prNumber} = entry;
+              if (typeof name !== 'string' || !allowed.test(name)
+                || unique.has(name) || !/^[a-f0-9]{40}$/.test(expectedHeadSha ?? '')) {
+                throw new Error('Unapproved or invalid BEX retirement entry: ' + name);
+              }
+              unique.add(name);
+              if (active.has(name)) {
+                outcome.skipped.push({name, reason:'OPEN_PR_OR_MAIN'});
+                continue;
+              }
+              if (name.startsWith('release/')) {
+                if (prNumber !== null || manifest.requiredCurrentDeployment?.branch !== 'main'
+                  || manifest.requiredCurrentDeployment?.statusVerified !== 'SUCCESS') {
+                  outcome.skipped.push({name, reason:'RELEASE_NOT_VERIFIED'});
+                  continue;
+                }
+              } else {
+                if (!Number.isInteger(prNumber) || prNumber < 1) {
+                  throw new Error('BEX process branch requires verified merged PR: ' + name);
+                }
+                const pr = (await github.rest.pulls.get({
+                  owner,repo,pull_number:prNumber
+                })).data;
+                if (!pr.merged || pr.base.ref !== 'main'
+                  || pr.head.repo?.full_name !== owner+'/'+repo
+                  || pr.head.ref !== name || pr.head.sha !== expectedHeadSha) {
+                  outcome.skipped.push({name,reason:'PR_PROOF_MISMATCH'});
+                  continue;
+                }
+              }
+              let ref;
+              try {
+                ref = (await github.rest.git.getRef({
+                  owner, repo, ref:'heads/'+name
+                })).data;
+              } catch (error) {
+                if (error.status === 404) {
+                  outcome.skipped.push({name,reason:'ALREADY_ABSENT'});
+                  continue;
+                }
+                throw error;
+              }
+              if (ref.object.sha !== expectedHeadSha) {
+                outcome.skipped.push({name,reason:'HEAD_MOVED'});
+                continue;
+              }
+              const branch = (await github.rest.repos.getBranch({
+                owner,repo,branch:name
+              })).data;
+              if (branch.protected) {
+                outcome.skipped.push({name,reason:'PROTECTED'});
+                continue;
+              }
+              const cmp = (await github.rest.repos.compareCommits({
+                owner,repo,base:expectedHeadSha,head:'main'
+              })).data;
+              if (cmp.behind_by !== 0 || cmp.merge_base_commit?.sha !== expectedHeadSha) {
+                outcome.skipped.push({name,reason:'NOT_EXACT_MAIN_ANCESTOR'});
+                continue;
+              }
+              const latest = (await github.rest.git.getRef({
+                owner,repo,ref:'heads/'+name
+              })).data.object.sha;
+              if (latest !== expectedHeadSha) {
+                outcome.skipped.push({name,reason:'HEAD_MOVED_BEFORE_DELETE'});
+                continue;
+              }
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+              outcome.deleted.push(name);
+            }
+            core.info('BEX_RETIREMENT_RESULT=' + JSON.stringify(outcome));
+            await core.summary.addHeading('BEX-01 verified process branch retirement')
+              .addCodeBlock(JSON.stringify(outcome,null,2),'json').write();
+
+  retire-one-time-cleanup-branch:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'chore/bex01-safely-retire-verified-refs-20261015'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Retire exactly this verified merged cleanup branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo} = context.repo;
+            const pr = context.payload.pull_request;
+            const expected = pr.head.sha, name = pr.head.ref;
+            if (pr.head.repo?.full_name !== owner+'/'+repo || name === 'main') {
+              core.info('SKIP_FOREIGN_PR');return;
+            }
+            const open = await github.paginate(github.rest.pulls.list,{
+              owner,repo,state:'open',per_page:100
+            });
+            if (open.some(p=>p.base.ref===name ||
+               (p.head.repo?.full_name===owner+'/'+repo&&p.head.ref===name))) {
+              core.info('SKIP_ACTIVE_PR');return;
+            }
+            let ref;
+            try {
+              ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;
+            } catch (e) {
+              if (e.status===404){core.info('ALREADY_ABSENT');return;}
+              throw e;
+            }
+            if (ref.object.sha!==expected){core.info('SKIP_MOVED');return;}
+            const b=(await github.rest.repos.getBranch({owner,repo,branch:name})).data;
+            if(b.protected){core.info('SKIP_PROTECTED');return;}
+            const cmp=(await github.rest.repos.compareCommits({
+              owner,repo,base:expected,head:'main'
+            })).data;
+            if(cmp.merge_base_commit?.sha!==expected || cmp.behind_by!==0){
+              core.info('SKIP_NON_ANCESTOR');return;
+            }
+            if((await github.rest.git.getRef({
+              owner,repo,ref:'heads/'+name
+            })).data.object.sha!==expected){core.info('SKIP_RACED');return;}
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+            core.info('DELETED_OWN_BEX_CLEANUP_BRANCH '+name);
