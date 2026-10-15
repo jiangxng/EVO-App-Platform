@@ -4,6 +4,7 @@
  * Reuses the same host+install+import commands as existing PA-01 browser proof.
  */
 import assert from "node:assert/strict";
+import { syntheticV3WorkbookV010 } from "./synthetic-v3-xlsx.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -158,14 +159,60 @@ try{
  }));
  assert.equal(batchPageProbe.status,200,"BEX_BATCH_PAGE_HOST_HTTP_FAILURE: "+JSON.stringify(batchPageProbe).slice(0,1800));
  assert.equal(batchPageProbe.value.id,"evo-object-extension.batch-import","BEX_BATCH_PAGE_OWNER_NOT_RENDERED");
- const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
+ // Synthetic XLSX, not the customer's workbook: 22 original columns and
+ // 172 complete spreadsheet rows with three intentionally blank subjectTypes.
+ // Real Host stage-file executes the installed XLSX parser, not test model mocks.
+ const synthetic=syntheticV3WorkbookV010();
+ assert.equal(synthetic.headers.length,22);
+ assert.equal(synthetic.rows.length,172);
+ assert.deepEqual(synthetic.missingRowNumbers,[165,169,172]);
+ const syntheticStaged=await execute("data-import.stage-file",{
+   targetId:"counterparty.subject",
+   file:{name:"BEX01-SYNTHETIC-NOT-CUSTOMER-172.xlsx",
+     mediaType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+     size:synthetic.bytes.length,
+     contentBase64:synthetic.bytes.toString("base64")},
+   parameter__relationshipMode:"SUPPLIER"
+ },contextId);
+ const syntheticJobId=syntheticStaged?.job?.importJobId;
+ assert.ok(syntheticJobId,"BEX01_SYNTHETIC_XLSX_JOB_MISSING");
+ assert.equal(syntheticStaged.job.source.kind,"XLSX");
+ assert.deepEqual(syntheticStaged.job.source.headers,synthetic.headers);
+ assert.equal(syntheticStaged.job.source.rows.length,172);
+ for(const rowNumber of synthetic.missingRowNumbers) {
+   assert.equal(syntheticStaged.job.source.rows[rowNumber-1]["主体类型"],"",
+     "Missing synthetic business identity must not be inferred from SUPPLIER");
+ }
+ // Every unknown column requires an explicit, reversible ignore choice.
+ const mappingChoices={importJobId:syntheticJobId,
+   map_0:"code",map_1:"displayName",map_2:"subjectType"};
+ synthetic.headers.slice(3).forEach((_,index)=>{
+   mappingChoices["map_"+(index+3)]="__IGNORE__";
+ });
+ const syntheticReviewed=await execute("data-import.review",
+   mappingChoices,contextId);
+ assert.equal(syntheticReviewed.job.state,"DRY_RUN_FAILED");
+ assert.equal(syntheticReviewed.job.dryRun.totalRows,172);
+ assert.equal(syntheticReviewed.job.dryRun.validRows,169);
+ assert.equal(syntheticReviewed.job.dryRun.invalidRows,3);
+ assert.deepEqual(syntheticReviewed.job.ignoredSourceColumns,
+   synthetic.headers.slice(3));
+ assert.deepEqual(syntheticReviewed.job.source.rows,syntheticStaged.job.source.rows);
+ console.log("BEX01_SYNTHETIC_XLSX_172_22_3_READY="+JSON.stringify({
+   jobId:syntheticJobId,kind:"XLSX",columns:22,rows:172,invalidRows:3,
+   synthetic:true,productionUsed:false
+ }));
+  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
  assert.equal(first.status,200,JSON.stringify(first.value).slice(0,1800));
  assert.equal(first.value.table?.rows?.length,25,"BEX01_FIRST_PAGE_NOT_BOUNDED");
  assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
- const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,route:COUNTERPARTY_SUPPLIERS_ROUTE,
+ const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,
+   syntheticXlsxJobId:syntheticJobId,syntheticXlsxRows:172,syntheticXlsxColumns:22,
+   syntheticXlsxMissingRows:synthetic.missingRowNumbers,
+   route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
  console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));
