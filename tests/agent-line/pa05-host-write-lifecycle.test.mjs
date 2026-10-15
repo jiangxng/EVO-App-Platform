@@ -476,3 +476,42 @@ test("PA05-04D4 dedicated shared authority Schema is accepted only with Host opt
   });
   assert.equal(configured.sharedAuthoritySchema,"central_owner");
 });
+
+
+test("PA05-04D6 Host requires complete trusted PostgreSQL identities for optional ACL attestation", async () => {
+  const m=fixture();
+  const config=pa05HostLifecycleConfigurationV010({
+    PA05_WRITE_LIFECYCLE_PACKAGES:packageId,
+    PA05_WRITE_LIFECYCLE_DATABASE_URL:"postgres://fixture",
+    PA05_WRITE_LIFECYCLE_SCHEMA:"pa05_worker_schema",
+    PA05_WRITE_LIFECYCLE_AUTHORITY_SCHEMA:"pa05_central_authority",
+    PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS:"pa05_worker_schema,other_worker_schema",
+    PA05_SHARED_SCHEMA_AUTHORITY_ENABLED:"1",
+    PA05_SQL_WRITE_ADMISSION_ENABLED:"1",
+    PA05_SQL_WORKER_IDENTITIES:"pa05_worker_schema:agent_role_a,other_worker_schema:agent_role_b"
+  });
+  assert.deepEqual(config.workerIdentities,[
+    {schema:"pa05_worker_schema",role:"agent_role_a"},
+    {schema:"other_worker_schema",role:"agent_role_b"}
+  ]);
+  const mockGate=async()=>({async close(){}});
+  const host=createPa05HostWriteLifecycleV010({
+    manager:m,gateFactory:mockGate,...config
+  });
+  await host.close();
+  for (const identities of [
+    [{schema:"pa05_worker_schema",role:"agent_role_a"}],
+    [{schema:"pa05_worker_schema",role:"agent_role_a"},
+     {schema:"other_worker_schema",role:"agent_role_a"}],
+    [{schema:"pa05_worker_schema",role:"agent_role_a"},
+     {schema:"not_registered",role:"agent_role_b"}]
+  ]) assert.throws(()=>createPa05HostWriteLifecycleV010({
+    manager:m,gateFactory:mockGate,...config,workerIdentities:identities
+  }),/PA05_HOST_WORKER_IDENTITIES_INVALID/);
+  assert.throws(()=>createPa05HostWriteLifecycleV010({
+    manager:m,gateFactory:mockGate,...config,enforceSqlOwnerAdmission:false
+  }),/PA05_HOST_WORKER_IDENTITIES_INVALID/);
+  assert.throws(()=>pa05HostLifecycleConfigurationV010({
+    PA05_SQL_WORKER_IDENTITIES:"worker_without_role"
+  }),/PA05_HOST_WORKER_IDENTITIES_INVALID/);
+});
