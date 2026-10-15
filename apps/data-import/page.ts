@@ -41,6 +41,13 @@ function text(locale?: string) {
         import: "开始导入",
         importTarget: (name: string) => "导入" + name,
         recent: "最近导入",
+        unfinished: "待完成",
+        continueImport: (name: string) => "继续导入 · " + name,
+        continueMapping: "继续核对字段",
+        continueReview: "继续查看预检查",
+        continueFailed: "处理导入问题",
+        unfinishedDescription: "未完成的导入已排在前面，之前保存的字段选择无需重新填写。",
+        unnamedImport: "未命名文件",
         history: "导入历史",
         historyDescription: "查看过去的导入任务、处理状态和结果。",
         noJobs: "还没有导入历史。",
@@ -106,6 +113,13 @@ function text(locale?: string) {
         import: "Start import",
         importTarget: (name: string) => "Import " + name,
         recent: "Recent imports",
+        unfinished: "To finish",
+        continueImport: (name: string) => "Continue import · " + name,
+        continueMapping: "Continue field review",
+        continueReview: "Review validation",
+        continueFailed: "Fix import issues",
+        unfinishedDescription: "Incomplete imports appear first. Previously saved mapping choices remain available.",
+        unnamedImport: "Untitled file",
         history: "Import history",
         historyDescription: "Review previous import jobs, processing status and results.",
         noJobs: "No import history yet.",
@@ -309,6 +323,22 @@ export function createDataImportDirectoryPageV010(input: {
   locale?: string;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
+  const availableTargets = new Set(input.targets.map(target => target.targetId));
+  // Read-only resume: only eligible current-target unfinished jobs. A committed
+  // or partially committed job must never be exposed as a safe "resume" action.
+  const isResumable = (job: DataImportJobV010): boolean =>
+    availableTargets.has(job.targetId)
+    && (job.state === "STAGED"
+      || job.state === "DRY_RUN_FAILED"
+      || job.state === "DRY_RUN_READY");
+  const orderedJobs = [...input.jobs].sort((a, b) =>
+    Number(isResumable(b)) - Number(isResumable(a))
+    || b.stagedAt.localeCompare(a.stagedAt));
+  const resumable = orderedJobs.find(isResumable);
+  const routeForJob = (job: DataImportJobV010) =>
+    job.state === "STAGED"
+      ? dataImportMappingRouteV010(job.importJobId)
+      : dataImportReviewRouteV010(job.importJobId);
   const importActions = input.targets.map(target => {
     const label = localizedTextV010(target.label, input.locale);
     return {
@@ -317,10 +347,10 @@ export function createDataImportDirectoryPageV010(input: {
       type: "navigate" as const,
       route: dataImportUploadRouteV010(target.targetId),
       requiresConfirmation: false,
-      ...(input.targets.length === 1 ? { primary: true } : {})
+      ...(input.targets.length === 1 && !resumable ? { primary: true } : {})
     };
   });
-  const jobItems = [...input.jobs]
+  const jobItems = orderedJobs
     .slice(0, 20)
     .map(job => {
       const status = stateLabel(job, input.locale);
@@ -328,7 +358,7 @@ export function createDataImportDirectoryPageV010(input: {
         id: "job:" + job.importJobId,
         title: job.source.name || job.importJobId,
         summary: job.targetId + " · " + job.source.kind,
-        category: t.recent,
+        category: isResumable(job) ? t.unfinished : t.recent,
         status,
         metadata: {
           [t.totalRows]: job.source.rows.length,
@@ -337,11 +367,14 @@ export function createDataImportDirectoryPageV010(input: {
         },
         primaryAction: {
           id: "open",
-          label: job.state === "STAGED" ? t.mappingTitle : t.reviewTitle,
+          label: isResumable(job)
+            ? job.state === "STAGED"
+              ? t.continueMapping
+              : job.state === "DRY_RUN_FAILED"
+                ? t.continueFailed : t.continueReview
+            : job.state === "STAGED" ? t.mappingTitle : t.reviewTitle,
           type: "navigate" as const,
-          route: job.state === "STAGED"
-            ? dataImportMappingRouteV010(job.importJobId)
-            : dataImportReviewRouteV010(job.importJobId)
+          route: routeForJob(job)
         }
       };
     });
@@ -354,10 +387,21 @@ export function createDataImportDirectoryPageV010(input: {
     itemActivation: "primary-action",
     id: "evo-data-import.directory",
     title: t.title,
-    description: t.description,
-    actions: importActions,
+    description: resumable ? t.unfinishedDescription : t.description,
+    actions: [
+      ...(resumable ? [{
+        id: "resume-import",
+        label: t.continueImport(resumable.source.name || t.unnamedImport),
+        type: "navigate" as const,
+        route: routeForJob(resumable),
+        requiresConfirmation: false,
+        primary: true
+      }] : []),
+      ...importActions
+    ],
     collectionTitle: t.history,
-    collectionDescription: t.historyDescription,
+    collectionDescription: resumable
+      ? t.unfinishedDescription : t.historyDescription,
     items: jobItems,
     emptyMessage: t.noJobs
   };
