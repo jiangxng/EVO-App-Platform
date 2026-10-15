@@ -8,6 +8,7 @@ or human signoff. Runs after legacy Host/Chromium scenarios to avoid field confl
 import base64
 import hashlib
 import json
+import re
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -84,10 +85,10 @@ with sync_playwright() as pw:
     for i,label in enumerate(FIELDS):
         expect(form.locator('select[name="choice_%d"]'%i)).to_have_value("__CREATE__")
         expect(form.locator('input[name="label_%d"]'%i)).to_have_value(label)
-    expect(form.locator('input[name="sample_0"]')).to_contain_text(
-      "synthetic-4-0001")
-    expect(form.locator('input[name="sample_16"]')).to_contain_text(
-      "synthetic-20-0001")
+    expect(form.locator('input[name="sample_0"]')).to_have_value(
+      re.compile(r"synthetic-4-0001"))
+    expect(form.locator('input[name="sample_16"]')).to_have_value(
+      re.compile(r"synthetic-20-0001"))
     page.screenshot(path=str(OUT/"v3-retained-xlsx-batch-17-fields.png"),
                     full_page=True)
     form.locator('button[type="submit"]').click()
