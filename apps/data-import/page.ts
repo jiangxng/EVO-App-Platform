@@ -50,7 +50,7 @@ function text(locale?: string) {
         relationshipRole: "关系角色",
         mappingTitle: "字段映射",
         mappingDescription:
-          "确认每一列对应的 EVO 字段。系统已按字段 ID、中文/英文名称自动匹配，可忽略不需要的列。AI 设置的批次固定值和值转换会在下方显示，并在未被明确修改时保留。",
+          "先恢复本企业之前的映射，再按字段名建议匹配；可点击 AI 自动匹配。没有目标的列默认建议创建企业字段而非忽略，原始 Excel 全列保留。审核后再预检查和明确提交，允许后续修改映射。AI 设置的批次固定值和值转换仍会保留。",
         ignore: "忽略此列",
         batchConstant: "批次固定值",
         valueTransform: "值转换",
@@ -576,7 +576,27 @@ export function createDataImportMappingPageV010(input: {
         value: input.job.importJobId,
         label: input.job.importJobId
       }]
-    }, ...input.job.source.headers.map((sourceColumn, index) => ({
+    }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
+      ? [{
+          key: "batchReviewEntry",
+          label: zh(input.locale)
+            ? "批量字段审核 · 先复用已有映射，可先使用 AI 自动匹配"
+            : "Batch field review · reuse prior mappings, optionally ask AI",
+          semanticType: "data-import-batch-review-link",
+          control: "text" as const,
+          readOnly: true,
+          required: false,
+          initialValue: zh(input.locale)
+            ? "未匹配的来源列已保留。集中审核后一次创建并自动映射，不会自动提交供应商数据。"
+            : "Unmatched source values are preserved. Confirm fields together before importing.",
+          contextLink: {
+            label: zh(input.locale)
+              ? "集中审核 " + unmapped.length + " 个未匹配字段（B 方案）"
+              : "Review " + unmapped.length + " unmatched columns together",
+            route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+          }
+        }]
+      : []), ...input.job.source.headers.map((sourceColumn, index) => ({
       key: "map_" + index,
       label: sourceColumn,
       semanticType: "data-import-field-mapping",
@@ -587,7 +607,9 @@ export function createDataImportMappingPageV010(input: {
         ?? (input.createdMapping?.sourceColumn === sourceColumn
           && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
             ? input.createdMapping.fieldId
-            : uniqueExistingField(sourceColumn) ?? "__IGNORE__"),
+            : uniqueExistingField(sourceColumn)
+              ?? (input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                ? "__CREATE__" : "__PENDING__")),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
@@ -601,9 +623,21 @@ export function createDataImportMappingPageV010(input: {
           }
         : {}),
       options: [{
+        value: "__PENDING__",
+        label: zh(input.locale) ? "— 待处理（原始列已保留） —" : "— Pending (source preserved) —"
+      }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
+        ? [{value: "__CREATE__", label: zh(input.locale)
+          ? "＋ 建议新建企业字段（集中审核确认）"
+          : "+ Propose enterprise field (confirm in batch review)"}]
+        : []), {
         value: "__IGNORE__",
         label: "— " + t.ignore + " —"
-      }, ...importFields.map(field => ({
+      }, ...(current.get(sourceColumn)
+        && !importFields.some(field => field.fieldId === current.get(sourceColumn))
+        ? [{value: current.get(sourceColumn)!, label: zh(input.locale)
+          ? "⚠ 原映射目标不可用，需修复 · " + current.get(sourceColumn)
+          : "⚠ Previous target unavailable; review · " + current.get(sourceColumn)}]
+        : []), ...importFields.map(field => ({
         value: field.fieldId,
         label: field.resolvedLabel + " · " + field.fieldId
       }))]
