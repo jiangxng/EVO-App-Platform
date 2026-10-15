@@ -4,7 +4,7 @@
 **仓库：** https://github.com/jiangxng/EVO-App-Platform  
 **编制时主线：** `main@991ac3e030884b69586b3c1732db9953dc17ef91`，#880 合并后。**这不是资料包 PR 合并后的或将来永久最新 HEAD。**  
 **简短交接入口：** [PA02-WINDOW-HANDOFF-ENTRY-20261015.md](PA02-WINDOW-HANDOFF-ENTRY-20261015.md)  
-**上轮历史索引：** [2026-10-14 detailed source ledger](PA02-WINDOW-CLOSURE-REFERENCE-INDEX-20261014.md)；[原 PA-02 总纲 `25 R01–R10](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md)；[项目交付规范](../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md)。
+**上轮历史索引：** [2026-10-14 detailed source ledger](PA02-WINDOW-CLOSURE-REFERENCE-INDEX-20261014.md)；[原 PA-02 总纲 §25 R01–R10](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md)；[项目交付规范](../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md)。
 
 ## 0. 阅读/访问等级和来源真实性
 
@@ -30,7 +30,7 @@
 
 ## 2. 前序 14 条外网参考：全量原始 URL，但**均是 H／原文未读**
 
-这些链接来自 [10-14 历史索引 `3](PA02-WINDOW-CLOSURE-REFERENCE-INDEX-20261014.md#3-历史外部网页参考原始-url-完整保留但本窗口未访问外站)。**保留网址不是标记已读**。下列中间栏全部是先前交接的可能要点，未经本窗口核实。
+这些链接来自 [10-14 历史索引 §3](PA02-WINDOW-CLOSURE-REFERENCE-INDEX-20261014.md#3-历史外部网页参考原始-url-完整保留但本窗口未访问外站)。**保留网址不是标记已读**。下列中间栏全部是先前交接的可能要点，未经本窗口核实。
 
 | ID/标题与原始链接（全部 H） | 历史转述的主题（不是当前来源事实） | 对 EVO 的用途／重访优先级 |
 | --- | --- | --- |
@@ -60,7 +60,7 @@
 | --- | --- | --- |
 | G01 [AI-BOOTSTRAP.md](https://github.com/jiangxng/EVO-App-Platform/blob/main/AI-BOOTSTRAP.md) / [LLM.md](https://github.com/jiangxng/EVO-App-Platform/blob/main/LLM.md) | **G-PART 10-15**：启动需按 bootstrap、`project.status.json` 及其 handoff、LLM、foundation-map、任务权威；仓库高于聊天记忆。 | 新窗口先完成标准项目启动，不依赖本聊天截图或消息作为 authority。 |
 | G02 [Development Delivery Workflow](https://github.com/jiangxng/EVO-App-Platform/blob/main/docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md) | **G-FULL 10-15**：一个真实闭环一短分支/PR、final HEAD CI→merge main→核分支退休，生产准入独立。 | 约束下个开发/资料 PR，防止二次重建。 |
-| G03 [PA-00～PA-06 Construction Blueprint `25](https://github.com/jiangxng/EVO-App-Platform/blob/main/docs/roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) | **G-PART 10-14**：R01–R10 原始测试；R10 包括步骤/时间/**费用**，PA-04 context token budgeting 不是费用硬预算。 | 防止人为缩窄原始完成定义或偷渡 PA-03～06。 |
+| G03 [PA-00～PA-06 Construction Blueprint §25](https://github.com/jiangxng/EVO-App-Platform/blob/main/docs/roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md) | **G-PART 10-14**：R01–R10 原始测试；R10 包括步骤/时间/**费用**，PA-04 context token budgeting 不是费用硬预算。 | 防止人为缩窄原始完成定义或偷渡 PA-03～06。 |
 | G04 [2026-10-14 旧交接入口](PA02-WINDOW-CLOSURE-HANDOFF-ENTRY-20261014.md) / [来源索引](PA02-WINDOW-CLOSURE-REFERENCE-INDEX-20261014.md) | **G-FULL 10-15**：七个旧合并 PR 的精确 SHAs 和所有 H01–H14 原 URL；其 `main@d8e25...` 和旧 OPEN 状态是**当时快照**。 | 参考遗产而非当前运行状态；新窗口不重做旧研究。 |
 | G05 [PA02 Current Acceptance](PA02-CURRENT-ACCEPTANCE.md) / [R01–R10 Evidence Ledger](PA02-R01-R10-EVIDENCE-LEDGER-20261014.md) / [Final Signoff Audit](PA02-FINAL-SIGNOFF-AUDIT-20261015.md) | **G-FULL/G-PART 10-15**：R01–R09 的隔离开发真实证据 PASS；R10 已有 24 slices/72h/usage & synthetic PG money gate，**真实供应商货币预算 NOT_SIGNED**。文档里历史 `CI_PENDING` 可能滞后。 | 阶段状态、PR/CI 补证总账和真正未决项的最优先阅读位置。 |
 | G06 [LLM Contract](https://github.com/jiangxng/EVO-App-Platform/blob/main/contracts/llm.ts) / [OpenAI Provider Runtime](https://github.com/jiangxng/EVO-App-Platform/blob/main/providers/openai/runtime.ts) / [DeepSeek Provider Runtime](https://github.com/jiangxng/EVO-App-Platform/blob/main/providers/deepseek/runtime.ts) | **G-PART 10-14**：#857 已修正供应商未回 `body.usage` 却被伪造成 0 的行为；`UNAVAILABLE` 不应变 0 元。 | R10 真实 Provider ID、token 分类和账单凭据仍待供应商权威复核。 |
