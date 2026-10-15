@@ -25,7 +25,11 @@ const opaqueId=(v:string,code:string):string=>{
     throw Error(code);
   return v;
 };
-type DbRef={connectionString:string;schema:string;workerId:string};
+type DbRef={
+  connectionString:string;schema:string;workerId:string;
+  /** Optional D14B3 real business/Worker schema to audit for DML drift. */
+  protectedSchema?:string;
+};
 type Row=Record<string,unknown>;
 type Connection={unsafe:(query:string,params?:unknown[])=>Promise<Row[]>;end:()=>Promise<void>};
 function closeEnough(p:unknown):p is string{
@@ -38,7 +42,10 @@ async function queryFresh(connectionString:string,fn:(db:Connection)=>Promise<vo
   try{await fn(sql as unknown as Connection);}
   finally{await sql.end();}
 }
-async function principalRoleAudit(db:Connection,schema:string,manifest:string):Promise<void>{
+async function principalRoleAudit(
+  db:Connection,schema:string,manifest:string,protectedSchema?:string,
+  protectedTables:readonly string[]=[]
+):Promise<void>{
   const rows=await db.unsafe(
     "SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,"+
     "r.rolcreatedb,r.rolreplication,"+
@@ -64,12 +71,42 @@ async function principalRoleAudit(db:Connection,schema:string,manifest:string):P
     r.manifest_owner_member||r.schema_create||r.can_insert||
     r.can_update||r.can_delete||r.can_truncate||r.can_trigger)
     throw Error("PA05_XDB_HOST_IDENTITY_SQL_ROLE_UNSAFE");
+  if(protectedSchema) {
+    // A read-only attestation role must NOT be able to mutate central
+    // reservation/Owner inventory or any remote WRITE/ticket/config table.
+    // Pg's role MEMBER graph also catches SET ROLE/NOINHERIT delegation
+    // and ordinary PUBLIC grants, rather than checking only direct GRANTs.
+    const protectedRows=await db.unsafe(
+      "SELECT c.relname, "+
+      "has_schema_privilege(SESSION_USER,n.oid,'CREATE') AS schema_create,"+
+      "EXISTS (SELECT 1 FROM pg_roles delegate "+
+      "WHERE (delegate.oid=actor.oid OR "+
+      "pg_has_role(actor.oid,delegate.oid,'MEMBER')) "+
+      "AND (pg_has_role(delegate.oid,c.relowner,'MEMBER') OR "+
+      "has_table_privilege(delegate.oid,c.oid,'INSERT') OR "+
+      "has_table_privilege(delegate.oid,c.oid,'UPDATE') OR "+
+      "has_table_privilege(delegate.oid,c.oid,'DELETE') OR "+
+      "has_table_privilege(delegate.oid,c.oid,'TRUNCATE') OR "+
+      "has_table_privilege(delegate.oid,c.oid,'TRIGGER'))) AS delegated_write "+
+      "FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "+
+      "JOIN pg_roles actor ON actor.rolname=SESSION_USER "+
+      "WHERE n.nspname=$1 AND c.relname=ANY($2::text[]) "+
+      "AND c.relkind IN ('r','p')",[protectedSchema,protectedTables]
+    );
+    if(protectedRows.length!==protectedTables.length||
+      new Set(protectedRows.map(x=>String(x.relname))).size!==protectedTables.length)
+      throw Error("PA05_XDB_HOST_IDENTITY_PROTECTED_TABLES_MISSING");
+    if(protectedRows.some(x=>x.schema_create||x.delegated_write))
+      throw Error("PA05_XDB_HOST_IDENTITY_PROTECTED_SQL_PRIVILEGE_DRIFT");
+  }
 }
 export function createPa05CrossDatabaseHostPrincipalV010(input:{
   hostId:string;
   revision:number;
   centralConnectionString:string;
   centralSchema:string;
+  /** D14B3 optional guarded central authority schema (all tables required). */
+  centralProtectedSchema?:string;
   /**
    * Exactly one remote database per declared trusted Worker ID; the
    * *database URL* is Host configuration, never from the LLM/Worker.
@@ -81,9 +118,15 @@ export function createPa05CrossDatabaseHostPrincipalV010(input:{
   if(!Number.isSafeInteger(revision)||revision<1)
     throw Error("PA05_XDB_HOST_IDENTITY_REVISION_INVALID");
   const centralSchema=identifier(input.centralSchema,"PA05_XDB_HOST_IDENTITY_SCHEMA_INVALID");
+  const centralProtected=input.centralProtectedSchema
+    ?identifier(input.centralProtectedSchema,"PA05_XDB_HOST_IDENTITY_PROTECTED_SCHEMA_INVALID")
+    :undefined;
   const remotes=input.remoteDatabases.map(r=>({
     connectionString:r.connectionString,
     schema:identifier(r.schema,"PA05_XDB_HOST_IDENTITY_SCHEMA_INVALID"),
+    protectedSchema:r.protectedSchema
+      ?identifier(r.protectedSchema,"PA05_XDB_HOST_IDENTITY_PROTECTED_SCHEMA_INVALID")
+      :undefined,
     workerId:opaqueId(r.workerId,"PA05_XDB_HOST_IDENTITY_WORKER_INVALID")
   })).sort((a,b)=>a.workerId.localeCompare(b.workerId));
   if(!remotes.length||new Set(remotes.map(r=>r.workerId)).size!==remotes.length)
@@ -105,7 +148,8 @@ export function createPa05CrossDatabaseHostPrincipalV010(input:{
             "(SELECT system_identifier::text FROM pg_control_system()) AS system_id");
           centralLogin=String(info[0]?.login??"");
           centralSystem=String(info[0]?.system_id??"");
-          await principalRoleAudit(sql,centralSchema,manifest);
+          await principalRoleAudit(sql,centralSchema,manifest,centralProtected,
+            ["pa05_xdb_workers","pa05_xdb_owners","pa05_xdb_reservations"]);
           centralRows=await sql.unsafe("SELECT host_id,revision,worker_id,"+
             "central_login,remote_login,remote_system_id,state FROM "+cq+
             " WHERE host_id=$1 ORDER BY worker_id",[hostId]);
@@ -128,7 +172,9 @@ export function createPa05CrossDatabaseHostPrincipalV010(input:{
             "(SELECT system_identifier::text FROM pg_control_system()) AS system_id");
           const login=String(info[0]?.login??"");
           const systemId=String(info[0]?.system_id??"");
-          await principalRoleAudit(sql,remote.schema,manifest);
+          await principalRoleAudit(sql,remote.schema,manifest,
+            remote.protectedSchema,
+            ["pa02b_writes","pa05_xdb_remote_tickets","pa05_xdb_remote_config"]);
           const rows=await sql.unsafe("SELECT host_id,revision,worker_id,"+
             "central_login,central_system_id,remote_login,remote_system_id,state "+
             "FROM "+'"'+remote.schema+'".'+manifest+
