@@ -4,7 +4,7 @@ import type { DataImportJobV010 } from "./types.js";
 import {
   dataImportCorrectableSourceV010,
   dataImportRowCorrectionRevisionV010
-} from "./row-correction.js";
+} from "./service.js";
 import {
   DATA_IMPORT_DIRECTORY_ROUTE,
   DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
