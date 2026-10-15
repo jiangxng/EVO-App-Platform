@@ -16,7 +16,7 @@ import type {
 import type {
   DataImportJobV010
 } from "./types.js";
-import { dataImportCorrectableSourceV010 } from "./row-correction.js";
+import { dataImportCorrectableSourceV010 } from "./service.js";
 import {
   dataImportIssueSourceEvidenceV010,
   dataImportSourceAuditItemsV010
