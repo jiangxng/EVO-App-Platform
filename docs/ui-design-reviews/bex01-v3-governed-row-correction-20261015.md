@@ -33,3 +33,9 @@ Enum 用有文字的 select 选项，包含明确选择而非猜测关系角色�
 ## 证据与剩余问题
 
 现有 #925 已合并证明全列核对，Eidos #186 定原则。新增代码/协议/实际 Host Chromium 见本 PR CI；尚未得到客户 Excel、授权 Job、用户本人 Human 和真机。界面“技术版本”选择目前是 Eidos 表单限制下的状态绑定，不满意的视觉后续应由 Eidos 通用设计能力收敛。Railway 不部署。
+
+## 合并后 CI / 隔离 Host 验收结论
+
+本次 `apps/data-import/page.ts` 与 `apps/data-import/row-correction-page.ts` 对应正式实现 **#929 MERGED**，`main@0eb56f1135b05da535b8faa71d44ee709fa99d89`。同步最新 main 后 **43/43 CI PASS**，含 [真实 Host/Chromium 38710095251](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38710095251)、[Platform 38710095220](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38710095220)、[Human Review 38710095592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38710095592)、[Lightweight Host 38710095261](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38710095261)。Chromium 141 实测 DESKTOP/PHONE 行级修正和撤销通过，390px 为模拟触控屏，不是真机。原始 Excel 值现在是**修正表单里实际可见的只读字段**，非只有审计元信息。
+
+**安全事实：** 没有生产企业数据写入，原私有 XLSX 与授权 Import Job 未取得；当前测试仅隔离 Host 合成数据。Human 实际客户数据/业务身份核对与真机易用性仍 OPEN，不能把源码/UI/浏览器绿灯当成最终真实导入验收。
