@@ -11,6 +11,7 @@ import type {Pa05CrossDatabaseReservationAuthorityV010} from "./pa05-cross-datab
  */
 export interface Pa05RemoteSqlAdmissionV010 {
   readonly ownerPackageId: string;
+  readonly workerId: string;
   /** Durable monotone remote SQL fence. Never implies an Owner is drained. */
   freezeRemote(): Promise<{state:"FROZEN"}>;
   getRemoteState(): Promise<"ACTIVE"|"FROZEN">;
@@ -156,7 +157,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         " RAISE EXCEPTION 'PA05_XDB_REMOTE_FROZEN_MONOTONE'; END IF;",
         "END IF;",
         "RETURN NEW; END;"
-      ].join("\\n");
+      ].join("\n");
       await tx.unsafe("CREATE OR REPLACE FUNCTION "+q+
         ".pa05_xdb_config_guard() RETURNS trigger LANGUAGE plpgsql "+
         "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
@@ -201,6 +202,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
     });
     return {
       ownerPackageId:owner,
+      workerId,
       async freezeRemote(){
         // No remote restart or central connection needed to retain this
         // gate; UPDATE serializes with ticket staging and effect admission.
