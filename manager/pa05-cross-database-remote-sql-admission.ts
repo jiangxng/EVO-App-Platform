@@ -182,6 +182,10 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         " NEW.input_digest IS DISTINCT FROM OLD.input_digest OR",
         " NEW.fence IS DISTINCT FROM OLD.fence THEN",
         " RAISE EXCEPTION 'PA05_XDB_REMOTE_IMMUTABLE_EFFECT'; END IF;",
+        // Reject a third SQL LOGIN first; an untrusted caller should not
+        // learn whether a specific Host-staged ticket already exists.
+        "IF SESSION_USER!='"+role+"' AND SESSION_USER!='"+hostLogin+"' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_REMOTE_WRONG_LOGIN'; END IF;",
         // Local STOP applies to both restricted Worker SQL and the real
         // Host-side PA-02 coordinator. Host identity does not bypass freeze.
         "IF OLD.state='PREPARED' AND NEW.state='INVOKING' THEN",
