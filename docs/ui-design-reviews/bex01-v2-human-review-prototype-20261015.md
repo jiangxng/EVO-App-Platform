@@ -40,3 +40,12 @@
 新增 UI 测试文件 `tests/bex01/v2-prototype-chromium.mjs` 和局部工作流 `.github/workflows/bex01-v2-prototype-chromium-review.yml`。测试通过 GitHub Actions [run #38678793663](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38678793663) 用实际 Chromium/Playwright 打开上面的模拟 HTML：**七个场景全部 PASS、0 页面错误**，涵盖桌面/390px 模拟手机、触控尺寸、展开焦点与键盘 Enter、200% CSS zoom、模拟字段与主体类型决策、创建方案双重确认、失败预检阻断、浏览器 localStorage 演示恢复与重校验。截图及报告在 [artifact #11947496968](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38678793663/artifacts/11947496968)。浏览器执行未读取原 Excel 或 Import Job，不连接 Host/用户工作区，不进行任何业务写入。
 
 **未通过、未宣称通过的部分**：真实 22 列数据和历史 Recipe 恢复、授权企业对象/权限与 Schema 创建、两个真实同名银行 ID 的业务区分、三条真实核心缺失行的合法修复、Host 持久草稿/业务预检与提交、屏幕阅读器、真机与 400% 原生放大、Human 主观视觉审阅、Railway 固定开发发布。Eidos 原生组件与正式色彩 tokens 的真实效果只能由后续业务实现验收。**本审查记录不是签收单。**
+
+
+### 2026-10-15 来源选择反例、审批失效及自动回归证据
+
+同一原型的 7 个示例来源行现全部可以找到处理入口，来源列动作明确区分**复用已确认目标 / 新建建议 / 尚待决定 / 用户明确忽略**。完整来源行中的五列可直接改处理模式，开户银行和主体类型两列在首屏作为真实歧义类型的演示处理；“系统编码”明确保留为待处理状态，绝不默认丢弃。模拟目标一对一排他；核心编码、名称不能被错误映射后还通过预检查；已选忽略可撤销、保存后可再次访问。独立的拟新增 Schema 清单与导入数据提交确认被严格分开，Schema 方案变化会撤销旧创建确认，**下一步审批不计入当前字段错误数**。真实 Eidos、Owner、Host 及企业权限逻辑不在此原型中。
+
+[Chromium 自动化](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38679932512) 的最新有效证据是 **10/10 PASS，0 JS 页面错误**；[报告及截图 artifact #11947504213](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38679932512/artifacts/11947504213)。相较先前 7 项，增加了忽略可撤销、一对一占用、批量审批改变后的再次批准和核心字段阻断。首轮曾 [8 PASS/2 FAIL](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38679856210)，定位后修正来源异常数量和审批待办的分类，再运行至全部 PASS。
+
+**这是浏览器自动断言与截图证据，不是 Human 确认或实际 22 列数据真实性证明**。保持人工视觉、真机、完整 400% 缩放/屏幕阅读器、实际 Host 权限/导入行为和历史银行字段归属为后续签收项。当前 Draft PR 不合并或发布。
