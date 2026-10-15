@@ -36,6 +36,7 @@ export interface Pa05CrossDatabaseReservationAuthorityV010 {
     }>;
   }): Promise<{state:"SETTLED" | "ALREADY_SETTLED"; pendingCount:number}>;
 
+  getTrustedWorkerIds(packageId:string):Promise<string[]>;
   getState(packageId: string): Promise<
     {state: "FROZEN" | "ACTIVE"; version: string; pendingCount: number} | undefined>;
   close(): Promise<void>;
@@ -414,6 +415,14 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
           [reservationId,terminal.outcome,terminal.receiptId,evidenceDigest]);
         return {state:"SETTLED" as const,pendingCount:await pending(tx,packageId)};
       });
+    },
+    async getTrustedWorkerIds(packageId){
+      packageId=name(packageId);
+      const rows=await sql.unsafe("SELECT worker_id FROM "+a+
+        ".pa05_xdb_workers WHERE owner_package_id=$1 ORDER BY worker_id",
+        [packageId]);
+      if(!rows.length)throw Error("PA05_XDB_TRUSTED_REMOTE_INVENTORY_EMPTY");
+      return rows.map(x=>String(x.worker_id));
     },
     async getState(packageId) {
       packageId = name(packageId);
