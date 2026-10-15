@@ -11,6 +11,10 @@ import type {Pa05CrossDatabaseReservationAuthorityV010} from "./pa05-cross-datab
  */
 export interface Pa05RemoteSqlAdmissionV010 {
   readonly ownerPackageId: string;
+  readonly workerId: string;
+  /** Durable monotone remote SQL fence. Never implies an Owner is drained. */
+  freezeRemote(): Promise<{state:"FROZEN"}>;
+  getRemoteState(): Promise<"ACTIVE"|"FROZEN">;
   stagePreparedEffect(input: {scopeKey: string; effectId: string}):
     Promise<{reservationId: string; effectDigest: string}>;
   close(): Promise<void>;
@@ -102,7 +106,12 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
       await tx.unsafe("CREATE TABLE IF NOT EXISTS "+config+"("+
         "singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),"+
         "worker_id text NOT NULL,owner_id text NOT NULL,owner_version text NOT NULL,"+
-        "worker_login text NOT NULL,host_login text NOT NULL)");
+        "worker_login text NOT NULL,host_login text NOT NULL,"+
+        "state text NOT NULL DEFAULT 'ACTIVE' CHECK(state IN ('ACTIVE','FROZEN')))");
+      // Existing D10 rows migrate ACTIVE; an existing FROZEN row is never reset.
+      await tx.unsafe("ALTER TABLE "+config+
+        " ADD COLUMN IF NOT EXISTS state text NOT NULL DEFAULT 'ACTIVE' "+
+        "CHECK(state IN ('ACTIVE','FROZEN'))");
       await tx.unsafe("CREATE TABLE IF NOT EXISTS "+tickets+"("+
         "scope_key text NOT NULL,effect_id text NOT NULL,run_id text NOT NULL,"+
         "input_digest text NOT NULL,fence bigint NOT NULL,"+
@@ -128,6 +137,34 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         "FROM pg_class c WHERE c.oid=$2::regclass",[role,tickets]);
       if(tacl.length!==1||tacl[0].i||tacl[0].u||tacl[0].d||tacl[0].t||tacl[0].own)
         throw Error("PA05_XDB_REMOTE_TICKET_PRIVILEGE_DENIED");
+      // Even an accidental GRANT on the config table cannot re-enable a
+      // frozen gate. Only the authenticated Host may mutate the singleton.
+      const configBody=[
+        "BEGIN",
+        "IF SESSION_USER != '"+hostLogin+"' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_REMOTE_CONFIG_WRONG_LOGIN'; END IF;",
+        "IF TG_OP='DELETE' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_REMOTE_CONFIG_DELETE_DENIED'; END IF;",
+        "IF TG_OP='UPDATE' THEN",
+        " IF NEW.singleton IS DISTINCT FROM OLD.singleton OR",
+        " NEW.worker_id IS DISTINCT FROM OLD.worker_id OR",
+        " NEW.owner_id IS DISTINCT FROM OLD.owner_id OR",
+        " NEW.owner_version IS DISTINCT FROM OLD.owner_version OR",
+        " NEW.worker_login IS DISTINCT FROM OLD.worker_login OR",
+        " NEW.host_login IS DISTINCT FROM OLD.host_login THEN",
+        " RAISE EXCEPTION 'PA05_XDB_REMOTE_CONFIG_IDENTITY_IMMUTABLE'; END IF;",
+        " IF OLD.state='FROZEN' AND NEW.state!='FROZEN' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_REMOTE_FROZEN_MONOTONE'; END IF;",
+        "END IF;",
+        "RETURN NEW; END;"
+      ].join("\n");
+      await tx.unsafe("CREATE OR REPLACE FUNCTION "+q+
+        ".pa05_xdb_config_guard() RETURNS trigger LANGUAGE plpgsql "+
+        "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+        configBody+"$pa05$");
+      await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_config_guard ON "+config);
+      await tx.unsafe("CREATE TRIGGER pa05_xdb_config_guard BEFORE INSERT OR UPDATE OR DELETE ON "+
+        config+" FOR EACH ROW EXECUTE FUNCTION "+q+".pa05_xdb_config_guard()");
       const body=[
         "BEGIN",
         "IF NEW.scope_key IS DISTINCT FROM OLD.scope_key OR",
@@ -136,6 +173,16 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         " NEW.input_digest IS DISTINCT FROM OLD.input_digest OR",
         " NEW.fence IS DISTINCT FROM OLD.fence THEN",
         " RAISE EXCEPTION 'PA05_XDB_REMOTE_IMMUTABLE_EFFECT'; END IF;",
+        // Local STOP applies to both restricted Worker SQL and the real
+        // Host-side PA-02 coordinator. Host identity does not bypass freeze.
+        "IF OLD.state='PREPARED' AND NEW.state='INVOKING' THEN",
+        " IF NOT EXISTS(SELECT 1 FROM "+config+" c",
+        " WHERE c.singleton AND c.worker_id='"+workerId+"'",
+        " AND c.owner_id='"+owner+"' AND c.owner_version='"+version+"'",
+        " AND c.worker_login='"+role+"' AND c.state='ACTIVE'",
+        " FOR SHARE) THEN",
+        "  RAISE EXCEPTION 'PA05_XDB_REMOTE_LOCALLY_FROZEN'; END IF;",
+        "END IF;",
         "IF SESSION_USER = '"+role+"' THEN",
         " IF NOT (OLD.state='PREPARED' AND NEW.state='INVOKING') THEN",
         "  RAISE EXCEPTION 'PA05_XDB_REMOTE_WORKER_STATE_DENIED'; END IF;",
@@ -159,6 +206,27 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
     });
     return {
       ownerPackageId:owner,
+      workerId,
+      async freezeRemote(){
+        // No remote restart or central connection needed to retain this
+        // gate; UPDATE serializes with ticket staging and effect admission.
+        const rows=await db.unsafe("UPDATE "+config+
+          " SET state='FROZEN' WHERE singleton AND worker_id=$1 AND "+
+          "owner_id=$2 AND owner_version=$3 AND host_login=$4 RETURNING state",
+          [workerId,owner,version,hostLogin]);
+        if(rows.length!==1||rows[0].state!=="FROZEN")
+          throw Error("PA05_XDB_REMOTE_FREEZE_IDENTITY_MISMATCH");
+        return {state:"FROZEN" as const};
+      },
+      async getRemoteState(){
+        const rows=await db.unsafe("SELECT state FROM "+config+
+          " WHERE singleton AND worker_id=$1 AND owner_id=$2 AND "+
+          "owner_version=$3 AND host_login=$4",
+          [workerId,owner,version,hostLogin]);
+        if(rows.length!==1||!["ACTIVE","FROZEN"].includes(rows[0].state))
+          throw Error("PA05_XDB_REMOTE_STATE_UNTRUSTED");
+        return rows[0].state as "ACTIVE"|"FROZEN";
+      },
       async stagePreparedEffect({scopeKey,effectId}) {
         scopeKey=scope(scopeKey);effectId=scope(effectId);
         const rows=await db.unsafe("SELECT scope_key,effect_id,run_id,input_digest,fence,state "+
@@ -174,6 +242,13 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
           packageId:owner,version,workerId,reservationId,effectDigest
         });
         await db.begin(async tx=>{
+          // Prevent a late ticket being installed after local freeze.
+          // FOR SHARE serializes with freezeRemote's UPDATE of the same row.
+          const local=await tx.unsafe("SELECT state FROM "+config+
+            " WHERE singleton AND worker_id=$1 AND owner_id=$2 AND "+
+            "owner_version=$3 FOR SHARE",[workerId,owner,version]);
+          if(local.length!==1||local[0].state!=="ACTIVE")
+            throw Error("PA05_XDB_REMOTE_LOCALLY_FROZEN");
           const locked=await tx.unsafe("SELECT scope_key,effect_id,run_id,input_digest,"+
             "fence,state FROM "+table+" WHERE scope_key=$1 AND effect_id=$2 FOR UPDATE",
             [scopeKey,effectId]);
