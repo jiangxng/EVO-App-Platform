@@ -5,6 +5,8 @@ on:
     paths:
       - "docs/plans/foundation-list-experience/BEX-01-IMPORT-V2-HUMAN-REVIEW-PROTOTYPE-20261015.html"
       - "tests/bex01/v2-prototype-chromium.mjs"
+      - "tests/bex01/v3-in-context-import-chromium.mjs"
+      - "docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html"
       - ".github/workflows/bex01-v2-prototype-chromium-review.yml"
 
 permissions:
@@ -41,10 +43,21 @@ jobs:
           if [ -z "$CHROME" ]; then echo "Chromium/Chrome executable is unavailable" >&2; exit 1; fi
           export CHROME
           node tests/bex01/v2-prototype-chromium.mjs
+          node tests/bex01/v3-in-context-import-chromium.mjs
       - name: Keep only synthetic, noncustomer browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bex-v2-synthetic-prototype-chromium-evidence
           path: artifacts/bex-v2-prototype-browser/
+          if-no-files-found: warn
+
+      - name: Publish standalone V3 import experience and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bex-v3-in-context-import-open-in-browser
+          path: |
+            docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html
+            artifacts/bex-v3-import-browser/
           if-no-files-found: warn
