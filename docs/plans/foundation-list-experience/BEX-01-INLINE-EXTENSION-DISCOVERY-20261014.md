@@ -104,3 +104,26 @@ BEX 后续只看新入口是否易找、权限是否正确、字段创建后返�
 | 显式预检查与最终提交、详情扩展值 | 新旧两个流程均在隔离 Host + Chromium 通过 | 真实文件与部署版本验证 |
 | Railway 开发服务准确发布 | 仍为旧版 8b7e2cc9 SUCCESS | 仅验证通过且合并后按准确 SHA 发布 |
 | 原始 Excel 用户数据实际签收 | 尚未执行 | 找到原文件后实际跑“默认支付方式”等四字段并核对供应商详情 |
+
+
+## 2026-10-15 批量字段工程合并及开发环境固定版本发布（接续核查）
+
+本轮接续并未重新开展行业研究，仍沿用已合并 [#881](https://github.com/jiangxng/EVO-App-Platform/pull/881) 的交接入口/详细研究索引，以及保留在 [#878](https://github.com/jiangxng/EVO-App-Platform/pull/878) 的原批量设计。先核查 #866：其准确整合 HEAD `7553fd91417f0dc537503a8e361686472d634cbd` 两项历史失败检查（Agent PA-01B2 Full Isolated Chrome Host Acceptance 与 Cross Project CI - Trading Lite Eidos Browser EVO）已经成功，PR #866 已合并 `590a5a91`，不重新打开一对一映射实现。
+
+在已有批量 [PR #884](https://github.com/jiangxng/EVO-App-Platform/pull/884) 上，将当时最新 `main@a79a0de4af2c6753f26e7be3563189c4c2f3f2b8` 的额外分支治理清单合入（未覆盖 BEX 业务文件），形成验证提交 `0f10b8b2dcfcb6391e42169641188804d87b9a60`。该准确提交 **41/41 GitHub checks SUCCESS**，覆盖 BEX-01 Real Host Chromium、Platform CI、Agent、Eidos 跨项目浏览器检查。PR #884 已从 Draft 转正式并合并为 **`ceec8b6527ccee08402832a208054af66f8d1dae`**；验证提交与合并提交的 Git 树 SHA 相同 `11c241b1b32f09c340406e3d166c94ac8b6f888d`，没有拿未验证的移动 main 部署。
+
+**现有 Railway 开发服务准确部署：** 只前移固定发布分支 `release/bex01-dev-20261014` 至 `ceec8b65`；Ledger Configurator 部署 **`0bc02a13-853f-4cc8-9981-7118291ed464`** 为 SUCCESS，服务 Online、运行副本 1/1、启动日志显示 `EVO App Manager listening on http://localhost:8080`。原服务、域名、数据库配置与 `/data` 数据卷没有新建或删除。此前成功部署 `35bdd1c5-3f85-475a-9174-05265cc8548d`（`8b7e2cc9`）为回退核验入口。Railway 环境技术名称 `production` 仍按项目明确约定视为**开发测试环境**。这不构成真实用户 XLSX 操作、完整 Agent PA-02 工作或正式生产签收。
+
+**原文件限制：** 再次搜索当前会话附件和用户 Library，可访问结果没有 `往来账户2026_10_08_10_15_23.xlsx`；真实用户 Excel / 既有导入作业没有执行新批量动作。三行 `subjectType` 缺失仍独立阻塞未经核实的供应商提交。历史两条“开户银行”只保留冲突提示，不自动合并或删除。
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| 单列预填、保存返回映射 | 已部署，用户此前实际认可 | 继续保留例外单字段入口 |
+| 一对一目标占用/释放与保存、预检查防重复 | #866 已合并，集成测试通过 | 用户在线页面观察实际下拉行为 |
+| 批量已有字段优先、一屏审核 | #884 已合并，隔离 Host+Chromium 已通过 | 原 XLSX 核对建议及歧义字段 |
+| 一次确认创建/回填与失败重试 | #884 已合并；协议和真实 Host 回归通过 | 原 XLSX 核对创建/映射和重试体验 |
+| Agent 兼容、权限与主体类型原规则 | 41/41 CI 通过；未修改 Agent 契约或核心必填 | 用户业务环境核验，三行缺失按真实数据处置 |
+| Railway 开发环境固定发布 | `ceec8b65` SUCCESS / Online（1/1） | 对照用户原作业进行在线测试，禁止无关部署 |
+| 原 Excel 与供应商详情 Human 签收 | 未完成；原文件本体尚未取到 | 使用原作业四个业务列一次审核、dry-run、显式提交及详情确认 |
+| 历史两项“开户银行” | 未决，原值和引用尚未核实 | 经业务确认后单独处置，不自动删改 |
+| **BEX-01 / CP-03 整体** | **工程合并及开发部署完成，真实用户验收未关闭** | **原始 Excel 的真实页面操作与详情签收** |
