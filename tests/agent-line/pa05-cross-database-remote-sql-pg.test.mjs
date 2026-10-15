@@ -90,6 +90,10 @@ test("PA05-04D10 three PG18 clusters: authenticated SQL cannot bypass central re
     const first="write_"+suffix;
     await seed(a,first);
     await assert.rejects(begin(workerA,first),/PA05_XDB_REMOTE_CENTRAL_TICKET_REQUIRED/);
+    // D14C: the real PA-02 run coordinator uses trusted HOST SQL,
+    // not the restricted Worker LOGIN. Neither may skip a central ticket.
+    await assert.rejects(begin(a,first),
+      /PA05_XDB_REMOTE_CENTRAL_TICKET_REQUIRED/);
     assert.equal((await a.unsafe("SELECT state FROM "+writeTable+
       " WHERE effect_id=$1",[first]))[0].state,"PREPARED");
     await assert.rejects(workerA.unsafe("INSERT INTO "+q+
@@ -118,6 +122,8 @@ test("PA05-04D10 three PG18 clusters: authenticated SQL cannot bypass central re
       scopeKey:"enterprise:acme",effectId:unreserved
     }),/PA05_TEST_CENTRAL_UNAVAILABLE/);
     await assert.rejects(begin(workerB,unreserved),
+      /PA05_XDB_REMOTE_CENTRAL_TICKET_REQUIRED/);
+    await assert.rejects(begin(b,unreserved),
       /PA05_XDB_REMOTE_CENTRAL_TICKET_REQUIRED/);
     await disconnected.close();disconnected=null;
 
