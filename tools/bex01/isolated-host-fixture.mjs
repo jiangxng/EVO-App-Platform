@@ -210,7 +210,7 @@ try{
  assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
  const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,
-   syntheticXlsxJobId,syntheticXlsxRows:172,syntheticXlsxColumns:22,
+   syntheticXlsxJobId:syntheticJobId,syntheticXlsxRows:172,syntheticXlsxColumns:22,
    syntheticXlsxMissingRows:synthetic.missingRowNumbers,
    route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
