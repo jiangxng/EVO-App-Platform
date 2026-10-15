@@ -3,6 +3,8 @@ import type { ObjectExtensionDefinitionV010 } from "../../contracts/foundation-o
 import { DATA_IMPORT_DIRECTORY_ROUTE, dataImportMappingRouteV010 } from "../data-import/constants.js";
 import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "./constants.js";
 
+export type BexImportTargetField = {fieldId:string; label:string; valueType:string};
+
 export const BEX_BATCH_CREATE = "__CREATE__";
 export const BEX_BATCH_IGNORE = "__IGNORE__";
 export const BEX_BATCH_REVIEW = "__REVIEW__";
@@ -41,6 +43,7 @@ export function batchSuggestedTypeV010(job: DataImportJobV010, column: string): 
 export function createObjectExtensionBatchImportPageV010(input: {
   job: DataImportJobV010;
   definitions: ObjectExtensionDefinitionV010[];
+  importableTargets?: BexImportTargetField[];
   locale?: string;
 }) {
   const { job } = input;
@@ -48,10 +51,13 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const columns = batchUnmappedColumnsV010(job);
   const available = batchApplicableDefinitionsV010(job, input.definitions);
   const usedTargets = new Set(job.mapping.map(x => x.targetFieldId));
-  const selectable = available.filter(x => !usedTargets.has(x.fieldId));
+  const all = input.importableTargets ?? available.map(x => ({
+    fieldId: x.fieldId, label: x.label.default, valueType: x.valueType
+  }));
+  const selectable = all.filter(x => !usedTargets.has(x.fieldId));
   const metadataLike = /^(系统编码|系统id|日志|创建时间|修改时间|更新时间|操作时间|创建人|修改人|历史状态|system[_ -]?id|log|audit)/i;
   const fieldOptions = selectable.map(x => ({
-    value: x.fieldId, label: x.label.default + " · " + x.fieldId
+    value: x.fieldId, label: x.label + " · " + x.fieldId
   }));
   const fields = [
     { key: "importJobId", label: "Import Job", control: "select" as const,
@@ -61,11 +67,12 @@ export function createObjectExtensionBatchImportPageV010(input: {
       required: true, initialValue: "BATCH",
       options: [{ value: "BATCH", label: zh ? "集中创建与映射" : "Review and map" }] },
     ...columns.flatMap((column, i) => {
-      const same = selectable.filter(x =>
-        x.label.default.trim().toLocaleLowerCase() === column.trim().toLocaleLowerCase()
+      const same = all.filter(x =>
+        x.label.trim().toLocaleLowerCase() === column.trim().toLocaleLowerCase()
       );
-      const action = same.length === 1 ? same[0].fieldId
-        : same.length > 1 || metadataLike.test(column) ? BEX_BATCH_REVIEW : BEX_BATCH_CREATE;
+      const action = same.length === 1 && !usedTargets.has(same[0].fieldId)
+        ? same[0].fieldId
+        : same.length > 0 || metadataLike.test(column) ? BEX_BATCH_REVIEW : BEX_BATCH_CREATE;
       const count = job.source.rows.filter(row =>
         row[column] !== null && row[column] !== undefined && String(row[column]).trim() !== ""
       ).length;
