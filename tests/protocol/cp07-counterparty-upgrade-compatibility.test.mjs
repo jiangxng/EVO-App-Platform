@@ -258,7 +258,7 @@ test("CP-07 exposes the available Counterparty upgrade through Plugin Store and 
   assert.match(server, /upgradePlanWithDigest\(body\.packageId\)/);
   // Route still supports Counterparty upgrade, but a protected WRITE owner
   // must enter the common Host lifecycle gate instead of mutating directly.
-  assert.match(server, /pa05WriteLifecycleHost\\.apply\\("UPGRADE", body\\.packageId/);
-  assert.match(server, /approvedPermissions: body\\.approvedPermissions/);
-  assert.doesNotMatch(server, /manager\\.upgrade\\(body\\.packageId/);
+  assert.match(server, /pa05WriteLifecycleHost\.apply\("UPGRADE", body\.packageId/);
+  assert.match(server, /approvedPermissions: body\.approvedPermissions/);
+  assert.doesNotMatch(server, /manager\.upgrade\(body\.packageId/);
 });
