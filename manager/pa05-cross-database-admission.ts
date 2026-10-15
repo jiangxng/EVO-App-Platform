@@ -73,6 +73,15 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
   authorityConnectionString: string;
   authoritySchema: string;
   trustedWorkers: readonly Pa05CrossDatabaseTrustedWorkerV010[];
+  /**
+   * D13 optional isolated SQL governance. Requires a non-superuser Host
+   * LOGIN and exactly declared central-DB Worker LOGIN identities.
+   * Every authority mutation rechecks Worker ACLs (including drift).
+   * This does not attest identity across independently authenticated DBs.
+   */
+  enforceCentralSqlIdentity?: boolean;
+  centralHostLoginRole?: string;
+  centralWorkerLoginRoles?: readonly string[];
 }): Promise<Pa05CrossDatabaseReservationAuthorityV010> {
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.authoritySchema))
     throw Error("PA05_XDB_SCHEMA_INVALID");
@@ -84,6 +93,20 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
   })).sort((a,b) => a.workerId.localeCompare(b.workerId));
   if (!workers.length || new Set(workers.map(w => w.workerId)).size !== workers.length)
     throw Error("PA05_XDB_INVENTORY_INVALID");
+  const strict = input.enforceCentralSqlIdentity === true;
+  const roleName = (r: string): string => {
+    if(typeof r!=="string"||!/^[a-z_][a-z0-9_]{0,62}$/.test(r))
+      throw Error("PA05_XDB_CENTRAL_SQL_ROLE_INVALID");
+    return r;
+  };
+  const expectedHost = strict ? roleName(input.centralHostLoginRole!) : "";
+  const workerLogins = strict
+    ? (input.centralWorkerLoginRoles??[]).map(roleName)
+    : [];
+  if(strict && (!workerLogins.length ||
+    new Set(workerLogins).size !== workerLogins.length ||
+    workerLogins.includes(expectedHost)))
+    throw Error("PA05_XDB_CENTRAL_SQL_MEMBERSHIP_INVALID");
   const a = '"' + input.authoritySchema + '"';
   const sql = postgres(input.authorityConnectionString, {
     max: 8, connect_timeout: 10, idle_timeout: 15
@@ -123,6 +146,97 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
       ".pa05_xdb_reservations ADD COLUMN IF NOT EXISTS terminal_evidence_digest text");
     await sql.unsafe("ALTER TABLE " + a +
       ".pa05_xdb_reservations ADD COLUMN IF NOT EXISTS settled_at timestamptz");
+    if(strict) {
+      // The Host schema/table owner has CREATE authority only within this
+      // isolated database. Pin actual LOGIN not SET ROLE, which cannot
+      // change SESSION_USER. Privileged Host compromise remains out of scope.
+      const login=await sql.unsafe("SELECT SESSION_USER AS login");
+      if(login.length!==1||login[0].login!==expectedHost)
+        throw Error("PA05_XDB_CENTRAL_HOST_LOGIN_MISMATCH");
+      const host=await sql.unsafe("SELECT rolsuper,rolbypassrls,rolcreaterole,"+
+        "rolcreatedb,rolreplication,rolcanlogin FROM pg_roles WHERE rolname=$1",
+        [expectedHost]);
+      if(host.length!==1||!host[0].rolcanlogin||host[0].rolsuper||
+        host[0].rolbypassrls||host[0].rolcreaterole||
+        host[0].rolcreatedb||host[0].rolreplication)
+        throw Error("PA05_XDB_CENTRAL_HOST_ROLE_UNSAFE");
+      const plpgsql=[
+        "BEGIN",
+        "IF SESSION_USER != '"+expectedHost+"' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_CENTRAL_WRONG_HOST_LOGIN'; END IF;",
+        "IF TG_OP='INSERT' THEN RETURN NEW; END IF;",
+        "IF TG_OP='DELETE' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_CENTRAL_AUDIT_DELETE_DENIED'; END IF;",
+        "IF OLD.state='SETTLED' THEN",
+        " RAISE EXCEPTION 'PA05_XDB_CENTRAL_SETTLED_IMMUTABLE'; END IF;",
+        "IF NEW.reservation_id IS DISTINCT FROM OLD.reservation_id OR",
+        " NEW.owner_package_id IS DISTINCT FROM OLD.owner_package_id OR",
+        " NEW.worker_id IS DISTINCT FROM OLD.worker_id OR",
+        " NEW.effect_digest IS DISTINCT FROM OLD.effect_digest OR",
+        " NEW.created_at IS DISTINCT FROM OLD.created_at THEN",
+        " RAISE EXCEPTION 'PA05_XDB_CENTRAL_RESERVATION_IMMUTABLE'; END IF;",
+        "IF OLD.state!='PENDING' OR NEW.state!='SETTLED' OR",
+        " NEW.terminal_outcome NOT IN ('SUCCEEDED','DENIED','FAILED') OR",
+        " NEW.terminal_receipt_id IS NULL OR",
+        " length(NEW.terminal_receipt_id)=0 OR",
+        " NEW.terminal_evidence_digest !~ '^[0-9a-f]{64}$' OR",
+        " NEW.settled_at IS NULL THEN",
+        " RAISE EXCEPTION 'PA05_XDB_CENTRAL_ILLEGAL_TRANSITION'; END IF;",
+        "RETURN NEW; END;"
+      ].join("\n");
+      await sql.begin(async tx=>{
+        await tx.unsafe("CREATE OR REPLACE FUNCTION "+a+
+          ".pa05_xdb_protect_audit() RETURNS trigger LANGUAGE plpgsql "+
+          "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+          plpgsql+"$pa05$");
+        await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_protect_audit ON "+a+
+          ".pa05_xdb_reservations");
+        await tx.unsafe("CREATE TRIGGER pa05_xdb_protect_audit BEFORE INSERT OR UPDATE OR DELETE ON "+
+          a+".pa05_xdb_reservations FOR EACH ROW EXECUTE FUNCTION "+
+          a+".pa05_xdb_protect_audit()");
+        await tx.unsafe("CREATE OR REPLACE FUNCTION "+a+
+          ".pa05_xdb_forbid_truncate() RETURNS trigger LANGUAGE plpgsql "+
+          "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+          "BEGIN RAISE EXCEPTION 'PA05_XDB_CENTRAL_AUDIT_TRUNCATE_DENIED'; END;"+
+          "$pa05$");
+        await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_no_truncate ON "+a+
+          ".pa05_xdb_reservations");
+        await tx.unsafe("CREATE TRIGGER pa05_xdb_no_truncate BEFORE TRUNCATE ON "+
+          a+".pa05_xdb_reservations FOR EACH STATEMENT EXECUTE FUNCTION "+
+          a+".pa05_xdb_forbid_truncate()");
+        // Host membership + lifecycle rows also resist accidentally GRANTed
+        // worker DML; Worker SQL privilege drift is not an authorization path.
+        const onlyHost=[
+          "BEGIN",
+          "IF SESSION_USER != '"+expectedHost+"' THEN",
+          " RAISE EXCEPTION 'PA05_XDB_CENTRAL_WRONG_HOST_LOGIN'; END IF;",
+          "IF TG_OP='DELETE' THEN",
+          " RAISE EXCEPTION 'PA05_XDB_CENTRAL_AUTHORITY_DELETE_DENIED'; END IF;",
+          "IF TG_OP='UPDATE' THEN",
+          " IF TG_TABLE_NAME='pa05_xdb_workers' THEN",
+          "  RAISE EXCEPTION 'PA05_XDB_CENTRAL_MEMBERSHIP_IMMUTABLE'; END IF;",
+          " IF NEW.owner_package_id IS DISTINCT FROM OLD.owner_package_id OR",
+          "  NEW.package_version IS DISTINCT FROM OLD.package_version THEN",
+          "  RAISE EXCEPTION 'PA05_XDB_CENTRAL_OWNER_IMMUTABLE'; END IF;",
+          "END IF;",
+          "RETURN NEW; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE OR REPLACE FUNCTION "+a+
+          ".pa05_xdb_host_only() RETURNS trigger LANGUAGE plpgsql "+
+          "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+          onlyHost+"$pa05$");
+        for(const table of ["pa05_xdb_owners","pa05_xdb_workers"]){
+          await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_host_only ON "+
+            a+"."+table);
+          await tx.unsafe("CREATE TRIGGER pa05_xdb_host_only BEFORE INSERT OR UPDATE OR DELETE ON "+
+            a+"."+table+" FOR EACH ROW EXECUTE FUNCTION "+a+".pa05_xdb_host_only()");
+          await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_no_truncate ON "+
+            a+"."+table);
+          await tx.unsafe("CREATE TRIGGER pa05_xdb_no_truncate BEFORE TRUNCATE ON "+
+            a+"."+table+" FOR EACH STATEMENT EXECUTE FUNCTION "+a+".pa05_xdb_forbid_truncate()");
+        }
+      });
+    }
     // Guard membership with a centralized transaction; constructing an
     // alternate Host with a partial/different inventory fails CLOSED.
     await sql.begin(async tx => {
@@ -145,6 +259,41 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     await sql.end();
     throw error;
   }
+  // D13: fail closed if a privileged GRANT drifts any trusted Worker role.
+  // Audited on every central mutator's SQL transaction, after its Owner lock.
+  async function auditWorkerRoles(tx: any): Promise<void> {
+    if (!strict) return;
+    for (const role of workerLogins) {
+      const rows=await tx.unsafe(
+        "SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,"+
+        "r.rolcreatedb,r.rolreplication,"+
+        "pg_has_role(r.oid,h.oid,'MEMBER') AS host_member,"+
+        "pg_has_role(r.oid,d.datdba,'MEMBER') AS database_owner,"+
+        "has_schema_privilege(r.oid,n.oid,'CREATE') AS schema_create,"+
+        "EXISTS(SELECT 1 FROM pg_class c WHERE c.relnamespace=n.oid "+
+        "AND c.relname IN ('pa05_xdb_workers','pa05_xdb_owners','pa05_xdb_reservations') "+
+        "AND (pg_has_role(r.oid,c.relowner,'MEMBER') OR "+
+        "has_table_privilege(r.oid,c.oid,'INSERT') OR "+
+        "has_table_privilege(r.oid,c.oid,'UPDATE') OR "+
+        "has_table_privilege(r.oid,c.oid,'DELETE') OR "+
+        "has_table_privilege(r.oid,c.oid,'TRUNCATE') OR "+
+        "has_table_privilege(r.oid,c.oid,'TRIGGER'))) AS can_mutate "+
+        "FROM pg_roles r JOIN pg_roles h ON h.rolname=$3 "+
+        "JOIN pg_namespace n ON n.nspname=$2 "+
+        "JOIN pg_database d ON d.datname=current_database() "+
+        "WHERE r.rolname=$1",
+        [role,input.authoritySchema,expectedHost]);
+      if (rows.length!==1||!rows[0].rolcanlogin||rows[0].rolsuper||
+        rows[0].rolbypassrls||rows[0].rolcreaterole||
+        rows[0].rolcreatedb||rows[0].rolreplication||
+        rows[0].host_member||rows[0].database_owner||
+        rows[0].schema_create||rows[0].can_mutate)
+        throw Error("PA05_XDB_CENTRAL_WORKER_SQL_PRIVILEGE_DRIFT");
+    }
+  }
+  if (strict) {
+    try {await auditWorkerRoles(sql);} catch(error) {await sql.end();throw error;}
+  }
   const pending = async (tx: any, id: string): Promise<number> => {
     const rows = await tx.unsafe("SELECT count(*)::integer AS n FROM " + a +
       ".pa05_xdb_reservations WHERE owner_package_id=$1 AND state='PENDING'", [id]);
@@ -154,11 +303,13 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     const rows = await tx.unsafe("SELECT package_version,state FROM " + a +
       ".pa05_xdb_owners WHERE owner_package_id=$1 FOR UPDATE", [id]);
     if (rows.length !== 1) throw Error("PA05_XDB_OWNER_NOT_REGISTERED");
+    await auditWorkerRoles(tx);
     return rows[0] as {package_version: string;state: string};
   };
   return {
     async registerFrozenOwner(packageId, version) {
       packageId = name(packageId); version = versionId(version);
+      await auditWorkerRoles(sql);
       if (!workers.some(w => w.ownerPackageId === packageId))
         throw Error("PA05_XDB_OWNER_UNTRUSTED");
       await sql.begin(async tx => {
@@ -266,6 +417,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     },
     async getState(packageId) {
       packageId = name(packageId);
+      await auditWorkerRoles(sql);
       const rows = await sql.unsafe("SELECT package_version,state FROM " + a +
         ".pa05_xdb_owners WHERE owner_package_id=$1", [packageId]);
       if (!rows.length) return undefined;
