@@ -1,5 +1,7 @@
 # BEX-01 V3 行级纠错｜Eidos Human UI 必经评审（2026-10-15）
 
+**本 PR 实际修改的 UI 源文件：** `apps/data-import/page.ts`、`apps/data-import/row-correction-page.ts`。以下按 Eidos 必检八个域记录。
+
 ## 目标与完成条件
 
 已获授权的企业导入负责人在真实 Excel 缺失的 `subjectType` 字段附近选择正确主体身份，保存后重新检查；原文件不可被无痕篡改，最后提交仍独立确认。样例代码中三条空值属**合成测试数据**，不代表客户三行实际身份。
