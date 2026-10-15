@@ -27,7 +27,11 @@ import {
 } from "../../dist/apps/trading-reference/operational-projection.js";
 import {
   PURCHASE_OPERATIONS_READ_COMMAND_V010,
-  PURCHASE_OPERATIONS_READ_OPERATION_V010
+  PURCHASE_OPERATIONS_READ_OPERATION_V010,
+  PURCHASE_OPERATIONS_ENTRY_OPEN_OPERATION_V010,
+  PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+  PURCHASE_OPERATIONS_CAPABILITY_V010,
+  PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010
 } from "../../dist/apps/trading-reference/constants.js";
 import {
   createPersonalAgentCapabilityToolRegistrationsV010,
@@ -207,27 +211,75 @@ function fixture() {
   return { manager, router, tool, invoke, state };
 }
 
-test("PA05-01 pins existing trading manifest namespace debt; no validator weakening", () => {
+test("PA05-M01 makes real Trading Reference manifest conformant while retaining legacy public IDs", () => {
   const ledger = validatePluginManifestV010(ledgerRuntimeConfiguratorPackage);
-  assert.equal(ledger.ok, true, JSON.stringify(ledger.issues));
-
-  // Existing public operation IDs and Capability IDs must not be silently
-  // renamed by a certification test. PA05-M01 is an explicit BLOCKER.
   const trading = validatePluginManifestV010(tradingReferencePackageV010);
-  assert.equal(trading.ok, false, "PA05-M01 debt resolved: update this gate to require PASS");
-  assert.deepEqual(trading.issues.map(issue => [issue.code, issue.path]), [
-    ["PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH",
-      "features[0].contributions[0].operation.operationId"],
-    ["PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH",
-      "features[0].contributions[5].operation.operationId"]
+  assert.equal(ledger.ok, true, JSON.stringify(ledger.issues));
+  assert.equal(trading.ok, true, JSON.stringify(trading.issues));
+  assert.deepEqual(trading.issues, []);
+
+  // Historical dependency ID is still an advertised Capability, but the
+  // already-published operation IDs are now under their true namespace.
+  assert.equal(PURCHASE_OPERATIONS_CAPABILITY_V010,
+    "enterprise.trading-reference.purchase-operations");
+  assert.equal(PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010,
+    "trading-reference.purchase-operations");
+  const feature = tradingReferencePackageV010.features[0];
+  assert.deepEqual(feature.providesCapabilities, [
+    PURCHASE_OPERATIONS_CAPABILITY_V010,
+    PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010
   ]);
+  assert.equal(tradingReferencePackageV010.version, "0.1.1");
+  assert.equal(feature.version, "0.1.1");
+
+  const operations = feature.contributions
+    .filter(item => item.kind === "platform.capability-operation")
+    .map(item => item.operation);
+  assert.deepEqual(
+    operations.map(op => op.operationId).sort(),
+    [
+      "trading-reference.purchase-operations.entry.open",
+      "trading-reference.purchase-operations.read"
+    ]
+  );
+  assert.deepEqual(
+    operations.map(op => op.binding.commandCode).sort(),
+    [
+      PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
+      PURCHASE_OPERATIONS_READ_COMMAND_V010
+    ].sort()
+  );
+  assert.ok(operations.every(op =>
+    op.capability === PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010
+    && op.operationVersion === "0.1.0"
+    && op.exposure.includes("HUMAN")
+    && op.exposure.includes("PERSONAL_AGENT")
+  ));
+  assert.ok(operations.some(op =>
+    op.operationId === PURCHASE_OPERATIONS_ENTRY_OPEN_OPERATION_V010
+  ));
+  assert.ok(operations.some(op =>
+    op.operationId === PURCHASE_OPERATIONS_READ_OPERATION_V010
+  ));
+
+  const manager = createAppManagerService(
+    createPackageCatalog([tradingReferencePackageV010]),
+    createMemoryLifecycleStore()
+  );
+  manager.install(tradingReferencePackageV010.packageId);
+  assert.deepEqual(
+    manager.listEffectiveCapabilityOperations(
+      PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010
+    ).map(op => op.operationId).sort(),
+    operations.map(op => op.operationId).sort()
+  );
 
   for (const pkg of [
     ledgerRuntimeConfiguratorPackage,
     tradingReferencePackageV010
   ]) {
-    assert.ok(pkg.features.some(feature =>
-      feature.contributions?.some(contribution =>
+    assert.ok(pkg.features.some(item =>
+      item.contributions?.some(contribution =>
         contribution.kind === "platform.capability-operation"
         && contribution.operation.exposure.includes("PERSONAL_AGENT")
         && contribution.operation.effect === "READ"
