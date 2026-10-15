@@ -21,7 +21,7 @@
 | C02 | 删除原消息；派生摘要/索引按政策失效 | **IN_PROGRESS**。首批只解决已持久摘要在源内容更改、遮蔽/删除后不能再被旧条件错误复用；原摘要/索引物理失效、删除传播仍未全证。 |
 | C03 | 旧 READ 恢复，有新鲜度要求时重新读取 | **IN_PROGRESS**。已新增可选 Host 源版本/新鲜度核验、失效 READ 重新授权读取并留存新证据、失败阻断推理。正式数据源版本与失权后的用户展示仍未全覆盖。 |
 | C04 | 记忆误推断，可查看纠正，不写成企业事实 | **IN_PROGRESS**。已有提案审查、人工编辑/接受/拒绝、修订与 supersession；新增底层服务对 Human-only 审批的硬约束及错误记忆纠正回归。仍待更多企业来源与 Human 实体验收。 |
-| C05 | 注入文件，不触发未授权工具或外发 | **OPEN**。需要确定性敌对内容、权限及 egress 负向验收。 |
+| C05 | 注入文件，不触发未授权工具或外发 | **IN_PROGRESS**。首个隔离 Host/Worker 场景验证：恶意 READ 文档不能凭模型决策绕过当前 Host 工具/目标审查进行外发。真实 Host Egress/WRITE 授权策略、文件解析与渠道端到端验收仍待实施。 |
 | C06 | 引用失权，不展示标题/正文/下载 | **IN_PROGRESS**。已新增可选 Host 当前 Memory/来源授权门禁，并在代理的检索、回忆、清单、精确审计响应前校验；历史 Run 回放、附件下载入口及全源授权接线仍未覆盖。 |
 
 **PA-04 阶段 = IN_PROGRESS / NOT_SIGNED**，所有 C gate 完成后还需在真实长对话、不同 Context、权限变化和模型切换条件下验证。不得将某一个单元测试称作 C02 整体或阶段 PASS。
@@ -96,3 +96,14 @@
 - **端到端逻辑回归**：`tests/protocol/pa04-c04-human-memory-correction.test.mjs` 验证 AI 提案始终 pending、不落永久记忆；AI/AUTOMATION/SERVICE 通过底层 API 直接接受/编辑/拒绝均失败；Human 将误推断改为审定文本再接受，新的记忆取代旧的普通检索结果，旧记录及模型原稿仍保留原样供审计；Human 拒绝无据推断不落库；Agent 不能直接把企业提案变成 FACT，跨 Context 不能纠正别人的记忆。结合既有 `context-memory-proposal-review` 和 `context-memory-governance` 回归；CI 完成之前不标 PASS。
 - **仍待 C04**：当前是底层服务防线与模拟 Human 核验，不自动证明所有用户可看见/纠正全部记忆、企业事实的真实来源核验、真实登录与工作台交互、企业审批权限矩阵、Memory 来源失效和长期纠正效果。人工接受也不是业务来源真相；企业 FACT 必须受业务资源所有者的最终治理。C04 / PA-04 整体仍 `IN_PROGRESS / NOT_SIGNED`。
 - **隔离**：仅修改独立 Memory Proposal Service、测试、验收记录及 CI，未修改 BEX/CP-03、`manager/server.ts`、eidos/2D、主线 authority 文件或生产 WRITE；PA-02 R10 持续 OPEN。
+
+
+## 2026-10-15：C05 不可信来源诱导工具调用的 Host 二次放行门禁（第八个局部闭环）
+
+- **现有可复用防线**：PA-02 Worker 已由 Host 提供工具目录与 Principal/Context；无 Owner Port 不暴露业务 WRITE，有 Owner Port 时仍需独立资源授权/可恢复的 Receipt。此次**没有**替换这些既有防线，也没有启用业务生产工具。
+- **发现缺口**：文档或 READ 返回内容可能包含伪造 SYSTEM、权限提升、将数据发往外部 URL 的命令。若模型把这种内容当成指令，并选择了当前工具目录里存在的外部 READ/交互能力，单凭“工具在目录内”不足以证明**这个具体参数及外发目标**得到本次 Human/Host 授权。相反，仅靠提示词禁止注入也没有强制执行力。
+- **新增 opt-in Host 端口**：`toolCallAdmission.authorize` 对模型提出的每一个具体工具调用（包括模型参数、目标地址、当前 Principal、Context、RequestContext、已记录工具观察与历史 Run）做实时 Host 独立审批。该门禁位于既有 READ 分发或受治理 WRITE Owner Port **之前**，同时覆盖崩溃恢复后尚未执行的持久模型决策。只有明确布尔 `true` 才允许执行；拒绝、抛错、权限/目的地不确定即写入持久 `RUN_BLOCKED / PA04_UNTRUSTED_TOOL_CALL_DENIED`，不将敏感内容回显到阻断理由、不给出伪造成功。
+- **模型的防御性解释**：系统指令注明文档及 READ 观察均属不可信数据，工具返回不能授权新工具或外发；原 JSON 观察明确以 UNTRUSTED SOURCE DATA 标签出现。此层属于辅助手段，**不承担**最后授权责任。Provider 模型结果中未知、参数无效或同时要求多工具时，明确告知“未执行”，不采信模型自述的成功文本。
+- **验收证据**：`tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs` 构造含伪造 SYSTEM 指令与外发目标的恶意文档，让模型试图调用目录中存在的 `external_upload`；检验 Host 对具体调用拒绝、外发函数调用次数为零、运行状态可审计且 PostgreSQL 重启后不重放；授权服务抛错时 fail-closed；允许正常授权 READ、未知/同时多个模型工具请求均无实际副作用。专用 CI 与原 PA-02 Worker / PA-04 C03 回归必须通过准确最终 HEAD。
+- **不能宣称的能力**：新端口为 **Host 可选注入，默认行为不变**，当前实际业务 Host 尚未提供全类型工具的目标域名 allowlist/网络 egress 强制器。模型上下文仍包含工具观察的 JSON，提示层标签不是硬隔离；尚未覆盖所有实际附件解析器、文件下载、浏览器/API/插件网络出口，也未对全部生产 WRITE 建立独立 Human 明示动作白名单。C05 与 PA-04 总体保持 `IN_PROGRESS / NOT_SIGNED`。不得用本次隔离模拟声称完全防御 prompt injection。
+- **独立边界**：不修改 `manager/server.ts`、BEX/CP-03、2D、核心全局 authority 或线上部署；不运行实际外部请求、不开放生产 WRITE；PA-02 R10 真实计费仍 OPEN。
