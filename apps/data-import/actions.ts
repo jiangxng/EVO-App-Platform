@@ -555,6 +555,7 @@ export function createDataImportActionHandlersV010(input: {
         const nextMapping: DataImportMappingV010[] = [];
         const ignoredSourceColumns: string[] = [];
         let proposedNewFields = 0;
+        const unresolvedColumns: string[] = [];
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
           if (typeof value !== "string" || !value.trim()) {
@@ -572,7 +573,10 @@ export function createDataImportActionHandlersV010(input: {
             ignoredSourceColumns.push(sourceColumn);
             return;
           }
-          if (value === "__PENDING__") return;
+          if (value === "__PENDING__") {
+            unresolvedColumns.push(sourceColumn);
+            return;
+          }
           const targetFieldId = value.trim();
           const existing = existingBySource.get(sourceColumn);
           nextMapping.push(
@@ -585,6 +589,11 @@ export function createDataImportActionHandlersV010(input: {
           );
         });
 
+        // Pending is not the same as an explicit, reversible ignore. Never
+        // allow an accidental dry-run to silently omit unreviewed Excel data.
+        if (unresolvedColumns.length > 0) {
+          throw new Error("DATA_IMPORT_COLUMNS_NEED_DECISION");
+        }
         const explicitlyMappedTargets = new Set(
           nextMapping.map(item => item.targetFieldId)
         );
