@@ -94,12 +94,11 @@ export function createPa05GovernedObjectExtensionOwnerV010(input:{
       guard[0].function_schema!==ownerSchema)
       throw Error("PA05_OBJECT_OWNER_ACTUAL_EVIDENCE_GUARD_DISABLED");
   }
-  async function assertAdmitted(input:{
-    scope:Parameters<typeof input.businessOwner.owner.invoke>[0]["scope"];
-    effectId:string;runId:string;inputDigest:string;
-  }){
+  async function assertAdmitted(request:
+    Pick<Parameters<typeof input.businessOwner.owner.invoke>[0],
+      "scope"|"effectId"|"runId"|"inputDigest">){
     await assertDomainContract();
-    const scopeKey=hostAgentDurabilityScopeKeyV020(input.scope);
+    const scopeKey=hostAgentDurabilityScopeKeyV020(request.scope);
     // An opt-in trusted Host must have called D9 reserve + D10 ticket stage
     // and committed real PA-02 beginWrite before calling business Owner.
     // SELECT locks the local monotone gate against freezeRemote().
@@ -115,11 +114,11 @@ export function createPa05GovernedObjectExtensionOwnerV010(input:{
         "t.scope_key=w.scope_key AND t.effect_id=w.effect_id AND "+
         "t.run_id=w.run_id AND t.input_digest=w.input_digest AND "+
         "t.fence=w.fence WHERE w.scope_key=$1 AND w.effect_id=$2",
-        [scopeKey,input.effectId]
+        [scopeKey,request.effectId]
       );
       if(rows.length!==1||!["INVOKING","UNKNOWN"].includes(rows[0].state)||
-        rows[0].run_id!==input.runId||
-        rows[0].input_digest!==input.inputDigest||
+        rows[0].run_id!==request.runId||
+        rows[0].input_digest!==request.inputDigest||
         !/^[a-f0-9]{64}$/.test(rows[0].reservation_id))
         throw Error("PA05_OBJECT_OWNER_DURABLE_WRITE_ADMISSION_REQUIRED");
       return true;
