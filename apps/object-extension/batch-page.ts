@@ -3,7 +3,13 @@ import type { ObjectExtensionDefinitionV010 } from "../../contracts/foundation-o
 import { DATA_IMPORT_DIRECTORY_ROUTE, dataImportMappingRouteV010 } from "../data-import/constants.js";
 import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "./constants.js";
 
-export type BexImportTargetField = {fieldId:string; label:string; valueType:string};
+export type BexImportTargetField = {
+  fieldId: string;
+  label: string;
+  valueType: string;
+  /** Governed description from the effective enterprise IMPORT schema. */
+  description?: string;
+};
 
 export const BEX_BATCH_CREATE = "__CREATE__";
 export const BEX_BATCH_IGNORE = "__IGNORE__";
@@ -40,6 +46,33 @@ export function batchSuggestedTypeV010(job: DataImportJobV010, column: string): 
     ? "NUMBER" : "STRING";
 }
 
+function normalizedLabel(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase();
+}
+
+function boundedOriginal(value: unknown): string {
+  const literal = String(value);
+  return literal.length > 48 ? literal.slice(0, 48) + "…" : literal;
+}
+
+export function batchSourceExamplesV010(
+  job: DataImportJobV010, column: string, chinese: boolean
+): string {
+  const seen = new Set<string>();
+  const examples: string[] = [];
+  for (const row of job.source.rows) {
+    const value = row[column];
+    if (value === undefined || value === null || value === "") continue;
+    const literal = boundedOriginal(value);
+    if (seen.has(literal)) continue;
+    seen.add(literal);
+    examples.push(literal);
+    if (examples.length === 3) break;
+  }
+  return examples.length ? examples.join(" · ")
+    : chinese ? "无非空样本" : "No nonempty examples";
+}
+
 export function createObjectExtensionBatchImportPageV010(input: {
   job: DataImportJobV010;
   definitions: ObjectExtensionDefinitionV010[];
@@ -51,14 +84,34 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const columns = batchUnmappedColumnsV010(job);
   const available = batchApplicableDefinitionsV010(job, input.definitions);
   const usedTargets = new Set(job.mapping.map(x => x.targetFieldId));
-  const all = input.importableTargets ?? available.map(x => ({
+  const all: BexImportTargetField[] = input.importableTargets ?? available.map(x => ({
     fieldId: x.fieldId, label: x.label.default, valueType: x.valueType
   }));
   const selectable = all.filter(x => !usedTargets.has(x.fieldId));
   const metadataLike = /^(系统编码|系统id|日志|创建时间|修改时间|更新时间|操作时间|创建人|修改人|历史状态|system[_ -]?id|log|audit)/i;
-  const fieldOptions = selectable.map(x => ({
-    value: x.fieldId, label: x.label + " · " + x.fieldId
-  }));
+  const counts = new Map<string, number>();
+  all.forEach(field => {
+    const key = normalizedLabel(field.label);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  });
+  // Only duplicate labels need additional purpose context in the selector;
+  // the comparison panel below preserves full descriptions and real IDs.
+  const fieldOptions = selectable.map(field => {
+    const duplicate = (counts.get(normalizedLabel(field.label)) ?? 0) > 1;
+    const purpose = field.description?.trim();
+    return {
+      value: field.fieldId,
+      label: field.label
+        + (duplicate
+          ? " · " + (purpose
+            ? (purpose.length > 52 ? purpose.slice(0, 52) + "…" : purpose)
+            : zh ? "用途待核对" : "Purpose needs review")
+          : "")
+        + " · " + field.fieldId
+    };
+  });
+  const usedBy = new Map(job.mapping.map(entry =>
+    [entry.targetFieldId, entry.sourceColumn] as const));
   const fields = [
     { key: "importJobId", label: "Import Job", semanticType: "data-import-job-id", control: "select" as const,
       required: true, initialValue: job.importJobId,
@@ -68,8 +121,25 @@ export function createObjectExtensionBatchImportPageV010(input: {
       options: [{ value: "BATCH", label: zh ? "集中创建与映射" : "Review and map" }] },
     ...columns.flatMap((column, i) => {
       const same = all.filter(x =>
-        x.label.trim().toLocaleLowerCase() === column.trim().toLocaleLowerCase()
+        normalizedLabel(x.label) === normalizedLabel(column)
       );
+      const ambiguous = same.length > 1
+        || same.length === 1 && usedTargets.has(same[0].fieldId);
+      const comparison = ambiguous
+        ? same.map((field, rank) => {
+            const purpose = field.description?.trim()
+              || (zh ? "业务用途尚未配置，请业务负责人确认"
+                : "Purpose not yet documented; confirm with owner");
+            const occupied = usedBy.get(field.fieldId);
+            return (rank + 1) + ". " + field.label
+              + " · " + purpose
+              + " · " + (zh ? "类型 " : "Type ") + field.valueType
+              + " · " + (zh ? "字段标识 " : "Field ID ") + field.fieldId
+              + (occupied
+                ? " · " + (zh ? "已用于来源列：" : "Already used by: ") + occupied
+                : "");
+          }).join(" ； ")
+        : "";
       const action = job.ignoredSourceColumns?.includes(column)
         ? BEX_BATCH_IGNORE
         : same.length === 1 && !usedTargets.has(same[0].fieldId)
@@ -79,6 +149,15 @@ export function createObjectExtensionBatchImportPageV010(input: {
         row[column] !== null && row[column] !== undefined && String(row[column]).trim() !== ""
       ).length;
       return [
+        ...(ambiguous ? [{
+          key: "candidate_" + i,
+          label: column + (zh ? " · 同名字段用途核对" : " · Compare matching purposes"),
+          semanticType: "object-extension-batch-candidate-comparison",
+          control: "text" as const,
+          required: false,
+          readOnly: true,
+          initialValue: comparison
+        }] : []),
         { key: "choice_" + i, label: column + (zh ? " · 已有字段 / 新建 / 忽略" : " · Reuse / create / ignore"),
           semanticType: "object-extension-batch-action", control: "select" as const,
           exclusiveSelect: { group: "bex-batch-targets",
@@ -105,9 +184,10 @@ export function createObjectExtensionBatchImportPageV010(input: {
         { key: "sample_" + i, label: column + (zh ? " · 数据概况" : " · Source summary"),
           semanticType: "object-extension-batch-sample", control: "text" as const,
           readOnly: true, required: false,
-          initialValue: zh
-            ? "非空 " + count + " / " + job.source.rows.length + " 行（隐去原始值）"
-            : count + " / " + job.source.rows.length + " nonempty rows (values hidden)" }
+          initialValue: (zh
+            ? "非空 " + count + " / " + job.source.rows.length + " 行 · 来源样本："
+            : count + " / " + job.source.rows.length + " nonempty · Source examples: ")
+            + batchSourceExamplesV010(job, column, zh) }
       ];
     })
   ];

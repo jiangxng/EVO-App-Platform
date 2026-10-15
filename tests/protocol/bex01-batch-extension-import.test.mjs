@@ -72,7 +72,7 @@ test("BEX batch page provides one screen, review gating, type suggestions, and A
   assert.equal(page.fields.find(x=>x.key==="choice_4").initialValue,"__REVIEW__");
   assert.equal(page.fields.find(x=>x.key==="type_3").initialValue,"NUMBER");
   assert.equal(page.fields.find(x=>x.key==="label_2").initialValue,"默认账期方式");
-  assert.match(page.fields.find(x=>x.key==="sample_0").initialValue,/隐去原始值/);
+  assert.match(page.fields.find(x=>x.key==="sample_0").initialValue,/来源样本：转账 · 现付/);
   assert.equal(page.actions[0].requiresConfirmation,true);
   assert.equal(page.fields.filter(x=>x.semanticType==="object-extension-batch-action").length,5);
   assert.equal(page.fields.find(x=>x.key==="choice_0").exclusiveSelect.group,"bex-batch-targets");
@@ -173,4 +173,63 @@ test("BEX batch accepts ignore-only decisions and keeps every original cell for 
     job:x.getJob(),definitions:[],locale:"zh-CN"
   });
   assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__IGNORE__");
+});
+
+test("V3 same-label target comparison explains distinct purposes beside actual Excel samples, without choosing by name", () => {
+  const job = fixture();
+  job.source.headers.push("开户银行");
+  job.source.rows[0]["开户银行"] = "香港银行 A";
+  job.source.rows[1]["开户银行"] = "香港银行 B";
+  const source = structuredClone(job.source);
+  const fields = [
+    {fieldId:"bank.receiving", label:"开户银行", valueType:"STRING",
+      description:"收款时使用的银行账户，仅适用于客户回款"},
+    {fieldId:"bank.settlement", label:"开户银行", valueType:"STRING",
+      description:"付款时使用的银行账户，仅适用于供应商结算"},
+    {fieldId:"supplier.primary",label:"默认支付方式",valueType:"STRING"}
+  ];
+  const page = createObjectExtensionBatchImportPageV010({
+    job,definitions:[],importableTargets:fields,locale:"zh-CN"
+  });
+  const candidate = page.fields.find(x=>x.key==="candidate_5");
+  assert.ok(candidate);
+  assert.equal(candidate.readOnly,true);
+  assert.match(candidate.initialValue,/bank\.receiving/);
+  assert.match(candidate.initialValue,/bank\.settlement/);
+  assert.match(candidate.initialValue,/收款时使用的银行账户/);
+  assert.match(candidate.initialValue,/付款时使用的银行账户/);
+  const select=page.fields.find(x=>x.key==="choice_5");
+  assert.equal(select.initialValue,"__REVIEW__");
+  assert.equal(select.exclusiveSelect.group,"bex-batch-targets");
+  assert.deepEqual(select.options.filter(x=>x.value.startsWith("bank."))
+    .map(x=>x.value),["bank.receiving","bank.settlement"]);
+  assert.match(select.options.find(x=>x.value==="bank.receiving").label,/客户回款/);
+  assert.match(select.options.find(x=>x.value==="bank.settlement").label,/供应商结算/);
+  assert.match(page.fields.find(x=>x.key==="sample_5").initialValue,/香港银行 A · 香港银行 B/);
+  assert.deepEqual(job.source,source,"Actual source rows and existing Recipe are never changed by candidate comparison");
+});
+
+test("V3 occupied candidate and undocumented same-name purpose remain explicit Human review, never auto-create",()=>{
+  const job=fixture();
+  job.source.headers.push("开户银行","往来银行");
+  job.source.rows.forEach(row=>{
+    row["开户银行"]="HK";
+    row["往来银行"]="Other Bank";
+  });
+  job.mapping.push({sourceColumn:"往来银行",targetFieldId:"bank.receiving"});
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],locale:"zh-CN",
+    importableTargets:[
+      {fieldId:"bank.receiving",label:"开户银行",valueType:"STRING"},
+      {fieldId:"bank.settlement",label:"开户银行",valueType:"STRING",
+        description:"仅供应商结算使用"}
+    ]
+  });
+  const compare=page.fields.find(x=>x.key==="candidate_5");
+  assert.match(compare.initialValue,/用途尚未配置/);
+  assert.match(compare.initialValue,/已用于来源列：往来银行/);
+  assert.equal(page.fields.find(x=>x.key==="choice_5").initialValue,"__REVIEW__");
+  assert.equal(page.fields.find(x=>x.key==="choice_5").options
+    .some(x=>x.value==="bank.receiving"),false,
+    "exclusive selection prevents reusing a reserved field even if it has the same name");
 });
