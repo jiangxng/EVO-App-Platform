@@ -212,10 +212,16 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         }
         await tx.unsafe("INSERT INTO "+q+".pa02_contexts(context_id,enterprise_id) "+
           "VALUES($1,$2) ON CONFLICT DO NOTHING",[s.contextId,s.enterpriseId]);
-        // Context-level row lock serializes competing writers across processes,
-        // including otherwise distinct extension IDs with the same field slot.
+        // Ordinary Owner retains the original FOR UPDATE authority.
+        // PA05 physical opt-in has strictly SELECT+INSERT SQL privileges:
+        // advisory transaction lock serializes cooperating opted-in Owners
+        // across processes without giving the runtime LOGIN table UPDATE.
+        if(input.pa05PhysicalAdmission)
+          await tx.unsafe("SELECT pg_advisory_xact_lock("+
+            "hashtextextended($1::text,0))",[s.contextId]);
         const bindings=await tx.unsafe("SELECT enterprise_id FROM "+q+
-          ".pa02_contexts WHERE context_id=$1 FOR UPDATE",[s.contextId]);
+          ".pa02_contexts WHERE context_id=$1 "+
+          (input.pa05PhysicalAdmission?"FOR SHARE":"FOR UPDATE"),[s.contextId]);
         if(bindings[0]?.enterprise_id!==s.enterpriseId)
           throw Error("PA02_OBJECT_PG_ENTERPRISE_BINDING_CONFLICT");
         const previous=await tx.unsafe("SELECT evidence,evidence_digest FROM "+q+
