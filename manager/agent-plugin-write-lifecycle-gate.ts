@@ -77,7 +77,6 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     new Set(workerSchemas).size !== workerSchemas.length ||
     !workerSchemas.includes(input.schema))
     throw Error("PA05_LIFECYCLE_WORKER_INVENTORY_INVALID");
-  const q = '"' + input.schema + '"';
   const a = '"' + authSchema + '"';
   const sql = postgres(required(input.connectionString), {
     max: 8, connect_timeout: 10, idle_timeout: 15
@@ -152,7 +151,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
 
   async function locked(tx: any, packageId: string) {
     const rows = await tx.unsafe(
-      "SELECT package_version,state FROM " + q +
+      "SELECT package_version,state FROM " + a +
       ".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1 FOR UPDATE",
       [packageId]
     );
@@ -234,7 +233,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
       const version = installedVersion(packageId);
       await sql.begin(async tx => {
         const existing = await tx.unsafe(
-          "SELECT package_version,state FROM " + q +
+          "SELECT package_version,state FROM " + a +
           ".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1 FOR UPDATE",
           [packageId]
         );
@@ -321,7 +320,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     },
     async getState(packageId) {
       const rows = await sql.unsafe(
-        "SELECT package_version,state FROM " + q +
+        "SELECT package_version,state FROM " + a +
         ".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1",
         [required(packageId)]
       );
