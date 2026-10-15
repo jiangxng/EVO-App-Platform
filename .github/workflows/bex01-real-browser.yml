@@ -55,6 +55,8 @@ jobs:
         run: python tests/bex01/live_supplier_chromium.py
       - name: V3 actual Host source audit desktop and phone
         run: python tests/bex01/v3_source_audit_chromium.py
+      - name: V3 governed row correction and revert
+        run: python tests/bex01/v3_row_correction_chromium.py
       - if: failure()
         run: cat artifacts/bex01-browser/bootstrap.log || true
       - name: Stop disposable Host
