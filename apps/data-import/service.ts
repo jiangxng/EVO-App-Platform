@@ -204,6 +204,7 @@ export interface DataImportServiceV010 {
     schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
   }): {
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     origin: "DETERMINISTIC" | "RECIPE";
     recipeId?: string;
   };
@@ -331,6 +332,8 @@ export function createDataImportServiceV010(input: {
       ) {
         return {
           mapping: structuredClone(recipe.mapping),
+          ...(recipe.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...recipe.ignoredSourceColumns] } : {}),
           origin: "RECIPE" as const,
           recipeId: recipe.recipeId
         };
@@ -367,6 +370,8 @@ export function createDataImportServiceV010(input: {
       if (historical) {
         return {
           mapping: structuredClone(historical.mapping),
+          ...(historical.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...historical.ignoredSourceColumns] } : {}),
           origin: "RECIPE" as const,
           ...(historical.appliedRecipeId
             ? { recipeId: historical.appliedRecipeId }
@@ -415,8 +420,17 @@ export function createDataImportServiceV010(input: {
           !sources.has(item.sourceColumn!)
           && !targets.has(item.targetFieldId)
         );
+        // A schema-drift fallback never auto-confirms an ignore.
+        // The current job still retains its own explicit ignore choices.
+        const priorIgnored = recipe?.mapping === previous
+          ? (recipe.ignoredSourceColumns ?? [])
+          : [];
         return {
           mapping: [...preserved, ...extra],
+          ignoredSourceColumns: priorIgnored.filter(column =>
+            mappingInput.source.headers.includes(column)
+            && ![...preserved, ...extra].some(item => item.sourceColumn === column)
+          ),
           origin: "DETERMINISTIC" as const
         };
       }
@@ -674,6 +688,7 @@ export function createDataImportServiceV010(input: {
           source: saved.source,
           targetSchemaDigest: saved.dryRun!.schemaDigest,
           mapping: saved.mapping,
+          ignoredSourceColumns: saved.ignoredSourceColumns,
           importJobId: saved.importJobId,
           actorSubjectId: dryRunInput.actorSubjectId,
           recordedAt: dryRunInput.recordedAt
@@ -840,6 +855,7 @@ export function createDataImportServiceV010(input: {
           source: saved.source,
           targetSchemaDigest: saved.dryRun!.schemaDigest,
           mapping: saved.mapping,
+          ignoredSourceColumns: saved.ignoredSourceColumns,
           importJobId: saved.importJobId,
           actorSubjectId: commitInput.actorSubjectId,
           recordedAt: commitInput.recordedAt
