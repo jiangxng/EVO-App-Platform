@@ -100,8 +100,10 @@ test("PA04 C03: PostgreSQL Run only answers after current READ refresh; durable 
     assert.equal(run.decisions[0].observation.result.value,"INVOICE_VERSION_2");
     assert.equal(run.decisions[0].refreshSourceVersion,"invoice-7@version-2");
     assert.ok(run.decisions[0].refreshedAt);
-    const rows=await db.unsafe('SELECT type,payload FROM "'+schema+
+    const stored=await db.unsafe('SELECT payload FROM "'+schema+
       '".agent_run_events WHERE run_id=$1 ORDER BY ordinal',[run.runId]);
+    const rows=stored.map(x=>typeof x.payload==="string"
+      ?JSON.parse(x.payload):x.payload);
     const refresh=rows.filter(x=>x.type==="READ_REFRESH_RECORDED");
     assert.equal(refresh.length,1);
     assert.equal(refresh[0].payload.observation.result.value,"INVOICE_VERSION_2");
