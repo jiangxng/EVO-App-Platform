@@ -232,6 +232,7 @@ test("PA05-04D14C2 actual 3-PG18 Owner domain table coverage, privilege drift, d
     // certificate does NOT interpret FROZEN as permission to launch work.
     await gatewayA.freezeRemote();
     await gatewayB.freezeRemote();
+    await authority.freeze(owner);
     assert.equal(await gatewayA.getRemoteState(),"FROZEN");
     await assert.rejects(gatewayA.stagePreparedEffect({
       scopeKey:"enterprise:c2",effectId:"owner-grant"
