@@ -13,6 +13,7 @@ import {
 type TypeChoice = "STRING" | "NUMBER" | "BOOLEAN" | "DATE";
 type MappingUpdate = {
   contextId: string; importJobId: string; mapping: DataImportMappingV010[];
+  ignoredSourceColumns?: string[];
   actorSubjectId: string; recordedAt: string;
 };
 const allowedTypes: TypeChoice[] = ["STRING","NUMBER","BOOLEAN","DATE"];
@@ -171,6 +172,12 @@ export function executeObjectExtensionBatchImportV010(input: {
       mapping: [...latest.mapping, ...choices.map(item => ({
         sourceColumn: item.column, targetFieldId: item.fieldId
       }))],
+      ignoredSourceColumns: [...new Set([
+        ...(latest.ignoredSourceColumns ?? []).filter(column =>
+          !choices.some(item => item.column === column)
+        ),
+        ...ignored
+      ])],
       actorSubjectId: input.actorSubjectId, recordedAt: input.recordedAt
     });
     return {
