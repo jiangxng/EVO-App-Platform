@@ -48,7 +48,7 @@ test("PA04 C01: fit long overflow by trimming old discourse only, keeping workin
   const { request, history } = fixture();
   const original = structuredClone(request);
   const quotes = [];
-  const result = await fit(request, history, policy(async req => {
+  const result = await fit(request, history, policy(req => {
     quotes.push(structuredClone(req));
     return boundByHistory(req);
   }));
