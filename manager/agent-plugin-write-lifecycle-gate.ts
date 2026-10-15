@@ -141,8 +141,12 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     );
     await sql.unsafe(
       "CREATE TABLE IF NOT EXISTS " + a + ".pa05_plugin_write_worker_schemas (" +
-      "schema_name text PRIMARY KEY)"
+      "schema_name text PRIMARY KEY,worker_role_name text)"
     );
+    // Existing opt-in installations created before role pinning gain a NULL
+    // role column; NULL preserves the original legacy SQL admission policy.
+    await sql.unsafe("ALTER TABLE " + a +
+      ".pa05_plugin_write_worker_schemas ADD COLUMN IF NOT EXISTS worker_role_name text");
     await sql.begin(async tx => {
       const existing = await tx.unsafe("SELECT schema_name FROM " + a +
         ".pa05_plugin_write_worker_schemas ORDER BY schema_name FOR UPDATE");
@@ -159,6 +163,26 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
             ".pa05_plugin_write_worker_schemas (schema_name) VALUES($1)",
             [workerSchema]);
         }
+      }
+      // A role identity, once pinned, MUST NOT be silently downgraded to
+      // unauthenticated WRITE admission by later Host construction.
+      const bindingRows=await tx.unsafe(
+        "SELECT schema_name,worker_role_name FROM " + a +
+        ".pa05_plugin_write_worker_schemas ORDER BY schema_name FOR UPDATE"
+      );
+      const roleMap=new Map((input.workerIdentities ?? []).map(x=>[x.schema,x.role]));
+      for(const binding of bindingRows) {
+        const desired=roleMap.get(binding.schema_name);
+        if(binding.worker_role_name !== null &&
+          binding.worker_role_name !== desired)
+          throw Error("PA05_SQL_WORKER_LOGIN_RECERTIFICATION_REQUIRED");
+        if(identityAudited && !desired)
+          throw Error("PA05_SQL_WORKER_IDENTITY_COVERAGE_INVALID");
+        if(identityAudited && binding.worker_role_name === null)
+          await tx.unsafe("UPDATE " + a +
+            ".pa05_plugin_write_worker_schemas SET worker_role_name=$2 " +
+            "WHERE schema_name=$1 AND worker_role_name IS NULL",
+            [binding.schema_name,desired]);
       }
       if(input.enforceSqlOwnerAdmission) {
         // DDL and the Host inventory commit together. The trigger runs even
@@ -179,6 +203,16 @@ BEGIN
       WHERE schema_name = '${workerSchema}'
     ) THEN
       RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_NOT_REGISTERED';
+    END IF;
+    -- SESSION_USER is the authenticated login, unchanged by SET ROLE and
+    -- SECURITY DEFINER. Worker SQL privileges alone are insufficient.
+    IF EXISTS (
+      SELECT 1 FROM ${a}.pa05_plugin_write_worker_schemas
+      WHERE schema_name = '${workerSchema}'
+        AND worker_role_name IS NOT NULL
+        AND worker_role_name <> SESSION_USER
+    ) THEN
+      RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_LOGIN_DENIED';
     END IF;
     SELECT g.state INTO gate_state
     FROM ${a}.pa05_plugin_write_lifecycle_gates g
