@@ -31,14 +31,14 @@
 
 | 验收项目 | 当前状态 | 下一步 |
 | --- | --- | --- |
-| 原始来源列顺序与逐列可见 | **代码已实现；等待 CI / Chromium** | 测 22 列、移动 Eidos 卡片真实可操作 |
-| 同名开户银行业务区分 | **字段 ID + 已有描述可核对；未取得真实 schema** | 按授权 Job 和真实 field ID 逐一核实，不根据文案推断 |
-| 3 行缺失主体类型 | **合成边界回归覆盖原始空值；真实身份未验证** | 真实授权 Job 中逐行核对并依法修正 |
-| 原始数据与已确认 Recipe 保全 | **复用现有 Host 数据，无改写路径** | 权限/企业隔离/草稿回归与真实文件核验 |
+| 原始来源列顺序与逐列可见 | **MERGED #925；真实 Host Chromium + 专项协议 PASS（隔离测试数据）** | 测 22 列、移动 Eidos 卡片真实可操作 |
+| 同名开户银行业务区分 | **已有字段 ID + 描述可核对，真实客户 schema 尚未取得** | 按授权 Job 和真实 field ID 逐一核实，不根据文案推断 |
+| 3 行缺失主体类型 | **合成边界回归 PASS，原始空值未被猜测；真实身份未验证** | 真实授权 Job 中逐行核对并依法修正 |
+| 原始数据与已确认 Recipe 保全 | **复用持久 Host Job 只读，专项回归 PASS；真实文件仍未核验** | 权限/企业隔离/草稿回归与真实文件核验 |
 | 异常就地修正 | **未完成：当前只关联原值与回到已有映射页** | 先明确受控行级修正契约、预检查失效及回滚机制 |
 | 字段候选比较 | **同名候选 ID + 用途可读；不自动选定** | 在真正映射控件就近选择与可用字段用途联动 |
 | 集中新增扩展字段 | **本轮未实施，保留 #860/#878 的独立 owner** | 与开放 PR 合并顺序协调，保留批量审核 / 幂等 |
-| 真实 Host/手机/Human/CI | **待核验，不等于 HTML 原型 PASS** | 检查 scoped workflow、完整安全回归及真实中文截图 |
+| 真实 Host/手机/Human/CI | **隔离 Host Chromium 桌面/手机通过；真实 XLSX 与真人 Human 仍未验收** | 检查 scoped workflow、完整安全回归及真实中文截图 |
 | 生产部署和真实企业写入 | **未执行，未获授权** | 独立部署授权和私有原始 Excel/Job 验收 |
 
 ## 来源与进一步决策
@@ -49,3 +49,11 @@
 - `docs/ui-design-reviews/bex01-v3-host-source-audit-20261015.md`。
 
 **下一个最小真实门槛：** 数据 owner 授权的逐行原值修正如何持久化、如何失效 dry-run 与 Recipe，且不可越权修改或在重试中重复提交。先读现有 import service/repository 权威，不要新造一套浏览器假持久化。
+
+## 2026-10-15 合并后证据（后补，替代上表的“待 CI”历史状态）
+
+- 独立正式实现 [PR #925](https://github.com/jiangxng/EVO-App-Platform/pull/925) **MERGED**，合并 `main@d754b1e378487f182232bfbc2f183175e2fbad72`。合并前将 PA05 最新 `main@c00f6cd7224f08a479936c36584bb84565d2f67f` 无重叠同步至实现分支，required `continuity` 正常通过，GitHub 显示 `mergeable_state=clean` 后正常合并，未绕过规则。
+- 同步后的全部六项 CI 通过：[Platform #38705971376](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38705971376)、[真实 Host Chromium #38705971453](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38705971453)、[导入专项协议 #38705971433](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38705971433)、[Human UI #38705971400](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38705971400)、[Project Continuity #38705971386](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38705971386)、[Lightweight Host #38705971387](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38705971387)。
+- 实际隔离 Host/Chromium 141 完成原有供应商完整旅程 **5/5 PASS**，附加 `BEX01_V3_HOST_SOURCE_AUDIT_PASS:DESKTOP` 与 `...:PHONE`（390px 触控模拟）。业务验证数据为**隔离测试 CSV**；22 列/三缺失/两同名候选的专项数据为**合成协议测试**。不等于读取用户 XLSX、真实企业数据提交、实际真机或用户 Human 签收。
+- 这是 **DEV_COMPLETE（来源列只读核对闭环）**，不是 **V3_COMPLETE**、**PRODUCTION_READY** 或 **DEPLOYED**。仍缺行级原值就地修正、真实映射页候选比较、集中新增方案闭环以及用户授权真实 Job 的身份修正验收。
+- #860 仍是映射表单/单字段扩展创建开放实现；#878 涉及 Host/批量设计并含并行认证变更；#909/#846 为 Draft 研究/交接。**在这些 owner 分支对齐前，不要重复修改其 shared Host / mapping 段落。**
