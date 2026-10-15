@@ -93,14 +93,14 @@ BEX 后续只看新入口是否易找、权限是否正确、字段创建后返�
 
 批量闭环在独立 [Draft PR #884](https://github.com/jiangxng/EVO-App-Platform/pull/884) 实施，保留原单字段路线、不改 Agent/Eidos 公共 Owner。用户集中查看未映射 Excel 来源列，每列明确选择系统已有字段（包括核心 Schema 和企业扩展字段）、新建、忽略；已占用目标不再可选；遇到“开户银行”等重名歧义不自动合并。原始来源计数只展示数量，不在表单公开原始值。依据真实样本提示“账期天数”可选 NUMBER，但仍由用户确认。批量动作首先统一预检查所有选择，用户显式确认后以原有 Object Extension Owner 保存定义并在同一任务内更新 Data Import 映射；**不自动执行 import dry-run 或 commit**。失败可能留下已成功的字段定义，当前 Owner 尚无多字段事务，所以明确返回 PARTIAL 并允许按同一确定性字段 ID 复用重试，不声称原子回滚。
 
-回归门禁包括独立 Host + Chromium（新作业中多字段集中审核→映射回填→预检查→显式提交→详情）、系统字段复用、同名冲突、Agent 入口不变和主体类型缺失不被填补。CI 与 Chromium 仍以 PR 最新 HEAD 为准，不将旧成功次数冒充新提交的结果。原 Excel `往来账户2026_10_08_10_15_23.xlsx` 尚未在本窗口找到可读取的文件实体，模拟样本通过不等于真实 Excel 签收。Railway 用户指定的现有开发服务最后核实仍部署 `8b7e2cc9` SUCCESS；没有新建环境或部署未验收分支。
+回归结果：**隔离真实 Host + Chromium 141 的 5/5 浏览器场景全部通过**，包含多字段集中审核→一次确认→映射回填→预检查→显式提交→供应商详情四字段值、Agent 入口不变、主体类型缺失校验、原单字段与桌面/移动模拟列表回归。证据为 GitHub Actions [BEX-01 Real Host Chromium Supplier Journey #38663416846](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38663416846)，artifact `bex01-real-host-chromium-evidence` (ID `11939523904`)，截图 `extension-batch-review-before-confirm.png`、`extension-batch-auto-mapped.png`、`extension-batch-supplier-detail.png`。本轮曾发现 Host 页面响应 200 但客户端因两个元字段缺少 `semanticType` 而拒绝渲染，已在 BEX 表单定义中修复，无须修改 Eidos。跨项目 CI 与完整 PR 验收仍以最新 HEAD 为准，不将旧成功次数冒充新提交结果。原 Excel `往来账户2026_10_08_10_15_23.xlsx` 尚未在本窗口找到可读取的文件实体，模拟样本通过不等于真实 Excel 签收。Railway 用户指定的现有开发服务最后核实仍部署 `8b7e2cc9` SUCCESS；没有新建环境或部署未验收分支。
 
 | 验收项目 | 当前状态 | 下一步 |
 | --- | --- | --- |
 | #866 一对一映射、释放还原、后端重复目标防护 | 已合并 main@590a5a91，合并前 12/12 CI 通过 | 在批量 Host 回归中持续保留 |
-| 批量字段“一屏审核”与已有目标优先 | Draft PR #884 已编码，待最新 CI 与 Chromium | 验证真实导航、歧义与一对一目标 |
-| 批量创建并自动映射 | Draft PR #884 已编码、协议测试已加入 | 实际 Host 检验及失败恢复证据 |
+| 批量字段“一屏审核”与已有目标优先 | Draft PR #884 已通过隔离 Host Chromium；核心字段优先和同名歧义协议测试已通过 | 完整最新 PR CI、合并后线上复核 |
+| 批量创建并自动映射 | 隔离 Host Chromium 四字段确认→自动映射→详情通过；协议测试覆盖失败后重试 | 最终 PR CI、合并后复核 |
 | Agent、权限、主体类型原值与重复字段安全 | 未修改 Agent 或主体类型；新增专门断言 | 完整跨项目 CI + Chromium |
-| 显式预检查与最终提交、详情扩展值 | 原单字段 Host 已通过；新增批量路径待通过 | 从浏览器完成全路径 |
+| 显式预检查与最终提交、详情扩展值 | 新旧两个流程均在隔离 Host + Chromium 通过 | 真实文件与部署版本验证 |
 | Railway 开发服务准确发布 | 仍为旧版 8b7e2cc9 SUCCESS | 仅验证通过且合并后按准确 SHA 发布 |
 | 原始 Excel 用户数据实际签收 | 尚未执行 | 找到原文件后实际跑“默认支付方式”等四字段并核对供应商详情 |
