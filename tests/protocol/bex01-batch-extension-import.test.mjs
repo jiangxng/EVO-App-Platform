@@ -211,8 +211,11 @@ test("V3 same-label target comparison explains distinct purposes beside actual E
 
 test("V3 occupied candidate and undocumented same-name purpose remain explicit Human review, never auto-create",()=>{
   const job=fixture();
-  job.source.headers.push("开户银行");
-  job.source.rows.forEach(row=>{ row["开户银行"]="HK"; });
+  job.source.headers.push("开户银行","往来银行");
+  job.source.rows.forEach(row=>{
+    row["开户银行"]="HK";
+    row["往来银行"]="Other Bank";
+  });
   job.mapping.push({sourceColumn:"往来银行",targetFieldId:"bank.receiving"});
   const page=createObjectExtensionBatchImportPageV010({
     job,definitions:[],locale:"zh-CN",
