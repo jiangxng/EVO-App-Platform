@@ -98,6 +98,10 @@ test("PA05-04D14 real 3-PG18: local monotone SQL stop blocks old tickets, partia
     assert.deepEqual(await admitA.freezeRemote(),{state:"FROZEN"});
     await assert.rejects(start(workerA,schemaA,"a-old"),
       /PA05_XDB_REMOTE_LOCALLY_FROZEN/);
+    // The actual PA-02 coordinator uses the trusted Host SQL connection:
+    // that route MUST respect the remote STOP, not merely Worker-role UPDATE.
+    await assert.rejects(start(a,schemaA,"a-old"),
+      /PA05_XDB_REMOTE_LOCALLY_FROZEN/);
     assert.equal((await a.unsafe("SELECT state FROM "+
       schemaQ(schemaA)+".pa02b_writes WHERE effect_id='a-old'"))[0].state,"PREPARED");
 
@@ -139,6 +143,8 @@ test("PA05-04D14 real 3-PG18: local monotone SQL stop blocks old tickets, partia
     }),{state:"FROZEN",pendingCount:3,remoteWorkerCount:2});
     await assert.rejects(start(workerB,schemaB,"b-unconsumed"),
       /PA05_XDB_REMOTE_LOCALLY_FROZEN/);
+    await assert.rejects(start(b,schemaB,"b-unconsumed"),
+      /PA05_XDB_REMOTE_LOCALLY_FROZEN/);
     assert.deepEqual(await admitB.freezeRemote(),{state:"FROZEN"});
     await assert.rejects(admitB.stagePreparedEffect({
       scopeKey:"tenant:d14",effectId:"b-unconsumed"
@@ -160,6 +166,7 @@ test("PA05-04D14 real 3-PG18: local monotone SQL stop blocks old tickets, partia
       physicalClusters:3,
       completeCentralWorkerInventoryRequired:true,
       previouslyStagedTicketDeniedAfterLocalFreeze:true,
+      actualPa02HostSqlBeginWriteDeniedAfterFreeze:true,
       localFreezeSurvivesHostRestart:true,
       wrongWorkerSQLLoginCannotThaw:true,
       hostCannotThawMonotoneGate:true,
