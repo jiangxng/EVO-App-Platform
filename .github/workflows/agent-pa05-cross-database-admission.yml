@@ -1,0 +1,86 @@
+name: PA05 - Cross-database reservation admission (isolated)
+on:
+  pull_request:
+    paths:
+      - "manager/pa05-cross-database-admission.ts"
+      - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
+      - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
+      - ".github/workflows/agent-pa05-cross-database-admission.yml"
+  push:
+    branches: [main]
+    paths:
+      - "manager/pa05-cross-database-admission.ts"
+      - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
+      - ".github/workflows/agent-pa05-cross-database-admission.yml"
+permissions:
+  contents: read
+jobs:
+  cross-database-reservation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      authority:
+        image: postgres:18
+        env:
+          POSTGRES_USER: proof
+          POSTGRES_PASSWORD: proof
+          POSTGRES_DB: pa05_authority
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U proof -d pa05_authority"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+      worker_a:
+        image: postgres:18
+        env:
+          POSTGRES_USER: proof
+          POSTGRES_PASSWORD: proof
+          POSTGRES_DB: pa05_worker_a
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U proof -d pa05_worker_a"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+      worker_b:
+        image: postgres:18
+        env:
+          POSTGRES_USER: proof
+          POSTGRES_PASSWORD: proof
+          POSTGRES_DB: pa05_worker_b
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U proof -d pa05_worker_b"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA05_XDB_AUTHORITY_DATABASE_URL: postgres://proof:proof@127.0.0.1:5432/pa05_authority
+      PA05_XDB_WORKER_A_DATABASE_URL: postgres://proof:proof@127.0.0.1:5433/pa05_worker_a
+      PA05_XDB_WORKER_B_DATABASE_URL: postgres://proof:proof@127.0.0.1:5434/pa05_worker_b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Three PostgreSQL18 clusters, central lock and remote Worker uncertainty
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs | tee pa05-xdb.log
+          grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
+          grep -Fq '"physicalClusters":3' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
+          grep -Fq '"remoteWorkerEnforcementImplemented":false' pa05-xdb.log
+          if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
+      - name: Preserve isolated non-production evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa05-xdb-reservation-pg-evidence
+          path: pa05-xdb.log
+          retention-days: 14
+          if-no-files-found: warn
