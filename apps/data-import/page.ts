@@ -509,20 +509,27 @@ export function createDataImportMappingPageV010(input: {
       .filter(item => Boolean(item.sourceColumn))
       .map(item => [item.sourceColumn!, item.targetFieldId] as const)
   );
-  // Reuse a unique existing business field by its displayed name.
-  // Ambiguous duplicates are intentionally left for the user to resolve.
-  const uniqueExistingField = (column: string): string | undefined => {
-    const matches=importFields.filter(field =>
-      field.resolvedLabel.trim().toLocaleLowerCase()===column.trim().toLocaleLowerCase()
-    );
-    return matches.length===1?matches[0].fieldId:undefined;
-  };
-  const fieldLabel = new Map(
-    importFields.map(field => [
-      field.fieldId,
-      field.resolvedLabel + " · " + field.fieldId
-    ] as const)
+  const normalizedLabel = (v: string): string =>
+    v.normalize("NFKC").trim().toLocaleLowerCase();
+  const candidatesFor = (column: string) => importFields.filter(field =>
+    normalizedLabel(field.resolvedLabel) === normalizedLabel(column)
   );
+  const usedTargets = new Set(input.job.mapping.map(item => item.targetFieldId));
+  // Duplicate labels (including two 开户银行) are never selected by name alone.
+  const uniqueExistingField = (column: string): string | undefined => {
+    const matches = candidatesFor(column);
+    return matches.length === 1 && !usedTargets.has(matches[0].fieldId)
+      ? matches[0].fieldId : undefined;
+  };
+  const fieldLabel = new Map(importFields.map(field => [
+    field.fieldId,
+    field.resolvedLabel
+      + (candidatesFor(field.resolvedLabel).length > 1
+        ? " · " + (field.resolvedDescription?.trim()
+          || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
+        : "")
+      + " · " + field.fieldId
+  ] as const));
   const advisoryFields = input.job.mapping
     .filter(item => Boolean(item.advisory))
     .map((item, index) => {
@@ -646,12 +653,52 @@ export function createDataImportMappingPageV010(input: {
             route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
           }
         }]
-      : []), ...input.job.source.headers.map((sourceColumn, index) => ({
+      : []), ...input.job.source.headers.flatMap((sourceColumn, index) => {
+      const candidates = candidatesFor(sourceColumn);
+      const sample: string[] = [];
+      const seen = new Set<string>();
+      let count = 0;
+      for (const row of input.job.source.rows) {
+        const value = row[sourceColumn];
+        if (value === null || value === undefined || value === "") continue;
+        count++;
+        const literal = String(value);
+        if (!seen.has(literal) && sample.length < 3) {
+          seen.add(literal);
+          sample.push(literal.length > 48 ? literal.slice(0, 48) + "…" : literal);
+        }
+      }
+      return [
+        ...(!current.has(sourceColumn) || candidates.length > 1 ? [{
+          key:"sourceEvidence_" + index,
+          label:sourceColumn + (zh(input.locale) ? " · 原始样本" : " · Source examples"),
+          semanticType:"data-import-original-source-evidence",
+          control:"text" as const,readOnly:true,required:false,
+          initialValue:(zh(input.locale) ? "非空 " : "Nonempty ")
+            + count + " / " + input.job.source.rows.length + " · "
+            + (sample.length ? sample.join(" · ")
+              : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
+        }] : []),
+        ...(candidates.length > 1 ? [{
+          key:"candidateEvidence_" + index,
+          label:sourceColumn + (zh(input.locale)
+            ? " · 同名目标用途核对" : " · Compare same-name target purpose"),
+          semanticType:"data-import-target-purpose-review",
+          control:"text" as const,readOnly:true,required:false,
+          initialValue:candidates.map(field => field.resolvedLabel + " · "
+            + (field.resolvedDescription?.trim()
+              || (zh(input.locale) ? "业务用途待确认" : "Purpose needs confirmation"))
+            + " · " + field.fieldId
+            + (input.job.mapping.some(item => item.targetFieldId === field.fieldId)
+              ? (zh(input.locale) ? " · 已被其他来源占用" : " · Already assigned")
+              : "")).join(" ； ")
+        }] : []),
+        {
       key: "map_" + index,
       label: sourceColumn,
       semanticType: "data-import-field-mapping",
       control: "select" as const,
-      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__"] },
+      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"] },
       required: true,
       initialValue: current.get(sourceColumn)
         ?? (input.createdMapping?.sourceColumn === sourceColumn
@@ -660,11 +707,14 @@ export function createDataImportMappingPageV010(input: {
             : input.job.ignoredSourceColumns?.includes(sourceColumn)
               ? "__IGNORE__"
               : uniqueExistingField(sourceColumn)
-                ?? (input.canCreateExtension && input.job.targetId === "counterparty.subject"
-                  ? "__CREATE__" : "__PENDING__")),
+                ?? (candidatesFor(sourceColumn).length > 0
+                  ? "__PENDING__"
+                  : input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                    ? "__CREATE__" : "__PENDING__")),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
+        && candidatesFor(sourceColumn).length === 0
         ? {
             contextLink: {
               label: zh(input.locale)
@@ -691,9 +741,11 @@ export function createDataImportMappingPageV010(input: {
           : "⚠ Previous target unavailable; review · " + current.get(sourceColumn)}]
         : []), ...importFields.map(field => ({
         value: field.fieldId,
-        label: field.resolvedLabel + " · " + field.fieldId
+        label: fieldLabel.get(field.fieldId) ?? field.fieldId
       }))]
-    })), ...advisoryFields, ...advancedFields],
+        }
+      ];
+    }), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
       label: t.validate,

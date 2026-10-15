@@ -271,46 +271,88 @@ export function createObjectExtensionActionHandlersV010(input: {
         if (!["STRING","NUMBER","BOOLEAN","DATE"].includes(valueType)) {
           throw new Error("OBJECT_EXTENSION_TYPE_INVALID");
         }
+        if (!input.applyImportMapping || !input.getImportJob) {
+          // A field cannot be advertised as created-and-mapped if the
+          // authoritative import owner is unavailable.
+          throw new Error("OBJECT_EXTENSION_IMPORT_MAPPING_SERVICE_REQUIRED");
+        }
+        if (job.state === "COMMITTED" || job.state === "COMMITTED_WITH_ERRORS") {
+          throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
+        }
         const { createHash } = await import("node:crypto");
         const fieldId = "ext_" + createHash("sha256")
-          .update(job.targetId+"|"+column).digest("hex").slice(0,16);
-        if (input.repository.list(active.contextId,job.targetId)
-          .some(x=>x.fieldId===fieldId)) {
-          throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
+          .update(job.targetId + "|" + column).digest("hex").slice(0,16);
+        const mode = job.targetParameters?.relationshipMode;
+        const role = mode === "SUPPLIER" ? "SUPPLIER"
+          : mode === "CUSTOMER" ? "CUSTOMER" : undefined;
+        const slot = role === "SUPPLIER" ? "counterparty.supplier-profile"
+          : role === "CUSTOMER" ? "counterparty.customer-profile"
+          : "counterparty.identity";
+        const normalize = (value: string) => value.normalize("NFKC")
+          .replace(/\\s+/gu, "").toLocaleLowerCase();
+        const definitions = input.repository.list(active.contextId, job.targetId);
+        const prior = definitions.find(item => item.fieldId === fieldId);
+        const sameName = definitions.filter(item =>
+          item.fieldId !== fieldId && item.targetSlot === slot
+          && normalize(item.label.default) === normalize(label)
+        );
+        if (sameName.length) {
+          // Preserve previously created duplicates and their values; do not
+          // add a third one or silently choose by the visible label.
+          throw new Error("OBJECT_EXTENSION_LABEL_ALREADY_EXISTS_CHOOSE_FIELD");
         }
-        // A second upload or alternate source heading must not create a duplicate business field.
-        const sameLabel=input.repository.list(active.contextId,job.targetId)
-          .filter(x=>x.label.default.trim().toLocaleLowerCase()===label.toLocaleLowerCase()
-            && (x.applicability?.relationshipRoles?.length
-              ? x.applicability.relationshipRoles.includes(
-                  job.targetParameters?.relationshipMode==="CUSTOMER"?"CUSTOMER":"SUPPLIER")
-              : true));
-        if(sameLabel.length>0) {
-          throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_REMAP_FIELD");
+        if (prior && (prior.targetSlot !== slot
+          || normalize(prior.label.default) !== normalize(label)
+          || prior.valueType !== valueType || !prior.importable
+          || !prior.surfaces.includes("IMPORT"))) {
+          throw new Error("OBJECT_EXTENSION_ALREADY_EXISTS_DIFFERENT_CONTRACT");
         }
-        const mode=job.targetParameters?.relationshipMode;
-        const role=mode==="SUPPLIER"?"SUPPLIER":mode==="CUSTOMER"?"CUSTOMER":undefined;
-        const slot=role==="SUPPLIER"?"counterparty.supplier-profile"
-          :role==="CUSTOMER"?"counterparty.customer-profile"
-          :"counterparty.identity";
-        const definition = assertObjectExtensionDefinitionV010({
-          contractVersion:"0.1.0",
-          extensionId:"import."+fieldId,
-          targetObjectType:"counterparty.subject",
-          targetSlot:slot,
-          namespace:"enterprise.counterparty",
-          fieldId,semanticType:"enterprise-custom-"+fieldId,
-          valueType:valueType as "STRING"|"NUMBER"|"BOOLEAN"|"DATE",
-          label:{default:label},
-          required:false,order:1000,
-          ...(role?{applicability:{relationshipRoles:[role]}}:{}),
-          surfaces:["DETAIL","EDIT","IMPORT"],
-          importable:true,exportable:true,
-          agentReadable:false,agentWritable:false
-        });
-        const saved=input.repository.save({
-          contextId:active.contextId,definition,
-          actorSubjectId:context.principal.subjectId,recordedAt:now().toISOString()
+        const recordedAt = now().toISOString();
+        let saved = prior;
+        if (!saved) {
+          const definition = assertObjectExtensionDefinitionV010({
+            contractVersion:"0.1.0",
+            extensionId:"import."+fieldId,
+            targetObjectType:"counterparty.subject",
+            targetSlot:slot,
+            namespace:"enterprise.counterparty",
+            fieldId,semanticType:"enterprise-custom-"+fieldId,
+            valueType:valueType as "STRING"|"NUMBER"|"BOOLEAN"|"DATE",
+            label:{default:label},
+            required:false,order:1000,
+            ...(role?{applicability:{relationshipRoles:[role]}}:{}),
+            surfaces:["DETAIL","EDIT","IMPORT"],
+            importable:true,exportable:true,
+            agentReadable:false,agentWritable:false
+          });
+          saved = input.repository.save({
+            contextId:active.contextId,definition,
+            actorSubjectId:context.principal.subjectId,recordedAt
+          });
+        }
+        // Re-read the authoritative job after the definition write. A retry
+        // must reuse the deterministic field rather than duplicating it.
+        const latest = input.getImportJob(active.contextId,jobId);
+        if (!latest || latest.targetId !== job.targetId
+          || latest.source.headers.length !== job.source.headers.length
+          || latest.source.headers.some((item,index) =>
+            item !== job.source.headers[index])) {
+          throw new Error("OBJECT_EXTENSION_IMPORT_JOB_CHANGED");
+        }
+        if (latest.state === "COMMITTED"
+          || latest.state === "COMMITTED_WITH_ERRORS") {
+          throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
+        }
+        if (latest.mapping.some(item => item.sourceColumn === column
+          || item.targetFieldId === fieldId)) {
+          throw new Error("OBJECT_EXTENSION_SOURCE_OR_TARGET_ALREADY_MAPPED");
+        }
+        input.applyImportMapping({
+          contextId:active.contextId,importJobId:jobId,
+          mapping:[...latest.mapping,{sourceColumn:column,targetFieldId:fieldId}],
+          ignoredSourceColumns:(latest.ignoredSourceColumns??[])
+            .filter(item=>item!==column),
+          actorSubjectId:context.principal.subjectId,recordedAt
         });
         const { dataImportMappingRouteV010 } =
           await import("../data-import/constants.js");
@@ -318,9 +360,9 @@ export function createObjectExtensionActionHandlersV010(input: {
           ok:true,correlationId:context.correlationId,
           result:JSON.parse(JSON.stringify({
             contractVersion:"0.1.0",definition:saved,
+            mappedSourceColumn:column,mappedTargetFieldId:fieldId,
+            message:"Field saved and mapped. Review the saved mapping before validating.",
             navigateTo:dataImportMappingRouteV010(jobId)
-              + "?createdColumn=" + encodeURIComponent(column)
-              + "&createdField=" + encodeURIComponent(fieldId)
           })) as JsonValue
         };
       } catch(error) { return failure(error,context); }
