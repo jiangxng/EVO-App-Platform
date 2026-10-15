@@ -95,7 +95,7 @@ $("bank").onchange=()=>{draft.bank=$("bank").value;invalidate();};
 $("prepare").onclick=()=>{if(draft.schema){runCheck();show("precheck");}else show("confirm");};
 $("confirmBack").onclick=()=>show("review");
 $("schemaConfirm").onclick=()=>{draft.schema=true;store();runCheck();show("precheck");};
-function runCheck(){checked=!!draft.schema&&!!draft.bank&&draft.types.every(Boolean);$("submit").disabled=!checked;$("checkNotice").textContent=checked?"模拟预检查通过：仅演示交互，不代表真实数据合格。":"模拟预检查未通过：存在待核实问题，不允许继续正式导入。";const items=[];if(!draft.bank)items.push("开户银行：尚未选择真实意义对应的目标字段");if(draft.types.some(x=>!x))items.push("主体类型：演示三行有 "+draft.types.filter(x=>!x).length+" 行仍未模拟填写");$("blockers").textContent=items.length?items.join("；"):"无剩余模拟阻断项，仍须真实 Host 验证。";$("blockers").className="tip "+(items.length?"error":"success");}
+function runCheck(){checked=!!draft.schema&&!!draft.bank&&draft.types.every(Boolean);$("submit").disabled=!checked;$("rerun").className=checked?"secondary":"primary";$("checkNotice").textContent=checked?"模拟预检查通过：仅演示交互，不代表真实数据合格。":"模拟预检查未通过：存在待核实问题，不允许继续正式导入。";const items=[];if(!draft.bank)items.push("开户银行：尚未选择真实意义对应的目标字段");if(draft.types.some(x=>!x))items.push("主体类型：演示三行有 "+draft.types.filter(x=>!x).length+" 行仍未模拟填写");$("blockers").textContent=items.length?items.join("；"):"无剩余模拟阻断项，仍须真实 Host 验证。";$("blockers").className="tip "+(items.length?"error":"success");}
 $("rerun").onclick=runCheck;
 $("checkBack").onclick=()=>show("review");
 $("submit").onclick=()=>{if(!checked||!draft.schema||!draft.bank||draft.types.some(x=>!x))return;show("done");};
