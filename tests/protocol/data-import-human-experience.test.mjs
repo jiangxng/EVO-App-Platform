@@ -933,3 +933,58 @@ test("Counterparty import target remains the first Foundation Object consumer, n
     "counterparty.subject"
   );
 });
+
+
+test("BEX mapping: preserve all source columns, suggest creation instead of ignore, and expose batch B entry", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const counterparts = createCounterpartyRepositoryV010(resources);
+  const roles = createCounterpartyRoleRepositoryV010(resources,counterparts);
+  const extensions = createObjectExtensionRepositoryV010(resources);
+  const values = createObjectExtensionValueRepositoryV010(resources);
+  const target = createCounterpartyImportTargetV010({
+    resources,repository:counterparts,roleRepository:roles,
+    extensionRepository:extensions,extensionValueRepository:values
+  });
+  const repository = createDataImportRepositoryV010(resources);
+  const service = createDataImportServiceV010({repository,targets:[target]});
+  const handlers = createDataImportActionHandlersV010({
+    service,repository,targets:[target],
+    canManageEnterpriseContext:()=>true,idFactory:()=>"unused",
+    now:()=>new Date("2026-10-15T01:00:00.000Z")
+  });
+  const source = {
+    kind:"ROWS",headers:["编码","名称","结算方式","系统编码"],
+    rows:[{"编码":"S001","名称":"测试供应商","结算方式":"月结","系统编码":"old-001"}]
+  };
+  service.stage({
+    contextId:"enterprise-context:a",importJobId:"batch-proposals",
+    targetId:target.targetId,targetParameters:{relationshipMode:"SUPPLIER"},
+    source,mapping:[{sourceColumn:"编码",targetFieldId:"code"}],
+    mappingOrigin:"HUMAN",actorSubjectId:"owner-a",
+    recordedAt:"2026-10-15T00:00:00.000Z"
+  });
+  const page=createDataImportMappingPageV010({
+    job:repository.get("enterprise-context:a","batch-proposals"),
+    schema:target.describe({contextId:"enterprise-context:a",
+      parameters:{relationshipMode:"SUPPLIER"}}),
+    locale:"zh-CN",canCreateExtension:true
+  });
+  assert.equal(page.fields.find(x=>x.key==="map_0").initialValue,"code");
+  assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
+  assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
+  assert.match(page.fields.find(x=>x.key==="batchReviewEntry").contextLink.label,/集中审核/);
+  assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
+  assert.ok(page.fields.find(x=>x.key==="map_2").options.some(x=>x.value==="__IGNORE__"));
+  const review=handlers.find(x=>x.commandCode===DATA_IMPORT_REVIEW_COMMAND_V010);
+  const result=await review.execute(request(DATA_IMPORT_REVIEW_COMMAND_V010,{
+    importJobId:"batch-proposals",
+    map_0:"code",map_1:"__PENDING__",map_2:"__CREATE__",map_3:"__IGNORE__"
+  }),platformContext());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.match(result.result.navigateTo,/mode=batch/);
+  const saved=repository.get("enterprise-context:a","batch-proposals");
+  assert.equal(saved.state,"STAGED");
+  assert.deepEqual(saved.mapping,[{sourceColumn:"编码",targetFieldId:"code"}]);
+  assert.deepEqual(saved.source.rows,source.rows);
+  assert.equal(extensions.list("enterprise-context:a",target.targetId).length,0);
+});
