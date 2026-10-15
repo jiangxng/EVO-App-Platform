@@ -73,6 +73,12 @@ function write(row: Record<string, unknown>): AgentWriteIntentV020 {
  */
 export async function createPostgresAgentExecutionCoordinatorV020(input: {
   connectionString: string; schema: string;
+  /**
+   * PA05-04B opt-in only: require a trusted Owner link and a LIVE plugin-level
+   * PostgreSQL lifecycle gate in the same transaction as PREPARED -> INVOKING.
+   * Never switch existing Host/PA-02 callers implicitly.
+   */
+  requirePluginWriteLifecycleFence?: boolean;
 }): Promise<AgentExecutionCoordinatorV020> {
   const url = required(input.connectionString);
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema)) throw Error("PA02B_SCHEMA_INVALID");
@@ -176,6 +182,21 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
       const scopeKey=key(r.scope),effectId=required(r.effectId);
       return sql.begin(async tx => {
         await assertLease(tx,scopeKey,r.lease);
+        if(input.requirePluginWriteLifecycleFence) {
+          // No Owner identity may be chosen by Agent arguments. A trusted
+          // Owner/Receipt link was persisted by the existing reconciler.bind.
+          const links=await tx.unsafe("SELECT owner_package_id FROM "+
+            q+".pa02b_owner_links WHERE scope_key=$1 AND effect_id=$2 AND run_id=$3",
+            [scopeKey,effectId,r.lease.runId]);
+          if(links.length!==1)throw Error("PA05_WRITE_OWNER_LINK_REQUIRED");
+          // Exact same row/transaction as freeze(): either INVOKING commits
+          // before the freeze sees it, or frozen state refuses invocation.
+          const gates=await tx.unsafe("SELECT state FROM "+
+            q+".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1 FOR UPDATE",
+            [links[0].owner_package_id]);
+          if(gates.length!==1||gates[0].state!=="ACTIVE")
+            throw Error("PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN");
+        }
         const rows=await tx.unsafe("UPDATE " + q + ".pa02b_writes "+
           "SET state='INVOKING',fence=$4 WHERE scope_key=$1 AND effect_id=$2 "+
           "AND run_id=$3 AND state='PREPARED' RETURNING *",
