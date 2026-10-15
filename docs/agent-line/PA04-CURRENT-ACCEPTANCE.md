@@ -20,7 +20,7 @@
 | C01 | 上下文超过预算；保留核心约束，总预算含工具/输出 | **IN_PROGRESS**。新增可选的真实模型请求前完整 Token 上界校验、输出额度预留、不可证明时 fail-closed；尚缺经认证的具体本地/云端模型 tokenizer/上下文窗口绑定与重要 Working State 优先保留组装，不能签收完整 C01。 |
 | C02 | 删除原消息；派生摘要/索引按政策失效 | **IN_PROGRESS**。首批只解决已持久摘要在源内容更改、遮蔽/删除后不能再被旧条件错误复用；原摘要/索引物理失效、删除传播仍未全证。 |
 | C03 | 旧 READ 恢复，有新鲜度要求时重新读取 | **IN_PROGRESS**。已新增可选 Host 源版本/新鲜度核验、失效 READ 重新授权读取并留存新证据、失败阻断推理。正式数据源版本与失权后的用户展示仍未全覆盖。 |
-| C04 | 记忆误推断，可查看纠正，不写成企业事实 | **OPEN**。复用现有 Memory Proposal Review、Human 确认与 Host 授权。 |
+| C04 | 记忆误推断，可查看纠正，不写成企业事实 | **IN_PROGRESS**。已有提案审查、人工编辑/接受/拒绝、修订与 supersession；新增底层服务对 Human-only 审批的硬约束及错误记忆纠正回归。仍待更多企业来源与 Human 实体验收。 |
 | C05 | 注入文件，不触发未授权工具或外发 | **OPEN**。需要确定性敌对内容、权限及 egress 负向验收。 |
 | C06 | 引用失权，不展示标题/正文/下载 | **IN_PROGRESS**。已新增可选 Host 当前 Memory/来源授权门禁，并在代理的检索、回忆、清单、精确审计响应前校验；历史 Run 回放、附件下载入口及全源授权接线仍未覆盖。 |
 
@@ -86,3 +86,13 @@
 - **测试证据**：`tests/agent-line/pa04-c06-memory-reference-disclosure.test.mjs` 用隔离 Host 目录模拟当前授予→撤销，验证来源 title/body/downloadUrl 同步失权、全类 Memory READ 禁止旁路、异常授权拒绝、跨 Context/缺 provenance 拒绝、授权来源仍可正常读。专用 `.github/workflows/agent-pa04-c06-memory-reference-disclosure.yml` 还回归现有 Agent 目录测试；以最终准确 HEAD CI 为准。
 - **关键限制（不能提前签收）**：门禁是**Host 可选注入**，当前产品尚未给全部来源类型绑定实际的资源级 `authorize` 策略；不能把模拟的撤权理解为已接入生产授权。历史 Run、Conversation、已生成回答展示、Memory Proposal、外部 EC 索引、业务直接页面、静态文件/真实下载 URL 的重新验证与缓存失效均**未被本 PR 覆盖**。真实附件下载路径不能依赖模型过滤，应在打开/下载当刻由资源 Owner 二次授权。C06 仍部分完成，PA-04 `IN_PROGRESS / NOT_SIGNED`。
 - **隔离边界**：不修改任何 BEX/CP-03、2D、`manager/server.ts`、生产 WRITE 和主线全局状态文件；PA-02 R10 真实费用仍 OPEN，本地开源模型部署只是计划而非已签收的 Provider。
+
+
+## 2026-10-15：C04 错误记忆人工纠正与服务级审核（第七个局部闭环）
+
+- **复用既有系统**：原 `ContextMemoryProposalService` 已实现 Agent/source adapter 创建 PENDING 提案、Memory Review 页面展示、Human 编辑/拒绝/接受、永久修订链、冲突/重复提示、`supersedesMemoryId` 及 Host Memory Writer。无需重新造第二套记忆系统。
+- **发现的防线不一致**：Review 页面 Action 原已拒绝非 Human 身份，但底层 `service.accept/edit/reject` 不要求 `principal.actorType=HUMAN`；绕过 UI、由其他 Host 服务直接调用时，Agent 或 Automation 可能替自己接受、拒绝或改写提案。这违反“模型建议≠已确认个人/企业事实”的 C04 规范。
+- **此批修改**：在提案服务内部的 `accept`、`editProposal`（含接受时携带修订）和 `reject` 前强制 Human 身份，缺失即 `CONTEXT_MEMORY_PROPOSAL_HUMAN_REQUIRED`，任何已接受提案的幂等读取也不能作为非 Human 的审批捷径。保留原 Action 侧确认标志、角色/关系、`authorizeMaterialWrite` 双重授权；不开放新的 Agent WRITE。
+- **端到端逻辑回归**：`tests/protocol/pa04-c04-human-memory-correction.test.mjs` 验证 AI 提案始终 pending、不落永久记忆；AI/AUTOMATION/SERVICE 通过底层 API 直接接受/编辑/拒绝均失败；Human 将误推断改为审定文本再接受，新的记忆取代旧的普通检索结果，旧记录及模型原稿仍保留原样供审计；Human 拒绝无据推断不落库；Agent 不能直接把企业提案变成 FACT，跨 Context 不能纠正别人的记忆。结合既有 `context-memory-proposal-review` 和 `context-memory-governance` 回归；CI 完成之前不标 PASS。
+- **仍待 C04**：当前是底层服务防线与模拟 Human 核验，不自动证明所有用户可看见/纠正全部记忆、企业事实的真实来源核验、真实登录与工作台交互、企业审批权限矩阵、Memory 来源失效和长期纠正效果。人工接受也不是业务来源真相；企业 FACT 必须受业务资源所有者的最终治理。C04 / PA-04 整体仍 `IN_PROGRESS / NOT_SIGNED`。
+- **隔离**：仅修改独立 Memory Proposal Service、测试、验收记录及 CI，未修改 BEX/CP-03、`manager/server.ts`、eidos/2D、主线 authority 文件或生产 WRITE；PA-02 R10 持续 OPEN。
