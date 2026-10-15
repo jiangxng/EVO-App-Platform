@@ -1,6 +1,7 @@
 import type { PackageManifestV010 } from "../../contracts/package.js";
 import {
   PURCHASE_OPERATIONS_CAPABILITY_V010,
+  PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010,
   PURCHASE_OPERATIONS_ENTRY_OPEN_ACTION_V010,
   PURCHASE_OPERATIONS_ENTRY_OPEN_COMMAND_V010,
   PURCHASE_OPERATIONS_ENTRY_OPEN_OPERATION_V010,
@@ -33,7 +34,7 @@ export const tradingReferencePackageV010: PackageManifestV010 = {
     "ja": "EVO 取引参照フロー",
     "zh-TW": "EVO 交易參考流程"
   },
-  version: "0.1.0",
+  version: "0.1.1",
   type: "APPLICATION",
   publisher: {
     id: "evo",
@@ -50,16 +51,19 @@ export const tradingReferencePackageV010: PackageManifestV010 = {
     contractVersion: "0.1.0",
     featureId: TRADING_REFERENCE_FEATURE_ID_V010,
     packageId: TRADING_REFERENCE_PACKAGE_ID_V010,
-    version: "0.1.0",
+    version: "0.1.1",
     activationScope: "INSTALLATION",
     defaultActivation: true,
-    providesCapabilities: [PURCHASE_OPERATIONS_CAPABILITY_V010],
+    providesCapabilities: [
+      PURCHASE_OPERATIONS_CAPABILITY_V010, // legacy dependency ID: keep existing installs stable
+      PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010 // Protocol-owned operation namespace
+    ],
     contributions: [{
       kind: "platform.capability-operation",
       operation: {
         contractVersion: "0.1.0",
         operationId: PURCHASE_OPERATIONS_ENTRY_OPEN_OPERATION_V010,
-        capability: PURCHASE_OPERATIONS_CAPABILITY_V010,
+        capability: PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010,
         operationVersion: "0.1.0",
         title: "Open Purchase Operational Lookup",
         description: "Open the governed purchase order Work/Inventory/Payable lookup Experience, without reading transactional data.",
@@ -155,7 +159,7 @@ export const tradingReferencePackageV010: PackageManifestV010 = {
       operation: {
         contractVersion: "0.1.0",
         operationId: PURCHASE_OPERATIONS_READ_OPERATION_V010,
-        capability: PURCHASE_OPERATIONS_CAPABILITY_V010,
+        capability: PURCHASE_OPERATIONS_OPERATION_CAPABILITY_V010,
         operationVersion: "0.1.0",
         title: "Read Purchase Operational Position",
         description:
