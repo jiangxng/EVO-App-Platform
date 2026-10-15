@@ -16,6 +16,8 @@ import {
   DATA_IMPORT_MAPPING_APPLY_OPERATION_V010,
   DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
   DATA_IMPORT_MAPPING_INSPECT_OPERATION_V010,
+  DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+  DATA_IMPORT_ROW_CORRECT_OPERATION_V010,
   DATA_IMPORT_READ_ACTION_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_OPERATION_V010,
@@ -246,6 +248,37 @@ export const dataImportCapabilityContributionsV010:
         idempotency: "HOST_REQUIRED",
         receipt: "HOST_REQUIRED"
       }
+    }
+  }, {
+    kind: "platform.capability-operation",
+    operation: {
+      contractVersion: "0.1.0",
+      operationId: DATA_IMPORT_ROW_CORRECT_OPERATION_V010,
+      capability: DATA_IMPORT_CAPABILITY_V010, operationVersion: "0.1.0",
+      title: "Correct a flagged import row",
+      description: "A Human Owner/Admin corrects one flagged STRING/ENUM source value in a persisted job. Original source cells remain untouched; every update invalidates the previous dry-run and must be independently revalidated before commit.",
+      effect: "WRITE", dataScope: "ENTERPRISE",
+      authorization: { action: DATA_IMPORT_WRITE_ACTION_V010,
+        resource: { type: DATA_IMPORT_AUTH_RESOURCE_V010,
+          idSource: "INPUT", inputKey: "importJobId" } },
+      inputSchema: { type: "object", additionalProperties: false,
+        required: ["importJobId", "rowNumber", "sourceColumn", "mode", "expectedRevision"],
+        properties: {
+          importJobId: { type: "string", minLength: 1 },
+          rowNumber: { oneOf: [
+            { type: "integer", minimum: 1 },
+            { type: "string", pattern: "^[1-9][0-9]*$" }
+          ] },
+          sourceColumn: { type: "string", minLength: 1 },
+          mode: { type: "string", enum: ["SET", "REVERT"] },
+          expectedRevision: { type: "string", minLength: 32, maxLength: 32 },
+          value: { type: "string", maxLength: 2000 }
+        } },
+      outputSchema: importJobOutputSchema,
+      binding: { type: "ACTION_HOST", commandCode: DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+        inputVersion: "0.1.0" },
+      exposure: ["HUMAN"],
+      writeSafety: { idempotency: "HOST_REQUIRED", receipt: "HOST_REQUIRED" }
     }
   }, {
     kind: "platform.capability-operation",

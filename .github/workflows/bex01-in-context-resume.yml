@@ -26,4 +26,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/protocol/bex01-in-context-resume.test.mjs tests/protocol/bex01-v3-source-audit.test.mjs tests/protocol/bex01-supplier-import-journey.test.mjs tests/protocol/data-import-human-experience.test.mjs
+      - run: node --test tests/protocol/bex01-in-context-resume.test.mjs tests/protocol/bex01-v3-source-audit.test.mjs tests/protocol/bex01-v3-row-correction.test.mjs tests/protocol/bex01-supplier-import-journey.test.mjs tests/protocol/data-import-human-experience.test.mjs
