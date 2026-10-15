@@ -5033,6 +5033,13 @@ const actionRouter = createAppActionRouter(
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
+            // BEX-owned glue only: reuse the existing import service; no Host
+            // authorization, Agent, storage, or transaction changes.
+            applyImportMapping: values => {
+              dataImportService.updateMapping({
+                ...values, mappingOrigin: "HUMAN"
+              });
+            },
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -7425,6 +7432,13 @@ const server = createServer(async (request, response) => {
         });
         const module=await import("../apps/object-extension/page.js");
         const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
+        if (importRoute.searchParams.get("mode") === "batch") {
+          const batch = await import("../apps/object-extension/batch-page.js");
+          return json(response,200,batch.createObjectExtensionBatchImportPageV010({
+            job,locale:requestedLocale(url),
+            definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
+          }));
+        }
         return json(response,200,module.createObjectExtensionImportPageV010({
           job,locale:requestedLocale(url),
           sourceColumn:importRoute.searchParams.get("column") ?? undefined
