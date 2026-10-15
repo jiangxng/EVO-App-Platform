@@ -19,12 +19,12 @@
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| 22列/172行第二个独立 XLSX 真正 Host 暂存 | 代码就绪，待最终 CI | 完整解析与原值比对 |
-| 已有“开户银行”按 field ID 复用且不重复创建 | 代码就绪，待最终 CI | 真实已存企业字段核对 |
-| 17列集中创建并与原列精确映射 | 代码就绪，待最终 CI | Eidos 原生批量表单与 Host 存储验证 |
-| 只有历史备注被主动忽略 | 代码就绪，待最终 CI | Job 中确认为唯一忽略项 |
+| 22列/172行第二个独立 XLSX 真正 Host 暂存 | 最新 main 隔离 Host/Chromium PASS | 完整解析与原值比对 |
+| 已有“开户银行”按 field ID 复用且不重复创建 | 最新 main 隔离 Host/Chromium PASS | 真实已存企业字段核对 |
+| 17列集中创建并与原列精确映射 | 最新 main 隔离 Host/Chromium PASS | Eidos 原生批量表单与 Host 存储验证 |
+| 只有历史备注被主动忽略 | 最新 main 隔离 Host/Chromium PASS | Job 中确认为唯一忽略项 |
 | 3行必须人工更正才可提交 | 继承 #939 的通过证据，本次再覆盖 | Host 原校验器 |
-| 172个对象/业务详情扩展值 | 代码就绪，待最终 CI | 真实目录搜索、详情值验证 |
+| 172个对象/业务详情扩展值 | 最新 main 隔离 Host/Chromium PASS | 真实目录搜索、详情值验证 |
 | 两个同名目标银行真实身份、客户 22列/172行 | **尚未取得** | 原客户 Schema + XLSX + 授权 Job + Human 决定 |
 | Railway | **未部署** | 不擅自操作 |
 
@@ -38,3 +38,11 @@
 - `.github/workflows/bex01-real-browser.yml`：在旧验收成功后再运行新场景
 
 **验收结论必须等最终 HEAD CI 实际 PASS 再填写。** 真正的客户 Excel 和两个实际业务上同名的“开户银行”都不能从合成 Fixture 反推，客户 Human 签收与生产授权持续 OPEN。
+
+## 合并后正式证据（2026-10-15，覆盖上文“待 CI”原始计划）
+
+- [PR #942](https://github.com/jiangxng/EVO-App-Platform/pull/942) **MERGED**，最新正式合并 `main@fad923897760e3c7f503a9e346951b38c523c50f`。原实现分支吸收并行 PA05 的 `main@8c59624ec3bf54df6ecb54094cc43014a0d60e52`，先核对 **6 文件无重叠**，再用最终分支 HEAD `2f1b3d7e5cfc419849bdf389814d15c4a23441ab` 做一轮完整认证。GitHub `mergeable_state=clean`，按主仓保护规则正常合并。
+- **5/5 项 CI 全部 PASS**：[真实 Host/Chromium #38719027641](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38719027641)、[Platform #38719027649](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38719027649)、[Human UI #38719027577](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38719027577)、[Continuity #38719027561](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38719027561)、[Lightweight Host #38719027726](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38719027726)。
+- **实际 Host 业务证据**：`BEX01_V3_XLSX_RETAINED_22_SOURCE_AND_BANK_REUSE_PASS`、`BEX01_V3_XLSX_RETAINED_17_FIELDS_CREATED_AND_MAPPED_PASS`、`BEX01_V3_XLSX_RETAINED_172_18_BUSINESS_FIELDS_PASS:ISOLATED_HOST`，均为真正安装 Host 与 Chromium 141 验收输出；原 `BEX01_BROWSER_SUMMARY` 5/5 及前次 172行 XLSX 修正/导入依旧 PASS。17项企业扩展字段、1个复用银行字段被实际映射保存；只有1个历史元数据字段显式忽略；创建业务对象后，抽查第172条供应商详情中的17项标签、两端样本值和银行数据均可见。
+- **结论是 `ISOLATED_XLSX_BUSINESS_VALUES_DEV_CERTIFIED`，不是 `V3_COMPLETE` 或 `HUMAN_SIGNED_OFF`**。所谓两个同名银行仅在用户需求层仍属未决：本测试唯一银行字段是前一项隔离案例由测试人员创建的合成字段，不能替代客户两实际 target field ID 的用途/权限/引用调查。
+- **下一步唯一不可替代业务门槛**：从客户受权的原始 XLSX + 实际企业 Schema + 原 Import Job（或受权重启上传）中核对真正22列、逐列判定应该复用/新建/忽略、确认两个同名银行字段用途及三条主体类型身份；用户 Human 真实点击验收以后才能独立决定生产执行。测试中的合成值、假设业务标签和身份选择不得迁移为真实企业决策。本轮未部署 Railway，未修改 Host/Agent/Eidos Runtime 和生产业务数据。
