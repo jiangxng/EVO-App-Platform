@@ -69,8 +69,8 @@
 | 简单是否等于隐藏功能 | **排除**：把 22 列全部丢弃、只保留 3 个摘要；或一次性展开 22 个大表单 | **采用**：异常优先 + 全部来源随时能看 + 本列就地修正 + 可撤销 | 已知歧义不能被机器静默忽略，使用者仍需真实决定 |
 | 步骤少 vs 安全 | **排除**：上传后静默建字段/提交数据；只为了“2 步”把 Owner 审批压没 | **采用**：对人可见“上传→核对并导入”两阶段；内部创建扩展字段、dry-run、commit 有各自权限/确认门槛 | 真实 Host/审计/幂等必须独立证明 |
 | Agent 是否代替控件 | **排除**：所有常规映射必须先打开 Agent 聊天；Agent 自己猜缺少的主体类型 | **采用**：已确认 Recipe → 规则/AI 建议 → 人工解决不确定项；Agent 作为辅助，不是低歧义按钮的替代 | 仍须真实权限、调用上下文和 Human 优先级；不能破坏 PA 并行工作 |
-| 同名银行及缺失身份 | **排除**：两个“开户银行”按标签自动合并、删掉一个；以 SUPPLIER 关系推断 \`subjectType\` | **采用**：按 field ID 和业务用途核对；3 行缺失主体身份由人逐行补充；不能无证据补写 | 真实 Excel/Job 没拿到，尚未完成真实行级验证 |
-| 保存草稿/继续导入 | **排除**：把 HTML \`localStorage\` 当正式多用户持久化；最近 20 个成功任务冲掉失败任务 | **采用**：真实 Host 企业内持久 Job/Recipe；#921 合并了目录未完成任务优先与继续入口 | #921 仅恢复到既有核对/预检查页面，**尚非 V3 完整“异常就地纠正”** |
+| 同名银行及缺失身份 | **排除**：两个“开户银行”按标签自动合并、删掉一个；以 SUPPLIER 关系推断 `subjectType` | **采用**：按 field ID 和业务用途核对；3 行缺失主体身份由人逐行补充；不能无证据补写 | 真实 Excel/Job 没拿到，尚未完成真实行级验证 |
+| 保存草稿/继续导入 | **排除**：把 HTML `localStorage` 当正式多用户持久化；最近 20 个成功任务冲掉失败任务 | **采用**：真实 Host 企业内持久 Job/Recipe；#921 合并了目录未完成任务优先与继续入口 | #921 仅恢复到既有核对/预检查页面，**尚非 V3 完整“异常就地纠正”** |
 | 移动端体验 | **排除**：桌面表格仅水平缩小、整页不溢出就算通过 | **采用**：移动时“来源列/样本/目标选择/状态”逐张卡片；实际 Chromium 截图与控件可见范围验证 | 真机、中文 400% 放大与屏幕阅读器仍未全面 Human 验收 |
 | 跨业务美学统一 | **排除**：在 Platform 内另建 BEX-only 的“飞书皮肤”或复制所有页面成四张指标卡 | **采用**：统一 Eidos Productive + Business Office 的语义、视觉节奏、直接操作；每个业务保有自己的骨架 | Eidos PR #186 已确立原则；全平台具体落地还需各 owner 后续实施 |
 
@@ -87,7 +87,7 @@
 5. **一屏任务 vs 权限/审批**：可减少页面切换，**不能省略 Schema Owner、人类确认、权限和幂等校验**。
 6. **两个银行同名 vs 自动匹配**：标签相同并不代表语义相同；必须真实 field ID/用途和来源上下文核查。
 7. **用户喜欢 V2/V3 的整体感觉 vs 正式产品完整验收**：用户称“赏心悦目”明确证明视觉方向认可，但**未表示授权生产部署或签收真实导入操作**。
-8. **并行 PR 与当前 main**：#860 在 \`apps/data-import/page.ts\` 字段部分有修改；#878 对 Host/字段审核有修改；#921 只修改目录安全恢复。不能因看到 #921 merged 就称 #860/#878 或完整 V3 已完成。
+8. **并行 PR 与当前 main**：#860 在 `apps/data-import/page.ts` 字段部分有修改；#878 对 Host/字段审核有修改；#921 只修改目录安全恢复。不能因看到 #921 merged 就称 #860/#878 或完整 V3 已完成。
 
 ### 5.2 易变来源的章节位置和可保全摘要
 
@@ -103,11 +103,11 @@
 | V2 最终中文桌面+手机+操作步骤截图/JSON | [run #38682435919](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38682435919) / [artifact #11948338743](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38682435919/artifacts/11948338743) | V2 **14/14 PASS**；测试曾发现中文字体缺失和窄屏下拉问题并修复。Actions artifact 非永久仓库文件，有保留期 |
 | V3 离线可操作 HTML、桌面/手机截图、JSON | [run #38684546184](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38684546184) / [artifact #11948839518](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38684546184/artifacts/11948839518) | V3 **15/15 PASS**、V2 **14/14 PASS**；V3 HTML **源码已在 PR #909 分支永久作为 git 文本保留**；打包下载/Actions 截图另有保留期限 |
 | V3 可直接在仓库查看的代码 | [V3 HTML](https://github.com/jiangxng/EVO-App-Platform/blob/docs/bex01-v2-human-design-review-20261015/docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html) | 可通过 GitHub Raw 保存，打开 Chrome/Edge；使用合成数据、浏览器端状态，无真实写入 |
-| V3 专项浏览器脚本/工作流 | \`tests/bex01/v3-in-context-import-chromium.mjs\`、\`.github/workflows/bex01-v2-prototype-chromium-review.yml\`（PR #909） | 浏览器路径有 15 个独立场景；有可复核的 GitHub 精确提交与运行日志 |
+| V3 专项浏览器脚本/工作流 | `tests/bex01/v3-in-context-import-chromium.mjs`、`.github/workflows/bex01-v2-prototype-chromium-review.yml`（PR #909） | 浏览器路径有 15 个独立场景；有可复核的 GitHub 精确提交与运行日志 |
 | 真实 Host 导入恢复协议/浏览器回归 | [PR #921](https://github.com/jiangxng/EVO-App-Platform/pull/921)，[专项 run #38702419912](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38702419912)，[Host run #38702419909](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38702419909) | **19 个定向协议/历史回归测试通过**；其它 Platform/Architecture/Continuity/Human UI CI 同次通过；已合入 main |
-| 用户最初问题现场截图 | 原 2026-10-15 BEX 现场聊天附件；原交接曾引用临时路径 \`/mnt/data/image(20261015-015021).png\` 与 \`/mnt/data/image(20261015-023214).png\` | **未确认截图二进制已永久上传 GitHub**；路径为临时容器，下一聊天可能不可达，依赖原对话或重新取得 |
-| 本轮浏览器独立 ZIP/HTML 下载附件 | 同一聊天附有 \`EVO-供应商导入-V3-体验包.zip\` 与独立 HTML、桌面截图 | **可在原聊天中下载**；不能将旧 \`sandbox:/mnt/data/\` 临时链接假冒 GitHub 稳定附件。GitHub 永久可找的是原型源码与 PR |
-| 真实原 Excel 与 Import Job JSON | \`往来账户2026_10_08_10_15_23.xlsx\`、\`import-33ff3446-80c5-4992-b5c6-710f415535b3\` | **未取得原文件和授权作业详情，未存 GitHub**。没有真实 22 列 field ID/原始值、不能声称导入验证 |
+| 用户最初问题现场截图 | 原 2026-10-15 BEX 现场聊天附件；原交接曾引用临时路径 `/mnt/data/image(20261015-015021).png` 与 `/mnt/data/image(20261015-023214).png` | **未确认截图二进制已永久上传 GitHub**；路径为临时容器，下一聊天可能不可达，依赖原对话或重新取得 |
+| 本轮浏览器独立 ZIP/HTML 下载附件 | 同一聊天附有 `EVO-供应商导入-V3-体验包.zip` 与独立 HTML、桌面截图 | **可在原聊天中下载**；不能将旧 `sandbox:/mnt/data/` 临时链接假冒 GitHub 稳定附件。GitHub 永久可找的是原型源码与 PR |
+| 真实原 Excel 与 Import Job JSON | `往来账户2026_10_08_10_15_23.xlsx`、`import-33ff3446-80c5-4992-b5c6-710f415535b3` | **未取得原文件和授权作业详情，未存 GitHub**。没有真实 22 列 field ID/原始值、不能声称导入验证 |
 
 ### 5.4 下一窗口最值得继续研究的方向（条件触发，不重做资料采集）
 
@@ -121,11 +121,11 @@
 
 | 决定/能力 | Owner 与文件/PR | 已证实状态 | 下一步 |
 |---|---|---|---|
-| EVO 核心五条交互原则正式化 | Eidos \`docs/product/EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md\`、\`EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md\`、\`EIDOS-BUSINESS-OFFICE-VISUAL-LANGUAGE-v0.2.md\`、\`EIDOS-HUMAN-UI-DESIGN-REVIEW-CHECKLIST-v1.0.md\`；[Eidos PR #186](https://github.com/jiangxng/eidos/pull/186) | **MERGED \`4c2f36040bdca102b67ba65acb7b35998261ab7d\`**；本窗口核查 eidos main 就是此 SHA | 后续所有 Human UI 分支按正式权威执行，不再单独发新主题 |
+| EVO 核心五条交互原则正式化 | Eidos `docs/product/EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md`、`EIDOS-PRODUCTIVE-DESIGN-LANGUAGE-v0.1.md`、`EIDOS-BUSINESS-OFFICE-VISUAL-LANGUAGE-v0.2.md`、`EIDOS-HUMAN-UI-DESIGN-REVIEW-CHECKLIST-v1.0.md`；[Eidos PR #186](https://github.com/jiangxng/eidos/pull/186) | **MERGED `4c2f36040bdca102b67ba65acb7b35998261ab7d`**；本窗口核查 eidos main 就是此 SHA | 后续所有 Human UI 分支按正式权威执行，不再单独发新主题 |
 | BEX 交互高保真样例 | EVO Draft [PR #909](https://github.com/jiangxng/EVO-App-Platform/pull/909)；两份 HTML、独立测试与 Business Office 品质范例 | V2 14/14、V3 15/15 真实 Chromium PASS，合成数据；未成为正式 Host UI | 用 V3 行为与视觉标准对照实际 Host 组件，不把静态源码直接并入运行 |
-| 真实未完成任务恢复 | EVO \`apps/data-import/page.ts\`、\`tests/protocol/bex01-in-context-resume.test.mjs\`，审查 \`docs/ui-design-reviews/bex01-in-context-resume-20261015.md\`，合并 [PR #921](https://github.com/jiangxng/EVO-App-Platform/pull/921) | **MERGED \`1695d4ab31985ba88f723d5dc4954dacc1677317\`**；真实目录入口，Host 现有 Job/Recipe 恢复，未执行写入 | 上线与真实工作场景验收仍独立；不要重复造 Job 数据模型 |
-| BEX Excel 导入/扩展字段代码线 | [PR #860](https://github.com/jiangxng/EVO-App-Platform/pull/860) | **OPEN**；其修改含 \`apps/data-import/page.ts\` 映射部分、\`apps/object-extension/\`、\`manager/server.ts\` | 避免同文件互相覆盖，审核其映射契约与高保真 V3 差异 |
-| BEX 批量字段设计/Host 线 | [PR #878](https://github.com/jiangxng/EVO-App-Platform/pull/878) | **OPEN**；含批量审核研究与 \`manager/server.ts\` 等 | 对比本次“完整来源列 + 一次确认”；按 owner 集成顺序收敛 |
+| 真实未完成任务恢复 | EVO `apps/data-import/page.ts`、`tests/protocol/bex01-in-context-resume.test.mjs`，审查 `docs/ui-design-reviews/bex01-in-context-resume-20261015.md`，合并 [PR #921](https://github.com/jiangxng/EVO-App-Platform/pull/921) | **MERGED `1695d4ab31985ba88f723d5dc4954dacc1677317`**；真实目录入口，Host 现有 Job/Recipe 恢复，未执行写入 | 上线与真实工作场景验收仍独立；不要重复造 Job 数据模型 |
+| BEX Excel 导入/扩展字段代码线 | [PR #860](https://github.com/jiangxng/EVO-App-Platform/pull/860) | **OPEN**；其修改含 `apps/data-import/page.ts` 映射部分、`apps/object-extension/`、`manager/server.ts` | 避免同文件互相覆盖，审核其映射契约与高保真 V3 差异 |
+| BEX 批量字段设计/Host 线 | [PR #878](https://github.com/jiangxng/EVO-App-Platform/pull/878) | **OPEN**；含批量审核研究与 `manager/server.ts` 等 | 对比本次“完整来源列 + 一次确认”；按 owner 集成顺序收敛 |
 | 历史扩展字段 handoff | [PR #846](https://github.com/jiangxng/EVO-App-Platform/pull/846) Draft | **OPEN**，旧 CP-03 字段证据 | 不重写/强合并遗留资料，先看是否仍独有有效内容 |
 | 原始真实业务数据 | 授权 Import Job 与原 Excel，企业 Owner / Data Import Service | **仍未验收** | 正式 Host + 授权企业文件 + 身份/字段 ID/来源保留 + 幂等恢复 |
 | 生产发布 | Railway 部署窗口 owner | **本窗口未部署** | 开发 CI PASS ≠ DEV 业务验收 ≠ 生产发布 |
