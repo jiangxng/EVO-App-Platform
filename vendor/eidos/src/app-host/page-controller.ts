@@ -2349,6 +2349,61 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
   const form = container.querySelector<HTMLFormElement>("form[data-eidos-id]");
   if (form) {
+    // Opt-in dependent selects: a selected option disappears from other
+    // selectors in the group, while exempt placeholders remain available.
+    // Snapshots preserve the original option order and allow release/restore.
+    const doc = assertValidUidl(page.definition);
+    const exclusiveGroups = new Map<string, Array<{
+      select: HTMLSelectElement;
+      originals: HTMLOptionElement[];
+      exempt: Set<string>;
+    }>>();
+    for (const field of doc.fields) {
+      if (!field.exclusiveSelect || field.control !== "select") continue;
+      const select = form.elements.namedItem(field.key);
+      if (!(select instanceof HTMLSelectElement)) continue;
+      const group = exclusiveGroups.get(field.exclusiveSelect.group) ?? [];
+      group.push({
+        select,
+        originals: Array.from(select.options).map(option => option.cloneNode(true) as HTMLOptionElement),
+        exempt: new Set(field.exclusiveSelect.exemptValues)
+      });
+      exclusiveGroups.set(field.exclusiveSelect.group,group);
+    }
+    const refreshExclusiveOptions = () => {
+      for (const items of exclusiveGroups.values()) {
+        const chosen = new Map(items.map(item=>[item.select,item.select.value] as const));
+        for (const item of items) {
+          const selected=chosen.get(item.select) ?? "";
+          const reserved=new Set(
+            items.filter(other=>other!==item)
+              .map(other=>chosen.get(other.select) ?? "")
+              .filter(value=>!item.exempt.has(value))
+          );
+          // Preserve the current value even if a legacy job has conflicting
+          // selections: reject it at the import service rather than silently
+          // changing business data.
+          const available=item.originals.filter(option=>
+            item.exempt.has(option.value) || option.value===selected || !reserved.has(option.value)
+          );
+          item.select.replaceChildren(...available.map(option=>option.cloneNode(true)));
+          item.select.value=selected;
+        }
+      }
+    };
+    if (exclusiveGroups.size>0) {
+      const onExclusiveChange = (event: Event) => {
+        if (!(event.target instanceof HTMLSelectElement)) return;
+        if (Array.from(exclusiveGroups.values()).some(items=>
+          items.some(item=>item.select===event.target))) {
+          refreshExclusiveOptions();
+        }
+      };
+      form.addEventListener("change",onExclusiveChange);
+      listeners.push(()=>form.removeEventListener("change",onExclusiveChange));
+      refreshExclusiveOptions();
+    }
+
     const actionStatus = document.createElement("div");
     actionStatus.setAttribute("data-eidos-action-status", "");
     actionStatus.setAttribute("role", "status");

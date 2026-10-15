@@ -24,7 +24,10 @@ function input(field: RenderFieldV010): string {
   ].filter(Boolean).join(" ");
 
   if (field.control === "select") {
-    return `<select ${common}>${(field.options ?? []).map(option =>
+    const exclusive=field.exclusiveSelect
+      ? ` data-eidos-exclusive-group="${esc(field.exclusiveSelect.group)}"`
+      : "";
+    return `<select ${common}${exclusive}>${(field.options ?? []).map(option =>
       `<option data-value-type="${typeof option.value}" value="${esc(option.value)}"${field.initialValue === option.value ? " selected" : ""}>${esc(option.label)}</option>`
     ).join("")}</select>`;
   }

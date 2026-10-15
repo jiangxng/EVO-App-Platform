@@ -193,6 +193,16 @@ with sync_playwright() as p:
    expect(mapping_form.locator('select[name="map_3"] option[value="'+expected_field+'"]')).to_have_count(1)
    expect(mapping_form.locator('select[name="map_3"]')).to_have_value(expected_field)
    mapping_form.locator('select[name="map_0"]').select_option("code")
+   # A mapped system field must disappear from every other Excel column.
+   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
+   expect(mapping_form.locator('select[name="map_3"] option[value="code"]')).to_have_count(0)
+   # Release restores original option order and availability without refresh.
+   mapping_form.locator('select[name="map_0"]').select_option("__IGNORE__")
+   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(1)
+   mapping_form.locator('select[name="map_0"]').select_option("code")
+   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
+   expect(mapping_form.locator('select[name="map_0"] option[value="__IGNORE__"]')).to_have_count(1)
+   expect(mapping_form.locator('select[name="map_1"] option[value="__IGNORE__"]')).to_have_count(1)
    mapping_form.locator('select[name="map_1"]').select_option("displayName")
    mapping_form.locator('select[name="map_2"]').select_option("subjectType")
    mapping_form.locator('select[name="map_3"]').select_option(expected_field)
