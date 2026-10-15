@@ -148,6 +148,16 @@ try{
  },contextId);
  const batchJobId=batchStaged?.job?.importJobId;
  assert.ok(batchJobId,"BEX01_BATCH_JOB_MISSING");
+ const batchPageProbe=await request("/v1/experience-pages?"+new URLSearchParams({
+   source:"evo-object-extension.from-import",
+   route:"/object-extensions/from-import?job="+batchJobId+"&mode=batch",
+   locale:"zh-CN"
+ }).toString(),"GET",undefined,contextId);
+ console.log("BEX_BATCH_HOST_PAGE_PROBE="+JSON.stringify({
+   status:batchPageProbe.status,body:JSON.stringify(batchPageProbe.value).slice(0,2200)
+ }));
+ assert.equal(batchPageProbe.status,200,"BEX_BATCH_PAGE_HOST_HTTP_FAILURE: "+JSON.stringify(batchPageProbe).slice(0,1800));
+ assert.equal(batchPageProbe.value.id,"evo-object-extension.batch-import","BEX_BATCH_PAGE_OWNER_NOT_RENDERED");
  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
