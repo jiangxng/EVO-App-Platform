@@ -96,6 +96,9 @@ jobs:
           grep -Fq 'PA05_XDB_REMOTE_MONOTONE_FREEZE_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_HOST_PRINCIPAL_BINDING_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_TRANSACTIONAL_HOST_FENCE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_HOST_LEAST_PRIVILEGE_ROTATION_PG=' pa05-xdb.log
+          grep -Fq '"actualD10TicketMintRejectedOnPrivilegeDrift":true' pa05-xdb.log
+          grep -Fq '"newPasswordAndRevisionReattested":true' pa05-xdb.log
           grep -Fq '"realD10PreflightToReserveRaceDenied":true' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           grep -Fq '"rotatedPasswordDeniesNextRealTicket":true' pa05-xdb.log
