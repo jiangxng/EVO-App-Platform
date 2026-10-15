@@ -450,3 +450,29 @@ test("PA05-04D4 shared authority requires explicit opt-in and trusted complete S
     sharedWorkerSchemaAuthority:true
   });
 });
+
+test("PA05-04D4 dedicated shared authority Schema is accepted only with Host opt-in", async () => {
+  const m=fixture();
+  const options={
+    manager:m,protectedPackageIds:[packageId],
+    databaseUrl:"postgres://fixture",schema:"first_worker",
+    workerSchemas:["first_worker","second_worker"],
+    sharedAuthoritySchema:"central_owner"
+  };
+  assert.throws(()=>createPa05HostWriteLifecycleV010(options),
+    /PA05_HOST_WORKER_SCHEMA_NOT_SHARED|PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE/);
+  const host=createPa05HostWriteLifecycleV010({
+    ...options,sharedWorkerSchemaAuthority:true,
+    gateFactory:async()=>({async close(){}})
+  });
+  await host.close();
+  const configured=pa05HostLifecycleConfigurationV010({
+    PA05_WRITE_LIFECYCLE_PACKAGES:packageId,
+    PA05_WRITE_LIFECYCLE_DATABASE_URL:"postgres://fixture",
+    PA05_WRITE_LIFECYCLE_SCHEMA:"first_worker",
+    PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS:"first_worker,second_worker",
+    PA05_WRITE_LIFECYCLE_AUTHORITY_SCHEMA:"central_owner",
+    PA05_SHARED_SCHEMA_AUTHORITY_ENABLED:"1"
+  });
+  assert.equal(configured.sharedAuthoritySchema,"central_owner");
+});
