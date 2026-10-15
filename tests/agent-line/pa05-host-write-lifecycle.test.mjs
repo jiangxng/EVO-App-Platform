@@ -7,6 +7,7 @@ import { createAppManagerService } from "../../dist/manager/service.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import {
   createPa05HostWriteLifecycleV010,
+  assertPa05ProtectedAgentWriteCoverageV010,
   Pa05HostLifecycleDeniedV010,
   pa05HostLifecycleConfigurationV010
 } from "../../dist/manager/agent-plugin-write-host-lifecycle.js";
@@ -163,4 +164,63 @@ test("PA05 Host HTTP Action and /v1 routes all use the single guarded lifecycle 
     "manager.uninstall(body.packageId)", "manager.upgrade(body.packageId,"
   ]) assert.equal(count(forbidden), 0, "unguarded route " + forbidden);
   assert.ok(source.includes("error instanceof Pa05HostLifecycleDeniedV010"));
+});
+
+test("PA05-04D refuses partially covered active Agent WRITE packages at opt-in construction", async () => {
+  const missing = "pa05-second-owner-sandbox";
+  const m = createAppManagerService(
+    createPackageCatalog([
+      makePackage(packageId, "WRITE"),
+      makePackage(missing, "WRITE")
+    ]), createMemoryLifecycleStore()
+  );
+  m.install(packageId);
+  m.install(missing);
+  assert.throws(
+    () => assertPa05ProtectedAgentWriteCoverageV010(m, [packageId]),
+    /PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE/
+  );
+  assert.throws(
+    () => createPa05HostWriteLifecycleV010({
+      manager: m, protectedPackageIds: [packageId],
+      gateFactory: async () => { throw new Error("should not contact PG"); }
+    }),
+    /PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE/
+  );
+  assert.doesNotThrow(
+    () => assertPa05ProtectedAgentWriteCoverageV010(m, [packageId, missing])
+  );
+  // An unconfigured Host has never claimed PA05 WRITE protection and retains
+  // old behavior, but it must not be mistaken for certified guarded execution.
+  assert.doesNotThrow(
+    () => assertPa05ProtectedAgentWriteCoverageV010(m, [])
+  );
+});
+
+test("PA05-04D detects an Agent WRITE owner installed after protected Host construction", async () => {
+  const missing = "pa05-later-write-owner";
+  const m = createAppManagerService(
+    createPackageCatalog([
+      makePackage(packageId, "WRITE"),
+      makePackage(missing, "WRITE"),
+      makePackage(auxiliary, "READ")
+    ]), createMemoryLifecycleStore()
+  );
+  m.install(packageId);
+  const host = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    gateFactory: async () => { throw new Error("must not contact PG"); }
+  });
+  try {
+    m.install(missing);
+    await assert.rejects(
+      host.apply("DISABLE", packageId),
+      /PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE/
+    );
+    assert.ok(m.listEffectiveCapabilityOperations().some(x =>
+      x.packageId === packageId
+    ));
+  } finally {
+    await host.close();
+  }
 });
