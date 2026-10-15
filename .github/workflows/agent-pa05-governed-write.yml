@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - "tests/agent-line/pa05-governed-write-owner-pg.test.mjs"
+      - "tests/agent-line/pa05-plugin-write-lifecycle-fence-pg.test.mjs"
+      - "manager/agent-plugin-write-lifecycle-gate.ts"
+      - "agents/enterprise-agent/pa02b-postgres-coordination.ts"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - ".github/workflows/agent-pa05-governed-write.yml"
       - "manager/agent-trusted-owner-registration.ts"
@@ -13,6 +16,9 @@ on:
     branches: [main]
     paths:
       - "tests/agent-line/pa05-governed-write-owner-pg.test.mjs"
+      - "tests/agent-line/pa05-plugin-write-lifecycle-fence-pg.test.mjs"
+      - "manager/agent-plugin-write-lifecycle-gate.ts"
+      - "agents/enterprise-agent/pa02b-postgres-coordination.ts"
       - ".github/workflows/agent-pa05-governed-write.yml"
       - "manager/agent-trusted-owner-registration.ts"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
@@ -50,9 +56,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test             tests/agent-line/pa05-governed-write-owner-pg.test.mjs             tests/agent-line/pa02-host-trusted-owner-registration.test.mjs             tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs             tests/agent-line/pa02b-owner-reconciliation.test.mjs             tests/agent-line/pa02-governed-worker-write.test.mjs             | tee pa05-governed-write.log
+          node --test             tests/agent-line/pa05-governed-write-owner-pg.test.mjs             tests/agent-line/pa05-plugin-write-lifecycle-fence-pg.test.mjs             tests/agent-line/pa02-host-trusted-owner-registration.test.mjs             tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs             tests/agent-line/pa02b-owner-reconciliation.test.mjs             tests/agent-line/pa02-governed-worker-write.test.mjs             | tee pa05-governed-write.log
           # PG fixtures must really run; skipped database tests are not proofs.
           grep -Fq 'PA05_WRITE_PLUGIN_OWNER_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_PLUGIN_WRITE_LIFECYCLE_PG=' pa05-governed-write.log
           grep -Fq 'PA02B_REAL_SANDBOX_OWNER_WRITE=' pa05-governed-write.log
           grep -Fq 'PA02_GOVERNED_WORKER_WRITE=' pa05-governed-write.log
       - name: Preserve isolated PostgreSQL18 audit evidence
