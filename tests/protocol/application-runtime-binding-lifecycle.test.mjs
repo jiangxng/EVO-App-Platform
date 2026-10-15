@@ -139,7 +139,7 @@ test("Host bootstrap repairs installed-but-inactive Runtime Binding state", asyn
     true
   );
   assert.equal(
-    server.includes("manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID)"),
+    server.includes('pa05WriteLifecycleHost.bootstrapActivation("ENABLE", APPLICATION_RUNTIME_BINDING_PACKAGE_ID)'),
     true
   );
 });

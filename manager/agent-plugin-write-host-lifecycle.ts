@@ -52,9 +52,29 @@ export function createPa05HostWriteLifecycleV010(input: {
   protectedPackageIds: readonly string[];
   databaseUrl?: string;
   schema?: string;
+  /**
+   * Explicit Host-owned Worker schema contracts. Until federated admission is
+   * implemented, a different schema is unsupported and must fail at startup.
+   */
+  workerSchemas?: readonly string[];
   /** A trusted Host test seam only. It never comes from a request. */
   gateFactory?: () => Promise<Pa05PluginWriteLifecycleGateV010>;
 }): {
+  /**
+   * Startup defaults are synchronous; opt-in Host refuses to auto-activate
+   * any Agent WRITE owner (including transitive dependencies) without SQL.
+   */
+  bootstrapActivation(
+    operation: "INSTALL" | "ENABLE",
+    packageId: string,
+    authorization?: InstallAuthorizationV010
+  ): PlatformSnapshotV010;
+  /**
+   * At pre-listen, freeze pre-existing active Agent WRITE owners in durable PG,
+   * including changes made by other startup paths. Network admission fails
+   * closed on outage, missing coverage, mismatched versions or pending writes.
+   */
+  attestStartupActivation(): Promise<void>;
   admitActivation(
     operation: "INSTALL" | "ENABLE",
     packageId: string,
@@ -77,6 +97,13 @@ export function createPa05HostWriteLifecycleV010(input: {
   if ((guarded.size > 0 && !configured && !input.gateFactory)
     || (Boolean(input.databaseUrl?.trim()) !== Boolean(input.schema?.trim()))) {
     throw new Error("PA05_HOST_LIFECYCLE_CONFIGURATION_INCOMPLETE");
+  }
+  if (guarded.size && input.workerSchemas?.length) {
+    const unique = new Set(input.workerSchemas);
+    if (unique.size !== input.workerSchemas.length ||
+      input.workerSchemas.some(value => !value || value.trim() !== input.schema)) {
+      throw new Error("PA05_HOST_WORKER_SCHEMA_NOT_SHARED");
+    }
   }
   assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
   let connection: Promise<Pa05PluginWriteLifecycleGateV010> | undefined;
@@ -126,6 +153,59 @@ export function createPa05HostWriteLifecycleV010(input: {
     throw new Pa05HostLifecycleDeniedV010("PA05_HOST_LIFECYCLE_OPERATION_INVALID");
   }
   return {
+    bootstrapActivation(operation, packageId, authorization) {
+      if (!["INSTALL", "ENABLE"].includes(operation) ||
+        typeof packageId !== "string" || !packageId.trim())
+        throw new Pa05HostLifecycleDeniedV010("PA05_HOST_LIFECYCLE_REQUEST_INVALID");
+      if (guarded.size > 0) {
+        try {
+          assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
+        } catch {
+          throw new Pa05HostLifecycleDeniedV010(
+            "PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE"
+          );
+        }
+        const prospective = prospectiveAgentWriteOwners(packageId);
+        if (prospective.length > 0)
+          throw new Pa05HostLifecycleDeniedV010(
+            "PA05_HOST_BOOTSTRAP_WRITE_REQUIRES_ASYNC_ADMISSION"
+          );
+      }
+      if (operation === "INSTALL") return input.manager.install(packageId, authorization);
+      return input.manager.enable(packageId);
+    },
+    async attestStartupActivation() {
+      if (!guarded.size) return; // production default behavior unchanged
+      try {
+        assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
+        const protectedGate = await gate(); // database/table prerequisite even with no active owner
+        const catalog = new Map(input.manager.listCatalog().map(pkg => [pkg.packageId,pkg]));
+        const installed = new Map(input.manager.getSnapshot().installedPackages.map(pkg =>
+          [pkg.packageId,pkg.version]
+        ));
+        const activeOwners = [...new Set(input.manager.listEffectiveCapabilityOperations()
+          .filter(operation => operation.effect === "WRITE" &&
+            operation.exposure.includes("PERSONAL_AGENT"))
+          .map(operation => operation.packageId))].sort();
+        for (const ownerId of activeOwners) {
+          const version = installed.get(ownerId);
+          if (!version || catalog.get(ownerId)?.version !== version)
+            throw new Pa05HostLifecycleDeniedV010(
+              "PA05_HOST_BOOTSTRAP_OWNER_VERSION_MISMATCH"
+            );
+          const reserved = await protectedGate.reserveActivation(ownerId,version);
+          if (reserved.pendingCount > 0)
+            throw new Pa05HostLifecycleDeniedV010(
+              "PA05_HOST_LIFECYCLE_PENDING_WRITE"
+            );
+        }
+      } catch (error) {
+        if (error instanceof Pa05HostLifecycleDeniedV010) throw error;
+        throw new Pa05HostLifecycleDeniedV010(
+          "PA05_HOST_BOOTSTRAP_GATE_UNAVAILABLE"
+        );
+      }
+    },
     async admitActivation(operation, packageId, authorization) {
       if ((operation !== "INSTALL" && operation !== "ENABLE")
         || typeof packageId !== "string" || !packageId.trim()) {
@@ -224,6 +304,10 @@ export function pa05HostLifecycleConfigurationV010(env: NodeJS.ProcessEnv) {
   return {
     protectedPackageIds: ids,
     databaseUrl: env.PA05_WRITE_LIFECYCLE_DATABASE_URL?.trim(),
-    schema: env.PA05_WRITE_LIFECYCLE_SCHEMA?.trim()
+    schema: env.PA05_WRITE_LIFECYCLE_SCHEMA?.trim(),
+    ...(env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS?.trim()
+      ? {workerSchemas: env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS
+          .split(",").map(x => x.trim())}
+      : {})
   };
 }

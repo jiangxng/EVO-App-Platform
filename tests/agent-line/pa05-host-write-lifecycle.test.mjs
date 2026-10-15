@@ -315,3 +315,98 @@ test("PA05-04D2 incomplete SQL reserve or pending WRITE cannot enable owner", as
     await host.close();
   }
 });
+
+test("PA05-04D3 guarded Host bootstrap never installs or enables a WRITE Owner synchronously", async () => {
+  const m = fixture();
+  m.disable(packageId);
+  const host = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    gateFactory: async () => { throw Error("bootstrap must not connect PG"); }
+  });
+  try {
+    assert.throws(() => host.bootstrapActivation("INSTALL", packageId),
+      e => e.code === "PA05_HOST_BOOTSTRAP_WRITE_REQUIRES_ASYNC_ADMISSION");
+    assert.throws(() => host.bootstrapActivation("ENABLE", packageId),
+      e => e.code === "PA05_HOST_BOOTSTRAP_WRITE_REQUIRES_ASYNC_ADMISSION");
+    assert.equal(m.getSnapshot().activeFeatures.some(x => x.packageId === packageId), false);
+    assert.ok(host.bootstrapActivation("ENABLE", auxiliary)
+      .installedPackages.some(x => x.packageId === auxiliary));
+  } finally {
+    await host.close();
+  }
+});
+
+test("PA05-04D3 all 19 synchronous Host bootstrap calls use fail-closed adapter before listen", () => {
+  const s = readFileSync(new URL("../../manager/server.ts", import.meta.url), "utf8");
+  assert.equal((s.match(/pa05WriteLifecycleHost\.bootstrapActivation\("INSTALL",/g) ?? []).length, 17);
+  assert.equal((s.match(/pa05WriteLifecycleHost\.bootstrapActivation\("ENABLE",/g) ?? []).length, 2);
+  assert.equal((s.match(/manager\.install\(/g) ?? []).length, 0);
+  assert.equal((s.match(/manager\.enable\(/g) ?? []).length, 0);
+  assert.ok(s.indexOf("await pa05WriteLifecycleHost.attestStartupActivation();")
+    < s.indexOf("server.listen(port,"));
+  assert.ok(s.includes("await pa05WriteLifecycleHost.attestStartupActivation();"));
+});
+
+test("PA05-04D3 Host pre-listen attestation freezes active WRITE Owners and rejects unresolved effects", async () => {
+  const m = fixture();
+  let reservations = 0;
+  const host = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    gateFactory: async () => ({
+      async reserveActivation(id, version) {
+        assert.equal(id, packageId);
+        assert.equal(version, "0.1.0");
+        reservations++;
+        return {state: "FROZEN", pendingCount: 0};
+      },
+      async close() {}
+    })
+  });
+  try {
+    await host.attestStartupActivation();
+    assert.equal(reservations, 1);
+    await host.attestStartupActivation();
+    assert.equal(reservations, 2);
+  } finally {
+    await host.close();
+  }
+  const failing = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    gateFactory: async () => ({
+      async reserveActivation() { return {state: "FROZEN", pendingCount: 1}; },
+      async close() {}
+    })
+  });
+  try {
+    await assert.rejects(failing.attestStartupActivation(),
+      e => e.code === "PA05_HOST_LIFECYCLE_PENDING_WRITE");
+  } finally {
+    await failing.close();
+  }
+});
+
+test("PA05-04D3 opt-in Host explicitly rejects different/duplicated worker schemas", async () => {
+  const m = fixture();
+  for (const workerSchemas of [
+    ["owner_schema", "other_worker_schema"],
+    ["owner_schema", "owner_schema"],
+    ["", "owner_schema"]
+  ]) assert.throws(() => createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    databaseUrl: "postgres://invalid.example/test",
+    schema: "owner_schema", workerSchemas
+  }), /PA05_HOST_WORKER_SCHEMA_NOT_SHARED/);
+  const config = pa05HostLifecycleConfigurationV010({
+    PA05_WRITE_LIFECYCLE_PACKAGES: packageId,
+    PA05_WRITE_LIFECYCLE_DATABASE_URL: "postgres://invalid.example/test",
+    PA05_WRITE_LIFECYCLE_SCHEMA: "owner_schema",
+    PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS: "owner_schema,other_worker_schema"
+  });
+  assert.deepEqual(config.workerSchemas, ["owner_schema", "other_worker_schema"]);
+  const accepted = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    databaseUrl: "postgres://invalid.example/test",
+    schema: "owner_schema", workerSchemas: ["owner_schema"]
+  });
+  await accepted.close();
+});
