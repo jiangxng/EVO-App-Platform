@@ -59,12 +59,26 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
   connectionString: string;
   schema: string;
   manager: AppManagerService;
+  /** Opt-in common PostgreSQL DATABASE authority schema, never a second DB. */
+  authoritySchema?: string;
+  /** Complete trusted Worker schema inventory; all must already have WRITE/Owner tables. */
+  workerSchemas?: readonly string[];
 }): Promise<Pa05PluginWriteLifecycleGateV010> {
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema))
     throw Error("PA05_LIFECYCLE_SCHEMA_INVALID");
   if (!input.manager || typeof input.manager.getSnapshot !== "function")
     throw Error("PA05_LIFECYCLE_MANAGER_REQUIRED");
+  const shared = input.workerSchemas !== undefined;
+  const workerSchemas = shared ? [...input.workerSchemas!] : [input.schema];
+  const authSchema = shared ? input.authoritySchema : input.schema;
+  if (!authSchema || !/^[a-z][a-z0-9_]{0,62}$/.test(authSchema) ||
+    !workerSchemas.length ||
+    workerSchemas.some(value => !/^[a-z][a-z0-9_]{0,62}$/.test(value)) ||
+    new Set(workerSchemas).size !== workerSchemas.length ||
+    !workerSchemas.includes(input.schema))
+    throw Error("PA05_LIFECYCLE_WORKER_INVENTORY_INVALID");
   const q = '"' + input.schema + '"';
+  const a = '"' + authSchema + '"';
   const sql = postgres(required(input.connectionString), {
     max: 8, connect_timeout: 10, idle_timeout: 15
   });
@@ -78,12 +92,47 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     );
     if (new Set(tables.map(row => String(row.table_name))).size !== 2)
       throw Error("PA05_LIFECYCLE_OWNER_COORDINATOR_REQUIRED");
+    // All declared workers must share this PHYSICAL PostgreSQL database.
+    // Check their durable tables before accepting the inventory. No source
+    // Worker is allowed to create or edit the Host authority inventory.
+    for (const workerSchema of workerSchemas) {
+      const existing = await sql.unsafe(
+        "SELECT table_name FROM information_schema.tables WHERE table_schema=$1 " +
+        "AND table_name IN ('pa02b_writes','pa02b_owner_links')",
+        [workerSchema]
+      );
+      if (new Set(existing.map(x => x.table_name)).size !== 2)
+        throw Error("PA05_LIFECYCLE_WORKER_NOT_READY");
+    }
+    await sql.unsafe("CREATE SCHEMA IF NOT EXISTS " + a);
     await sql.unsafe(
-      "CREATE TABLE IF NOT EXISTS " + q + ".pa05_plugin_write_lifecycle_gates (" +
+      "CREATE TABLE IF NOT EXISTS " + a + ".pa05_plugin_write_lifecycle_gates (" +
       "owner_package_id text PRIMARY KEY, package_version text NOT NULL," +
       "state text NOT NULL CHECK(state IN ('ACTIVE','FROZEN'))," +
       "updated_at timestamptz NOT NULL DEFAULT clock_timestamp())"
     );
+    await sql.unsafe(
+      "CREATE TABLE IF NOT EXISTS " + a + ".pa05_plugin_write_worker_schemas (" +
+      "schema_name text PRIMARY KEY)"
+    );
+    await sql.begin(async tx => {
+      const existing = await tx.unsafe("SELECT schema_name FROM " + a +
+        ".pa05_plugin_write_worker_schemas ORDER BY schema_name FOR UPDATE");
+      const declared = [...workerSchemas].sort();
+      if (existing.length) {
+        // Fail closed on inventory changes: never silently remove an old
+        // Worker with unresolved effects or add a new untracked Writer.
+        if (JSON.stringify(existing.map(x => x.schema_name).sort()) !==
+            JSON.stringify(declared))
+          throw Error("PA05_LIFECYCLE_SHARED_WORKER_INVENTORY_CHANGED");
+      } else {
+        for (const workerSchema of declared) {
+          await tx.unsafe("INSERT INTO " + a +
+            ".pa05_plugin_write_worker_schemas (schema_name) VALUES($1)",
+            [workerSchema]);
+        }
+      }
+    });
   } catch (error) {
     await sql.end();
     throw error;
@@ -112,15 +161,35 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
   }
 
   async function pending(tx: any, packageId: string): Promise<Record<string, number>> {
-    const rows = await tx.unsafe(
-      "SELECT w.state,count(*)::integer AS amount FROM " +
-      q + ".pa02b_owner_links l JOIN " + q + ".pa02b_writes w " +
-      "ON w.scope_key=l.scope_key AND w.effect_id=l.effect_id " +
-      "WHERE l.owner_package_id=$1 AND w.state IN ('PREPARED','INVOKING','UNKNOWN') " +
-      "GROUP BY w.state ORDER BY w.state",
-      [packageId]
+    const inventory = await tx.unsafe(
+      "SELECT schema_name FROM " + a +
+      ".pa05_plugin_write_worker_schemas ORDER BY schema_name"
     );
-    return Object.fromEntries(rows.map((x: {state: string; amount: string | number}) => [String(x.state), Number(x.amount)]));
+    const actual = inventory.map((x: {schema_name: string}) => x.schema_name);
+    if (JSON.stringify(actual) !== JSON.stringify([...workerSchemas].sort()))
+      throw Error("PA05_LIFECYCLE_SHARED_WORKER_INVENTORY_CHANGED");
+    const states: Record<string,number> = {};
+    // The trusted inventory is validated and pinned at Host construction.
+    // Same DB + same SQL tx + same locked Owner gate row means both Worker
+    // admissions and freeze are serialized across all registered schemas.
+    for (const workerSchema of actual) {
+      if (!/^[a-z][a-z0-9_]{0,62}$/.test(workerSchema))
+        throw Error("PA05_LIFECYCLE_WORKER_INVENTORY_INVALID");
+      const wq = '"' + workerSchema + '"';
+      const rows = await tx.unsafe(
+        "SELECT w.state,count(*)::integer AS amount FROM " +
+        wq + ".pa02b_owner_links l JOIN " + wq + ".pa02b_writes w " +
+        "ON w.scope_key=l.scope_key AND w.effect_id=l.effect_id " +
+        "WHERE l.owner_package_id=$1 AND w.state IN ('PREPARED','INVOKING','UNKNOWN') " +
+        "GROUP BY w.state ORDER BY w.state",
+        [packageId]
+      );
+      for (const row of rows) {
+        const state = String(row.state);
+        states[state] = (states[state] ?? 0) + Number(row.amount);
+      }
+    }
+    return states;
   }
   const count = (states: Record<string, number>) =>
     Object.values(states).reduce((sum, value) => sum + value, 0);
@@ -143,7 +212,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
         // A missing row must become FROZEN *before* Host manager activation.
         // An existing row is locked using the same authority as beginWrite.
         await tx.unsafe(
-          "INSERT INTO " + q + ".pa05_plugin_write_lifecycle_gates "+
+          "INSERT INTO " + a + ".pa05_plugin_write_lifecycle_gates "+
           "(owner_package_id,package_version,state) VALUES($1,$2,'FROZEN') "+
           "ON CONFLICT (owner_package_id) DO NOTHING",
           [packageId,version]
@@ -152,7 +221,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
         if (current.state === "ACTIVE" && current.package_version !== version)
           throw Error("PA05_LIFECYCLE_VERSION_CHANGED");
         await tx.unsafe(
-          "UPDATE " + q + ".pa05_plugin_write_lifecycle_gates "+
+          "UPDATE " + a + ".pa05_plugin_write_lifecycle_gates "+
           "SET state='FROZEN',updated_at=clock_timestamp() WHERE owner_package_id=$1",
           [packageId]
         );
@@ -175,7 +244,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
           return;
         }
         await tx.unsafe(
-          "INSERT INTO " + q + ".pa05_plugin_write_lifecycle_gates " +
+          "INSERT INTO " + a + ".pa05_plugin_write_lifecycle_gates " +
           "(owner_package_id,package_version,state) VALUES($1,$2,'ACTIVE')",
           [packageId, version]
         );
@@ -193,7 +262,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
         if (live && live.version !== gate.package_version)
           throw Error("PA05_LIFECYCLE_VERSION_CHANGED");
         await tx.unsafe(
-          "UPDATE " + q + ".pa05_plugin_write_lifecycle_gates " +
+          "UPDATE " + a + ".pa05_plugin_write_lifecycle_gates " +
           "SET state='FROZEN',updated_at=clock_timestamp() WHERE owner_package_id=$1",
           [packageId]
         );
@@ -243,7 +312,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
         if (installedVersion(packageId) !== version)
           throw Error("PA05_LIFECYCLE_VERSION_CHANGED");
         await tx.unsafe(
-          "UPDATE " + q + ".pa05_plugin_write_lifecycle_gates " +
+          "UPDATE " + a + ".pa05_plugin_write_lifecycle_gates " +
           "SET package_version=$2,state='ACTIVE',updated_at=clock_timestamp() " +
           "WHERE owner_package_id=$1",
           [packageId, version]
