@@ -259,6 +259,41 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     await sql.end();
     throw error;
   }
+  // D13: fail closed if a privileged GRANT drifts any trusted Worker role.
+  // Audited on every central mutator's SQL transaction, after its Owner lock.
+  async function auditWorkerRoles(tx: any): Promise<void> {
+    if (!strict) return;
+    for (const role of workerLogins) {
+      const rows=await tx.unsafe(
+        "SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,"+
+        "r.rolcreatedb,r.rolreplication,"+
+        "pg_has_role(r.oid,h.oid,'MEMBER') AS host_member,"+
+        "pg_has_role(r.oid,d.datdba,'MEMBER') AS database_owner,"+
+        "has_schema_privilege(r.oid,n.oid,'CREATE') AS schema_create,"+
+        "EXISTS(SELECT 1 FROM pg_class c WHERE c.relnamespace=n.oid "+
+        "AND c.relname IN ('pa05_xdb_workers','pa05_xdb_owners','pa05_xdb_reservations') "+
+        "AND (pg_has_role(r.oid,c.relowner,'MEMBER') OR "+
+        "has_table_privilege(r.oid,c.oid,'INSERT') OR "+
+        "has_table_privilege(r.oid,c.oid,'UPDATE') OR "+
+        "has_table_privilege(r.oid,c.oid,'DELETE') OR "+
+        "has_table_privilege(r.oid,c.oid,'TRUNCATE') OR "+
+        "has_table_privilege(r.oid,c.oid,'TRIGGER'))) AS can_mutate "+
+        "FROM pg_roles r JOIN pg_roles h ON h.rolname=$3 "+
+        "JOIN pg_namespace n ON n.nspname=$2 "+
+        "JOIN pg_database d ON d.datname=current_database() "+
+        "WHERE r.rolname=$1",
+        [role,input.authoritySchema,expectedHost]);
+      if (rows.length!==1||!rows[0].rolcanlogin||rows[0].rolsuper||
+        rows[0].rolbypassrls||rows[0].rolcreaterole||
+        rows[0].rolcreatedb||rows[0].rolreplication||
+        rows[0].host_member||rows[0].database_owner||
+        rows[0].schema_create||rows[0].can_mutate)
+        throw Error("PA05_XDB_CENTRAL_WORKER_SQL_PRIVILEGE_DRIFT");
+    }
+  }
+  if (strict) {
+    try {await auditWorkerRoles(sql);} catch(error) {await sql.end();throw error;}
+  }
   const pending = async (tx: any, id: string): Promise<number> => {
     const rows = await tx.unsafe("SELECT count(*)::integer AS n FROM " + a +
       ".pa05_xdb_reservations WHERE owner_package_id=$1 AND state='PENDING'", [id]);
@@ -268,11 +303,13 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     const rows = await tx.unsafe("SELECT package_version,state FROM " + a +
       ".pa05_xdb_owners WHERE owner_package_id=$1 FOR UPDATE", [id]);
     if (rows.length !== 1) throw Error("PA05_XDB_OWNER_NOT_REGISTERED");
+    await auditWorkerRoles(tx);
     return rows[0] as {package_version: string;state: string};
   };
   return {
     async registerFrozenOwner(packageId, version) {
       packageId = name(packageId); version = versionId(version);
+      await auditWorkerRoles(sql);
       if (!workers.some(w => w.ownerPackageId === packageId))
         throw Error("PA05_XDB_OWNER_UNTRUSTED");
       await sql.begin(async tx => {
@@ -380,6 +417,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
     },
     async getState(packageId) {
       packageId = name(packageId);
+      await auditWorkerRoles(sql);
       const rows = await sql.unsafe("SELECT package_version,state FROM " + a +
         ".pa05_xdb_owners WHERE owner_package_id=$1", [packageId]);
       if (!rows.length) return undefined;
