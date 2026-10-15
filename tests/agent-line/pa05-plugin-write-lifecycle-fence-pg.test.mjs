@@ -668,7 +668,7 @@ test("PA05-04D4 PG18 distinct Worker Schemas: one central Owner row quarantines 
 }, async () => {
   const a = await setup(), b = await setup();
   const central = "pa05_global_" + randomUUID().replaceAll("-", "").slice(0,12);
-  let shared, workerA, workerB;
+  let shared, workerA, workerB, host;
   try {
     const inventory = [a.schema, b.schema].sort();
     shared = await createPa05PluginWriteLifecycleGateV010({
@@ -676,6 +676,12 @@ test("PA05-04D4 PG18 distinct Worker Schemas: one central Owner row quarantines 
       manager: a.manager, authoritySchema: central, workerSchemas: inventory
     });
     await shared.register(packageId);
+    host = createPa05HostWriteLifecycleV010({
+      manager:a.manager,protectedPackageIds:[packageId],
+      databaseUrl:url,schema:a.schema,
+      workerSchemas:inventory,sharedWorkerSchemaAuthority:true,
+      sharedAuthoritySchema:central
+    });
     workerA = await createPostgresAgentExecutionCoordinatorV020({
       connectionString: url, schema: a.schema,
       requirePluginWriteLifecycleFence: true,
@@ -699,6 +705,8 @@ test("PA05-04D4 PG18 distinct Worker Schemas: one central Owner row quarantines 
     assert.deepEqual(await shared.transition({
       packageId, operation: "DISABLE"
     }), {status: "BLOCKED_PENDING_WRITE", pendingCount: 2});
+    await assert.rejects(host.apply("DISABLE",packageId),
+      error => error.code === "PA05_HOST_LIFECYCLE_PENDING_WRITE");
     assert.equal((await shared.getState(packageId)).state, "FROZEN");
     assert.ok(a.manager.listEffectiveCapabilityOperations().length > 0);
     await assert.rejects(
@@ -727,7 +735,7 @@ test("PA05-04D4 PG18 distinct Worker Schemas: one central Owner row quarantines 
       productionWriteEnabled: false
     }));
   } finally {
-    for(const x of [workerA,workerB,shared]) if(x) await x.close();
+    for(const x of [workerA,workerB,host,shared]) if(x) await x.close();
     try { await a.admin.unsafe('DROP SCHEMA IF EXISTS "' + central + '" CASCADE'); }
     finally { await a.close(); await b.close(); }
   }
