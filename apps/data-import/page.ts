@@ -509,20 +509,27 @@ export function createDataImportMappingPageV010(input: {
       .filter(item => Boolean(item.sourceColumn))
       .map(item => [item.sourceColumn!, item.targetFieldId] as const)
   );
-  // Reuse a unique existing business field by its displayed name.
-  // Ambiguous duplicates are intentionally left for the user to resolve.
-  const uniqueExistingField = (column: string): string | undefined => {
-    const matches=importFields.filter(field =>
-      field.resolvedLabel.trim().toLocaleLowerCase()===column.trim().toLocaleLowerCase()
-    );
-    return matches.length===1?matches[0].fieldId:undefined;
-  };
-  const fieldLabel = new Map(
-    importFields.map(field => [
-      field.fieldId,
-      field.resolvedLabel + " · " + field.fieldId
-    ] as const)
+  const normalizedLabel = (v: string): string =>
+    v.normalize("NFKC").trim().toLocaleLowerCase();
+  const candidatesFor = (column: string) => importFields.filter(field =>
+    normalizedLabel(field.resolvedLabel) === normalizedLabel(column)
   );
+  const usedTargets = new Set(input.job.mapping.map(item => item.targetFieldId));
+  // Duplicate labels (including two 开户银行) are never selected by name alone.
+  const uniqueExistingField = (column: string): string | undefined => {
+    const matches = candidatesFor(column);
+    return matches.length === 1 && !usedTargets.has(matches[0].fieldId)
+      ? matches[0].fieldId : undefined;
+  };
+  const fieldLabel = new Map(importFields.map(field => [
+    field.fieldId,
+    field.resolvedLabel
+      + (candidatesFor(field.resolvedLabel).length > 1
+        ? " · " + (field.resolvedDescription?.trim()
+          || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
+        : "")
+      + " · " + field.fieldId
+  ] as const));
   const advisoryFields = input.job.mapping
     .filter(item => Boolean(item.advisory))
     .map((item, index) => {
@@ -651,7 +658,7 @@ export function createDataImportMappingPageV010(input: {
       label: sourceColumn,
       semanticType: "data-import-field-mapping",
       control: "select" as const,
-      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__"] },
+      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"] },
       required: true,
       initialValue: current.get(sourceColumn)
         ?? (input.createdMapping?.sourceColumn === sourceColumn
@@ -660,11 +667,14 @@ export function createDataImportMappingPageV010(input: {
             : input.job.ignoredSourceColumns?.includes(sourceColumn)
               ? "__IGNORE__"
               : uniqueExistingField(sourceColumn)
-                ?? (input.canCreateExtension && input.job.targetId === "counterparty.subject"
-                  ? "__CREATE__" : "__PENDING__")),
+                ?? (candidatesFor(sourceColumn).length > 0
+                  ? "__PENDING__"
+                  : input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                    ? "__CREATE__" : "__PENDING__")),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
+        && candidatesFor(sourceColumn).length === 0
         ? {
             contextLink: {
               label: zh(input.locale)
@@ -691,7 +701,7 @@ export function createDataImportMappingPageV010(input: {
           : "⚠ Previous target unavailable; review · " + current.get(sourceColumn)}]
         : []), ...importFields.map(field => ({
         value: field.fieldId,
-        label: field.resolvedLabel + " · " + field.fieldId
+        label: fieldLabel.get(field.fieldId) ?? field.fieldId
       }))]
     })), ...advisoryFields, ...advancedFields],
     actions: [{
