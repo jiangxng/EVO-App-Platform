@@ -24,7 +24,7 @@ const urls=[process.env.PA05_XDB_AUTHORITY_DATABASE_URL,
   process.env.PA05_XDB_WORKER_B_DATABASE_URL];
 const canon=x=>Array.isArray(x)?x.map(canon):
   x&&typeof x==="object"?Object.fromEntries(Object.entries(x)
-    .sort(([a],[b])=>[a,canon(b)])):x;
+    .sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>[k,canon(v)])):x;
 const hash=x=>createHash("sha256").update(JSON.stringify(canon(x))).digest("hex");
 const q=s=>'"'+s+'"';
 const u=(raw,name,pwd)=>{const x=new URL(raw);x.username=name;x.password=pwd;return x.toString();};
