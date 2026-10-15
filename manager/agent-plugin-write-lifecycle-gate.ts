@@ -1,5 +1,5 @@
 import postgres from "postgres";
-import type { AppManagerService } from "./service.js";
+import type { AppManagerService, InstallAuthorizationV010 } from "./service.js";
 
 export type Pa05PluginLifecycleOperationV010 = "DISABLE" | "UNINSTALL" | "UPGRADE";
 export type Pa05PluginWriteGateStateV010 = "ACTIVE" | "FROZEN";
@@ -14,6 +14,7 @@ export interface Pa05PluginWriteLifecycleGateV010 {
   transition(input: {
     packageId: string;
     operation: Pa05PluginLifecycleOperationV010;
+    authorization?: InstallAuthorizationV010;
   }): Promise<{
     status: "BLOCKED_PENDING_WRITE" | "APPLIED";
     pendingCount: number;
@@ -161,7 +162,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
           pendingStates: states };
       });
     },
-    async transition({packageId, operation}) {
+    async transition({packageId, operation, authorization}) {
       packageId = required(packageId);
       if (!["DISABLE","UNINSTALL","UPGRADE"].includes(operation))
         throw Error("PA05_LIFECYCLE_OPERATION_INVALID");
@@ -175,7 +176,7 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
       switch (operation) {
         case "DISABLE": input.manager.disable(packageId); break;
         case "UNINSTALL": input.manager.uninstall(packageId); break;
-        case "UPGRADE": input.manager.upgrade(packageId); break;
+        case "UPGRADE": input.manager.upgrade(packageId, authorization); break;
       }
       return { status: "APPLIED" as const, pendingCount: 0 };
     },

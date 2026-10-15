@@ -14,6 +14,8 @@ import { createPostgresAgentOwnerReconciliationV030 }
   from "../../dist/agents/enterprise-agent/pa02b-owner-reconciliation.js";
 import { createPa05PluginWriteLifecycleGateV010 }
   from "../../dist/manager/agent-plugin-write-lifecycle-gate.js";
+import { createPa05HostWriteLifecycleV010 }
+  from "../../dist/manager/agent-plugin-write-host-lifecycle.js";
 import { createHostRegisteredAgentOwnerRegistryV040 }
   from "../../dist/manager/agent-trusted-owner-registration.js";
 
@@ -305,5 +307,53 @@ test("PA05-04B real PG18: empty fence can disable safely, version-pinned owner r
     }));
   } finally {
     await h.close();
+  }
+});
+
+
+test("PA05-04C isolated PG18 Host adapter routes real lifecycle through frozen owner state", {
+  skip: !url ? "requires isolated PostgreSQL 18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup();
+  const host = createPa05HostWriteLifecycleV010({
+    manager: h.manager, protectedPackageIds: [packageId],
+    databaseUrl: url, schema: h.schema
+  });
+  try {
+    await h.prepare("run:host-blocked");
+    await assert.rejects(
+      host.apply("DISABLE", packageId),
+      e => e.code === "PA05_HOST_LIFECYCLE_PENDING_WRITE"
+    );
+    assert.ok(h.manager.listEffectiveCapabilityOperations().some(o =>
+      o.operationId === operationId
+    ));
+    assert.equal((await h.gate.getState(packageId)).state, "FROZEN");
+    assert.equal((await h.gate.freeze(packageId)).pendingCount, 1);
+  } finally {
+    await host.close();
+    await h.close();
+  }
+
+  const ready = await setup();
+  const uninstaller = createPa05HostWriteLifecycleV010({
+    manager: ready.manager, protectedPackageIds: [packageId],
+    databaseUrl: url, schema: ready.schema
+  });
+  try {
+    const snapshot = await uninstaller.apply("DISABLE", packageId);
+    assert.equal(snapshot.activeFeatures.some(f => f.packageId === packageId), false);
+    assert.equal((await ready.gate.getState(packageId)).state, "FROZEN");
+    console.log("PA05_HOST_WRITE_LIFECYCLE_PG=" + JSON.stringify({
+      optInHostLifecycle: true, actualPostgres18: true,
+      unknownAndPreparedBlockDisable: true,
+      eligibleDisablePreservesFrozenGate: true,
+      allHttpRoutesHaveStaticGuardTests: true,
+      globalProductionWrite: false
+    }));
+  } finally {
+    await uninstaller.close();
+    await ready.close();
   }
 });
