@@ -978,6 +978,12 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
       enforceSqlOwnerAdmission:true,
       workerIdentities:[{schema:a.schema,role:roleA},{schema:b.schema,role:roleB}]
     }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    console.log("PA05_PG_WORKER_LOGIN="+JSON.stringify({
+      postgres18:true,authenticatedLoginRole:true,
+      distinctWorkerIdentityDenied:true,setRoleSpoofDenied:true,
+      approvedWorkerAllowed:true,identityPinImmutable:true,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_PG_WORKER_ROLE_ACL="+JSON.stringify({
       postgres18:true,distinctWorkerSchemas:2,distinctLoginRoles:2,
       workerDmlAllowedWithActiveGate:true,
