@@ -124,5 +124,6 @@
       "owner": "Platform Authorization + Artifact/Context Owners",
       "executionStage": "STAGING_SECURITY_INTEGRATION"
     }
-  ]
+  ],
+  "releaseEligibility": "NOT_APPROVED"
 }
