@@ -84,3 +84,20 @@
 | 实际原 Excel/Job 数据与草稿恢复 | ⏳ 尚无 Host 授权证据 | 真实 Job + Chromium |
 | V2 产品设计最终签收 | ⏳ 待 U1–U6 产品决定/实测 | 签收后独立实现 |
 | V2 代码、固定 SHA 开发部署 | ❌ 本窗口未实施 | 业务 CI/验收后再部署 |
+
+
+## 9. 2026-10-15 继续：可交互方案演示与下一道 Human Gate
+
+- 在 **Draft [PR #909](https://github.com/jiangxng/EVO-App-Platform/pull/909)** 只新增一份独立 [V2 Human 可交互审阅原型](BEX-01-IMPORT-V2-HUMAN-REVIEW-PROTOTYPE-20261015.html)，不改 #899 的原版 HTML、不触碰 `apps/data-import`、`apps/object-extension`、Agent、Eidos、Host 或 Railway。
+- 新原型只使用 **7 条明确标注的演示来源列**，不伪造原文件 22 列分类；可演练同名银行两候选比较、三条模拟主体类型人工补录、一次字段方案确认、预检阻断、最终模拟提交、局部演示草稿恢复和一键展开全部模拟明细。模拟选择在浏览器本地保存，不是 Host 断点恢复，绝无正式业务数据写入。
+- 29 个 HTML id 与 `aria-controls` / `label for` / JS 目标关系已静态核对、结果正常；**未取得 Playwright/Chromium 真实截图和 Human 签收**，不能按浏览器通过宣传。
+- **新增设计建议而非已批准新决定**：AI 在历史/规则之后建议剩余项；长异常列表按业务阻断级别排序；元数据只做可修订保留来源建议；正式恢复必须由 Host 持久化；只有字段创建清单变化时才重新确认 Schema，任何影响有效性的映射变更必须重跑 dry-run；提交后修复需独立审计。详见 [V2 认知研究第八节](BEX-01-COGNITIVE-LOAD-ATTENTION-MEMORY-V2-20261015.md)。
+- 下一步仍为：Human 操作原型并记录关键交互决策 → 找到原 XLSX 与真实 Import Job 授权数据、实机浏览器核实 22 列 → 按独立 BEX 实现 PR 制作 Eidos 八域审查证据与准确 Host/Chromium 测试 → 满 CI 后才考虑现有 Railway 开发环境固定提交发布。
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| 核心设计与此前研究 | ✅ 保留，未推翻 | Human 验收 |
+| 新版可交互原型 | ✅ 代码已进 Draft #909、静态关系检查正常 | Chromium + 人工操作 |
+| U1–U6 研究方案 | 🟡 已给优选但未签收 | 业务 Owner / Human 批准 |
+| 原 Excel/真实 Job | ⏳ 未读取 | 取得授权来源并核查 |
+| V2 业务与固定 SHA 发布 | ❌ 没有实施 | 通过后续独立验收再推进 |
