@@ -24,7 +24,7 @@ function item(memoryId="memory:revoked") {
     contractVersion:"0.1.0",memoryId,context:personal,kind:"FACT",
     summary:privateBody,documentTitle:privateTitle,downloadUrl:privateUrl,
     provenance:{
-      contractVersion:"0.1.0",origin:"DIRECT",
+      contractVersion:"0.1.0",origin:"PROMOTED",
       sourceContext:enterprise,
       evidenceRefs:["enterprise:source-vendor:document:31"],
       evidenceSources:[{
@@ -63,7 +63,7 @@ function denied(result) {
   assert.equal(result.error.code,"PA04_REFERENCE_DISCLOSURE_DENIED");
   const text=JSON.stringify(result);
   for(const s of [privateTitle,privateBody,privateUrl,"attachment:31",
-    "document:31"])assert.doesNotMatch(text,new RegExp(s.replace(/[-/\\^$*+?.()|[\]{}]/g,"\\$&")));
+    "document:31"])assert.equal(text.includes(s),false,"restricted source must never appear in denial");
 }
 test("PA04 C06: exact Principal, Context, Memory and source provenance checked at display",async()=>{
   const auth=authority();
