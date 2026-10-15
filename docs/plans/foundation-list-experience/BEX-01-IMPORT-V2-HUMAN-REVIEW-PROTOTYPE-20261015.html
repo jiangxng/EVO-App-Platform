@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BEX-01 V2 · Human 交互审阅原型（纯演示）</title>
+<style>
+:root{color-scheme:light;--canvas:#f4f6f8;--surface:#fff;--ink:#203245;--sub:#50657a;--border:#d4dee6;--blue:#225d97;--focus:#125ca6;--muted:#f7f9fb;--warn:#805116}
+*{box-sizing:border-box}body{margin:0;background:var(--canvas);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI","Microsoft YaHei UI",sans-serif}
+.shell{max-width:1060px;margin:25px auto;padding:0 18px 28px}.banner{font-size:13px;padding:12px 16px;border:1px solid #dfcfaa;background:#fff8ea;border-radius:10px;margin-bottom:15px}
+.surface{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 34px;box-shadow:0 4px 18px #2032450a}
+.crumb{color:var(--sub);font-size:14px;margin-bottom:20px}.meta{color:var(--sub);font-size:14px}h1{font-size:26px;line-height:1.3;margin:0 0 8px;font-weight:650}h2{font-size:19px;margin:26px 0 10px}h3{font-size:16px;margin:12px 0 6px}p{margin:7px 0}
+.context{display:flex;justify-content:space-between;gap:15px;align-items:center;background:var(--muted);border-radius:10px;padding:14px 18px;margin-top:22px}.filename{font-weight:600;overflow-wrap:anywhere}
+.step{font-weight:650;color:#275f82}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0}.metric{padding:14px 12px;border:1px solid var(--border);border-radius:8px}.metric strong{font-size:23px;font-variant-numeric:tabular-nums;display:block}.metric span{font-size:13px;color:var(--sub)}
+.issue{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;border-bottom:1px solid #e9eef2;padding:14px 0}.issue:last-child{border-bottom:0}.issue p{color:var(--sub);font-size:14px}
+.tip{background:#fff9ed;border-left:3px solid #ad7c30;padding:10px 13px;margin:14px 0}.hint{color:var(--sub);font-size:13px}
+button,select{font:inherit;cursor:pointer}button{min-height:44px}button:focus-visible,select:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.primary{background:var(--blue);color:white;border:1px solid var(--blue);padding:10px 18px;border-radius:7px;font-weight:600}.primary:disabled{opacity:.45;cursor:not-allowed}
+.secondary{background:white;color:var(--blue);border:1px solid #93abc1;padding:9px 14px;border-radius:7px}.quiet{background:transparent;border:0;color:var(--blue);text-decoration:underline;text-underline-offset:3px;padding:9px 5px}.quiet:disabled{color:var(--sub)}
+.controls{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-top:26px;padding-top:20px;border-top:1px solid var(--border)}
+fieldset{border:1px solid var(--border);border-radius:8px;margin:12px 0;padding:12px 15px}legend{font-weight:600;padding:0 5px}label{display:block;margin:10px 0 4px;font-size:14px;font-weight:600}select{min-height:44px;background:white;border:1px solid #879bab;border-radius:6px;padding:8px;width:100%;max-width:440px;color:var(--ink)}
+details{margin:18px 0;padding:12px 0;border-top:1px solid var(--border)}summary{cursor:pointer;color:var(--blue);font-weight:600;min-height:44px;padding:9px 0}
+.tablewrap{overflow:auto;border:1px solid var(--border);border-radius:8px}table{border-collapse:collapse;width:100%;min-width:690px;font-size:14px}th,td{padding:11px 10px;border-bottom:1px solid #e4e9ee;text-align:left;vertical-align:top}th{background:#f5f7f9}td:first-child{font-weight:600}
+.inline{display:grid;grid-template-columns:1fr 1fr;gap:14px}.rowinput{padding:12px 0;border-bottom:1px solid var(--border)}.rowinput:last-child{border:0}.status{font-size:14px;color:var(--sub)}
+[hidden]{display:none!important}.error{color:#8a352f}.success{color:#1e6651}
+@media(max-width:680px){.shell{padding:0 6px;margin:5px auto}.surface{padding:20px 16px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.context,.issue,.inline{display:block}.controls{flex-direction:column}.controls button{width:100%}.issue button{margin-top:4px}h1{font-size:23px}.metric strong{font-size:21px}}
+</style>
+</head>
+<body>
+<main class="shell">
+<div class="banner" role="note"><strong>仅用于 Human 设计验收的模拟原型。</strong> 以下是 7 列演示数据，不是原 Excel 的 22 列；没有访问原 Import Job、真实账户、真实字段 ID 或 Host。操作只在此浏览器保存模拟状态，不会创建企业字段或导入供应商。正式实现必须使用 Eidos tokens 和 Host 持久化。</div>
+<article class="surface">
+<div class="crumb">供应商管理 / 导入供应商 <span class="hint">（演示，不是导航链接）</span></div>
+<div class="step" id="step">阶段 2 / 2 · 核对并导入</div>
+<h1>导入供应商</h1>
+<p class="meta">系统先恢复合法历史映射，其余建议交由你核对；所有来源值在正式系统中应保留。</p>
+<section class="context" aria-label="当前文件和保存状态"><div><div class="filename">往来账户2026_10_08_10_15_23.xlsx <span class="hint">（仅文件名示意）</span></div><div class="hint">演示 7 列 · 未读取实际文件 · 没有正式写入</div></div><div id="saveStatus" class="status" role="status" aria-live="polite">模拟草稿尚未修改</div></section>
+<div id="review">
+<div class="metrics" aria-label="模拟字段处理概览">
+<div class="metric"><strong>2</strong><span>演示已识别</span></div><div class="metric"><strong>2</strong><span>演示拟新增</span></div><div class="metric"><strong>1</strong><span>仅保留来源</span></div><div class="metric"><strong id="blockCount">2</strong><span>待核对事项</span></div>
+</div>
+<h2>需要你确认</h2>
+<div class="issue"><div><strong>开户银行 · 同名目标</strong><p>两个不同的历史字段具有相同的名称。下面的业务用途和 ID 都是演示数据，正式系统必须显示真实依据，不自动合并。</p></div><button class="secondary" id="bankToggle" type="button" aria-expanded="false" aria-controls="bankBody">比较两个候选</button></div>
+<div id="bankBody" hidden>
+<fieldset><legend>选择开户银行的目标字段</legend>
+<p class="hint">演示 A：供应商结算资料 · 字段标识 DEMO-A。演示 B：历史内部财务资料 · 字段标识 DEMO-B。不能仅凭同名判定正确。</p>
+<label for="bank">目标字段</label><select id="bank"><option value="">尚未选择（阻止继续）</option><option value="A">开户银行 · 供应商结算资料 · DEMO-A</option><option value="B">开户银行 · 历史内部财务资料 · DEMO-B</option></select>
+</fieldset></div>
+<div class="issue"><div><strong>主体类型 · 历史案例有 3 行缺失</strong><p>这里只演示如何定位、逐行人工补正。未读取原文件，因此演示行号与选项不代表真实数据，绝不依据“供应商”自动推断。</p></div><button class="secondary" id="typeToggle" type="button" aria-expanded="false" aria-controls="typeBody">查看模拟问题行</button></div>
+<div id="typeBody" hidden><fieldset><legend>三条模拟问题行：必须人工核实来源身份</legend>
+<p class="hint">下方“企业/个人”仅为界面交互演练，不会填入真实 Excel 或供应商。</p>
+<div id="types">
+<div class="rowinput"><label for="t1">示意行 A · 主体类型</label><select id="t1" class="typeSelect"><option value="">待核实</option><option value="ORG">企业（演示选择）</option><option value="PERSON">个人（演示选择）</option></select></div>
+<div class="rowinput"><label for="t2">示意行 B · 主体类型</label><select id="t2" class="typeSelect"><option value="">待核实</option><option value="ORG">企业（演示选择）</option><option value="PERSON">个人（演示选择）</option></select></div>
+<div class="rowinput"><label for="t3">示意行 C · 主体类型</label><select id="t3" class="typeSelect"><option value="">待核实</option><option value="ORG">企业（演示选择）</option><option value="PERSON">个人（演示选择）</option></select></div>
+</div></fieldset></div>
+<details id="allFields"><summary>查看全部演示列与处理建议（7 列；正式页面必须显示真实完整来源列）</summary>
+<div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">演示建议及依据</th><th scope="col">处理状态</th></tr></thead><tbody>
+<tr><td>编码</td><td>复用有效历史映射：主体编码</td><td>已识别</td></tr>
+<tr><td>名称</td><td>复用有效历史映射：主体名称</td><td>已识别</td></tr>
+<tr><td>开户银行</td><td>两个同名历史字段须人工区分</td><td id="bankCell">待核对</td></tr>
+<tr><td>主体类型</td><td>原始身份信息不可从供应商关系推断</td><td id="typeCell">待人工补正</td></tr>
+<tr><td>默认支付方式</td><td>模拟建议新建企业扩展字段，文本</td><td>待创建确认</td></tr>
+<tr><td>结算方式</td><td>模拟建议新建企业扩展字段，文本</td><td>待创建确认</td></tr>
+<tr><td>系统编码</td><td>模拟为来源元数据：默认仅保留原值，可修订</td><td>不写正式字段</td></tr>
+</tbody></table></div><p class="hint">演示表格不可编辑全部字段。正式产品须允许逐列修改、撤销忽略、遵守一对一映射。</p></details>
+<div class="tip"><strong>拟新增 2 个企业扩展字段（演示）</strong><p>默认支付方式（文本）、结算方式（文本）。必须先查看完整清单、得到独立 Human 确认，且不能擅自创建业务 Schema。</p></div>
+<div class="controls"><button type="button" class="quiet" id="reset">清除本地演示草稿</button><button type="button" class="primary" id="prepare">检查字段并预检查</button></div>
+</div>
+<div id="confirm" hidden><h2>确认企业字段创建清单（演示）</h2><p>创建定义与正式导入是两个不同的业务副作用。真实系统必须再检查权限、名称、类型、重复目标与部分失败补偿。</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">拟创建名称</th><th scope="col">类型</th></tr></thead><tbody><tr><td>默认支付方式</td><td>默认支付方式</td><td>文本</td></tr><tr><td>结算方式</td><td>结算方式</td><td>文本</td></tr></tbody></table></div>
+<div class="controls"><button class="secondary" id="confirmBack" type="button">返回字段核对</button><button class="primary" id="schemaConfirm" type="button">确认创建字段方案（模拟）</button></div>
+</div>
+<div id="precheck" hidden><h2>预检查结果（模拟）</h2><p id="checkNotice" role="status" aria-live="polite"></p><div id="blockers" class="tip"></div>
+<div class="controls"><button class="secondary" id="checkBack" type="button">返回修改（保留选择）</button><button class="primary" id="rerun" type="button">重新预检查</button><button class="primary" id="submit" type="button" disabled>确认导入（模拟）</button></div>
+</div>
+<div id="done" hidden><h2>交互演示已结束</h2><p class="success">已模拟一次独立字段方案确认、预检查通过和最终导入确认。</p><p>没有创建字段、没有导入数据。真实 Host 数据验证和用户签收仍未完成。</p><div class="controls"><button class="secondary" id="doneBack" type="button">回到模拟核对</button></div></div>
+</article></main>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id),key="bex-v2-demo-state-20261015";
+let draft={bank:"",types:["","",""],schema:false};
+try{const raw=JSON.parse(localStorage.getItem(key)||"null");if(raw&&typeof raw.bank==="string"&&Array.isArray(raw.types)&&raw.types.length===3){draft={bank:raw.bank,types:raw.types,schema:!!raw.schema};}}catch{}
+let checked=false;
+function store(){try{localStorage.setItem(key,JSON.stringify(draft));$("saveStatus").textContent="演示状态已保存在此浏览器（非 Host）";}catch{$("saveStatus").textContent="演示状态未能保存，离开页面后可能丢失";}}
+function show(id){["review","confirm","precheck","done"].forEach(s=>$(s).hidden=s!==id);$("step").textContent="阶段 2 / 2 · "+(id==="review"?"核对":id==="confirm"?"创建方案确认":id==="precheck"?"预检查":"演示结果");const h=$(id).querySelector("h2");if(h){h.tabIndex=-1;h.focus({preventScroll:true});}}
+function setOpen(btn,panel,open){$(panel).hidden=!open;$(btn).setAttribute("aria-expanded",String(open));}
+function unresolved(){return Number(!draft.bank)+Number(draft.types.some(x=>!x));}
+function refresh(){ $("bank").value=draft.bank;["t1","t2","t3"].forEach((id,i)=>$(id).value=draft.types[i]||"");$("blockCount").textContent=String(unresolved());$("bankCell").textContent=draft.bank?"演示已选候选 "+draft.bank:"待核对";$("typeCell").textContent=draft.types.every(Boolean)?"模拟已填写 3 行":"待人工核实";}
+function invalidate(){checked=false;draft.schema=false;store();refresh();}
+$("bankToggle").onclick=()=>setOpen("bankToggle","bankBody",$("bankBody").hidden);
+$("typeToggle").onclick=()=>setOpen("typeToggle","typeBody",$("typeBody").hidden);
+$("bank").onchange=()=>{draft.bank=$("bank").value;invalidate();};
+["t1","t2","t3"].forEach((id,i)=>$(id).onchange=()=>{draft.types[i]=$(id).value;invalidate();});
+$("prepare").onclick=()=>show("confirm");
+$("confirmBack").onclick=()=>show("review");
+$("schemaConfirm").onclick=()=>{draft.schema=true;store();runCheck();show("precheck");};
+function runCheck(){checked=!!draft.schema&&!!draft.bank&&draft.types.every(Boolean);$("submit").disabled=!checked;$("checkNotice").textContent=checked?"模拟预检查通过：仅演示交互，不代表真实数据合格。":"模拟预检查未通过：存在待核实问题，不允许继续正式导入。";const items=[];if(!draft.bank)items.push("开户银行：尚未选择真实意义对应的目标字段");if(draft.types.some(x=>!x))items.push("主体类型：演示三行有 "+draft.types.filter(x=>!x).length+" 行仍未模拟填写");$("blockers").textContent=items.length?items.join("；"):"无剩余模拟阻断项，仍须真实 Host 验证。";$("blockers").className="tip "+(items.length?"error":"success");}
+$("rerun").onclick=runCheck;
+$("checkBack").onclick=()=>show("review");
+$("submit").onclick=()=>{if(!checked||!draft.schema||!draft.bank||draft.types.some(x=>!x))return;show("done");};
+$("doneBack").onclick=()=>show("review");
+$("reset").onclick=()=>{draft={bank:"",types:["","",""],schema:false};try{localStorage.removeItem(key);}catch{}$("saveStatus").textContent="模拟草稿已重置";refresh();setOpen("bankToggle","bankBody",false);setOpen("typeToggle","typeBody",false);};
+refresh();if(draft.bank||draft.types.some(Boolean)||draft.schema)$("saveStatus").textContent="已恢复此浏览器保存的演示选择（非 Host）";
+})();
+</script>
+</body></html>
