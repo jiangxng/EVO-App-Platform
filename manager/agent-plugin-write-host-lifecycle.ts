@@ -305,8 +305,9 @@ export function pa05HostLifecycleConfigurationV010(env: NodeJS.ProcessEnv) {
     protectedPackageIds: ids,
     databaseUrl: env.PA05_WRITE_LIFECYCLE_DATABASE_URL?.trim(),
     schema: env.PA05_WRITE_LIFECYCLE_SCHEMA?.trim(),
-    workerSchemas: (env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS?.trim() ?? "")
-      ? env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS!.split(",").map(x => x.trim())
-      : undefined
+    ...(env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS?.trim()
+      ? {workerSchemas: env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS
+          .split(",").map(x => x.trim())}
+      : {})
   };
 }
