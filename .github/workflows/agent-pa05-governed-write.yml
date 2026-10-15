@@ -67,6 +67,7 @@ jobs:
           grep -Fq 'PA05_WRITE_PLUGIN_OWNER_PG=' pa05-governed-write.log
           grep -Fq 'PA05_PLUGIN_WRITE_LIFECYCLE_PG=' pa05-governed-write.log
           grep -Fq 'PA05_HOST_WRITE_LIFECYCLE_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_WRITE_UPGRADE_ROLLBACK_PG=' pa05-governed-write.log
           grep -Fq 'PA02B_REAL_SANDBOX_OWNER_WRITE=' pa05-governed-write.log
           grep -Fq 'PA02_GOVERNED_WORKER_WRITE=' pa05-governed-write.log
       - name: Preserve isolated PostgreSQL18 audit evidence

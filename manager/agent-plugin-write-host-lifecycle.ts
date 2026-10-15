@@ -21,6 +21,32 @@ export class Pa05HostLifecycleDeniedV010 extends Error {
   }
 }
 
+/**
+ * PA05-04D owner coverage: only a trusted Host may turn on this protection.
+ * In opt-in mode every currently active Agent-exposed WRITE must be included,
+ * even when a malformed/non-certified manifest omits writeSafety metadata.
+ * It is intentionally strict: partial protection would be worse than no
+ * claim of protection. No production WRITE is enabled here.
+ */
+export function assertPa05ProtectedAgentWriteCoverageV010(
+  manager: AppManagerService,
+  protectedPackageIds: readonly string[]
+): void {
+  const protectedIds = new Set(protectedPackageIds);
+  if (!protectedIds.size) return; // feature explicitly not enabled
+  const ownerPackages = new Set(
+    manager.listEffectiveCapabilityOperations()
+      .filter(operation => operation.effect === "WRITE"
+        && operation.exposure.includes("PERSONAL_AGENT"))
+      .map(operation => operation.packageId)
+  );
+  for (const ownerPackageId of ownerPackages) {
+    if (!protectedIds.has(ownerPackageId)) {
+      throw new Error("PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE");
+    }
+  }
+}
+
 export function createPa05HostWriteLifecycleV010(input: {
   manager: AppManagerService;
   protectedPackageIds: readonly string[];
@@ -47,6 +73,7 @@ export function createPa05HostWriteLifecycleV010(input: {
     || (Boolean(input.databaseUrl?.trim()) !== Boolean(input.schema?.trim()))) {
     throw new Error("PA05_HOST_LIFECYCLE_CONFIGURATION_INCOMPLETE");
   }
+  assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
   let connection: Promise<Pa05PluginWriteLifecycleGateV010> | undefined;
   const gate = () => {
     connection ??= (input.gateFactory
@@ -78,6 +105,15 @@ export function createPa05HostWriteLifecycleV010(input: {
       if (!["DISABLE", "UNINSTALL", "UPGRADE"].includes(operation)
         || typeof packageId !== "string" || !packageId.trim()) {
         throw new Pa05HostLifecycleDeniedV010("PA05_HOST_LIFECYCLE_REQUEST_INVALID");
+      }
+      // Re-evaluate the effective catalog every time: a dynamically added
+      // Agent WRITE Owner cannot silently invalidate the protected set.
+      try {
+        assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
+      } catch {
+        throw new Pa05HostLifecycleDeniedV010(
+          "PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE"
+        );
       }
       if (!guarded.has(packageId))
         return applyWithoutGate(operation, packageId, authorization);

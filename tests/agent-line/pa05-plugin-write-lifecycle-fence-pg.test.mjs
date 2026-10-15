@@ -69,15 +69,32 @@ function manager() {
   m.install(packageId);
   return m;
 }
-
-async function setup() {
+function versionedManager(catalogVersion, installedVersion = "0.1.0") {
+  const next = structuredClone(pkg);
+  next.version = catalogVersion;
+  next.features[0].version = catalogVersion;
+  const store = createMemoryLifecycleStore();
+  store.saveInstalledPackage({
+    packageId, version: installedVersion,
+    installedAt: "2026-10-15T04:00:00.000Z",
+    trustApproved: true, grantedPermissions: []
+  });
+  store.saveActiveFeature({
+    packageId, featureId: pkg.features[0].featureId,
+    version: installedVersion,
+    activatedAt: "2026-10-15T04:00:00.000Z"
+  });
+  return createAppManagerService(createPackageCatalog([next]), store);
+}
+async function setup(options = {}) {
   const schema = "pa05_lifecycle_" + randomUUID().replaceAll("-", "").slice(0, 12);
   const admin = postgres(url, { max: 3 });
   let durability, coordinator, reconciler, gate;
-  const m = manager();
+  const m = options.manager ?? manager();
   let verification = "UNRESOLVED";
   const verifier = {
     async verify(r) {
+      if (verification === "ERROR") throw new Error("PA05_TEST_VERIFIER_UNAVAILABLE");
       if (verification === "UNRESOLVED") return { outcome: "UNRESOLVED" };
       return {
         outcome: "SUCCEEDED",
@@ -355,5 +372,146 @@ test("PA05-04C isolated PG18 Host adapter routes real lifecycle through frozen o
   } finally {
     await uninstaller.close();
     await ready.close();
+  }
+});
+
+test("PA05-04D PG18: upgrade remains frozen until old Owner writes drain and new version is recertified", {
+  skip: !url ? "requires isolated PostgreSQL 18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup({manager: versionedManager("0.1.1")});
+  try {
+    const outstanding = await h.prepare("run:upgrade-with-prepared");
+    assert.deepEqual(await h.gate.transition({
+      packageId, operation: "UPGRADE"
+    }), {status: "BLOCKED_PENDING_WRITE", pendingCount: 1});
+    assert.equal(h.manager.getSnapshot().installedPackages[0].version, "0.1.0");
+    assert.equal((await h.gate.getState(packageId)).state, "FROZEN");
+    await assert.rejects(
+      h.coordinator.beginWrite(outstanding),
+      /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/
+    );
+    await assert.rejects(h.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.0", trustedOwnerReady: () => true
+    }), /PA05_LIFECYCLE_WRITE_NOT_QUIESCED/);
+  } finally {
+    await h.close();
+  }
+
+  // A clean upgrade may reopen ONLY under the new version after the Host
+  // re-validates its trusted Owner registration. No stale version admission.
+  const clean = await setup({manager: versionedManager("0.1.1")});
+  try {
+    assert.equal((await clean.gate.transition({
+      packageId, operation: "UPGRADE"
+    })).status, "APPLIED");
+    await clean.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.1",
+      trustedOwnerReady: async () => Boolean(
+        createHostRegisteredAgentOwnerRegistryV040({
+          manager: clean.manager,
+          resolveAuthorizationProvider: () => undefined,
+          registrations: [{
+            operationId, packageId, commandCode: operationId,
+            inputVersion: "0.1.0", modelName: "pa05_lifecycle_write_v011",
+            owner: { ownerPackageId: packageId, async invoke() {} },
+            verifier: clean.verifier, validateArguments: () => true
+          }]
+        }).resolve(operationId)
+      )
+    });
+    assert.deepEqual(await clean.gate.getState(packageId), {
+      state: "ACTIVE", packageVersion: "0.1.1"
+    });
+    const permitted = await clean.prepare("run:post-upgrade-owner");
+    assert.equal((await clean.coordinator.beginWrite(permitted)).state, "INVOKING");
+    await clean.coordinator.markUnknown(permitted);
+    assert.deepEqual(await clean.gate.transition({
+      packageId, operation: "DISABLE"
+    }), {status: "BLOCKED_PENDING_WRITE", pendingCount: 1});
+  } finally {
+    await clean.close();
+  }
+
+  const ready = await setup({manager: versionedManager("0.1.1")});
+  try {
+    assert.deepEqual(await ready.gate.transition({
+      packageId, operation: "UPGRADE"
+    }), {status: "APPLIED", pendingCount: 0});
+    assert.equal(ready.manager.getSnapshot().installedPackages[0].version, "0.1.1");
+    assert.deepEqual(await ready.gate.getState(packageId), {
+      state: "FROZEN", packageVersion: "0.1.0"
+    });
+    const next = await ready.prepare("run:new-version-prepared");
+    await assert.rejects(ready.coordinator.beginWrite(next),
+      /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/);
+    await assert.rejects(ready.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.0", trustedOwnerReady: () => true
+    }), /PA05_LIFECYCLE_VERSION_CHANGED/);
+    await assert.rejects(ready.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.1", trustedOwnerReady: () => false
+    }), /PA05_LIFECYCLE_OWNER_RECERTIFICATION_REQUIRED/);
+    // New PREPARED request must be drained/denied by Host before any reopen;
+    // do not invent a terminal result in this test.
+    await assert.rejects(ready.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.1",
+      trustedOwnerReady: () => true
+    }), /PA05_LIFECYCLE_WRITE_NOT_QUIESCED/);
+    assert.equal((await ready.gate.getState(packageId)).state, "FROZEN");
+  } finally {
+    await ready.close();
+  }
+});
+
+test("PA05-04D PG18: rollback not allowed, Owner verifier outage leaves UNKNOWN and lifecycle frozen", {
+  skip: !url ? "requires isolated PostgreSQL 18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup({manager: versionedManager("0.1.0", "0.1.1")});
+  try {
+    assert.ok(h.manager.planUpgrade(packageId).blockers.some(
+      b => b.code === "PACKAGE_DOWNGRADE_NOT_ALLOWED"
+    ));
+    await assert.rejects(h.gate.transition({
+      packageId, operation: "UPGRADE"
+    }), /UPGRADE_BLOCKED/);
+    assert.equal(h.manager.getSnapshot().installedPackages[0].version, "0.1.1");
+    assert.equal((await h.gate.getState(packageId)).state, "FROZEN");
+    await assert.rejects(h.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.0", trustedOwnerReady: () => true
+    }), /PA05_LIFECYCLE_VERSION_CHANGED/);
+
+    // Explicit owner recovery failure is not evidence that a business effect
+    // did not happen. Reconciliation must leave UNKNOWN, preserving freeze.
+    const effect = await h.prepare("run:verifier-outage");
+    await assert.rejects(h.coordinator.beginWrite(effect),
+      /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/);
+  } finally {
+    await h.close();
+  }
+  const unresolved = await setup();
+  try {
+    const write = await unresolved.prepare("run:failed-verifier");
+    await unresolved.coordinator.beginWrite(write);
+    await unresolved.coordinator.markUnknown(write);
+    unresolved.setVerification("ERROR");
+    await assert.rejects(unresolved.reconciler.reconcile({
+      scope, effectId: write.effectId
+    }), /PA05_TEST_VERIFIER_UNAVAILABLE/);
+    assert.deepEqual(await unresolved.gate.transition({
+      packageId, operation: "DISABLE"
+    }), {status: "BLOCKED_PENDING_WRITE", pendingCount: 1});
+    assert.equal((await unresolved.gate.getState(packageId)).state, "FROZEN");
+    assert.equal((await unresolved.coordinator.getWrite({
+      scope, effectId: write.effectId
+    })).state, "UNKNOWN");
+    console.log("PA05_WRITE_UPGRADE_ROLLBACK_PG=" + JSON.stringify({
+      postgres18: true, upgradePreparedBlocked: true,
+      noAutoReopenOnUpgrade: true, downgradeRejected: true,
+      verifierOutageUnknownQuarantined: true, protectedOwnerCoverage: true,
+      productionWrite: false
+    }));
+  } finally {
+    await unresolved.close();
   }
 });
