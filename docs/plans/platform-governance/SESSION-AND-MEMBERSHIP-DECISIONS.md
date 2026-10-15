@@ -1,6 +1,40 @@
 # A05 会话用途与 A04 成员服务打包决定
 
-日期：2026-10-14。核对 main 基线：`5b6cbf8d4d64ba5b4d8d4e97002f6185455f1ef6`。本批只修改用途说明及审查结论，不修改认证流程、绑定、数据或安装状态。
+日期：2026-10-14。核对 main 基线：`5b6cbf8d4d64ba5b4d8d4e97002f6185455f1ef6`。首次批次只修改用途说明及审查结论。2026-10-15 的请求认证回退整改见下节，原决策及历史证据保留。
+
+## 2026-10-15 增量：已配置认证不得静默降级
+
+核对 main `b3ae61d1c7c70e1731ddba74daa7ddcdd6fbd72a`，分支 `fix/governance-session-fallback-20261015`。只修正 Host 请求会话解析；不更换登录供应商、不修改生产配置、不接管 Agent 实现。
+
+**发现：** `resolveRequestIdentitySession` 在有效请求 Provider 数量为零时无条件调用静态/本地身份解析。托管登录或 Bearer 服务已经配置，但其 Feature 被停用后，无凭据请求可能获得演示身份。这与已选定请求 Provider 后凭据无效就拒绝的逻辑不一致。
+
+**本批修正：** 有下列任一明确配置时，无有效请求 Provider 返回既有 `REQUEST_IDENTITY_SESSION_PROVIDER_UNAVAILABLE`，经既有映射成为 HTTP 503 / AUTHENTICATION_UNAVAILABLE，不调用演示身份回退：
+
+- APP_PLATFORM_MANAGED_SESSION_ENABLED=true；
+- APP_PLATFORM_BEARER_SESSIONS_JSON 已成功解析，包括显式空 sessions；
+- identity.session.request 存在 SYSTEM 或当前 default INSTALLATION 显式绑定。
+
+仍存在请求 Provider 时，复用原候选/绑定/健康/凭据解析：没有或无效凭据继续返回 401；配置和身份错误不变成其他用户。未声明请求认证的旧演示配置仍保留原静态/本地身份，不依据 NODE_ENV 猜测部署用途，也不强制更改三包的安装状态。
+
+### 验收与局限
+
+真实本地 Host 子进程使用独立临时状态、隔离环境及禁止出站网络的既有 probe：验证托管/Bearer 正常无凭据拒绝、Bearer 有效凭据可用、停用状态重启后 503、不泄露回退主体、重新激活后恢复；同时验证未配置演示模式仍可用，显式绑定不存在的服务时拒绝回退。停用/恢复通过持久状态夹具模拟，不声称完成插件管理 UI 或生产登录验收。
+
+测试沿用 `tests/integration/startup-defaults-restart.test.mjs`，由既有 Lightweight Host CI 执行；配合托管会话、个人上下文、Provider 解析回归。首次测试误把仅托管模式开放的 /auth/session 用于 Bearer/演示（实际返回 404）；已改用这两种模式真实的 /v1/contexts/effective 路径，没有修改产品路由来迎合测试。
+
+**A05 仍为部分完成：** 已修复“配置仍在但服务消失”的降级缺口；未建设全面正式环境模式或配置迁移门禁。没有上述配置的自定义请求 Provider 被移除、进程内非 HTTP 兼容调用等仍需专项核对；不能将本次修复表述为所有认证入口均已审计。未审计线上安装、秘密或生产绑定。总表仍为 7 项 / 4 项闭环 / 3 项部分完成。
+
+### 方案及阅读证据
+
+| 方案 | 决定及理由 |
+|---|---|
+| 服务缺失继续静态回退 | 排除：服务停用不应扩大匿名访问权限 |
+| 按已有配置判定必须请求认证 | 采用：保持原身份/绑定合同，小范围修复可验证缺陷 |
+| 依 NODE_ENV 自动禁用所有演示或删除旧包 | 本批不采用：不能从运行标签推断已完成部署迁移，也不必重建认证框架 |
+
+本次无新增外网研究。已读平台原文：server.ts 的 resolveRequestIdentitySession/resolveIdentitySession、条件安装、/auth/session 与 /v1/contexts/effective 及错误响应；request-authentication.ts 的 401/503 映射；request-session/runtime.ts 的令牌目录解析和校验；provider-resolution.ts 的候选与绑定；既有真实 Host 重启测试及网络隔离 probe。来源固定在上述 main 提交；方案选择是工程判断，函数行为与测试输出是证据。
+
+本地构建与 25 项相关测试通过，轻量 Host 门禁保持 297 条历史边、无新增。准确 PR、最终提交及 CI 以本分支 PR 为准；本地和远端分支清理分别记录。
 
 ## A05：三种会话是身份来源，不是三种 Agent
 
