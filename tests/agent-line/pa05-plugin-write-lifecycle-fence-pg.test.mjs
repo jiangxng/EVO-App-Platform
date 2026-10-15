@@ -398,6 +398,41 @@ test("PA05-04D PG18: upgrade remains frozen until old Owner writes drain and new
     await h.close();
   }
 
+  // A clean upgrade may reopen ONLY under the new version after the Host
+  // re-validates its trusted Owner registration. No stale version admission.
+  const clean = await setup({manager: versionedManager("0.1.1")});
+  try {
+    assert.equal((await clean.gate.transition({
+      packageId, operation: "UPGRADE"
+    })).status, "APPLIED");
+    await clean.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.1",
+      trustedOwnerReady: async () => Boolean(
+        createHostRegisteredAgentOwnerRegistryV040({
+          manager: clean.manager,
+          resolveAuthorizationProvider: () => undefined,
+          registrations: [{
+            operationId, packageId, commandCode: operationId,
+            inputVersion: "0.1.0", modelName: "pa05_lifecycle_write_v011",
+            owner: { ownerPackageId: packageId, async invoke() {} },
+            verifier: clean.verifier, validateArguments: () => true
+          }]
+        }).resolve(operationId)
+      )
+    });
+    assert.deepEqual(await clean.gate.getState(packageId), {
+      state: "ACTIVE", packageVersion: "0.1.1"
+    });
+    const permitted = await clean.prepare("run:post-upgrade-owner");
+    assert.equal((await clean.coordinator.beginWrite(permitted)).state, "INVOKING");
+    await clean.coordinator.markUnknown(permitted);
+    assert.deepEqual(await clean.gate.transition({
+      packageId, operation: "DISABLE"
+    }), {status: "BLOCKED_PENDING_WRITE", pendingCount: 1});
+  } finally {
+    await clean.close();
+  }
+
   const ready = await setup({manager: versionedManager("0.1.1")});
   try {
     assert.deepEqual(await ready.gate.transition({
