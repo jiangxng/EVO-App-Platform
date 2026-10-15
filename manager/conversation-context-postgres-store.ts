@@ -153,7 +153,15 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
             SELECT 1 FROM ${sql(schema)}.context_source_revocations AS revoked
             WHERE revoked.thread_id = s.thread_id
               AND EXISTS (
-                SELECT 1 FROM jsonb_array_elements_text(s.source_message_ids) AS source(source_id)
+                SELECT 1 FROM jsonb_array_elements_text(
+                  CASE
+                    WHEN jsonb_typeof(s.source_message_ids) = 'array'
+                      THEN s.source_message_ids
+                    WHEN jsonb_typeof(s.source_message_ids) = 'string'
+                      THEN (s.source_message_ids #>> '{}')::jsonb
+                    ELSE '[]'::jsonb
+                  END
+                ) AS source(source_id)
                 WHERE source.source_id = revoked.source_message_id
               )
           )
@@ -227,7 +235,15 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
               SELECT 1 FROM ${tx(schema)}.context_source_revocations revoked
               WHERE revoked.thread_id = s.thread_id
                 AND EXISTS (
-                  SELECT 1 FROM jsonb_array_elements_text(s.source_message_ids) AS source(source_id)
+                  SELECT 1 FROM jsonb_array_elements_text(
+                  CASE
+                    WHEN jsonb_typeof(s.source_message_ids) = 'array'
+                      THEN s.source_message_ids
+                    WHEN jsonb_typeof(s.source_message_ids) = 'string'
+                      THEN (s.source_message_ids #>> '{}')::jsonb
+                    ELSE '[]'::jsonb
+                  END
+                ) AS source(source_id)
                   WHERE source.source_id = revoked.source_message_id
                 )
             )
@@ -270,7 +286,15 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
           SELECT summary_id FROM ${tx(schema)}.context_summaries s
           WHERE thread_id = ${threadId}
             AND EXISTS (
-              SELECT 1 FROM jsonb_array_elements_text(s.source_message_ids) AS source(source_id)
+              SELECT 1 FROM jsonb_array_elements_text(
+                  CASE
+                    WHEN jsonb_typeof(s.source_message_ids) = 'array'
+                      THEN s.source_message_ids
+                    WHEN jsonb_typeof(s.source_message_ids) = 'string'
+                      THEN (s.source_message_ids #>> '{}')::jsonb
+                    ELSE '[]'::jsonb
+                  END
+                ) AS source(source_id)
               WHERE source.source_id = ANY(${ids}::text[])
             )
         `;
