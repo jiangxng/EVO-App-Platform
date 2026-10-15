@@ -53,7 +53,7 @@ await test('precheck-fail-closed-and-independent-schema-confirmation',async()=>{
  if(!await page.locator('#precheck').isVisible())throw Error('Precheck panel not shown');
  if(await page.locator('#submit').isEnabled())throw Error('Final commit enabled with two outstanding exception categories');
  const blockers=await page.locator('#blockers').textContent();
- if(!blockers.includes('开户银行')||!blockers.includes('3 行'))throw Error('Missing blocked reason '+blockers);
+ if(!blockers.includes('开户银行')||!blockers.includes('3 条')||!blockers.includes('系统编码'))throw Error('Missing blocked reason '+blockers);
  await snapshot(page,'03-blocked-precheck');
  return {submitDisabled:true,blockers};
  }finally{await context.close()}
@@ -66,8 +66,9 @@ await test('correct-bank-and-three-types-then-final-explicit-commit',async()=>{
  await page.locator('#bank').selectOption('B');
  await page.locator('#typeToggle').click();
  for(const [id,val] of [['t1','ORG'],['t2','PERSON'],['t3','ORG']])await page.locator('#'+id).selectOption(val);
- if(await page.locator('#blockCount').textContent()!=='0')throw Error('Unresolved count should be 0');
  await page.locator('#allFields summary').click();
+ await page.locator('#map_system').selectOption('__IGNORE__');
+ if(await page.locator('#blockCount').textContent()!=='0')throw Error('Unresolved count should be 0');
  if(await page.locator('#allFields table tbody tr').count()!==7)throw Error('Synthetic table missing 7 rows');
  await snapshot(page,'04-decisions-and-expanded-fields');
  await page.locator('#prepare').click();
@@ -87,11 +88,14 @@ await test('browser-local-demo-draft-refresh-and-edit-revalidation',async()=>{
  await page.locator('#bank').selectOption('A');
  await page.locator('#typeToggle').click();
  for(const id of ['t1','t2','t3'])await page.locator('#'+id).selectOption('ORG');
+ await page.locator('#allFields summary').click();
+ await page.locator('#map_system').selectOption('__IGNORE__');
  const stored=await page.evaluate(()=>localStorage.getItem('bex-v2-demo-state-20261015'));
  if(!stored||!stored.includes('"bank":"A"'))throw Error('Did not store mock draft in browser');
  await page.reload({waitUntil:'load'});
  if(await page.locator('#bank').inputValue()!=='A')throw Error('Mock bank draft not recovered');
  if(await page.locator('#blockCount').textContent()!=='0')throw Error('Mock row corrections not recovered');
+ if(await page.locator('#map_system').inputValue()!=='__IGNORE__')throw Error('System-metadata explicit ignore not recovered');
  await page.locator('#prepare').click();await page.locator('#schemaConfirm').click();
  if(!await page.locator('#submit').isEnabled())throw Error('Initially passed simulated dry-run');
  await page.locator('#checkBack').click();
@@ -147,6 +151,75 @@ await test('two-hundred-percent-text-scale-review',async()=>{
  await snapshot(page,'09-desktop-200pct-zoom');
  if(layout.scroll>layout.viewport+2)throw Error('Overflow at 200% CSS zoom: '+JSON.stringify(layout));
  return layout;
+ }finally{await context.close()}
+});
+await test('all-seven-source-decisions-and-exclusive-targets',async()=>{
+ const context=await makeContext();try{
+  const page=await fresh(context);
+  await page.locator('#allFields summary').click();
+  const rows=await page.locator('#allFields table tbody tr').count();
+  if(rows!==7)throw Error('Seven synthetic rows not all visible');
+  const code=page.locator('#map_code'),name=page.locator('#map_name'),pay=page.locator('#map_pay'),system=page.locator('#map_system');
+  if(await code.inputValue()!=='CORE_CODE'||await name.inputValue()!=='CORE_NAME')throw Error('Historical mock mappings lost');
+  if(!await pay.locator('option[value="CORE_CODE"]').isDisabled())throw Error('Already claimed code target must be unavailable');
+  if(!await pay.locator('option[value="CORE_NAME"]').isDisabled())throw Error('Already claimed name target must be unavailable');
+  if(await system.inputValue()!=='__PENDING__')throw Error('Ambiguous metadata must not be silently ignored');
+  await system.selectOption('__IGNORE__');
+  if(await page.locator('#retainCount').textContent()!=='1')throw Error('Explicit source retain did not update');
+  await system.selectOption('__PENDING__');
+  if(await page.locator('#retainCount').textContent()!=='0')throw Error('Ignore could not be reversed');
+  await system.selectOption('__IGNORE__');
+  await pay.selectOption('EXT_PAY');
+  if(!await page.locator('#map_settle option[value="EXT_PAY"]').isDisabled())throw Error('Occupied extension should be exclusive');
+  if(await page.locator('#createCount').textContent()!=='1')throw Error('Create proposal did not shrink when mapping reused');
+  await pay.selectOption('__CREATE__');
+  if(await page.locator('#createCount').textContent()!=='2')throw Error('Create proposal was not restored');
+  await snapshot(page,'10-editable-source-decisions');
+  return {rows,metadataPendingInitially:true,ignoreReversible:true,exclusiveTargets:true,createCountDynamic:true};
+ }finally{await context.close()}
+});
+await test('schema-decision-change-must-reconfirm-and-no-create-bypasses-schema',async()=>{
+ const context=await makeContext();try{
+  const page=await fresh(context);
+  await page.locator('#bankToggle').click();await page.locator('#bank').selectOption('A');
+  await page.locator('#typeToggle').click();
+  for(const id of ['t1','t2','t3'])await page.locator('#'+id).selectOption('ORG');
+  await page.locator('#allFields summary').click();
+  await page.locator('#map_system').selectOption('__IGNORE__');
+  await page.locator('#prepare').click();
+  if(!await page.locator('#confirm').isVisible())throw Error('Initial field create requires approval');
+  if(await page.locator('#schemaRows tr').count()!==2)throw Error('Initial approval list must include exactly two fields');
+  await page.locator('#schemaConfirm').click();
+  if(!await page.locator('#submit').isEnabled())throw Error('Original precheck should pass');
+  await page.locator('#checkBack').click();
+  await page.locator('#map_pay').selectOption('__IGNORE__');
+  await page.locator('#prepare').click();
+  if(!await page.locator('#confirm').isVisible())throw Error('Modified create proposal did not require re-approval');
+  if(await page.locator('#schemaRows tr').count()!==1)throw Error('Reapproval should only show newly proposed single field');
+  await page.locator('#schemaConfirm').click();
+  if(!await page.locator('#submit').isEnabled())throw Error('Reapproved one-field proposal not allowed');
+  await page.locator('#checkBack').click();
+  await page.locator('#map_settle').selectOption('__IGNORE__');
+  await page.locator('#prepare').click();
+  if(!await page.locator('#precheck').isVisible()||await page.locator('#confirm').isVisible())throw Error('Zero creations must skip Schema approval');
+  if(!await page.locator('#submit').isEnabled())throw Error('Zero creations with explicit ignore should pass mock precheck');
+  await snapshot(page,'11-no-new-schema-needed');
+  return {initialTwo:true,reconfirmedOne:true,zeroFieldsBypassedSchema:true};
+ }finally{await context.close()}
+});
+await test('critical-core-source-remapping-fails-closed',async()=>{
+ const context=await makeContext();try{
+  const page=await fresh(context);
+  await page.locator('#allFields summary').click();
+  await page.locator('#map_code').selectOption('__IGNORE__');
+  await page.locator('#prepare').click();
+  await page.locator('#schemaConfirm').click();
+  const blocker=await page.locator('#blockers').textContent();
+  if(!blocker.includes('核心编码')||await page.locator('#submit').isEnabled())throw Error('Core source incorrectly allowed: '+blocker);
+  await page.locator('#checkBack').click();
+  await page.locator('#map_code').selectOption('CORE_CODE');
+  if(!await page.locator('#map_name option[value="CORE_CODE"]').isDisabled())throw Error('Restored core source mapping must regain occupied target');
+  return {ignoredCoreBlocks:true,reversible:true};
  }finally{await context.close()}
 });
 await browser.close();
