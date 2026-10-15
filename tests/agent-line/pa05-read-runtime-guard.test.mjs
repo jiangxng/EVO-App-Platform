@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createAppActionRouter } from "../../dist/actions/router.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import {
+  evoFoundationPackage,
   ledgerRuntimeConfiguratorPackage,
   tradingReferencePackageV010
 } from "../../dist/catalog/seed.js";
@@ -72,7 +73,7 @@ function request(code, input = {}) {
 }
 function fixture() {
   const manager = createAppManagerService(
-    createPackageCatalog([ledgerRuntimeConfiguratorPackage, tradingReferencePackageV010]),
+    createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage, tradingReferencePackageV010]),
     createMemoryLifecycleStore()
   );
   manager.install(ledgerRuntimeConfiguratorPackage.packageId);
@@ -314,7 +315,7 @@ test("PA05-02B entire schema tree must be supported, even optional branches neve
     i.code === "PA05_CERT_SCHEMA_KEYWORD_UNSUPPORTED"
   ));
   const manager = createAppManagerService(
-    createPackageCatalog([altered]), createMemoryLifecycleStore()
+    createPackageCatalog([evoFoundationPackage, altered]), createMemoryLifecycleStore()
   );
   manager.install(altered.packageId);
   assert.throws(() => makeGateway({
@@ -333,7 +334,7 @@ test("PA05-02B does not admit a WRITE operation, even with a valid schema", () =
   op.effect = "WRITE";
   op.writeSafety = { idempotency: "HOST_REQUIRED", receipt: "HOST_REQUIRED" };
   const manager = createAppManagerService(
-    createPackageCatalog([edited]), createMemoryLifecycleStore()
+    createPackageCatalog([evoFoundationPackage, edited]), createMemoryLifecycleStore()
   );
   manager.install(edited.packageId);
   assert.throws(() => makeGateway({
