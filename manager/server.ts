@@ -2964,6 +2964,17 @@ function resolveRequestIdentitySession(request: IncomingMessage): IdentitySessio
     REQUEST_IDENTITY_SESSION_CAPABILITY
   );
   if (descriptors.length === 0) {
+    // An unavailable configured request-authentication service must not turn
+    // an anonymous request into the static/demo identity.
+    const requestProviderRequired = managedSessionEnabled
+      || hostBearerSessions !== undefined
+      || providerBindings.list(REQUEST_IDENTITY_SESSION_CAPABILITY).some(binding =>
+        binding.scope === "SYSTEM"
+        || (binding.scope === "INSTALLATION" && binding.scopeId === "default")
+      );
+    if (requestProviderRequired) {
+      throw new Error("REQUEST_IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+    }
     return resolveIdentitySession();
   }
 
