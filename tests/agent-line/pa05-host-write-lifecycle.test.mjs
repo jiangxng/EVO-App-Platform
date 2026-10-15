@@ -224,3 +224,94 @@ test("PA05-04D detects an Agent WRITE owner installed after protected Host const
     await host.close();
   }
 });
+
+test("PA05-04D2 installation and enablement routes must not bypass guarded admission", () => {
+  const source = readFileSync(new URL("../../manager/server.ts", import.meta.url), "utf8");
+  const count = needle => source.split(needle).length - 1;
+  assert.equal(count('pa05WriteLifecycleHost.admitActivation("INSTALL", itemId'), 1);
+  assert.equal(count('pa05WriteLifecycleHost.admitActivation("ENABLE", itemId'), 2);
+  assert.equal(count('pa05WriteLifecycleHost.admitActivation("INSTALL", body.packageId'), 1);
+  assert.equal(count('pa05WriteLifecycleHost.admitActivation("ENABLE", body.packageId'), 1);
+  for (const bypass of [
+    "manager.install(itemId,", "manager.enable(itemId)",
+    "manager.install(body.packageId,", "manager.enable(body.packageId)"
+  ]) assert.equal(count(bypass), 0, "host activation bypass: " + bypass);
+});
+
+test("PA05-04D2 Host reserves protected Agent WRITE before enabling and never auto-reopens", async () => {
+  const m = fixture();
+  m.disable(packageId);
+  let admits = 0;
+  const host = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    gateFactory: async () => ({
+      async reserveActivation(id, version) {
+        admits++;
+        assert.equal(id, packageId);
+        assert.equal(version, "0.1.0");
+        return {state: "FROZEN", pendingCount: 0};
+      },
+      async close() {}
+    })
+  });
+  try {
+    const snapshot = await host.admitActivation("ENABLE", packageId);
+    assert.equal(admits, 1);
+    assert.ok(snapshot.activeFeatures.some(x => x.packageId === packageId));
+    // The admission port cannot create an ACTIVE gate or auto-register a
+    // trusted business Owner. Only explicit Host re-certification can do so.
+  } finally {
+    await host.close();
+  }
+});
+
+test("PA05-04D2 refuses missing protected dependency and leaves other packages untouched", async () => {
+  const write = makePackage(packageId, "WRITE");
+  const dependant = makePackage("pa05-read-depends-on-write", "READ");
+  dependant.features[0].requiresCapabilities = [packageId + ".capability"];
+  const m = createAppManagerService(
+    createPackageCatalog([write, dependant]),
+    createMemoryLifecycleStore()
+  );
+  const host = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: ["unused-frozen-owner"],
+    gateFactory: async () => { throw Error("unexpected PG connection"); }
+  });
+  try {
+    await assert.rejects(
+      host.admitActivation("INSTALL", dependant.packageId),
+      e => e.code === "PA05_HOST_WRITE_OWNER_NOT_PROTECTED"
+    );
+    assert.equal(m.getSnapshot().installedPackages.length, 0);
+  } finally {
+    await host.close();
+  }
+});
+
+test("PA05-04D2 incomplete SQL reserve or pending WRITE cannot enable owner", async () => {
+  const m = fixture();
+  m.disable(packageId);
+  let unavailable = false;
+  const host = createPa05HostWriteLifecycleV010({
+    manager: m, protectedPackageIds: [packageId],
+    gateFactory: async () => ({
+      async reserveActivation() {
+        if (unavailable) throw Error("PRIVATE_DATABASE_FAILURE");
+        return {state: "FROZEN", pendingCount: 1};
+      },
+      async close() {}
+    })
+  });
+  try {
+    await assert.rejects(host.admitActivation("ENABLE", packageId),
+      e => e.code === "PA05_HOST_LIFECYCLE_PENDING_WRITE");
+    assert.equal(m.getSnapshot().activeFeatures.some(x => x.packageId === packageId), false);
+    unavailable = true;
+    await assert.rejects(host.admitActivation("ENABLE", packageId),
+      e => e.code === "PA05_HOST_LIFECYCLE_GUARD_UNAVAILABLE"
+        && !e.message.includes("PRIVATE_DATABASE"));
+    assert.equal(m.getSnapshot().activeFeatures.some(x => x.packageId === packageId), false);
+  } finally {
+    await host.close();
+  }
+});
