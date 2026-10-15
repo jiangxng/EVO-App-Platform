@@ -60,10 +60,10 @@ export function createObjectExtensionBatchImportPageV010(input: {
     value: x.fieldId, label: x.label + " · " + x.fieldId
   }));
   const fields = [
-    { key: "importJobId", label: "Import Job", control: "select" as const,
+    { key: "importJobId", label: "Import Job", semanticType: "data-import-job-id", control: "select" as const,
       required: true, initialValue: job.importJobId,
       options: [{ value: job.importJobId, label: job.importJobId }] },
-    { key: "batchMode", label: "Batch mode", control: "select" as const,
+    { key: "batchMode", label: "Batch mode", semanticType: "object-extension-batch-mode", control: "select" as const,
       required: true, initialValue: "BATCH",
       options: [{ value: "BATCH", label: zh ? "集中创建与映射" : "Review and map" }] },
     ...columns.flatMap((column, i) => {
