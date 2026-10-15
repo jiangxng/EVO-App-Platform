@@ -878,17 +878,24 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
   const central="pa05_acl_"+randomUUID().replaceAll("-","").slice(0,12);
   const roleA="pa05_worker_a_"+randomUUID().replaceAll("-","").slice(0,10);
   const roleB="pa05_worker_b_"+randomUUID().replaceAll("-","").slice(0,10);
+  const roleC="pa05_worker_other_"+randomUUID().replaceAll("-","").slice(0,10);
+  const secrets=Object.fromEntries([roleA,roleB,roleC].map(role=>
+    [role,"test_"+randomUUID().replaceAll("-","")]));
   let gate;
   async function asRole(role, statement, params=[]) {
-    return a.admin.begin(async tx=>{
-      await tx.unsafe('SET LOCAL ROLE "'+role+'"');
-      return tx.unsafe(statement,params);
-    });
+    // New authenticated connection, not SET ROLE. SQL SECURITY DEFINER
+    // sees SESSION_USER and must pin it to the registered LOGIN identity.
+    const uri=new URL(url);
+    uri.username=role;
+    uri.password=secrets[role];
+    const client=postgres(uri.toString(),{max:1});
+    try { return await client.unsafe(statement,params); }
+    finally { await client.end(); }
   }
   try {
     const workerSchemas=[a.schema,b.schema].sort();
-    for(const [role,schema] of [[roleA,a.schema],[roleB,b.schema]]) {
-      await a.admin.unsafe('CREATE ROLE "'+role+'" LOGIN');
+    for(const [role,schema] of [[roleA,a.schema],[roleB,b.schema],[roleC,a.schema]]) {
+      await a.admin.unsafe('CREATE ROLE "'+role+'" LOGIN PASSWORD \''+secrets[role]+'\'');
       await a.admin.unsafe('GRANT USAGE ON SCHEMA "'+schema+'" TO "'+role+'"');
       await a.admin.unsafe(
         'GRANT SELECT,UPDATE ON "'+schema+'".pa02b_writes TO "'+role+'"'
@@ -905,11 +912,47 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
     await gate.register(packageId);
 
     const first=await a.prepare("run:pa05-least-priv-approved");
+    // A least-privileged Worker has UPDATE on the effect table, but cannot
+    // turn an unverified PREPARED effect into a fake terminal or change the
+    // immutable columns to escape the Host's pending-Owner inventory.
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=\'SUCCEEDED\' '+
+      'WHERE state=\'PREPARED\' RETURNING state'),
+      /PA05_WRITE_SQL_ILLEGAL_TRANSITION/);
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET effect_id=effect_id||\'_forged\' '+
+      'WHERE state=\'PREPARED\' RETURNING effect_id'),
+      /PA05_WRITE_SQL_IMMUTABLE_IDENTITY/);
+    await assert.rejects(asRole(roleC,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=state '+
+      'WHERE state=\'PREPARED\' RETURNING state'),
+      /PA05_WRITE_SQL_WORKER_LOGIN_DENIED/);
+    await assert.rejects(asRole(roleC,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=\'INVOKING\' '+
+      'WHERE state=\'PREPARED\' RETURNING state'),
+      /PA05_WRITE_SQL_WORKER_LOGIN_DENIED/);
+    await assert.rejects(a.admin.begin(async tx=>{
+      await tx.unsafe('SET LOCAL ROLE "'+roleA+'"');
+      return tx.unsafe(
+        'UPDATE "'+a.schema+'".pa02b_writes SET state=\'INVOKING\' '+
+        'WHERE state=\'PREPARED\' RETURNING state');
+    }),/PA05_WRITE_SQL_WORKER_LOGIN_DENIED/);
+    assert.equal((await a.coordinator.getWrite({
+      scope,effectId:first.effectId
+    })).state,"PREPARED");
     const approved=await asRole(roleA,
       'UPDATE "'+a.schema+'".pa02b_writes SET state=\'INVOKING\' '+
       'WHERE state=\'PREPARED\' RETURNING state');
     assert.equal(approved.length,1);
     assert.equal(approved[0].state,"INVOKING");
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET state=\'SUCCEEDED\' '+
+      'WHERE state=\'INVOKING\' RETURNING state'),
+      /PA05_WRITE_SQL_WORKER_TERMINAL_FORBIDDEN/);
+    await assert.rejects(asRole(roleA,
+      'UPDATE "'+a.schema+'".pa02b_writes SET scope_key=\'forged-tenant\' '+
+      'WHERE state=\'INVOKING\' RETURNING scope_key'),
+      /PA05_WRITE_SQL_IMMUTABLE_IDENTITY/);
     assert.deepEqual((await gate.freeze(packageId)).pendingStates,{INVOKING:1});
     // The Worker may manipulate its authorized business write row, but it
     // cannot drop Host-owned admission guard or revive the central Owner.
@@ -934,8 +977,8 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
       packageId,operation:"DISABLE"
     }),{status:"BLOCKED_PENDING_WRITE",pendingCount:2});
 
-    // Superuser, table owner or an Owner-gate editor MUST NEVER pass
-    // the opt-in Host role audit, even when a trigger exists.
+    // Once a role is pinned it cannot be silently replaced by privileged
+    // credentials even when the Host recreates its SQL guard.
     await assert.rejects(createPa05PluginWriteLifecycleGateV010({
       connectionString:url,schema:a.schema,manager:a.manager,
       authoritySchema:central,workerSchemas,
@@ -943,7 +986,12 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
       workerIdentities:[
         {schema:a.schema,role:"agentproof"},{schema:b.schema,role:roleB}
       ]
-    }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    }),/PA05_SQL_WORKER_LOGIN_RECERTIFICATION_REQUIRED/);
+    await assert.rejects(createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas,
+      enforceSqlOwnerAdmission:true
+    }),/PA05_SQL_WORKER_LOGIN_RECERTIFICATION_REQUIRED/);
     await a.admin.unsafe(
       'GRANT UPDATE ON "'+central+
       '".pa05_plugin_write_lifecycle_gates TO "'+roleA+'"');
@@ -953,19 +1001,47 @@ test("PA05-04D6 PG18: least-privilege Worker can invoke with SQL guard but canno
       enforceSqlOwnerAdmission:true,
       workerIdentities:[{schema:a.schema,role:roleA},{schema:b.schema,role:roleB}]
     }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    await a.admin.unsafe(
+      'REVOKE UPDATE ON "'+central+
+      '".pa05_plugin_write_lifecycle_gates FROM "'+roleA+'"');
+    await a.admin.unsafe(
+      'GRANT DELETE ON "'+a.schema+'".pa02b_writes TO "'+roleA+'"');
+    await assert.rejects(createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas,
+      enforceSqlOwnerAdmission:true,
+      workerIdentities:[{schema:a.schema,role:roleA},{schema:b.schema,role:roleB}]
+    }),/PA05_SQL_WORKER_PRIVILEGES_UNSAFE/);
+    console.log("PA05_PG_WRITE_STATE_INTEGRITY="+JSON.stringify({
+      actualPostgres18:true,
+      preparedCannotForgeTerminal:true,
+      immutableEffectIdentity:true,
+      wrongLoginDeniedOnAnyUpdate:true,
+      workerTerminalAfterInvokingDenied:true,
+      writeTableDeletePrivilegeRejected:true,
+      pendingOwnerCannotDisappear:true,
+      productionWriteEnabled:false
+    }));
+    console.log("PA05_PG_WORKER_LOGIN="+JSON.stringify({
+      postgres18:true,authenticatedLoginRole:true,
+      distinctWorkerIdentityDenied:true,setRoleSpoofDenied:true,
+      approvedWorkerAllowed:true,identityPinImmutable:true,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_PG_WORKER_ROLE_ACL="+JSON.stringify({
       postgres18:true,distinctWorkerSchemas:2,distinctLoginRoles:2,
       workerDmlAllowedWithActiveGate:true,
       triggerRemovalDenied:true,centralGateMutationDenied:true,
       centralInventoryMutationDenied:true,sqlTriggerBlocksFrozenWorker:true,
       superuserRejected:true,overprivilegedRoleRejected:true,
-      productionWriteEnabled:false
+      wrongLoginDenied:true,setRoleImpersonationDenied:true,
+      rolePinCannotDowngrade:true,productionWriteEnabled:false
     }));
   } finally {
     if(gate)await gate.close();
     try{
       await a.admin.unsafe('DROP SCHEMA IF EXISTS "'+central+'" CASCADE');
-      for(const role of [roleA,roleB]) {
+      for(const role of [roleA,roleB,roleC]) {
         await a.admin.unsafe('DROP OWNED BY "'+role+'"');
         await a.admin.unsafe('DROP ROLE IF EXISTS "'+role+'"');
       }

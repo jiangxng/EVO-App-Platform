@@ -141,8 +141,12 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
     );
     await sql.unsafe(
       "CREATE TABLE IF NOT EXISTS " + a + ".pa05_plugin_write_worker_schemas (" +
-      "schema_name text PRIMARY KEY)"
+      "schema_name text PRIMARY KEY,worker_role_name text)"
     );
+    // Existing opt-in installations created before role pinning gain a NULL
+    // role column; NULL preserves the original legacy SQL admission policy.
+    await sql.unsafe("ALTER TABLE " + a +
+      ".pa05_plugin_write_worker_schemas ADD COLUMN IF NOT EXISTS worker_role_name text");
     await sql.begin(async tx => {
       const existing = await tx.unsafe("SELECT schema_name FROM " + a +
         ".pa05_plugin_write_worker_schemas ORDER BY schema_name FOR UPDATE");
@@ -160,6 +164,26 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
             [workerSchema]);
         }
       }
+      // A role identity, once pinned, MUST NOT be silently downgraded to
+      // unauthenticated WRITE admission by later Host construction.
+      const bindingRows=await tx.unsafe(
+        "SELECT schema_name,worker_role_name FROM " + a +
+        ".pa05_plugin_write_worker_schemas ORDER BY schema_name FOR UPDATE"
+      );
+      const roleMap=new Map((input.workerIdentities ?? []).map(x=>[x.schema,x.role]));
+      for(const binding of bindingRows) {
+        const desired=roleMap.get(binding.schema_name);
+        if(binding.worker_role_name !== null &&
+          binding.worker_role_name !== desired)
+          throw Error("PA05_SQL_WORKER_LOGIN_RECERTIFICATION_REQUIRED");
+        if(identityAudited && !desired)
+          throw Error("PA05_SQL_WORKER_IDENTITY_COVERAGE_INVALID");
+        if(identityAudited && binding.worker_role_name === null)
+          await tx.unsafe("UPDATE " + a +
+            ".pa05_plugin_write_worker_schemas SET worker_role_name=$2 " +
+            "WHERE schema_name=$1 AND worker_role_name IS NULL",
+            [binding.schema_name,desired]);
+      }
       if(input.enforceSqlOwnerAdmission) {
         // DDL and the Host inventory commit together. The trigger runs even
         // for a legacy unfenced coordinator, on the *business* schema table.
@@ -173,13 +197,54 @@ export async function createPa05PluginWriteLifecycleGateV010(input: {
           const funcBody=`
 DECLARE gate_state text;
 BEGIN
-  IF OLD.state = 'PREPARED' AND NEW.state = 'INVOKING' THEN
-    IF NOT EXISTS (
+  -- This trigger covers EVERY UPDATE, not only SET state. A Worker with
+  -- UPDATE privilege must never rename an effect or change its Run/tenant
+  -- identity to disappear from the Host's pending Owner-link JOIN.
+  IF NEW.scope_key IS DISTINCT FROM OLD.scope_key OR
+     NEW.effect_id IS DISTINCT FROM OLD.effect_id OR
+     NEW.run_id IS DISTINCT FROM OLD.run_id OR
+     NEW.input_digest IS DISTINCT FROM OLD.input_digest OR
+     NEW.fence IS DISTINCT FROM OLD.fence THEN
+    RAISE EXCEPTION 'PA05_WRITE_SQL_IMMUTABLE_IDENTITY';
+  END IF;
+  -- SESSION_USER is the authenticated login, unchanged by SET ROLE and
+  -- SECURITY DEFINER. Check on every row UPDATE, not just PREPARED->INVOKING.
+  IF NOT EXISTS (
+    SELECT 1 FROM ${a}.pa05_plugin_write_worker_schemas
+    WHERE schema_name = '${workerSchema}'
+  ) THEN
+    RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_NOT_REGISTERED';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM ${a}.pa05_plugin_write_worker_schemas
+    WHERE schema_name = '${workerSchema}'
+      AND worker_role_name IS NOT NULL
+      AND worker_role_name <> SESSION_USER
+  ) THEN
+    RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_LOGIN_DENIED';
+  END IF;
+  -- A forged terminal row would drop out of the Host's PREPARED/INVOKING/
+  -- UNKNOWN drain count without a real Owner receipt. Preserve the durable
+  -- one-way state machine and reserve terminal updates for trusted Host.
+  IF NEW.state IS DISTINCT FROM OLD.state THEN
+    IF NOT (
+      (OLD.state = 'PREPARED' AND NEW.state = 'INVOKING') OR
+      (OLD.state = 'INVOKING' AND NEW.state IN
+        ('UNKNOWN','SUCCEEDED','DENIED','FAILED')) OR
+      (OLD.state = 'UNKNOWN' AND NEW.state IN
+        ('SUCCEEDED','DENIED','FAILED'))
+    ) THEN
+      RAISE EXCEPTION 'PA05_WRITE_SQL_ILLEGAL_TRANSITION';
+    END IF;
+    IF NEW.state IN ('SUCCEEDED','DENIED','FAILED') AND EXISTS (
       SELECT 1 FROM ${a}.pa05_plugin_write_worker_schemas
       WHERE schema_name = '${workerSchema}'
+        AND worker_role_name = SESSION_USER
     ) THEN
-      RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_NOT_REGISTERED';
+      RAISE EXCEPTION 'PA05_WRITE_SQL_WORKER_TERMINAL_FORBIDDEN';
     END IF;
+  END IF;
+  IF OLD.state = 'PREPARED' AND NEW.state = 'INVOKING' THEN
     SELECT g.state INTO gate_state
     FROM ${a}.pa05_plugin_write_lifecycle_gates g
     JOIN ${wq}.pa02b_owner_links l
@@ -205,7 +270,7 @@ END`;
           );
           await tx.unsafe(
             "CREATE TRIGGER pa05_owner_write_admission "+
-            "BEFORE UPDATE OF state ON "+wq+".pa02b_writes "+
+            "BEFORE UPDATE ON "+wq+".pa02b_writes "+
             "FOR EACH ROW EXECUTE FUNCTION "+fq+"()"
           );
         }
@@ -229,6 +294,9 @@ END`;
           " pg_has_role(r.oid, d.datdba, 'MEMBER') AS owns_database," +
           " has_table_privilege(r.oid, wt.oid, 'UPDATE') AS can_write_effect," +
           " has_table_privilege(r.oid, wt.oid, 'TRIGGER') AS can_change_triggers," +
+          " has_table_privilege(r.oid, wt.oid, 'INSERT') AS can_insert_effect," +
+          " has_table_privilege(r.oid, wt.oid, 'DELETE') AS can_delete_effect," +
+          " has_table_privilege(r.oid, wt.oid, 'TRUNCATE') AS can_truncate_effect," +
           " has_table_privilege(r.oid, gt.oid, 'INSERT') AS can_insert_gate," +
           " has_table_privilege(r.oid, gt.oid, 'UPDATE') AS can_update_gate," +
           " has_table_privilege(r.oid, gt.oid, 'DELETE') AS can_delete_gate," +
@@ -249,7 +317,8 @@ END`;
         if (!result || !result.rolcanlogin || !result.can_write_effect ||
           ["rolsuper","rolcreaterole","rolcreatedb","rolreplication","rolbypassrls",
             "owns_worker_table","owns_host_gate","owns_inventory","owns_database",
-            "can_change_triggers","can_insert_gate","can_update_gate",
+            "can_change_triggers","can_insert_effect","can_delete_effect",
+            "can_truncate_effect","can_insert_gate","can_update_gate",
             "can_delete_gate","can_insert_inventory","can_update_inventory",
             "can_delete_inventory","can_create_authority","can_create_worker"
           ].some(key => result[key] === true))
