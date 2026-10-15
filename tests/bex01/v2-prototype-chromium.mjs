@@ -136,7 +136,7 @@ await run('session-refresh-preserves-field-intent-and-invalidates-dryrun',async(
  if(await page.locator('#map_systemCode').inputValue()!=='__IGNORE__')throw Error('Explicit ignore not recovered');
  await page.locator('#prepare').click();
  if(!await page.locator('#precheck').isVisible()||!await page.locator('#submit').isEnabled())throw Error('Same approved creation plan was not reused');
- await page.locator('#checkBack').click();await page.locator('#bankToggle').click();await page.locator('#bank').selectOption('BANK_ARCHIVE');
+ await page.locator('#checkBack').click();if(!await page.locator('#bankBody').isVisible())await page.locator('#bankToggle').click();await page.locator('#bank').selectOption('BANK_ARCHIVE');
  await page.locator('#prepare').click();
  if(!await page.locator('#precheck').isVisible()||!await page.locator('#submit').isEnabled())throw Error('Edited bank mapping not rechecked');
  return {draftRecovered:true,dryrunRechecked:true};
