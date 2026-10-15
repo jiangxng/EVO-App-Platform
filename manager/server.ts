@@ -2483,7 +2483,7 @@ function installBusinessDefaultOnce(packageId: string, ready = true, explicit = 
       packageId,
       installed: manager.getSnapshot().installedPackages.some(item => item.packageId === packageId),
       ready,
-      install() { manager.install(packageId); }
+      install() { pa05WriteLifecycleHost.bootstrapActivation("INSTALL", packageId); }
     });
     if (result === "INSTALLED") console.log("Installed first-run business default", packageId);
   } catch (error) {
@@ -2523,7 +2523,7 @@ if (!installedAtStartup.some(
   item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
 )) {
   try {
-    manager.install(EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID);
     console.log("Activated EVO External Agent Governance foundation.");
   } catch (error) {
     console.error("Failed to activate EVO External Agent Governance foundation.", error);
@@ -2540,7 +2540,7 @@ if (
   )
 ) {
   try {
-    manager.install(EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
     console.log("Activated EVO Runtime Observatory Provider.");
   } catch (error) {
     console.error("Failed to activate EVO Runtime Observatory Provider.", error);
@@ -2551,7 +2551,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_MANAGED_SESSION_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_MANAGED_SESSION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_MANAGED_SESSION_PACKAGE_ID);
     console.log("Activated Host Managed Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Managed Session Provider.", error);
@@ -2564,7 +2564,7 @@ if (
   )
 ) {
   try {
-    manager.install(HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID);
     console.log("Activated Host Identity User Directory Provider.");
   } catch (error) {
     console.error("Failed to activate Host Identity User Directory Provider.", error);
@@ -2575,7 +2575,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_BEARER_SESSION_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_BEARER_SESSION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_BEARER_SESSION_PACKAGE_ID);
     console.log("Activated request-bound Host Bearer Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Bearer Session Provider.", error);
@@ -2583,7 +2583,7 @@ if (
 }
 if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID)) {
   try {
-    manager.install(HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID);
     console.log("Activated Host Enterprise Relationship Provider.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Relationship Provider.", error);
@@ -2595,7 +2595,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_MEMORY_INTAKE_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_MEMORY_INTAKE_PACKAGE_ID);
     console.log("Activated Host Memory Intake Provider.");
   } catch (error) {
     console.error("Failed to activate Host Memory Intake Provider.", error);
@@ -2608,7 +2608,7 @@ if (
   )
 ) {
   try {
-    manager.install(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
     console.log("Activated Remote Context Memory Semantic Provider.");
   } catch (error) {
     console.error("Failed to activate Remote Context Memory Semantic Provider.", error);
@@ -2621,7 +2621,7 @@ if (
   )
 ) {
   try {
-    manager.install(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
     console.log("Activated Remote Context Memory DLP Provider.");
   } catch (error) {
     console.error("Failed to activate Remote Context Memory DLP Provider.", error);
@@ -2634,7 +2634,7 @@ if (
   )
 ) {
   try {
-    manager.install(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
     console.log("Activated Experience Compiler Memory Intake Provider.");
   } catch (error) {
     console.error("Failed to activate Experience Compiler Memory Intake Provider.", error);
@@ -2645,7 +2645,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_STATIC_SESSION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_STATIC_SESSION_PACKAGE_ID);
     console.log("Activated Host Static Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Static Session Provider.", error);
@@ -2658,7 +2658,7 @@ if (
   )
 ) {
   try {
-    manager.install(HOST_STATIC_AUTHORIZATION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_STATIC_AUTHORIZATION_PACKAGE_ID);
     console.log("Activated Host Static Authorization Provider from Host-owned policy.");
   } catch (error) {
     console.error("Failed to activate Host Static Authorization Provider.", error);
@@ -2669,7 +2669,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID);
     console.log("Activated Host Enterprise Context Grant Provider.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Context Grant Provider.", error);
@@ -2680,7 +2680,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_ENTERPRISE_CONTEXT_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENTERPRISE_CONTEXT_PACKAGE_ID);
     console.log("Activated Host Enterprise Context Provider from Host-owned configuration.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Context Provider.", error);
@@ -2710,7 +2710,7 @@ if (
       id: "eog-2d-contextual-designer-v1", ready: true,
       run() {
         if (!eog2dStartupSnapshot.activeFeatures.some(item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
-          manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
+          pa05WriteLifecycleHost.bootstrapActivation("ENABLE", EOG_2D_DESIGNER_PACKAGE_ID);
           console.log("Migrated EOG 2D contextual Designer feature.");
         }
       }
@@ -2732,7 +2732,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_ENCRYPTED_SECRETS_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
     console.log("Migrated installed Secret consumers onto Host encrypted secrets Provider.");
   } catch (error) {
     console.error("Failed to migrate installed Secret consumers onto Host encrypted secrets Provider.", error);
@@ -3321,9 +3321,9 @@ if (
       item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
     );
     if (installed) {
-      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+      pa05WriteLifecycleHost.bootstrapActivation("ENABLE", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
     } else {
-      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+      pa05WriteLifecycleHost.bootstrapActivation("INSTALL", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
     }
     console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
   } catch (error) {
@@ -9555,6 +9555,10 @@ try {
 }
 
 const port = Number(process.env.PORT ?? 4100);
+// PA05 opt-in startup attestation is deliberately placed AFTER synchronous
+// trusted defaults/migrations and BEFORE accepting any HTTP mutations or
+// Agent invocations. A missing/mismatched SQL gate refuses network startup.
+await pa05WriteLifecycleHost.attestStartupActivation();
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
 
 let shuttingDown = false;
