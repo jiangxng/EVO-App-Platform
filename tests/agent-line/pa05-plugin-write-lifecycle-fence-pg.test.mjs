@@ -785,3 +785,86 @@ test("PA05-04D4 PG18 different Schema concurrent BEGIN versus FREEZE always seri
     finally{await a.close();await b.close();}
   }
 });
+
+test("PA05-04D5 PG18: legacy unfenced Worker cannot begin WRITE after central SQL Owner freeze",{
+  skip:!url?"requires isolated PostgreSQL 18":false,timeout:90000
+},async()=>{
+  const a=await setup(),b=await setup();
+  const central="pa05_sql_guard_"+randomUUID().replaceAll("-","").slice(0,12);
+  let hostGate;
+  try{
+    const inventory=[a.schema,b.schema].sort();
+    hostGate=await createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas:inventory,
+      enforceSqlOwnerAdmission:true
+    });
+    await hostGate.register(packageId);
+    for(const schema of inventory){
+      const rows=await a.admin.unsafe(
+        "SELECT trigger_name FROM information_schema.triggers "+
+        "WHERE event_object_schema=$1 AND event_object_table='pa02b_writes' "+
+        "AND trigger_name='pa05_owner_write_admission'",[schema]
+      );
+      assert.ok(rows.length>=1,"Host-installed SQL trigger for "+schema);
+    }
+    const first=await b.prepare("run:legacy-begin-while-active");
+    // Old V020 coordinator is deliberately unfenced: its own schema has an
+    // ACTIVE local gate. Only the CENTRAL SQL trigger can stop it after freeze.
+    assert.equal((await b.coordinator.beginWrite(first)).state,"INVOKING");
+    await b.coordinator.markUnknown(first);
+    const frozen=await hostGate.freeze(packageId);
+    assert.equal(frozen.state,"FROZEN");
+    assert.deepEqual(frozen.pendingStates,{UNKNOWN:1});
+    const second=await a.prepare("run:legacy-unfenced-after-freeze");
+    await assert.rejects(a.coordinator.beginWrite(second),
+      /PA05_WRITE_SQL_OWNER_GATE_FROZEN/);
+    assert.equal((await a.coordinator.getWrite(second)).state,"PREPARED");
+    assert.deepEqual(await hostGate.transition({packageId,operation:"DISABLE"}),
+      {status:"BLOCKED_PENDING_WRITE",pendingCount:2});
+    console.log("PA05_SQL_LEGACY_WORKER_PG="+JSON.stringify({
+      postgres18:true,twoBusinessSchemas:true,legacyUnfencedDeniedBySql:true,
+      otherSchemaUnknownDetected:true,centralOwnerRowLock:true,
+      productionWriteEnabled:false
+    }));
+  }finally{
+    if(hostGate)await hostGate.close();
+    try{await a.admin.unsafe('DROP SCHEMA IF EXISTS "'+central+'" CASCADE');}
+    finally{await a.close();await b.close();}
+  }
+});
+
+test("PA05-04D5 PG18 SQL trigger serializes legacy begin versus central freeze",{
+  skip:!url?"requires isolated PostgreSQL 18":false,timeout:90000
+},async()=>{
+  const a=await setup(),b=await setup();
+  const central="pa05_sql_race_"+randomUUID().replaceAll("-","").slice(0,12);
+  let gate;
+  try{
+    gate=await createPa05PluginWriteLifecycleGateV010({
+      connectionString:url,schema:a.schema,manager:a.manager,
+      authoritySchema:central,workerSchemas:[a.schema,b.schema].sort(),
+      enforceSqlOwnerAdmission:true
+    });
+    await gate.register(packageId);
+    const pending=await b.prepare("run:legacy-trigger-race");
+    const results=await Promise.allSettled([
+      gate.freeze(packageId),b.coordinator.beginWrite(pending)
+    ]);
+    assert.equal(results[0].status,"fulfilled");
+    const frozen=results[0].value;
+    assert.equal(frozen.pendingCount,1);
+    if(results[1].status==="fulfilled"){
+      assert.equal(results[1].value.state,"INVOKING");
+      assert.equal(frozen.pendingStates.INVOKING,1);
+    }else{
+      assert.match(String(results[1].reason),/PA05_WRITE_SQL_OWNER_GATE_FROZEN/);
+      assert.equal(frozen.pendingStates.PREPARED,1);
+    }
+    assert.equal((await gate.getState(packageId)).state,"FROZEN");
+  }finally{
+    if(gate)await gate.close();
+    try{await a.admin.unsafe('DROP SCHEMA IF EXISTS "'+central+'" CASCADE');}
+    finally{await a.close();await b.close();}
+  }
+});
