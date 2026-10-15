@@ -986,5 +986,13 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(saved.state,"STAGED");
   assert.deepEqual(saved.mapping,[{sourceColumn:"编码",targetFieldId:"code"}]);
   assert.deepEqual(saved.source.rows,source.rows);
+  assert.deepEqual(saved.ignoredSourceColumns,["系统编码"]);
+  const reopened=createDataImportMappingPageV010({
+    job:saved,schema:target.describe({contextId:"enterprise-context:a",
+      parameters:{relationshipMode:"SUPPLIER"}}),
+    locale:"zh-CN",canCreateExtension:true
+  });
+  assert.equal(reopened.fields.find(x=>x.key==="map_3").initialValue,"__IGNORE__");
+  assert.equal(reopened.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(extensions.list("enterprise-context:a",target.targetId).length,0);
 });
