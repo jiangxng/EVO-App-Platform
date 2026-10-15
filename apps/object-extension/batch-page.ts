@@ -84,7 +84,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const columns = batchUnmappedColumnsV010(job);
   const available = batchApplicableDefinitionsV010(job, input.definitions);
   const usedTargets = new Set(job.mapping.map(x => x.targetFieldId));
-  const all = input.importableTargets ?? available.map(x => ({
+  const all: BexImportTargetField[] = input.importableTargets ?? available.map(x => ({
     fieldId: x.fieldId, label: x.label.default, valueType: x.valueType
   }));
   const selectable = all.filter(x => !usedTargets.has(x.fieldId));
