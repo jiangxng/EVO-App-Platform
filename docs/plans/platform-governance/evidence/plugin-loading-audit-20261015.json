@@ -1,0 +1,952 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-10-15T04:11:31.431Z",
+  "sourceCommit": "ed36c2af8dadba207939f65b9379e637739e69dc",
+  "sourceState": "working tree; file hashes identify measured source",
+  "measuredFilesSha256": {
+    "manager/server.ts": "42de2cd971ccc9ecd2517f4a518ccb68468d22bab32613e387c47a72693af5fe",
+    "dist/manager/server.js": "30be2ac192e03413c09a28a504595c0dd746ef22583d45a9e534ce5f90200037",
+    "tools/plugin-loading-audit.mjs": "b3cc926150f5604fc2938c384bbc9eda85ebee9bf9411c0a2e9a86b985759e8e",
+    "tools/plugin-loading-audit-probe.mjs": "9299a7a08be227724e1a73d851e758758b59fe2fb35d65624bdf61e024468116",
+    "tools/lightweight-host-probe.mjs": "de736a1930f862472eb05d05270b64b0002134da20f860bfbbe235f74dfd235d"
+  },
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "architecture": "x64"
+  },
+  "scope": "Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Load hooks prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.",
+  "loadedModuleSets": {
+    "c79746f6e929e2f0325dceeb5cc120b7206d1230e44a570e2e22cd24adbc36df": [
+      "dist/actions/lazy-handler.js",
+      "dist/actions/material-write-authorization.js",
+      "dist/actions/router.js",
+      "dist/agents/enterprise-agent/assistance-request.js",
+      "dist/agents/enterprise-agent/capability-fabric-tools.js",
+      "dist/agents/enterprise-agent/chat-action-handler.js",
+      "dist/agents/enterprise-agent/host-tool-catalog.js",
+      "dist/agents/enterprise-agent/package.js",
+      "dist/agents/enterprise-agent/provider-model.js",
+      "dist/agents/enterprise-agent/quality-evaluation-actions.js",
+      "dist/agents/enterprise-agent/quality-evaluation.js",
+      "dist/agents/enterprise-agent/quality-evidence-store.js",
+      "dist/agents/enterprise-agent/quality-trends.js",
+      "dist/agents/enterprise-agent/reply-presentation.js",
+      "dist/agents/enterprise-agent/responsibility-policy.js",
+      "dist/agents/enterprise-agent/run-action-handlers.js",
+      "dist/agents/enterprise-agent/run-runtime.js",
+      "dist/agents/enterprise-agent/runtime.js",
+      "dist/agents/enterprise-agent/thread-action-handlers.js",
+      "dist/agents/enterprise-agent/thread-retention-action-handler.js",
+      "dist/agents/enterprise-agent/thread-turn-action-handlers.js",
+      "dist/apps/bi-workbench/actions.js",
+      "dist/apps/bi-workbench/constants.js",
+      "dist/apps/bi-workbench/package.js",
+      "dist/apps/counterparty/access.js",
+      "dist/apps/counterparty/authorization.js",
+      "dist/apps/counterparty/capability-manifest.js",
+      "dist/apps/counterparty/constants.js",
+      "dist/apps/counterparty/facets.js",
+      "dist/apps/counterparty/foundation-object.js",
+      "dist/apps/counterparty/package.js",
+      "dist/apps/counterparty/projection-service.js",
+      "dist/apps/counterparty/projections.js",
+      "dist/apps/counterparty/repository.js",
+      "dist/apps/counterparty/roles.js",
+      "dist/apps/data-import/authorization.js",
+      "dist/apps/data-import/capability-manifest.js",
+      "dist/apps/data-import/constants.js",
+      "dist/apps/data-import/experience-advisor.js",
+      "dist/apps/data-import/package.js",
+      "dist/apps/data-import/recipe.js",
+      "dist/apps/data-import/repository.js",
+      "dist/apps/data-import/service.js",
+      "dist/apps/data-import/types.js",
+      "dist/apps/enterprise-context-governance/constants.js",
+      "dist/apps/enterprise-context-governance/experience-assets.js",
+      "dist/apps/enterprise-context-governance/package.js",
+      "dist/apps/enterprise-observatory/agent-tools.js",
+      "dist/apps/enterprise-observatory/desktop-page.js",
+      "dist/apps/enterprise-observatory/mobile-read-page.js",
+      "dist/apps/enterprise-observatory/observatory-actions.js",
+      "dist/apps/enterprise-observatory/package.js",
+      "dist/apps/enterprise-observatory/spatial-page.js",
+      "dist/apps/eog-2d-designer/agent-tools.js",
+      "dist/apps/eog-2d-designer/authorization.js",
+      "dist/apps/eog-2d-designer/current-2d-editor-agent-tools.js",
+      "dist/apps/eog-2d-designer/definition-persistence.js",
+      "dist/apps/eog-2d-designer/definition-projection-editor.js",
+      "dist/apps/eog-2d-designer/enterprise-operating-graph-actions.js",
+      "dist/apps/eog-2d-designer/enterprise-operating-graph-model.js",
+      "dist/apps/eog-2d-designer/enterprise-operating-graph-page.js",
+      "dist/apps/eog-2d-designer/enterprise-operating-graph-service.js",
+      "dist/apps/eog-2d-designer/inspector-editors.js",
+      "dist/apps/eog-2d-designer/legacy-definition-migration.js",
+      "dist/apps/eog-2d-designer/package.js",
+      "dist/apps/eog-2d-viewer/package.js",
+      "dist/apps/eog-2d/package.js",
+      "dist/apps/eog-3d-viewer/agent-tools.js",
+      "dist/apps/eog-3d-viewer/package.js",
+      "dist/apps/eog-3d/package.js",
+      "dist/apps/eog-3d/workspace-page.js",
+      "dist/apps/item/authorization.js",
+      "dist/apps/item/capability-manifest.js",
+      "dist/apps/item/constants.js",
+      "dist/apps/item/package.js",
+      "dist/apps/ledger-manager/authorization.js",
+      "dist/apps/ledger-manager/constants.js",
+      "dist/apps/ledger-manager/package.js",
+      "dist/apps/ledger-runtime-configurator/action-handler.js",
+      "dist/apps/ledger-runtime-configurator/capability-action-handlers.js",
+      "dist/apps/ledger-runtime-configurator/capability-manifest.js",
+      "dist/apps/ledger-runtime-configurator/capability-operations.js",
+      "dist/apps/ledger-runtime-configurator/default-library.js",
+      "dist/apps/ledger-runtime-configurator/defaults/bookkeeping/accounts.js",
+      "dist/apps/ledger-runtime-configurator/defaults/bookkeeping/applications.js",
+      "dist/apps/ledger-runtime-configurator/defaults/bookkeeping/dictionaries.js",
+      "dist/apps/ledger-runtime-configurator/defaults/bookkeeping/legacy-posting-rules.js",
+      "dist/apps/ledger-runtime-configurator/defaults/bookkeeping/posting-rules.js",
+      "dist/apps/ledger-runtime-configurator/expression-compiler.js",
+      "dist/apps/ledger-runtime-configurator/service.js",
+      "dist/apps/object-extension/authorization.js",
+      "dist/apps/object-extension/capability-manifest.js",
+      "dist/apps/object-extension/constants.js",
+      "dist/apps/object-extension/package.js",
+      "dist/apps/object-extension/repository.js",
+      "dist/apps/object-extension/values.js",
+      "dist/apps/responsibility/constants.js",
+      "dist/apps/responsibility/package.js",
+      "dist/apps/responsibility/repository.js",
+      "dist/apps/template-store/package.js",
+      "dist/apps/trading-lite/action-handler.js",
+      "dist/apps/trading-reference/constants.js",
+      "dist/apps/trading-reference/operational-projection.js",
+      "dist/apps/trading-reference/package.js",
+      "dist/apps/trading-stage-cash/package.js",
+      "dist/apps/trading-stage-purchasing/package.js",
+      "dist/apps/trading-stage-receivable/package.js",
+      "dist/apps/trading-stage-receiving/package.js",
+      "dist/apps/trading-stage-sales/package.js",
+      "dist/apps/trading-stage-shipment/package.js",
+      "dist/apps/trading-stage/demo-kit.js",
+      "dist/apps/trading-stage/host-preview.js",
+      "dist/apps/warehouse/authorization.js",
+      "dist/apps/warehouse/capability-manifest.js",
+      "dist/apps/warehouse/constants.js",
+      "dist/apps/warehouse/package.js",
+      "dist/catalog/catalog.js",
+      "dist/catalog/seed.js",
+      "dist/contracts/current-2d-editor.js",
+      "dist/contracts/definition-projection.js",
+      "dist/contracts/enterprise-application-runtime-binding.js",
+      "dist/contracts/enterprise-business-definition.js",
+      "dist/contracts/enterprise-context-preference.js",
+      "dist/contracts/enterprise-operating-graph-inspector.js",
+      "dist/contracts/enterprise-operating-graph-observatory-runtime.js",
+      "dist/contracts/enterprise-operating-graph-view.js",
+      "dist/contracts/enterprise-operating-graph.js",
+      "dist/contracts/enterprise-resource.js",
+      "dist/contracts/evo-ledger-runtime-application-id.js",
+      "dist/contracts/external-agent-oauth.js",
+      "dist/contracts/foundation-object/descriptor.js",
+      "dist/contracts/foundation-object/extension-value.js",
+      "dist/contracts/foundation-object/extension.js",
+      "dist/contracts/foundation-object/schema.js",
+      "dist/contracts/plugin-protocol.js",
+      "dist/contracts/template-preview.js",
+      "dist/contracts/template-projection-gallery.js",
+      "dist/contracts/template-transfer.js",
+      "dist/eog/2d-inspector-contributions.js",
+      "dist/eog/2d-inspector-editors.js",
+      "dist/eog/2d-selection-inspection.js",
+      "dist/eog/definition-projection.js",
+      "dist/eog/diagram-projection.js",
+      "dist/eog/observatory-input.js",
+      "dist/eog/spatial-projection.js",
+      "dist/foundation/schema-compiler/index.js",
+      "dist/manager/agent-action-receipt-store.js",
+      "dist/manager/agent-async-run-host-mode.js",
+      "dist/manager/agent-capability-fabric.js",
+      "dist/manager/agent-run-store.js",
+      "dist/manager/app-host-shell.js",
+      "dist/manager/authentication-flow.js",
+      "dist/manager/capability-operation-access.js",
+      "dist/manager/compatibility.js",
+      "dist/manager/context-memory-actions.js",
+      "dist/manager/context-memory-authority.js",
+      "dist/manager/context-memory-canonicalization-actions.js",
+      "dist/manager/context-memory-canonicalization-service.js",
+      "dist/manager/context-memory-canonicalization-store.js",
+      "dist/manager/context-memory-freshness-policy-actions.js",
+      "dist/manager/context-memory-freshness-policy-store.js",
+      "dist/manager/context-memory-governance-actions.js",
+      "dist/manager/context-memory-governance-store.js",
+      "dist/manager/context-memory-intake-actions.js",
+      "dist/manager/context-memory-intake-service.js",
+      "dist/manager/context-memory-intake-store.js",
+      "dist/manager/context-memory-legal-hold-store.js",
+      "dist/manager/context-memory-operations.js",
+      "dist/manager/context-memory-policy-actions.js",
+      "dist/manager/context-memory-proposal-actions.js",
+      "dist/manager/context-memory-proposal-service.js",
+      "dist/manager/context-memory-proposal-store.js",
+      "dist/manager/context-memory-quality-actions.js",
+      "dist/manager/context-memory-quality-store.js",
+      "dist/manager/context-memory-retention-draft-store.js",
+      "dist/manager/context-memory-retention-policy-store.js",
+      "dist/manager/context-memory-retention-simulation.js",
+      "dist/manager/context-memory-schedule-state-store.js",
+      "dist/manager/context-memory-scheduler.js",
+      "dist/manager/context-memory-store.js",
+      "dist/manager/context-registry.js",
+      "dist/manager/conversation-context-assembly.js",
+      "dist/manager/conversation-context-postgres-store.js",
+      "dist/manager/conversation-mirror-store.js",
+      "dist/manager/conversation-postgres-store.js",
+      "dist/manager/conversation-thread-retention.js",
+      "dist/manager/conversation-thread-store.js",
+      "dist/manager/default-enterprise-context.js",
+      "dist/manager/enterprise-context-archive.js",
+      "dist/manager/enterprise-context-authorization.js",
+      "dist/manager/enterprise-context-creation.js",
+      "dist/manager/enterprise-context-default-actions.js",
+      "dist/manager/enterprise-context-governance-store.js",
+      "dist/manager/enterprise-operating-graph-actions.js",
+      "dist/manager/enterprise-operating-graph-agent-tools.js",
+      "dist/manager/enterprise-operating-graph-inspector-provider.js",
+      "dist/manager/enterprise-operating-graph-mobile-read-page.js",
+      "dist/manager/enterprise-operating-graph-observatory-actions.js",
+      "dist/manager/enterprise-operating-graph-observatory-agent-tools.js",
+      "dist/manager/enterprise-operating-graph-observatory-page.js",
+      "dist/manager/enterprise-operating-graph-observatory-provider.js",
+      "dist/manager/enterprise-operating-graph-observatory.js",
+      "dist/manager/enterprise-operating-graph-page.js",
+      "dist/manager/enterprise-operating-graph-service.js",
+      "dist/manager/enterprise-operating-graph-sop-actions.js",
+      "dist/manager/enterprise-operating-graph-sop-agent-tools.js",
+      "dist/manager/enterprise-operating-graph-sop-service.js",
+      "dist/manager/enterprise-operating-graph-spatial-observatory-page.js",
+      "dist/manager/enterprise-relationship-actions.js",
+      "dist/manager/eog-preview-seed.js",
+      "dist/manager/evo-business-data-http-adapter.js",
+      "dist/manager/evo-runtime-observation-http-adapter.js",
+      "dist/manager/evo-runtime-revision-bridge.js",
+      "dist/manager/external-agent-delegated-access.js",
+      "dist/manager/external-agent-governance-actions.js",
+      "dist/manager/external-agent-governance-package.js",
+      "dist/manager/external-agent-governance-service.js",
+      "dist/manager/external-agent-governance-store.js",
+      "dist/manager/external-agent-oauth-consent-page.js",
+      "dist/manager/external-agent-oauth-http.js",
+      "dist/manager/external-agent-oauth-service.js",
+      "dist/manager/external-agent-oauth-store.js",
+      "dist/manager/help-system.js",
+      "dist/manager/identity-session-store.js",
+      "dist/manager/identity-user-directory-store.js",
+      "dist/manager/lazy-provider-runtime.js",
+      "dist/manager/lifecycle-migrations.js",
+      "dist/manager/localization.js",
+      "dist/manager/login-page.js",
+      "dist/manager/material-write-authorization.js",
+      "dist/manager/mcp-capability-projection.js",
+      "dist/manager/mcp-modern-core.js",
+      "dist/manager/mcp-modern-http.js",
+      "dist/manager/mcp-product-adapter.js",
+      "dist/manager/mcp-protected-resource.js",
+      "dist/manager/memory-governance-page.js",
+      "dist/manager/package-display-name.js",
+      "dist/manager/package-integrity.js",
+      "dist/manager/personal-agent-experience.js",
+      "dist/manager/personal-agent-follow-up-actions.js",
+      "dist/manager/personal-agent-follow-up-page.js",
+      "dist/manager/personal-agent-follow-up-store.js",
+      "dist/manager/personal-agent-quality-page.js",
+      "dist/manager/plugin-host-services.js",
+      "dist/manager/plugin-runtime-dispatcher.js",
+      "dist/manager/plugin-runtime-host.js",
+      "dist/manager/plugin-runtime-observability.js",
+      "dist/manager/plugin-runtime-remote.js",
+      "dist/manager/plugin-store-page.js",
+      "dist/manager/principal-context.js",
+      "dist/manager/provider-governance.js",
+      "dist/manager/provider-lifecycle-administration.js",
+      "dist/manager/provider-lifecycle-page.js",
+      "dist/manager/provider-manager-page.js",
+      "dist/manager/provider-resolution.js",
+      "dist/manager/realtime-event-bus.js",
+      "dist/manager/request-authentication.js",
+      "dist/manager/request-context.js",
+      "dist/manager/request-security.js",
+      "dist/manager/secret-governance.js",
+      "dist/manager/secret-store.js",
+      "dist/manager/server.js",
+      "dist/manager/service.js",
+      "dist/manager/session-cookie.js",
+      "dist/manager/settings-page.js",
+      "dist/manager/settings-store.js",
+      "dist/manager/sigstore-verifier.js",
+      "dist/manager/startup-defaults.js",
+      "dist/manager/store.js",
+      "dist/manager/template-preview-session.js",
+      "dist/manager/template-store-authorization.js",
+      "dist/manager/transport-traffic-diagnostics.js",
+      "dist/manager/web-asset-archive.js",
+      "dist/manager/web-delivery-cache.js",
+      "dist/manager/web-performance.js",
+      "dist/manager/web-security-headers.js",
+      "dist/manager/web-version-skew.js",
+      "dist/providers/application-runtime-binding/package.js",
+      "dist/providers/application-runtime-binding/runtime.js",
+      "dist/providers/application-runtime-binding/store.js",
+      "dist/providers/authentication/capability.js",
+      "dist/providers/authorization/package.js",
+      "dist/providers/authorization/runtime.js",
+      "dist/providers/context-memory-dlp/package.js",
+      "dist/providers/context-memory-dlp/runtime.js",
+      "dist/providers/context-memory-semantic/package.js",
+      "dist/providers/context-memory-semantic/runtime.js",
+      "dist/providers/context-memory/governance.js",
+      "dist/providers/context-memory/package.js",
+      "dist/providers/context-memory/runtime.js",
+      "dist/providers/deepseek/package.js",
+      "dist/providers/deepseek/runtime.js",
+      "dist/providers/enterprise-context-grant/package.js",
+      "dist/providers/enterprise-context-grant/runtime.js",
+      "dist/providers/enterprise-context/business-definitions.js",
+      "dist/providers/enterprise-context/definition-projection-store.js",
+      "dist/providers/enterprise-context/definition-projection.js",
+      "dist/providers/enterprise-context/eog-sop-migration.js",
+      "dist/providers/enterprise-context/package.js",
+      "dist/providers/enterprise-context/resources.js",
+      "dist/providers/enterprise-context/runtime.js",
+      "dist/providers/enterprise-context/template-transfer.js",
+      "dist/providers/enterprise-relationship/package.js",
+      "dist/providers/enterprise-relationship/runtime.js",
+      "dist/providers/eog-bottleneck-analysis/package.js",
+      "dist/providers/eog-view-state/runtime.js",
+      "dist/providers/eog-view-state/store.js",
+      "dist/providers/evo-runtime-observatory/package.js",
+      "dist/providers/evo-runtime-observatory/runtime.js",
+      "dist/providers/experience-compiler-memory/package.js",
+      "dist/providers/experience-compiler-memory/runtime.js",
+      "dist/providers/identity-directory/package.js",
+      "dist/providers/identity-directory/runtime.js",
+      "dist/providers/managed-session/package.js",
+      "dist/providers/managed-session/runtime.js",
+      "dist/providers/memory-intake/package.js",
+      "dist/providers/memory-intake/runtime.js",
+      "dist/providers/oidc/host-runtime.js",
+      "dist/providers/oidc/package.js",
+      "dist/providers/oidc/runtime.js",
+      "dist/providers/openai/package.js",
+      "dist/providers/openai/runtime.js",
+      "dist/providers/remote-credential/package.js",
+      "dist/providers/remote-credential/runtime.js",
+      "dist/providers/request-session/package.js",
+      "dist/providers/request-session/runtime.js",
+      "dist/providers/runtime-registry.js",
+      "dist/providers/secrets/package.js",
+      "dist/providers/secrets/runtime.js",
+      "dist/providers/session/package.js",
+      "dist/providers/session/runtime.js",
+      "dist/vendor/eidos/src/2d/index.js",
+      "dist/vendor/eidos/src/design-language/icons/icon-system.js",
+      "dist/vendor/eidos/src/design-language/icons/index.js",
+      "dist/vendor/eidos/src/design-language/index.js",
+      "dist/vendor/eidos/src/design-language/mobile.js",
+      "dist/vendor/eidos/src/design-language/policy.js",
+      "dist/vendor/eidos/src/design-language/productive-workbench-css.js",
+      "dist/vendor/eidos/src/design-language/tokens.js",
+      "dist/vendor/eidos/src/design-language/typography.js",
+      "dist/vendor/eidos/src/diagram/contracts.js",
+      "dist/vendor/eidos/src/diagram/edge-lanes.js",
+      "dist/vendor/eidos/src/diagram/edge-paths.js",
+      "dist/vendor/eidos/src/diagram/edge-waypoints.js",
+      "dist/vendor/eidos/src/diagram/editor.js",
+      "dist/vendor/eidos/src/diagram/index.js",
+      "dist/vendor/eidos/src/diagram/ink-spatial-index.js",
+      "dist/vendor/eidos/src/diagram/label-reservation.js",
+      "dist/vendor/eidos/src/diagram/layered-layout.js",
+      "dist/vendor/eidos/src/diagram/obstacle-routing.js",
+      "dist/vendor/eidos/src/diagram/obstacle-spatial-index.js",
+      "dist/vendor/eidos/src/diagram/selection.js",
+      "dist/vendor/eidos/src/diagram/snapping.js",
+      "dist/vendor/eidos/src/diagram/surface.js",
+      "dist/vendor/eidos/src/diagram/viewport.js",
+      "dist/vendor/eidos/src/diagram/workspace.js",
+      "dist/vendor/eidos/src/localization/contracts.js",
+      "dist/vendor/eidos/src/localization/host-resources.js",
+      "dist/vendor/eidos/src/localization/index.js",
+      "dist/vendor/eidos/src/localization/localize.js",
+      "dist/vendor/eidos/src/localization/runtime.js",
+      "dist/vendor/eidos/src/navigation/context-navigation.js"
+    ]
+  },
+  "samples": [
+    {
+      "profile": "minimal-uninstalled",
+      "kind": "host-baseline",
+      "idleWindowMs": 501.27073800000005,
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "registeredIntervals": [],
+      "installedPackages": [
+        "evo.external-agent-governance",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatures": [
+        {
+          "packageId": "evo.external-agent-governance",
+          "featureId": "evo.external-agent-governance.default"
+        },
+        {
+          "packageId": "host-enterprise-context-grant-provider",
+          "featureId": "host-enterprise-context-grant-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-context-provider",
+          "featureId": "host-enterprise-context-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-relationship-provider",
+          "featureId": "host-enterprise-relationship-provider.default"
+        },
+        {
+          "packageId": "host-identity-user-directory-provider",
+          "featureId": "host-identity-user-directory-provider.default"
+        },
+        {
+          "packageId": "host-managed-session-provider",
+          "featureId": "host-managed-session-provider.default"
+        },
+        {
+          "packageId": "host-static-authorization-provider",
+          "featureId": "host-static-authorization-provider.default"
+        }
+      ],
+      "storedFiles": [
+        {
+          "path": "secrets.master.key",
+          "bytes": 45
+        },
+        {
+          "path": "state.json",
+          "bytes": 2980
+        }
+      ],
+      "archivedAssets": {
+        "files": 612,
+        "bytes": 6294754,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 85
+          },
+          "actions": {
+            "files": 4,
+            "bytes": 4307
+          },
+          "agents": {
+            "files": 37,
+            "bytes": 428424
+          },
+          "apps": {
+            "files": 182,
+            "bytes": 2777145
+          },
+          "catalog": {
+            "files": 2,
+            "bytes": 16546
+          },
+          "contracts": {
+            "files": 43,
+            "bytes": 57053
+          },
+          "eog": {
+            "files": 8,
+            "bytes": 37243
+          },
+          "foundation": {
+            "files": 3,
+            "bytes": 16951
+          },
+          "manager": {
+            "files": 168,
+            "bytes": 1744589
+          },
+          "providers": {
+            "files": 56,
+            "bytes": 327621
+          },
+          "vendor": {
+            "files": 108,
+            "bytes": 884790
+          }
+        }
+      },
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "loadedModuleSet": "c79746f6e929e2f0325dceeb5cc120b7206d1230e44a570e2e22cd24adbc36df",
+      "loadedModuleCount": 362
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "kind": "host-baseline",
+      "idleWindowMs": 501.1104889999999,
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "registeredIntervals": [],
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatures": [
+        {
+          "packageId": "eog-bottleneck-analysis-provider",
+          "featureId": "eog-bottleneck-analysis-provider.default"
+        },
+        {
+          "packageId": "evo-counterparty",
+          "featureId": "evo-counterparty.default"
+        },
+        {
+          "packageId": "evo-data-import",
+          "featureId": "evo-data-import.default"
+        },
+        {
+          "packageId": "evo-enterprise-observatory",
+          "featureId": "evo-enterprise-observatory.2d"
+        },
+        {
+          "packageId": "evo-enterprise-observatory",
+          "featureId": "evo-enterprise-observatory.3d"
+        },
+        {
+          "packageId": "evo-eog-2d",
+          "featureId": "evo-eog-2d.designer"
+        },
+        {
+          "packageId": "evo-eog-2d",
+          "featureId": "evo-eog-2d.viewer"
+        },
+        {
+          "packageId": "evo-eog-3d",
+          "featureId": "evo-eog-3d.viewer"
+        },
+        {
+          "packageId": "evo-object-extension",
+          "featureId": "evo-object-extension.default"
+        },
+        {
+          "packageId": "evo-responsibility",
+          "featureId": "evo-responsibility.default"
+        },
+        {
+          "packageId": "evo.external-agent-governance",
+          "featureId": "evo.external-agent-governance.default"
+        },
+        {
+          "packageId": "host-context-memory-provider",
+          "featureId": "host-context-memory-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-context-grant-provider",
+          "featureId": "host-enterprise-context-grant-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-context-provider",
+          "featureId": "host-enterprise-context-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-relationship-provider",
+          "featureId": "host-enterprise-relationship-provider.default"
+        },
+        {
+          "packageId": "host-identity-user-directory-provider",
+          "featureId": "host-identity-user-directory-provider.default"
+        },
+        {
+          "packageId": "host-managed-session-provider",
+          "featureId": "host-managed-session-provider.default"
+        },
+        {
+          "packageId": "host-static-authorization-provider",
+          "featureId": "host-static-authorization-provider.default"
+        }
+      ],
+      "storedFiles": [
+        {
+          "path": "secrets.master.key",
+          "bytes": 45
+        },
+        {
+          "path": "startup-defaults.json",
+          "bytes": 441
+        },
+        {
+          "path": "state.json",
+          "bytes": 6656
+        }
+      ],
+      "archivedAssets": {
+        "files": 612,
+        "bytes": 6294754,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 85
+          },
+          "actions": {
+            "files": 4,
+            "bytes": 4307
+          },
+          "agents": {
+            "files": 37,
+            "bytes": 428424
+          },
+          "apps": {
+            "files": 182,
+            "bytes": 2777145
+          },
+          "catalog": {
+            "files": 2,
+            "bytes": 16546
+          },
+          "contracts": {
+            "files": 43,
+            "bytes": 57053
+          },
+          "eog": {
+            "files": 8,
+            "bytes": 37243
+          },
+          "foundation": {
+            "files": 3,
+            "bytes": 16951
+          },
+          "manager": {
+            "files": 168,
+            "bytes": 1744589
+          },
+          "providers": {
+            "files": 56,
+            "bytes": 327621
+          },
+          "vendor": {
+            "files": 108,
+            "bytes": 884790
+          }
+        }
+      },
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "loadedModuleSet": "c79746f6e929e2f0325dceeb5cc120b7206d1230e44a570e2e22cd24adbc36df",
+      "loadedModuleCount": 362
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "kind": "host-baseline",
+      "idleWindowMs": 500.09243399999997,
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "registeredIntervals": [],
+      "installedPackages": [
+        "eog-bottleneck-analysis-provider",
+        "evo-counterparty",
+        "evo-data-import",
+        "evo-enterprise-observatory",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-object-extension",
+        "evo-responsibility",
+        "evo.external-agent-governance",
+        "host-context-memory-provider",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatures": [
+        {
+          "packageId": "evo-responsibility",
+          "featureId": "evo-responsibility.default"
+        },
+        {
+          "packageId": "evo.external-agent-governance",
+          "featureId": "evo.external-agent-governance.default"
+        },
+        {
+          "packageId": "host-context-memory-provider",
+          "featureId": "host-context-memory-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-context-grant-provider",
+          "featureId": "host-enterprise-context-grant-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-context-provider",
+          "featureId": "host-enterprise-context-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-relationship-provider",
+          "featureId": "host-enterprise-relationship-provider.default"
+        },
+        {
+          "packageId": "host-identity-user-directory-provider",
+          "featureId": "host-identity-user-directory-provider.default"
+        },
+        {
+          "packageId": "host-managed-session-provider",
+          "featureId": "host-managed-session-provider.default"
+        },
+        {
+          "packageId": "host-static-authorization-provider",
+          "featureId": "host-static-authorization-provider.default"
+        }
+      ],
+      "storedFiles": [
+        {
+          "path": "secrets.master.key",
+          "bytes": 45
+        },
+        {
+          "path": "startup-defaults.json",
+          "bytes": 441
+        },
+        {
+          "path": "state.json",
+          "bytes": 3870
+        }
+      ],
+      "archivedAssets": {
+        "files": 612,
+        "bytes": 6294754,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 85
+          },
+          "actions": {
+            "files": 4,
+            "bytes": 4307
+          },
+          "agents": {
+            "files": 37,
+            "bytes": 428424
+          },
+          "apps": {
+            "files": 182,
+            "bytes": 2777145
+          },
+          "catalog": {
+            "files": 2,
+            "bytes": 16546
+          },
+          "contracts": {
+            "files": 43,
+            "bytes": 57053
+          },
+          "eog": {
+            "files": 8,
+            "bytes": 37243
+          },
+          "foundation": {
+            "files": 3,
+            "bytes": 16951
+          },
+          "manager": {
+            "files": 168,
+            "bytes": 1744589
+          },
+          "providers": {
+            "files": 56,
+            "bytes": 327621
+          },
+          "vendor": {
+            "files": 108,
+            "bytes": 884790
+          }
+        }
+      },
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "disabledPackages": [
+        "evo-counterparty",
+        "evo-object-extension",
+        "evo-data-import",
+        "evo-eog-2d",
+        "evo-eog-3d",
+        "evo-enterprise-observatory",
+        "eog-bottleneck-analysis-provider"
+      ],
+      "loadedModuleSet": "c79746f6e929e2f0325dceeb5cc120b7206d1230e44a570e2e22cd24adbc36df",
+      "loadedModuleCount": 362
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "kind": "host-baseline",
+      "idleWindowMs": 501.324288,
+      "activeResources": {
+        "PipeWrap": 2,
+        "TCPServerWrap": 1,
+        "Timeout": 1
+      },
+      "blockedOutbound": 0,
+      "note": "Includes benchmark IPC and one sampling Timeout; no business workload.",
+      "registeredIntervals": [
+        {
+          "delayMs": 60000,
+          "origin": "    at file://<repo>/dist/manager/server.js:2293:34\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)",
+          "referenced": false
+        }
+      ],
+      "installedPackages": [
+        "evo.external-agent-governance",
+        "host-enterprise-context-grant-provider",
+        "host-enterprise-context-provider",
+        "host-enterprise-relationship-provider",
+        "host-identity-user-directory-provider",
+        "host-managed-session-provider",
+        "host-static-authorization-provider"
+      ],
+      "activeFeatures": [
+        {
+          "packageId": "evo.external-agent-governance",
+          "featureId": "evo.external-agent-governance.default"
+        },
+        {
+          "packageId": "host-enterprise-context-grant-provider",
+          "featureId": "host-enterprise-context-grant-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-context-provider",
+          "featureId": "host-enterprise-context-provider.default"
+        },
+        {
+          "packageId": "host-enterprise-relationship-provider",
+          "featureId": "host-enterprise-relationship-provider.default"
+        },
+        {
+          "packageId": "host-identity-user-directory-provider",
+          "featureId": "host-identity-user-directory-provider.default"
+        },
+        {
+          "packageId": "host-managed-session-provider",
+          "featureId": "host-managed-session-provider.default"
+        },
+        {
+          "packageId": "host-static-authorization-provider",
+          "featureId": "host-static-authorization-provider.default"
+        }
+      ],
+      "storedFiles": [
+        {
+          "path": "secrets.master.key",
+          "bytes": 45
+        },
+        {
+          "path": "state.json",
+          "bytes": 2980
+        }
+      ],
+      "archivedAssets": {
+        "files": 612,
+        "bytes": 6294754,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 85
+          },
+          "actions": {
+            "files": 4,
+            "bytes": 4307
+          },
+          "agents": {
+            "files": 37,
+            "bytes": 428424
+          },
+          "apps": {
+            "files": 182,
+            "bytes": 2777145
+          },
+          "catalog": {
+            "files": 2,
+            "bytes": 16546
+          },
+          "contracts": {
+            "files": 43,
+            "bytes": 57053
+          },
+          "eog": {
+            "files": 8,
+            "bytes": 37243
+          },
+          "foundation": {
+            "files": 3,
+            "bytes": 16951
+          },
+          "manager": {
+            "files": 168,
+            "bytes": 1744589
+          },
+          "providers": {
+            "files": 56,
+            "bytes": 327621
+          },
+          "vendor": {
+            "files": 108,
+            "bytes": 884790
+          }
+        }
+      },
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      },
+      "loadedModuleSet": "c79746f6e929e2f0325dceeb5cc120b7206d1230e44a570e2e22cd24adbc36df",
+      "loadedModuleCount": 362
+    }
+  ]
+}
