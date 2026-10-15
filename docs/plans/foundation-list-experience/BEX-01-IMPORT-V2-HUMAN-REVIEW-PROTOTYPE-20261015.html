@@ -28,6 +28,22 @@ button.secondary,button.primary,button.light{border-radius:7px;min-height:40px;p
 @media(max-width:850px){.stage{margin-top:18px}.pagehead{display:block}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.issue{grid-template-columns:30px 1fr}.issue>button{grid-column:2;justify-self:start}.recordgrid{grid-template-columns:1fr 1fr}.recordgrid>div:last-child{grid-column:1/-1}.issuedetail{padding-left:22px}}
 @media(max-width:520px){header.topbar{padding:0 16px}.header-right span:nth-child(2){display:none}main{padding:18px 14px 60px}h1{font-size:23px}.metrics{gap:9px}.metric{padding:13px 15px}.metric .num{font-size:24px}.fileinfo{padding:16px}.filepill{display:none}.stage{font-size:12px}.stageline{width:22px}.sectionhead{display:block}.sectionhead .sectionbar{margin-top:5px}.issue{padding:16px}.issuedetail{padding:13px 16px}.recordgrid{display:block}.recordgrid>div{padding:3px 0}.recordgrid select{margin-top:7px}.actionbar{display:block}.actions{margin-top:10px;display:grid;grid-template-columns:1fr}.actionbar button{width:100%}.panelbody{padding:18px}.maphead{display:block}.maptoolbar{margin-top:12px}}
 @media(prefers-reduced-motion:no-preference){button{transition:background-color .14s ease}}
+
+@media(max-width:680px){
+ .mappingpanel .tablewrap{overflow:visible}
+ .mappingpanel table,.mappingpanel tbody,.mappingpanel tr,.mappingpanel td{display:block;width:100%;min-width:0}
+ .mappingpanel table{min-width:0}
+ .mappingpanel thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+ .mappingpanel tbody tr{position:relative;padding:12px 15px 16px;border-bottom:1px solid var(--line)}
+ .mappingpanel tbody tr:last-child{border-bottom:0}
+ .mappingpanel tbody td{padding:3px 0;border:0}
+ .mappingpanel tbody td:nth-child(1){font-size:14px;padding-right:96px}
+ .mappingpanel tbody td:nth-child(2){font-size:12px;max-width:none;padding-right:0}
+ .mappingpanel tbody td:nth-child(2)::before{content:"示例：";color:var(--muted)}
+ .mappingpanel tbody td:nth-child(3){margin-top:8px}
+ .mappingpanel tbody td:nth-child(4){position:absolute;top:12px;right:15px;width:auto}
+ .mappingpanel .mappingselect{min-width:0;max-width:none;width:100%}
+}
 </style>
 </head>
 <body>
