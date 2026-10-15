@@ -35,6 +35,7 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
       remoteA:"pa05ba_"+suffix,remoteB:"pa05bb_"+suffix}
   ];
   const workerRole="pa05ww_"+suffix;
+  const delegatedRole="pa05delegate_"+suffix;
   const central=postgres(cUrl,{max:3});
   const a=postgres(aUrl,{max:3}),b=postgres(bUrl,{max:3});
   let authority,remoteGateway;
@@ -191,6 +192,74 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
       /PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
     assert.equal((await authority.getState(owner)).pendingCount,1);
 
+
+    // D14B3: attach bounded protected-schema ACL checks to the same actual
+    // Host principal used by D10, not an unrelated mock account.
+    // Central authority tables were created above. A's PA-02/D10 tables
+    // are genuine; B's schema is provisioned as an unused adversarial
+    // Worker target for complete Worker inventory coverage.
+    for(const table of ["pa02b_writes","pa05_xdb_remote_tickets",
+      "pa05_xdb_remote_config"]) {
+      await b.unsafe("CREATE TABLE "+q(remoteB)+"."+table+
+        "(sample_id text PRIMARY KEY)");
+    }
+    const guarded=(h,rev,remoteAPass)=>createPa05CrossDatabaseHostPrincipalV010({
+      hostId:h.id,revision:rev,
+      centralConnectionString:uri(cUrl,h.centralRole,pass),
+      centralSchema,centralProtectedSchema:ownerSchema,
+      remoteDatabases:[
+        {connectionString:uri(aUrl,h.remoteA,remoteAPass),
+          schema:remoteA,protectedSchema:remoteA,workerId:"remote-a"},
+        {connectionString:uri(bUrl,h.remoteB,pass),
+          schema:remoteB,protectedSchema:remoteB,workerId:"remote-b"}
+      ]
+    });
+    const protectedAlpha=guarded(profiles[0],1,pass);
+    const protectedBeta=guarded(profiles[1],1,pass);
+    await protectedAlpha.assertActive();
+    await protectedBeta.assertActive();
+
+    // Host identity may read manifest, but never mutate the actual
+    // central gate or remote ticket/config/WRITE tables, including through
+    // an administrator's accidental direct GRANT.
+    await central.unsafe('GRANT UPDATE ON "'+ownerSchema+
+      '".pa05_xdb_reservations TO "'+profiles[0].centralRole+'"');
+    await assert.rejects(protectedAlpha.assertActive(),
+      /PA05_XDB_HOST_IDENTITY_CENTRAL_UNVERIFIED/);
+    await central.unsafe('REVOKE UPDATE ON "'+ownerSchema+
+      '".pa05_xdb_reservations FROM "'+profiles[0].centralRole+'"');
+    await protectedAlpha.assertActive();
+
+    await a.unsafe('GRANT UPDATE ON '+rq+
+      '.pa05_xdb_remote_tickets TO "'+profiles[0].remoteA+'"');
+    await assert.rejects(protectedAlpha.assertActive(),
+      /PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
+    await a.unsafe('REVOKE UPDATE ON '+rq+
+      '.pa05_xdb_remote_tickets FROM "'+profiles[0].remoteA+'"');
+    await protectedAlpha.assertActive();
+
+    // NOINHERIT role delegation is dangerous through SET ROLE even
+    // when a shallow direct table privilege audit cannot detect it.
+    await b.unsafe('CREATE ROLE "'+delegatedRole+'" NOLOGIN');
+    await b.unsafe('GRANT UPDATE ON '+q(remoteB)+
+      '.pa05_xdb_remote_config TO "'+delegatedRole+'"');
+    await b.unsafe('GRANT "'+delegatedRole+'" TO "'+
+      profiles[0].remoteB+'" WITH INHERIT FALSE');
+    await assert.rejects(protectedAlpha.assertActive(),
+      /PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
+    await protectedBeta.assertActive();
+    await b.unsafe('REVOKE "'+delegatedRole+'" FROM "'+
+      profiles[0].remoteB+'"');
+    await protectedAlpha.assertActive();
+
+    // Fully revoke LOGIN capability. Reused pooled connections cannot mask
+    // this because the verifier starts a new physical session each time.
+    await b.unsafe('ALTER ROLE "'+profiles[0].remoteB+'" NOLOGIN');
+    await assert.rejects(protectedAlpha.assertActive(),
+      /PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
+    await b.unsafe('ALTER ROLE "'+profiles[0].remoteB+'" LOGIN');
+    await protectedAlpha.assertActive();
+
     // PASSWORD rotation is checked using *fresh* physical sessions, not a
     // surviving pooled connection. Beta is unaffected by Alpha's rotation.
     await a.unsafe('ALTER ROLE "'+profiles[0].remoteA+
@@ -200,6 +269,35 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
     }),/PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
     await beta.assertActive();
     assert.equal((await authority.getState(owner)).pendingCount,1);
+    await assert.rejects(protectedAlpha.assertActive(),
+      /PA05_XDB_HOST_IDENTITY_REMOTE_UNVERIFIED/);
+
+    // Credential rotation is an administrator-controlled staged revision.
+    // New SQL secret + new full manifest revision can be re-attested;
+    // previous revision is rejected and Beta is unaffected.
+    const rotatedAlpha=guarded(profiles[0],2,rotated);
+    for(const [db,schema] of [[central,centralSchema],[a,remoteA],[b,remoteB]])
+      await db.unsafe("UPDATE "+t(schema)+" SET revision=2 "+
+        "WHERE host_id=$1",[profiles[0].id]);
+    await assert.rejects(protectedAlpha.assertActive(),
+      /PA05_XDB_HOST_IDENTITY_CENTRAL_BINDING_MISMATCH/);
+    await rotatedAlpha.assertActive();
+    await protectedBeta.assertActive();
+
+    console.log("PA05_XDB_HOST_LEAST_PRIVILEGE_ROTATION_PG="+JSON.stringify({
+      physicalClusters:3,distinctActualHostLogins:2,
+      centralReservationDmlDriftRejected:true,
+      remoteTicketDmlDriftRejected:true,
+      nonInheritedDelegatedRoleWriteRejected:true,
+      noLoginFailsNewAttestation:true,
+      rotatedOldPasswordDenied:true,
+      newPasswordAndRevisionReattested:true,
+      staleManifestRevisionRejected:true,
+      otherHostNotRevoked:true,
+      productionWriteEnabled:false,
+      privilegedControllerStillTrusted:true,
+      atomicRemoteTicketRevocationCertified:false
+    }));
 
     // Previously minted ticket survives revocation: this proof does NOT
     // assert atomic central+remote token revocation or partition fail-stop.
@@ -230,7 +328,7 @@ test("PA05-04D14B1 actual 3 PG18: two credential-distinct Hosts, cross-DB identi
       try{await db.unsafe("DROP SCHEMA IF EXISTS "+q(schema)+" CASCADE");}catch{}
     for(const [db,role] of [
       ...profiles.flatMap(p=>[[central,p.centralRole],[a,p.remoteA],[b,p.remoteB]]),
-      [a,workerRole]
+      [a,workerRole],[b,delegatedRole]
     ]){
       try{await db.unsafe('DROP OWNED BY "'+role+'"');}catch{}
       try{await db.unsafe('DROP ROLE IF EXISTS "'+role+'"');}catch{}
