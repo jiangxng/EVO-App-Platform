@@ -73,6 +73,26 @@
     {
       "name": "web/mobile-task-inbox-p4",
       "reason": "superseded by merged web/mobile-task-inbox-p4-mainline plus production proof and continuity certification"
+    },
+    {
+      "name": "docs/pa02-final-cost-authority-readiness-20261015",
+      "expectedHeadSha": "7db56f11e75d79d520372d2fdff059e0265a4e54",
+      "reason": "PA02 #875 merged on main b3ae61d1; no unique commits; final evidence stored under docs/agent-line"
+    },
+    {
+      "name": "docs/pa02-acceptance-branch-reconcile-20261014",
+      "expectedHeadSha": "b44cf20854c1131d185355634cac8ae230669280",
+      "reason": "PA02 earlier acceptance evidence merged into main; zero unique commits; retained docs are authoritative"
+    },
+    {
+      "name": "docs/pa02-window-closure-research-handoff-20261014",
+      "expectedHeadSha": "40d1505af0991d44fd88cf68a447bf8b195eb445",
+      "reason": "PA02 historical source-index handoff merged into main; zero unique commits; no open PR references"
+    },
+    {
+      "name": "docs/pa02-safe-retired-branches-20261015",
+      "expectedHeadSha": "38d04a94226e8fea6327834597134ac9ae919c94",
+      "reason": "PA02 SHA-pinned retirement manifest PR #877 is merged on main, no unique commits, safe to retire itself"
     }
   ]
 }

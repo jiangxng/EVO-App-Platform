@@ -1,4 +1,4 @@
-import type { LlmInferenceProvider, LlmInferenceResponseV010 } from "../../contracts/llm.js";
+import type { LlmInferenceProvider, LlmInferenceRequestV010, LlmInferenceResponseV010 } from "../../contracts/llm.js";
 import type { AgentRunEventV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type {
   PlatformPrincipalV010, ResolvedContextSetV010, PlatformRequestContextV010
@@ -11,6 +11,7 @@ import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.j
 import type { GovernedAgentWorkerWritePortV040 } from "./pa02-governed-worker-write-port.js";
 import type { AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durability-host-bridge.js";
+import type {HostResolvedAgentDurabilityScopeV020} from "../../contracts/agent-durability-async.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 
 interface ResumeInputV030 {
@@ -55,6 +56,22 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   releaseOnReturn?:boolean;
   /** Only a trusted Host-injected Owner port may opt into material WRITE. */
   governedWrite?:GovernedAgentWorkerWritePortV040;
+  /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
+  testOnlyCostPort?:{
+    maxOutputTokens:number;
+    /** Only a trusted model-specific certified upper bound may approve the
+     * actual fully assembled messages + tools. A mere estimate is not proof.
+     * The injected synthetic fixture is test-only, never vendor attestation. */
+    quoteBilledInputUpperBound(request:LlmInferenceRequestV010):
+      Promise<number|undefined>;
+    reserve(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
+      sliceId:string;providerId:string;modelId:string;
+      inputTokenUpperBound:number}):
+      Promise<"RESERVED"|"EXHAUSTED"|"ALREADY_HELD"|"UNKNOWN_HELD"|"SETTLED_ALREADY"|"UNAPPROVED">;
+    settle(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
+      sliceId:string;usage?:LlmInferenceResponseV010["usage"]}):
+      Promise<"SETTLED"|"UNKNOWN">;
+  };
 }
 function required(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_WORKER_ID_REQUIRED");
@@ -317,15 +334,54 @@ export function createReadOnlyFencedAgentWorkerV030(
       }
       const sliceId=run.state==="RUNNING"&&run.activeSliceId
         ?run.activeSliceId:"agent-run-slice:"+deps.sliceId();
+      // An actual model request must be assembled before its trusted input
+      // upper bound can be evaluated. Only then may its durable reservation
+      // be persisted, immediately before contacting the Provider.
       if(!(run.state==="RUNNING"&&run.activeSliceId))
         run=await append("SLICE_STARTED",{},sliceId);
       let decision:AgentModelDecision;
       let inferenceResponse:LlmInferenceResponseV010|undefined;
+      let preflightDenied:string|undefined;
+      let modelChargeReserved=false;
       try{
         decision=await createProviderBackedAgentModel({
           providerId:provider.providerId,modelId:provider.modelId,
           async infer(request) {
-            const response=await provider.infer(request);
+            const actualRequest:LlmInferenceRequestV010={
+              ...request,
+              ...(deps.testOnlyCostPort?{
+                maxOutputTokens:deps.testOnlyCostPort.maxOutputTokens
+              }:{})
+            };
+            if(deps.testOnlyCostPort){
+              const port=deps.testOnlyCostPort;
+              // This sees the entire materialized system/developer/user
+              // messages, observations, tool descriptions and output cap.
+              // Counting only the Human's raw text is NOT sufficient.
+              let quote:number|undefined;
+              try{ quote=await port.quoteBilledInputUpperBound(
+                structuredClone(actualRequest)); }
+              catch{ quote=undefined; }
+              if(!Number.isSafeInteger(quote)||quote!<=0){
+                preflightDenied="PA02_R10_COST_INPUT_UPPER_BOUND_UNVERIFIED";
+                throw Error(preflightDenied);
+              }
+              const status=await port.reserve({
+                scope,runId,sliceId,
+                providerId:provider.providerId,modelId:provider.modelId,
+                inputTokenUpperBound:quote!
+              });
+              if(status!=="RESERVED"){
+                preflightDenied=status==="EXHAUSTED"
+                  ?"PA02_R10_COST_BUDGET_EXHAUSTED":
+                  status==="UNAPPROVED"
+                  ?"PA02_R10_COST_PROVIDER_NOT_APPROVED":
+                  "PA02_R10_COST_PREVIOUS_CHARGE_UNCERTAIN";
+                throw Error(preflightDenied);
+              }
+              modelChargeReserved=true;
+            }
+            const response=await provider.infer(actualRequest);
             if(response.providerId!==provider.providerId ||
               response.modelId!==provider.modelId)
               throw Error("PA02_MODEL_USAGE_PROVIDER_IDENTITY_MISMATCH");
@@ -346,6 +402,34 @@ export function createReadOnlyFencedAgentWorkerV030(
           context:structuredClone(input.context)
         });
       }catch(e){
+        if(deps.testOnlyCostPort){
+          if(!modelChargeReserved){
+            // No inference was dispatched and no money was held. Keep the
+            // reason distinct from an ambiguous possibly billable response.
+            await append("RUN_BLOCKED",{
+              code:preflightDenied??"PA02_R10_COST_PREFLIGHT_FAILED",
+              reason:"The fully assembled model request had no verified "+
+                "billable input upper bound, or failed provider/amount "+
+                "admission. No paid model request was sent."
+            });
+            return output(true);
+          }
+          // A failed HTTP inference could still have been billed. Preserve
+          // the full pre-reserved amount; budget-mode retries require an
+          // independently approved billing reconciliation, not a blind call.
+          await deps.testOnlyCostPort.settle({scope,runId,sliceId});
+          await append("MODEL_INFERENCE_FAILED",{
+            code:errorCode(e),reason:e instanceof Error?e.message:String(e),
+            attempt:(run.modelFailureCount??0)+1
+          },sliceId);
+          await append("RUN_BLOCKED",{
+            code:"PA02_R10_COST_INFERENCE_UNCERTAIN",
+            reason:"The provider request may have incurred an unknown charge. "+
+              "The reservation remains held. Do not retry the inference "+
+              "without independently verifying billing evidence."
+          });
+          return output(true);
+        }
         const attempt=(run.modelFailureCount??0)+1;
         const code=errorCode(e);
         const reason=e instanceof Error?e.message:String(e);
@@ -383,6 +467,21 @@ export function createReadOnlyFencedAgentWorkerV030(
         status:validUsage?"REPORTED":"UNAVAILABLE",
         ...(validUsage?{usage:structuredClone(usage)}:{})
       },sliceId);
+      if(deps.testOnlyCostPort){
+        const settled=await deps.testOnlyCostPort.settle({
+          scope,runId,sliceId,
+          ...(validUsage?{usage:structuredClone(usage)}:{})
+        });
+        if(settled!=="SETTLED"){
+          await append("RUN_BLOCKED",{
+            code:"PA02_R10_COST_USAGE_UNAVAILABLE",
+            reason:"Model use was not reliably billable within approved bounds. "+
+              "The original maximum charge remains reserved; inspect "+
+              "provider evidence before taking any further paid step."
+          });
+          return output(true);
+        }
+      }
       run=await append("MODEL_DECISION_RECORDED",{decision},sliceId);
       if(decision.type==="final") {
         await append("RUN_SUCCEEDED",{message:decision.message});

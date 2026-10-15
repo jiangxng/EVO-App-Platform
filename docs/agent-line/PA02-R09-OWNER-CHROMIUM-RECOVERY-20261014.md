@@ -33,3 +33,16 @@ This test verifies **post-commit READ/replay and exact-once visible persisted Ow
 - 在同一 PR 修改浏览器测试：模型工具调用暂留在隔离 localhost Responses，用户透过正常 HTTP Action 发起取消；释放模型后重复调用正式 Host `run.cancel` 做持久 reconciliation，再断言 Run `CANCELLED`、无第二 Run 的业务 Receipt、实际 Object Extension SQL resource/owner evidence/agent receipt 仍各只有首次成功的一笔。
 - 修正后准确 HEAD `56a8ac3548f83e0e97fd51e8a414437cb9017276` 的 [真实 Chromium + PG18 + Host/Owner Actions 38548540580](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540580) job `115800539441` **7/7 PASS**；同时 [Continuity 38548540523](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540523) 与 [Lightweight Host 38548540558](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540558) 均 SUCCESS。浏览器报告、截图、bootstrap 原始证据为 [Artifact 11885457660](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38548540580/artifacts/11885457660)。**若后续为与最新 main 对齐追加 merge commit，仍要复核最终 HEAD 的必需检查。**
 - 该取消场景是**尚未发送业务写入前**的有界取消，不是 SQL 事务写入中取消、commit 成功但 ACK 丢失，或浏览器与 Worker 同时断线后的完整 R04/R07/R08 联合场景。它们仍须单独以证据签收；不得宣称 PA-02 已全部完成。
+
+
+## 2026-10-14：已提交业务效果后浏览器断线／取消联合门禁（新 PR 代码，CI 待证）
+
+沿用 #863 的同一条真实 `Eidos Chromium → /v1/actions → App Host → PostgreSQL Fenced Run → 受治理 Object Extension Owner`，不修改正式 Host/Owner/Worker。新的独立场景：第三个 Human Turn 先从 Host 授权的模型函数调用提交**另一条隔离业务效果+独立 Owner 回执**；模型的下一次最终文本响应在 loopback 测试端暂缓。浏览器在这期间真实 reload（客户端 HTTP 中断），随后经正式 Host `run.cancel`、释放模拟模型、按已有 PA02C 取消协议继续 reconciliation。要求第三个 Run `CANCELLED` 且保留已提交的完整 Owner Receipt；Pg 业务行/独立 Owner evidence/Run receipt 各累计恰好 2，无第三次 WRITE；`run.events` 缺口快照仍为 CANCELLED 且有已提交 receipt。屏幕截图、报告进入同一类 Artifact。
+
+**分级：** 这是业务效果已经提交、模型最终回复/浏览器 HTTP 尚未完成的断线取消；并**不等于 Host 与 SQL Owner 之间已经提交事务但 Owner ACK 真正丢失**，亦未强制模拟 SQL 事务内部取消。#839/#842 的独立 ACK 丢失/原子取消局部测试仍为那两项的一手证据。真实联合测试未通过之前不得把此场景标记 PASS，R10 货币硬预算与 PA-02 阶段最终签收维持 OPEN。外站 14 条 H 级别不变。
+
+### 真实 GitHub Runner 补证据（代码 HEAD 已通过，最终合并门禁仍待复核）
+
+首次新代码+文档 HEAD `f6953f707e97b6d89b62090ed97dd5a73133cc2d`：[Chromium + HTTP Host + PG18 Owner Actions 38549519235](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549519235)，job `115803772495` **8/8 PASS**。新场景日志 `PA02_OWNER_BROWSER_PASS:committed-owner-effect-retained-after-browser-disconnect-cancel`。同一隔离环境先写入第二条业务定义与 immutable Owner Evidence / Agent Receipt，然后暂缓模型最终文字回复、真正浏览器 reload、正式 HTTP 取消和恢复核验；最终第三个 Run `CANCELLED`、保留一份已提交回执；该环境累计 SQL business rows=2、Owner evidence=2、Agent receipts=2，没有额外写。证据 ZIP [Artifact 11885399235](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38549519235/artifacts/11885399235) 包括第三场景 Chromium 截图、详细 report 和 Host 日志。后续文档或 main 合并产生新 HEAD 后，仍以最终 HEAD CI 为准。
+
+**剩余限制不降级：** 这一失败模式发生在 Owner→Host 已返回业务调用结果、Host 等待最终模型回复期间；尚未精确制造 Owner SQL commit 成功但返回 Host 的 ACK 丢失，也未制造原子 SQL 业务提交过程中旧 Worker 失租与取消的浏览器联动。#839/#842 有底层独立证据但不能伪造同一个完整浏览器场景。R10 未批准货币价表与持久硬预留未实现，PA-02 未最终签收。

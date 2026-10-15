@@ -58,6 +58,8 @@ const definition={contractVersion:'0.1.0',extensionId,
  label:{default:'PA02 owner browser proof'},required:false,order:40,surfaces:['DETAIL']};
 let mockCalls=0,child,hostLog='',closed=false;
 let holdSecondOwnerTool=false,releaseHeldModel,holdingModel=false;
+let postCommitDisconnectMode=false,postCommitModeCalls=0;
+let ownerAckLossMode=false;
 const json=(res,status,payload)=>{res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(payload));};
 async function read(req){const chunks=[];for await(const x of req)chunks.push(x);return JSON.parse(Buffer.concat(chunks).toString()||'{}');}
 const mock=createServer(async(req,res)=>{
@@ -65,6 +67,10 @@ const mock=createServer(async(req,res)=>{
   if(req.method==='POST'&&req.url==='/__control'){
    const x=await read(req);
    if(x.mode==='hold-owner-tool')holdSecondOwnerTool=true;
+   else if(x.mode==='owner-ack-lost'){ownerAckLossMode=true;}
+   else if(x.mode==='owner-commit-hold-final'){
+    postCommitDisconnectMode=true;postCommitModeCalls=0;
+   }
    else if(x.mode==='release'){releaseHeldModel?.();releaseHeldModel=undefined;}
    else return json(res,400,{error:'UNKNOWN_TEST_CONTROL'});
    return json(res,200,{holdingModel,holdSecondOwnerTool});
@@ -76,10 +82,44 @@ const mock=createServer(async(req,res)=>{
     sql.unsafe('SELECT status FROM "'+runSchema+'".agent_receipts'),
     sql.unsafe('SELECT run_id FROM "'+runSchema+'".agent_turns ORDER BY run_id')
    ]);
-   return json(res,200,{mockCalls,definitions,evidence,receipts,turns,holdingModel});
+   return json(res,200,{mockCalls,definitions,evidence,receipts,turns,holdingModel,
+    ackLossCommitSeen:hostLog.includes('PA02_TEST_OWNER_COMMITTED_ACK_ABOUT_TO_DROP'),
+    ackLossInjected:hostLog.includes('PA02_TEST_OWNER_POST_COMMIT_ACK_DROPPED')});
   }
   if(req.method==='POST'&&req.url==='/v1/responses'){
    const request=await read(req),index=++mockCalls;
+   if(ownerAckLossMode){
+    ownerAckLossMode=false;
+    if(!(request.tools??[]).some(x=>x.name==='pa02_object_extension_create'))
+     return json(res,422,{error:{message:'PA02_TEST_OWNER_TOOL_NOT_AUTHORIZED'}});
+    const lost={...definition,extensionId:extensionId+'-acklost',fieldId:'ackLostProof'};
+    return json(res,200,{id:'pa02-owner-ack-lost-'+index,object:'response',
+     model:'pa02-browser-model',status:'completed',
+     output:[{type:'function_call',name:'pa02_object_extension_create',
+      call_id:'pa02-owner-ack-lost-'+index,arguments:JSON.stringify({definition:lost})}],
+     usage:{input_tokens:12,output_tokens:11}});
+   }
+   if(postCommitDisconnectMode){
+    postCommitModeCalls++;
+    if(postCommitModeCalls===1){
+     if(!(request.tools??[]).some(x=>x.name==='pa02_object_extension_create'))
+      return json(res,422,{error:{message:'HOST_OWNER_TOOL_NOT_AUTHORIZED_ON_RETRY'}});
+     const next={...definition,extensionId:extensionId+'-committed',fieldId:'committedProof'};
+     return json(res,200,{id:'pa02-owner-second-committed-'+index,object:'response',
+      model:'pa02-browser-model',status:'completed',
+      output:[{type:'function_call',name:'pa02_object_extension_create',
+       call_id:'pa02-owner-committed-'+index,arguments:JSON.stringify({definition:next})}],
+      usage:{input_tokens:12,output_tokens:14}});
+    }
+    postCommitDisconnectMode=false;holdingModel=true;
+    await new Promise(resolve=>{releaseHeldModel=resolve});
+    holdingModel=false;
+    return json(res,200,{id:'pa02-owner-after-committed-'+index,object:'response',
+     model:'pa02-browser-model',status:'completed',
+     output:[{type:'message',role:'assistant',content:[{type:'output_text',
+      text:'Existing Owner business effect was committed before browser disconnect.'}]}],
+     usage:{input_tokens:11,output_tokens:13}});
+   }
    if(index===1){
     if(!(request.tools??[]).some(x=>x.name==='pa02_object_extension_create'))
      return json(res,422,{error:{message:'HOST_OWNER_TOOL_NOT_AUTHORIZED'}});
@@ -114,6 +154,7 @@ const profile=createPersonalAgentExperienceProfileV010({...process.env,
  NODE_ENV:'test',LOG_LEVEL:'silent',PORT:'41349',
  APP_PLATFORM_AGENT_RUN_ASYNC_WORKER_MODE:'OWNER_SANDBOX',
  APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK:'ISOLATED_NO_PRODUCTION_DATA',
+ APP_PLATFORM_AGENT_RUN_PA02_TEST_POST_COMMIT_ACK_LOSS:'ackLostProof',
  APP_PLATFORM_AGENT_RUN_ASYNC_DATABASE_URL:pg,
  APP_PLATFORM_AGENT_RUN_ASYNC_SCHEMA:runSchema,
  APP_PLATFORM_AGENT_RUN_PA02_OBJECT_SCHEMA:ownerSchema,
