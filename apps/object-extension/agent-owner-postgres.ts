@@ -7,6 +7,8 @@ import type {GovernedAgentBusinessOwnerV040} from
   "../../agents/enterprise-agent/pa02b-governed-owner-write-handoff.js";
 import type {AgentOwnerVerifierV030} from
   "../../agents/enterprise-agent/pa02b-owner-reconciliation.js";
+import {hostAgentDurabilityScopeKeyV020}
+  from "../../agents/enterprise-agent/pa02b-postgres-coordination.js";
 import {OBJECT_EXTENSION_PACKAGE_ID,OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010}
   from "./constants.js";
 import {OBJECT_EXTENSION_NAMESPACE_V010,OBJECT_EXTENSION_COLLECTION_V010,
@@ -150,6 +152,10 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   connectionString:string;schema:string;now?:()=>Date;
   /** Test-only crash checkpoint AFTER business insert, BEFORE evidence insert. */
   testOnlyAfterBusinessInsert?:()=>Promise<void>;
+  /** D14C4: trusted opt-in transaction-local source for database physical
+   * guard; only install against an explicitly prepared isolated PA-02 schema.
+   * Ordinary Object Extension existing file-backed production is unchanged. */
+  pa05PhysicalAdmission?:{workerSchema:string};
 }):{
   owner:GovernedAgentBusinessOwnerV040;
   verifier:AgentOwnerVerifierV030;
@@ -161,6 +167,10 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   close:()=>Promise<void>;
 } {
   const {q,sql}=config(input),now=input.now??(()=>new Date());
+  if(input.pa05PhysicalAdmission &&
+     (!/^[a-z][a-z0-9_]{0,62}$/.test(input.pa05PhysicalAdmission.workerSchema)||
+      input.pa05PhysicalAdmission.workerSchema===input.schema))
+    throw Error("PA05_OBJECT_SQL_PHYSICAL_SOURCE_CONFIG_INVALID");
   const owner:GovernedAgentBusinessOwnerV040={
     ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
     async invoke(r) {
@@ -181,12 +191,37 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         definition,recordedAt:now().toISOString()
       };
       await sql.begin(async tx=>{
+        if(input.pa05PhysicalAdmission){
+          // All markers are SET LOCAL and cleared on transaction commit or
+          // rollback; the physical PG business-table trigger checks D10
+          // ticket + PA-02 INVOKING/UNKNOWN + the local monotone STOP.
+          // This is not a public Agent/Worker capability.
+          const values:[
+            string,string
+          ][]=[
+            ["scope_key",hostAgentDurabilityScopeKeyV020(r.scope)],
+            ["run_id",r.runId],
+            ["effect_id",r.effectId],
+            ["input_digest",r.inputDigest],
+            ["context_id",s.contextId],
+            ["enterprise_id",s.enterpriseId]
+          ];
+          for(const [key,value] of values)
+            await tx.unsafe("SELECT set_config($1,$2,true)",
+              ["evo.pa05."+key,value]);
+        }
         await tx.unsafe("INSERT INTO "+q+".pa02_contexts(context_id,enterprise_id) "+
           "VALUES($1,$2) ON CONFLICT DO NOTHING",[s.contextId,s.enterpriseId]);
-        // Context-level row lock serializes competing writers across processes,
-        // including otherwise distinct extension IDs with the same field slot.
+        // Ordinary Owner retains the original FOR UPDATE authority.
+        // PA05 physical opt-in has strictly SELECT+INSERT SQL privileges:
+        // advisory transaction lock serializes cooperating opted-in Owners
+        // across processes without giving the runtime LOGIN table UPDATE; a plain SELECT suffices.
+        if(input.pa05PhysicalAdmission)
+          await tx.unsafe("SELECT pg_advisory_xact_lock("+
+            "hashtextextended($1::text,0))",[s.contextId]);
         const bindings=await tx.unsafe("SELECT enterprise_id FROM "+q+
-          ".pa02_contexts WHERE context_id=$1 FOR UPDATE",[s.contextId]);
+          ".pa02_contexts WHERE context_id=$1 "+
+          (input.pa05PhysicalAdmission?"":"FOR UPDATE"),[s.contextId]);
         if(bindings[0]?.enterprise_id!==s.enterpriseId)
           throw Error("PA02_OBJECT_PG_ENTERPRISE_BINDING_CONFLICT");
         const previous=await tx.unsafe("SELECT evidence,evidence_digest FROM "+q+
