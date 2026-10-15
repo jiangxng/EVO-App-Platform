@@ -72,6 +72,7 @@ jobs:
           grep -Fq 'PA05_STARTUP_WORKER_SCHEMA_PG=' pa05-governed-write.log
           grep -Fq 'PA05_SHARED_SCHEMA_OWNER_PG=' pa05-governed-write.log
           grep -Fq 'PA05_SQL_LEGACY_WORKER_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_PG_WORKER_ROLE_ACL=' pa05-governed-write.log
           grep -Fq 'PA02B_REAL_SANDBOX_OWNER_WRITE=' pa05-governed-write.log
           grep -Fq 'PA02_GOVERNED_WORKER_WRITE=' pa05-governed-write.log
       - name: Preserve isolated PostgreSQL18 audit evidence
