@@ -156,6 +156,13 @@ await run('phone-reflow-and-visible-touch-targets',async()=>{
  await snap(page,'10-mobile-overview');
  const dom=await page.evaluate(()=>({pageWidth:document.documentElement.scrollWidth,viewWidth:innerWidth,buttons:[...document.querySelectorAll('button')].filter(x=>getComputedStyle(x).display!=='none'&&!x.closest('[hidden]')).map(x=>({id:x.id,h:Math.round(x.getBoundingClientRect().height)}))}));
  if(dom.pageWidth>dom.viewWidth+2)throw Error('Mobile page overflow: '+JSON.stringify(dom));
+ const mobileMapping=await page.locator('#mappingRows tr').first().evaluate(row=>{
+   const select=row.querySelector('select');
+   const r=(select||row.querySelector('button')).getBoundingClientRect();
+   return {rowDisplay:getComputedStyle(row).display,controlLeft:r.left,controlRight:r.right,viewport:innerWidth};
+ });
+ if(mobileMapping.rowDisplay!=='block'||mobileMapping.controlRight>mobileMapping.viewport+2||mobileMapping.controlLeft<0)
+   throw Error('Mobile mapping control clipped; card layout missing: '+JSON.stringify(mobileMapping));
  if(dom.buttons.some(b=>b.h<36))throw Error('Touch buttons too small: '+JSON.stringify(dom.buttons));
  await page.locator('#typeToggle').click();await snap(page,'11-mobile-record-fix');
  return dom;
