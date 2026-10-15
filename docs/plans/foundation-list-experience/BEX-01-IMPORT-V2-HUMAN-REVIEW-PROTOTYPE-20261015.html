@@ -115,7 +115,6 @@ function issueList(){
  const duplicates=duplicateTargets();
  if(duplicates.length)issues.push("来源列重复占用同一字段："+duplicates.map(k=>cols[k]).join("、"));
  if(draft.maps.code!=="CORE_CODE"||draft.maps.name!=="CORE_NAME")issues.push("演示核心编码和名称目标不正确，请恢复对应来源与目标");
- if(!schemaReady())issues.push("拟创建字段的清单尚未确认或已发生变化，需重新确认");
  return issues;
 }
 function store(){try{localStorage.setItem(key,JSON.stringify(draft));$("saveStatus").textContent="演示状态已保存在此浏览器（非 Host）";}catch{$("saveStatus").textContent="演示状态未能保存，离开页面后可能丢失";}}
@@ -182,7 +181,7 @@ $("schemaConfirm").onclick=()=>{
  draft.schema=true;draft.schemaKey=schemaKey();store();runCheck();show("precheck");
 };
 function runCheck(){
- const items=issueList();checked=items.length===0;
+ const items=issueList();if(!schemaReady())items.push("拟创建字段清单未确认或已变化，需重新确认");checked=items.length===0;
  $("submit").disabled=!checked;$("rerun").className=checked?"secondary":"primary";
  $("checkNotice").textContent=checked?"模拟预检查通过：仅演示交互，不代表真实数据合格。":"模拟预检查未通过：存在待核实问题，不允许继续正式导入。";
  $("blockers").textContent=items.length?items.join("；"):"无剩余模拟阻断项，仍须真实 Host 验证。";
@@ -190,7 +189,7 @@ function runCheck(){
 }
 $("rerun").onclick=runCheck;
 $("checkBack").onclick=()=>show("review");
-$("submit").onclick=()=>{if(!checked||issueList().length)return;show("done");};
+$("submit").onclick=()=>{if(!checked||!schemaReady()||issueList().length)return;show("done");};
 $("doneBack").onclick=()=>show("review");
 $("reset").onclick=()=>{
  draft={bank:"",types:["","",""],schema:false,schemaKey:"",maps:defaults()};checked=false;
