@@ -65,6 +65,24 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   /** Optional exact Provider/model C01 window + certified full-request guard.
    * Unconfigured staged workers keep their existing behavior. */
   contextWindow?:CertifiedModelContextWindowV010;
+  /**
+   * C03 optional Host-owned READ freshness evaluator. The model cannot supply
+   * freshness or authority. Must validate source versions/age against current
+   * Host facts, independently of old model observations.
+   */
+  readFreshness?:{
+    assess(input:{
+      run:AgentRunV010;
+      decision:AgentRunV010["decisions"][number];
+      descriptor:AgentToolDescriptorV010;
+      principal:PlatformPrincipalV010;
+      context:ResolvedContextSetV010;
+      requestContext?:PlatformRequestContextV010;
+    }):Promise<{
+      status:"CURRENT"|"REFRESH_REQUIRED"|"UNVERIFIED";
+      sourceVersion:string;
+    }>;
+  };
   /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
   testOnlyCostPort?:{
     maxOutputTokens:number;
@@ -340,6 +358,79 @@ export function createReadOnlyFencedAgentWorkerV030(
         await append("RUN_BLOCKED",{code:"AGENT_RUN_PROVIDER_UNAVAILABLE",
           reason:"The original Provider/model is not available to resume."});
         return output(true);
+      }
+      // C03: before another model inference can quote the old durable
+      // observations as facts, revalidate each prior successful READ against
+      // current Host authority and resource-version/freshness policy. An
+      // revoked tool, unverified version or failed refresh blocks inference.
+      // The earlier observation stays in the immutable Run event stream;
+      // READ_REFRESH_RECORDED updates only the materialized model view.
+      if(deps.readFreshness) {
+        const completed=run.decisions.filter(d=>
+          d.decision.type==="tool"&&d.observation?.ok);
+        if(completed.length>8){
+          await append("RUN_BLOCKED",{
+            code:"PA04_READ_REFRESH_SCOPE_TOO_LARGE",
+            reason:"Too many prior READ results need fresh verification. "+
+              "Start a narrower Run after checking current source facts."
+          });
+          return output(true);
+        }
+        for(const item of completed) {
+          if(item.decision.type!=="tool")continue;
+          const descriptor=allTools.find(t=>t.id===item.decision.call.tool);
+          if(descriptor?.effect==="WRITE")continue;
+          if(!descriptor || descriptor.effect!=="READ") {
+            await append("RUN_BLOCKED",{
+              code:"PA04_READ_AUTHORITY_REVOKED",
+              reason:"A previous source READ is no longer in the current "+
+                "authorized Host catalog. Historical observations cannot be "+
+                "used as current facts."
+            });
+            return output(true);
+          }
+          let assessment:Awaited<ReturnType<
+            NonNullable<ReadOnlyFencedWorkerDependenciesV030["readFreshness"]>["assess"]
+          >>|undefined;
+          try {
+            assessment=await deps.readFreshness.assess({
+              run,decision:item,descriptor,principal:input.principal,
+              context:input.context,requestContext:input.requestContext
+            });
+          }catch {assessment=undefined;}
+          if(!assessment||!assessment.sourceVersion?.trim()
+            || !["CURRENT","REFRESH_REQUIRED"].includes(assessment.status)) {
+            await append("RUN_BLOCKED",{
+              code:"PA04_READ_FRESHNESS_UNVERIFIED",
+              reason:"Current Host source version/freshness cannot be "+
+                "established. Do not answer or act on historical READ facts."
+            });
+            return output(true);
+          }
+          if(assessment.status==="CURRENT")continue;
+          const owned=await deps.authority.renew({scope,lease,ttlSeconds:ttl});
+          if(!owned)return output(false);
+          let fresh:AgentToolObservation|undefined;
+          try {
+            fresh=await catalog.invoke(
+              structuredClone(item.decision.call),structuredClone(run.observations));
+          }catch {fresh=undefined;}
+          if(!fresh||fresh.tool!==item.decision.call.tool||!fresh.ok
+            || fresh.receipt || (fresh.result&&typeof fresh.result==="object"
+              && "receiptId" in fresh.result)) {
+            await append("RUN_BLOCKED",{
+              code:"PA04_READ_REFRESH_FAILED",
+              reason:"The presently authorized Host READ failed; no stale "+
+                "observation may be substituted as a successful current fact."
+            });
+            return output(true);
+          }
+          run=await append("READ_REFRESH_RECORDED",{
+            decisionEventId:item.decisionEventId,
+            observation:structuredClone(fresh),
+            sourceVersion:assessment.sourceVersion.trim()
+          },item.sliceId);
+        }
       }
       const sliceId=run.state==="RUNNING"&&run.activeSliceId
         ?run.activeSliceId:"agent-run-slice:"+deps.sliceId();
