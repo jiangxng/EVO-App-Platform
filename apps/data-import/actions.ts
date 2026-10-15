@@ -50,6 +50,7 @@ import {
   DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
   DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
   DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -949,6 +950,65 @@ export function createDataImportActionHandlersV010(input: {
     }
   };
 
+  const rowCorrect: AppActionHandler = {
+    packageId: DATA_IMPORT_PACKAGE_ID,
+    featureId: DATA_IMPORT_FEATURE_ID,
+    commandCode: DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+    async execute(request, context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        if (context.principal.actorType !== "HUMAN") {
+          throw new Error("DATA_IMPORT_CORRECTION_HUMAN_REQUIRED");
+        }
+        const active = activeEnterpriseContext(context);
+        ensureManage(context.principal, active.contextId,
+          input.canManageEnterpriseContext);
+        const rowNumber = Number(request.values.rowNumber);
+        const mode = request.values.mode;
+        if (!Number.isSafeInteger(rowNumber) || rowNumber < 1
+          || (mode !== "SET" && mode !== "REVERT")) {
+          throw new Error("DATA_IMPORT_CORRECTION_INPUT_INVALID");
+        }
+        const importJobId = required(
+          request.values.importJobId, "DATA_IMPORT_JOB_ID_REQUIRED");
+        const recordedAt = now().toISOString();
+        input.service.correctRow({
+          contextId: active.contextId,
+          importJobId,
+          rowNumber,
+          sourceColumn: required(request.values.sourceColumn,
+            "DATA_IMPORT_CORRECTION_SOURCE_REQUIRED"),
+          expectedRevision: required(request.values.expectedRevision,
+            "DATA_IMPORT_CORRECTION_REVISION_REQUIRED"),
+          mode,
+          ...(typeof request.values.value === "string"
+            ? {value: request.values.value} : {}),
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        const job = input.service.dryRun({
+          contextId: active.contextId, importJobId,
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: JSON.parse(JSON.stringify({
+            contractVersion: "0.1.0",
+            message: job.state === "DRY_RUN_READY"
+              ? "Correction saved. Validation passed; final import still requires confirmation."
+              : "Correction saved. Review remaining validation issues.",
+            navigateTo: dataImportReviewRouteV010(importJobId),
+            job
+          })) as JsonValue
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
+
   const errorCsv: AppActionHandler = {
     packageId: DATA_IMPORT_PACKAGE_ID,
     featureId: DATA_IMPORT_FEATURE_ID,
@@ -1001,6 +1061,7 @@ export function createDataImportActionHandlersV010(input: {
     get,
     inspectMapping,
     applyMapping,
+    rowCorrect,
     errorCsv
   ];
 }
