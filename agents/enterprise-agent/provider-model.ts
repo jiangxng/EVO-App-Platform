@@ -103,18 +103,33 @@ export function createProviderBackedAgentModel(
         tools: llmTools
       });
 
+      // This adapter is one-tool-at-a-time. Never silently discard a
+      // second (possibly external) call or turn a forged tool request with
+      // self-reported "success" text into a successful business answer.
+      if (response.toolCalls.length > 1) {
+        return {
+          type: "final",
+          message: "模型请求了不受支持的多工具操作，未执行任何工具。"
+        };
+      }
       const call = response.toolCalls[0];
       if (call) {
         const descriptor = byModelName.get(call.name);
-        if (descriptor) {
+        if (!descriptor || !call.arguments
+          || typeof call.arguments !== "object"
+          || Array.isArray(call.arguments)) {
           return {
-            type: "tool",
-            call: {
-              tool: descriptor.id,
-              arguments: call.arguments
-            }
+            type: "final",
+            message: "模型请求的工具或参数不在当前授权范围内，未执行任何工具。"
           };
         }
+        return {
+          type: "tool",
+          call: {
+            tool: descriptor.id,
+            arguments: call.arguments
+          }
+        };
       }
 
       return {
