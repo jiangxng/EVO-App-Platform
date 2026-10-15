@@ -54,7 +54,8 @@ function setup(options={}) {
     applyImportMapping:values=>{
       calls++;
       if(failOnce){failOnce=false;throw new Error("TRANSIENT_IMPORT_MAPPING_FAILURE");}
-      job={...job,mapping:structuredClone(values.mapping)};
+      job={...job,mapping:structuredClone(values.mapping),
+        ignoredSourceColumns:structuredClone(values.ignoredSourceColumns ?? [])};
     }
   });
   const action=handlers.find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010);
@@ -88,6 +89,11 @@ test("BEX batch Human confirmation creates four extension fields, saves all mapp
   assert.equal(result.result.ignored[0],"系统编码");
   assert.equal(x.repo.list(contextId,"counterparty.subject").length,4);
   assert.equal(x.getJob().mapping.length,6);
+  assert.deepEqual(x.getJob().ignoredSourceColumns,["系统编码"]);
+  const afterPage=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:x.repo.list(contextId,"counterparty.subject"),locale:"zh-CN"
+  });
+  assert.equal(afterPage.fields.find(x=>x.key==="choice_0").initialValue,"__IGNORE__");
   assert.deepEqual(x.getJob().source.rows,before);
   assert.equal(x.getJob().source.rows[0]["主体类型"],null);
   assert.equal(x.repo.list(contextId,"counterparty.subject")
