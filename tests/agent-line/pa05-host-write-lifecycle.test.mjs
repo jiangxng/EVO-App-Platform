@@ -410,3 +410,43 @@ test("PA05-04D3 opt-in Host explicitly rejects different/duplicated worker schem
   });
   await accepted.close();
 });
+
+test("PA05-04D4 shared authority requires explicit opt-in and trusted complete Schema inventory", async () => {
+  const m=fixture();
+  assert.throws(()=>createPa05HostWriteLifecycleV010({
+    manager:m,protectedPackageIds:[packageId],
+    databaseUrl:"postgres://fixture",schema:"owner_schema",
+    workerSchemas:["owner_schema","second_schema"]
+  }),/PA05_HOST_WORKER_SCHEMA_NOT_SHARED/);
+  assert.throws(()=>createPa05HostWriteLifecycleV010({
+    manager:m,protectedPackageIds:[packageId],
+    databaseUrl:"postgres://fixture",schema:"owner_schema",
+    sharedWorkerSchemaAuthority:true
+  }),/PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE/);
+  const host=createPa05HostWriteLifecycleV010({
+    manager:m,protectedPackageIds:[packageId],
+    databaseUrl:"postgres://fixture",schema:"owner_schema",
+    workerSchemas:["owner_schema","second_schema"],
+    sharedWorkerSchemaAuthority:true,
+    gateFactory:async()=>({
+      async reserveActivation(){return {state:"FROZEN",pendingCount:0};},
+      async close(){}
+    })
+  });
+  try{
+    assert.ok(host);
+  }finally{await host.close();}
+  assert.deepEqual(pa05HostLifecycleConfigurationV010({
+    PA05_WRITE_LIFECYCLE_PACKAGES:packageId,
+    PA05_WRITE_LIFECYCLE_DATABASE_URL:"postgres://fixture",
+    PA05_WRITE_LIFECYCLE_SCHEMA:"owner_schema",
+    PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS:"owner_schema,second_schema",
+    PA05_SHARED_SCHEMA_AUTHORITY_ENABLED:"1"
+  }),{
+    protectedPackageIds:[packageId],
+    databaseUrl:"postgres://fixture",
+    schema:"owner_schema",
+    workerSchemas:["owner_schema","second_schema"],
+    sharedWorkerSchemaAuthority:true
+  });
+});
