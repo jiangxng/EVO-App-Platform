@@ -48,7 +48,7 @@ button.secondary,button.primary,button.light{border-radius:7px;min-height:40px;p
 <div class="issuebox">
 <div class="issue" id="bankIssue"><div class="issueindex" id="bankIcon">1</div><div><h3>开户银行存在多个对应字段</h3><p id="bankStatus">请确认这列数据应写入哪个业务字段。</p></div><button type="button" class="secondary" id="bankToggle" aria-expanded="false" aria-controls="bankBody">选择字段</button></div>
 <div class="issuedetail" id="bankBody" hidden><div class="formrow"><div class="formitem"><label for="bank">Excel 列「开户银行」对应到</label><select id="bank"><option value="">请选择</option><option value="BANK_SETTLEMENT">开户银行 · 供应商结算资料</option><option value="BANK_ARCHIVE">开户银行 · 财务归档资料</option></select><p class="explain">这两个字段名称相同，但业务用途不同。请根据数据用途选择。</p></div></div></div>
-<div class="issue" id="subjectIssue"><div class="issueindex" id="subjectIcon">2</div><div><h3>3 条记录缺少主体类型</h3><p id="subjectStatus">请根据供应商的实际身份补充，不能直接按往来类型判断。</p></div><button type="button" class="secondary" id="typeToggle" aria-expanded="false" aria-controls="typeBody">查看记录</button></div>
+<div class="issue" id="subjectIssue"><div class="issueindex" id="subjectIcon">2</div><div><h3>3 条记录缺少主体类型</h3><p id="subjectStatus">请为以下记录选择正确的主体类型。</p></div><button type="button" class="secondary" id="typeToggle" aria-expanded="false" aria-controls="typeBody">查看记录</button></div>
 <div class="issuedetail" id="typeBody" hidden><div class="smalltext">问题记录</div><div id="recordRows"></div></div>
 <div class="issue" id="metadataIssue"><div class="issueindex" id="metadataIcon">3</div><div><h3>「系统编码」尚未选择处理方式</h3><p id="metadataStatus">请确认是否需要导入为业务字段。原文件内容会保留在导入记录中。</p></div><button type="button" class="secondary" id="metaToggle">处理此列</button></div>
 </div></section>
