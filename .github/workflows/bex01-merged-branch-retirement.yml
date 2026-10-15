@@ -36,7 +36,8 @@ jobs:
               {n:855,branch:'docs/bex01-fixed-acceptance-status-table-20261014'},
               {n:858,branch:'docs/bex01-railway-dev-deploy-3112de7-20261014'},
               {n:862,branch:'fix/bex01-direct-field-create-and-reuse-20261014',sha:'f85252350464ab3d4b7ad4c8aff130eb4f415d4f'},
-              {n:864,branch:'docs/bex01-human-direct-create-closure-20261014'}
+              {n:864,branch:'docs/bex01-human-direct-create-closure-20261014'},
+              {n:878,branch:'docs/bex01-batch-extension-review-20261015'}
             ];
             const allOpen=(await github.paginate(github.rest.pulls.list,
               {owner,repo,state:'open',per_page:100})).filter(x=>x.head.repo?.full_name===owner+'/'+repo);
