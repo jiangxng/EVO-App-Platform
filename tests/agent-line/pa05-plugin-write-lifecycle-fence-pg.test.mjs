@@ -515,3 +515,81 @@ test("PA05-04D PG18: rollback not allowed, Owner verifier outage leaves UNKNOWN 
     await unresolved.close();
   }
 });
+
+test("PA05-04D2 PG18 Host INSTALL creates FROZEN owner before activation; independent Worker cannot WRITE", {
+  skip: !url ? "requires isolated PostgreSQL18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup();
+  let second;
+  const host = createPa05HostWriteLifecycleV010({
+    manager: h.manager, protectedPackageIds: [packageId],
+    databaseUrl: url, schema: h.schema
+  });
+  try {
+    h.manager.uninstall(packageId); // fixture-only reset: no effect was prepared
+    await h.admin.unsafe(
+      'DELETE FROM "' + h.schema +
+      '".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1',
+      [packageId]
+    );
+    assert.equal(await h.gate.getState(packageId), undefined);
+    const installed = await host.admitActivation("INSTALL", packageId);
+    assert.ok(installed.activeFeatures.some(x => x.packageId === packageId));
+    assert.deepEqual(await h.gate.getState(packageId), {
+      state: "FROZEN", packageVersion: "0.1.0"
+    });
+    second = await createPostgresAgentExecutionCoordinatorV020({
+      connectionString: url, schema: h.schema,
+      requirePluginWriteLifecycleFence: true
+    });
+    const effect = await h.prepare("run:second-worker-after-install");
+    await assert.rejects(second.beginWrite(effect),
+      /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/);
+    // Independent processes sharing this PG schema use the same exact gate;
+    // no one may write until trusted Owner is explicitly recertified.
+    await assert.rejects(h.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.0",
+      trustedOwnerReady: () => true
+    }), /PA05_LIFECYCLE_WRITE_NOT_QUIESCED/);
+    console.log("PA05_HOST_OWNER_ADMISSION_PG=" + JSON.stringify({
+      postgres18: true, newGateInitiallyAbsent: true,
+      installRequiresFrozenReservation: true, multiWorkerSameSchema: true,
+      preCertificationWriteDenied: true, productionWrite: false
+    }));
+  } finally {
+    if (second) await second.close();
+    await host.close();
+    await h.close();
+  }
+});
+
+test("PA05-04D2 PG18 protected ENABLE fails closed on outstanding UNKNOWN", {
+  skip: !url ? "requires isolated PostgreSQL18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup();
+  const host = createPa05HostWriteLifecycleV010({
+    manager: h.manager, protectedPackageIds: [packageId],
+    databaseUrl: url, schema: h.schema
+  });
+  try {
+    const effect = await h.prepare("run:reactivation-after-unknown");
+    await h.coordinator.beginWrite(effect);
+    await h.coordinator.markUnknown(effect);
+    // Model a legacy direct store mutation in isolation. This is an explicit
+    // remaining deployment blocker: only Host-mediated mutations are gated.
+    h.manager.disable(packageId);
+    await assert.rejects(host.admitActivation("ENABLE", packageId),
+      e => e.code === "PA05_HOST_LIFECYCLE_PENDING_WRITE");
+    assert.equal(h.manager.getSnapshot().activeFeatures.some(x =>
+      x.packageId === packageId), false);
+    assert.equal((await h.gate.getState(packageId)).state, "FROZEN");
+    assert.equal((await h.coordinator.getWrite({
+      scope, effectId: effect.effectId
+    })).state, "UNKNOWN");
+  } finally {
+    await host.close();
+    await h.close();
+  }
+});
