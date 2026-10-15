@@ -607,9 +607,11 @@ export function createDataImportMappingPageV010(input: {
         ?? (input.createdMapping?.sourceColumn === sourceColumn
           && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
             ? input.createdMapping.fieldId
-            : uniqueExistingField(sourceColumn)
-              ?? (input.canCreateExtension && input.job.targetId === "counterparty.subject"
-                ? "__CREATE__" : "__PENDING__")),
+            : input.job.ignoredSourceColumns?.includes(sourceColumn)
+              ? "__IGNORE__"
+              : uniqueExistingField(sourceColumn)
+                ?? (input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                  ? "__CREATE__" : "__PENDING__")),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
