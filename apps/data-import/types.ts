@@ -113,6 +113,8 @@ export interface DataImportJobV010 {
   state: DataImportJobStateV010;
   source: DataImportSourceV010;
   mapping: DataImportMappingV010[];
+  /** Explicitly ignored source columns. All original cells remain in source.rows. */
+  ignoredSourceColumns?: string[];
   mappingOrigin?: DataImportMappingOriginV010;
   appliedRecipeId?: string;
   stagedAt: string;
@@ -263,6 +265,15 @@ export function assertDataImportJobV010(
   ) {
     throw new Error("DATA_IMPORT_MAPPING_TARGET_DUPLICATE");
   }
+  const ignoredSourceColumns = (value.ignoredSourceColumns ?? []).map(column =>
+    required(column, "DATA_IMPORT_IGNORED_COLUMN_INVALID")
+  );
+  if (new Set(ignoredSourceColumns).size !== ignoredSourceColumns.length
+    || ignoredSourceColumns.some(column => !headerSet.has(column))
+    || ignoredSourceColumns.some(column =>
+      mapping.some(item => item.sourceColumn === column))) {
+    throw new Error("DATA_IMPORT_IGNORED_COLUMN_INVALID");
+  }
   let experienceLearning: DataImportExperienceLearningV010 | undefined;
   if (value.experienceLearning) {
     const item = value.experienceLearning;
@@ -313,6 +324,7 @@ export function assertDataImportJobV010(
       rows: structuredClone(value.source.rows)
     },
     mapping,
+    ...(ignoredSourceColumns.length ? { ignoredSourceColumns } : {}),
     ...(value.mappingOrigin
       ? { mappingOrigin: value.mappingOrigin }
       : {}),
