@@ -1,0 +1,49 @@
+name: PA05 - Cross-business READ Certification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/agent-pa05-cross-business-read.yml"
+      - "tests/agent-line/pa05-cross-business-read-certification.test.mjs"
+      - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
+      - "apps/trading-reference/**"
+      - "apps/ledger-runtime-configurator/**"
+      - "agents/enterprise-agent/capability-fabric-tools.ts"
+      - "manager/capability-operation-access.ts"
+      - "contracts/plugin-protocol.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/agent-pa05-cross-business-read.yml"
+      - "tests/agent-line/pa05-cross-business-read-certification.test.mjs"
+      - "apps/trading-reference/**"
+      - "apps/ledger-runtime-configurator/**"
+      - "agents/enterprise-agent/capability-fabric-tools.ts"
+      - "manager/capability-operation-access.ts"
+      - "contracts/plugin-protocol.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pa05-cross-business-read-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-plugin-read-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Cross-business Human / Personal Agent parity and owner regressions
+        run: >-
+          node --test
+          tests/agent-line/pa05-cross-business-read-certification.test.mjs
+          tests/protocol/personal-agent-capability-fabric.test.mjs
+          tests/protocol/tr01-purchase-operational-capability.test.mjs
+          tests/configurator/capability-operations.test.mjs
