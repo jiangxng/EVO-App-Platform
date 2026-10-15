@@ -196,6 +196,15 @@ test("PA05-03 third plugin: independent package passes protocol and installs its
   assert.equal(f.manager.listEffectiveCapabilityOperations(PURCHASE_ATTENTION_CAPABILITY_V010).length, 1);
   assert.ok(f.manager.listEffectiveCapabilityOperations()
     .some(op => op.operationId === PURCHASE_OPERATIONS_READ_OPERATION_V010));
+  const sourceDisable = f.manager.planDisable(tradingReferencePackageV010.packageId);
+  assert.ok(sourceDisable.blockers.some(b => b.code === "ACTIVE_DEPENDENT_CAPABILITY"));
+  assert.throws(
+    () => f.manager.disable(tradingReferencePackageV010.packageId),
+    /DISABLE_BLOCKED/
+  );
+  assert.ok(f.manager.listEffectiveCapabilityOperations().some(op =>
+    op.operationId === PURCHASE_ATTENTION_OPERATION_V010
+  ));
 });
 
 test("PA05-03 real purchase owner -> independent attention plugin: Human and Agent return identical business facts", async () => {
