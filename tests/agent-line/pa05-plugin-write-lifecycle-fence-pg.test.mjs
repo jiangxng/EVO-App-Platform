@@ -453,7 +453,11 @@ test("PA05-04D PG18: upgrade remains frozen until old Owner writes drain and new
     }), /PA05_LIFECYCLE_OWNER_RECERTIFICATION_REQUIRED/);
     // New PREPARED request must be drained/denied by Host before any reopen;
     // do not invent a terminal result in this test.
-    assert.equal((await ready.gate.freeze(packageId)).pendingCount, 1);
+    await assert.rejects(ready.gate.reopen({
+      packageId, expectedPackageVersion: "0.1.1",
+      trustedOwnerReady: () => true
+    }), /PA05_LIFECYCLE_WRITE_NOT_QUIESCED/);
+    assert.equal((await ready.gate.getState(packageId)).state, "FROZEN");
   } finally {
     await ready.close();
   }
