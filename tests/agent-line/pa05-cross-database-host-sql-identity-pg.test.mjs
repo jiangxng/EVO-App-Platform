@@ -124,13 +124,12 @@ test("PA05-04D13 three physical PG18: real central Host LOGIN, Worker ACL drift,
 
     // A SQL superuser SET ROLE session does NOT become an authenticated
     // Host LOGIN. Only SESSION_USER is authoritative inside the trigger.
-    await admin.begin(async tx=>{
+    await assert.rejects(admin.begin(async tx=>{
       await tx.unsafe('SET LOCAL ROLE "'+hostRole+'"');
-      await assert.rejects(tx.unsafe("INSERT INTO "+q+
+      await tx.unsafe("INSERT INTO "+q+
         ".pa05_xdb_owners(owner_package_id,package_version,state) "+
-        "VALUES('forged','1.0.0','ACTIVE')"),
-        /PA05_XDB_CENTRAL_WRONG_HOST_LOGIN/);
-    });
+        "VALUES('forged','1.0.0','ACTIVE')");
+    }),/PA05_XDB_CENTRAL_WRONG_HOST_LOGIN/);
 
     // Fresh D13 row -> independent Host fence -> conservative settlement,
     // then even HOST table owner cannot edit settled audit using plain SQL.
