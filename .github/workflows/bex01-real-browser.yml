@@ -59,6 +59,8 @@ jobs:
         run: python tests/bex01/v3_row_correction_chromium.py
       - name: V3 synthetic 22-column 172-row actual XLSX through Host and Chromium
         run: python tests/bex01/v3_synthetic_xlsx_172_chromium.py
+      - name: V3 preserve all genuine synthetic XLSX business fields in supplier records
+        run: python tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py
       - if: failure()
         run: cat artifacts/bex01-browser/bootstrap.log || true
       - name: Stop disposable Host
