@@ -55,6 +55,11 @@ export function createPa05HostWriteLifecycleV010(input: {
   /** A trusted Host test seam only. It never comes from a request. */
   gateFactory?: () => Promise<Pa05PluginWriteLifecycleGateV010>;
 }): {
+  admitActivation(
+    operation: "INSTALL" | "ENABLE",
+    packageId: string,
+    authorization?: InstallAuthorizationV010
+  ): Promise<PlatformSnapshotV010>;
   apply(
     operation: Pa05PluginLifecycleOperationV010,
     packageId: string,
@@ -90,6 +95,26 @@ export function createPa05HostWriteLifecycleV010(input: {
       });
     return connection;
   };
+  function prospectiveAgentWriteOwners(packageId: string): Array<{packageId: string; version: string}> {
+    const plan = input.manager.planInstall(packageId);
+    // All dependencies must be guarded, including a WRITE source dependency
+    // brought in by a supposedly READ-only target package.
+    const planned = new Set([packageId, ...plan.installPackages]);
+    const owners = input.manager.listCatalog()
+      .filter(pkg => planned.has(pkg.packageId))
+      .filter(pkg => pkg.features.some(feature =>
+        feature.contributions?.some(contribution =>
+          contribution.kind === "platform.capability-operation" &&
+          contribution.operation.effect === "WRITE" &&
+          contribution.operation.exposure.includes("PERSONAL_AGENT")
+        )))
+      .map(pkg => ({packageId:pkg.packageId,version:pkg.version}));
+    if (owners.some(owner => !guarded.has(owner.packageId)))
+      throw new Pa05HostLifecycleDeniedV010(
+        "PA05_HOST_WRITE_OWNER_NOT_PROTECTED"
+      );
+    return owners.sort((a,b)=>a.packageId.localeCompare(b.packageId));
+  }
   function applyWithoutGate(
     operation: Pa05PluginLifecycleOperationV010,
     packageId: string,
@@ -101,6 +126,49 @@ export function createPa05HostWriteLifecycleV010(input: {
     throw new Pa05HostLifecycleDeniedV010("PA05_HOST_LIFECYCLE_OPERATION_INVALID");
   }
   return {
+    async admitActivation(operation, packageId, authorization) {
+      if ((operation !== "INSTALL" && operation !== "ENABLE")
+        || typeof packageId !== "string" || !packageId.trim()) {
+        throw new Pa05HostLifecycleDeniedV010(
+          "PA05_HOST_LIFECYCLE_REQUEST_INVALID"
+        );
+      }
+      if (guarded.size > 0) {
+        try {
+          assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
+        } catch {
+          throw new Pa05HostLifecycleDeniedV010(
+            "PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE"
+          );
+        }
+        const owners = prospectiveAgentWriteOwners(packageId);
+        if (owners.length) {
+          try {
+            const protectedGate = await gate();
+            // Fail CLOSED before exposing any new Owner: even if activation
+            // fails after reservation, durable FROZEN remains in PostgreSQL.
+            // Unknown/pending Owner effects cannot be bypassed by reinstall.
+            for (const owner of owners) {
+              const reserved = await protectedGate.reserveActivation(
+                owner.packageId, owner.version
+              );
+              if (reserved.pendingCount > 0) {
+                throw new Pa05HostLifecycleDeniedV010(
+                  "PA05_HOST_LIFECYCLE_PENDING_WRITE"
+                );
+              }
+            }
+          } catch (error) {
+            if (error instanceof Pa05HostLifecycleDeniedV010) throw error;
+            throw new Pa05HostLifecycleDeniedV010(
+              "PA05_HOST_LIFECYCLE_GUARD_UNAVAILABLE"
+            );
+          }
+        }
+      }
+      if (operation === "INSTALL") return input.manager.install(packageId, authorization);
+      return input.manager.enable(packageId);
+    },
     async apply(operation, packageId, authorization) {
       if (!["DISABLE", "UNINSTALL", "UPGRADE"].includes(operation)
         || typeof packageId !== "string" || !packageId.trim()) {
