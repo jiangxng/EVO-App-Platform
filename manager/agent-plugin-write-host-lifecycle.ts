@@ -67,6 +67,8 @@ export function createPa05HostWriteLifecycleV010(input: {
   sharedAuthoritySchema?: string;
   /** Explicit opt-in for database-level Owner admission guard on trusted Worker tables. */
   enforceSqlOwnerAdmission?: boolean;
+  /** Trusted PostgreSQL LOGIN identities, exactly one for each registered Worker Schema. */
+  workerIdentities?: readonly {schema: string; role: string}[];
   /** A trusted Host test seam only. It never comes from a request. */
   gateFactory?: () => Promise<Pa05PluginWriteLifecycleGateV010>;
 }): {
@@ -125,8 +127,19 @@ export function createPa05HostWriteLifecycleV010(input: {
     throw new Error("PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE");
   }
   if (!input.sharedWorkerSchemaAuthority &&
-      (input.sharedAuthoritySchema || input.enforceSqlOwnerAdmission))
+      (input.sharedAuthoritySchema || input.enforceSqlOwnerAdmission ||
+        input.workerIdentities))
     throw new Error("PA05_HOST_SHARED_AUTHORITY_CONFIGURATION_INCOMPLETE");
+  if (input.workerIdentities && (!input.enforceSqlOwnerAdmission ||
+      input.workerIdentities.length !== input.workerSchemas?.length ||
+      !input.workerSchemas?.every(schema =>
+        input.workerIdentities?.some(identity => identity.schema === schema)) ||
+      new Set(input.workerIdentities.map(x => x.schema)).size !== input.workerIdentities.length ||
+      new Set(input.workerIdentities.map(x => x.role)).size !== input.workerIdentities.length ||
+      input.workerIdentities.some(x =>
+        !/^[a-z][a-z0-9_]{0,62}$/.test(x.schema) ||
+        !/^[a-z_][a-z0-9_]{0,62}$/.test(x.role))))
+    throw new Error("PA05_HOST_WORKER_IDENTITIES_INVALID");
   assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
   let connection: Promise<Pa05PluginWriteLifecycleGateV010> | undefined;
   const gate = () => {
@@ -140,7 +153,8 @@ export function createPa05HostWriteLifecycleV010(input: {
           authoritySchema: input.sharedAuthoritySchema ?? input.schema!,
           workerSchemas: input.workerSchemas!,
           ...(input.enforceSqlOwnerAdmission ?
-            {enforceSqlOwnerAdmission:true} : {})
+            {enforceSqlOwnerAdmission:true} : {}),
+          ...(input.workerIdentities ? {workerIdentities:input.workerIdentities} : {})
         } : {})
       })).catch(error => {
         // Fail closed on this request; allow a recovered database to be
@@ -337,6 +351,13 @@ export function pa05HostLifecycleConfigurationV010(env: NodeJS.ProcessEnv) {
       ? {sharedWorkerSchemaAuthority: true} : {}),
     ...(env.PA05_SQL_WRITE_ADMISSION_ENABLED?.trim() === "1"
       ? {enforceSqlOwnerAdmission:true} : {}),
+    ...(env.PA05_SQL_WORKER_IDENTITIES?.trim()
+      ? {workerIdentities: env.PA05_SQL_WORKER_IDENTITIES.split(",").map(pair => {
+          const [schema,role,...extra] = pair.trim().split(":");
+          if (!schema || !role || extra.length)
+            throw Error("PA05_HOST_WORKER_IDENTITIES_INVALID");
+          return {schema,role};
+        })} : {}),
     ...(env.PA05_WRITE_LIFECYCLE_AUTHORITY_SCHEMA?.trim()
       ? {sharedAuthoritySchema: env.PA05_WRITE_LIFECYCLE_AUTHORITY_SCHEMA.trim()} : {}),
     ...(env.PA05_WRITE_LIFECYCLE_WORKER_SCHEMAS?.trim()
