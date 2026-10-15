@@ -79,6 +79,10 @@ export function createDataImportRowCorrectionPageV010(input: {
       required: true, initialValue: revision,
       options: [{value: revision, label: chinese ? "当前保存状态" : "Current saved state"}]
     }, {
+      key: "originalSourceValue", label: chinese ? "Excel 原值" : "Original Excel value",
+      semanticType: "data-import-original-cell", control: "text" as const,
+      required: false, readOnly: true, initialValue: originalValueLabel
+    }, {
       key: "mode", label: chinese ? "处理方式" : "Correction action",
       semanticType: "data-import-correction-mode", control: "select" as const,
       required: true, initialValue: "SET",
