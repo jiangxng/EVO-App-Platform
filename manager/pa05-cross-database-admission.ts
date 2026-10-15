@@ -164,6 +164,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
         "BEGIN",
         "IF SESSION_USER != '"+expectedHost+"' THEN",
         " RAISE EXCEPTION 'PA05_XDB_CENTRAL_WRONG_HOST_LOGIN'; END IF;",
+        "IF TG_OP='INSERT' THEN RETURN NEW; END IF;",
         "IF TG_OP='DELETE' THEN",
         " RAISE EXCEPTION 'PA05_XDB_CENTRAL_AUDIT_DELETE_DENIED'; END IF;",
         "IF OLD.state='SETTLED' THEN",
@@ -385,7 +386,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
           plpgsql+"$pa05$");
         await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_protect_audit ON "+a+
           ".pa05_xdb_reservations");
-        await tx.unsafe("CREATE TRIGGER pa05_xdb_protect_audit BEFORE UPDATE OR DELETE ON "+
+        await tx.unsafe("CREATE TRIGGER pa05_xdb_protect_audit BEFORE INSERT OR UPDATE OR DELETE ON "+
           a+".pa05_xdb_reservations FOR EACH ROW EXECUTE FUNCTION "+
           a+".pa05_xdb_protect_audit()");
         await tx.unsafe("CREATE OR REPLACE FUNCTION "+a+
@@ -398,6 +399,37 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
         await tx.unsafe("CREATE TRIGGER pa05_xdb_no_truncate BEFORE TRUNCATE ON "+
           a+".pa05_xdb_reservations FOR EACH STATEMENT EXECUTE FUNCTION "+
           a+".pa05_xdb_forbid_truncate()");
+        // Host membership + lifecycle rows also resist accidentally GRANTed
+        // worker DML; Worker SQL privilege drift is not an authorization path.
+        const onlyHost=[
+          "BEGIN",
+          "IF SESSION_USER != '"+expectedHost+"' THEN",
+          " RAISE EXCEPTION 'PA05_XDB_CENTRAL_WRONG_HOST_LOGIN'; END IF;",
+          "IF TG_OP='DELETE' THEN",
+          " RAISE EXCEPTION 'PA05_XDB_CENTRAL_AUTHORITY_DELETE_DENIED'; END IF;",
+          "IF TG_OP='UPDATE' THEN",
+          " IF TG_TABLE_NAME='pa05_xdb_workers' THEN",
+          "  RAISE EXCEPTION 'PA05_XDB_CENTRAL_MEMBERSHIP_IMMUTABLE'; END IF;",
+          " IF NEW.owner_package_id IS DISTINCT FROM OLD.owner_package_id OR",
+          "  NEW.package_version IS DISTINCT FROM OLD.package_version THEN",
+          "  RAISE EXCEPTION 'PA05_XDB_CENTRAL_OWNER_IMMUTABLE'; END IF;",
+          "END IF;",
+          "RETURN NEW; END;"
+        ].join("\\n");
+        await tx.unsafe("CREATE OR REPLACE FUNCTION "+a+
+          ".pa05_xdb_host_only() RETURNS trigger LANGUAGE plpgsql "+
+          "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+          onlyHost+"$pa05$");
+        for(const table of ["pa05_xdb_owners","pa05_xdb_workers"]){
+          await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_host_only ON "+
+            a+"."+table);
+          await tx.unsafe("CREATE TRIGGER pa05_xdb_host_only BEFORE INSERT OR UPDATE OR DELETE ON "+
+            a+"."+table+" FOR EACH ROW EXECUTE FUNCTION "+a+".pa05_xdb_host_only()");
+          await tx.unsafe("DROP TRIGGER IF EXISTS pa05_xdb_no_truncate ON "+
+            a+"."+table);
+          await tx.unsafe("CREATE TRIGGER pa05_xdb_no_truncate BEFORE TRUNCATE ON "+
+            a+"."+table+" FOR EACH STATEMENT EXECUTE FUNCTION "+a+".pa05_xdb_forbid_truncate()");
+        }
       });
     }
     // Guard membership with a centralized transaction; constructing an
