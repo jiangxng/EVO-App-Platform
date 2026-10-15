@@ -4,7 +4,7 @@
 **Authority:** [Personal Agent Blueprint §21.1–21.3 and §26.2](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md)  
 **Historical research:** [PA-04 handoff](PA04-WINDOW-HANDOFF-ENTRY-20261015.md), [reference provenance](PA04-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md).  
 **Starting main:** `4b746bfa76cacef0fa1d1e45d2e28ebccfedab67` (historical SHA; recheck live main before every new PR).  
-**Stage:** `PA-05 IN_PROGRESS / NOT_SIGNED`; this slice is `ISOLATED_PARITY_PROVEN / MANIFEST_BLOCKED` pending CI, not an Agent-usable plugin certificate or production approval.
+**Stage:** `PA-05 IN_PROGRESS / NOT_SIGNED`. PA05-01 isolated parity was verified in [PR #903](https://github.com/jiangxng/EVO-App-Platform/pull/903), 23/23 CI. The PA05-M01 namespace repair is a separate candidate until its exact-head CI and merge; neither PR is a real-model/production Agent certification.
 
 ## 1. Explicit preservation
 
@@ -29,7 +29,7 @@
 
 **Real target:** `evo-trading-reference` Purchase Operational Position **READ**, alongside the existing `evo-ledger-runtime-configurator` Configuration Description **READ** as comparison.
 
-**Source fact:** Both already publish `platform.capability-operation` with `HUMAN` and `PERSONAL_AGENT` exposure and real business-owner Action handlers. However, **the Trading Reference Manifest currently fails the existing Protocol validator** for its two operation ID namespaces, as the first PA05-01 CI exposed. This must not be described as a conformant/Agent-certified package. The trading reference read uses a Host→EVO enterprise mapping and domain resource authorization; the ledger read exposes a bounded configuration description. Existing owner tests cover their business logic separately.
+**Source fact:** Both already publish `platform.capability-operation` with `HUMAN` and `PERSONAL_AGENT` exposure and real business-owner Action handlers. The old Trading Reference Manifest on main before PA05-M01 fails the existing Protocol validator for its two operation ID namespaces; PA05-M01's additive versioned correction is described below and remains subject to CI. This must not be described as a full Agent-certified package. The trading reference read uses a Host→EVO enterprise mapping and domain resource authorization; the ledger read exposes a bounded configuration description. Existing owner tests cover their business logic separately.
 
 **Engineering choice:** Certify these installed-domain contracts together *without modifying Agent core or BEX/CP-03*. The second plugin is a **second existing real plugin under certification**, not a newly created/third-party plugin; PA-05 cannot claim independent new-plugin SDK onboarding until that separate evidence exists.
 
@@ -41,18 +41,18 @@ The new standalone test `tests/agent-line/pa05-cross-business-read-certification
 
 | Gate | Acceptance | Evidence ceiling |
 | --- | --- | --- |
-| P05-R01 | Ledger manifest validates; Trading Reference currently FAILS two existing namespace checks (`features[0].contributions[0]` and `[5]`) | **BLOCKED: PA05-M01**, regression explicitly pins exact existing issues; not silently waived |
+| P05-R01 | Ledger manifest PASS; original Trading Reference Manifest FAIL at two namespaces; PA05-M01 replaces blocker-assertion with positive manifest validation | **Candidate until PA05-M01 CI green and merged**, still not a production certification |
 | P05-R02 | Agent dynamically discovers/describes both real operations with published input contract | Isolated Host integration |
 | P05-R03 | Direct HUMAN and Personal Agent AI calls return identical **business** results for ledger description and purchase Work/Position; current-tenant EVO mapping preserved | Isolated Host and fake EVO READ data |
 | P05-R04 | Revoked grant / wrong resource blocks before owner ledger reads on **both channels** | In-memory test policy, not live identity |
 | P05-R05 | Missing order ID, wrong inputVersion, plugin disable fail closed; disabling purchase leaves ledger owner usable | In-memory lifecycle; not in-flight Run drain |
 
-CI: `.github/workflows/agent-pa05-cross-business-read.yml`; includes pre-existing owner-specific and Agent Fabric regression tests. Green CI means **PA05-01 isolated parity and denial regression only**. Trading Reference manifest conformance **FAILS**, so the whole package is **NOT_AGENT_CERTIFIED**; no asserted token/provider/hardware or production identity proof.
+CI: `.github/workflows/agent-pa05-cross-business-read.yml`; includes pre-existing owner-specific and Agent Fabric regression tests. For merged PA05-01, green CI meant isolated parity/denial regression only and original Trading Reference manifest conformance **FAILED**. The separate PA05-M01 candidate must produce full positive manifest PASS; no asserted token/provider/hardware or production identity proof.
 
 ## 5. Remaining PA-05 gates, owner and sequence
 
 1. **PA05-01** real cross-business READ / lifecycle parity (this short PR, isolated proof only; no package Agent certification).
-2. **PA05-M01 / PA05-02** first resolve Trading Reference Manifest's **two `PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH` violations** with an owner-approved, backwards-compatible migration strategy (operation IDs might already be referenced by saved Agent Runs, grants and UI). Do not rename or loosen validator just to clear CI. Then add SDK fixture typed validation, schema input/output negative cases, recovery & error categories, current owner permissions; reuse schema validator and Capability Fabric. Must prove exact Host binding; no new parallel tool registry.
+2. **PA05-M01** (candidate PR): additive canonical Capability and 0.1.0→0.1.1 plugin-version migration, preserving legacy Capability and both published operation/action IDs; positive manifest check + actual Host upgrade contract. CI/merge determine closure; do not weaken the validator or rename existing public operation IDs. **PA05-02** next: SDK fixture typed validation, schema input/output negative cases, recovery & error categories, current owner permissions; reuse schema validator and Capability Fabric. Must prove exact Host binding; no new parallel tool registry.
 3. **PA05-03** a genuinely independent business-plugin onboarding certification: Manifest/object schema/operation/assistance and result bindings, task template/learning policy where applicable; direct/Agent parity and no Agent-core patch. Choose actual owner after BEX overlap and permission review.
 4. **PA05-04** independently audited WRITE with Host receipt/idempotency/unknown-result recovery, mid-run disable/upgrade/rollback, identity change, conflicting operation owner, artifact/UI state and model fallback. `WRITE` cannot be treated as certified by PA05-01.
 5. **PA05-05** actual Human/browser/Provider/production-like environment signing, model selection and environment credentials; PA-04 real gates remain separately signed by their owners. Only after this can PA-05 be considered for full signoff.
@@ -65,4 +65,24 @@ CI: `.github/workflows/agent-pa05-cross-business-read.yml`; includes pre-existin
 
 The initially executed [PA05 workflow run #38675058157](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38675058157) ran 23 tests: **22 pass, 1 fail**. Three new behavioural cases plus both real business owner suites passed. The failing case was the existing `validatePluginManifestV010(tradingReferencePackageV010)` assertion: two `PLUGIN_CAPABILITY_OPERATION_ID_NAMESPACE_MISMATCH` issues. This is a real existing source compatibility defect, **not** a failed Human/AI parity test. Both affected operation IDs begin `trading-reference.purchase-operations...`, while their declared capability is `enterprise.trading-reference.purchase-operations`. Source: `apps/trading-reference/constants.ts` + `apps/trading-reference/package.ts`, validator: `contracts/plugin-protocol.ts`.
 
-**Decision:** Do not reinterpret or relax the validator; do not silently rename published operation IDs/capability or break saved task/action references. Pin the precise namespace debt as an explicit failing certification prerequisite with a regression that checks only the known two issues; if a third issue appears, CI must fail. This keeps cross-business parity tests running without falsely approving a nonconformant manifest. Separate bounded owner migration PR must re-enable a positive-only manifest PASS gate. Until then `PA05-M01 OPEN`, `TRADING_REFERENCE_AGENT_CERTIFICATION NOT_SIGNED`.
+**Decision:** Do not reinterpret or relax the validator; do not silently rename published operation IDs/capability or break saved task/action references. Pin the precise namespace debt as an explicit failing certification prerequisite with a regression that checks only the known two issues; if a third issue appears, CI must fail. This keeps cross-business parity tests running without falsely approving a nonconformant manifest. Separate bounded owner migration PR must re-enable a positive-only manifest PASS gate. Until the repair PR has verified positive manifest CI, `PA05-M01 OPEN`, `TRADING_REFERENCE_AGENT_CERTIFICATION NOT_SIGNED`.
+
+## 7. PA05-M01 additive compatibility decision (2026-10-15; candidate until CI)
+
+**Owner files:** `apps/trading-reference/constants.ts`, `apps/trading-reference/package.ts`; consumer regression `tests/agent-line/pa05-cross-business-read-certification.test.mjs`. No generic platform / Agent Core changes.
+
+| Item | Previous v0.1.0 | Candidate v0.1.1 | Migration intent |
+| --- | --- | --- | --- |
+| legacy provided Capability | `enterprise.trading-reference.purchase-operations` | **still provided** | Existing `requiresCapabilities` dependency declarations continue resolving |
+| operation-owner Capability | previously same legacy ID (invalid namespace) | additional `trading-reference.purchase-operations` | Operation IDs match strict Plugin Protocol namespace rule |
+| public Operation IDs | `trading-reference.purchase-operations.read`, `trading-reference.purchase-operations.entry.open` | unchanged | Existing Agent Runs, Agent tool invocation, Workbench action reference and exact IDs retained |
+| Host Action command codes | unchanged string IDs | unchanged | Existing business handlers and authorization actions remain unchanged |
+| authorization/effect/exposure | existing READ, Human/Personal Agent/Automation | unchanged | No new WRITE, scope, permissions or external Agent exposure |
+| package + feature version | 0.1.0 | 0.1.1 | Explicit Additive migration using existing AppManager `planUpgrade/upgrade` |
+| operationVersion | 0.1.0 | 0.1.0 | Semantics and input/output contract are unchanged |
+
+**Why not other choices?** Renaming public Operation IDs breaks saved references; changing only the old Capability ID drops existing plugin dependency; a validator exception weakens the generic security contract; inventing a parallel registry/Agent-only alias forks semantic ownership. The additive Capability is the smallest bounded fix.
+
+**Important limitation:** Code review of business owner/Host/Agent delegated capability paths found no repository-hardcoded use of the legacy Capability beyond its declaration. The legacy Capability continues to be **provided** for dependency checks, but existing direct catalog filters or capability-level delegated selectors targeting that exact old ID **do not automatically select the operations newly associated with the canonical Capability**. Runtime production grants/data were not inspected. Trading Reference currently does *not* expose those two operations to `EXTERNAL_AGENT`; no claim about unknown private persisted selectors is made. Further alias/deprecation semantics, if required by a real consumer, need their own reviewed public contract, not a hidden rewrite here.
+
+**Machine gates:** Positive `validatePluginManifestV010`, canonical and legacy provided capability declarations, two unchanged operation IDs and command codes, no semantic/authorization/version changes, persisted lifecycle `0.1.0 → 0.1.1` upgrade plan without new approvals, cross-business Human/Agent parity, and denial/disable regressions. Exact CI link and status to be appended after runs. Do not close #905 until the PR is merged and green, and never infer production install upgrade from test.
