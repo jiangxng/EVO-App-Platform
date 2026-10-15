@@ -550,16 +550,26 @@ export function createDataImportActionHandlersV010(input: {
             .map(item => [item.sourceColumn!, item] as const)
         );
         const nextMapping: DataImportMappingV010[] = [];
+        const ignoredSourceColumns: string[] = [];
         let proposedNewFields = 0;
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
-          if (typeof value !== "string" || !value.trim()) return;
+          if (typeof value !== "string" || !value.trim()) {
+            if (current.ignoredSourceColumns?.includes(sourceColumn)) {
+              ignoredSourceColumns.push(sourceColumn);
+            }
+            return;
+          }
           if (value === "__CREATE__") {
             proposedNewFields += 1;
             return;
           }
-          // A retained source column is not a target-field mapping.
-          if (value === "__PENDING__" || value === "__IGNORE__") return;
+          // Explicit ignore is a reversible job choice, not loss of source data.
+          if (value === "__IGNORE__") {
+            ignoredSourceColumns.push(sourceColumn);
+            return;
+          }
+          if (value === "__PENDING__") return;
           const targetFieldId = value.trim();
           const existing = existingBySource.get(sourceColumn);
           nextMapping.push(
@@ -588,6 +598,7 @@ export function createDataImportActionHandlersV010(input: {
           contextId: active.contextId,
           importJobId,
           mapping: nextMapping,
+          ignoredSourceColumns,
           mappingOrigin: mappingOrigin(context.principal),
           actorSubjectId: context.principal.subjectId,
           recordedAt
