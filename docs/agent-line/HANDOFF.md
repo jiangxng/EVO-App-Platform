@@ -1,6 +1,6 @@
 # 独立 Agent 线交接入口
 
-
+> **2026-10-15 PA-05 旧窗口恢复入口（当前最新 Agent 专项导航，固定快照）**：[恢复后的决策／进度／待办](PA05-WINDOW-RECOVERY-HANDOFF-20261015.md) · [证据等级、原网址、PR/CI 和取舍详细索引](PA05-WINDOW-RECOVERED-SOURCES-DECISIONS-20261015.md) · [PA05 专项当前记录](PA05-CERTIFICATION-BASELINE-20261015.md)。截至保存基线 `main@ad0b4172eb1cf0086d4836b57203a62107ee1323`，#930 merged、同库 PG18 40/40、准确 HEAD 7/7；**跨独立数据库/多 Host 和 PA05-05 仍 OPEN；PA-05 IN_PROGRESS / NOT_SIGNED；生产 WRITE OFF**。此项是 Agent 独立窗口导航，不改写 `project.status.json` 或生成的全局 handoff。每次接续必须重查最新 GitHub。\n\n
 > **2026-10-15 PA-02 新窗口最新研究资料包（优先于下方历史入口）：** [简短交接入口](PA02-WINDOW-HANDOFF-ENTRY-20261015.md) · [完整来源／网页阅读等级／PR CI／方案决策索引](PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)。本包编制基线 `main@991ac3e030884b69586b3c1732db9953dc17ef91`，**不是合并后永久 HEAD**；新窗口先按 `AI-BOOTSTRAP.md` 查最新 main 与实际 PR。R01–R09 隔离验证已证明，R10 **实际货币硬预算 NOT_SIGNED**，权威阻断 [Issue #879](https://github.com/jiangxng/EVO-App-Platform/issues/879)，不能用合成费用签收。历史外部 H01–H14 仍未在本窗口访问原文。四条旧 PA02 文档分支的 SHA 退休清单已合并，但删除需要安全 Workflow 的手动 execute=true，**不得声称已删除**。不部署生产、不开生产 WRITE、不开 PA-03～06 范围。
 
 
