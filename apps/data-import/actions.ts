@@ -16,6 +16,9 @@ import {
   fieldsForSurfaceV010
 } from "../../contracts/foundation-object/schema.js";
 import {
+  objectExtensionImportRouteV010
+} from "../object-extension/constants.js";
+import {
   parseCsvSourceV010
 } from "./csv.js";
 import {
@@ -547,10 +550,16 @@ export function createDataImportActionHandlersV010(input: {
             .map(item => [item.sourceColumn!, item] as const)
         );
         const nextMapping: DataImportMappingV010[] = [];
+        let proposedNewFields = 0;
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
           if (typeof value !== "string" || !value.trim()) return;
-          if (value === "__IGNORE__") return;
+          if (value === "__CREATE__") {
+            proposedNewFields += 1;
+            return;
+          }
+          // A retained source column is not a target-field mapping.
+          if (value === "__PENDING__" || value === "__IGNORE__") return;
           const targetFieldId = value.trim();
           const existing = existingBySource.get(sourceColumn);
           nextMapping.push(
@@ -575,7 +584,7 @@ export function createDataImportActionHandlersV010(input: {
           }
         }
         const recordedAt = now().toISOString();
-        input.service.updateMapping({
+        const staged = input.service.updateMapping({
           contextId: active.contextId,
           importJobId,
           mapping: nextMapping,
@@ -583,6 +592,18 @@ export function createDataImportActionHandlersV010(input: {
           actorSubjectId: context.principal.subjectId,
           recordedAt
         });
+        if (proposedNewFields > 0 && staged.targetId === "counterparty.subject") {
+          return {
+            ok: true,
+            correlationId: context.correlationId,
+            result: JSON.parse(JSON.stringify({
+              contractVersion: "0.1.0",
+              message: "Existing selections saved. Review proposed enterprise fields together; source rows remain preserved. No supplier data imported.",
+              navigateTo: objectExtensionImportRouteV010(importJobId) + "&mode=batch",
+              job: staged
+            })) as JsonValue
+          };
+        }
         const job = input.service.dryRun({
           contextId: active.contextId,
           importJobId,
