@@ -57,7 +57,7 @@ test("PA05-04D13 three physical PG18: real central Host LOGIN, Worker ACL drift,
       centralWorkerLoginRoles:[roleA,roleB]
     };
     await assert.rejects(createPa05CrossDatabaseReservationAuthorityV010({
-      ...setup,centralHostLoginRole:roleA
+      ...setup,centralHostLoginRole:"pa05fake_"+suffix
     }),/PA05_XDB_CENTRAL_HOST_LOGIN_MISMATCH/);
     host1=await createPa05CrossDatabaseReservationAuthorityV010(setup);
     host2=await createPa05CrossDatabaseReservationAuthorityV010(setup);
