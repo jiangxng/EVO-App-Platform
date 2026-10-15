@@ -25,6 +25,14 @@ jobs:
           node-version: '22'
       - name: Install pinned Playwright controller only
         run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Install Chinese UI fonts for visual review
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-noto-cjk >/dev/null
+          fc-cache -f >/dev/null
+          fc-list :lang=zh family | grep -q "Noto Sans CJK SC"
       - name: Verify actual local Chromium and synthetic V2 prototype
         shell: bash
         run: |
