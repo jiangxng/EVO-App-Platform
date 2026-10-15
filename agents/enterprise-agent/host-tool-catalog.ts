@@ -4,6 +4,8 @@ import type { AppManagerService } from "../../manager/service.js";
 import type { ProviderBindingV010 } from "../../manager/provider-resolution.js";
 import type { ProviderRuntimeHealthV010 } from "../../providers/runtime-registry.js";
 import type { HelpContextSelectorsV010, HelpSearchResultV010 } from "../../manager/help-system.js";
+import { guardPa04ContextMemoryDisclosureV010 } from "./pa04-memory-reference-disclosure.js";
+import type { Pa04MemoryDisclosureAuthorityV010 } from "./pa04-memory-reference-disclosure.js";
 import type {
   ActiveContextRefV010,
   PlatformPrincipalV010,
@@ -44,6 +46,13 @@ export interface EnterpriseAgentHostToolDependenciesV010 {
     limit?: number;
     cursor?: string;
   }) => Promise<unknown> | unknown;
+  /**
+   * Optional C06 current-Principal/context/source disclosure authority.
+   * The Host must validate every Memory and underlying provenance source
+   * against current grants, not merely reuse a prior READ grant.
+   * When configured, denial stops entire READ responses before the model.
+   */
+  memoryDisclosureAuthority?: Pa04MemoryDisclosureAuthorityV010;
   readContextMemory?: (input: {
     query?: string;
     kinds?: Array<"FACT" | "CLAIM" | "EXPERIENCE" | "PRACTICE">;
@@ -522,6 +531,9 @@ export function createEnterpriseAgentHostToolCatalogV010(
             })
           )
         );
+        // A record from any expanded query may otherwise leak via the
+        // queryResults IDs even if it is outside the final ranked top N.
+        for (const result of queryResults) await secureMemoryResult(result);
 
         const byId = new Map<string, unknown>();
         const rankingById = new Map<string, {
@@ -744,6 +756,8 @@ export function createEnterpriseAgentHostToolCatalogV010(
             limit: Math.min(100, memoryIds.length)
           })
         ]);
+        await secureMemoryResult(effective);
+        await secureMemoryResult(audit);
 
         if (
           effective === null
@@ -1239,6 +1253,15 @@ export function createEnterpriseAgentHostToolCatalogV010(
     ...additional
   ];
 
+  const secureMemoryResult = async (result: unknown): Promise<void> => {
+    if (!dependencies.memoryDisclosureAuthority) return;
+    await guardPa04ContextMemoryDisclosureV010({
+      result,
+      principal:dependencies.principal,
+      context:dependencies.context.activeContext,
+      authority:dependencies.memoryDisclosureAuthority
+    });
+  };
   const byId = new Map<string, EnterpriseAgentToolRegistrationV010>();
   const byModelName = new Set<string>();
   for (const registration of registrations) {
@@ -1411,6 +1434,14 @@ export function createEnterpriseAgentHostToolCatalogV010(
         }
 
         const result = await registration.execute(call.arguments, observations);
+        // Current authorization must cover all result bodies, provenance
+        // titles, and future URL/download metadata before any READ reaches the
+        // model. The audit compare case also validates both nested result sets.
+        if (registration.descriptor.effect === "READ"
+          && ["context.memory.inventory.list", "context.memory.recall",
+            "context.memory.search", "context.memory.audit.get"].includes(registration.descriptor.id)) {
+          await secureMemoryResult(result);
+        }
         if (registration.descriptor.effect === "WRITE") {
           finishReceipt("SUCCEEDED", { result });
         }
