@@ -83,7 +83,7 @@ jobs:
           grep -Fq 'PA05_XDB_REMOTE_SQL_ADMISSION_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_GOVERNED_HANDOFF_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_OWNER_VERIFIED_SETTLEMENT_PG=' pa05-xdb.log
-          grep -Fq '\"duplicateSettlementIdempotent\":true' pa05-xdb.log
+          grep -Fq '"duplicateSettlementIdempotent":true' pa05-xdb.log
           grep -Fq '"actualPa02Handoff":true' pa05-xdb.log
           grep -Fq '"sqlAdmissionRequiresStagedCentralReservation":true' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
