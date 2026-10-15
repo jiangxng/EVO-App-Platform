@@ -101,3 +101,18 @@
 | U1–U6 研究方案 | 🟡 已给优选但未签收 | 业务 Owner / Human 批准 |
 | 原 Excel/真实 Job | ⏳ 未读取 | 取得授权来源并核查 |
 | V2 业务与固定 SHA 发布 | ❌ 没有实施 | 通过后续独立验收再推进 |
+
+
+## 10. 2026-10-15 浏览器专项真实运行结果（最新，覆盖 §8/§9 的早期“未运行”快照）
+
+- 本次新增隔离 Chromium [工作流](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38678793663) 已 **7/7 PASS（0 失败、0 JS 错误）**，且已上传 [只含模拟信息的截图与报告](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38678793663/artifacts/11947496968)。
+- 精确新增文件：`tests/bex01/v2-prototype-chromium.mjs`、`.github/workflows/bex01-v2-prototype-chromium-review.yml`；**只运行独立研究原型的真实浏览器自动化，不调用 Railway/Host，也不读取用户文件**。
+- 当前判断：可交互原型的基本状态/步骤/模拟断点恢复、桌面/窄屏/键盘/200% CSS zoom 自动化通过；主观截图评审、屏幕阅读器、400% 原生缩放、真实用户 Excel/22 列和企业 Host 仍未签收。具体结果及边界以 [认知 V2 文档第九节](BEX-01-COGNITIVE-LOAD-ATTENTION-MEMORY-V2-20261015.md) 为准。
+- GitHub 最新主线/开放 PR 仍须新窗口实时核对；本轮只在 #909 Draft 内做设计/验证，**没有业务文件修改、合并 main 或 Railway 发布**。
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| 独立 V2 浏览器自动行为与截图证据 | ✅ 7/7 PASS，artifact 已保存 | Human 视觉/交互签收 |
+| 项目真实 22 列来源、同名银行归属及三行缺失 | ⏳ 无真实授权数据 | 原 Excel + Import Job |
+| 正式 BEX V2 Host/数据操作 | ❌ 未开始 | 设计经认可后独立代码 PR |
+| 现有 Railway 开发版本 | — 没有修改 | 真正功能 CI/业务验收后固定 SHA |
