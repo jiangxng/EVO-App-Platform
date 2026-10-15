@@ -66,3 +66,8 @@
 - Chromium 行为测试相应改为检验**用户语言、22 条表格、三个可定位问题、文件场景、字段复用、审批分离、恢复、移动和焦点**。此版尚须以最新 GitHub Actions 精确提交记录判断通过与否，前一版 10/10 不能作为新版结论。
 
 **仍不签收**：真实原始 Excel/Job、Eidos 正式业务渲染、Owner 实际建字段、真实导入、Human 视觉体验最终签收、屏幕阅读器和移动真机、Railway。由于此次没有修改正式应用代码，CI 的“Human UI Review Gate PASS”只说明审查文件/结构满足门禁，不代表实际业务页面已经符合用户体验。
+
+
+### 2026-10-15 浏览器截图中的真实视觉缺陷已修复
+
+旧版高保真 [run #38682018490](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38682018490) 虽通过 14 项 Chromium 操作，但截图显示中文缺字和窄屏下拉操作隐藏。此项说明“通过行为断言≠视觉设计通过”。已在 CI 明确安装并验证中文字体，窄屏时映射表转为逐列卡片，新增字段选择控件不得越过手机视口的 Chromium 检查。修正版 [run #38682435919](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38682435919) **14/14 PASS、0 JS 错误**；真实中文视觉截图、状态与报告 [artifact #11948338743](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38682435919/artifacts/11948338743) 已下载查看。**截图已由本窗口审阅，尚未由用户对产品设计签收**，也不代表 Eidos 真实插件 UI、原始供应商数据及业务系统已集成。
