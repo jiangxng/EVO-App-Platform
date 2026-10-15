@@ -674,12 +674,13 @@ import {
   createCapabilityOperationActionPreExecuteV010,
   listAuthorizedCapabilityOperationsV010
 } from "./capability-operation-access.js";
-import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
-import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
+import {
+  createLedgerRuntimeConfiguratorActionHandler,
+  createLedgerRuntimeConfiguratorResolver
+} from "../apps/ledger-runtime-configurator/action-handler.js";
 import {
   createLedgerRuntimeConfiguratorCapabilityActionHandlers
 } from "../apps/ledger-runtime-configurator/capability-action-handlers.js";
-import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import {
   appHostShellCss,
@@ -3218,7 +3219,9 @@ const runtimeDispatcher = createPluginRuntimeDispatcherV010({
   resolveRemoteCredentialProvider,
   onRuntimeEvent: event => runtimeObservability.record(event)
 });
-const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
+const resolveLedgerConfigurator = createLedgerRuntimeConfiguratorResolver({
+  isActive: () => ledgerConfiguratorActive()
+});
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
 const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
 const tradingLiteEvoApplicationId =
@@ -5462,8 +5465,8 @@ const actionRouter = createAppActionRouter(
       },
       createToolCatalog: createPersonalAgentToolCatalogV010
     }),
-    createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
-    ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
+    createLedgerRuntimeConfiguratorActionHandler(resolveLedgerConfigurator),
+    ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(resolveLedgerConfigurator),
     createTradingLiteEvoActionHandler({
       adapter: evoBusinessDataAdapter,
       observationAdapter: evoRuntimeObservationAdapter,
@@ -8692,20 +8695,26 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/summary") {
-      return json(response, 200, ledgerConfigurator.getSummary());
+      return json(response, 200, (await resolveLedgerConfigurator()).getSummary());
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/configuration") {
-      return json(response, 200, ledgerConfigurator.getCurrent());
+      return json(response, 200, (await resolveLedgerConfigurator()).getCurrent());
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/template") {
-      return json(response, 200, ledgerConfigurator.exportTemplate());
+      return json(response, 200, (await resolveLedgerConfigurator()).exportTemplate());
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/template/import") {
       const body = await readJson(request) as LedgerRuntimeTemplateV010;
-      const result = ledgerConfigurator.importTemplate(body);
+      const result = (await resolveLedgerConfigurator()).importTemplate(body);
       return json(response, result.ok ? 200 : 422, result);
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/reference-rule-sets") {
+      const { bookkeepingReferenceLegacyPostingRules } = await import(
+        "../apps/ledger-runtime-configurator/default-library.js"
+      );
+      if (!ledgerConfiguratorActive()) {
+        return json(response, 409, { code: "FEATURE_NOT_ACTIVE", featureId: ledgerConfiguratorFeatureId });
+      }
       return json(response, 200, {
         ruleSets: [{
           id: "bookkeeping-legacy-posting-rules",
@@ -8724,21 +8733,21 @@ const server = createServer(async (request, response) => {
       )
         ? body as LedgerRuntimeSourceConfigurationV010
         : undefined;
-      return json(response, 200, ledgerConfigurator.validate(input));
+      return json(response, 200, (await resolveLedgerConfigurator()).validate(input));
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/import") {
       const body = await readJson(request) as LedgerRuntimeSourceConfigurationV010;
-      const result = ledgerConfigurator.importConfiguration(body);
+      const result = (await resolveLedgerConfigurator()).importConfiguration(body);
       return json(response, result.ok ? 200 : 422, result);
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/reset-default") {
-      return json(response, 200, ledgerConfigurator.resetToBookkeepingDefault());
+      return json(response, 200, (await resolveLedgerConfigurator()).resetToBookkeepingDefault());
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/compile") {
-      return json(response, 200, ledgerConfigurator.compileCurrent());
+      return json(response, 200, (await resolveLedgerConfigurator()).compileCurrent());
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/burn") {
-      const validation = ledgerConfigurator.validate();
+      const validation = (await resolveLedgerConfigurator()).validate();
       if (!validation.burn.ready) {
         return json(response, 409, {
           ok: false,
@@ -8746,7 +8755,7 @@ const server = createServer(async (request, response) => {
           validation
         });
       }
-      const compiled = ledgerConfigurator.compileCurrent();
+      const compiled = (await resolveLedgerConfigurator()).compileCurrent();
       const result = await evoJson("/api/v1/configurator/burn", {
         method: "POST",
         headers: { "content-type": "application/json" },
