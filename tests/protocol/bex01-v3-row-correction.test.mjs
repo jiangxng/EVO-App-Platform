@@ -5,7 +5,7 @@ import { createDataImportServiceV010 } from "../../dist/apps/data-import/service
 import { createDataImportActionHandlersV010 } from "../../dist/apps/data-import/actions.js";
 import { createDataImportReviewPageV010 } from "../../dist/apps/data-import/page.js";
 import { createDataImportRowCorrectionPageV010 } from "../../dist/apps/data-import/row-correction-page.js";
-import { dataImportRowCorrectionRevisionV010 } from "../../dist/apps/data-import/row-correction.js";
+import { dataImportRowCorrectionRevisionV010 } from "../../dist/apps/data-import/service.js";
 import { createCounterpartyImportTargetV010 } from "../../dist/apps/counterparty/import-target.js";
 import { createCounterpartyRepositoryV010 } from "../../dist/apps/counterparty/repository.js";
 import { createCounterpartyRoleRepositoryV010 } from "../../dist/apps/counterparty/roles.js";
