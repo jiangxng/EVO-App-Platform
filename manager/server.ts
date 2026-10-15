@@ -5030,13 +5030,19 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/object-extension/actions.js");
+          const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
+          const batchImportService = createDataImportServiceV010({
+            repository: dataImportRepository,
+            recipeRepository: dataImportRecipeRepository,
+            targets: batchImportTargets
+          });
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
             // BEX-owned glue only: reuse the existing import service; no Host
             // authorization, Agent, storage, or transaction changes.
             applyImportMapping: values => {
-              dataImportService.updateMapping({
+              batchImportService.updateMapping({
                 ...values, mappingOrigin: "HUMAN"
               });
             },
