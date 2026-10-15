@@ -80,8 +80,8 @@ async function principalRoleAudit(
       "SELECT c.relname, "+
       "has_schema_privilege(SESSION_USER,n.oid,'CREATE') AS schema_create,"+
       "EXISTS (SELECT 1 FROM pg_roles delegate "+
-      "WHERE delegate.rolname=SESSION_USER OR "+
-      "pg_has_role(SESSION_USER::regrole,delegate.oid,'MEMBER') "+
+      "WHERE (delegate.oid=actor.oid OR "+
+      "pg_has_role(actor.oid,delegate.oid,'MEMBER')) "+
       "AND (pg_has_role(delegate.oid,c.relowner,'MEMBER') OR "+
       "has_table_privilege(delegate.oid,c.oid,'INSERT') OR "+
       "has_table_privilege(delegate.oid,c.oid,'UPDATE') OR "+
@@ -89,6 +89,7 @@ async function principalRoleAudit(
       "has_table_privilege(delegate.oid,c.oid,'TRUNCATE') OR "+
       "has_table_privilege(delegate.oid,c.oid,'TRIGGER'))) AS delegated_write "+
       "FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "+
+      "JOIN pg_roles actor ON actor.rolname=SESSION_USER "+
       "WHERE n.nspname=$1 AND c.relname=ANY($2::text[]) "+
       "AND c.relkind IN ('r','p')",[protectedSchema,protectedTables]
     );
