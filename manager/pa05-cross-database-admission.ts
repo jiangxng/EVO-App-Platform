@@ -272,7 +272,7 @@ export async function createPa05CrossDatabaseReservationAuthorityV010(input: {
       return {state:rows[0].state as "ACTIVE"|"FROZEN",
         version:rows[0].package_version,
         pendingCount:await sql.unsafe("SELECT count(*)::integer AS n FROM " + a +
-          ".pa05_xdb_reservations WHERE owner_package_id=$1", [packageId])
+          ".pa05_xdb_reservations WHERE owner_package_id=$1 AND state='PENDING'", [packageId])
           .then(x=>Number(x[0].n))};
     },
     async close() {await sql.end();}
