@@ -10,6 +10,7 @@ import type {Pa05CrossDatabaseReservationAuthorityV010} from "./pa05-cross-datab
  * remain OUTSIDE this component's guarantee.
  */
 export interface Pa05RemoteSqlAdmissionV010 {
+  readonly ownerPackageId: string;
   stagePreparedEffect(input: {scopeKey: string; effectId: string}):
     Promise<{reservationId: string; effectDigest: string}>;
   close(): Promise<void>;
@@ -157,6 +158,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         table+" FOR EACH ROW EXECUTE FUNCTION "+q+".pa05_xdb_remote_admission_guard()");
     });
     return {
+      ownerPackageId:owner,
       async stagePreparedEffect({scopeKey,effectId}) {
         scopeKey=scope(scopeKey);effectId=scope(effectId);
         const rows=await db.unsafe("SELECT scope_key,effect_id,run_id,input_digest,fence,state "+
