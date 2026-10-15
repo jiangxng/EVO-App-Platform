@@ -102,7 +102,7 @@ function provision(extra = {}) {
       const isSource = input.action === PURCHASE_OPERATIONS_READ_OPERATION_V010;
       state.permissionChecks.push([input.principal.actorType, input.action, input.resource.id]);
       const allowed = input.scope.enterpriseId === "host-attn"
-        && input.resource.id === refs.orderNo
+        && (input.resource.id === undefined || input.resource.id === refs.orderNo)
         && (isAttention || isSource)
         && !(isAttention && state.denyAttention)
         && !(isSource && state.denySource);
@@ -261,13 +261,13 @@ test("PA05-03 wrong scope, invalid arguments, version mismatch and plugin disabl
   const wrong = await f.gateway.execute(request(), context("other-tenant"));
   assert.equal(wrong.ok, false);
   assert.equal(f.state.businessReads, 0);
-  for (const bad of [
-    { ...refs, orderNo: "" },
-    { ...refs, itemId: 5 },
-    { ...refs, arbitraryValue: "extra" }
+  for (const [bad, expectedCode] of [
+    [{ ...refs, orderNo: "" }, "CAPABILITY_OPERATION_RESOURCE_ID_REQUIRED"],
+    [{ ...refs, itemId: 5 }, "PA05_READ_GATEWAY_INPUT_INVALID"],
+    [{ ...refs, arbitraryValue: "extra" }, "PA05_READ_GATEWAY_INPUT_INVALID"]
   ]) {
     const result = await f.gateway.execute(request(bad), context());
-    assert.equal(result.error.code, "PA05_READ_GATEWAY_INPUT_INVALID");
+    assert.equal(result.error.code, expectedCode);
   }
   const version = await f.gateway.execute(request(refs, "9.9.9"), context());
   assert.equal(version.error.code, "CAPABILITY_OPERATION_INPUT_VERSION_UNSUPPORTED");
