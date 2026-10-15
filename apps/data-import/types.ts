@@ -5,7 +5,13 @@ import type {
   FoundationObjectImportTargetParametersV010
 } from "../../contracts/foundation-object/import.js";
 
-import type { DataImportRowCorrectionV010 } from "./row-correction.js";
+export type DataImportRowCorrectionV010 = {
+  rowNumber: number;
+  sourceColumn: string;
+  value: FoundationObjectImportCellV010;
+  actorSubjectId: string;
+  recordedAt: string;
+};
 
 export type DataImportJobStateV010 =
   | "STAGED"
