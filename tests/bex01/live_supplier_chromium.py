@@ -239,6 +239,11 @@ with sync_playwright() as p:
   import hashlib
   ctx=make_context(1280,820,False)
   page=ctx.new_page()
+  page.on("pageerror",lambda error:print("BEX_BATCH_PAGE_ERROR="+str(error),flush=True))
+  page.on("console",lambda msg:print("BEX_BATCH_CONSOLE_ERROR="+msg.text,flush=True)
+    if msg.type=="error" else None)
+  page.on("response",lambda response:print("BEX_BATCH_API_RESPONSE="+str(response.status)
+    +" "+response.url,flush=True) if "/v1/experience-pages" in response.url else None)
   job=fixture["batchJobId"]
   names=["默认支付方式","结算方式","默认账期方式","账期天数"]
   try:
