@@ -2,6 +2,7 @@ import type { AgentActionReceiptBeginInputV010 } from "../../contracts/agent-act
 import {createHash} from "node:crypto";
 import type { HostResolvedAgentDurabilityScopeV020, AsyncAgentRunReceiptRepositoryV020 } from "../../contracts/agent-durability-async.js";
 import type { AgentExecutionCoordinatorV020, AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
+import {hostAgentDurabilityScopeKeyV020} from "./pa02b-postgres-coordination.js";
 import type { AgentWriteReconciliationPortV030, AgentWriteReconciliationResultV030 } from "./pa02b-owner-reconciliation.js";
 import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.js";
 
@@ -89,11 +90,25 @@ export function createGovernedAgentWriteHandoffV040(deps:{
   receipts:Pick<AsyncAgentRunReceiptRepositoryV020,"beginReceipt">;
   reconciler:Pick<AgentWriteReconciliationPortV030,"bind"|"reconcile">;
   owner:GovernedAgentBusinessOwnerV040;
+  /**
+   * PA05-04D11 opt-in Host-injected cross-database SQL admission.
+   * This is never model-selected. Its trusted Owner binding MUST match the
+   * actual registered business Owner. The Host owns this process capability.
+   */
+  remoteAdmission?: {
+    ownerPackageId:string;
+    stagePreparedEffect(input:{scopeKey:string;effectId:string}):
+      Promise<{reservationId:string;effectDigest:string}>;
+  };
 }):GovernedAgentWriteHandoffV040 {
   if(typeof deps.owner?.invoke!=="function"||!deps.owner.ownerPackageId?.trim())
     throw Error("PA02B_HANDOFF_TRUSTED_OWNER_REQUIRED");
   if(!deps.coordinator||!deps.authority?.release||!deps.receipts||!deps.reconciler)
     throw Error("PA02B_HANDOFF_PORTS_REQUIRED");
+  if(deps.remoteAdmission && (
+    deps.remoteAdmission.ownerPackageId!==deps.owner.ownerPackageId ||
+    typeof deps.remoteAdmission.stagePreparedEffect!=="function"
+  )) throw Error("PA05_XDB_HANDOFF_TRUSTED_OWNER_MISMATCH");
 
   const recover=async (r:{scope:HostResolvedAgentDurabilityScopeV020;effectId:string})=>{
     // Explicit quarantine is useful after process death between INVOKING and
@@ -131,6 +146,17 @@ export function createGovernedAgentWriteHandoffV040(deps:{
       await deps.reconciler.bind({
         scope:r.scope,lease:r.lease,effectId,receiptId,ownerPackageId
       });
+      // D11: once PA-02 intent + Receipt + trusted Owner are durable, the
+      // Host MUST first commit an admission reservation in CENTRAL PG, then
+      // stage the exact immutable effect ticket in the independent Worker PG.
+      // Any central outage, freeze or identity mismatch aborts BEFORE
+      // beginWrite/Owner.invoke. In doubt, leave PREPARED + REQUESTED and
+      // a possible conservative central PENDING record; NEVER replay INVOKING.
+      // With no Host opt-in, the legacy PA-02 behavior remains unchanged.
+      if(deps.remoteAdmission)
+        await deps.remoteAdmission.stagePreparedEffect({
+          scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),effectId
+        });
       // On concurrent retry this is an atomic one-time transition and throws
       // PA02B_WRITE_MAY_HAVE_EXECUTED; Owner.invoke will NOT run twice.
       await deps.coordinator.beginWrite({scope:r.scope,lease:r.lease,effectId});
