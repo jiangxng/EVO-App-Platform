@@ -153,6 +153,17 @@ GitHub Actions 的日志和 Artifact 有保留期限。**以下 URL 经过前面
 
 编制基线时开放 PR 是 BEX [#846](https://github.com/jiangxng/EVO-App-Platform/pull/846)、[#860](https://github.com/jiangxng/EVO-App-Platform/pull/860)、[#866](https://github.com/jiangxng/EVO-App-Platform/pull/866)、[#878](https://github.com/jiangxng/EVO-App-Platform/pull/878)，**仅属 2026-10-15 此刻的快照**。本交接只在独立 `agent/pa02-session-research-handoff-20261015` 短分支工作；合并后**从最新 main 接续，不复用此短分支**。不改 `project.status.json`、全局 `docs/roadmap/HANDOFF-LATEST.md`、其他 BEX/治理文件，不提前做 PA-03～06，绝不启用生产 WRITE。
 
+### 四条历史 PA-02 文档分支的精确退休快照（2026-10-15）
+
+下列四项逐条验证 `protected=false`、`ahead=0`、无当前开放 PR 引用；已由 #877/#880 写进 [安全退休 manifest](https://github.com/jiangxng/EVO-App-Platform/blob/main/repository-hygiene/retired-branches.json)。**仍未删除；仅供现成工作流 SHA 锁定使用，不允许直接强删或移动。**
+
+| 分支 | 精确锁定 Head SHA |
+| --- | --- |
+| `docs/pa02-final-cost-authority-readiness-20261015` | `7db56f11e75d79d520372d2fdff059e0265a4e54` |
+| `docs/pa02-acceptance-branch-reconcile-20261014` | `b44cf20854c1131d185355634cac8ae230669280` |
+| `docs/pa02-window-closure-research-handoff-20261014` | `40d1505af0991d44fd88cf68a447bf8b195eb445` |
+| `docs/pa02-safe-retired-branches-20261015` | `38d04a94226e8fea6327834597134ac9ae919c94` |
+
 ## 9. 本次确已保存和确实未保存的内容
 
 - **保存在 GitHub 文本中的内容**：本窗口 W01–W04 URL／日期／精确阅读层级；H01–H14 URL／历史非访问状态；源码/PR/CI/截图附件 URL 与使用限制；方案比较及来源事实/J 判断区别；冲突与待研究方向；R10 Issue #879 和四条 docs branch 退休状况；模块到下一任务映射。只有**资料 PR 实际 merged**才可称这些新文档已进入 main。
