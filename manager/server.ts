@@ -7471,7 +7471,12 @@ const server = createServer(async (request, response) => {
             locale: requestedLocale(url)
           }).fields ?? [])
             .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
-            .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
+            .map(x => ({
+              fieldId: x.fieldId,
+              label: x.resolvedLabel,
+              valueType: x.valueType,
+              description: x.resolvedDescription
+            }));
           return json(response,200,batch.createObjectExtensionBatchImportPageV010({
             job,locale:requestedLocale(url),importableTargets,
             definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
