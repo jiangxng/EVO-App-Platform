@@ -53,6 +53,7 @@ details{margin:18px 0;padding:12px 0;border-top:1px solid var(--border)}summary{
 <div class="rowinput"><label for="t2">示意行 B · 主体类型</label><select id="t2" class="typeSelect"><option value="">待核实</option><option value="ORG">企业（演示选择）</option><option value="PERSON">个人（演示选择）</option></select></div>
 <div class="rowinput"><label for="t3">示意行 C · 主体类型</label><select id="t3" class="typeSelect"><option value="">待核实</option><option value="ORG">企业（演示选择）</option><option value="PERSON">个人（演示选择）</option></select></div>
 </div></fieldset></div>
+<div class="issue"><div><strong id="metaHeading">系统编码 · 来源元数据待确认</strong><p id="metaInfo">不能默认忽略这个来源列；需要明确保留来源、复用已有字段或另行确认。</p></div><button class="secondary" id="metaToggle" type="button" aria-expanded="false" aria-controls="allFields">检查这一来源列</button></div>
 <details id="allFields"><summary>查看全部演示列与处理建议（7 列；正式页面必须显示真实完整来源列）</summary>
 <div class="tablewrap"><table><thead><tr><th scope="col">来源列</th><th scope="col">演示建议及依据</th><th scope="col">处理状态</th><th scope="col">处理选择（模拟）</th></tr></thead><tbody>
 <tr><td>编码</td><td>演示历史建议：主体编码（可更改、须复核）</td><td id="codeCell">已识别</td><td><label for="map_code">编码的处理</label><select id="map_code" class="mapping" data-column="code"></select></td></tr>
@@ -158,11 +159,15 @@ function refresh(){
   const v=draft.maps[k];
   $(id).textContent=v==="__PENDING__"?"待处理":v==="__IGNORE__"?"明确忽略，保留原值":v==="__CREATE__"?"拟新增待确认":targetOptions.find(x=>x[0]===v)?.[1]||"待核实";
  });
+ $("metaHeading").textContent=draft.maps.system==="__PENDING__"?"系统编码 · 来源元数据待确认":"系统编码 · 已有处理选择（可撤销）";
+ $("metaInfo").textContent=draft.maps.system==="__PENDING__"?"不能默认忽略；请确认要保留原值、复用已有字段或拟新增。":"已记录模拟处理选择，仍可撤销或修改，来源值不会删除。";
  $("mappingNotice").textContent="已占用目标对其他列禁用；当前有 "+Object.keys(draft.maps).filter(k=>draft.maps[k]==="__PENDING__").length+" 列待定。忽略仅控制正式字段写入，不删除来源值。";
 }
 function invalidate(){checked=false;$("submit").disabled=true;store();refresh();}
 $("bankToggle").onclick=()=>setOpen("bankToggle","bankBody",$("bankBody").hidden);
 $("typeToggle").onclick=()=>setOpen("typeToggle","typeBody",$("typeBody").hidden);
+$("metaToggle").onclick=()=>{$("allFields").open=true;$("map_system").focus();};
+$("allFields").addEventListener("toggle",()=>{$("metaToggle").setAttribute("aria-expanded",String($("allFields").open));});
 $("bank").onchange=()=>{draft.bank=$("bank").value;invalidate();};
 ["t1","t2","t3"].forEach((id,i)=>$(id).onchange=()=>{draft.types[i]=$(id).value;invalidate();});
 Object.keys(cols).forEach(k=>$("map_"+k).onchange=()=>{
