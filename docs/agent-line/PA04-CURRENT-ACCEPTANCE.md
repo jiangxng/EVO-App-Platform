@@ -52,3 +52,11 @@
 - **证据**：`tests/protocol/pa04-certified-context-window.test.mjs` 包括完整请求 quote、窗口精确边界、身份/额度错配、凭证缺失或错误、工具膨胀负向、Token quote 无法修改真正请求。`tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs` 是隔离 PostgreSQL Host/Worker 证明，需对应具备 PG18 URL 的 CI 结果，未运行时不可说通过。
 - **兼容及边界**：新增的是 Host 可选、默认不启用的端口；未改变既有 LLM Provider、PA-02 费用测试或业务授权，也不修改 `manager/server.ts`，未打开生产。`sourceVersion` 是 Host attestation 的可追溯版本标识，**不自动证明真实 tokenizer 已通过认证**。真实本地开源模型的 tokenizer、模板、上下文长度、额外开销和动态工具计数未确认，因此 **C01 未完全签收**。
 - **仍待完成的 C01**：真实 Provider/local tokenizer 凭证与保守输入上界验证、重要 Working State 不因裁剪失效的优先级模型、模型升级后的新窗口策略、真实长对话超过预算时 Human 可解释的缩减/恢复与端到端验收。PA-04 整体仍 `IN_PROGRESS / NOT_SIGNED`，PA-02 R10 仍 `OPEN / NOT_DEV_COMPLETE`。
+
+## 2026-10-15：C01 来源不丢失的历史对话优先级裁剪（第三个局部闭环）
+
+- **目标**：对前一批完整请求/输出预留已获认证但超窗口的情形提供确定性退让，而不是把所有超限当成永远无法工作的 Agent。适用于可选、Host 授权的特定 Provider/model `contextWindow`；没有可追溯 Token 上界的 Provider 仍然 fail-closed，不能通过裁剪绕过认证。
+- **分类**：Host/Provider 正式系统指令、开发者消息中的 Principal/Context、当前 Human 原始指令、Host 工具 schema/权限/观察、输出预留属于**受保护区域**；`run.input.conversationHistory` 中的普通旧对话属于**只读模型上下文候选**。最近四条普通对话同样保留，不尝试通过词语猜测哪些内容是有效业务决定。已持久化的 Run 原始历史、来源和 Receipt **绝不修改或物理删除**。
+- **算法**：既有 Agent 模型请求构造格式 `system + history + current user + Host developer` 必须与 Host 已持久化历史逐项匹配；结构不匹配直接阻断。完整请求先调用经认证 Quote；**仅**当异常是容量不足时按历史最旧 25% / 50% / 75% / 全部可裁剪部分（最多额外四次 Quote）逐步排除历史，最少保留近四条，每个候选对包含全部工具/输出额度的**实际最终请求**重新 Quote。未知/错误 Quote、模型身份错配、必要区域自身超限立即阻断。上下文缩减在 PA-02 R10 合成成本预留之前，成本凭证仍针对同一份最终发送请求；未发生无界重复模型推理。
+- **验证**：`tests/protocol/pa04-prioritized-context-history.test.mjs` 覆盖核心区原样保留、低优先级历史边界、源 Run 不改、最坏超限、不可信 Quote 不退让、历史区域伪造 fail-closed 等；原 `tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs` 新增隔离 Host→Worker→PostgreSQL18 场景，要求真实持久历史完整、模型只见精简上下文、恢复不重复推理。相关 CI 为 `.github/workflows/agent-pa04-c01-context-window.yml`；运行前不能视为通过。
+- **限制**：这仍不是完整 C01 PASS。当前优先级只是**结构性保护**：经 Host 提供的有效 Working State/工具观察保留，但早期仅出现在聊天文字中的重要决定可能随着旧历史移除。因此正式的 Working State 选择、来源治理/失效传播、权限更新、实际本地模型 tokenizer/模板认证和 Human 长会话验证仍待后续闭环；不能宣称“所有关键约束已自动抽取并永久保留”。本轮不修改 BEX/CP-03、`manager/server.ts`、主线状态、生产部署或 R10 真实计费授权。

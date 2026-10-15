@@ -14,8 +14,8 @@ import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durabi
 import type {HostResolvedAgentDurabilityScopeV020} from "../../contracts/agent-durability-async.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
 import {
-  admitCertifiedModelContextWindowV010
-} from "./pa04-certified-context-window.js";
+  fitCertifiedModelContextHistoryV010
+} from "./pa04-prioritized-context-history.js";
 import type {
   CertifiedModelContextWindowV010
 } from "./pa04-certified-context-window.js";
@@ -357,7 +357,7 @@ export function createReadOnlyFencedAgentWorkerV030(
         decision=await createProviderBackedAgentModel({
           providerId:provider.providerId,modelId:provider.modelId,
           async infer(request) {
-            const actualRequest:LlmInferenceRequestV010={
+            const assembledRequest:LlmInferenceRequestV010={
               ...request,
               ...(deps.testOnlyCostPort?{
                 maxOutputTokens:deps.testOnlyCostPort.maxOutputTokens
@@ -365,17 +365,21 @@ export function createReadOnlyFencedAgentWorkerV030(
                 maxOutputTokens:deps.contextWindow.maxOutputTokens
               }:{})
             };
-            // C01 is independent from the PA-02 R10 monetary ledger. Verify
-            // the final request (system, tool schema, observations and output
-            // reserve) BEFORE any potentially charge-inducing Provider call.
+            // Preserve all authoritative system/developer/current Human/tool
+            // content and the latest four conversation messages. Only older
+            // ordinary history may be excluded after certified overflow;
+            // the full final candidate is re-quoted before any paid call.
+            let actualRequest=assembledRequest;
             if(deps.contextWindow){
               try {
-                await admitCertifiedModelContextWindowV010({
+                const fitted=await fitCertifiedModelContextHistoryV010({
                   providerId:provider.providerId,
                   modelId:provider.modelId,
-                  request:actualRequest,
+                  request:assembledRequest,
+                  history:run.input.conversationHistory,
                   port:deps.contextWindow
                 });
+                actualRequest=fitted.request;
               }catch(e){
                 const code=e instanceof Error?e.message:"";
                 contextWindowDenied=/^PA04_CONTEXT_WINDOW_[A-Z_]+$/.test(code)

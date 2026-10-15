@@ -44,10 +44,11 @@ function handlerMap(runtime, provider, catalog) {
     runId: randomUUID, now: () => new Date()
   }).map(handler => [handler.commandCode, handler]));
 }
-const action = (message, id) => ({
+const action = (message, id, history) => ({
   contractVersion: "0.1.0", type: "command",
   command: { code: "enterprise-agent.run.start", inputVersion: "0.1.0" },
-  values: { message }, sourceInteractionId: "pa04:c01:ui", actionId: id,
+  values: { message, ...(history ? { conversationHistory: history } : {}) },
+  sourceInteractionId: "pa04:c01:ui", actionId: id,
   requiresConfirmation: false
 });
 
@@ -147,6 +148,111 @@ test("PA04 C01: real isolated Host/Worker/PG Run persists pre-inference budget d
       outputReserved:true,overBudgetBlockedBeforeInference:true,
       blockedRunPersistsAcrossRestart:true,noUnapprovedProviderCalls:true,
       withinWindowAllowed:true,productionUsed:false
+    }));
+  } finally {
+    await runtime?.close();
+    try { await sql.unsafe('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE'); }
+    finally { await sql.end(); }
+  }
+});
+
+test("PA04 C01: Host/Worker/PG uses trimmed actual request, preserves current Human and working state", {
+  skip: !url ? "Needs disposable PostgreSQL18" : false, timeout: 90000
+}, async () => {
+  const schema = "pa04_history_" + randomUUID().replaceAll("-", "").slice(0, 12);
+  const sql = postgres(url, { max: 2 });
+  const provider = {
+    providerId: "pa04-history-provider", modelId: "pa04-history-model",
+    requests: [],
+    async infer(request) {
+      this.requests.push(structuredClone(request));
+      return {
+        contractVersion: "0.1.0", providerId: this.providerId,
+        modelId: this.modelId, text: "Bounded with current state",
+        toolCalls: [], finishReason: "stop"
+      };
+    }
+  };
+  const quotes = [];
+  const port = {
+    providerId: provider.providerId, modelId: provider.modelId,
+    contextWindowTokens: 2000, maxOutputTokens: 200,
+    async quoteInputUpperBound(request) {
+      quotes.push(structuredClone(request));
+      return {
+        providerId: provider.providerId, modelId: provider.modelId,
+        // Synthetic trusted Host fixture only, not a certified vendor tokenizer.
+        inputUpperBoundTokens: 1500 + 50 * (request.messages.length - 3),
+        sourceVersion: "isolated-history-budget-v1"
+      };
+    }
+  };
+  const history = Array.from({ length: 12 }, (_, index) => ({
+    role: index % 2 ? "user" : "assistant",
+    content: "older-turn-" + index + " original retained in Run"
+  }));
+  const catalog = () => ({
+    list: () => [{
+      contractVersion: "0.1.0", id: "test.read",
+      modelName: "test_read", title: "Read",
+      description: "Authorized READ tool", effect: "READ",
+      ownerPackageId: "isolated-fixture",
+      inputSchema: { type: "object" }
+    }],
+    async invoke() { throw Error("NO_BUSINESS_SIDE_EFFECT"); }
+  });
+  let runtime;
+  try {
+    runtime = await createPostgresHostAsyncReadExecutionV030({
+      connectionString: url, schema,
+      deps: {
+        resolveProvider: () => provider, createToolCatalog: catalog,
+        contextWindow: port
+      }
+    });
+    const handlers = handlerMap(runtime, provider, catalog);
+    const started = await handlers.get("enterprise-agent.run.start").execute(
+      action("CURRENT HUMAN: keep this instruction", "pa04:c01:history-fit", history));
+    assert.equal(started.ok, true, JSON.stringify(started.error));
+    assert.equal(started.result.run.state, "SUCCEEDED",
+      JSON.stringify(started.result.run.blocker));
+    assert.deepEqual(started.result.run.input.conversationHistory, history,
+      "durable Run retains all original messages");
+    assert.equal(provider.requests.length, 1,
+      "only one inference after certified history reduction");
+    const actual = provider.requests[0];
+    assert.equal(actual.messages.length, 9, "system + 6 retained + user + developer");
+    assert.deepEqual(actual.messages.slice(1, 7), history.slice(-6));
+    assert.match(actual.messages[0].content, /Personal Agent/);
+    assert.equal(actual.messages.at(-2).content,
+      "CURRENT HUMAN: keep this instruction");
+    assert.match(actual.messages.at(-1).content, /Authoritative Principal/);
+    assert.match(actual.messages.at(-1).content, /Authoritative tool observations/);
+    assert.equal(actual.maxOutputTokens, 200);
+    assert.ok(actual.tools.some(t => t.name === "test_read"));
+    assert.deepEqual(quotes.at(-1), actual,
+      "the only provider input must be certified after pruning, not before");
+    assert.equal(quotes.length, 4);
+    assert.equal(started.result.run.modelFailureCount, 0);
+    const runId = started.result.run.runId;
+    await runtime.close(); runtime = undefined;
+    runtime = await createPostgresHostAsyncReadExecutionV030({
+      connectionString: url, schema,
+      deps: {
+        resolveProvider: () => provider, createToolCatalog: catalog,
+        contextWindow: port
+      }
+    });
+    const recovered = await runtime.read({ runId, principal, context });
+    assert.equal(recovered.state, "SUCCEEDED");
+    assert.deepEqual(recovered.input.conversationHistory, history);
+    assert.equal(provider.requests.length, 1,
+      "recovering a committed result never repeats inference");
+    console.log("PA04_C01_HISTORY_PRIORITY_PG="+JSON.stringify({
+      fullHistoryInDurableRun:true,protectedCurrentGoalAndWorkingState:true,
+      recentFourRetained:true,toolsAndOutputCapRetained:true,
+      finalReducedRequestCertified:true,restartNoDuplicateInference:true,
+      realVendorTokenizerVerified:false,productionUsed:false
     }));
   } finally {
     await runtime?.close();
