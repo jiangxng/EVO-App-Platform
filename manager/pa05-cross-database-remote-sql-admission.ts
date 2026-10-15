@@ -163,7 +163,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
           "FROM "+table+" WHERE scope_key=$1 AND effect_id=$2",[scopeKey,effectId]);
         if(rows.length!==1||rows[0].state!=="PREPARED")
           throw Error("PA05_XDB_REMOTE_EFFECT_NOT_PREPARED");
-        const data=fact(rows[0] as Effect);
+        const data=fact(rows[0] as unknown as Effect);
         const effectDigest=sha(JSON.stringify(data));
         const reservationId=sha(JSON.stringify({workerId,owner,version,effectDigest}));
         // Network outage or central freeze prevents NEW tickets; central
@@ -176,7 +176,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
             "fence,state FROM "+table+" WHERE scope_key=$1 AND effect_id=$2 FOR UPDATE",
             [scopeKey,effectId]);
           if(locked.length!==1||locked[0].state!=="PREPARED"||
-            !eq(fact(locked[0] as Effect),data))
+            !eq(fact(locked[0] as unknown as Effect),data))
             throw Error("PA05_XDB_REMOTE_EFFECT_CHANGED_AFTER_RESERVATION");
           await tx.unsafe("INSERT INTO "+tickets+
             "(scope_key,effect_id,run_id,input_digest,fence,reservation_id,effect_digest) "+
