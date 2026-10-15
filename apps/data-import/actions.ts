@@ -479,6 +479,8 @@ export function createDataImportActionHandlersV010(input: {
           ...(parameters ? { targetParameters: parameters } : {}),
           source,
           mapping: resolvedMapping,
+          ...(initial.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...initial.ignoredSourceColumns] } : {}),
           mappingOrigin: initial.origin,
           ...(initial.recipeId
             ? { appliedRecipeId: initial.recipeId }
