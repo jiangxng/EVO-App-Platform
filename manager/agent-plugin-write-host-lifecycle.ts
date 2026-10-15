@@ -108,7 +108,13 @@ export function createPa05HostWriteLifecycleV010(input: {
       }
       // Re-evaluate the effective catalog every time: a dynamically added
       // Agent WRITE Owner cannot silently invalidate the protected set.
-      assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
+      try {
+        assertPa05ProtectedAgentWriteCoverageV010(input.manager, ids);
+      } catch {
+        throw new Pa05HostLifecycleDeniedV010(
+          "PA05_HOST_LIFECYCLE_OWNER_COVERAGE_INCOMPLETE"
+        );
+      }
       if (!guarded.has(packageId))
         return applyWithoutGate(operation, packageId, authorization);
       try {
