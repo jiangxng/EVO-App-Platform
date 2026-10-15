@@ -4,6 +4,7 @@ on:
     paths:
       - "manager/pa05-cross-database-admission.ts"
       - "manager/pa05-cross-database-remote-sql-admission.ts"
+      - "manager/pa05-cross-database-owner-settlement.ts"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
@@ -81,6 +82,8 @@ jobs:
           grep -Fq '"remoteWorkerEnforcementImplemented":false' pa05-xdb.log
           grep -Fq 'PA05_XDB_REMOTE_SQL_ADMISSION_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_GOVERNED_HANDOFF_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_OWNER_VERIFIED_SETTLEMENT_PG=' pa05-xdb.log
+          grep -Fq '"duplicateSettlementIdempotent":true' pa05-xdb.log
           grep -Fq '"actualPa02Handoff":true' pa05-xdb.log
           grep -Fq '"sqlAdmissionRequiresStagedCentralReservation":true' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
