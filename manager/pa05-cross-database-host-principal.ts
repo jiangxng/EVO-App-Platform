@@ -12,6 +12,7 @@ import postgres from "postgres";
  */
 export interface Pa05CrossDatabaseHostPrincipalV010 {
   readonly hostId: string;
+  readonly revision:number;
   assertActive(): Promise<void>;
 }
 const identifier=(v:string,code:string):string=>{
@@ -92,6 +93,7 @@ export function createPa05CrossDatabaseHostPrincipalV010(input:{
   const cq='"'+centralSchema+'".'+manifest;
   return {
     hostId,
+    revision,
     async assertActive() {
       // All evidence must originate in fresh real SQL LOGIN sessions.
       // No remote can manufacture an untrusted worker inventory.
