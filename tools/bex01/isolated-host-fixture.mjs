@@ -202,7 +202,16 @@ try{
    jobId:syntheticJobId,kind:"XLSX",columns:22,rows:172,invalidRows:3,
    synthetic:true,productionUsed:false
  }));
-  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
+  // A second genuinely separate synthetic XLSX is uploaded only *after*
+ // the existing single-field, batch and corrective Chromium journeys. This
+ // prevents pre-created definitions from altering those original validations.
+ const retainedXlsx=syntheticV3WorkbookV010({
+   codePrefix:"RET-",namePrefix:"Retained Supplier "
+ });
+ assert.equal(retainedXlsx.rows.length,172);
+ assert.equal(retainedXlsx.headers.length,22);
+ writeFileSync(join(artifact,"synthetic-retained-fields.xlsx"),retainedXlsx.bytes);
+ const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
  assert.equal(first.status,200,JSON.stringify(first.value).slice(0,1800));
@@ -212,6 +221,9 @@ try{
  const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,
    syntheticXlsxJobId:syntheticJobId,syntheticXlsxRows:172,syntheticXlsxColumns:22,
    syntheticXlsxMissingRows:synthetic.missingRowNumbers,
+   retainedXlsxArtifact:"synthetic-retained-fields.xlsx",
+   retainedCodePrefix:"RET-",
+   retainedNamePrefix:"Retained Supplier ",
    route:COUNTERPARTY_SUPPLIERS_ROUTE,
    expectedTotal:53,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
