@@ -8,6 +8,7 @@
 
 用户目标：轻量宿主、按需安装卸载；安装能力少时降低装载与后台资源开销；个人Agent千人千面，企业具有跨部门整体分析与改进能力。
 
+- [项目级装载原则与开发准入（第 11 节）](../../architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md#11-项目根本约束新增能力不能默认增加常驻业务负担)
 - [未安装/停用插件装载审计与优先级](PLUGIN-LOADING-AUDIT-20261015.md)
 - [账本发布可靠性及剩余合同](LEDGER-PUBLICATION-RELIABILITY.md)
 - [运行时声明与可执行边界](RUNTIME-READINESS-BOUNDARY.md)
