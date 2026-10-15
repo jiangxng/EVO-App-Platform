@@ -18,6 +18,8 @@ import {createPa05CrossDatabaseReservationAuthorityV010}
   from "../../dist/manager/pa05-cross-database-admission.js";
 import {createPa05CrossDatabaseRemoteSqlAdmissionV010}
   from "../../dist/manager/pa05-cross-database-remote-sql-admission.js";
+import {createPa05CrossDatabaseOwnerSettlementV010}
+  from "../../dist/manager/pa05-cross-database-owner-settlement.js";
 
 const centralUrl=process.env.PA05_XDB_AUTHORITY_DATABASE_URL;
 const workerAUrl=process.env.PA05_XDB_WORKER_A_DATABASE_URL;
@@ -45,7 +47,7 @@ test("PA05-04D11 real PA-02 handoff binds central reservation before remote Owne
   const central=postgres(centralUrl,{max:2});
   const workerA=postgres(workerAUrl,{max:4});
   const workerB=postgres(workerBUrl,{max:2});
-  let repo,coordinator,runAuthority,cancellation,reconciler,admission,centralAuthority;
+  let repo,coordinator,runAuthority,cancellation,reconciler,admission,centralAuthority,settlement;
   let actualOwnerCalls=0,allowOwnerVerification=false;
   const effectId=runId=>"effect:"+runId;
   const receiptId=runId=>"receipt:"+runId;
@@ -214,6 +216,96 @@ test("PA05-04D11 real PA-02 handoff binds central reservation before remote Owne
     await assert.rejects(centralAuthority.reopenOwner({
       packageId:ownerPackageId,version:"1.0.0",trustedOwnerReady:()=>true
     }),/PA05_XDB_PENDING_RESERVATIONS/);
+    // D12: no central settlement before a second independent, actual
+    // business-Owner verification. Never clear PENDING by worker claim or TTL.
+    settlement=await createPa05CrossDatabaseOwnerSettlementV010({
+      remoteConnectionString:workerAUrl,workerSchema:schema,
+      workerId:"d11-worker-a",ownerPackageId,ownerVersion:"1.0.0",
+      centralAuthority,ownerVerifier:verifier
+    });
+    await assert.rejects(settlement.settle({
+      scope,effectId:effectId(afterFreeze)
+    }),/PA05_XDB_SETTLEMENT_REMOTE_LINK_REQUIRED/);
+    // A reply outage after remote terminal is persisted must NOT unblock Host.
+    allowOwnerVerification=false;
+    await assert.rejects(settlement.settle({
+      scope,effectId:effectId(first)
+    }),/PA05_XDB_SETTLEMENT_INDEPENDENT_OWNER_MISMATCH/);
+    assert.equal((await centralAuthority.getState(ownerPackageId)).pendingCount,1);
+    await assert.rejects(centralAuthority.reopenOwner({
+      packageId:ownerPackageId,version:"1.0.0",trustedOwnerReady:()=>true
+    }),/PA05_XDB_PENDING_RESERVATIONS/);
+    // A fabricated and contradictory independent verifier cannot settle.
+    const fake=await createPa05CrossDatabaseOwnerSettlementV010({
+      remoteConnectionString:workerAUrl,workerSchema:schema,
+      workerId:"d11-worker-a",ownerPackageId,ownerVersion:"1.0.0",
+      centralAuthority,ownerVerifier:{
+        async verify(){return {outcome:"SUCCEEDED",evidenceRef:"forged:evidence",
+          evidenceDigest:sha("forged"),terminal:{
+            receiptId:receiptId(first),status:"SUCCEEDED",
+            completedAt:"2026-10-15T02:03:00.000Z",
+            resultDigest:sha(effectId(first)),resultEntityRefs:[],
+            resultSummary:"fake"
+          }};}
+      }
+    });
+    try{
+      await assert.rejects(fake.settle({
+        scope,effectId:effectId(first)
+      }),/PA05_XDB_SETTLEMENT_INDEPENDENT_OWNER_MISMATCH/);
+    }finally{await fake.close();}
+    const disconnected=await createPa05CrossDatabaseOwnerSettlementV010({
+      remoteConnectionString:workerAUrl,workerSchema:schema,
+      workerId:"d11-worker-a",ownerPackageId,ownerVersion:"1.0.0",
+      centralAuthority:{async settleVerified(){throw Error("PA05_TEST_CENTRAL_UNAVAILABLE");}},
+      ownerVerifier:verifier
+    });
+    try{
+      await assert.rejects(disconnected.settle({
+        scope,effectId:effectId(first)
+      }),/PA05_TEST_CENTRAL_UNAVAILABLE/);
+    }finally{await disconnected.close();}
+    assert.equal((await centralAuthority.getState(ownerPackageId)).pendingCount,1);
+    // Correct genuine Owner evidence may settle precisely ONE reservation.
+    allowOwnerVerification=true;
+    assert.deepEqual(await settlement.settle({
+      scope,effectId:effectId(first)
+    }),{state:"SETTLED",pendingCount:0});
+    assert.deepEqual(await settlement.settle({
+      scope,effectId:effectId(first)
+    }),{state:"ALREADY_SETTLED",pendingCount:0});
+    assert.equal(actualOwnerCalls,1,"settlement MUST NOT replay actual Owner effect");
+    const audits=await central.unsafe('SELECT state,terminal_outcome,'+
+      'terminal_receipt_id,terminal_evidence_digest FROM "'+authSchema+
+      '".pa05_xdb_reservations');
+    assert.equal(audits.length,1,"never delete centrally settled provenance");
+    assert.deepEqual({
+      state:audits[0].state,outcome:audits[0].terminal_outcome,
+      receiptId:audits[0].terminal_receipt_id
+    },{state:"SETTLED",outcome:"SUCCEEDED",receiptId:receiptId(first)});
+    assert.match(audits[0].terminal_evidence_digest,/^[a-f0-9]{64}$/);
+    // Explicit recertification may reopen ONLY now, with zero pending.
+    await centralAuthority.reopenOwner({packageId:ownerPackageId,
+      version:"1.0.0",trustedOwnerReady:()=>true});
+    const stored=await workerA.unsafe('SELECT reservation_id,effect_digest FROM "'+
+      schema+'".pa05_xdb_remote_tickets WHERE effect_id=$1',[effectId(first)]);
+    await assert.rejects(centralAuthority.reserve({
+      packageId:ownerPackageId,version:"1.0.0",workerId:"d11-worker-a",
+      reservationId:stored[0].reservation_id,effectDigest:stored[0].effect_digest
+    }),/PA05_XDB_SETTLED_RESERVATION_CANNOT_REOPEN/);
+    await assert.rejects(settlement.settle({
+      scope,effectId:effectId(first)
+    }),/PA05_XDB_SETTLEMENT_REQUIRES_FROZEN_OWNER/);
+    console.log("PA05_XDB_OWNER_VERIFIED_SETTLEMENT_PG="+JSON.stringify({
+      physicalClusters:3,actualPa02TerminalReceipt:true,
+      ownerVerifierRechecked:true,requiresCentralOwnerFrozen:true,
+      falseOwnerClaimRejected:true,ownerUnavailableKeepsPending:true,
+      centralUnavailableKeepsPending:true,immutableSettlementAudit:true,
+      duplicateSettlementIdempotent:true,settledReservationCannotReplay:true,
+      explicitReopenOnlyAfterZeroPending:true,ownerInvokeCount:actualOwnerCalls,
+      productionWriteEnabled:false,authenticatedProductionHostCertified:false,
+      externalOwnerProviderCertified:false,partitionConsensusCertified:false
+    }));
     console.log("PA05_XDB_GOVERNED_HANDOFF_PG="+JSON.stringify({
       physicalClusters:3,actualPa02Handoff:true,
       durableRunReceiptOwnerBindBeforeAdmission:true,
@@ -228,7 +320,7 @@ test("PA05-04D11 real PA-02 handoff binds central reservation before remote Owne
       distributedPartitionCertified:false
     }));
   }finally{
-    for(const x of [admission,reconciler,cancellation,runAuthority,coordinator,repo,centralAuthority]){
+    for(const x of [settlement,admission,reconciler,cancellation,runAuthority,coordinator,repo,centralAuthority]){
       if(x&&typeof x.close==="function")try{await x.close();}catch{}
     }
     try{await workerA.unsafe("DROP SCHEMA IF EXISTS "+q+" CASCADE");}catch{}
