@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - "manager/pa05-cross-database-admission.ts"
+      - "manager/pa05-cross-database-remote-sql-admission.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - ".github/workflows/agent-pa05-cross-database-admission.yml"
   push:
@@ -70,11 +72,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs | tee pa05-xdb.log
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq '"physicalClusters":3' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           grep -Fq '"remoteWorkerEnforcementImplemented":false' pa05-xdb.log
+          grep -Fq 'PA05_XDB_REMOTE_SQL_ADMISSION_PG=' pa05-xdb.log
+          grep -Fq '"sqlAdmissionRequiresStagedCentralReservation":true' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
       - name: Preserve isolated non-production evidence
         if: always()
