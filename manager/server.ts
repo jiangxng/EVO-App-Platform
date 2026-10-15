@@ -1,3 +1,4 @@
+import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
 import { createHash, randomUUID } from "node:crypto";
@@ -673,12 +674,13 @@ import {
   createCapabilityOperationActionPreExecuteV010,
   listAuthorizedCapabilityOperationsV010
 } from "./capability-operation-access.js";
-import { createLedgerRuntimeConfiguratorService } from "../apps/ledger-runtime-configurator/service.js";
-import { createLedgerRuntimeConfiguratorActionHandler } from "../apps/ledger-runtime-configurator/action-handler.js";
+import {
+  createLedgerRuntimeConfiguratorActionHandler,
+  createLedgerRuntimeConfiguratorResolver
+} from "../apps/ledger-runtime-configurator/action-handler.js";
 import {
   createLedgerRuntimeConfiguratorCapabilityActionHandlers
 } from "../apps/ledger-runtime-configurator/capability-action-handlers.js";
-import { bookkeepingReferenceLegacyPostingRules } from "../apps/ledger-runtime-configurator/default-library.js";
 import type { LedgerRuntimeSourceConfigurationV010, LedgerRuntimeTemplateV010 } from "../apps/ledger-runtime-configurator/contracts.js";
 import {
   appHostShellCss,
@@ -939,12 +941,15 @@ import {
   DATA_IMPORT_PACKAGE_ID,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_REVIEW_PAGE_SOURCE,
+  DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+  DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
   DATA_IMPORT_UPLOAD_PAGE_SOURCE,
   dataImportUploadRouteV010,
   parseDataImportMappingRouteV010,
   parseDataImportReviewRouteV010,
+  parseDataImportRowCorrectRouteV010,
   parseDataImportUploadIntentV010
 } from "../apps/data-import/constants.js";
 import {
@@ -972,7 +977,6 @@ import {
   OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
   parseObjectExtensionImportRouteV010,
-  parseObjectExtensionImportColumnV010,
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID
 } from "../apps/object-extension/constants.js";
@@ -2258,6 +2262,14 @@ const manager = createAppManagerService(
   evaluateRuntimeForHost
 );
 
+// PA05-04C: a single lifecycle adapter protects all Host action and /v1
+// mutation entrypoints when the trusted Host opts in. Production Agent WRITE
+// remains disabled; unconfigured deployments retain their existing behavior.
+const pa05WriteLifecycleHost = createPa05HostWriteLifecycleV010({
+  manager,
+  ...pa05HostLifecycleConfigurationV010(process.env)
+});
+
 function itemFeatureActiveV010(): boolean {
   return manager.getSnapshot().activeFeatures.some(feature =>
     feature.packageId === ITEM_PACKAGE_ID
@@ -2475,7 +2487,7 @@ function installBusinessDefaultOnce(packageId: string, ready = true, explicit = 
       packageId,
       installed: manager.getSnapshot().installedPackages.some(item => item.packageId === packageId),
       ready,
-      install() { manager.install(packageId); }
+      install() { pa05WriteLifecycleHost.bootstrapActivation("INSTALL", packageId); }
     });
     if (result === "INSTALLED") console.log("Installed first-run business default", packageId);
   } catch (error) {
@@ -2515,7 +2527,7 @@ if (!installedAtStartup.some(
   item => item.packageId === EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID
 )) {
   try {
-    manager.install(EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EXTERNAL_AGENT_GOVERNANCE_PACKAGE_ID);
     console.log("Activated EVO External Agent Governance foundation.");
   } catch (error) {
     console.error("Failed to activate EVO External Agent Governance foundation.", error);
@@ -2532,7 +2544,7 @@ if (
   )
 ) {
   try {
-    manager.install(EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
     console.log("Activated EVO Runtime Observatory Provider.");
   } catch (error) {
     console.error("Failed to activate EVO Runtime Observatory Provider.", error);
@@ -2543,7 +2555,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_MANAGED_SESSION_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_MANAGED_SESSION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_MANAGED_SESSION_PACKAGE_ID);
     console.log("Activated Host Managed Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Managed Session Provider.", error);
@@ -2556,7 +2568,7 @@ if (
   )
 ) {
   try {
-    manager.install(HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_IDENTITY_USER_DIRECTORY_PACKAGE_ID);
     console.log("Activated Host Identity User Directory Provider.");
   } catch (error) {
     console.error("Failed to activate Host Identity User Directory Provider.", error);
@@ -2567,7 +2579,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_BEARER_SESSION_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_BEARER_SESSION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_BEARER_SESSION_PACKAGE_ID);
     console.log("Activated request-bound Host Bearer Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Bearer Session Provider.", error);
@@ -2575,7 +2587,7 @@ if (
 }
 if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID)) {
   try {
-    manager.install(HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENTERPRISE_RELATIONSHIP_PACKAGE_ID);
     console.log("Activated Host Enterprise Relationship Provider.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Relationship Provider.", error);
@@ -2587,7 +2599,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_MEMORY_INTAKE_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_MEMORY_INTAKE_PACKAGE_ID);
     console.log("Activated Host Memory Intake Provider.");
   } catch (error) {
     console.error("Failed to activate Host Memory Intake Provider.", error);
@@ -2600,7 +2612,7 @@ if (
   )
 ) {
   try {
-    manager.install(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
     console.log("Activated Remote Context Memory Semantic Provider.");
   } catch (error) {
     console.error("Failed to activate Remote Context Memory Semantic Provider.", error);
@@ -2613,7 +2625,7 @@ if (
   )
 ) {
   try {
-    manager.install(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
     console.log("Activated Remote Context Memory DLP Provider.");
   } catch (error) {
     console.error("Failed to activate Remote Context Memory DLP Provider.", error);
@@ -2626,7 +2638,7 @@ if (
   )
 ) {
   try {
-    manager.install(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
     console.log("Activated Experience Compiler Memory Intake Provider.");
   } catch (error) {
     console.error("Failed to activate Experience Compiler Memory Intake Provider.", error);
@@ -2637,7 +2649,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_STATIC_SESSION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_STATIC_SESSION_PACKAGE_ID);
     console.log("Activated Host Static Session Provider.");
   } catch (error) {
     console.error("Failed to activate Host Static Session Provider.", error);
@@ -2650,7 +2662,7 @@ if (
   )
 ) {
   try {
-    manager.install(HOST_STATIC_AUTHORIZATION_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_STATIC_AUTHORIZATION_PACKAGE_ID);
     console.log("Activated Host Static Authorization Provider from Host-owned policy.");
   } catch (error) {
     console.error("Failed to activate Host Static Authorization Provider.", error);
@@ -2661,7 +2673,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENTERPRISE_CONTEXT_GRANT_PACKAGE_ID);
     console.log("Activated Host Enterprise Context Grant Provider.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Context Grant Provider.", error);
@@ -2672,7 +2684,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_CONTEXT_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_ENTERPRISE_CONTEXT_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENTERPRISE_CONTEXT_PACKAGE_ID);
     console.log("Activated Host Enterprise Context Provider from Host-owned configuration.");
   } catch (error) {
     console.error("Failed to activate Host Enterprise Context Provider.", error);
@@ -2702,7 +2714,7 @@ if (
       id: "eog-2d-contextual-designer-v1", ready: true,
       run() {
         if (!eog2dStartupSnapshot.activeFeatures.some(item => item.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
-          manager.enable(EOG_2D_DESIGNER_PACKAGE_ID);
+          pa05WriteLifecycleHost.bootstrapActivation("ENABLE", EOG_2D_DESIGNER_PACKAGE_ID);
           console.log("Migrated EOG 2D contextual Designer feature.");
         }
       }
@@ -2724,7 +2736,7 @@ if (
   && !installedAtStartup.some(item => item.packageId === HOST_ENCRYPTED_SECRETS_PACKAGE_ID)
 ) {
   try {
-    manager.install(HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
+    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_ENCRYPTED_SECRETS_PACKAGE_ID);
     console.log("Migrated installed Secret consumers onto Host encrypted secrets Provider.");
   } catch (error) {
     console.error("Failed to migrate installed Secret consumers onto Host encrypted secrets Provider.", error);
@@ -2965,6 +2977,17 @@ function resolveRequestIdentitySession(request: IncomingMessage): IdentitySessio
     REQUEST_IDENTITY_SESSION_CAPABILITY
   );
   if (descriptors.length === 0) {
+    // An unavailable configured request-authentication service must not turn
+    // an anonymous request into the static/demo identity.
+    const requestProviderRequired = managedSessionEnabled
+      || hostBearerSessions !== undefined
+      || providerBindings.list(REQUEST_IDENTITY_SESSION_CAPABILITY).some(binding =>
+        binding.scope === "SYSTEM"
+        || (binding.scope === "INSTALLATION" && binding.scopeId === "default")
+      );
+    if (requestProviderRequired) {
+      throw new Error("REQUEST_IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+    }
     return resolveIdentitySession();
   }
 
@@ -3199,7 +3222,9 @@ const runtimeDispatcher = createPluginRuntimeDispatcherV010({
   resolveRemoteCredentialProvider,
   onRuntimeEvent: event => runtimeObservability.record(event)
 });
-const ledgerConfigurator = createLedgerRuntimeConfiguratorService();
+const resolveLedgerConfigurator = createLedgerRuntimeConfiguratorResolver({
+  isActive: () => ledgerConfiguratorActive()
+});
 const evoBaseUrl = process.env.EVO_BASE_URL?.trim() || "http://localhost:3000";
 const evoEnterpriseCode = process.env.EVO_ENTERPRISE_CODE?.trim() || "EVO_DEMO";
 const tradingLiteEvoApplicationId =
@@ -3302,9 +3327,9 @@ if (
       item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
     );
     if (installed) {
-      manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+      pa05WriteLifecycleHost.bootstrapActivation("ENABLE", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
     } else {
-      manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+      pa05WriteLifecycleHost.bootstrapActivation("INSTALL", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
     }
     console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
   } catch (error) {
@@ -5020,27 +5045,28 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/object-extension/actions.js");
+          const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
+          const batchImportService = createDataImportServiceV010({
+            repository: dataImportRepository,
+            recipeRepository: dataImportRecipeRepository,
+            targets: batchImportTargets
+          });
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
-            async applyImportMapping({contextId,importJobId,sourceColumn,targetFieldId,actorSubjectId,recordedAt}) {
-              const targets=await resolveEffectiveDataImportTargetsV010();
-              const service=createDataImportServiceV010({
-                repository:dataImportRepository,
-                recipeRepository:dataImportRecipeRepository,
-                targets
-              });
-              const current=dataImportRepository.get(contextId,importJobId);
-              if(!current||current.targetId!=="counterparty.subject"){
-                throw new Error("OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND");
-              }
-              if(current.mapping.some(x=>x.sourceColumn===sourceColumn)){
-                throw new Error("OBJECT_EXTENSION_SOURCE_ALREADY_MAPPED");
-              }
-              await service.updateMapping({
-                contextId,importJobId,
-                mapping:[...current.mapping,{sourceColumn,targetFieldId}],
-                mappingOrigin:"HUMAN",actorSubjectId,recordedAt
+            getImportableTargets: (contextId, job) => {
+              const target = batchImportTargets.find(x => x.targetId === job.targetId);
+              return (target?.describe({
+                contextId, parameters: job.targetParameters
+              }).fields ?? [])
+                .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
+                .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
+            },
+            // BEX-owned glue only: reuse the existing import service; no Host
+            // authorization, Agent, storage, or transaction changes.
+            applyImportMapping: values => {
+              batchImportService.updateMapping({
+                ...values, mappingOrigin: "HUMAN"
               });
             },
             canManageEnterpriseContext(principal, contextId) {
@@ -5073,6 +5099,7 @@ const actionRouter = createAppActionRouter(
       DATA_IMPORT_GET_COMMAND_V010,
       DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
       DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
+      DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
       DATA_IMPORT_ERROR_CSV_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
@@ -5156,30 +5183,19 @@ const actionRouter = createAppActionRouter(
             }) {
               const runtimeEnterpriseId =
                 evoRuntimeScopeMap.get(enterpriseId);
-              const result = await evoJson(
-                "/api/v1/configurator/burn",
-                {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    ...compiled,
-                    target: runtimeEnterpriseId
-                      ? { enterpriseId: runtimeEnterpriseId }
-                      : {
-                          enterpriseCode: enterpriseId,
-                          enterpriseName:
-                            enterpriseDisplayName ?? enterpriseId
-                        }
-                  })
-                }
+              const { publishLedgerRuntimeConfigurationV010 } = await import(
+                "../apps/ledger-manager/internal/publication-runtime.js"
               );
-              if (result.status < 200 || result.status >= 300) {
-                throw new Error(
-                  "LEDGER_MANAGER_RUNTIME_PUBLISH_FAILED: "
-                  + JSON.stringify(result.body)
-                );
-              }
-              return result.body;
+              return publishLedgerRuntimeConfigurationV010({
+                baseUrl: evoBaseUrl,
+                compiled,
+                target: runtimeEnterpriseId
+                  ? { enterpriseId: runtimeEnterpriseId }
+                  : {
+                      enterpriseCode: enterpriseId,
+                      enterpriseName: enterpriseDisplayName ?? enterpriseId
+                    }
+              });
             },
             resolveEnterpriseDisplayName(enterpriseId) {
               const item = enterpriseGovernanceStore.snapshot().contexts
@@ -5453,8 +5469,8 @@ const actionRouter = createAppActionRouter(
       },
       createToolCatalog: createPersonalAgentToolCatalogV010
     }),
-    createLedgerRuntimeConfiguratorActionHandler(ledgerConfigurator),
-    ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(ledgerConfigurator),
+    createLedgerRuntimeConfiguratorActionHandler(resolveLedgerConfigurator),
+    ...createLedgerRuntimeConfiguratorCapabilityActionHandlers(resolveLedgerConfigurator),
     createTradingLiteEvoActionHandler({
       adapter: evoBusinessDataAdapter,
       observationAdapter: evoRuntimeObservationAdapter,
@@ -7445,11 +7461,30 @@ const server = createServer(async (request, response) => {
           code:"OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND"
         });
         const module=await import("../apps/object-extension/page.js");
+        const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
+        if (importRoute.searchParams.get("mode") === "batch") {
+          const batch = await import("../apps/object-extension/batch-page.js");
+          const targets = await resolveEffectiveDataImportTargetsV010();
+          const target = targets.find(x => x.targetId === job.targetId);
+          const importableTargets = (target?.describe({
+            contextId: active.contextId, parameters: job.targetParameters,
+            locale: requestedLocale(url)
+          }).fields ?? [])
+            .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
+            .map(x => ({
+              fieldId: x.fieldId,
+              label: x.resolvedLabel,
+              valueType: x.valueType,
+              description: x.resolvedDescription
+            }));
+          return json(response,200,batch.createObjectExtensionBatchImportPageV010({
+            job,locale:requestedLocale(url),importableTargets,
+            definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
+          }));
+        }
         return json(response,200,module.createObjectExtensionImportPageV010({
           job,locale:requestedLocale(url),
-          sourceColumn:parseObjectExtensionImportColumnV010(
-            url.searchParams.get("route")??undefined
-          )
+          sourceColumn:importRoute.searchParams.get("column") ?? undefined
         }));
       }
 
@@ -7458,6 +7493,7 @@ const server = createServer(async (request, response) => {
         || source === DATA_IMPORT_UPLOAD_PAGE_SOURCE
         || source === DATA_IMPORT_MAPPING_PAGE_SOURCE
         || source === DATA_IMPORT_REVIEW_PAGE_SOURCE
+        || source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
       ) {
         const session = resolveRequestIdentitySession(request);
         const contextRegistry = createContextRegistryForSession(session);
@@ -7515,12 +7551,28 @@ const server = createServer(async (request, response) => {
           );
         }
 
+        const rowCorrection = source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
+          ? parseDataImportRowCorrectRouteV010(routeValue || undefined)
+          : undefined;
         const importJobId = source === DATA_IMPORT_MAPPING_PAGE_SOURCE
           ? parseDataImportMappingRouteV010(routeValue || undefined)
-          : parseDataImportReviewRouteV010(routeValue || undefined);
+          : source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
+            ? rowCorrection?.importJobId
+            : parseDataImportReviewRouteV010(routeValue || undefined);
         if (!importJobId) {
           return json(response, 400, {
             code: "DATA_IMPORT_ROUTE_INVALID"
+          });
+        }
+        if (source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE) {
+          const mayCorrect = session.principal.actorType === "HUMAN"
+            && (resolveEnterpriseContextRelationshipProvider()
+              ?.listForPrincipal(session.principal) ?? []).some(item =>
+                item.contextId === active.contextId && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN")
+              );
+          if (!mayCorrect) return json(response, 403, {
+            code: "DATA_IMPORT_CORRECTION_MANAGE_ROLE_REQUIRED"
           });
         }
         const job = dataImportRepository.get(active.contextId, importJobId);
@@ -7528,6 +7580,27 @@ const server = createServer(async (request, response) => {
           return json(response, 404, {
             code: "DATA_IMPORT_JOB_NOT_FOUND"
           });
+        }
+        if (source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE) {
+          const target = dataImportTargets.find(item => item.targetId === job.targetId);
+          if (!target || !rowCorrection) return json(response, 404, {
+            code: "DATA_IMPORT_CORRECTION_TARGET_NOT_FOUND"
+          });
+          const fix = await import("../apps/data-import/row-correction-page.js");
+          try {
+            return json(response, 200, fix.createDataImportRowCorrectionPageV010({
+              job, rowNumber: rowCorrection.rowNumber,
+              columnIndex: rowCorrection.columnIndex,
+              locale,
+              schema: target.describe({
+                contextId: active.contextId, locale, parameters: job.targetParameters
+              })
+            }));
+          } catch {
+            return json(response, 409, {
+              code: "DATA_IMPORT_CORRECTION_NOT_AVAILABLE"
+            });
+          }
         }
         if (source === DATA_IMPORT_MAPPING_PAGE_SOURCE) {
           const target = dataImportTargets.find(item =>
@@ -7544,6 +7617,13 @@ const server = createServer(async (request, response) => {
             module.createDataImportMappingPageV010({
               job,
               target,
+              createdMapping:(() => {
+                const parsed = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
+                const sourceColumn = parsed.searchParams.get("createdColumn");
+                const fieldId = parsed.searchParams.get("createdField");
+                return sourceColumn && fieldId && job.source.headers.includes(sourceColumn)
+                  ? {sourceColumn, fieldId} : undefined;
+              })(),
               canCreateExtension: manager.getSnapshot().activeFeatures.some(x =>
                 x.featureId === OBJECT_EXTENSION_FEATURE_ID
               ) && (resolveEnterpriseContextRelationshipProvider()
@@ -8662,20 +8742,26 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/summary") {
-      return json(response, 200, ledgerConfigurator.getSummary());
+      return json(response, 200, (await resolveLedgerConfigurator()).getSummary());
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/configuration") {
-      return json(response, 200, ledgerConfigurator.getCurrent());
+      return json(response, 200, (await resolveLedgerConfigurator()).getCurrent());
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/template") {
-      return json(response, 200, ledgerConfigurator.exportTemplate());
+      return json(response, 200, (await resolveLedgerConfigurator()).exportTemplate());
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/template/import") {
       const body = await readJson(request) as LedgerRuntimeTemplateV010;
-      const result = ledgerConfigurator.importTemplate(body);
+      const result = (await resolveLedgerConfigurator()).importTemplate(body);
       return json(response, result.ok ? 200 : 422, result);
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/reference-rule-sets") {
+      const { bookkeepingReferenceLegacyPostingRules } = await import(
+        "../apps/ledger-runtime-configurator/default-library.js"
+      );
+      if (!ledgerConfiguratorActive()) {
+        return json(response, 409, { code: "FEATURE_NOT_ACTIVE", featureId: ledgerConfiguratorFeatureId });
+      }
       return json(response, 200, {
         ruleSets: [{
           id: "bookkeeping-legacy-posting-rules",
@@ -8694,21 +8780,21 @@ const server = createServer(async (request, response) => {
       )
         ? body as LedgerRuntimeSourceConfigurationV010
         : undefined;
-      return json(response, 200, ledgerConfigurator.validate(input));
+      return json(response, 200, (await resolveLedgerConfigurator()).validate(input));
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/import") {
       const body = await readJson(request) as LedgerRuntimeSourceConfigurationV010;
-      const result = ledgerConfigurator.importConfiguration(body);
+      const result = (await resolveLedgerConfigurator()).importConfiguration(body);
       return json(response, result.ok ? 200 : 422, result);
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/reset-default") {
-      return json(response, 200, ledgerConfigurator.resetToBookkeepingDefault());
+      return json(response, 200, (await resolveLedgerConfigurator()).resetToBookkeepingDefault());
     }
     if (request.method === "GET" && url.pathname === "/v1/ledger-runtime-configurator/compile") {
-      return json(response, 200, ledgerConfigurator.compileCurrent());
+      return json(response, 200, (await resolveLedgerConfigurator()).compileCurrent());
     }
     if (request.method === "POST" && url.pathname === "/v1/ledger-runtime-configurator/burn") {
-      const validation = ledgerConfigurator.validate();
+      const validation = (await resolveLedgerConfigurator()).validate();
       if (!validation.burn.ready) {
         return json(response, 409, {
           ok: false,
@@ -8716,7 +8802,7 @@ const server = createServer(async (request, response) => {
           validation
         });
       }
-      const compiled = ledgerConfigurator.compileCurrent();
+      const compiled = (await resolveLedgerConfigurator()).compileCurrent();
       const result = await evoJson("/api/v1/configurator/burn", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -9154,7 +9240,7 @@ const server = createServer(async (request, response) => {
         }
         const confirmed = action.values.confirmed === true;
         const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
-        const snapshot = manager.upgrade(itemId, {
+        const snapshot = await pa05WriteLifecycleHost.apply("UPGRADE", itemId, {
           trustApproved: confirmed,
           approvedPermissions: confirmed
             ? target?.permissions?.map(permission => permission.id) ?? []
@@ -9177,7 +9263,7 @@ const server = createServer(async (request, response) => {
         if (!itemId) {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
         }
-        const snapshot = manager.enable(itemId);
+        const snapshot = await pa05WriteLifecycleHost.admitActivation("ENABLE", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9201,7 +9287,7 @@ const server = createServer(async (request, response) => {
             error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) }
           });
         }
-        const snapshot = manager.disable(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9226,7 +9312,7 @@ const server = createServer(async (request, response) => {
             error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) }
           });
         }
-        const snapshot = manager.uninstall(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9257,7 +9343,7 @@ const server = createServer(async (request, response) => {
         }
         const confirmed = action.values.confirmed === true;
         const target = manager.listCatalog().find(pkg => pkg.packageId === itemId);
-        const snapshot = manager.install(itemId, {
+        const snapshot = await pa05WriteLifecycleHost.admitActivation("INSTALL", itemId, {
           trustApproved: confirmed,
           approvedPermissions: confirmed
             ? target?.permissions?.map(permission => permission.id) ?? []
@@ -9282,7 +9368,7 @@ const server = createServer(async (request, response) => {
           return json(response, 400, { ok: false, error: { code: "PACKAGE_ID_REQUIRED", message: "Catalog itemId is required." } });
         }
         try {
-          const snapshot = manager.enable(itemId);
+          const snapshot = await pa05WriteLifecycleHost.admitActivation("ENABLE", itemId);
           return json(response, 200, {
             ok: true,
             correlationId: action.sourceInteractionId,
@@ -9309,7 +9395,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = manager.disable(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9331,7 +9417,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = manager.uninstall(itemId);
+        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9402,7 +9488,7 @@ const server = createServer(async (request, response) => {
           plan: current
         });
       }
-      const snapshot = manager.install(body.packageId, {
+      const snapshot = await pa05WriteLifecycleHost.admitActivation("INSTALL", body.packageId, {
         trustApproved: body.trustApproved === true,
         approvedPermissions: body.approvedPermissions ?? []
       });
@@ -9431,7 +9517,7 @@ const server = createServer(async (request, response) => {
       }
       return json(response, 200, {
         plan,
-        snapshot: manager.upgrade(body.packageId, {
+        snapshot: await pa05WriteLifecycleHost.apply("UPGRADE", body.packageId, {
           trustApproved: body.trustApproved === true,
           approvedPermissions: body.approvedPermissions ?? []
         }),
@@ -9444,7 +9530,7 @@ const server = createServer(async (request, response) => {
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
       try {
         return json(response, 200, {
-          snapshot: manager.enable(body.packageId),
+          snapshot: await pa05WriteLifecycleHost.admitActivation("ENABLE", body.packageId),
           effectiveExperiences: manager.listEffectiveExperiences()
         });
       } catch (error) {
@@ -9465,7 +9551,7 @@ const server = createServer(async (request, response) => {
       if (plan.blockers.length > 0) return json(response, 409, { code: "DISABLE_BLOCKED", plan });
       return json(response, 200, {
         plan,
-        snapshot: manager.disable(body.packageId),
+        snapshot: await pa05WriteLifecycleHost.apply("DISABLE", body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }
@@ -9483,13 +9569,19 @@ const server = createServer(async (request, response) => {
       if (plan.blockers.length > 0) return json(response, 409, { code: "UNINSTALL_BLOCKED", plan });
       return json(response, 200, {
         plan,
-        snapshot: manager.uninstall(body.packageId),
+        snapshot: await pa05WriteLifecycleHost.apply("UNINSTALL", body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }
 
     return json(response, 404, { code: "NOT_FOUND" });
   } catch (error) {
+    if (error instanceof Pa05HostLifecycleDeniedV010) {
+      return json(response, 409, {
+        code: error.code,
+        message: "Protected plugin lifecycle change rejected."
+      });
+    }
     const securityFailure = requestSecurityHttpFailureV010(error);
     if (securityFailure) {
       return json(response, securityFailure.status, {
@@ -9519,6 +9611,10 @@ try {
 }
 
 const port = Number(process.env.PORT ?? 4100);
+// PA05 opt-in startup attestation is deliberately placed AFTER synchronous
+// trusted defaults/migrations and BEFORE accepting any HTTP mutations or
+// Agent invocations. A missing/mismatched SQL gate refuses network startup.
+await pa05WriteLifecycleHost.attestStartupActivation();
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
 
 let shuttingDown = false;
@@ -9539,6 +9635,7 @@ async function shutdown(signal: string): Promise<void> {
   await optionalAgentAsyncRunReader?.close();
   await optionalAgentAsyncReadWorker?.close();
   await optionalPa02ObjectExtensionOwner?.close();
+  await pa05WriteLifecycleHost.close();
   await processRuntimeHost.shutdown();
   server.close(() => process.exit(shutdownFailed ? 1 : 0));
   setTimeout(() => process.exit(1), 5000).unref();

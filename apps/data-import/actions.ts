@@ -16,6 +16,9 @@ import {
   fieldsForSurfaceV010
 } from "../../contracts/foundation-object/schema.js";
 import {
+  objectExtensionImportRouteV010
+} from "../object-extension/constants.js";
+import {
   parseCsvSourceV010
 } from "./csv.js";
 import {
@@ -47,6 +50,7 @@ import {
   DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
   DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
   DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -476,6 +480,8 @@ export function createDataImportActionHandlersV010(input: {
           ...(parameters ? { targetParameters: parameters } : {}),
           source,
           mapping: resolvedMapping,
+          ...(initial.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...initial.ignoredSourceColumns] } : {}),
           mappingOrigin: initial.origin,
           ...(initial.recipeId
             ? { appliedRecipeId: initial.recipeId }
@@ -547,15 +553,26 @@ export function createDataImportActionHandlersV010(input: {
             .map(item => [item.sourceColumn!, item] as const)
         );
         const nextMapping: DataImportMappingV010[] = [];
-        const unhandledColumns: string[] = [];
+        const ignoredSourceColumns: string[] = [];
+        let proposedNewFields = 0;
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
-          if (value === "__PENDING_CREATE__") {
-            unhandledColumns.push(sourceColumn);
+          if (typeof value !== "string" || !value.trim()) {
+            if (current.ignoredSourceColumns?.includes(sourceColumn)) {
+              ignoredSourceColumns.push(sourceColumn);
+            }
             return;
           }
-          if (typeof value !== "string" || !value.trim()) return;
-          if (value === "__IGNORE__") return;
+          if (value === "__CREATE__") {
+            proposedNewFields += 1;
+            return;
+          }
+          // Explicit ignore is a reversible job choice, not loss of source data.
+          if (value === "__IGNORE__") {
+            ignoredSourceColumns.push(sourceColumn);
+            return;
+          }
+          if (value === "__PENDING__") return;
           const targetFieldId = value.trim();
           const existing = existingBySource.get(sourceColumn);
           nextMapping.push(
@@ -568,9 +585,6 @@ export function createDataImportActionHandlersV010(input: {
           );
         });
 
-        if (unhandledColumns.length) {
-          throw new Error("DATA_IMPORT_COLUMNS_NEED_DECISION: " + unhandledColumns.join("、"));
-        }
         const explicitlyMappedTargets = new Set(
           nextMapping.map(item => item.targetFieldId)
         );
@@ -583,14 +597,27 @@ export function createDataImportActionHandlersV010(input: {
           }
         }
         const recordedAt = now().toISOString();
-        input.service.updateMapping({
+        const staged = input.service.updateMapping({
           contextId: active.contextId,
           importJobId,
           mapping: nextMapping,
+          ignoredSourceColumns,
           mappingOrigin: mappingOrigin(context.principal),
           actorSubjectId: context.principal.subjectId,
           recordedAt
         });
+        if (proposedNewFields > 0 && staged.targetId === "counterparty.subject") {
+          return {
+            ok: true,
+            correlationId: context.correlationId,
+            result: JSON.parse(JSON.stringify({
+              contractVersion: "0.1.0",
+              message: "Existing selections saved. Review proposed enterprise fields together; source rows remain preserved. No supplier data imported.",
+              navigateTo: objectExtensionImportRouteV010(importJobId) + "&mode=batch",
+              job: staged
+            })) as JsonValue
+          };
+        }
         const job = input.service.dryRun({
           contextId: active.contextId,
           importJobId,
@@ -923,6 +950,65 @@ export function createDataImportActionHandlersV010(input: {
     }
   };
 
+  const rowCorrect: AppActionHandler = {
+    packageId: DATA_IMPORT_PACKAGE_ID,
+    featureId: DATA_IMPORT_FEATURE_ID,
+    commandCode: DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+    async execute(request, context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        if (context.principal.actorType !== "HUMAN") {
+          throw new Error("DATA_IMPORT_CORRECTION_HUMAN_REQUIRED");
+        }
+        const active = activeEnterpriseContext(context);
+        ensureManage(context.principal, active.contextId,
+          input.canManageEnterpriseContext);
+        const rowNumber = Number(request.values.rowNumber);
+        const mode = request.values.mode;
+        if (!Number.isSafeInteger(rowNumber) || rowNumber < 1
+          || (mode !== "SET" && mode !== "REVERT")) {
+          throw new Error("DATA_IMPORT_CORRECTION_INPUT_INVALID");
+        }
+        const importJobId = required(
+          request.values.importJobId, "DATA_IMPORT_JOB_ID_REQUIRED");
+        const recordedAt = now().toISOString();
+        input.service.correctRow({
+          contextId: active.contextId,
+          importJobId,
+          rowNumber,
+          sourceColumn: required(request.values.sourceColumn,
+            "DATA_IMPORT_CORRECTION_SOURCE_REQUIRED"),
+          expectedRevision: required(request.values.expectedRevision,
+            "DATA_IMPORT_CORRECTION_REVISION_REQUIRED"),
+          mode,
+          ...(typeof request.values.value === "string"
+            ? {value: request.values.value} : {}),
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        const job = input.service.dryRun({
+          contextId: active.contextId, importJobId,
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: JSON.parse(JSON.stringify({
+            contractVersion: "0.1.0",
+            message: job.state === "DRY_RUN_READY"
+              ? "Correction saved. Validation passed; final import still requires confirmation."
+              : "Correction saved. Review remaining validation issues.",
+            navigateTo: dataImportReviewRouteV010(importJobId),
+            job
+          })) as JsonValue
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
+
   const errorCsv: AppActionHandler = {
     packageId: DATA_IMPORT_PACKAGE_ID,
     featureId: DATA_IMPORT_FEATURE_ID,
@@ -975,6 +1061,7 @@ export function createDataImportActionHandlersV010(input: {
     get,
     inspectMapping,
     applyMapping,
+    rowCorrect,
     errorCsv
   ];
 }

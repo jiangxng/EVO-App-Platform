@@ -1,0 +1,117 @@
+# PA-04 — Context 与记忆治理：当前验收与工作边界
+
+**Document class:** CURRENT_STATUS / LIVING_RUNBOOK  
+**Started:** 2026-10-15  
+**Owner:** 独立 Personal Agent 建设线  
+**Authority:** [PA-00～PA-06 建设总纲 §22.1、§26.2](../roadmap/PERSONAL-AGENT-CONSTRUCTION-BLUEPRINT-v1.0-20261010.md)、[AI-Native Agent State & Context Constitution](../architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md)、[项目交付规范](../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md)。
+
+## Owner 排期与并行边界（2026-10-15）
+
+- Owner 决定本窗口按 **PA-04 → PA-05 → PA-06** 推进；PA-03 的业务对象导入开发继续由 BEX/CP-03 并行线实施，全部阶段以后再统一做 PA-03 I01–I10 和 PA-04～06 的核对、经验总结及项目收敛。
+- **PA-03 不是 BEX 完成的自动同义词**：保留 Agent 端到端导入 I01–I10、Human 与 EC 来源回流的独立最终责任；本窗口不得重做导入页面、映射、对象扩展字段等当前 BEX 代码或提前签收。
+- PA-02 技术成果封存复用，R10 真实货币硬预算根据 Owner **方案 B 暂缓**，仍 [Issue #879 OPEN](https://github.com/jiangxng/EVO-App-Platform/issues/879)、`R10 NOT_SIGNED`、`PA-02 IN_PROGRESS / NOT_DEV_COMPLETE`。此处“工程先收口”不代表费用验收豁免或上线准入。
+- **第一次上线计划尝试本地开源模型**，作为 Provider 可替换性和试点部署约束记录；具体模型、硬件、性能、费用和生产授权均未确认。本地模型不等于无资源成本，也不改变 Host 授权、usage 真相或 R10 货币门禁。
+- 不修改主线 `project.status.json` 或自动生成 `HANDOFF-LATEST.md`；不擅自部署、不开放生产 WRITE，不修改开放 BEX PR 所涉文件。
+
+## PA-04 原始验收矩阵（不缩减 C01–C06）
+
+| Gate | 原始测试意图 | 本轮事实与未决边界 |
+| --- | --- | --- |
+| C01 | 上下文超过预算；保留核心约束，总预算含工具/输出 | **IN_PROGRESS**。新增可选的真实模型请求前完整 Token 上界校验、输出额度预留、不可证明时 fail-closed；尚缺经认证的具体本地/云端模型 tokenizer/上下文窗口绑定与重要 Working State 优先保留组装，不能签收完整 C01。 |
+| C02 | 删除原消息；派生摘要/索引按政策失效 | **IN_PROGRESS**。首批只解决已持久摘要在源内容更改、遮蔽/删除后不能再被旧条件错误复用；原摘要/索引物理失效、删除传播仍未全证。 |
+| C03 | 旧 READ 恢复，有新鲜度要求时重新读取 | **IN_PROGRESS**。已新增可选 Host 源版本/新鲜度核验、失效 READ 重新授权读取并留存新证据、失败阻断推理。正式数据源版本与失权后的用户展示仍未全覆盖。 |
+| C04 | 记忆误推断，可查看纠正，不写成企业事实 | **IN_PROGRESS**。已有提案审查、人工编辑/接受/拒绝、修订与 supersession；新增底层服务对 Human-only 审批的硬约束及错误记忆纠正回归。仍待更多企业来源与 Human 实体验收。 |
+| C05 | 注入文件，不触发未授权工具或外发 | **IN_PROGRESS**。首个隔离 Host/Worker 场景验证：恶意 READ 文档不能凭模型决策绕过当前 Host 工具/目标审查进行外发。真实 Host Egress/WRITE 授权策略、文件解析与渠道端到端验收仍待实施。 |
+| C06 | 引用失权，不展示标题/正文/下载 | **IN_PROGRESS**。已新增可选 Host 当前 Memory/来源授权门禁，并在代理的检索、回忆、清单、精确审计响应前校验；历史 Run 回放、附件下载入口及全源授权接线仍未覆盖。 |
+
+**PA-04 阶段 = IN_PROGRESS / NOT_SIGNED**，所有 C gate 完成后还需在真实长对话、不同 Context、权限变化和模型切换条件下验证。不得将某一个单元测试称作 C02 整体或阶段 PASS。
+
+## 首个独立交付闭环：C02 历史源摘要再利用校验
+
+- **复用既有 AF-02** `manager/conversation-context-assembly.ts`、`contracts/conversation-context.ts`、现有内存/PostgreSQL summary artifact stores。无需重造压缩器、对话存储、数据库或第二个 Memory 子系统。
+- **风险**：旧摘要的复用原先只比较首/末消息 ID 与消息数，同数替换或内容遮蔽可能复用过期派生信息。来源已变更但派生摘要未经失效会把旧材料带入新推理。
+- **本次修复**：在摘要 provenance 中保存所覆盖顺序消息的 SHA-256 内容指纹；复用时检验完整 ID 序列及内容指纹；legacy 无指纹的摘要不能证明新鲜度，生成新版本；原始 Conversation 始终为上游权威来源。
+- **验证**：`tests/protocol/pa04-source-summary-invalidation.test.mjs` 覆盖未变复用、内容遮蔽、等量中间源替换、旧版本迁移四类正/负向。测试通过只证明这一个边界，**不证明**所有删除/保留策略已传播到检索索引或所有缓存层。
+- **回滚/兼容**：provenance 中增加可选 `sourceDigest` 保持旧 artifact 可读取；旧 artifact 再次组装不直接复用而重建版本。原始源码/派生快照删除策略留给 C02 后续闭环，不能靠新指纹替代隐私删除义务。
+
+## 后续先后原则
+
+1. 完成首个 C02 源信息过期防误用门禁，并由准确 HEAD CI 验证、合并、删临时分支。
+2. 基于实际调用链推进 C01 总模型上下文预算，严格区分 token 上界与估算，保留系统/工具/输出配额；不得假定本地模型上下文长度。
+3. 收敛 C02 真实源删除及派生索引失效，再做 C03（旧 READ/权限失效）和 C06（引用失权），之后将 C04 人工纠正、C05 注入隔离的既有能力与遗漏项完成定向验收。
+4. PA-04 验收后进入 PA-05 插件认证，再进入 PA-06 受控企业试点；PA-03 的收敛和历史导入 Human/EC 验收仍等待 BEX 线完成。所有阶段保留明确证据等级，杜绝“开发完成 = 生产准入”。
+
+## 2026-10-15：C01 精确模型请求窗口硬拒绝（第二个交付闭环）
+
+- **此前已完成的 AF-02**：Conversation 近端消息/摘要及原文保留、版本化检查点等仅限制字符与摘要长度。它们不等于整次模型调用的 Token 总预算；真实输入还包含 system/developer 指令、当前 Principal/Context、工具目录和 schema、工具观察、Human 当轮输入及模型输出预留。
+- **此次增量**：复用原 `agents/enterprise-agent/pa02-async-read-worker.ts` 已组装完的最终 `LlmInferenceRequestV010`，在 Host→Worker 触发 Provider.infer 之前，通过可选的 `CertifiedModelContextWindowV010` 审核：
+  1. Host 绑定精确 `providerId/modelId`、模型上下文窗口总 tokens 和明确的 `maxOutputTokens`（Provider 实际收到同一个输出上限）。
+  2. 可信 Provider/model 专属 Token 上界凭证须覆盖**整份最终实际请求**的系统、开发者、历史、工具 schema、观察结果以及 Provider 帧/模板开销；单看用户文字、字符数或模型自行估算均不合格。
+  3. `inputUpperBoundTokens + reservedMaxOutputTokens <= contextWindowTokens` 才允许调用。缺模型身份、缺凭证、凭证错配、不可靠计数或超限时直接 `RUN_BLOCKED`，**零次模型推理、零次业务工具发出**，并可从 PostgreSQL Run 恢复时保留阻断事实。
+  4. 保护系统/开发者约束、Human 输入和有效工具目录；本闭环**不**通过截断这些权威内容来强行放行。后续由经授权、显式优先级的 Context Assembler 在实际完整请求构造前精简非必需历史，并重新验证完整上界。
+- **证据**：`tests/protocol/pa04-certified-context-window.test.mjs` 包括完整请求 quote、窗口精确边界、身份/额度错配、凭证缺失或错误、工具膨胀负向、Token quote 无法修改真正请求。`tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs` 是隔离 PostgreSQL Host/Worker 证明，需对应具备 PG18 URL 的 CI 结果，未运行时不可说通过。
+- **兼容及边界**：新增的是 Host 可选、默认不启用的端口；未改变既有 LLM Provider、PA-02 费用测试或业务授权，也不修改 `manager/server.ts`，未打开生产。`sourceVersion` 是 Host attestation 的可追溯版本标识，**不自动证明真实 tokenizer 已通过认证**。真实本地开源模型的 tokenizer、模板、上下文长度、额外开销和动态工具计数未确认，因此 **C01 未完全签收**。
+- **仍待完成的 C01**：真实 Provider/local tokenizer 凭证与保守输入上界验证、重要 Working State 不因裁剪失效的优先级模型、模型升级后的新窗口策略、真实长对话超过预算时 Human 可解释的缩减/恢复与端到端验收。PA-04 整体仍 `IN_PROGRESS / NOT_SIGNED`，PA-02 R10 仍 `OPEN / NOT_DEV_COMPLETE`。
+
+## 2026-10-15：C01 来源不丢失的历史对话优先级裁剪（第三个局部闭环）
+
+- **目标**：对前一批完整请求/输出预留已获认证但超窗口的情形提供确定性退让，而不是把所有超限当成永远无法工作的 Agent。适用于可选、Host 授权的特定 Provider/model `contextWindow`；没有可追溯 Token 上界的 Provider 仍然 fail-closed，不能通过裁剪绕过认证。
+- **分类**：Host/Provider 正式系统指令、开发者消息中的 Principal/Context、当前 Human 原始指令、Host 工具 schema/权限/观察、输出预留属于**受保护区域**；`run.input.conversationHistory` 中的普通旧对话属于**只读模型上下文候选**。最近四条普通对话同样保留，不尝试通过词语猜测哪些内容是有效业务决定。已持久化的 Run 原始历史、来源和 Receipt **绝不修改或物理删除**。
+- **算法**：既有 Agent 模型请求构造格式 `system + history + current user + Host developer` 必须与 Host 已持久化历史逐项匹配；结构不匹配直接阻断。完整请求先调用经认证 Quote；**仅**当异常是容量不足时按历史最旧 25% / 50% / 75% / 全部可裁剪部分（最多额外四次 Quote）逐步排除历史，最少保留近四条，每个候选对包含全部工具/输出额度的**实际最终请求**重新 Quote。未知/错误 Quote、模型身份错配、必要区域自身超限立即阻断。上下文缩减在 PA-02 R10 合成成本预留之前，成本凭证仍针对同一份最终发送请求；未发生无界重复模型推理。
+- **验证**：`tests/protocol/pa04-prioritized-context-history.test.mjs` 覆盖核心区原样保留、低优先级历史边界、源 Run 不改、最坏超限、不可信 Quote 不退让、历史区域伪造 fail-closed 等；原 `tests/agent-line/pa04-c01-certified-context-window-pg-e2e.test.mjs` 新增隔离 Host→Worker→PostgreSQL18 场景，要求真实持久历史完整、模型只见精简上下文、恢复不重复推理。相关 CI 为 `.github/workflows/agent-pa04-c01-context-window.yml`；运行前不能视为通过。
+- **限制**：这仍不是完整 C01 PASS。当前优先级只是**结构性保护**：经 Host 提供的有效 Working State/工具观察保留，但早期仅出现在聊天文字中的重要决定可能随着旧历史移除。因此正式的 Working State 选择、来源治理/失效传播、权限更新、实际本地模型 tokenizer/模板认证和 Human 长会话验证仍待后续闭环；不能宣称“所有关键约束已自动抽取并永久保留”。本轮不修改 BEX/CP-03、`manager/server.ts`、主线状态、生产部署或 R10 真实计费授权。
+
+## 2026-10-15：C02 Host 显式来源撤销与派生数据原子清理（第四个局部闭环）
+
+- **发现的缺口**：#889 中的摘要来源指纹只防止读取时误用过期摘要，但旧摘要文本、目标/决策信号和 checkpoint 仍留存在内存/PostgreSQL。原始 Conversation `ConversationThreadStoreV010` 没有正式消息删除/遮蔽接口，仅有归档，不能假定用户已授权物理删除，也不能把归档等同删除。
+- **最小可信实现**：新增只供获授权 Host/保留策略 Owner 使用的 `ConversationSourceRevocationPortV010.revokeSourceMessages(threadId, sourceMessageIds)`。对一个准确线程按来源消息 ID 标注永久派生拒写 tombstone，并在**单个事务**中删除所有引用该来源的压缩摘要及关联 checkpoint；不局限当前 policyVersion，跨策略与历史版本一起清理。PG 采用线程级事务互斥，处理“旧 Worker 先开始压缩、随后来源被撤销、最后又试图写回”的并发窗口。已撤销来源的新摘要、旧 checkpoint 不能复活，重连仍保持 tombstone；其他线程/来源不能被误删。Memory 与 PostgreSQL 双实现。
+- **严格范围**：没有添加模型可用的删除工具，不修改业务 Conversation 原文/审计事件/Run 证据，不触碰企业 Memory、EC 索引或外部检索；也**未把该 Port 接到一个尚不存在的正式来源删除工作流**。必须先由上游合法授权的来源变更/删除流程验证身份、权属、保留义务和真实删除/遮蔽结果，再调用此 Port。保留原始数据保护与可能的法定留存不因本次自动变化；不能据此宣称已完成用户数据的全面擦除。
+- **证据范围**：专用 `Agent PA-04 C02 Derived Source Revocation` 工作流在 PostgreSQL18 上验证跨政策多版本、跨线程隔离、摘要与 checkpoint 精确删除、重复调用幂等、失效 Worker 重写阻断及数据库重新连接；AF-02 与 C02 先前的摘要摘要来源指纹用同一 CI 回归。验证日志及 PR 是此子门禁的唯一工程事实，CI 未跑时不得标 PASS。
+- **剩余 C02**：合法来源删除入口、已删原消息对长期 Run/Conversation/Memory/EC 及所有可检索副本的传播、真实权限/法定保留审批、异步复用与崩溃重试时完整删改闭环。整体仍 `PA-04 IN_PROGRESS / NOT_SIGNED`，C01 本地模型 tokenizer 仍未认证，PA-02 R10 仍 OPEN。没有发布/生产 WRITE，也不修改并行 BEX/CP-03。
+
+
+## 2026-10-15：C03 已持久 READ 在恢复推理前的新鲜度验证（第五个局部闭环）
+
+- **具体风险**：PA-02 的可靠 Run 将旧成功 READ 的观察结果跨浏览器/Worker/Host 重启长期保存在事件流中。此前恢复后的模型可直接接收这份观察，难以判断对象已变更、来源失权或 READ 需要实时重查；旧事实不能冒充当前企业事实。
+- **已实现的 opt-in Host 治理**：在原 `manager/agent-async-read-worker-runtime.ts` → `pa02-async-read-worker.ts` 端口新增仅由 Host 注入的 `readFreshness.assess`。每次实际新模型推理前，对历史成功 READ 的当前目录权限和来源版本/新鲜度逐一检查（最大八项）。Host 只能给出 `CURRENT`（已核实时效）、`REFRESH_REQUIRED`（必须重新读）或 `UNVERIFIED`（阻断）；LLM 不能伪造新鲜度身份，也不会用历史 READ 绕过新权限。
+- **需更新时**，以当前 Principal/Context 及当前 Host READ 目录重新调用保存的原始 READ 参数；READ 成功才追加 `READ_REFRESH_RECORDED` 持久事件（含 `sourceVersion`、新的 Host 观察）。不可篡改的原 `TOOL_OBSERVATION_RECORDED` 仍保留供审计，Run 物化结果和下一次模型请求则仅使用最新成功观察。模型未知、源版本未知、工具失权、重读失败或观测内容不匹配均 `RUN_BLOCKED`，不继续推理，也不允许凭旧 READ 继续业务 WRITE。
+- **验证**：专用 `.github/workflows/agent-pa04-c03-read-freshness.yml` 在 PostgreSQL18 上测试：旧 READ 返回 v1、恢复前重读得到 v2、模型只能见 v2、事件仍记录旧 v1、进程重启后只读一次且不重复推理；模拟工具失权、来源版本不可证时阻断推理。沿用既有 PA-02 Worker 及 PA-04 C01 预算回归。只能以准确 HEAD CI 日志确认通过。
+- **边界与未决**：只是**默认不启用的 Host 注入治理**，尚没有为所有实际业务插件接入独立的资源版本证据/失权查询。此端口不会自行改变业务来源，不会清理旧审计事件，不解决已生成但未落库的模型文本或外部引用失权（C06），也不自动拒绝历史已记录 `RUN_SUCCEEDED` 或复写已提交 Owner 回执。若 Host 无法认证业务源的时效，不能宣称 C03 完整签收。PA-04 保持 `IN_PROGRESS / NOT_SIGNED`；PA-02 R10 费用验收保留 OPEN，不触碰对象导入 BEX。
+
+## 2026-10-15：C06 Memory 来源引用出站授权门禁（第六个局部闭环）
+
+- **明确的真实风险**：Personal Agent 已有 Context Memory 的 `search`、`recall`、`inventory` 和精确 ID `audit` 工具。原有 Host 当前 Context 读权限虽然隔离 Memory 所属作用域，但 Memory 的 `provenance.evidenceRefs/evidenceSources/sourceContext` 可能指向另外的来源资源；过去能看到 Memory 或来源，**不等于当前仍能展示来源标题、正文和下载入口**。
+- **本轮的局部保护**：新增 `Pa04MemoryDisclosureAuthorityV010`（Host 可信回调），对读取所得每条 Memory 在发给模型前检查**当前 Principal、当前 Context、准确 memoryId、来源 Context、引用 IDs、证据来源 IDs**；只允许 Host 明确返回 `true` 放行。返回 denied、抛错或结果缺失必要作用域/来源结构时 **fail closed**；整批 READ 不返回任何摘要、来源标题、片段或 URL，也不在错误码中回显敏感标识。跨 Context 的来源须有独立 Host 当前授权；单凭 Memory 内容或模型建议无效。
+- **调用路径**：在 `agents/enterprise-agent/host-tool-catalog.ts` 对 `context.memory.search`、`context.memory.recall`（包括每个展开查询的原始结果，防 top-N 外 ID 泄漏）、`context.memory.inventory.list`、`context.memory.audit.get` 及 `context.memory.audit.compare` 的查询结果执行门禁。数据通过时保持原有效检索行为，失权时返回严格的 `PA04_REFERENCE_DISCLOSURE_DENIED` 或 `PA04_REFERENCE_DISCLOSURE_UNVERIFIED`；不通过正文错误恢复旧资料。
+- **测试证据**：`tests/agent-line/pa04-c06-memory-reference-disclosure.test.mjs` 用隔离 Host 目录模拟当前授予→撤销，验证来源 title/body/downloadUrl 同步失权、全类 Memory READ 禁止旁路、异常授权拒绝、跨 Context/缺 provenance 拒绝、授权来源仍可正常读。专用 `.github/workflows/agent-pa04-c06-memory-reference-disclosure.yml` 还回归现有 Agent 目录测试；以最终准确 HEAD CI 为准。
+- **关键限制（不能提前签收）**：门禁是**Host 可选注入**，当前产品尚未给全部来源类型绑定实际的资源级 `authorize` 策略；不能把模拟的撤权理解为已接入生产授权。历史 Run、Conversation、已生成回答展示、Memory Proposal、外部 EC 索引、业务直接页面、静态文件/真实下载 URL 的重新验证与缓存失效均**未被本 PR 覆盖**。真实附件下载路径不能依赖模型过滤，应在打开/下载当刻由资源 Owner 二次授权。C06 仍部分完成，PA-04 `IN_PROGRESS / NOT_SIGNED`。
+- **隔离边界**：不修改任何 BEX/CP-03、2D、`manager/server.ts`、生产 WRITE 和主线全局状态文件；PA-02 R10 真实费用仍 OPEN，本地开源模型部署只是计划而非已签收的 Provider。
+
+
+## 2026-10-15：C04 错误记忆人工纠正与服务级审核（第七个局部闭环）
+
+- **复用既有系统**：原 `ContextMemoryProposalService` 已实现 Agent/source adapter 创建 PENDING 提案、Memory Review 页面展示、Human 编辑/拒绝/接受、永久修订链、冲突/重复提示、`supersedesMemoryId` 及 Host Memory Writer。无需重新造第二套记忆系统。
+- **发现的防线不一致**：Review 页面 Action 原已拒绝非 Human 身份，但底层 `service.accept/edit/reject` 不要求 `principal.actorType=HUMAN`；绕过 UI、由其他 Host 服务直接调用时，Agent 或 Automation 可能替自己接受、拒绝或改写提案。这违反“模型建议≠已确认个人/企业事实”的 C04 规范。
+- **此批修改**：在提案服务内部的 `accept`、`editProposal`（含接受时携带修订）和 `reject` 前强制 Human 身份，缺失即 `CONTEXT_MEMORY_PROPOSAL_HUMAN_REQUIRED`，任何已接受提案的幂等读取也不能作为非 Human 的审批捷径。保留原 Action 侧确认标志、角色/关系、`authorizeMaterialWrite` 双重授权；不开放新的 Agent WRITE。
+- **端到端逻辑回归**：`tests/protocol/pa04-c04-human-memory-correction.test.mjs` 验证 AI 提案始终 pending、不落永久记忆；AI/AUTOMATION/SERVICE 通过底层 API 直接接受/编辑/拒绝均失败；Human 将误推断改为审定文本再接受，新的记忆取代旧的普通检索结果，旧记录及模型原稿仍保留原样供审计；Human 拒绝无据推断不落库；Agent 不能直接把企业提案变成 FACT，跨 Context 不能纠正别人的记忆。结合既有 `context-memory-proposal-review` 和 `context-memory-governance` 回归；CI 完成之前不标 PASS。
+- **仍待 C04**：当前是底层服务防线与模拟 Human 核验，不自动证明所有用户可看见/纠正全部记忆、企业事实的真实来源核验、真实登录与工作台交互、企业审批权限矩阵、Memory 来源失效和长期纠正效果。人工接受也不是业务来源真相；企业 FACT 必须受业务资源所有者的最终治理。C04 / PA-04 整体仍 `IN_PROGRESS / NOT_SIGNED`。
+- **隔离**：仅修改独立 Memory Proposal Service、测试、验收记录及 CI，未修改 BEX/CP-03、`manager/server.ts`、eidos/2D、主线 authority 文件或生产 WRITE；PA-02 R10 持续 OPEN。
+
+
+## 2026-10-15：C05 不可信来源诱导工具调用的 Host 二次放行门禁（第八个局部闭环）
+
+- **现有可复用防线**：PA-02 Worker 已由 Host 提供工具目录与 Principal/Context；无 Owner Port 不暴露业务 WRITE，有 Owner Port 时仍需独立资源授权/可恢复的 Receipt。此次**没有**替换这些既有防线，也没有启用业务生产工具。
+- **发现缺口**：文档或 READ 返回内容可能包含伪造 SYSTEM、权限提升、将数据发往外部 URL 的命令。若模型把这种内容当成指令，并选择了当前工具目录里存在的外部 READ/交互能力，单凭“工具在目录内”不足以证明**这个具体参数及外发目标**得到本次 Human/Host 授权。相反，仅靠提示词禁止注入也没有强制执行力。
+- **新增 opt-in Host 端口**：`toolCallAdmission.authorize` 对模型提出的每一个具体工具调用（包括模型参数、目标地址、当前 Principal、Context、RequestContext、已记录工具观察与历史 Run）做实时 Host 独立审批。该门禁位于既有 READ 分发或受治理 WRITE Owner Port **之前**，同时覆盖崩溃恢复后尚未执行的持久模型决策。只有明确布尔 `true` 才允许执行；拒绝、抛错、权限/目的地不确定即写入持久 `RUN_BLOCKED / PA04_UNTRUSTED_TOOL_CALL_DENIED`，不将敏感内容回显到阻断理由、不给出伪造成功。
+- **模型的防御性解释**：系统指令注明文档及 READ 观察均属不可信数据，工具返回不能授权新工具或外发；原 JSON 观察明确以 UNTRUSTED SOURCE DATA 标签出现。此层属于辅助手段，**不承担**最后授权责任。Provider 模型结果中未知、参数无效或同时要求多工具时，明确告知“未执行”，不采信模型自述的成功文本。
+- **验收证据**：`tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs` 构造含伪造 SYSTEM 指令与外发目标的恶意文档，让模型试图调用目录中存在的 `external_upload`；检验 Host 对具体调用拒绝、外发函数调用次数为零、运行状态可审计且 PostgreSQL 重启后不重放；授权服务抛错时 fail-closed；允许正常授权 READ、未知/同时多个模型工具请求均无实际副作用。专用 CI 与原 PA-02 Worker / PA-04 C03 回归必须通过准确最终 HEAD。
+- **不能宣称的能力**：新端口为 **Host 可选注入，默认行为不变**，当前实际业务 Host 尚未提供全类型工具的目标域名 allowlist/网络 egress 强制器。模型上下文仍包含工具观察的 JSON，提示层标签不是硬隔离；尚未覆盖所有实际附件解析器、文件下载、浏览器/API/插件网络出口，也未对全部生产 WRITE 建立独立 Human 明示动作白名单。C05 与 PA-04 总体保持 `IN_PROGRESS / NOT_SIGNED`。不得用本次隔离模拟声称完全防御 prompt injection。
+- **独立边界**：不修改 `manager/server.ts`、BEX/CP-03、2D、核心全局 authority 或线上部署；不运行实际外部请求、不开放生产 WRITE；PA-02 R10 真实计费仍 OPEN。
+
+
+## 2026-10-15：PA-04 C01–C06 统一证据与验收门禁（第九个局部闭环）
+
+- **总表**：[PA04-C01-C06-CONVERGENCE.md](./PA04-C01-C06-CONVERGENCE.md)；机器台账为 [PA04-C01-C06-READINESS-LEDGER.json](./PA04-C01-C06-READINESS-LEDGER.json)。六项均已具备隔离工程子能力，但 **零项具备完整真实环境 SIGNED 证据**；继续 `IN_PROGRESS / NOT_SIGNED`，不得把八个已有 PR 或本批统一 CI 的 green 当作上线。
+- **当前唯一新工程门禁**：`.github/workflows/agent-pa04-c01-c06-consolidated.yml` 把 9 组历史 C01–C06 负向/正常测试和新的 `pa04-convergence-readiness.test.mjs` 同时跑在隔离 PostgreSQL18 上，硬性要求 PG 专项打印实际通过标记；无 PG 时不能靠 test.skip 假通过，自动阻止证据丢失或无来源签收。
+- **已确认外部依赖**：C01 真实 Provider/local tokenizer 与长会话；C02 原文/Memory/EC/索引/备份传播；C03 真实插件资源版本；C04 Human 页面与企业 Owner 真相；C05 全链路网络 egress 授权；C06 真实来源权限及历史回答/附件下载。由各 Host/Owner 接入后再分别签收。
+- **业务隔离**：未触碰 BEX/CP-03、2D、`manager/server.ts`、全局进度文件或线上；PA-02 R10 真实费用 [#879](https://github.com/jiangxng/EVO-App-Platform/issues/879) 仍独立 OPEN。统一 CI 完成后可以准备 PA-05 插件认证工作，但不宣称 PA-04 已正式验收完成。

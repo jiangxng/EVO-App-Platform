@@ -43,42 +43,139 @@
 
 **记录规则**：后续汇报每次保持同一组“验收项目｜当前状态｜下一步”，状态有变化时更新对应行；代码通过、已合并、已部署、人工签收绝不混写。只有确实新增/删除验收项时说明原因，不能靠“剩余几关”的数字倒计时替代真实状态。
 
-## 2026-10-14 用户实操缺陷与最短路径整改（PR #860）
 
-### 真实现场证据与缺陷分离
+## 2026-10-14 用户真实 Excel 回归：上下文丢失与重复字段（BEX-01 局部修复）
 
-用户在现有 Railway **已部署** BEX #852（`3112de7`）下对原导入作业 `import-0c89df2e-c4e1-40ce-b96b-a4a341bd69a2` 截图：从“开户银行”映射行的“为本列创建”入口进入后，创建表单的“未匹配来源列”竟预选“系统编码”，业务名称空白；Human 手工输入“开户银行”保存后返回映射，原列仍为“忽略此列”；再次创建导致可选目标中出现两个“开户银行”，ID 分别是 `ext_7932cf289595ef82`（由开户银行来源列生成）和 `ext_a3ed6c689c1baa0a`（由系统编码来源列生成）。这些是**用户实际截图显示的结果**，不冒充正式数据库侧写入诊断；不能擅自删除任何一个已有字段或数据。
+**人工截图证据（用户当前聊天上传，尚无 GitHub 附件可链接）**：
+1. 在来源列“开户银行”点“＋ 为本列创建企业扩展字段”。
+2. 创建页错误地选中“系统编码”，而不是点击的“开户银行”，业务字段名称仍为空；人工重选后创建并返回。
+3. 返回映射后，该来源列仍为“忽略此列”，没有自动映射新字段；重复操作又产生两个名称相同、ID 不同的“开户银行”字段。
+4. 以上由用户当前 Railway 页面截图证明，属于真实业务体验 BUG。**不要从截图推断字段已经写入供应商，也不要未经业务核实删除历史重复字段**。
 
-### 已实际阅读的设计依据（不把个案当统计）
+**定向参考依据**（2026-10-14 已浏览，非统计结论）：Airtable 官方 https://support.airtable.com/articles/3067164948-csv-import-extension （优先自动匹配已有列，可跳过不需要的字段）、Microsoft 官方 https://support.microsoft.com/en-us/sharepoint/lists/data-and-lists/create-a-list-based-on-a-spreadsheet （Excel 表头生成列、由人调整类型）；ClickUp 用户重复字段抱怨 https://www.reddit.com/r/clickup/comments/1jjqm3n 和 Notion CSV 映射正面评价 https://www.reddit.com/r/Notion/comments/1mzxbd1/ （社区个例，不能当整体量化满意度）。
 
-- Microsoft 官方《Create a list based on a spreadsheet》：https://support.microsoft.com/en-us/sharepoint/lists/data-and-lists/create-a-list-based-on-a-spreadsheet ，**2026-10-14 已读页面正文**：基于来源表头形成目标列，创建前允许确认和调整；不是“所有未匹配元数据全部强行创建”。
-- Airtable 官方《Importing third-party data into Airtable》：https://support.airtable.com/articles/9412806945-importing-third-party-data-into-airtable ，**2026-10-14 已读正文**：支持导入字段自动类型建议开关及选择导入的来源字段。
-- Airtable 官方《CSV import extension》：https://support.airtable.com/articles/3067164948-csv-import-extension ，**2026-10-14 已读正文**：同名列尝试自动匹配已有字段，Human 可修改，预览后再确认创建记录；与 EVO 的“不修改核心对象／显式提交”原则兼容。
-- Reddit r/sharepoint 原帖《Need advice on an error sharepoint list》：https://www.reddit.com/r/sharepoint/comments/1bhagkb/need_advice_on_an_error_sharepoint_list/ ，**2026-10-14 已看搜索展开原帖内容，未核实后续操作结果**：Excel 列类型不匹配导致多行遗漏，属于单一用户反馈，不代表统计共识。支持“建议类型、Human 确认，导入前校验”。
-- **自行产品判断**：默认优先匹配已存在字段；新业务列以“建议创建”作为**待决状态**而非旧“忽略此列”；元数据、系统码若不应入库，可明确选“忽略”。不自动猜测核心 `subjectType`，也不自动把未知 Excel 列变成企业字段。
+**接受的交互路线**：先复用唯一匹配的已有字段；不存在匹配时将“创建企业字段”呈现为建议动作，点该列即预选来源列并预填相同业务名称和文本类型，Human 可修正后确认保存；返回映射自动选中刚创建字段，保留预检查与最终显式提交；“忽略此列”始终可选。对来源意义模糊的系统元数据不得静默建字段。多个同名字段不能由系统猜选，需人工判定真实字段归属。
 
-### 有界修复方案与范围
-
-1. 当前来源列沿本地 Route 显式传入已有创建页；Human 看到来源列已确定，名称默认同表头，类型仍由 Human 确认，减少重复选择和重复输入。
-2. 保存后调用**已有数据导入服务**把新字段映射到原来源列，并返回原映射页，目标字段自动选中；不自动触发预检查/正式提交。不复写 Agent 任务或对象 Owner 存储。
-3. 同一企业/目标槽的相同业务名称不再生成第二个不同 ID；同一来源列重试复用稳定字段 ID。**已经出现的同名两项保留**；映射页可按来源列稳定 ID 自动建议对应字段，不猜测清理旧记录。多项无法唯一判定则显示待处理，由 Human 选择。
-4. 预检查不再把新业务列默认为“忽略”，而对未处理列标记“建议创建”；Human 未明确新建、选现有或忽略时，禁止继续预检查，避免静默丢失来源数据。
-5. 本 PR 将精准修改 BEX 的映射、创建、Action 与现有 Host 路由/服务接线位置，不修改 PA-02 Agent 运行逻辑、共享权限模型、数据库结构、Item/Warehouse 或独立 UI 基础规范。必须通过 CI、BEX Real Host Chromium 回归，并与实际环境 Human 验收分开签收。
-
-### BEX-01 / CP-03 固定进度表（本次增量）
+**范围控制与 Agent 防回归**：只改 BEX 现有导入页面、企业字段创建动作和局部 Host 路由参数接续（不改 Host 身份/授权/任务执行），不改 Agent 的 `ai-auto-map` 动作、Owner 存储及 `subjectType` 校验。重复字段防护放在 Owner 写入前；已存在的两个“开户银行”暂不合并、不删除，以免数据损坏。
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| 用户发现入口 | ✅ 真实 Railway 截图已确认可见 | 不重复修改已可用入口 |
-| 来源列和名称一键带入 | 🟡 PR #860 已提交，待 CI/Chromium | 浏览器检查“开户银行”不再变成“系统编码” |
-| 保存后自动映射 | 🟡 PR #860 已提交，待 CI/Chromium | 检查返回映射时已选中正确字段并能预检查 |
-| 重复字段防护/已有两个同名字段 | 🟡 代码加入防重与来源字段识别；旧数据不清理 | 验证不出现第三个字段，Human 核实原有两个记录和引用后才决定清理 |
-| Agent 自动匹配兼容 | 🟡 原调用契约未修改，回归待完成 | 以准确 PR HEAD 的代表性测试为准，真实 Agent 执行交 PA-02 |
-| 核心 `subjectType` 3 行缺失 | ⏳ 原数据质量问题仍在 | 根据实际主体身份修正，不能用扩展字段绕过 |
-| Railway 开发环境 | ✅ #852 为 `3112de7` SUCCESS，#860 **未部署** | 新 PR 检查合并通过后再发布已验证版本 |
-| 原 Excel 全链人工验收 | ⏳ 未签收 | 从现有作业完成映射、预检查、真实提交及详情检查 |
-| **BEX-01 / CP-03 本轮整体** | **进行中** | **工程修复回归、部署与原文件人工签收** |
+| 从“开户银行”进入创建页，预选来源和业务名称 | ✅ PR [#862](https://github.com/jiangxng/EVO-App-Platform/pull/862) 已合并并部署，真实 Host Chromium PASS | 真实 Host Chromium 和原 Railway 实测 |
+| 创建成功后默认映射到刚创建的字段 | PR #862 已合并，40 项 CI 全部通过，Railway 修复版已部署 | 浏览器验证原导入作业不再回到“忽略此列” |
+| 已有同名字段复用与重复新增拦截 | PR #862 已合并，40 项 CI 全部通过，Railway 修复版已部署 | 唯一匹配复用、歧义不猜测；原两项重复字段待业务核实 |
+| Agent 自动映射与核心必填约束 | ✅ Agent 原入口/上下文保持，代表性浏览器回归 PASS，真实 PA-02 整链另案 | 验证不影响 Agent 控件与三行 `subjectType` 错误 |
+| **BEX-01 / CP-03 本轮整体** | **修复已合并并部署开发 Railway，原文件用户签收及历史重复字段处置仍待完成** | **原作业验证创建后自动选中、确认已有重复字段归属、处理 3 行主体类型并执行预检查/提交** |
+
+**实际发布及回退证据（2026-10-14）**：PR [#862](https://github.com/jiangxng/EVO-App-Platform/pull/862) 准确验证 HEAD `f85252350464ab3d4b7ad4c8aff130eb4f415d4f`，40/40 工作流通过，合并提交 `8b7e2cc9e12c13e6086803e5b6f81d78833e7069`。在用户明确确认 Railway 用作开发环境且无需新建环境后，将既有固定发布分支 `release/bex01-dev-20261014` 安全前移至该合并提交。Railway 现有 Ledger Configurator 部署 `35bdd1c5-3f85-475a-9174-05265cc8548d`，真实构建 SHA `8b7e2cc9`，SUCCESS、健康检查通过、App Manager 启动。此前稳定版 `3112de7` 部署 `c4be1222-84df-4907-ac30-049d260cd8ee` 为回退版本依据（回退时需重新核实可重部署性）。未操作原用户数据，不删除已有的两个“开户银行”；Human 验收未完成，不能把工程完成冒充实际数据签收。
+
+## 2026-10-14 用户新增细节：Excel 来源列与系统字段一对一选择
+
+用户明确要求：Excel 甲列选择系统字段 X 后，其他 Excel 列的下拉框**立即不再出现 X**；甲列取消选择或改为其他目标后，X 立即恢复。“忽略此列”允许多个 Excel 列重复使用，不算占用系统字段。这是**实时可用性规则**，不是等提交后才报错；需要同时从保存和预检查层拒绝来源列重复指向同一系统字段的异常请求。
+
+**采用方案**：Eidos 通用可选 `exclusiveSelect:{group,exemptValues}`，仅对显式声明的 select 分组启用动态排他，不影响其他 Eidos 表单（Eidos [PR #182](https://github.com/jiangxng/eidos/pull/182)，已合并）。BEX 的 `map_* ` 下拉均属于 `data-import-targets` 组，`__IGNORE__` 是豁免值。客户端实时隐藏/还原，沿用现有 Data Import 作业契约保存校验（`DATA_IMPORT_MAPPING_TARGET_DUPLICATE`），禁止两个来源列重复写入同一字段；无需修改服务底层或 Agent；保留独立的常量映射与值变换逻辑；不触动 Agent `ai-auto-map` 动作与 `subjectType` 必填规则。旧作业中原有冲突不进行静默重排，留给用户修正。
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| Eidos 通用排他选项契约 | ✅ PR #182 已合并并通过 CI | 与 BEX 固定版本一同部署验证 |
+| 已选择的系统目标从其他下拉消失 | 代码已提交 [BEX PR #866](https://github.com/jiangxng/EVO-App-Platform/pull/866)，CI 待最终核验 | 实际 Chromium UI 验证 |
+| 释放字段后原位置立即重新出现 | 代码已提交，浏览器回归已补 | 确认变更、恢复以及“忽略此列”可重复 |
+| 保存与预检查双重禁止重复目标 | 代码已提交，协议测试已补 | 验证 Agent/外部入口绕过 UI 不能重复赋值 |
+| 既有 Agent、企业扩展、主体类型校验 | 未修改 Agent 行为、核心必填或历史数据 | 回归及原 Excel 实际用户操作确认 |
+| **BEX-01/CP-03 整体** | **前一版已在 Railway 开发环境；本次增强尚未部署** | **完成 CI → 合并 → 同环境更新 → 人工验收** |
 
 ## 收尾与其他窗口分工
 
 BEX 后续只看新入口是否易找、权限是否正确、字段创建后返回映射和详情；真实 Agent 长任务及 Owner PG 存储属于 PA-02，通用 Eidos 组件属于 Eidos owner。原总交接 PR #846 仍是草稿，不因当前页面修复而自动合并或部署。#851、#852、#854 的过程分支已在严格核验后清理，不重复处理；若未来出现新分支仍按归属与合并状态逐一确认。
+
+## 2026-10-15 新窗口执行记录：一对一映射完成与批量审核开发
+
+本窗口复核交接快照后确认，PR [#866](https://github.com/jiangxng/EVO-App-Platform/pull/866) 在两项曾失败的独立 GitHub Actions 作业原位重跑通过后，严格同步最新 main 并通过 **12/12** 项 CI，合并提交为 [`590a5a91`](https://github.com/jiangxng/EVO-App-Platform/commit/590a5a91b4c75779263b2fcb820845c6876522be)。初次失败证据分别为 Agent PA-01B2 普通聊天 `MOCK_MODEL_CALL_NOT_SEEN` 与 Trading Lite Chromium `127.0.0.1:9229/json/list` 等待超时；无代码修改后复跑均通过，故不能将其误判为本次排他映射的确定性缺陷。原 PR 的客户端排他和服务端拒绝重复目标均保留。
+
+批量闭环在独立 [Draft PR #884](https://github.com/jiangxng/EVO-App-Platform/pull/884) 实施，保留原单字段路线、不改 Agent/Eidos 公共 Owner。用户集中查看未映射 Excel 来源列，每列明确选择系统已有字段（包括核心 Schema 和企业扩展字段）、新建、忽略；已占用目标不再可选；遇到“开户银行”等重名歧义不自动合并。原始来源计数只展示数量，不在表单公开原始值。依据真实样本提示“账期天数”可选 NUMBER，但仍由用户确认。批量动作首先统一预检查所有选择，用户显式确认后以原有 Object Extension Owner 保存定义并在同一任务内更新 Data Import 映射；**不自动执行 import dry-run 或 commit**。失败可能留下已成功的字段定义，当前 Owner 尚无多字段事务，所以明确返回 PARTIAL 并允许按同一确定性字段 ID 复用重试，不声称原子回滚。
+
+回归结果：**隔离真实 Host + Chromium 141 的 5/5 浏览器场景全部通过**，包含多字段集中审核→一次确认→映射回填→预检查→显式提交→供应商详情四字段值、Agent 入口不变、主体类型缺失校验、原单字段与桌面/移动模拟列表回归。证据为 GitHub Actions [BEX-01 Real Host Chromium Supplier Journey #38663416846](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38663416846)，artifact `bex01-real-host-chromium-evidence` (ID `11939523904`)，截图 `extension-batch-review-before-confirm.png`、`extension-batch-auto-mapped.png`、`extension-batch-supplier-detail.png`。本轮曾发现 Host 页面响应 200 但客户端因两个元字段缺少 `semanticType` 而拒绝渲染，已在 BEX 表单定义中修复，无须修改 Eidos。跨项目 CI 与完整 PR 验收仍以最新 HEAD 为准，不将旧成功次数冒充新提交结果。原 Excel `往来账户2026_10_08_10_15_23.xlsx` 尚未在本窗口找到可读取的文件实体，模拟样本通过不等于真实 Excel 签收。Railway 用户指定的现有开发服务最后核实仍部署 `8b7e2cc9` SUCCESS；没有新建环境或部署未验收分支。
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| #866 一对一映射、释放还原、后端重复目标防护 | 已合并 main@590a5a91，合并前 12/12 CI 通过 | 在批量 Host 回归中持续保留 |
+| 批量字段“一屏审核”与已有目标优先 | Draft PR #884 已通过隔离 Host Chromium；核心字段优先和同名歧义协议测试已通过 | 完整最新 PR CI、合并后线上复核 |
+| 批量创建并自动映射 | 隔离 Host Chromium 四字段确认→自动映射→详情通过；协议测试覆盖失败后重试 | 最终 PR CI、合并后复核 |
+| Agent、权限、主体类型原值与重复字段安全 | 未修改 Agent 或主体类型；新增专门断言 | 完整跨项目 CI + Chromium |
+| 显式预检查与最终提交、详情扩展值 | 新旧两个流程均在隔离 Host + Chromium 通过 | 真实文件与部署版本验证 |
+| Railway 开发服务准确发布 | 仍为旧版 8b7e2cc9 SUCCESS | 仅验证通过且合并后按准确 SHA 发布 |
+| 原始 Excel 用户数据实际签收 | 尚未执行 | 找到原文件后实际跑“默认支付方式”等四字段并核对供应商详情 |
+
+
+## 2026-10-15 批量字段工程合并及开发环境固定版本发布（接续核查）
+
+本轮接续并未重新开展行业研究，仍沿用已合并 [#881](https://github.com/jiangxng/EVO-App-Platform/pull/881) 的交接入口/详细研究索引，以及保留在 [#878](https://github.com/jiangxng/EVO-App-Platform/pull/878) 的原批量设计。先核查 #866：其准确整合 HEAD `7553fd91417f0dc537503a8e361686472d634cbd` 两项历史失败检查（Agent PA-01B2 Full Isolated Chrome Host Acceptance 与 Cross Project CI - Trading Lite Eidos Browser EVO）已经成功，PR #866 已合并 `590a5a91`，不重新打开一对一映射实现。
+
+在已有批量 [PR #884](https://github.com/jiangxng/EVO-App-Platform/pull/884) 上，将当时最新 `main@a79a0de4af2c6753f26e7be3563189c4c2f3f2b8` 的额外分支治理清单合入（未覆盖 BEX 业务文件），形成验证提交 `0f10b8b2dcfcb6391e42169641188804d87b9a60`。该准确提交 **41/41 GitHub checks SUCCESS**，覆盖 BEX-01 Real Host Chromium、Platform CI、Agent、Eidos 跨项目浏览器检查。PR #884 已从 Draft 转正式并合并为 **`ceec8b6527ccee08402832a208054af66f8d1dae`**；验证提交与合并提交的 Git 树 SHA 相同 `11c241b1b32f09c340406e3d166c94ac8b6f888d`，没有拿未验证的移动 main 部署。
+
+**现有 Railway 开发服务准确部署：** 只前移固定发布分支 `release/bex01-dev-20261014` 至 `ceec8b65`；Ledger Configurator 部署 **`0bc02a13-853f-4cc8-9981-7118291ed464`** 为 SUCCESS，服务 Online、运行副本 1/1、启动日志显示 `EVO App Manager listening on http://localhost:8080`。原服务、域名、数据库配置与 `/data` 数据卷没有新建或删除。此前成功部署 `35bdd1c5-3f85-475a-9174-05265cc8548d`（`8b7e2cc9`）为回退核验入口。Railway 环境技术名称 `production` 仍按项目明确约定视为**开发测试环境**。这不构成真实用户 XLSX 操作、完整 Agent PA-02 工作或正式生产签收。
+
+**原文件限制：** 再次搜索当前会话附件和用户 Library，可访问结果没有 `往来账户2026_10_08_10_15_23.xlsx`；真实用户 Excel / 既有导入作业没有执行新批量动作。三行 `subjectType` 缺失仍独立阻塞未经核实的供应商提交。历史两条“开户银行”只保留冲突提示，不自动合并或删除。
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| 单列预填、保存返回映射 | 已部署，用户此前实际认可 | 继续保留例外单字段入口 |
+| 一对一目标占用/释放与保存、预检查防重复 | #866 已合并，集成测试通过 | 用户在线页面观察实际下拉行为 |
+| 批量已有字段优先、一屏审核 | #884 已合并，隔离 Host+Chromium 已通过 | 原 XLSX 核对建议及歧义字段 |
+| 一次确认创建/回填与失败重试 | #884 已合并；协议和真实 Host 回归通过 | 原 XLSX 核对创建/映射和重试体验 |
+| Agent 兼容、权限与主体类型原规则 | 41/41 CI 通过；未修改 Agent 契约或核心必填 | 用户业务环境核验，三行缺失按真实数据处置 |
+| Railway 开发环境固定发布 | `ceec8b65` SUCCESS / Online（1/1） | 对照用户原作业进行在线测试，禁止无关部署 |
+| 原 Excel 与供应商详情 Human 签收 | 未完成；原文件本体尚未取到 | 使用原作业四个业务列一次审核、dry-run、显式提交及详情确认 |
+| 历史两项“开户银行” | 未决，原值和引用尚未核实 | 经业务确认后单独处置，不自动删改 |
+| **BEX-01 / CP-03 整体** | **工程合并及开发部署完成，真实用户验收未关闭** | **原始 Excel 的真实页面操作与详情签收** |
+
+
+## 2026-10-15 用户真实映射反馈：先恢复历史、默认保留来源、明确忽略可撤销
+
+**原始反馈（用户截图）：** 映射页“编码、名称、往来类型”出现“— 忽略此列 —”，用户称此前匹配过；B 方案的集中审核入口未在截图中的字段旁显示，用户需要一屏可发现。截图只显示局部，不能据此断言页面上方上下文导航绝不存在，也不能据此认定存储数据已经丢失。
+
+**本轮代码核查得到的确定事实：**
+- 已部署开发环境继续使用相同 Railway 服务和 `/data` 卷；仍需原 Import Job ID、当前企业身份/历史作业记录才能判断某次映射为什么失效，不能笼统归因为“测试环境丢数据”。
+- `apps/data-import/service.ts` 原有 Recipe 重用同时要求来源结构 fingerprint 与**整份 Effective Schema 摘要**相同；企业新增扩展字段可导致摘要变化，尽管核心字段 ID 仍可用。原 fallback 仅寻找同 Schema 且已 dry-run 成功的 HUMAN 作业，早期已人工保存但尚未成功 dry-run 的映射无法被新文件引用。
+- `apps/data-import/page.ts` 对未匹配列原来兜底显示 `__IGNORE__`；而 B 方案 #884 的批量入口位于 `contextNavigation`，单列按钮位于字段下。用户看到单列按钮说明当时单列创建的角色和插件门禁成立，不代表批量入口也在截图可见区域。
+
+**新确认的产品决定（优先级固定）：**
+1. 先复用**当前作业已保存映射**，再尝试历史已确认 Recipe；即使扩展 Schema 增长，也可将目标 ID 仍有效的旧列映射作为**待人工复核**的恢复建议，不因整体摘要改变全部重置。禁止在 Schema 漂移情况下跳过用户复核或自动提交；字段不存在/权限变化/冲突显示需纠正。
+2. 之后允许用户按原 `ai-auto-map` 入口执行一次 AI 建议，仍以显式确认与同企业 Schema/权限为准；AI 失败不阻断人工操作。
+3. 未匹配的企业业务列默认显示“建议新建（待确认）”，不是“忽略此列”；人可以集中审核并一次创建。元数据或重复歧义仍需确认，不可无授权自动建字段。B 方案是单屏批量审核而不是逐字段跳转，入口需在映射表单本体明显可见。
+4. 保存 Excel 的**全部来源列及单元格原始值**到现有 Import Job 作为可复核证据；新建企业字段和写入正式供应商值仍需 Human 确认、dry-run、显式提交。明确区分：暂未处理 `__PENDING__`、创建建议 `__CREATE__`、用户自主忽略 `__IGNORE__`。忽略须能撤销，且不可删原值。
+5. **允许错误、允许修复**：可以在未提交作业内重新映射、修改新建建议或撤销忽略；已提交作业的来源证据留存供后续纠错，但当前实现禁止直接修改已提交 Import Job，正式对象数据的导后更正需独立合法修订或重新导入流程，不虚报“提交后自动可随意改写”。
+6. 仍不自动从“往来类型”推断 `subjectType`；3 行缺失保持真实数据问题。历史两条“开户银行”需查 ID/引用再业务核实，绝不清理。
+
+**本轮修复分支：** `fix/bex01-reuse-mapping-preserve-columns-20261015`；只涉及 BEX 映射/Recipe/批量审核与专项协议测试。本记录不代表 PR 已通过 CI、已合并或已部署。Railway 在该分支验证完成前继续固定 `ceec8b65`。
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| 旧映射复用与 Schema 漂移恢复 | 代码修复候选，尚未完成 CI | 协议测试 + 实际旧 Import Job 证据 |
+| AI 原入口及手工退路 | 契约保留，待回归 | Host + Chromium Agent 按钮/上下文 |
+| 未匹配列默认建议新建与 B 方案可发现性 | 代码修复候选，待 CI | 检查首屏链接、映射选项和跳转 |
+| Excel 原始值、暂存/忽略/创建三态 | 代码修复候选，待 CI | 明确忽略可恢复、重进不重新提议、原行仍存在 |
+| 批量一次确认、权限及失败恢复 | 已部署 #884；本分支需回归 | 不打破原闭环、提交与权限 |
+| Railway 开发环境 | 上一版 `ceec8b65` SUCCESS | 仅新 PR 合并且验收后固定版发布 |
+| 用户原 Excel 和供应商详情 | 仍未取得 Import Job 实证 | 实机核对历史映射原因、三个 core 字段及四字段闭环 |
+| **BEX-01 / CP-03 整体** | **已部署批量 B 版本仍未 Human Accepted，本反馈新修复待验证** | **工程回归→准确版本发布→原作业签收** |
+
+
+## 2026-10-15 实际收口证据：恢复历史映射与保留未匹配 Excel 列
+
+- **实现与合并：** [PR #894](https://github.com/jiangxng/EVO-App-Platform/pull/894) 已经从 Draft 转正式并合并，合并 SHA **`7620f15f703d7e65775ccd55e1c19a215fdc40a5`**。合并前精确测试提交 `11ea5d220f152fb76c153558bab6f464e60709a0` 与合并提交的 Git 树 SHA 同为 `7a1a9b061aa4499f1ffb3c6197dce8bb361f9882`。该提交 Platform CI、BEX-01 Real Host Chromium、Project Continuity CI、Lightweight Host Architecture 四类工作流均 SUCCESS，保留原 Agent 原入口、已有字段排他、单字段和批量流程。此版本以复用最新 main 中 PA-04 修改的无冲突树为基础，不覆盖 PA-04 工作文件。
+- **发布：** 仅前移 `release/bex01-dev-20261014` 至固定提交 `7620f15f`；原 Railway 开发服务 Ledger Configurator 部署 **`30ae1850-9279-40ca-a0b4-fd7ca5e09f78`**，状态 SUCCESS，运行 1/1、0 crashed，启动日志 `EVO App Manager listening on http://localhost:8080`。没有新建环境/服务/数据卷。此前固定版本 `ceec8b65` 的成功部署 `0bc02a13-853f-4cc8-9981-7118291ed464` 是回退核查入口，不能把其历史成功等同于新版本。
+- **确切变更：** 新作业初始映射先尝试既有 Recipe；整份 Schema 改变时，在相同企业/对象/来源结构下只恢复现仍可导入的历史人工映射作待复核建议。映射页对无目标列建议 `__CREATE__` 而非默认忽略，原有 AI 按钮保留，B 方案批量入口变为表单内显眼链接。明确忽略 `__IGNORE__` 与暂不处理 `__PENDING__` 分离，已忽略列以可撤销状态写入 Import Job、已确认规则可随 Recipe 再次复用；原 Excel 来源值不因忽略而被删。批量全部明确忽略也允许保存，不强迫建字段；企业字段创建和数据提交仍受 Owner、dry-run、人类明确提交约束。
+- **尚未证实的根因及用户验收：** 原截图没有 Import Job ID 或历史 Job JSON，不能断言这次“编码/名称/往来类型”确切是 Recipe Schema 摘要变化、既有作业预检查失败（原三行 subjectType 缺失）还是来源文件结构变化中的哪一种。当前无权读取用户登录企业的历史 Import Job；原 Excel 文件本体也未收到。**新代码不会擅自修改已存在的旧作业**；源文件重新导入后的恢复路径已经有自动化证据，但用户原作业的实际映射恢复、B 入口和供应商详情仍须 Human 验收。
+- **可修复范围：** 用户可以在未提交作业里修改映射、选择/取消忽略、重新审核扩展字段；已提交业务数据的更正仍须走合法更正/重导入路径，不宣称已提供导后直接重写正式供应商数据功能。禁止从“往来类型”臆造 `subjectType`，不删除历史两个同名“开户银行”。
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| 旧映射恢复（含 Schema 漂移、未通过 precheck 的旧人工映射） | #894 已合并，协议 CI PASS | 用原 Import Job 核对真实历史候选与字段授权 |
+| AI 自动匹配原入口 | 保留；真实 Host Chromium 回归通过 | 真实用户触发后复核已匹配字段 |
+| B 方案集中审核入口与默认创建建议 | 已合并、真实 Host Chromium PASS | 用户页面核对首屏链接与批量动作 |
+| Excel 原始行保留、忽略可撤销 | 协议和 Chromium PASS；不自动写新 Schema | 用户原 Excel 执行一轮保留/忽略/恢复 |
+| 原批量创建、权限、主体类型、显式提交 | 回归通过；无正式业务数据提交 | 核对三行缺失并确认供应商详情值 |
+| Railway 现有开发环境 | `7620f15f` SUCCESS/Online 1/1 | 固定此版本，不部署移动 main |
+| 历史两个“开户银行” | 未核实引用/值 | 只在业务确认后处理，不自动归并 |
+| 原 Excel 与旧 Import Job 实际验收 | 未完成，缺具体 Import Job 链接及原文件 | 真实浏览器和原作业核对 |
+| **BEX-01/CP-03 整体** | **工程与开发环境已完成，Human Accepted 尚未关闭** | **历史作业与用户原 Excel 签收** |

@@ -3,6 +3,7 @@ import postgres from "postgres";
 import type {
   ConversationCheckpointV010,
   ConversationContextArtifactStoreV010,
+  ConversationSourceRevocationPortV010,
   ConversationSummaryArtifactV010
 } from "../contracts/conversation-context.js";
 
@@ -56,7 +57,7 @@ function parseSummary(row: Record<string, unknown>): ConversationSummaryArtifact
 export async function createPostgresConversationContextArtifactStoreV010(input: {
   connectionString: string;
   schema?: string;
-}): Promise<ConversationContextArtifactStoreV010 & { close(): Promise<void> }> {
+}): Promise<ConversationContextArtifactStoreV010 & ConversationSourceRevocationPortV010 & { close(): Promise<void> }> {
   const connectionString = required(
     input.connectionString,
     "CONVERSATION_POSTGRES_DATABASE_URL_REQUIRED"
@@ -116,6 +117,18 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
         created_at timestamptz NOT NULL
       )
     `);
+    await tx.unsafe(`
+      CREATE TABLE IF NOT EXISTS "${schema}".context_source_revocations (
+        thread_id text NOT NULL REFERENCES "${schema}".threads(thread_id) ON DELETE RESTRICT,
+        source_message_id text NOT NULL,
+        PRIMARY KEY(thread_id, source_message_id)
+      )
+    `);
+    await tx`
+      INSERT INTO ${tx(schema)}.schema_migrations(version)
+      VALUES ('0004_pa04_context_source_revocations')
+      ON CONFLICT (version) DO NOTHING
+    `;
     await tx`
       INSERT INTO ${tx(schema)}.schema_migrations(version)
       VALUES ('0002_long_context_v01')
@@ -131,69 +144,181 @@ export async function createPostgresConversationContextArtifactStoreV010(input: 
   return {
     async latestSummary(request) {
       const rows = await sql<Record<string, unknown>[]> `
-        SELECT *
-        FROM ${sql(schema)}.context_summaries
-        WHERE thread_id = ${request.threadId}
-          AND policy_id = ${request.policyId}
-          AND policy_version = ${request.policyVersion}
-        ORDER BY artifact_version DESC
+        SELECT s.*
+        FROM ${sql(schema)}.context_summaries AS s
+        WHERE s.thread_id = ${request.threadId}
+          AND s.policy_id = ${request.policyId}
+          AND s.policy_version = ${request.policyVersion}
+          AND NOT EXISTS (
+            SELECT 1 FROM ${sql(schema)}.context_source_revocations AS revoked
+            WHERE revoked.thread_id = s.thread_id
+              AND EXISTS (
+                SELECT 1 FROM jsonb_array_elements_text(
+                  CASE
+                    WHEN jsonb_typeof(s.source_message_ids) = 'array'
+                      THEN s.source_message_ids
+                    WHEN jsonb_typeof(s.source_message_ids) = 'string'
+                      THEN (s.source_message_ids #>> '{}')::jsonb
+                    ELSE '[]'::jsonb
+                  END
+                ) AS source(source_id)
+                WHERE source.source_id = revoked.source_message_id
+              )
+          )
+        ORDER BY s.artifact_version DESC
         LIMIT 1
       `;
       return rows.length > 0 ? parseSummary(rows[0]) : undefined;
     },
 
     async saveSummary(summary) {
-      await sql`
-        INSERT INTO ${sql(schema)}.context_summaries(
-          summary_id, thread_id, artifact_version,
-          policy_id, policy_version,
-          source_message_ids, source_first_message_id, source_last_message_id,
-          source_message_count, source_character_count,
-          content, active_goals, decisions, unresolved_questions,
-          relevant_tool_outcomes, provenance, generated_at
-        ) VALUES (
-          ${summary.summaryId},
-          ${summary.threadId},
-          ${summary.artifactVersion},
-          ${summary.provenance.policyId},
-          ${summary.provenance.policyVersion},
-          ${JSON.stringify(summary.sourceMessageIds)}::jsonb,
-          ${summary.sourceFirstMessageId},
-          ${summary.sourceLastMessageId},
-          ${summary.sourceMessageCount},
-          ${summary.sourceCharacterCount},
-          ${summary.content},
-          ${JSON.stringify(summary.activeGoals)}::jsonb,
-          ${JSON.stringify(summary.decisions)}::jsonb,
-          ${JSON.stringify(summary.unresolvedQuestions)}::jsonb,
-          ${JSON.stringify(summary.relevantToolOutcomes)}::jsonb,
-          ${JSON.stringify(summary.provenance)}::jsonb,
-          ${summary.provenance.generatedAt}
-        )
-        ON CONFLICT (summary_id) DO NOTHING
-      `;
-      const rows = await sql<Record<string, unknown>[]> `
-        SELECT *
-        FROM ${sql(schema)}.context_summaries
-        WHERE summary_id = ${summary.summaryId}
-      `;
-      return parseSummary(rows[0]);
+      // The lock serializes all writes/revocations for this exact thread.
+      // A compressor that started before a source was revoked cannot
+      // resurrect that source in durable derived content after deletion.
+      return await sql.begin(async tx => {
+        await tx`SELECT pg_advisory_xact_lock(hashtext(${schema}), hashtext(${summary.threadId}))`;
+        const revoked = await tx`
+          SELECT 1
+          FROM ${tx(schema)}.context_source_revocations
+          WHERE thread_id = ${summary.threadId}
+            AND source_message_id = ANY(${summary.sourceMessageIds}::text[])
+          LIMIT 1
+        `;
+        if (revoked.length > 0) throw Error("CONVERSATION_DERIVED_SOURCE_REVOKED");
+        await tx`
+          INSERT INTO ${tx(schema)}.context_summaries(
+            summary_id, thread_id, artifact_version,
+            policy_id, policy_version,
+            source_message_ids, source_first_message_id, source_last_message_id,
+            source_message_count, source_character_count,
+            content, active_goals, decisions, unresolved_questions,
+            relevant_tool_outcomes, provenance, generated_at
+          ) VALUES (
+            ${summary.summaryId},
+            ${summary.threadId},
+            ${summary.artifactVersion},
+            ${summary.provenance.policyId},
+            ${summary.provenance.policyVersion},
+            ${JSON.stringify(summary.sourceMessageIds)}::jsonb,
+            ${summary.sourceFirstMessageId},
+            ${summary.sourceLastMessageId},
+            ${summary.sourceMessageCount},
+            ${summary.sourceCharacterCount},
+            ${summary.content},
+            ${JSON.stringify(summary.activeGoals)}::jsonb,
+            ${JSON.stringify(summary.decisions)}::jsonb,
+            ${JSON.stringify(summary.unresolvedQuestions)}::jsonb,
+            ${JSON.stringify(summary.relevantToolOutcomes)}::jsonb,
+            ${JSON.stringify(summary.provenance)}::jsonb,
+            ${summary.provenance.generatedAt}
+          )
+          ON CONFLICT (summary_id) DO NOTHING
+        `;
+        const rows = await tx<Record<string, unknown>[]>`
+          SELECT *
+          FROM ${tx(schema)}.context_summaries
+          WHERE summary_id = ${summary.summaryId} AND thread_id = ${summary.threadId}
+        `;
+        if (rows.length !== 1) throw Error("CONVERSATION_DERIVED_SUMMARY_SAVE_FAILED");
+        return parseSummary(rows[0]);
+      });
     },
 
     async saveCheckpoint(checkpoint: ConversationCheckpointV010) {
-      await sql`
-        INSERT INTO ${sql(schema)}.context_checkpoints(
-          checkpoint_id, thread_id, summary_id, through_message_id, created_at
-        ) VALUES (
-          ${checkpoint.checkpointId},
-          ${checkpoint.threadId},
-          ${checkpoint.summaryId},
-          ${checkpoint.throughMessageId},
-          ${checkpoint.createdAt}
-        )
-        ON CONFLICT (checkpoint_id) DO NOTHING
-      `;
-      return structuredClone(checkpoint);
+      return await sql.begin(async tx => {
+        await tx`SELECT pg_advisory_xact_lock(hashtext(${schema}), hashtext(${checkpoint.threadId}))`;
+        const usable = await tx`
+          SELECT 1 FROM ${tx(schema)}.context_summaries s
+          WHERE s.thread_id = ${checkpoint.threadId}
+            AND s.summary_id = ${checkpoint.summaryId}
+            AND NOT EXISTS (
+              SELECT 1 FROM ${tx(schema)}.context_source_revocations revoked
+              WHERE revoked.thread_id = s.thread_id
+                AND EXISTS (
+                  SELECT 1 FROM jsonb_array_elements_text(
+                  CASE
+                    WHEN jsonb_typeof(s.source_message_ids) = 'array'
+                      THEN s.source_message_ids
+                    WHEN jsonb_typeof(s.source_message_ids) = 'string'
+                      THEN (s.source_message_ids #>> '{}')::jsonb
+                    ELSE '[]'::jsonb
+                  END
+                ) AS source(source_id)
+                  WHERE source.source_id = revoked.source_message_id
+                )
+            )
+        `;
+        if (usable.length === 0) throw Error("CONVERSATION_DERIVED_SOURCE_REVOKED");
+        await tx`
+          INSERT INTO ${tx(schema)}.context_checkpoints(
+            checkpoint_id, thread_id, summary_id, through_message_id, created_at
+          ) VALUES (
+            ${checkpoint.checkpointId},
+            ${checkpoint.threadId},
+            ${checkpoint.summaryId},
+            ${checkpoint.throughMessageId},
+            ${checkpoint.createdAt}
+          )
+          ON CONFLICT (checkpoint_id) DO NOTHING
+        `;
+        return structuredClone(checkpoint);
+      });
+    },
+
+    async revokeSourceMessages(input) {
+      const threadId = required(input.threadId, "CONVERSATION_THREAD_ID_REQUIRED");
+      if (!Array.isArray(input.sourceMessageIds)
+        || input.sourceMessageIds.length === 0
+        || input.sourceMessageIds.length > 1000
+        || input.sourceMessageIds.some(id => typeof id !== "string" || !id.trim())) {
+        throw Error("CONVERSATION_REVOKED_SOURCE_IDS_INVALID");
+      }
+      const ids = [...new Set(input.sourceMessageIds.map(id => id.trim()))];
+      return await sql.begin(async tx => {
+        await tx`SELECT pg_advisory_xact_lock(hashtext(${schema}), hashtext(${threadId}))`;
+        const newIds = await tx`
+          INSERT INTO ${tx(schema)}.context_source_revocations(thread_id, source_message_id)
+          SELECT ${threadId}, source_id FROM unnest(${ids}::text[]) AS source(source_id)
+          ON CONFLICT (thread_id, source_message_id) DO NOTHING
+          RETURNING source_message_id
+        `;
+        const affected = await tx`
+          SELECT summary_id FROM ${tx(schema)}.context_summaries s
+          WHERE thread_id = ${threadId}
+            AND EXISTS (
+              SELECT 1 FROM jsonb_array_elements_text(
+                  CASE
+                    WHEN jsonb_typeof(s.source_message_ids) = 'array'
+                      THEN s.source_message_ids
+                    WHEN jsonb_typeof(s.source_message_ids) = 'string'
+                      THEN (s.source_message_ids #>> '{}')::jsonb
+                    ELSE '[]'::jsonb
+                  END
+                ) AS source(source_id)
+              WHERE source.source_id = ANY(${ids}::text[])
+            )
+        `;
+        const affectedIds = affected.map(x => String(x.summary_id));
+        if (affectedIds.length === 0) {
+          return { removedSummaries: 0, removedCheckpoints: 0,
+            newlyRevokedSources: newIds.length };
+        }
+        const removedCheckpoints = await tx`
+          DELETE FROM ${tx(schema)}.context_checkpoints
+          WHERE thread_id = ${threadId} AND summary_id = ANY(${affectedIds}::text[])
+          RETURNING checkpoint_id
+        `;
+        const removedSummaries = await tx`
+          DELETE FROM ${tx(schema)}.context_summaries
+          WHERE thread_id = ${threadId} AND summary_id = ANY(${affectedIds}::text[])
+          RETURNING summary_id
+        `;
+        return {
+          removedSummaries: removedSummaries.length,
+          removedCheckpoints: removedCheckpoints.length,
+          newlyRevokedSources: newIds.length
+        };
+      });
     },
 
     async close() {

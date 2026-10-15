@@ -1,0 +1,87 @@
+name: PA05 - Governed WRITE Plugin Certification
+on:
+  pull_request:
+    paths:
+      - "tests/agent-line/pa05-governed-write-owner-pg.test.mjs"
+      - "tests/agent-line/pa05-plugin-write-lifecycle-fence-pg.test.mjs"
+      - "tests/agent-line/pa05-host-write-lifecycle.test.mjs"
+      - "manager/agent-plugin-write-host-lifecycle.ts"
+      - "manager/server.ts"
+      - "manager/agent-plugin-write-lifecycle-gate.ts"
+      - "agents/enterprise-agent/pa02b-postgres-coordination.ts"
+      - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
+      - ".github/workflows/agent-pa05-governed-write.yml"
+      - "manager/agent-trusted-owner-registration.ts"
+      - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
+      - "agents/enterprise-agent/pa02b-owner-reconciliation.ts"
+      - "agents/enterprise-agent/pa02-governed-worker-write-port.ts"
+  push:
+    branches: [main]
+    paths:
+      - "tests/agent-line/pa05-governed-write-owner-pg.test.mjs"
+      - "tests/agent-line/pa05-plugin-write-lifecycle-fence-pg.test.mjs"
+      - "tests/agent-line/pa05-host-write-lifecycle.test.mjs"
+      - "manager/agent-plugin-write-host-lifecycle.ts"
+      - "manager/server.ts"
+      - "manager/agent-plugin-write-lifecycle-gate.ts"
+      - "agents/enterprise-agent/pa02b-postgres-coordination.ts"
+      - ".github/workflows/agent-pa05-governed-write.yml"
+      - "manager/agent-trusted-owner-registration.ts"
+      - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
+      - "agents/enterprise-agent/pa02b-owner-reconciliation.ts"
+      - "agents/enterprise-agent/pa02-governed-worker-write-port.ts"
+permissions:
+  contents: read
+jobs:
+  write-owner-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: agentproof
+          POSTGRES_PASSWORD: agentproof
+          POSTGRES_DB: agentproof
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agentproof -d agentproof"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA02A_PROOF_DATABASE_URL: postgres://agentproof:agentproof@127.0.0.1:5432/agentproof
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: PA05 new owner registration and existing durable WRITE proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test             tests/agent-line/pa05-governed-write-owner-pg.test.mjs             tests/agent-line/pa05-plugin-write-lifecycle-fence-pg.test.mjs             tests/agent-line/pa05-host-write-lifecycle.test.mjs             tests/agent-line/pa02-host-trusted-owner-registration.test.mjs             tests/agent-line/pa02b-governed-owner-write-handoff.test.mjs             tests/agent-line/pa02b-owner-reconciliation.test.mjs             tests/agent-line/pa02-governed-worker-write.test.mjs             | tee pa05-governed-write.log
+          # PG fixtures must really run; skipped database tests are not proofs.
+          grep -Fq 'PA05_WRITE_PLUGIN_OWNER_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_PLUGIN_WRITE_LIFECYCLE_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_HOST_WRITE_LIFECYCLE_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_WRITE_UPGRADE_ROLLBACK_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_HOST_OWNER_ADMISSION_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_STARTUP_WORKER_SCHEMA_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_SHARED_SCHEMA_OWNER_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_SQL_LEGACY_WORKER_PG=' pa05-governed-write.log
+          grep -Fq 'PA05_PG_WORKER_ROLE_ACL=' pa05-governed-write.log
+          grep -Fq 'PA05_PG_WORKER_LOGIN=' pa05-governed-write.log
+          grep -Fq 'PA05_PG_WRITE_STATE_INTEGRITY=' pa05-governed-write.log
+          grep -Fq 'PA02B_REAL_SANDBOX_OWNER_WRITE=' pa05-governed-write.log
+          grep -Fq 'PA02_GOVERNED_WORKER_WRITE=' pa05-governed-write.log
+      - name: Preserve isolated PostgreSQL18 audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa05-governed-write-pg-evidence
+          path: pa05-governed-write.log
+          retention-days: 14
+          if-no-files-found: warn

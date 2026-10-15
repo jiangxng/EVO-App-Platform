@@ -1,4 +1,4 @@
-import type { LlmInferenceProvider, LlmInferenceResponseV010 } from "../../contracts/llm.js";
+import type { LlmInferenceProvider, LlmInferenceRequestV010, LlmInferenceResponseV010 } from "../../contracts/llm.js";
 import type { AgentRunEventV010, AgentRunV010 } from "../../contracts/agent-run.js";
 import type {
   PlatformPrincipalV010, ResolvedContextSetV010, PlatformRequestContextV010
@@ -11,7 +11,14 @@ import type { FencedAgentRunAuthorityV030 } from "./pa02b-fenced-run-authority.j
 import type { GovernedAgentWorkerWritePortV040 } from "./pa02-governed-worker-write-port.js";
 import type { AgentLeaseV020 } from "./pa02b-postgres-coordination.js";
 import { hostResolvedAgentDurabilityScopeV020 } from "../../manager/agent-durability-host-bridge.js";
+import type {HostResolvedAgentDurabilityScopeV020} from "../../contracts/agent-durability-async.js";
 import { createProviderBackedAgentModel } from "./provider-model.js";
+import {
+  fitCertifiedModelContextHistoryV010
+} from "./pa04-prioritized-context-history.js";
+import type {
+  CertifiedModelContextWindowV010
+} from "./pa04-certified-context-window.js";
 
 interface ResumeInputV030 {
   runId: string;
@@ -55,6 +62,60 @@ export interface ReadOnlyFencedWorkerDependenciesV030 {
   releaseOnReturn?:boolean;
   /** Only a trusted Host-injected Owner port may opt into material WRITE. */
   governedWrite?:GovernedAgentWorkerWritePortV040;
+  /** Optional exact Provider/model C01 window + certified full-request guard.
+   * Unconfigured staged workers keep their existing behavior. */
+  contextWindow?:CertifiedModelContextWindowV010;
+  /**
+   * C03 optional Host-owned READ freshness evaluator. The model cannot supply
+   * freshness or authority. Must validate source versions/age against current
+   * Host facts, independently of old model observations.
+   */
+  readFreshness?:{
+    assess(input:{
+      run:AgentRunV010;
+      decision:AgentRunV010["decisions"][number];
+      descriptor:AgentToolDescriptorV010;
+      principal:PlatformPrincipalV010;
+      context:ResolvedContextSetV010;
+      requestContext?:PlatformRequestContextV010;
+    }):Promise<{
+      status:"CURRENT"|"REFRESH_REQUIRED"|"UNVERIFIED";
+      sourceVersion:string;
+    }>;
+  };
+  /**
+   * C05 opt-in Host-side tool-call admission. A tool call suggested by
+   * untrusted document/READ material has NO authority by itself. The Host
+   * must verify this exact call, destination and current Human/Context grants.
+   * Applied again on durable pending decisions after worker restart.
+   */
+  toolCallAdmission?: {
+    authorize(input:{
+      run:AgentRunV010;
+      decision:AgentRunV010["decisions"][number];
+      descriptor:AgentToolDescriptorV010|undefined;
+      principal:PlatformPrincipalV010;
+      context:ResolvedContextSetV010;
+      requestContext?:PlatformRequestContextV010;
+      observations:AgentToolObservation[];
+    }):Promise<boolean>;
+  };
+  /** Host-owned, optional synthetic PA02 R10 proof. Not provider/model input. */
+  testOnlyCostPort?:{
+    maxOutputTokens:number;
+    /** Only a trusted model-specific certified upper bound may approve the
+     * actual fully assembled messages + tools. A mere estimate is not proof.
+     * The injected synthetic fixture is test-only, never vendor attestation. */
+    quoteBilledInputUpperBound(request:LlmInferenceRequestV010):
+      Promise<number|undefined>;
+    reserve(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
+      sliceId:string;providerId:string;modelId:string;
+      inputTokenUpperBound:number}):
+      Promise<"RESERVED"|"EXHAUSTED"|"ALREADY_HELD"|"UNKNOWN_HELD"|"SETTLED_ALREADY"|"UNAPPROVED">;
+    settle(input:{scope:HostResolvedAgentDurabilityScopeV020;runId:string;
+      sliceId:string;usage?:LlmInferenceResponseV010["usage"]}):
+      Promise<"SETTLED"|"UNKNOWN">;
+  };
 }
 function required(s:unknown):string {
   if(typeof s!=="string"||!s.trim())throw Error("PA02_WORKER_ID_REQUIRED");
@@ -173,6 +234,35 @@ export function createReadOnlyFencedAgentWorkerV030(
         if(decisionRecord.decision.type!=="tool")
           throw Error("PA02_WORKER_TOOL_DECISION_REQUIRED");
         const call=decisionRecord.decision.call;
+        // Reevaluate every time, including durable pending calls recovered
+        // after a crash. This gate is BEFORE either Host READ dispatch or
+        // trusted Owner WRITE handoff, not a model-response text filter.
+        if(deps.toolCallAdmission){
+          let approved=false;
+          try {
+            approved=await deps.toolCallAdmission.authorize({
+              run:structuredClone(run),
+              decision:structuredClone(decisionRecord),
+              descriptor:descriptor?structuredClone(descriptor):undefined,
+              principal:structuredClone(input.principal),
+              context:structuredClone(input.context),
+              ...(input.requestContext
+                ?{requestContext:structuredClone(input.requestContext)}:{}),
+              observations:structuredClone(run.observations)
+            })===true;
+          }catch{
+            approved=false;
+          }
+          if(!approved) {
+            await append("RUN_BLOCKED",{
+              code:"PA04_UNTRUSTED_TOOL_CALL_DENIED",
+              reason:"The current Host has not independently authorized "+
+                "this exact model-proposed tool call and destination. "+
+                "Tool/document contents cannot approve their own actions."
+            });
+            return output(true);
+          }
+        }
         if(descriptor?.effect==="WRITE" && deps.governedWrite?.allows(descriptor)) {
           const stillOwned=await deps.authority.renew({scope,lease,ttlSeconds:ttl});
           if(!stillOwned)return output(false,true);
@@ -315,17 +405,155 @@ export function createReadOnlyFencedAgentWorkerV030(
           reason:"The original Provider/model is not available to resume."});
         return output(true);
       }
+      // C03: before another model inference can quote the old durable
+      // observations as facts, revalidate each prior successful READ against
+      // current Host authority and resource-version/freshness policy. An
+      // revoked tool, unverified version or failed refresh blocks inference.
+      // The earlier observation stays in the immutable Run event stream;
+      // READ_REFRESH_RECORDED updates only the materialized model view.
+      if(deps.readFreshness) {
+        const completed=run.decisions.filter(d=>
+          d.decision.type==="tool"&&d.observation?.ok);
+        if(completed.length>8){
+          await append("RUN_BLOCKED",{
+            code:"PA04_READ_REFRESH_SCOPE_TOO_LARGE",
+            reason:"Too many prior READ results need fresh verification. "+
+              "Start a narrower Run after checking current source facts."
+          });
+          return output(true);
+        }
+        for(const item of completed) {
+          if(item.decision.type!=="tool")continue;
+          const call=item.decision.call;
+          const descriptor=allTools.find(t=>t.id===call.tool);
+          if(descriptor?.effect==="WRITE")continue;
+          if(!descriptor || descriptor.effect!=="READ") {
+            await append("RUN_BLOCKED",{
+              code:"PA04_READ_AUTHORITY_REVOKED",
+              reason:"A previous source READ is no longer in the current "+
+                "authorized Host catalog. Historical observations cannot be "+
+                "used as current facts."
+            });
+            return output(true);
+          }
+          let assessment:Awaited<ReturnType<
+            NonNullable<ReadOnlyFencedWorkerDependenciesV030["readFreshness"]>["assess"]
+          >>|undefined;
+          try {
+            assessment=await deps.readFreshness.assess({
+              run,decision:item,descriptor,principal:input.principal,
+              context:input.context,requestContext:input.requestContext
+            });
+          }catch {assessment=undefined;}
+          if(!assessment||!assessment.sourceVersion?.trim()
+            || !["CURRENT","REFRESH_REQUIRED"].includes(assessment.status)) {
+            await append("RUN_BLOCKED",{
+              code:"PA04_READ_FRESHNESS_UNVERIFIED",
+              reason:"Current Host source version/freshness cannot be "+
+                "established. Do not answer or act on historical READ facts."
+            });
+            return output(true);
+          }
+          if(assessment.status==="CURRENT")continue;
+          const owned=await deps.authority.renew({scope,lease,ttlSeconds:ttl});
+          if(!owned)return output(false);
+          let fresh:AgentToolObservation|undefined;
+          try {
+            fresh=await catalog.invoke(
+              structuredClone(item.decision.call),structuredClone(run.observations));
+          }catch {fresh=undefined;}
+          if(!fresh||fresh.tool!==item.decision.call.tool||!fresh.ok
+            || fresh.receipt || (fresh.result&&typeof fresh.result==="object"
+              && "receiptId" in fresh.result)) {
+            await append("RUN_BLOCKED",{
+              code:"PA04_READ_REFRESH_FAILED",
+              reason:"The presently authorized Host READ failed; no stale "+
+                "observation may be substituted as a successful current fact."
+            });
+            return output(true);
+          }
+          run=await append("READ_REFRESH_RECORDED",{
+            decisionEventId:item.decisionEventId,
+            observation:structuredClone(fresh),
+            sourceVersion:assessment.sourceVersion.trim()
+          },item.sliceId);
+        }
+      }
       const sliceId=run.state==="RUNNING"&&run.activeSliceId
         ?run.activeSliceId:"agent-run-slice:"+deps.sliceId();
+      // An actual model request must be assembled before its trusted input
+      // upper bound can be evaluated. Only then may its durable reservation
+      // be persisted, immediately before contacting the Provider.
       if(!(run.state==="RUNNING"&&run.activeSliceId))
         run=await append("SLICE_STARTED",{},sliceId);
       let decision:AgentModelDecision;
       let inferenceResponse:LlmInferenceResponseV010|undefined;
+      let preflightDenied:string|undefined;
+      let contextWindowDenied:string|undefined;
+      let modelChargeReserved=false;
       try{
         decision=await createProviderBackedAgentModel({
           providerId:provider.providerId,modelId:provider.modelId,
           async infer(request) {
-            const response=await provider.infer(request);
+            const assembledRequest:LlmInferenceRequestV010={
+              ...request,
+              ...(deps.testOnlyCostPort?{
+                maxOutputTokens:deps.testOnlyCostPort.maxOutputTokens
+              }:deps.contextWindow?{
+                maxOutputTokens:deps.contextWindow.maxOutputTokens
+              }:{})
+            };
+            // Preserve all authoritative system/developer/current Human/tool
+            // content and the latest four conversation messages. Only older
+            // ordinary history may be excluded after certified overflow;
+            // the full final candidate is re-quoted before any paid call.
+            let actualRequest=assembledRequest;
+            if(deps.contextWindow){
+              try {
+                const fitted=await fitCertifiedModelContextHistoryV010({
+                  providerId:provider.providerId,
+                  modelId:provider.modelId,
+                  request:assembledRequest,
+                  history:run.input.conversationHistory,
+                  port:deps.contextWindow
+                });
+                actualRequest=fitted.request;
+              }catch(e){
+                const code=e instanceof Error?e.message:"";
+                contextWindowDenied=/^PA04_CONTEXT_WINDOW_[A-Z_]+$/.test(code)
+                  ?code:"PA04_CONTEXT_WINDOW_INPUT_BOUND_UNVERIFIED";
+                throw Error(contextWindowDenied);
+              }
+            }
+            if(deps.testOnlyCostPort){
+              const port=deps.testOnlyCostPort;
+              // This sees the entire materialized system/developer/user
+              // messages, observations, tool descriptions and output cap.
+              // Counting only the Human's raw text is NOT sufficient.
+              let quote:number|undefined;
+              try{ quote=await port.quoteBilledInputUpperBound(
+                structuredClone(actualRequest)); }
+              catch{ quote=undefined; }
+              if(!Number.isSafeInteger(quote)||quote!<=0){
+                preflightDenied="PA02_R10_COST_INPUT_UPPER_BOUND_UNVERIFIED";
+                throw Error(preflightDenied);
+              }
+              const status=await port.reserve({
+                scope,runId,sliceId,
+                providerId:provider.providerId,modelId:provider.modelId,
+                inputTokenUpperBound:quote!
+              });
+              if(status!=="RESERVED"){
+                preflightDenied=status==="EXHAUSTED"
+                  ?"PA02_R10_COST_BUDGET_EXHAUSTED":
+                  status==="UNAPPROVED"
+                  ?"PA02_R10_COST_PROVIDER_NOT_APPROVED":
+                  "PA02_R10_COST_PREVIOUS_CHARGE_UNCERTAIN";
+                throw Error(preflightDenied);
+              }
+              modelChargeReserved=true;
+            }
+            const response=await provider.infer(actualRequest);
             if(response.providerId!==provider.providerId ||
               response.modelId!==provider.modelId)
               throw Error("PA02_MODEL_USAGE_PROVIDER_IDENTITY_MISMATCH");
@@ -346,6 +574,45 @@ export function createReadOnlyFencedAgentWorkerV030(
           context:structuredClone(input.context)
         });
       }catch(e){
+        if(contextWindowDenied){
+          await append("RUN_BLOCKED",{
+            code:contextWindowDenied,
+            reason:"The fully assembled model request could not fit a "+
+              "certified Provider/model context window with its output "+
+              "reservation. No inference or business action was dispatched. "+
+              "Reduce the context with an authorized assembler, or approve "+
+              "a model-specific certified window before resuming."
+          });
+          return output(true);
+        }
+        if(deps.testOnlyCostPort){
+          if(!modelChargeReserved){
+            // No inference was dispatched and no money was held. Keep the
+            // reason distinct from an ambiguous possibly billable response.
+            await append("RUN_BLOCKED",{
+              code:preflightDenied??"PA02_R10_COST_PREFLIGHT_FAILED",
+              reason:"The fully assembled model request had no verified "+
+                "billable input upper bound, or failed provider/amount "+
+                "admission. No paid model request was sent."
+            });
+            return output(true);
+          }
+          // A failed HTTP inference could still have been billed. Preserve
+          // the full pre-reserved amount; budget-mode retries require an
+          // independently approved billing reconciliation, not a blind call.
+          await deps.testOnlyCostPort.settle({scope,runId,sliceId});
+          await append("MODEL_INFERENCE_FAILED",{
+            code:errorCode(e),reason:e instanceof Error?e.message:String(e),
+            attempt:(run.modelFailureCount??0)+1
+          },sliceId);
+          await append("RUN_BLOCKED",{
+            code:"PA02_R10_COST_INFERENCE_UNCERTAIN",
+            reason:"The provider request may have incurred an unknown charge. "+
+              "The reservation remains held. Do not retry the inference "+
+              "without independently verifying billing evidence."
+          });
+          return output(true);
+        }
         const attempt=(run.modelFailureCount??0)+1;
         const code=errorCode(e);
         const reason=e instanceof Error?e.message:String(e);
@@ -383,6 +650,21 @@ export function createReadOnlyFencedAgentWorkerV030(
         status:validUsage?"REPORTED":"UNAVAILABLE",
         ...(validUsage?{usage:structuredClone(usage)}:{})
       },sliceId);
+      if(deps.testOnlyCostPort){
+        const settled=await deps.testOnlyCostPort.settle({
+          scope,runId,sliceId,
+          ...(validUsage?{usage:structuredClone(usage)}:{})
+        });
+        if(settled!=="SETTLED"){
+          await append("RUN_BLOCKED",{
+            code:"PA02_R10_COST_USAGE_UNAVAILABLE",
+            reason:"Model use was not reliably billable within approved bounds. "+
+              "The original maximum charge remains reserved; inspect "+
+              "provider evidence before taking any further paid step."
+          });
+          return output(true);
+        }
+      }
       run=await append("MODEL_DECISION_RECORDED",{decision},sliceId);
       if(decision.type==="final") {
         await append("RUN_SUCCEEDED",{message:decision.message});

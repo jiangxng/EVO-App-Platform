@@ -15,19 +15,17 @@ export function createObjectExtensionImportPageV010(input: {
   const zh=input.locale?.startsWith("zh")??false;
   const used=new Set(job.mapping.filter(x=>x.sourceColumn).map(x=>x.sourceColumn));
   const remaining=job.source.headers.filter(x=>!used.has(x));
-  const selected = input.sourceColumn && remaining.includes(input.sourceColumn)
-    ? input.sourceColumn : undefined;
-  // A column-specific action never silently falls back to a different Excel column.
-  if (input.sourceColumn && !selected) throw new Error("OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED");
   const returnRoute=dataImportMappingRouteV010(job.importJobId);
+  const selected = input.sourceColumn && remaining.includes(input.sourceColumn)
+    ? input.sourceColumn : remaining[0] ?? "";
   return {
     contractVersion:"0.1.1" as const,
     kind:"form" as const,
     id:"evo-object-extension.import",
     title:zh?"创建企业扩展字段":"Create enterprise extension field",
     description:zh
-      ? "已从当前来源列填写字段名称。确认业务含义和类型后保存，系统将自动映射回原列；不自动导入数据。系统日志、历史状态等保持不映射。"
-      : "The source column and suggested name are prefilled. Confirm its meaning and type; saving maps this column without importing records.",
+      ? "未匹配列和行数据已保留在当前导入作业中。请只将真实业务属性定义为字段；系统日志、历史状态等保持不映射。创建后自动带回刚创建的映射建议，请确认并重新预检查。"
+      : "Unmapped columns remain preserved in this job. Create a field for real business data, not source system metadata. Then map and validate it.",
     contextNavigation:{items:[
       {id:"data-import",label:zh?"数据导入":"Data Import",route:DATA_IMPORT_DIRECTORY_ROUTE},
       {id:"mapping",label:zh?"字段映射":"Field mapping",route:returnRoute},
@@ -41,11 +39,11 @@ export function createObjectExtensionImportPageV010(input: {
         options:[{value:job.importJobId,label:job.importJobId}]},
       {key:"sourceColumn",label:zh?"未匹配来源列":"Unmapped source column",
         semanticType:"object-extension-source",control:"select" as const,
-        required:true,initialValue:selected??remaining[0]??"",
-        options:(selected?[selected]:remaining).map(x=>({value:x,label:x}))},
+        required:true,initialValue:selected,
+        options:remaining.map(x=>({value:x,label:x}))},
       {key:"label",label:zh?"字段业务名称":"Field label",
         semanticType:"object-extension-label",control:"text" as const,required:true,
-        ...(selected?{initialValue:selected}:{})},
+        initialValue:selected},
       {key:"valueType",label:zh?"数据类型":"Value type",
         semanticType:"object-extension-value-type",control:"select" as const,required:true,
         initialValue:"STRING",options:[

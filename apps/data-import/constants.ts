@@ -43,12 +43,24 @@ export const DATA_IMPORT_AUTH_RESOURCE_V010 =
   "enterprise.data-import.job" as const;
 
 
+export const DATA_IMPORT_ROW_CORRECT_OPERATION_V010 =
+  "enterprise.data-import.row-correct" as const;
+export const DATA_IMPORT_ROW_CORRECT_COMMAND_V010 =
+  "data-import.row-correct" as const;
+
 export const DATA_IMPORT_STAGE_FILE_OPERATION_V010 =
   "enterprise.data-import.stage-file" as const;
 export const DATA_IMPORT_STAGE_FILE_COMMAND_V010 =
   "data-import.stage-file" as const;
 export const DATA_IMPORT_REVIEW_COMMAND_V010 =
   "data-import.review" as const;
+
+export const DATA_IMPORT_ROW_CORRECT_PAGE_ID =
+  "evo-data-import.row-correct" as const;
+export const DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE =
+  "app://evo-data-import/page/row-correct" as const;
+export const DATA_IMPORT_ROW_CORRECT_ROUTE =
+  "/data-import/jobs/:importJobId/fix/:rowNumber/:columnIndex" as const;
 
 export const DATA_IMPORT_DIRECTORY_PAGE_ID =
   "evo-data-import.directory" as const;
@@ -100,6 +112,28 @@ export function dataImportMappingRouteV010(importJobId: string): string {
 export function dataImportReviewRouteV010(importJobId: string): string {
   return "/data-import/jobs/" + encodeURIComponent(importJobId) + "/review";
 }
+export function dataImportRowCorrectRouteV010(
+  importJobId: string, rowNumber: number, columnIndex: number
+): string {
+  if (!Number.isInteger(rowNumber) || rowNumber < 1
+    || !Number.isInteger(columnIndex) || columnIndex < 0) {
+    throw new Error("DATA_IMPORT_CORRECTION_ROUTE_INVALID");
+  }
+  return "/data-import/jobs/" + encodeURIComponent(importJobId)
+    + "/fix/" + rowNumber + "/" + columnIndex;
+}
+export function parseDataImportRowCorrectRouteV010(route?: string):
+  { importJobId: string; rowNumber: number; columnIndex: number } | undefined {
+  const match = route?.match(/^\/data-import\/jobs\/([^/?#]+)\/fix\/([1-9]\d*)\/(0|[1-9]\d*)$/u);
+  if (!match) return undefined;
+  try {
+    return {
+      importJobId: decodeURIComponent(match[1]),
+      rowNumber: Number(match[2]),
+      columnIndex: Number(match[3])
+    };
+  } catch { return undefined; }
+}
 export function parseDataImportUploadIntentV010(route?: string): {
   targetId: string;
   initialParameters: Record<string, string>;
@@ -131,7 +165,7 @@ export function parseDataImportUploadRouteV010(route?: string): string | undefin
   return parseDataImportUploadIntentV010(route)?.targetId;
 }
 export function parseDataImportMappingRouteV010(route?: string): string | undefined {
-  const match = route?.match(/^\/data-import\/jobs\/([^/?#]+)\/map$/u);
+  const match = route?.match(/^\/data-import\/jobs\/([^/?#]+)\/map(?:\?[^#]*)?$/u);
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 export function parseDataImportReviewRouteV010(route?: string): string | undefined {

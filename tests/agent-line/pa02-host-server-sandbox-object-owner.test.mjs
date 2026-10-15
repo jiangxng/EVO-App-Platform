@@ -89,6 +89,14 @@ test("PA02 Server sandbox composition: ordinary thread.send discovers authorized
   try {
     assert.equal(await createOptionalPa02SandboxObjectOwnerV010({},deps),undefined);
     await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({
+      ...options,NODE_ENV:"development",
+      APP_PLATFORM_AGENT_RUN_PA02_TEST_POST_COMMIT_ACK_LOSS:"ackLostProof"
+    },deps),/PA02_HOST_OWNER_TEST_FAULT_NOT_ADMITTED/);
+    await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({
+      ...options,NODE_ENV:"test",
+      APP_PLATFORM_AGENT_RUN_PA02_TEST_POST_COMMIT_ACK_LOSS:"wrongField"
+    },deps),/PA02_HOST_OWNER_TEST_FAULT_NOT_ADMITTED/);
+    await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({
       ...options,NODE_ENV:"production"
     },deps),/PA02_HOST_OBJECT_SANDBOX_NOT_ADMITTED/);
     await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({

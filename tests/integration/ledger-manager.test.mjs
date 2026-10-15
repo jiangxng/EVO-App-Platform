@@ -340,3 +340,32 @@ test("Ledger relationship pages declare deep context navigation instead of globa
   assert.match(source, /"投影视图"/);
   assert.match(source, /"编辑投影"/);
 });
+
+test("Ledger Manager preserves unknown publication result without success or definition mutation", async () => {
+  const { publishLedgerRuntimeConfigurationV010 } = await import('../../dist/apps/ledger-manager/internal/publication-runtime.js');
+  const repository = seededRepository();
+  const before = repository.getLatest({ enterpriseId: 'ent-a', definitionId: 'ledger:main' });
+  let writes = 0;
+  const handlers = createLedgerManagerActionHandlersV010({
+    repository,
+    projectionSessions: createMemoryDefinitionProjectionSessionStoreV010(),
+    resolveAuthorizationProvider: () => ({ providerId: 'test', check: () => ({
+      contractVersion: '0.1.0', allowed: true, policyProviderId: 'test', reasonCodes: ['TEST_ALLOW']
+    }) }),
+    canManageEnterpriseContext: () => true,
+    viewerAvailable: () => true,
+    publishToLedgerRuntime: ({ enterpriseId, compiled }) => publishLedgerRuntimeConfigurationV010({
+      baseUrl: 'http://runtime.invalid', target: { enterpriseCode: enterpriseId }, compiled,
+      fetch: async () => { writes++; return Response.json({ ok: true }); }
+    })
+  });
+  const result = await handlers.find(h => h.commandCode === LEDGER_MANAGER_PUBLISH_COMMAND).execute(
+    request(LEDGER_MANAGER_PUBLISH_COMMAND, { definitionId: 'ledger:main', definitionRevision: 0 }, true), context()
+  );
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'LEDGER_MANAGER_RUNTIME_PUBLISH_UNKNOWN');
+  assert.match(result.error.message, /不要直接重复发布/);
+  assert.equal(result.result, undefined);
+  assert.equal(writes, 1);
+  assert.deepEqual(repository.getLatest({ enterpriseId: 'ent-a', definitionId: 'ledger:main' }), before);
+});

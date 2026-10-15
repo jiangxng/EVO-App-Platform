@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   objectExtensionImportRouteV010
 } from "../object-extension/constants.js";
@@ -17,6 +16,11 @@ import type {
 import type {
   DataImportJobV010
 } from "./types.js";
+import { dataImportCorrectableSourceV010 } from "./service.js";
+import {
+  dataImportIssueSourceEvidenceV010,
+  dataImportSourceAuditItemsV010
+} from "./source-audit.js";
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_ROUTE,
@@ -25,6 +29,7 @@ import {
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
   dataImportMappingRouteV010,
   dataImportReviewRouteV010,
+  dataImportRowCorrectRouteV010,
   dataImportUploadRouteV010
 } from "./constants.js";
 
@@ -42,6 +47,13 @@ function text(locale?: string) {
         import: "开始导入",
         importTarget: (name: string) => "导入" + name,
         recent: "最近导入",
+        unfinished: "待完成",
+        continueImport: (name: string) => "继续导入 · " + name,
+        continueMapping: "继续核对字段",
+        continueReview: "继续查看预检查",
+        continueFailed: "处理导入问题",
+        unfinishedDescription: "未完成的导入已排在前面，之前保存的字段选择无需重新填写。",
+        unnamedImport: "未命名文件",
         history: "导入历史",
         historyDescription: "查看过去的导入任务、处理状态和结果。",
         noJobs: "还没有导入历史。",
@@ -51,7 +63,7 @@ function text(locale?: string) {
         relationshipRole: "关系角色",
         mappingTitle: "字段映射",
         mappingDescription:
-          "确认每一列对应的 EVO 字段。系统已按字段 ID、中文/英文名称自动匹配，可忽略不需要的列。AI 设置的批次固定值和值转换会在下方显示，并在未被明确修改时保留。",
+          "先恢复本企业之前的映射，再按字段名建议匹配；可点击 AI 自动匹配。没有目标的列默认建议创建企业字段而非忽略，原始 Excel 全列保留。审核后再预检查和明确提交，允许后续修改映射。AI 设置的批次固定值和值转换仍会保留。",
         ignore: "忽略此列",
         batchConstant: "批次固定值",
         valueTransform: "值转换",
@@ -107,6 +119,13 @@ function text(locale?: string) {
         import: "Start import",
         importTarget: (name: string) => "Import " + name,
         recent: "Recent imports",
+        unfinished: "To finish",
+        continueImport: (name: string) => "Continue import · " + name,
+        continueMapping: "Continue field review",
+        continueReview: "Review validation",
+        continueFailed: "Fix import issues",
+        unfinishedDescription: "Incomplete imports appear first. Previously saved mapping choices remain available.",
+        unnamedImport: "Untitled file",
         history: "Import history",
         historyDescription: "Review previous import jobs, processing status and results.",
         noJobs: "No import history yet.",
@@ -310,6 +329,22 @@ export function createDataImportDirectoryPageV010(input: {
   locale?: string;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
+  const availableTargets = new Set(input.targets.map(target => target.targetId));
+  // Read-only resume: only eligible current-target unfinished jobs. A committed
+  // or partially committed job must never be exposed as a safe "resume" action.
+  const isResumable = (job: DataImportJobV010): boolean =>
+    availableTargets.has(job.targetId)
+    && (job.state === "STAGED"
+      || job.state === "DRY_RUN_FAILED"
+      || job.state === "DRY_RUN_READY");
+  const orderedJobs = [...input.jobs].sort((a, b) =>
+    Number(isResumable(b)) - Number(isResumable(a))
+    || b.stagedAt.localeCompare(a.stagedAt));
+  const resumable = orderedJobs.find(isResumable);
+  const routeForJob = (job: DataImportJobV010) =>
+    job.state === "STAGED"
+      ? dataImportMappingRouteV010(job.importJobId)
+      : dataImportReviewRouteV010(job.importJobId);
   const importActions = input.targets.map(target => {
     const label = localizedTextV010(target.label, input.locale);
     return {
@@ -318,10 +353,10 @@ export function createDataImportDirectoryPageV010(input: {
       type: "navigate" as const,
       route: dataImportUploadRouteV010(target.targetId),
       requiresConfirmation: false,
-      ...(input.targets.length === 1 ? { primary: true } : {})
+      ...(input.targets.length === 1 && !resumable ? { primary: true } : {})
     };
   });
-  const jobItems = [...input.jobs]
+  const jobItems = orderedJobs
     .slice(0, 20)
     .map(job => {
       const status = stateLabel(job, input.locale);
@@ -329,7 +364,7 @@ export function createDataImportDirectoryPageV010(input: {
         id: "job:" + job.importJobId,
         title: job.source.name || job.importJobId,
         summary: job.targetId + " · " + job.source.kind,
-        category: t.recent,
+        category: isResumable(job) ? t.unfinished : t.recent,
         status,
         metadata: {
           [t.totalRows]: job.source.rows.length,
@@ -338,11 +373,14 @@ export function createDataImportDirectoryPageV010(input: {
         },
         primaryAction: {
           id: "open",
-          label: job.state === "STAGED" ? t.mappingTitle : t.reviewTitle,
+          label: isResumable(job)
+            ? job.state === "STAGED"
+              ? t.continueMapping
+              : job.state === "DRY_RUN_FAILED"
+                ? t.continueFailed : t.continueReview
+            : job.state === "STAGED" ? t.mappingTitle : t.reviewTitle,
           type: "navigate" as const,
-          route: job.state === "STAGED"
-            ? dataImportMappingRouteV010(job.importJobId)
-            : dataImportReviewRouteV010(job.importJobId)
+          route: routeForJob(job)
         }
       };
     });
@@ -355,10 +393,21 @@ export function createDataImportDirectoryPageV010(input: {
     itemActivation: "primary-action",
     id: "evo-data-import.directory",
     title: t.title,
-    description: t.description,
-    actions: importActions,
+    description: resumable ? t.unfinishedDescription : t.description,
+    actions: [
+      ...(resumable ? [{
+        id: "resume-import",
+        label: t.continueImport(resumable.source.name || t.unnamedImport),
+        type: "navigate" as const,
+        route: routeForJob(resumable),
+        requiresConfirmation: false,
+        primary: true
+      }] : []),
+      ...importActions
+    ],
     collectionTitle: t.history,
-    collectionDescription: t.historyDescription,
+    collectionDescription: resumable
+      ? t.unfinishedDescription : t.historyDescription,
     items: jobItems,
     emptyMessage: t.noJobs
   };
@@ -449,6 +498,7 @@ export function createDataImportMappingPageV010(input: {
   target?: FoundationObjectImportTargetV010;
   locale?: string;
   canCreateExtension?: boolean;
+  createdMapping?: {sourceColumn: string; fieldId: string};
 }) {
   const t = text(input.locale);
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
@@ -459,6 +509,14 @@ export function createDataImportMappingPageV010(input: {
       .filter(item => Boolean(item.sourceColumn))
       .map(item => [item.sourceColumn!, item.targetFieldId] as const)
   );
+  // Reuse a unique existing business field by its displayed name.
+  // Ambiguous duplicates are intentionally left for the user to resolve.
+  const uniqueExistingField = (column: string): string | undefined => {
+    const matches=importFields.filter(field =>
+      field.resolvedLabel.trim().toLocaleLowerCase()===column.trim().toLocaleLowerCase()
+    );
+    return matches.length===1?matches[0].fieldId:undefined;
+  };
   const fieldLabel = new Map(
     importFields.map(field => [
       field.fieldId,
@@ -539,6 +597,12 @@ export function createDataImportMappingPageV010(input: {
         }).items,
         ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
           ? [{
+              id:"batch-review",
+              label:zh(input.locale)
+                ? "集中审核 " + unmapped.length + " 个未匹配字段"
+                : "Review " + unmapped.length + " unmatched fields together",
+              route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+            }, {
               id:"create-extension",
               label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
               route:objectExtensionImportRouteV010(input.job.importJobId)
@@ -562,55 +626,74 @@ export function createDataImportMappingPageV010(input: {
         value: input.job.importJobId,
         label: input.job.importJobId
       }]
-    }, ...input.job.source.headers.map((sourceColumn, index) => {
-      const canCreate = input.canCreateExtension === true
-        && input.job.targetId === "counterparty.subject"
-        && unmapped.includes(sourceColumn);
-      // Exact display-name matches are only suggestions; never infer core identities
-      // or auto-generate attributes from arbitrary source-system metadata.
-      const candidates = canCreate ? importFields.filter(field =>
-        field.resolvedLabel.trim().toLocaleLowerCase() ===
-          sourceColumn.trim().toLocaleLowerCase()
-        && ![...current.values()].includes(field.fieldId)
-      ) : [];
-      const stableSourceFieldId = "ext_" + createHash("sha256")
-        .update(input.job.targetId+"|"+sourceColumn).digest("hex").slice(0,16);
-      // When old imports already produced duplicate labels, the field created
-      // from this exact source column is an unambiguous safe suggestion.
-      const reuse = candidates.find(field => field.fieldId === stableSourceFieldId)
-        ?? (candidates.length === 1 ? candidates[0] : undefined);
-      return {
-        key: "map_" + index,
-        label: sourceColumn,
-        semanticType: "data-import-field-mapping",
-        control: "select" as const,
-        required: true,
-        initialValue: current.get(sourceColumn)
-          ?? reuse?.fieldId
-          ?? (canCreate ? "__PENDING_CREATE__" : "__IGNORE__"),
-        ...(canCreate && candidates.length === 0 ? {
+    }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
+      ? [{
+          key: "batchReviewEntry",
+          label: zh(input.locale)
+            ? "批量字段审核 · 先复用已有映射，可先使用 AI 自动匹配"
+            : "Batch field review · reuse prior mappings, optionally ask AI",
+          semanticType: "data-import-batch-review-link",
+          control: "text" as const,
+          readOnly: true,
+          required: false,
+          initialValue: zh(input.locale)
+            ? "未匹配的来源列已保留。集中审核后一次创建并自动映射，不会自动提交供应商数据。"
+            : "Unmatched source values are preserved. Confirm fields together before importing.",
           contextLink: {
             label: zh(input.locale)
-              ? "＋ 创建“" + sourceColumn + "”企业字段"
-              : "+ Create enterprise field: " + sourceColumn,
-            route: objectExtensionImportRouteV010(input.job.importJobId,sourceColumn)
+              ? "集中审核 " + unmapped.length + " 个未匹配字段（B 方案）"
+              : "Review " + unmapped.length + " unmatched columns together",
+            route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
           }
-        } : {}),
-        options: [
-          ...(canCreate && !reuse ? [{
-            value: "__PENDING_CREATE__",
-            label: candidates.length > 1
-              ? (zh(input.locale) ? "已有同名字段，请选择一个或忽略" : "Multiple matching fields: choose one or skip")
-              : (zh(input.locale) ? "建议创建企业字段（点击下方链接）" : "Create enterprise field (use link below)")
-          }] : []),
-          ...importFields.map(field => ({
-            value: field.fieldId,
-            label: field.resolvedLabel + " · " + field.fieldId
-          })),
-          {value: "__IGNORE__",label: "— " + t.ignore + " —"}
-        ]
-      };
-    }), ...advisoryFields, ...advancedFields],
+        }]
+      : []), ...input.job.source.headers.map((sourceColumn, index) => ({
+      key: "map_" + index,
+      label: sourceColumn,
+      semanticType: "data-import-field-mapping",
+      control: "select" as const,
+      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__"] },
+      required: true,
+      initialValue: current.get(sourceColumn)
+        ?? (input.createdMapping?.sourceColumn === sourceColumn
+          && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
+            ? input.createdMapping.fieldId
+            : input.job.ignoredSourceColumns?.includes(sourceColumn)
+              ? "__IGNORE__"
+              : uniqueExistingField(sourceColumn)
+                ?? (input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                  ? "__CREATE__" : "__PENDING__")),
+      ...(input.canCreateExtension === true
+        && input.job.targetId === "counterparty.subject"
+        && unmapped.includes(sourceColumn)
+        ? {
+            contextLink: {
+              label: zh(input.locale)
+                ? "＋ 为本列创建企业扩展字段"
+                : "+ Create enterprise field for this column",
+              route: objectExtensionImportRouteV010(input.job.importJobId, sourceColumn)
+            }
+          }
+        : {}),
+      options: [{
+        value: "__PENDING__",
+        label: zh(input.locale) ? "— 待处理（原始列已保留） —" : "— Pending (source preserved) —"
+      }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
+        ? [{value: "__CREATE__", label: zh(input.locale)
+          ? "＋ 建议新建企业字段（集中审核确认）"
+          : "+ Propose enterprise field (confirm in batch review)"}]
+        : []), {
+        value: "__IGNORE__",
+        label: "— " + t.ignore + " —"
+      }, ...(current.get(sourceColumn)
+        && !importFields.some(field => field.fieldId === current.get(sourceColumn))
+        ? [{value: current.get(sourceColumn)!, label: zh(input.locale)
+          ? "⚠ 原映射目标不可用，需修复 · " + current.get(sourceColumn)
+          : "⚠ Previous target unavailable; review · " + current.get(sourceColumn)}]
+        : []), ...importFields.map(field => ({
+        value: field.fieldId,
+        label: field.resolvedLabel + " · " + field.fieldId
+      }))]
+    })), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
       label: t.validate,
@@ -753,7 +836,40 @@ export function createDataImportReviewPageV010(input: {
     }
   }];
 
-  for (const row of (dryRun?.rows ?? []).slice(0, 30)) {
+  // Exceptions are reviewed first regardless of their Excel row position.
+  // Preserve a bounded result list; the complete source-column audit below
+  // still covers every original header, without changing the Host job.
+  const reviewedRows = dryRun?.rows ?? [];
+  const correctedRowNumbers = new Set(
+    (job.rowCorrections ?? []).map(item => item.rowNumber)
+  );
+  const visibleRows = [
+    ...reviewedRows.filter(row => !row.ok),
+    ...reviewedRows.filter(row => row.ok && correctedRowNumbers.has(row.rowNumber)),
+    ...reviewedRows.filter(row => row.ok && !correctedRowNumbers.has(row.rowNumber))
+  ].slice(0, 30);
+  for (const row of visibleRows) {
+    const targetCorrection = (job.rowCorrections ?? [])
+      .find(item => item.rowNumber === row.rowNumber);
+    const sourceMapping = targetCorrection
+      ? job.mapping.find(item => item.sourceColumn === targetCorrection.sourceColumn)
+      : job.mapping.find(item => item.sourceColumn && row.issues.some(issue =>
+          issue.fieldId === item.targetFieldId));
+    const correctionColumn = sourceMapping?.sourceColumn;
+    let correctionRoute: string | undefined;
+    if (correctionColumn && input.schema) {
+      try {
+        dataImportCorrectableSourceV010({
+          job, schema: input.schema, rowNumber: row.rowNumber,
+          sourceColumn: correctionColumn
+        });
+        correctionRoute = dataImportRowCorrectRouteV010(
+          job.importJobId, row.rowNumber, job.source.headers.indexOf(correctionColumn)
+        );
+      } catch {
+        // Some invalid fields require a mapping or file-level repair, not a cell patch.
+      }
+    }
     items.push({
       id: "row:" + row.rowNumber,
       title: rowLabel(t.row, row.rowNumber),
@@ -770,9 +886,34 @@ export function createDataImportReviewPageV010(input: {
       status: {
         label: row.ok ? t.ready : t.invalid,
         tone: row.ok ? "positive" : "warning"
-      }
+      },
+      category: row.ok
+        ? (zh(input.locale) ? "通过预检查" : "Validated")
+        : (zh(input.locale) ? "需要处理" : "Needs attention"),
+      ...(row.ok ? {} : {
+        metadata: dataImportIssueSourceEvidenceV010({
+          job, row, locale: input.locale
+        })
+      }),
+      ...(correctionRoute ? {
+        primaryAction: {
+          id: "correct-row:" + row.rowNumber,
+          label: targetCorrection
+            ? (zh(input.locale) ? "查看或撤销本行更正" : "Review or revert correction")
+            : (zh(input.locale) ? "修正本行问题" : "Correct this row"),
+          type: "navigate" as const,
+          route: correctionRoute
+        }
+      } : {})
     });
   }
+  // Audit every actual source header (mapped, ignored and unresolved).
+  // Source cells stay in the persisted enterprise job, not in browser state.
+  items.push(...dataImportSourceAuditItemsV010({
+    job,
+    schema: input.schema,
+    locale: input.locale
+  }));
 
   return {
     contractVersion: "0.1.0",

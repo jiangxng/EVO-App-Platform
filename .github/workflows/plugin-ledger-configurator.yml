@@ -9,8 +9,10 @@ on:
       - "tests/configurator/**"
       - "tests/ledger-runtime-configurator-compiler.test.mjs"
       - "tests/ledger-runtime-configurator-ui.test.mjs"
+      - "tests/integration/ledger-lazy-host.test.mjs"
       - "tests/integration/ledger-manager.test.mjs"
       - "tests/integration/ledger-publication-boundary.test.mjs"
+      - "tests/protocol/ledger-publication-runtime.test.mjs"
   pull_request:
     paths:
       - "apps/ledger-runtime-configurator/**"
@@ -18,8 +20,10 @@ on:
       - "tests/configurator/**"
       - "tests/ledger-runtime-configurator-compiler.test.mjs"
       - "tests/ledger-runtime-configurator-ui.test.mjs"
+      - "tests/integration/ledger-lazy-host.test.mjs"
       - "tests/integration/ledger-manager.test.mjs"
       - "tests/integration/ledger-publication-boundary.test.mjs"
+      - "tests/protocol/ledger-publication-runtime.test.mjs"
 
 concurrency:
   group: plugin-ledger-configurator-${{ github.ref }}

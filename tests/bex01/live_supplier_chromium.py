@@ -171,11 +171,12 @@ with sync_playwright() as p:
    # Create from the unmapped column itself, without changing the Agent entry.
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
-   inline=mapping_form.locator('[data-eidos-field-context-link]')
+   # Batch B is now visible beside the original per-column action.
+   expect(mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="mode=batch"]')).to_have_count(1)
+   inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
-   from urllib.parse import quote
    expect(inline.first).to_have_attribute("data-eidos-context-route",
-     "/object-extensions/from-import?job="+job+"&column="+quote("开户银行"))
+     "/object-extensions/from-import?job="+job+"&column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C")
    inline.first.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
@@ -191,10 +192,19 @@ with sync_playwright() as p:
       "text":page.locator("body").inner_text()[:800]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
-   expect(mapping_form.locator('select[name="map_3"]')).to_have_value(expected_field)
-   expect(mapping_form.locator('[data-eidos-field-context-link]')).to_have_count(0)
    expect(mapping_form.locator('select[name="map_3"] option[value="'+expected_field+'"]')).to_have_count(1)
+   expect(mapping_form.locator('select[name="map_3"]')).to_have_value(expected_field)
    mapping_form.locator('select[name="map_0"]').select_option("code")
+   # A mapped system field must disappear from every other Excel column.
+   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
+   expect(mapping_form.locator('select[name="map_3"] option[value="code"]')).to_have_count(0)
+   # Release restores original option order and availability without refresh.
+   mapping_form.locator('select[name="map_0"]').select_option("__IGNORE__")
+   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(1)
+   mapping_form.locator('select[name="map_0"]').select_option("code")
+   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
+   expect(mapping_form.locator('select[name="map_0"] option[value="__IGNORE__"]')).to_have_count(1)
+   expect(mapping_form.locator('select[name="map_1"] option[value="__IGNORE__"]')).to_have_count(1)
    mapping_form.locator('select[name="map_1"]').select_option("displayName")
    mapping_form.locator('select[name="map_2"]').select_option("subjectType")
    mapping_form.locator('select[name="map_3"]').select_option(expected_field)
@@ -227,6 +237,83 @@ with sync_playwright() as p:
     "committedSupplier":"EXT001","displayedSavedValue":"HSBC"}
   finally: ctx.close()
  run("extension-field-create-map-commit-detail",extension_field_from_import)
+ def batch_extension_from_import():
+  import hashlib
+  ctx=make_context(1280,820,False)
+  page=ctx.new_page()
+  page.on("pageerror",lambda error:print("BEX_BATCH_PAGE_ERROR="+str(error),flush=True))
+  page.on("console",lambda msg:print("BEX_BATCH_CONSOLE_ERROR="+msg.text,flush=True)
+    if msg.type=="error" else None)
+  page.on("response",lambda response:print("BEX_BATCH_API_RESPONSE="+str(response.status)
+    +" "+response.url,flush=True) if "/v1/experience-pages" in response.url else None)
+  job=fixture["batchJobId"]
+  names=["默认支付方式","结算方式","默认账期方式","账期天数"]
+  try:
+   mapping="/data-import/jobs/"+job+"/map"
+   page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
+   expect(page.locator('form[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=30000)
+   expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
+   entry=page.locator('[data-eidos-context-route*="&mode=batch"]')
+   expect(entry.first).to_be_visible()
+   entry.first.click()
+   page.wait_for_timeout(850)
+   print("BEX_BATCH_ROUTE_AFTER_CLICK="+json.dumps(page.evaluate("""() => ({
+     url: location.href,
+     pageContainer:document.querySelector("[data-eidos-page]")?.outerHTML.slice(0,4500),
+     previews:[...document.querySelectorAll("pre")].map(x=>x.innerText).slice(0,4),
+     bodyEnd:document.body.innerText.slice(-2200),
+     formIds:[...document.querySelectorAll("form[data-eidos-id]")].map(x=>x.getAttribute("data-eidos-id"))
+   })"""),ensure_ascii=False),flush=True)
+   form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
+   expect(form).to_be_visible(timeout=30000)
+   for i,name in enumerate(names):
+    expect(form.locator('select[name="choice_'+str(i)+'"]')).to_have_value("__CREATE__")
+    expect(form.locator('input[name="label_'+str(i)+'"]')).to_have_value(name)
+   expect(form.locator('select[name="type_3"]')).to_have_value("NUMBER")
+   # Business samples come from the authorized staged Host job, not HTML mock values.
+   expect(form.locator('input[name="sample_0"]')).to_have_value(
+     "非空 1 / 1 行 · 来源样本：转账"
+   )
+   expect(form.locator('input[name="sample_3"]')).to_have_value(
+     "非空 1 / 1 行 · 来源样本：30"
+   )
+   expect(form.locator('select[name="choice_4"]')).to_have_value("__REVIEW__")
+   form.locator('select[name="choice_4"]').select_option("__IGNORE__")
+   page.screenshot(path=str(OUT/"extension-batch-review-before-confirm.png"),full_page=True)
+   page.on("dialog",lambda dialog: dialog.accept())
+   form.locator('button[type="submit"]').click()
+   mapped=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+   expect(mapped).to_be_visible(timeout=30000)
+   for i,name in enumerate(names):
+    expected="ext_"+hashlib.sha256(("counterparty.subject|"+name).encode()).hexdigest()[:16]
+    expect(mapped.locator('select[name="map_'+str(i+3)+'"]')).to_have_value(expected)
+   expect(mapped.locator('select[name="map_7"]')).to_have_value("__IGNORE__")
+   page.screenshot(path=str(OUT/"extension-batch-auto-mapped.png"),full_page=True)
+   mapped.locator('select[name="map_0"]').select_option("code")
+   mapped.locator('select[name="map_1"]').select_option("displayName")
+   mapped.locator('select[name="map_2"]').select_option("subjectType")
+   mapped.locator('button[type="submit"]').click()
+   review=page.locator('[data-eidos-id="evo-data-import.review"]')
+   expect(review).to_be_visible(timeout=30000)
+   expect(review.locator('[data-eidos-catalog-action="commit"]')).to_be_visible()
+   review.locator('[data-eidos-catalog-action="commit"]').click()
+   page.goto(HOST+"/?surface=desktop#"+route,wait_until="domcontentloaded")
+   expect(page.locator('[data-eidos-catalog-table]')).to_be_visible(timeout=30000)
+   page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Batch Extension Supplier")
+   page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
+   expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
+   page.locator('[data-eidos-catalog-table] tbody tr:first-child button').first.click()
+   detail=page.locator('[data-eidos-catalog-item$=":enterprise-extension"]')
+   expect(detail).to_contain_text("默认支付方式")
+   expect(detail).to_contain_text("结算方式")
+   expect(detail).to_contain_text("默认账期方式")
+   expect(detail).to_contain_text("账期天数")
+   expect(detail).to_contain_text("30")
+   page.screenshot(path=str(OUT/"extension-batch-supplier-detail.png"),full_page=True)
+   return {"batchColumns":names,"batchCreatedAndMapped":4,
+     "explicitImportCommit":True,"supplierDetailValues":True}
+  finally:ctx.close()
+ run("batch-extension-one-screen-confirm-map-commit-detail",batch_extension_from_import)
  def phone():
   context=make_context(390,844,True)
   page=open_supplier(context)
@@ -244,7 +331,7 @@ with sync_playwright() as p:
    control=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
    assert control.bounding_box()["height"] >= 44, "PHONE_SEARCH_TOUCH_TARGET"
    page.locator('[data-eidos-catalog-action="next-page"]').click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 54")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 55")
    expect(cards).to_have_count(25)
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0053")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()

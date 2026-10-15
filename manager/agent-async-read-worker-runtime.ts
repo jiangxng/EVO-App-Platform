@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { AgentRunCreateInputV010, AgentRunEventV010, AgentRunV010 } from "../contracts/agent-run.js";
 import type { PlatformPrincipalV010, PlatformRequestContextV010, ResolvedContextSetV010 } from "../contracts/platform-services.js";
-import type { LlmInferenceProvider } from "../contracts/llm.js";
+import type { LlmInferenceProvider, LlmInferenceRequestV010 } from "../contracts/llm.js";
+import type { CertifiedModelContextWindowV010 } from "../agents/enterprise-agent/pa04-certified-context-window.js";
+import type {Pa02CostPolicyCandidateV010,Pa02CostLedgerV010} from
+  "../agents/enterprise-agent/pa02-r10-postgres-cost-reservation.js";
 import type { AgentToolCatalogV010 } from "../agents/enterprise-agent/contracts.js";
 import type { AsyncAgentRunReceiptRepositoryV020 } from "../contracts/agent-durability-async.js";
 import type { FencedAgentRunAuthorityV030 } from "../agents/enterprise-agent/pa02b-fenced-run-authority.js";
@@ -36,6 +39,25 @@ export interface HostAsyncReadExecutionV030 {
 }
 export interface HostAsyncReadExecutionDependenciesV030 {
   resolveProvider():LlmInferenceProvider|undefined;
+  /** Optional Host-approved exact model context window + request-token upper
+   * bound attestation. Not inferred from advertised model names or prices.
+   * An unconfigured Provider continues with its current safe behavior. */
+  contextWindow?:CertifiedModelContextWindowV010;
+  /** Optional exact Host-owned C03 source freshness verification and re-READ.
+   * Unconfigured staged workers preserve current PA-02 behavior. */
+  readFreshness?:NonNullable<import("../agents/enterprise-agent/pa02-async-read-worker.js").ReadOnlyFencedWorkerDependenciesV030["readFreshness"]>;
+  /** C05: optional Host-reviewed exact tool call/destination admission,
+   * checked even when resuming a persisted model decision. */
+  toolCallAdmission?:NonNullable<import("../agents/enterprise-agent/pa02-async-read-worker.js").ReadOnlyFencedWorkerDependenciesV030["toolCallAdmission"]>;
+  /** Synthetic contract for isolated budget integration tests only.
+   * Ordinary Server does not construct this. NEVER actual vendor pricing. */
+  testOnlyCostPolicy?:Pa02CostPolicyCandidateV010;
+  /** This must be an independently certified upper bound for the COMPLETE
+   * final model request, not a raw prompt estimate. Synthetic proof only.
+   * No installed production Provider supplies such an attestation yet. */
+  testOnlyBilledInputUpperBound?:(
+    request:LlmInferenceRequestV010
+  )=>Promise<number|undefined>;
   createToolCatalog(run:AgentRunV010,principal:PlatformPrincipalV010,
     context:ResolvedContextSetV010,requestContext:PlatformRequestContextV010|undefined,
     interaction:{sourceInteractionId:string;sourceActionId:string}):AgentToolCatalogV010;
@@ -102,8 +124,11 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
   let reconciler:AgentWriteReconciliationPortV030|undefined;
   let governedWrite:GovernedAgentWorkerWritePortV040|undefined;
   let outbox:Pa02RunOutboxReaderV010|undefined;
+  let costLedger:Pa02CostLedgerV010|undefined;
+  if(input.deps.testOnlyCostPolicy&&process.env.NODE_ENV==="production")
+    throw Error("PA02_R10_TEST_COST_POLICY_PRODUCTION_FORBIDDEN");
   const close=async()=>{
-    for(const service of [outbox,reconciler,cancellation,authority,execution,repo]) {
+    for(const service of [costLedger,outbox,reconciler,cancellation,authority,execution,repo]) {
       if(service)await service.close();
     }
   };
@@ -111,6 +136,14 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     repo=await createPostgresAgentDurabilityProofV020({
       connectionString:input.connectionString,schema:input.schema
     });
+    if(input.deps.testOnlyCostPolicy){
+      const {createPa02IsolatedPostgresCostLedgerV010}=await import(
+        "../agents/enterprise-agent/pa02-r10-postgres-cost-reservation.js"
+      );
+      costLedger=await createPa02IsolatedPostgresCostLedgerV010({
+        connectionString:input.connectionString,schema:input.schema
+      });
+    }
     outbox=await createPostgresPa02RunOutboxReaderV010({
       connectionString:input.connectionString,schema:input.schema
     });
@@ -150,6 +183,39 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
     }
   }catch(e){await close();throw e;}
   const durable=repo!,fenced=authority!,cancel=cancellation!;
+  const testPolicy=input.deps.testOnlyCostPolicy;
+  const testOnlyCostPort=costLedger&&testPolicy?{
+    maxOutputTokens:testPolicy.maxBillableOutputTokens,
+    async quoteBilledInputUpperBound(request:LlmInferenceRequestV010){
+      if(!input.deps.testOnlyBilledInputUpperBound)return undefined;
+      const quoted=await input.deps.testOnlyBilledInputUpperBound(
+        structuredClone(request));
+      if(!Number.isSafeInteger(quoted)||quoted!<=0||
+        quoted!>testPolicy.maxBillableInputTokens)return undefined;
+      return quoted!;
+    },
+    async reserve(r:{scope:import("../contracts/agent-durability-async.js").HostResolvedAgentDurabilityScopeV020;
+      runId:string;sliceId:string;providerId:string;modelId:string;
+      inputTokenUpperBound:number}){
+      if(r.providerId!==testPolicy.providerId||r.modelId!==testPolicy.modelId||
+        !Number.isSafeInteger(r.inputTokenUpperBound)||
+        r.inputTokenUpperBound<=0||
+        r.inputTokenUpperBound>testPolicy.maxBillableInputTokens)
+        return "UNAPPROVED" as const;
+      return (await costLedger!.reserve({
+        scope:r.scope,runId:r.runId,sliceId:r.sliceId,policy:testPolicy
+      })).status;
+    },
+    async settle(r:{scope:import("../contracts/agent-durability-async.js").HostResolvedAgentDurabilityScopeV020;
+      runId:string;sliceId:string;usage?:{
+        inputTokens:number;outputTokens:number;
+        cachedInputTokens?:number;cacheWriteInputTokens?:number
+      }}){
+      return (await costLedger!.settle({
+        ...r,policy:testPolicy
+      })).status;
+    }
+  }:undefined;
   const reader=(i:{principal:PlatformPrincipalV010;context:ResolvedContextSetV010})=>
     createHostScopedAsyncAgentRunBridgeV020({
       repository:durable,principal:i.principal,context:i.context
@@ -209,6 +275,10 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
       resolveProvider:input.deps.resolveProvider,
       createToolCatalog:catalog,
       ...(governedWrite?{governedWrite}:{}),
+      ...(testOnlyCostPort?{testOnlyCostPort}:{}),
+      ...(input.deps.contextWindow?{contextWindow:input.deps.contextWindow}:{}),
+      ...(input.deps.readFreshness?{readFreshness:input.deps.readFreshness}:{}),
+      ...(input.deps.toolCallAdmission?{toolCallAdmission:input.deps.toolCallAdmission}:{}),
       eventId:randomUUID,sliceId:randomUUID
     });
     let run=before;

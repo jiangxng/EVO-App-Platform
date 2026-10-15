@@ -57,6 +57,12 @@ export async function createOptionalPa02SandboxObjectOwnerV010(
   if(env.NODE_ENV==="production"||
     env.APP_PLATFORM_AGENT_RUN_PA02_DEV_OWNER_ACK!=="ISOLATED_NO_PRODUCTION_DATA")
     throw Error("PA02_HOST_OBJECT_SANDBOX_NOT_ADMITTED");
+  // Deliberately test-only, exact fixture field ID. No live Host, demo,
+  // production or generic caller can request a transport fault. The business
+  // SQL transaction must finish BEFORE the simulated ACK is lost.
+  const fault=env.APP_PLATFORM_AGENT_RUN_PA02_TEST_POST_COMMIT_ACK_LOSS?.trim();
+  if(fault && (env.NODE_ENV!=="test" || fault!=="ackLostProof"))
+    throw Error("PA02_HOST_OWNER_TEST_FAULT_NOT_ADMITTED");
   const contextId=env.APP_PLATFORM_AGENT_RUN_PA02_SANDBOX_CONTEXT_ID?.trim();
   const enterpriseId=env.APP_PLATFORM_AGENT_RUN_PA02_SANDBOX_ENTERPRISE_ID?.trim();
   const schema=env.APP_PLATFORM_AGENT_RUN_PA02_OBJECT_SCHEMA?.trim();
@@ -85,6 +91,23 @@ export async function createOptionalPa02SandboxObjectOwnerV010(
     // Fail startup if explicit isolated Owner schema has not been prepared.
     // No CREATE/ALTER/migration inside ordinary Server bootstrap.
     await owner.listResources({contextId,enterpriseId});
+    const sandboxOwner=(!fault ? owner.owner : {
+      ...owner.owner,
+      async invoke(request:Parameters<typeof owner.owner.invoke>[0]) {
+        // Keep real Owner validation, transaction and immutable receipt intact.
+        // Throw only AFTER the original awaited SQL business commit returns.
+        await owner.owner.invoke(request);
+        const definition=(request.arguments as {
+          definition?:{fieldId?:string}
+        }|undefined)?.definition;
+        if(definition?.fieldId==="ackLostProof"){
+          console.log("PA02_TEST_OWNER_COMMITTED_ACK_ABOUT_TO_DROP");
+          await new Promise<void>(resolve=>setTimeout(resolve,6000));
+          console.log("PA02_TEST_OWNER_POST_COMMIT_ACK_DROPPED");
+          throw Error("PA02_TEST_OWNER_POST_COMMIT_ACK_LOST");
+        }
+      }
+    });
     const registry=createHostRegisteredAgentOwnerRegistryV040({
       manager:deps.manager,
       resolveAuthorizationProvider:deps.resolveAuthorizationProvider,
@@ -93,7 +116,7 @@ export async function createOptionalPa02SandboxObjectOwnerV010(
         packageId:OBJECT_EXTENSION_PACKAGE_ID,
         commandCode:OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
         inputVersion:"0.1.0",modelName:"pa02_object_extension_create",
-        owner:owner.owner,verifier:owner.verifier,
+        owner:sandboxOwner,verifier:owner.verifier,
         validateArguments(args) {
           if(!args||Object.keys(args).length!==1||
             !args.definition||typeof args.definition!=="object"||

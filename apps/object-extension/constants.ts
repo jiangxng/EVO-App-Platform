@@ -36,13 +36,6 @@ export function objectExtensionImportRouteV010(jobId: string, sourceColumn?: str
   return OBJECT_EXTENSION_IMPORT_ROUTE_V010 + "?job=" + encodeURIComponent(jobId)
     + (sourceColumn ? "&column=" + encodeURIComponent(sourceColumn) : "");
 }
-
-export function parseObjectExtensionImportColumnV010(path: string | undefined): string | undefined {
-  if (!parseObjectExtensionImportRouteV010(path)) return undefined;
-  const column = new URL(path!, "https://evo.invalid").searchParams.get("column");
-  return column && column.length <= 256 && !/[\x00-\x1f]/u.test(column)
-    ? column : undefined;
-}
 export function parseObjectExtensionImportRouteV010(path: string | undefined): string | undefined {
   if (!path || !path.startsWith("/")) return undefined;
   const url = new URL(path, "https://evo.invalid");
