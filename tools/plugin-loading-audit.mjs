@@ -54,6 +54,13 @@ async function sample(name, directory, profile, extra = {}) {
       || !report.loadedModules.includes('dist/manager/server.js')) {
       throw new Error('AUDIT_INVALID: ' + JSON.stringify({ shutdown, stderr, blockedOutbound: report.blockedOutbound }));
     }
+    // Retired startup debt: fail CI if the compatibility runtime returns to
+    // these unused/disabled startup paths. Counts remain observations only.
+    for (const module of ['service', 'default-library', 'expression-compiler']) {
+      if (report.loadedModules.includes(`dist/apps/ledger-runtime-configurator/${module}.js`)) {
+        throw new Error('LEDGER_COMPATIBILITY_RUNTIME_EAGER: ' + module);
+      }
+    }
     // Hook instrumentation makes these unsuitable for performance comparisons.
     const { port, readyMs, memoryBytes, idleCpuMicros, ...observations } = report;
     return { profile: name, ...observations, installedPackages: lifecycle.installedPackages.map(p => p.packageId).sort(),
@@ -99,7 +106,9 @@ const report = {
   sourceState: 'working tree; file hashes identify measured source',
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
     'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
-    'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs']
+    'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
+    'apps/ledger-runtime-configurator/action-handler.ts',
+    'apps/ledger-runtime-configurator/capability-action-handlers.ts']
     .map(file => [file, createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])),
   environment: { node: process.version, platform: process.platform, architecture: process.arch },
   scope: 'Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Async load hooks inventory dist ESM only (not CommonJS require graphs); they prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.',
