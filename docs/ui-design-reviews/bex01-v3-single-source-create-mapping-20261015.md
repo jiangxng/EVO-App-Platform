@@ -36,3 +36,9 @@ Host 已按企业 ACTIVE OWNER/ADMIN 核对读取和 WRITE；本 PR 仍由既有
 - `tests/bex01/live_supplier_chromium.py`：原始业务真实 Host/Chromium 字段创建→映射→导入旅程；
 - 原研究与资料访问等级：#909 Draft V3 详细索引，未新增本轮网络资料；
 - 仍缺客户 XLSX 原件、授权 Job JSON、两银行实际 field ID/用途、用户 Human 真机签收；Railway 不擅自部署。
+
+## 最终设计门禁、隔离 Host 与真实 Human 边界
+
+功能原 [#860](https://github.com/jiangxng/EVO-App-Platform/pull/860) **合并 `main@c0b56deb1ca0595c0062829dbc6ab8f76fa76507`**；同步最新 main 的 **43/43 CI 全绿**，含 [Human 设计评审 38715079600](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079600)、[真实隔离 Host/Chromium 38715079051](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079051)、[轻量 Host 38715079594](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079594)。Chromium 141 证明从“开户银行”来源进入、原值样本可见、保存后原 Job 映射存在、独立预检查/最终提交和详情正常；既有批量功能与桌面/390px 模拟触摸回归不退化。
+
+本轮 Human UI 合格是**设计审查门禁和隔离浏览器模拟**，并不等于原始客户 Excel（22 列/172 行测试口径）、授权 Import Job、真实银行 field ID 归属、实际用户签收或生产操作。原始客户三条缺失 `subjectType` 仍须由 Human 确认；历史同名银行字段不得自动清理。生产 Railway 未部署。
