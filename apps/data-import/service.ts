@@ -372,6 +372,53 @@ export function createDataImportServiceV010(input: {
         };
       }
 
+      // A field added to the enterprise extension schema changes the whole
+      // schema digest, but should not erase earlier valid column decisions.
+      // Recover same-enterprise, same-source mappings as *reviewable* suggestions,
+      // never as an automatically validated/committed Recipe after schema drift.
+      const previousMappings = [
+        ...(recipe ? [recipe.mapping] : []),
+        ...input.repository.list(mappingInput.contextId)
+          .filter(job =>
+            job.targetId === mappingInput.targetId
+            && job.mappingOrigin === "HUMAN"
+            && job.mapping.length > 0
+            && dataImportSourceFingerprintV010({
+              targetId: job.targetId,
+              targetParameters: job.targetParameters,
+              source: job.source
+            }) === sourceFingerprint
+          ).map(job => job.mapping)
+      ];
+      for (const previous of previousMappings) {
+        const sources = new Set<string>();
+        const targets = new Set<string>();
+        const preserved = previous.filter(item => {
+          if (!importable.has(item.targetFieldId)
+            || targets.has(item.targetFieldId)) return false;
+          if (item.transform?.kind !== "CONSTANT"
+            && (!item.sourceColumn
+              || !mappingInput.source.headers.includes(item.sourceColumn)
+              || sources.has(item.sourceColumn))) return false;
+          if (item.sourceColumn) sources.add(item.sourceColumn);
+          targets.add(item.targetFieldId);
+          return true;
+        });
+        if (!preserved.length) continue;
+        // Fill only other unambiguous matches; never displace an old decision.
+        const extra = suggestDataImportMappingV010({
+          schema: mappingInput.schema,
+          source: mappingInput.source
+        }).filter(item =>
+          !sources.has(item.sourceColumn!)
+          && !targets.has(item.targetFieldId)
+        );
+        return {
+          mapping: [...preserved, ...extra],
+          origin: "DETERMINISTIC" as const
+        };
+      }
+
       return {
         mapping: suggestDataImportMappingV010({
           schema: mappingInput.schema,
