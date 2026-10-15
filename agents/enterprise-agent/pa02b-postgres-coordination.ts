@@ -79,7 +79,18 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
    * Never switch existing Host/PA-02 callers implicitly.
    */
   requirePluginWriteLifecycleFence?: boolean;
+  /**
+   * Optional trusted Host binding: cross-Schema federation is NOT certified.
+   * In fenced mode, a Worker with a different schema than the Host gate
+   * must fail before creating leases/tables or attempting an Owner action.
+   * Existing isolated PA-02 paths remain unchanged when this is omitted.
+   */
+  hostLifecycleAuthoritySchema?: string;
 }): Promise<AgentExecutionCoordinatorV020> {
+  if (input.requirePluginWriteLifecycleFence &&
+      input.hostLifecycleAuthoritySchema !== undefined &&
+      input.hostLifecycleAuthoritySchema !== input.schema)
+    throw Error("PA05_WRITE_WORKER_SCHEMA_MISMATCH");
   const url = required(input.connectionString);
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema)) throw Error("PA02B_SCHEMA_INVALID");
   const q = '"' + input.schema + '"';
