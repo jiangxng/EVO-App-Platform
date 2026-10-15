@@ -591,7 +591,10 @@ export function createDataImportActionHandlersV010(input: {
 
         // Pending is not the same as an explicit, reversible ignore. Never
         // allow an accidental dry-run to silently omit unreviewed Excel data.
-        if (unresolvedColumns.length > 0) {
+        // Pending columns may accompany a CREATE proposal because the
+        // full batch review must decide *all* remaining columns. They may
+        // never be skipped when proceeding directly to dry-run.
+        if (unresolvedColumns.length > 0 && proposedNewFields === 0) {
           throw new Error("DATA_IMPORT_COLUMNS_NEED_DECISION");
         }
         const explicitlyMappedTargets = new Set(
