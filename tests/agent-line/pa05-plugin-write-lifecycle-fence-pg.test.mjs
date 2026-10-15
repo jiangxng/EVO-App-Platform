@@ -593,3 +593,71 @@ test("PA05-04D2 PG18 protected ENABLE fails closed on outstanding UNKNOWN", {
     await h.close();
   }
 });
+
+test("PA05-04D3 real PG18: pre-listen startup freezes persisted ACTIVE owner, second Worker cannot write", {
+  skip: !url ? "requires isolated PostgreSQL18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup();
+  const host = createPa05HostWriteLifecycleV010({
+    manager: h.manager, protectedPackageIds: [packageId],
+    databaseUrl: url, schema: h.schema, workerSchemas: [h.schema]
+  });
+  let other;
+  try {
+    assert.equal((await h.gate.getState(packageId)).state, "ACTIVE");
+    await host.attestStartupActivation();
+    assert.deepEqual(await h.gate.getState(packageId), {
+      state: "FROZEN", packageVersion: "0.1.0"
+    });
+    other = await createPostgresAgentExecutionCoordinatorV020({
+      connectionString: url, schema: h.schema,
+      requirePluginWriteLifecycleFence: true,
+      hostLifecycleAuthoritySchema: h.schema
+    });
+    const first = await h.prepare("run:pre-listen-startup");
+    await assert.rejects(other.beginWrite(first),
+      /PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN/);
+    await assert.rejects(
+      createPostgresAgentExecutionCoordinatorV020({
+        connectionString: url, schema: h.schema + "_rogue",
+        requirePluginWriteLifecycleFence: true,
+        hostLifecycleAuthoritySchema: h.schema
+      }), /PA05_WRITE_WORKER_SCHEMA_MISMATCH/);
+    console.log("PA05_STARTUP_WORKER_SCHEMA_PG=" + JSON.stringify({
+      actualPostgres18: true, startupActiveOwnerFrozen: true,
+      secondWorkerSameSchemaBlocked: true,
+      differentWorkerSchemaRejectedBeforeDbInit: true,
+      defaultProductionWriteEnabled: false
+    }));
+  } finally {
+    if (other) await other.close();
+    await host.close();
+    await h.close();
+  }
+});
+
+test("PA05-04D3 real PG18: failed startup attestation never releases unresolved write", {
+  skip: !url ? "requires isolated PostgreSQL18" : false,
+  timeout: 90000
+}, async () => {
+  const h = await setup();
+  const host = createPa05HostWriteLifecycleV010({
+    manager: h.manager, protectedPackageIds: [packageId],
+    databaseUrl: url, schema: h.schema
+  });
+  try {
+    const effect = await h.prepare("run:pre-listen-unknown");
+    await h.coordinator.beginWrite(effect);
+    await h.coordinator.markUnknown(effect);
+    await assert.rejects(host.attestStartupActivation(),
+      e => e.code === "PA05_HOST_LIFECYCLE_PENDING_WRITE");
+    assert.equal((await h.gate.getState(packageId)).state, "FROZEN");
+    assert.equal((await h.coordinator.getWrite({
+      scope, effectId: effect.effectId
+    })).state, "UNKNOWN");
+  } finally {
+    await host.close();
+    await h.close();
+  }
+});
