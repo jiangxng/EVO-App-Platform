@@ -118,6 +118,11 @@
       "name": "fix/governance-session-fallback-20261015",
       "expectedHeadSha": "667ac0959a3e73e59ce82cde0ad683500baa9d08",
       "reason": "Governance PR #876 merged on main (3ff793a50b42e2cc9dc498b30b836c9ba06fbec9); exact head is ancestor of main with no unique commits; no open PR references as checked 2026-10-15. Object import/BEX branches intentionally excluded."
+    },
+    {
+      "name": "docs/governance-safe-retirement-no-bex-20261015",
+      "expectedHeadSha": "143f92bec81c74afd90f11c3291789e0fddb3154",
+      "reason": "Retirement authorization PR #887 merged on main a980799bc85094c931528f1572ed2f5f5f2b165d; historical docs branch is now an exact ancestor with zero unique commits. BEX/object import branches explicitly excluded."
     }
   ]
 }
