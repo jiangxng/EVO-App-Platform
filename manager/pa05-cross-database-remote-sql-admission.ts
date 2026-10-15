@@ -64,6 +64,9 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
   /** D14B1 optional fresh-login cross-PG Host attestation preflight.
    * It is NOT an atomic credential revocation with central reserve. */
   hostPrincipal?:{readonly hostId:string;readonly revision:number;assertActive():Promise<void>};
+  /** D14C2 opt-in complete domain Owner SQL guard certification.
+   * Trusted Host port, never a Worker/Agent-selected table list. */
+  domainCoverage?:{assertInstalled():Promise<void>};
 }):Promise<Pa05RemoteSqlAdmissionV010> {
   const workerId=id(input.workerId),owner=id(input.ownerPackageId),
     version=versionName(input.ownerVersion),role=roleName(input.workerLoginRole);
@@ -249,6 +252,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         // process-injected capability reauthenticates all three PostgreSQL
         // sessions BEFORE any new Owner reservation or remote ticket.
         if(input.hostPrincipal)await input.hostPrincipal.assertActive();
+        if(input.domainCoverage)await input.domainCoverage.assertInstalled();
         const rows=await db.unsafe("SELECT scope_key,effect_id,run_id,input_digest,fence,state "+
           "FROM "+table+" WHERE scope_key=$1 AND effect_id=$2",[scopeKey,effectId]);
         if(rows.length!==1||rows[0].state!=="PREPARED")
@@ -264,6 +268,9 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
         // Recheck before local ticket stage; failure conservatively retains
         // central PENDING. This still is NOT an atomic cross-DB revocation.
         if(input.hostPrincipal)await input.hostPrincipal.assertActive();
+        // Failed post-reserve coverage revalidation keeps the central
+        // reservation PENDING and never stages a local ticket.
+        if(input.domainCoverage)await input.domainCoverage.assertInstalled();
         await db.begin(async tx=>{
           // Prevent a late ticket being installed after local freeze.
           // FOR SHARE serializes with freezeRemote's UPDATE of the same row.
