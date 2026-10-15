@@ -21,6 +21,11 @@ const id = (v:string) => {
     throw Error("PA05_XDB_REMOTE_TRUSTED_ID_INVALID");
   return v;
 };
+const versionName = (v:string) => {
+  if(typeof v!=="string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(v))
+    throw Error("PA05_XDB_REMOTE_VERSION_INVALID");
+  return v;
+};
 const scope = (v:string) => {
   if(typeof v!=="string" || !v || v.length>1024 || /[\u0000-\u001f]/.test(v))
     throw Error("PA05_XDB_REMOTE_EFFECT_ID_INVALID");
@@ -53,7 +58,7 @@ export async function createPa05CrossDatabaseRemoteSqlAdmissionV010(input:{
   authority:Pa05CrossDatabaseReservationAuthorityV010;
 }):Promise<Pa05RemoteSqlAdmissionV010> {
   const workerId=id(input.workerId),owner=id(input.ownerPackageId),
-    version=id(input.ownerVersion),role=roleName(input.workerLoginRole);
+    version=versionName(input.ownerVersion),role=roleName(input.workerLoginRole);
   const s=schemaName(input.workerSchema),q='"'+s+'"';
   const table=q+".pa02b_writes",tickets=q+".pa05_xdb_remote_tickets",
     config=q+".pa05_xdb_remote_config";
