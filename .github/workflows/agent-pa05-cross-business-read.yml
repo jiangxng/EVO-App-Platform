@@ -12,6 +12,8 @@ on:
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - "certification/README.md"
       - "apps/trading-reference/**"
+      - "apps/purchase-attention/**"
+      - "tests/agent-line/pa05-independent-purchase-attention.test.mjs"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -26,6 +28,8 @@ on:
       - "certification/pa05-read-action-gateway.mjs"
       - "certification/capability-operation-schema-fixture.mjs"
       - "apps/trading-reference/**"
+      - "apps/purchase-attention/**"
+      - "tests/agent-line/pa05-independent-purchase-attention.test.mjs"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -55,6 +59,7 @@ jobs:
           tests/agent-line/pa05-cross-business-read-certification.test.mjs
           tests/agent-line/pa05-schema-cert-fixture.test.mjs
           tests/agent-line/pa05-read-runtime-guard.test.mjs
+          tests/agent-line/pa05-independent-purchase-attention.test.mjs
           tests/protocol/personal-agent-capability-fabric.test.mjs
           tests/protocol/tr01-purchase-operational-capability.test.mjs
           tests/configurator/capability-operations.test.mjs
