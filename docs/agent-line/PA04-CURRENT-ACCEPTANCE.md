@@ -107,3 +107,11 @@
 - **验收证据**：`tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs` 构造含伪造 SYSTEM 指令与外发目标的恶意文档，让模型试图调用目录中存在的 `external_upload`；检验 Host 对具体调用拒绝、外发函数调用次数为零、运行状态可审计且 PostgreSQL 重启后不重放；授权服务抛错时 fail-closed；允许正常授权 READ、未知/同时多个模型工具请求均无实际副作用。专用 CI 与原 PA-02 Worker / PA-04 C03 回归必须通过准确最终 HEAD。
 - **不能宣称的能力**：新端口为 **Host 可选注入，默认行为不变**，当前实际业务 Host 尚未提供全类型工具的目标域名 allowlist/网络 egress 强制器。模型上下文仍包含工具观察的 JSON，提示层标签不是硬隔离；尚未覆盖所有实际附件解析器、文件下载、浏览器/API/插件网络出口，也未对全部生产 WRITE 建立独立 Human 明示动作白名单。C05 与 PA-04 总体保持 `IN_PROGRESS / NOT_SIGNED`。不得用本次隔离模拟声称完全防御 prompt injection。
 - **独立边界**：不修改 `manager/server.ts`、BEX/CP-03、2D、核心全局 authority 或线上部署；不运行实际外部请求、不开放生产 WRITE；PA-02 R10 真实计费仍 OPEN。
+
+
+## 2026-10-15：PA-04 C01–C06 统一证据与验收门禁（第九个局部闭环）
+
+- **总表**：[PA04-C01-C06-CONVERGENCE.md](./PA04-C01-C06-CONVERGENCE.md)；机器台账为 [PA04-C01-C06-READINESS-LEDGER.json](./PA04-C01-C06-READINESS-LEDGER.json)。六项均已具备隔离工程子能力，但 **零项具备完整真实环境 SIGNED 证据**；继续 `IN_PROGRESS / NOT_SIGNED`，不得把八个已有 PR 或本批统一 CI 的 green 当作上线。
+- **当前唯一新工程门禁**：`.github/workflows/agent-pa04-c01-c06-consolidated.yml` 把 9 组历史 C01–C06 负向/正常测试和新的 `pa04-convergence-readiness.test.mjs` 同时跑在隔离 PostgreSQL18 上，硬性要求 PG 专项打印实际通过标记；无 PG 时不能靠 test.skip 假通过，自动阻止证据丢失或无来源签收。
+- **已确认外部依赖**：C01 真实 Provider/local tokenizer 与长会话；C02 原文/Memory/EC/索引/备份传播；C03 真实插件资源版本；C04 Human 页面与企业 Owner 真相；C05 全链路网络 egress 授权；C06 真实来源权限及历史回答/附件下载。由各 Host/Owner 接入后再分别签收。
+- **业务隔离**：未触碰 BEX/CP-03、2D、`manager/server.ts`、全局进度文件或线上；PA-02 R10 真实费用 [#879](https://github.com/jiangxng/EVO-App-Platform/issues/879) 仍独立 OPEN。统一 CI 完成后可以准备 PA-05 插件认证工作，但不宣称 PA-04 已正式验收完成。
