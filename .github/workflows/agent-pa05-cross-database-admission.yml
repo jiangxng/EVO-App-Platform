@@ -8,6 +8,7 @@ on:
       - "manager/pa05-cross-database-host-principal.ts"
       - "manager/pa05-cross-database-owner-settlement.ts"
       - "manager/pa05-cross-database-domain-owner-fence.ts"
+      - "manager/pa05-cross-database-domain-coverage.ts"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
@@ -17,6 +18,7 @@ on:
       - "tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - ".github/workflows/agent-pa05-cross-database-admission.yml"
   push:
@@ -86,7 +88,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs | tee pa05-xdb.log
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq '"physicalClusters":3' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
@@ -99,6 +101,9 @@ jobs:
           grep -Fq 'PA05_XDB_HOST_PRINCIPAL_BINDING_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_TRANSACTIONAL_HOST_FENCE_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_DOMAIN_OWNER_PARTITION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_DOMAIN_COVERAGE_PG=' pa05-xdb.log
+          grep -Fq '"postCentralReserveFailureLeavesPendingAndNoLocalTicket":true' pa05-xdb.log
+          grep -Fq '"existingBusinessPluginsAutoProtected":false' pa05-xdb.log
           grep -Fq '"hostUnticketedBeginWriteDenied":true' pa05-xdb.log
           grep -Fq '"privilegedTableOwnerCanDisableTrigger":true' pa05-xdb.log
           grep -Fq '"defaultBusinessPluginsFenced":false' pa05-xdb.log
