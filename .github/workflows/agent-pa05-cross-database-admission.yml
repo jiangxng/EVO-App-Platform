@@ -4,19 +4,24 @@ on:
     paths:
       - "manager/pa05-cross-database-admission.ts"
       - "manager/pa05-cross-database-remote-sql-admission.ts"
+      - "manager/pa05-cross-database-freeze.ts"
       - "manager/pa05-cross-database-owner-settlement.ts"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - ".github/workflows/agent-pa05-cross-database-admission.yml"
   push:
     branches: [main]
     paths:
       - "manager/pa05-cross-database-admission.ts"
+      - "manager/pa05-cross-database-remote-sql-admission.ts"
+      - "manager/pa05-cross-database-freeze.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs"
       - ".github/workflows/agent-pa05-cross-database-admission.yml"
 permissions:
   contents: read
@@ -76,7 +81,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs | tee pa05-xdb.log
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq '"physicalClusters":3' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
@@ -85,6 +90,9 @@ jobs:
           grep -Fq 'PA05_XDB_GOVERNED_HANDOFF_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_OWNER_VERIFIED_SETTLEMENT_PG=' pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_SQL_HOST_IDENTITY_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_REMOTE_MONOTONE_FREEZE_PG=' pa05-xdb.log
+          grep -Fq '"remotePartitionCannotClaimGlobalFreeze":true' pa05-xdb.log
+          grep -Fq '"preStagedTicketCanExecuteOnUnreachableActiveRemote":true' pa05-xdb.log
           grep -Fq '"parallelSettlementExactlyOneNewTransition":true' pa05-xdb.log
           grep -Fq '"duplicateSettlementIdempotent":true' pa05-xdb.log
           grep -Fq '"actualPa02Handoff":true' pa05-xdb.log
