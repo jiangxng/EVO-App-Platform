@@ -378,7 +378,8 @@ export function createReadOnlyFencedAgentWorkerV030(
         }
         for(const item of completed) {
           if(item.decision.type!=="tool")continue;
-          const descriptor=allTools.find(t=>t.id===item.decision.call.tool);
+          const call=item.decision.call;
+          const descriptor=allTools.find(t=>t.id===call.tool);
           if(descriptor?.effect==="WRITE")continue;
           if(!descriptor || descriptor.effect!=="READ") {
             await append("RUN_BLOCKED",{
