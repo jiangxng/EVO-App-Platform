@@ -116,6 +116,7 @@ export function createObjectExtensionActionHandlersV010(input: {
   getImportJob?(contextId: string, jobId: string): DataImportJobV010 | undefined;
   applyImportMapping?(input: {
     contextId: string; importJobId: string; mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     actorSubjectId: string; recordedAt: string;
   }): void;
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
