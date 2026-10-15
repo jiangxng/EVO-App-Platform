@@ -249,6 +249,12 @@ with sync_playwright() as p:
    entry=page.locator('[data-eidos-context-route*="&mode=batch"]')
    expect(entry.first).to_be_visible()
    entry.first.click()
+   page.wait_for_timeout(850)
+   print("BEX_BATCH_ROUTE_AFTER_CLICK="+json.dumps({
+     "url":page.url,"body":page.locator("body").inner_text()[:1300],
+     "formIds":page.locator("form[data-eidos-id]").evaluate_all(
+       "(forms)=>forms.map(x=>x.getAttribute('data-eidos-id'))")
+   },ensure_ascii=False),flush=True)
    form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
    expect(form).to_be_visible(timeout=30000)
    for i,name in enumerate(names):
