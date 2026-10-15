@@ -145,7 +145,7 @@ async function setup() {
         sourceInteractionId: runId, sourceActionId: "write",
         principalSubjectId: s.principalSubjectId,
         principalActorType: s.principalActorType, context: c,
-        toolId: operationId, ownerPackageId, inputDigest,
+        toolId: operationId, ownerPackageId: packageId, inputDigest,
         requestedAt: "2026-10-15T03:01:00.000Z"
       }
     });
