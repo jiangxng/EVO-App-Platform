@@ -243,7 +243,7 @@ export function createReadOnlyFencedAgentWorkerV030(
             approved=await deps.toolCallAdmission.authorize({
               run:structuredClone(run),
               decision:structuredClone(decisionRecord),
-              ...(descriptor?{descriptor:structuredClone(descriptor)}:{}),
+              descriptor:descriptor?structuredClone(descriptor):undefined,
               principal:structuredClone(input.principal),
               context:structuredClone(input.context),
               ...(input.requestContext
