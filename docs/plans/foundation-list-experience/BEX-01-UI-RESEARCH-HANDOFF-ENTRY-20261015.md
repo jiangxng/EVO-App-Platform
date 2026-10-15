@@ -1,5 +1,8 @@
 # BEX-01 / CP-03 界面研究与治理 — 简短交接入口（2026-10-15）
 
+> **2026-10-15 最新跨窗口接续（覆盖下方旧时点的进度描述）：** [V3 本窗口简短交接入口](BEX-01-UI-V3-SESSION-HANDOFF-20261015.md) · [V3 资料与决策详细索引](BEX-01-UI-V3-SESSION-RESEARCH-INDEX-20261015.md)。旧章节为历史研究记录，继续保留来源与当时结论；新窗口优先按最新入口及 GitHub 当前 HEAD 判断已合并功能、未合并 PR 和真实数据验收。
+
+
 > **先读本页，详细资料转到 [研究决策参考索引](BEX-01-UI-RESEARCH-DECISION-REFERENCE-INDEX-20261015.md)。** 这是新的窗口接续入口，而不是替代旧 `BEX-01-WINDOW-HANDOFF-ENTRY-20261015.md` 所保存的历史工程交接。主线当前状态仍需在接续时重新核对 GitHub main、PR、CI 与 Railway 固定版本。
 
 > **治理核验补充（2026-10-15）：** Eidos [PR #183](https://github.com/jiangxng/eidos/pull/183) 已经在该仓库 main 合并为 `5d832200f10a423179928dc1cd467217c9167e79`，EVO Platform [PR #904](https://github.com/jiangxng/EVO-App-Platform/pull/904) 已经合并为 `1970c06238ff1e45930219f499e028609305c2e5`。这两个治理 PR 的 CI 已通过，**代码 PR 中的检查记录门禁已经进入主线**；机械门禁仅核查有记录/栏目/改动文件链接，无法代替实际体验质量或 Human 验收。本 #899 仅归档研究与原型，未实施 BEX V2。
