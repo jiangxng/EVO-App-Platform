@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-05/E01C candidate — NOT_SIGNED:** [trusted generic on-demand Host catalog + existing Router registration, actual source and negative test ledger](PA05-E01C-TRUSTED-ON-DEMAND-HOST-REGISTRATION-20261016.md) → [baseline §46](PA05-CERTIFICATION-BASELINE-20261015.md) → [#979 live E01-E05](https://github.com/jiangxng/EVO-App-Platform/issues/979). E01B [#982](https://github.com/jiangxng/EVO-App-Platform/pull/982) merged at `main@cd1163033a32be4ce949f01dd226b55eae6a2a4a`; E01C independent branch `agent/pa05-e01c-lazy-runtime-admission-20261016`. No `manager/server.ts` startup import, default plugin install, production Provider/Human signing, or WRITE. Require exact HEAD CI before merge. Issue #913 OPEN, W06 NOT_SIGNED, BEX/CP03/Eidos/2D/global continuity unchanged.
+
+
 > **2026-10-16 PA05-05/E01B candidate, NOT_SIGNED:** [plugin-owned lazy Host adapter + Lightweight Host ratchet decision record](PA05-E01B-OPTIN-REAL-HOST-PURCHASE-READ-20261016.md) → [baseline §45](PA05-CERTIFICATION-BASELINE-20261015.md) → [PA05-05 actual Human/Provider blocker #979](https://github.com/jiangxng/EVO-App-Platform/issues/979). Candidate PR #982, branch `agent/pa05-e01b-optin-host-read-20261016`. The first opt-in startup implementation was **rejected by real CI** as an eager plugin import; `manager/server.ts` was restored unchanged. The remaining genuine plugin-owned adapter is tested only in isolated Host composition, no default Host install/routing, Provider or Human signing. Need final exact-HEAD CI before merge. #913 remains OPEN; PA-05/W06 NOT_SIGNED and production WRITE OFF. No BEX/CP03/Eidos/2D or global continuity edits.
 
 
