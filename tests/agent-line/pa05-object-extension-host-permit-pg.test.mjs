@@ -254,10 +254,37 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(orphanWrite(),/PA05_OBJECT_SQL_RECEIPT_REQUIRED/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
       ".pa02_contexts"))[0].n,0);
+    // D14C7: independently revoke a real issued, unused one-effect permit.
+    // The already known bearer token and still-valid D10 ticket fail closed.
+    assert.equal(await issuer.revoke({
+      scopeKey,effectId:orphan.effectId,
+      token:"0".repeat(64)
+    }),"NOT_FOUND");
+    await assert.rejects(stolen.unsafe("SELECT "+d+
+      ".pa05_object_revoke_host_permit($1,$2,$3)",[
+        scopeKey,orphan.effectId,orphanToken
+      ]),/permission denied/);
+    assert.equal(await issuer.revoke({
+      scopeKey,effectId:orphan.effectId,token:orphanToken
+    }),"REVOKED");
+    assert.equal(await issuer.revoke({
+      scopeKey,effectId:orphan.effectId,token:orphanToken
+    }),"REVOKED");
+    await assert.rejects(orphanWrite(),
+      /PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED/);
+    await assert.rejects(issuer.issue({
+      scopeKey,runId:orphan.runId,effectId:orphan.effectId,
+      inputDigest:orphan.inputDigest,contextId:scope.contextId,
+      enterpriseId:scope.enterpriseId
+    }),/PA05_OBJECT_SQL_HOST_PERMIT_UNRESOLVED/);
     // D14C3's raw original Owner bypass is also physically denied.
     await assert.rejects(raw.owner.invoke(real),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
     await guarded.owner.invoke(real);
+    // Once original Owner receipt committed, no later revoke can erase it.
+    assert.equal(await issuer.revoke({
+      scopeKey,effectId:real.effectId,token:issued[0]
+    }),"COMMITTED");
     assert.equal(issued.length,1);
     assert.equal(issued[0].length,64);
     // Consumed real permit is no longer valid even when GUCs are forged.
@@ -277,6 +304,61 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+
       d+".pa02_owner_evidence"))[0].n,1);
 
+    // D14C7: real PostgreSQL race. The original business transaction
+    // holds FOR UPDATE on its Host permit row across the resource/evidence
+    // atomic commit. Host revocation must wait and report COMMITTED.
+    const racing=request("concurrent-revoke-commit");
+    await seed(racing);
+    await gateway.stagePreparedEffect({scopeKey,effectId:racing.effectId});
+    await start(racing);
+    let enteredResolve,releaseResolve,raceToken;
+    const entered=new Promise(resolve=>{enteredResolve=resolve;});
+    const release=new Promise(resolve=>{releaseResolve=resolve;});
+    const racedOwner=createPostgresObjectExtensionAtomicOwnerV010({
+      connectionString:u(urls[1],businessRole,password),
+      schema:ownerSchema,testOnlyAfterBusinessInsert:async()=>{
+        enteredResolve();await release;
+      },
+      pa05PhysicalAdmission:{workerSchema,hostPermitIssuer:{
+        issue:async req=>{
+          raceToken=await issuer.issue(req);
+          return raceToken;
+        }
+      }}
+    });
+    try{
+      const writeTask=racedOwner.owner.invoke(racing);
+      await Promise.race([
+        entered,
+        writeTask.then(()=>{throw Error("PA05_RACE_CHECKPOINT_MISSED");})
+      ]);
+      const revokeTask=issuer.revoke({
+        scopeKey,effectId:racing.effectId,token:raceToken
+      });
+      // Observe actual blocked backend instead of assuming a JS timer
+      // proves database mutual exclusion.
+      let blocked=false;
+      for(let attempt=0;attempt<30;attempt++){
+        const active=await db.unsafe(
+          "SELECT count(*)::int AS n FROM pg_stat_activity "+
+          "WHERE query LIKE $1 AND wait_event_type='Lock'",
+          ["%"+ownerSchema+"%pa05_object_revoke_host_permit%"]);
+        if(active[0].n>0){blocked=true;break;}
+        await new Promise(resolve=>setTimeout(resolve,40));
+      }
+      releaseResolve();
+      await writeTask;
+      assert.equal(await revokeTask,"COMMITTED");
+      assert.equal(blocked,true);
+      assert.equal((await racedOwner.verifier.verify({
+        scope,runId:racing.runId,effectId:racing.effectId,
+        receiptId:racing.receiptId,inputDigest:racing.inputDigest,
+        ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID
+      })).outcome,"SUCCEEDED");
+    }finally{
+      releaseResolve();
+      await racedOwner.close();
+    }
     // Previously INVOKING but not committed: local STOP acquires the same
     // config row lock, and the physical business table trigger checks it.
     const frozen=request("frozen-uncommitted");
@@ -289,7 +371,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(raw.owner.invoke(frozen),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+
-      d+".pa02_owner_evidence"))[0].n,1);
+      d+".pa02_owner_evidence"))[0].n,2);
 
     // A privileged database table owner can still disable the physical SQL
     // trigger. This remains a named production blocker, not a signoff.
@@ -315,7 +397,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID
     })).outcome,"SUCCEEDED");
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+
-      d+".pa02_owner_evidence"))[0].n,2);
+      d+".pa02_owner_evidence"))[0].n,3);
     for(const table of ["pa02_contexts","pa02_definitions","pa02_owner_evidence"])
       await db.unsafe("ALTER TABLE "+d+"."+table+
         " ENABLE TRIGGER pa05_object_physical_guard");
@@ -324,7 +406,21 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         " ENABLE TRIGGER pa05_object_commit_receipt_guard");
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
-    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,3);
+    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,4);
+    console.log("PA05_ACTUAL_OBJECT_HOST_PERMIT_REVOCATION_PG="+JSON.stringify({
+      realPlugin:"evo-object-extension",physicalClusters:3,
+      unusedPermitRevocationDurable:true,
+      stolenBearerAfterRevokeDenied:true,
+      invalidRevokeTargetNotFound:true,
+      businessSqlLoginCannotRevoke:true,
+      revokedPermitCannotBeBlindlyReissued:true,
+      originalCommittedReceiptCannotBeRevoked:true,
+      ownerTransactionCommitWinsSqlPermitRowLock:true,
+      concurrentRevokeReturnsCommittedNotFalseCancellation:true,
+      originallyIndependentOwnerVerifierReused:true,
+      privilegedAdministratorCanStillBypass:true,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_ACTUAL_OBJECT_SQL_ROLE_DRIFT_PG="+JSON.stringify({
       physicalClusters:3,realPlugin:"evo-object-extension",
       hostWorkerDmlGrantDeniedAtNewIssuance:true,

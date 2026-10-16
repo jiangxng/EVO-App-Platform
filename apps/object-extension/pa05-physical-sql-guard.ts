@@ -129,6 +129,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "enterprise_id text NOT NULL,token text NOT NULL,"+
           "issued_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
           "consumed boolean NOT NULL DEFAULT false,"+
+          "revoked boolean NOT NULL DEFAULT false,"+
           "PRIMARY KEY(scope_key,effect_id))");
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_permits FROM PUBLIC");
@@ -190,6 +191,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF has_function_privilege(v_business,",
           " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text)',",
+          " 'EXECUTE') OR has_function_privilege(v_business,",
+          " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
           " 'EXECUTE') THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
@@ -246,6 +249,39 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
           ".pa05_object_issue_host_permit(text,text,text,text,text,text) TO "+
           '\"'+hostRole+'\"');
+        // D14C7: one-effect revocation is a durable PostgreSQL row transition.
+        // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
+        // same permit row. A committed effect returns COMMITTED, not REVOKED.
+        const revokeBody=[
+          "DECLARE v_state text;",
+          "BEGIN",
+          "IF SESSION_USER!='"+hostRole+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_LOGIN_REQUIRED'; END IF;",
+          "PERFORM "+d+".pa05_object_assert_role_boundary();",
+          "SELECT CASE WHEN consumed THEN 'COMMITTED'",
+          " WHEN revoked THEN 'REVOKED' ELSE 'ACTIVE' END",
+          " INTO v_state FROM "+d+".pa05_object_host_permits",
+          " WHERE scope_key=p_scope AND effect_id=p_effect AND token=p_token",
+          " FOR UPDATE;",
+          "IF NOT FOUND THEN RETURN 'NOT_FOUND'; END IF;",
+          "IF v_state='COMMITTED' THEN RETURN 'COMMITTED'; END IF;",
+          "IF v_state='REVOKED' THEN RETURN 'REVOKED'; END IF;",
+          "UPDATE "+d+".pa05_object_host_permits SET revoked=true",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND token=p_token AND NOT consumed AND NOT revoked;",
+          "IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_REVOKE_RACE'; END IF;",
+          "RETURN 'REVOKED'; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_revoke_host_permit(p_scope text,p_effect text,p_token text) "+
+          "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
+          "SET search_path=pg_catalog AS $pa05$"+revokeBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_revoke_host_permit(text,text,text) FROM PUBLIC");
+        await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
+          ".pa05_object_revoke_host_permit(text,text,text) TO "+'\"'+hostRole+'\"');
+
       }
       const source=(key:string)=>"current_setting('evo.pa05."+key+"',true)";
       const body=[
@@ -301,14 +337,16 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " WHERE p.scope_key=v_scope AND p.effect_id=v_effect",
           " AND p.run_id=v_run AND p.input_digest=v_digest",
           " AND p.context_id=v_context AND p.enterprise_id=v_enterprise",
-          " AND NOT p.consumed AND p.issued_at > clock_timestamp()-interval '2 minutes'",
+          " AND NOT p.consumed AND NOT p.revoked",
+          " AND p.issued_at > clock_timestamp()-interval '2 minutes'",
           " FOR UPDATE;",
           "IF v_permit IS NULL OR v_permit IS DISTINCT FROM "+
             source("host_permit")+" THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED'; END IF;",
           "IF TG_TABLE_NAME='pa02_owner_evidence' THEN",
           " UPDATE "+d+".pa05_object_host_permits SET consumed=true",
-          " WHERE scope_key=v_scope AND effect_id=v_effect AND NOT consumed;",
+          " WHERE scope_key=v_scope AND effect_id=v_effect",
+          " AND NOT consumed AND NOT revoked;",
           " IF NOT FOUND THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_PERMIT_CONSUMED'; END IF;",
           "END IF;"
