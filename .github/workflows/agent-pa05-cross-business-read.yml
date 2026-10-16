@@ -21,6 +21,7 @@ on:
       - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
       - "tests/agent-line/pa05-e01e-real-host-http.test.mjs"
       - "tests/agent-line/pa05-e01g-transitive-lifecycle.test.mjs"
+      - "tests/agent-line/pa05-e01h-authorization-race.test.mjs"
       - "manager/pa05-protected-read-lifecycle-impact.ts"
       - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
@@ -50,6 +51,7 @@ on:
       - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
       - "tests/agent-line/pa05-e01e-real-host-http.test.mjs"
       - "tests/agent-line/pa05-e01g-transitive-lifecycle.test.mjs"
+      - "tests/agent-line/pa05-e01h-authorization-race.test.mjs"
       - "manager/pa05-protected-read-lifecycle-impact.ts"
       - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
@@ -169,3 +171,16 @@ jobs:
           grep -Eq '# pass 6' pa05-e01g.log
           grep -Eq '# fail 0' pa05-e01g.log
           grep -Eq '# skipped 0' pa05-e01g.log
+      - name: E01H in-process policy revocation and changing dependency plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01h-authorization-race.test.mjs | tee pa05-e01h.log
+          grep -Fq 'PA05_E01H_AUTHORIZATION_RACE=' pa05-e01h.log
+          grep -Fq '"testedRevocationBetweenChecks":true' pa05-e01h.log
+          grep -Fq '"testedPlanDriftDuringFirstAndSecondAwait":true' pa05-e01h.log
+          grep -Fq '"crossWorkerAtomicityCertified":false' pa05-e01h.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01h.log
+          grep -Eq '# pass 6' pa05-e01h.log
+          grep -Eq '# fail 0' pa05-e01h.log
+          grep -Eq '# skipped 0' pa05-e01h.log
