@@ -33,3 +33,35 @@ export function pa05ProtectedReadLifecycleImpactV010(input: {
   }
   return "NONE";
 }
+
+
+export type Pa05ProtectedReadLifecycleImpactV010 =
+  | "DIRECT" | "TRANSITIVE_INSTALL" | "TRANSITIVE_ACTIVATION" | "NONE";
+
+/**
+ * PA05 E01H: in-process, bounded double-check before accepting a lifecycle
+ * admission that was evaluated asynchronously.
+ *
+ * The authorization Provider must be consulted freshly twice. If it is
+ * revoked or the actual dependency impact changes while awaiting either
+ * decision, deny instead of accepting a stale plan or one ALLOW response.
+ *
+ * This is NOT a distributed lock, database transaction, or permission lease.
+ * A separate Worker or mutation after this method returns needs durable
+ * Host/SQL fencing before production certification.
+ */
+export async function pa05AuthorizeStableProtectedReadLifecycleV010(input: {
+  readImpact(): Pa05ProtectedReadLifecycleImpactV010;
+  authorize(): Promise<boolean>;
+}): Promise<boolean> {
+  try {
+    const initial = input.readImpact();
+    if (initial === "NONE") return true;
+    if (!(await input.authorize())) return false;
+    if (input.readImpact() !== initial) return false;
+    if (!(await input.authorize())) return false;
+    return input.readImpact() === initial;
+  } catch {
+    return false;
+  }
+}
