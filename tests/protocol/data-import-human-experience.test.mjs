@@ -978,8 +978,21 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(x=>x.title),source.headers);
   assert.equal(page.reviewGroups[0].primaryFieldKey,"map_0");
   assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
-  assert.match(page.reviewGroups[3].summary,new RegExp("非空 1 / 1 · old-001"));
+  assert.equal(page.reviewGroups[3].summary,"old-001",
+    "E4 visible cell shows a representative source value, not all samples/statistics");
   assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
+  assert.deepEqual(page.reviewGroups[0].detailFieldKeys,["sourceEvidence_0"],
+    "mapped fields must still expose the original source preview on demand");
+  assert.equal(page.fields.find(x=>x.key==="sourceEvidence_0").readOnly,true);
+  assert.match(page.fields.find(x=>x.key==="sourceEvidence_3").initialValue,
+    /非空 1 \/ 1 · old-001/,
+    "full source preview remains readable after compacting the table");
+  const actualTarget=page.fields.find(x=>x.key==="map_0").options
+    .find(x=>x.value==="code");
+  assert.ok(actualTarget);
+  assert.doesNotMatch(actualTarget.label,/ · code$/,
+    "one unambiguous business field should not show raw technical fieldId");
+  assert.equal(actualTarget.value,"code","submission still uses the exact Host fieldId");
   assert.equal(page.reviewTask.subject.title,"batch-proposals");
   assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
@@ -1009,6 +1022,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
   assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);
+  assert.equal((mapHtml.match(/name="sourceEvidence_0"/g)??[]).length,1);
   assert.match(mapHtml,/old-001/);
   assert.doesNotMatch(mapHtml,/B 方案/);
   assert.match(mapHtml,/data-eidos-field-context-link/);
