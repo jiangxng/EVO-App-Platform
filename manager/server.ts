@@ -2064,6 +2064,14 @@ const providerBindings = providerBindingsFile
   : createMemoryProviderBindingStoreV010();
 const bootstrapAdminToken = process.env.APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN?.trim()
   || process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
+// PA05-05/E01D: host administration feature is unavailable in default builds.
+// This opt-in never installs a package or enables production material WRITE.
+const pa05E01dAdminMode =
+  process.env.APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION?.trim() || "OFF";
+if (pa05E01dAdminMode !== "OFF" && pa05E01dAdminMode !== "OPT_IN") {
+  throw new Error("PA05_E01D_ADMIN_MODE_INVALID");
+}
+
 const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-governance-audit.jsonl") : undefined);
 const providerAudit = providerAuditFile
@@ -6528,6 +6536,99 @@ const server = createServer(async (request, response) => {
         defaultActiveContext: contextRegistry.resolve().activeContext
       });
     }
+    // PA05-05/E01D: explicitly opted-in, bootstrap-authenticated and
+    // policy-authorized Host operator may make ONE first-party READ plugin
+    // available for a SEPARATE AppManager install. No user-selected imports,
+    // provider credentials, default Host business module, or WRITE.
+    if (request.method === "POST"
+        && url.pathname === "/v1/admin/pa05/read-plugin/admit") {
+      response.setHeader("cache-control", "no-store");
+      if (pa05E01dAdminMode !== "OPT_IN") {
+        return json(response, 404, {
+          ok: false, error: { code: "PA05_E01D_ADMIN_NOT_ENABLED" }
+        });
+      }
+      const bearer = request.headers.authorization;
+      const adminToken = typeof bearer === "string"
+        && bearer.startsWith("Bearer ") ? bearer.slice(7) : undefined;
+      const packageId = "evo-purchase-attention";
+      const authorize = () => authorizeHostAdministration(
+        adminToken,
+        "host.plugin.read.admit",
+        {
+          type: "plugin-package",
+          id: packageId,
+          attributes: { effect: "READ", admission: "REGISTER_ONLY" }
+        }
+      );
+      const decision = await authorize();
+      if (!decision.allowed) {
+        return json(response, 403, {
+          ok: false,
+          error: { code: "PA05_E01D_ADMIN_DENIED", reason: decision.reason }
+        });
+      }
+      let body: unknown;
+      try {
+        body = await readJsonLimited(request, 4096);
+      } catch {
+        return json(response, 400, {
+          ok: false, error: { code: "PA05_E01D_INVALID_BODY" }
+        });
+      }
+      if (!body || typeof body !== "object" || Array.isArray(body)
+          || Object.keys(body).some(key =>
+            key !== "packageId" && key !== "confirmed")
+          || (body as {packageId?: unknown}).packageId !== packageId
+          || (body as {confirmed?: unknown}).confirmed !== true) {
+        return json(response, 400, {
+          ok: false, error: { code: "PA05_E01D_EXPLICIT_CONFIRMATION_REQUIRED" }
+        });
+      }
+      try {
+        // Intentionally deferred INSIDE the authorized request; the Host
+        // startup/static dependency graph must remain unchanged.
+        const { createOnDemandHostReadAdmissionV010 } =
+          await import("./on-demand-host-read-admission.js");
+        const gate = createOnDemandHostReadAdmissionV010({
+          catalog,
+          router: actionRouter,
+          expectedPackageId: packageId,
+          expectedOperationId: "purchase.attention.read",
+          expectedCommandCode: "purchase.attention.read",
+          async authorizeHostAdmission() {
+            return (await authorize()).allowed;
+          },
+          async load() {
+            const adapter = await import("../apps/purchase-attention/host-optin.js");
+            return {
+              manifest: adapter.purchaseAttentionPackageV010,
+              handler: adapter.createPurchaseAttentionHostActionHandlerV010({
+                resolveSourceRouter: () => actionRouter,
+                resolveAuthorizationProvider
+              })
+            };
+          }
+        });
+        await gate.admit();
+        return json(response, 200, {
+          ok: true,
+          stage: "AVAILABLE_NOT_INSTALLED",
+          packageId,
+          plan: installPlanWithDigest(packageId),
+          productionWriteEnabled: false
+        });
+      } catch (error) {
+        const code = error instanceof Error ? error.message.split(":")[0] : "";
+        const known = code.startsWith("ON_DEMAND_HOST_") ? code :
+          "PA05_E01D_ADMIN_ADMISSION_FAILED";
+        return json(response, 409, {
+          ok: false,
+          error: { code: known }
+        });
+      }
+    }
+
     if (request.method === "GET" && url.pathname === "/v1/catalog") {
       return json(response, 200, manager.listCatalog());
     }
