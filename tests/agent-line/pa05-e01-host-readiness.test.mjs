@@ -112,12 +112,8 @@ test("E01A: current actual production Host source does not wire purchase-attenti
   // A source-level negative audit of the precisely versioned Host code.
   // It does NOT inspect Railway, authenticated browser or persisted installs.
   const host=readFileSync(new URL("../../manager/server.ts",import.meta.url),"utf8");
-  // E01B adds an explicitly gated, lazy Host registration path. The
-  // default remains OFF: catalog exposure alone does not install a plugin.
-  assert.ok(host.includes('process.env.APP_PLATFORM_PA05_E01_PURCHASE_ATTENTION_HOST'));
-  assert.ok(host.includes('pa05PurchaseAttentionMode === "OPT_IN"'));
-  assert.ok(host.includes('optionalPa05PurchaseAttentionHost.createPurchaseAttentionHostActionHandlerV010'));
-  assert.equal(host.includes("installBusinessDefaultOnce(PURCHASE_ATTENTION"),false);
+  assert.equal(host.includes("purchaseAttentionPackageV010"),false);
+  assert.equal(host.includes("createPurchaseAttentionActionHandlerV010"),false);
   const f=fixture();
   f.manager.install(purchaseAttentionPackageV010.packageId);
   const isolated=f.inspect([f.attentionHandler,f.sourceHandler]);
