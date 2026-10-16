@@ -18,7 +18,6 @@ on:
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
       - "apps/purchase-attention/host-optin.ts"
-      - "manager/server.ts"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -39,7 +38,6 @@ on:
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
       - "apps/purchase-attention/host-optin.ts"
-      - "manager/server.ts"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -90,6 +88,7 @@ jobs:
           set -euo pipefail
           node --test tests/agent-line/pa05-e01b-host-optin.test.mjs | tee pa05-e01b.log
           grep -Fq 'PA05_E01B_HOST_OPTIN=' pa05-e01b.log
+          grep -Fq '"defaultHostUnchanged":true' pa05-e01b.log
           grep -Fq '"installRemainsExplicit":true' pa05-e01b.log
           grep -Fq '"realProductionInstallationVerified":false' pa05-e01b.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01b.log
