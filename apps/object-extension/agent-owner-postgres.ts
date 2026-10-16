@@ -253,9 +253,12 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
             approvedEvidenceDigest:evidenceDigest,approvedIdempotencyHash:key
           });
           if(typeof hostPermit!=="string"||
-            !/^[a-f0-9]{64}$/.test(hostPermit))
+            !/^[a-f0-9]{32,64}$/.test(hostPermit))
             throw Error("PA05_OBJECT_SQL_HOST_PERMIT_INVALID");
-          if(await issuer.bindTransaction({
+          // D14C5's historical 32-hex idempotent read-only sentinel must
+          // never be bound for a new write, but can reach the ORIGINAL
+          // Owner's immutable receipt idempotency comparison below.
+          if(hostPermit.length===64 && await issuer.bindTransaction({
             scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
             effectId:r.effectId,token:hostPermit,
             backendPid:Number(identity[0]?.pid),
