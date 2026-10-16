@@ -2998,6 +2998,7 @@ form[data-eidos-id] button:hover,
  [data-eidos-form-review-table] tbody th[data-eidos-review-table-subject]{
    grid-column:1;
    grid-row:1;
+   width:100%;
    min-width:0;
    align-self:center;
  }
