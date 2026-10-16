@@ -3240,36 +3240,33 @@ async function authorizePa05E01fLifecycle(
   packageId: string | undefined,
   operation: string
 ): Promise<boolean> {
-  if (packageId !== pa05E01fProtectedPackageId) {
-    if (operation !== "INSTALL" && operation !== "ENABLE") return true;
-    // E01G: a different package can bring a protected first-party Owner in
-    // through an AppManager dependency. Keep this helper out of startup.
-    const { pa05ProtectedReadLifecycleImpactV010 } =
-      await import("./pa05-protected-read-lifecycle-impact.js");
-    const impact = pa05ProtectedReadLifecycleImpactV010({
+  if (packageId !== pa05E01fProtectedPackageId
+      && operation !== "INSTALL" && operation !== "ENABLE") return true;
+  // E01H: no business module at Host startup. Reuse E01G's real manager
+  // impact and re-check it across BOTH fresh asynchronous policy decisions.
+  const {
+    pa05ProtectedReadLifecycleImpactV010,
+    pa05AuthorizeStableProtectedReadLifecycleV010
+  } = await import("./pa05-protected-read-lifecycle-impact.js");
+  const header = request.headers.authorization;
+  const token = typeof header === "string" && header.startsWith("Bearer ")
+    ? header.slice("Bearer ".length) : undefined;
+  return pa05AuthorizeStableProtectedReadLifecycleV010({
+    readImpact: () => pa05ProtectedReadLifecycleImpactV010({
       manager,
       requestedPackageId: packageId,
       protectedPackageId: pa05E01fProtectedPackageId,
       operation
-    });
-    if (impact === "NONE") return true;
-  }
-  const header = request.headers.authorization;
-  const token = typeof header === "string" && header.startsWith("Bearer ")
-    ? header.slice("Bearer ".length) : undefined;
-  try {
-    const decision = await authorizeHostAdministration(
+    }),
+    authorize: async () => (await authorizeHostAdministration(
       token, `host.plugin.lifecycle.${operation.toLowerCase()}`,
       {
         type: "plugin-package",
         id: pa05E01fProtectedPackageId,
         attributes: { effect: "READ", operation, admission: "LIFECYCLE_ONLY" }
       }
-    );
-    return decision.allowed === true;
-  } catch {
-    return false;
-  }
+    )).allowed === true
+  });
 }
 
 const providerLifecycleAdministration = createProviderLifecycleAdministrationV010({
