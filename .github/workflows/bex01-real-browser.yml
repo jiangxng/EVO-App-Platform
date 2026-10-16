@@ -57,7 +57,7 @@ jobs:
         run: python tests/bex01/v3_source_audit_chromium.py
       - name: V3 governed row correction and revert
         run: python tests/bex01/v3_row_correction_chromium.py
-      - name: V3 batch subject constant: real isolated Host save and desktop/mobile restore
+      - name: "V3 batch subject constant: real isolated Host save and desktop/mobile restore"
         run: python tests/bex01/v3_batch_constant_host_chromium.py
       - name: V3 synthetic 22-column 172-row actual XLSX through Host and Chromium
         run: python tests/bex01/v3_synthetic_xlsx_172_chromium.py
