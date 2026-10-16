@@ -282,6 +282,67 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       /PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED/);
     await assert.rejects(issuer.issue(approvedRequest(orphan)),
       /PA05_OBJECT_SQL_HOST_PERMIT_UNRESOLVED/);
+    // D14C8: a *valid, unrevoked* captured token + genuine D10 receipt
+    // cannot authorize different business fields, resource JSON or receipt.
+    const tampered=request("approved-payload-tamper");
+    await seed(tampered);
+    await gateway.stagePreparedEffect({scopeKey,effectId:tampered.effectId});
+    await start(tampered);
+    const expected=approvedRequest(tampered);
+    await assert.rejects(issuer.issue({
+      ...expected,approvedResource:{
+        ...expected.approvedResource,payload:{
+          ...expected.approvedResource.payload,fieldId:"injected-field"
+        }
+      }
+    }),/PA05_OBJECT_SQL_APPROVED_COMMAND_MISMATCH/);
+    const approvedToken=await issuer.issue(expected);
+    const forge=async(changeReceipt)=>stolen.begin(async tx=>{
+      for(const [key,value] of [["scope_key",scopeKey],
+        ["run_id",tampered.runId],["effect_id",tampered.effectId],
+        ["input_digest",tampered.inputDigest],
+        ["context_id",scope.contextId],["enterprise_id",scope.enterpriseId],
+        ["host_permit",approvedToken]])
+        await tx.unsafe("SELECT set_config($1,$2,true)",
+          ["evo.pa05."+key,value]);
+      await tx.unsafe("INSERT INTO "+d+
+        ".pa02_contexts(context_id,enterprise_id) VALUES($1,$2) "+
+        "ON CONFLICT DO NOTHING",[scope.contextId,scope.enterpriseId]);
+      await tx.unsafe("INSERT INTO "+d+".pa02_definitions "+
+        "(context_id,enterprise_id,extension_id,target_object_type,"+
+        "target_slot,field_id,resource,created_at) "+
+        "VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8::timestamptz)",
+        [scope.contextId,scope.enterpriseId,
+          expected.approvedResource.resourceId,
+          expected.approvedResource.payload.targetObjectType,
+          expected.approvedResource.payload.targetSlot,
+          changeReceipt?expected.approvedResource.payload.fieldId:"forged",
+          JSON.stringify(expected.approvedResource),
+          expected.approvedResource.createdAt]);
+      if(changeReceipt)
+        await tx.unsafe("INSERT INTO "+d+".pa02_owner_evidence "+
+          "(context_id,enterprise_id,idempotency_hash,run_id,effect_id,"+
+          "receipt_id,input_digest,resource_id,evidence,evidence_digest,recorded_at) "+
+          "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::timestamptz)",
+          [scope.contextId,scope.enterpriseId,
+            expected.approvedIdempotencyHash,tampered.runId,tampered.effectId,
+            "receipt:forged",tampered.inputDigest,
+            expected.approvedResource.resourceId,
+            JSON.stringify(expected.approvedEvidence),
+            expected.approvedEvidenceDigest,
+            expected.approvedEvidence.recordedAt]);
+    });
+    await assert.rejects(forge(false),
+      /PA05_OBJECT_SQL_APPROVED_RESOURCE_MISMATCH/);
+    await assert.rejects(forge(true),
+      /PA05_OBJECT_SQL_APPROVED_EVIDENCE_MISMATCH/);
+    assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
+      ".pa02_definitions"))[0].n,0);
+    assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
+      ".pa02_owner_evidence"))[0].n,0);
+    // The approved snapshot is stored in Host-owned SQL, not in GUCs.
+    await assert.rejects(stolen.unsafe("SELECT approved_resource FROM "+d+
+      ".pa05_object_host_permits"),/permission denied/);
     // D14C3's raw original Owner bypass is also physically denied.
     await assert.rejects(raw.owner.invoke(real),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
@@ -411,7 +472,18 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         " ENABLE TRIGGER pa05_object_commit_receipt_guard");
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
-    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,4);
+    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,5);
+    console.log("PA05_ACTUAL_OBJECT_APPROVED_PAYLOAD_PG="+JSON.stringify({
+      physicalClusters:3,realPlugin:"evo-object-extension",
+      unrevokedCapturedPermitCannotChangeDomainFields:true,
+      unrevokedCapturedPermitCannotChangeImmutableReceipt:true,
+      hostApprovalSnapshotMustMatchD10CanonicalDigest:true,
+      approvedSnapshotsHiddenFromBusinessSqlLogin:true,
+      originalOwnerAndIndependentVerifierRetained:true,
+      privilegedDbAdministratorCanStillBypass:true,
+      productionWriteEnabled:false,
+      trustedHostCommandSourceIndependentlyAuthenticated:false
+    }));
     console.log("PA05_ACTUAL_OBJECT_HOST_PERMIT_REVOCATION_PG="+JSON.stringify({
       realPlugin:"evo-object-extension",physicalClusters:3,
       unusedPermitRevocationDurable:true,
