@@ -37,3 +37,11 @@ DOM 表格结构、行列头与表单键盘焦点、原生 select、details/summ
 1. Eidos [#193](https://github.com/jiangxng/eidos/pull/193) 已通过自有 CI 和 UI 门禁合入；Platform 使用完全相同的上游特定 CSS 片段，不同步任何其他 Eidos 文件。
 2. Platform 本 PR 的精确 HEAD `BEX-01 Real Host Chromium Supplier Journey` 测试将检查 22 源字段、状态同行几何、全 44px 可触控、相较旧 9,139px 的新滚动高度、已存在的真实映射/批量定义/三条人工修正/供应商详情数据持久化。保留滚动截图及 JSON 度量用于事后验证。通过结果按实际 CI 填写，不预先宣称已绿。
 3. 客户原 Excel `往来账户2026_10_08_10_15_23.xlsx` 和用户已登录 Railway `/map` 全页视觉未可得，E4-03/E4-04 尚不能 Human 签收；绝不拿 synthetic 代表真实客户数据。
+
+
+## 精确 PR HEAD 的真实 Host 结果（2026-10-16）
+
+- **平台 PR #981** 初次 HEAD `5a6c5f5bb6b2ba59b9e1f2c85823cd4d15d25136` 的 [BEX-01 Real Host Chromium Supplier Journey run #38897640003](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38897640003) 为 SUCCESS；[artifact #12045030445](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38897640003/artifacts/12045030445) 已实际取回，独立 JSON 文件为 `v3-e4-mobile-inline-status-measurement.json`，另有完整滚动分段截图。其他 Platform CI、Template Store、Human UI Review、Project Continuity、Lightweight Host Architecture 检查均为 SUCCESS。本文追加后需重新以最终 PR HEAD 的 CI 确认，不冒用旧 HEAD 的状态。
+- **真实测量**：390px 手机 Eidos 内部滚动层 `9139px → 8155px`，减少 **984px / 10.77%**；同源合成 22 条来源卡片全部保留且可见，状态/字段名几何同行；映射 select 最小 **44px**；滚动连续截图 **16 → 15 张**。桌面 1280px 内部滚动层仍为 **3981px**、连续截图仍为 **6 张**。
+- **实际截图观察**：手机卡片第一行左为业务字段名称，右为「已匹配／待新增／不导入」等完整可读文字；来源值、展开入口、可编辑选择仍在同一卡片，底部「保存映射并预检查」与 AI 自助入口仍可见。长期大量字段行和部分长中文名称自然换行，仍需使用者对 V3 视觉做人工判断。
+- 以上只证明**隔离 Host synthetic 172×22 的 UI 和业务回归**，不代表客户原 Excel、生产登录页面、真实员工现场或 Human V3 签收。
