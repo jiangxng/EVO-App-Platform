@@ -344,3 +344,64 @@ test("BEX V3 only shows batch constant when the authorized Job actually persiste
   assert.equal(constant.readOnly,true);
   assert.equal(validateUidl(saved).ok,true);
 });
+
+
+test("V3 batch constant is not offered over a real source-column subject type", async()=>{
+  const x=setup();
+  const page=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:[],locale:"zh-CN"
+  });
+  assert.equal(page.fields.some(f=>f.key==="batchSubjectType"),false);
+  assert.match(page.fields.find(f=>f.key==="subjectTypeSourceNotice").initialValue,
+    /不能用批次值覆盖/);
+  const forged=request(x.getJob());
+  forged.values.batchSubjectType="ORGANIZATION";
+  const result=await x.action.execute(forged,ctx());
+  assert.equal(result.ok,false);
+  assert.equal(result.error.code,"OBJECT_EXTENSION_BATCH_SUBJECT_SOURCE_CONFLICT");
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.equal(x.getCalls(),0);
+});
+
+test("V3 explicit batch subject type persists as a true constant and restores without modifying source",async()=>{
+  const x=setup();
+  // This fixture has no authoritative subject type source column.
+  const job=x.getJob();
+  job.source.headers=job.source.headers.filter(h=>h!=="主体类型");
+  job.source.rows=job.source.rows.map(row=>{
+    const copy={...row};delete copy["主体类型"];return copy;
+  });
+  job.mapping=job.mapping.filter(item=>item.targetFieldId!=="subjectType");
+  const before=structuredClone(job.source);
+  let page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(page.fields.find(f=>f.key==="batchSubjectType").initialValue,"__KEEP__",
+    "a supplier relationship does not imply ORGANIZATION");
+  let req=request(job);
+  req.values.batchSubjectType="ORGANIZATION";
+  let result=await x.action.execute(req,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.state,"MAPPED");
+  const saved=x.getJob().mapping.find(item=>item.targetFieldId==="subjectType");
+  assert.deepEqual(saved,{targetFieldId:"subjectType",
+    transform:{kind:"CONSTANT",value:"ORGANIZATION"}});
+  assert.deepEqual(x.getJob().source,before,"source file rows stay untouched");
+  assert.equal(x.getJob().state,"STAGED");
+  page=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:x.repo.list(contextId,"counterparty.subject"),locale:"zh-CN"
+  });
+  assert.equal(page.fields.find(f=>f.key==="batchSubjectType").initialValue,"ORGANIZATION",
+    "Human decision survives reopening");
+});
+
+test("V3 batch constant preflight rejects invalid enum before creating any field",async()=>{
+  const x=setup();
+  const job=x.getJob();
+  job.mapping=job.mapping.filter(item=>item.targetFieldId!=="subjectType");
+  let req=request(job);
+  req.values.batchSubjectType="UNKNOWN";
+  const result=await x.action.execute(req,ctx());
+  assert.equal(result.ok,false);
+  assert.equal(result.error.code,"OBJECT_EXTENSION_BATCH_SUBJECT_TYPE_INVALID");
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.equal(x.getCalls(),0);
+});
