@@ -422,7 +422,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
           [scope.contextId,scope.enterpriseId,
             material.approvedIdempotencyHash,attack.runId,attack.effectId,
             "receipt:forged",attack.inputDigest,
-            expected.approvedResource.resourceId,
+            material.approvedResource.resourceId,
             stolen.json(JSON.parse(JSON.stringify(material.approvedEvidence))),
             material.approvedEvidenceDigest,
             material.approvedEvidence.recordedAt]);
