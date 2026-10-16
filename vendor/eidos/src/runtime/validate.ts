@@ -31,6 +31,7 @@ const docKeys = new Set([
   "command",
   "fields",
   "reviewGroups",
+  "reviewTable",
   "actions",
   "metadata"
 ]);
@@ -757,7 +758,7 @@ export function validateUidl(
         }
         extraKeys(group, new Set([
           "id", "title", "summary", "primaryFieldKey",
-          "detailFieldKeys", "detailsLabel", "defaultExpanded"
+          "detailFieldKeys", "detailsLabel", "defaultExpanded", "reviewStatus"
         ]), path, out);
         if (!nonEmpty(group.id) || !group.id.trim()
           || !nonEmpty(group.title) || !group.title.trim()
@@ -767,7 +768,14 @@ export function validateUidl(
           || group.summary !== undefined && typeof group.summary !== "string"
           || group.detailsLabel !== undefined && !nonEmpty(group.detailsLabel)
           || group.defaultExpanded !== undefined
-            && typeof group.defaultExpanded !== "boolean") {
+            && typeof group.defaultExpanded !== "boolean"
+          || group.reviewStatus !== undefined
+            && (!isPlainObject(group.reviewStatus)
+              || !nonEmpty(group.reviewStatus.key)
+              || !/^[A-Za-z0-9._:-]{1,80}$/.test(group.reviewStatus.key)
+              || !nonEmpty(group.reviewStatus.label)
+              || group.reviewStatus.tone !== undefined
+                && !["neutral","warning","positive"].includes(group.reviewStatus.tone as string))) {
           out.push(d("EIDOS_REVIEW_GROUP_INVALID", path, "Group requires id, title, primary field and detail field keys"));
           return;
         }
@@ -785,15 +793,99 @@ export function validateUidl(
           }
           used.add(key);
         }
+        if (isPlainObject(group.reviewStatus)) {
+          extraKeys(group.reviewStatus, new Set(["key","label","tone"]),
+            path + ".reviewStatus",out);
+        }
         reviewGroups.push({
           id:group.id,title:group.title,
           ...(typeof group.summary === "string" ? {summary:group.summary} : {}),
           primaryFieldKey:group.primaryFieldKey,
           detailFieldKeys:[...group.detailFieldKeys],
           ...(typeof group.detailsLabel === "string" ? {detailsLabel:group.detailsLabel} : {}),
-          ...(typeof group.defaultExpanded === "boolean" ? {defaultExpanded:group.defaultExpanded} : {})
+          ...(typeof group.defaultExpanded === "boolean" ? {defaultExpanded:group.defaultExpanded} : {}),
+          ...(isPlainObject(group.reviewStatus)
+            && typeof group.reviewStatus.key === "string"
+            && typeof group.reviewStatus.label === "string"
+            ? {reviewStatus:{
+                key:group.reviewStatus.key,label:group.reviewStatus.label,
+                ...(typeof group.reviewStatus.tone === "string"
+                  ? {tone:group.reviewStatus.tone as "neutral"|"warning"|"positive"}
+                  : {})
+              }} : {})
         });
       });
+    }
+  }
+
+  let reviewTable: import("./contracts.js").UidlFormReviewTableV010 | undefined;
+  if (document.reviewTable !== undefined) {
+    const p = "$.reviewTable";
+    const table = document.reviewTable;
+    if (!isPlainObject(table) || !isPlainObject(table.columnLabels)
+      || !["subject","evidence","decision","status"].every(k =>
+        isPlainObject(table.columnLabels)
+        && nonEmpty(table.columnLabels[k]) && table.columnLabels[k].trim().length > 0)
+      || reviewGroups.length === 0
+      || reviewGroups.some(g => !g.reviewStatus?.key?.trim()
+        || !g.reviewStatus.label?.trim())) {
+      out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
+        "Review table needs headings and fully annotated review groups"));
+    } else {
+      extraKeys(table, new Set(["columnLabels","filter"]),p,out);
+      extraKeys(table.columnLabels,
+        new Set(["subject","evidence","decision","status"]),p+".columnLabels",out);
+      const labels = table.columnLabels as Record<"subject"|"evidence"|"decision"|"status",string>;
+      let filter: import("./contracts.js").UidlFormReviewTableV010["filter"];
+      if (table.filter !== undefined) {
+        const f = table.filter;
+        const keys = new Set(reviewGroups.map(g => g.reviewStatus!.key));
+        if (!isPlainObject(f) || !nonEmpty(f.label)
+          || !nonEmpty(f.selectedId) || !nonEmpty(f.noMatchesMessage)
+          || !Array.isArray(f.options) || f.options.length===0
+          || f.options.length>8) {
+          out.push(d("EIDOS_REVIEW_TABLE_FILTER_INVALID",p+".filter",
+            "Review table filter requires a bounded choice set"));
+        } else {
+          extraKeys(f,new Set(["label","selectedId","noMatchesMessage","options"]),
+            p+".filter",out);
+          const ids = new Set<string>(), options: NonNullable<
+            import("./contracts.js").UidlFormReviewTableV010["filter"]
+          >["options"] = [];
+          let all = false;
+          f.options.forEach((raw:unknown,i:number)=>{
+            if (!isPlainObject(raw) || !nonEmpty(raw.id) || !raw.id.trim()
+              || !nonEmpty(raw.label) || !raw.label.trim()
+              || !Array.isArray(raw.statusKeys) || raw.statusKeys.length===0
+              || raw.statusKeys.some((k:unknown)=>typeof k!=="string"||!keys.has(k))
+              || new Set(raw.statusKeys).size!==raw.statusKeys.length
+              || ids.has(raw.id)) {
+              out.push(d("EIDOS_REVIEW_TABLE_FILTER_INVALID",
+                p+".filter.options["+i+"]","Invalid or duplicated filter option"));
+              return;
+            }
+            extraKeys(raw,new Set(["id","label","statusKeys"]),
+              p+".filter.options["+i+"]",out);
+            ids.add(raw.id);
+            const statusKeys = [...raw.statusKeys] as string[];
+            options.push({id:raw.id,label:raw.label,statusKeys});
+            if ([...keys].every(k=>statusKeys.includes(k))) all=true;
+          });
+          if (!ids.has(f.selectedId) || !all) {
+            out.push(d("EIDOS_REVIEW_TABLE_FILTER_ALL_MISSING",p+".filter",
+              "Review table must provide a full-data option and a valid initial choice"));
+          }
+          filter={label:f.label,selectedId:f.selectedId,
+            noMatchesMessage:f.noMatchesMessage,options};
+        }
+      }
+      reviewTable={
+        columnLabels:{
+          subject:labels.subject,evidence:labels.evidence,
+          decision:labels.decision,status:labels.status
+        },
+        ...(filter ? {filter} : {})
+      };
     }
   }
 
@@ -896,6 +988,7 @@ export function validateUidl(
       command,
       fields,
       ...(document.reviewGroups !== undefined ? {reviewGroups} : {}),
+      ...(reviewTable ? {reviewTable} : {}),
       actions,
       ...(document.metadata !== undefined
         ? {
