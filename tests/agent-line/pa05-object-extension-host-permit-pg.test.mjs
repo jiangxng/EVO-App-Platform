@@ -816,7 +816,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ".pa05_object_register_host_command"+
       "($1,$2,$3,$4,$5,$6,$7::jsonb) AS state",[
       scopeKey,r.runId,r.effectId,r.inputDigest,scope.contextId,
-      scope.enterpriseId,JSON.stringify({runId:r.runId,effectId:r.effectId,
+      scope.enterpriseId,conn.json({runId:r.runId,effectId:r.effectId,
         receiptId:r.receiptId,idempotencyKey:r.idempotencyKey,
         inputDigest:r.inputDigest,toolId:r.toolId,
         contextId:scope.contextId,enterpriseId:scope.enterpriseId,
