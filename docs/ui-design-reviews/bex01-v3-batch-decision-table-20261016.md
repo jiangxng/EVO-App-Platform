@@ -36,3 +36,7 @@
 
 来源已读：#909 原始 HTML 表格标题/筛选与字段状态实现；本仓库现有 `apps/data-import/page.ts` 和 `apps/object-extension/batch-page.ts`、Eidos `src/renderers/html/index.ts`。后续本 PR 需经 UI 门禁、Platform CI、真实隔离 Host Chromium 真实路径 desktop/390px 正式通过才能合并。
 仍未签收：已登录 Railway /map 完整真实作业页面、客户原始 Excel、V3 的批次固定值是否允许真正持久化及同名银行字段的人类实际确认。这些都不得用合成 172×22 测试冒充。
+
+## 源码与首轮浏览器对照后的二次收敛
+
+首轮隔离 Host Chromium [run #38905997281](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38905997281) 已通过（[原始截图 artifact #12048087606](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38905997281/artifacts/12048087606)）；截图表明四列/筛选已实际渲染，但 UI 仍暴露 `Import Job` UUID、将三条样本与非空统计同时铺在默认格里、唯一目标候选也反复显示 fieldId，偏离 V3 的简洁决策层。故本 PR 随后追加真实来源文件名（提交值依旧 importJobId）、可读审核方式、单条默认样本（详细证据仍完整）、仅同名目标显示技术 fieldId。需要以新的最终 HEAD 浏览器回归和截图再次验证，不直接沿用第一次测试结果。原 Excel 和用户登录生产页面仍待 Human 签收。
