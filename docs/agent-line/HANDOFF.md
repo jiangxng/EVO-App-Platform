@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-05/E01E new candidate (NOT_SIGNED):** [actual disposable Node Host HTTP admission, original install/disable and source evidence](PA05-E01E-DISPOSABLE-REAL-HOST-HTTP-20261016.md) → [certification baseline §48](PA05-CERTIFICATION-BASELINE-20261015.md). E01D [PR #985](https://github.com/jiangxng/EVO-App-Platform/pull/985) merged `main@3395fe276c27528684caecfcd546cd9aab27ee8a`, 44/44 exact HEAD CI SUCCESS. E01E branch `agent/pa05-e01e-real-host-http-20261016` deliberately tests **real process HTTP with disposable tokens, never production data**; PR, exact HEAD CI, merged SHA pending. #979/#913 OPEN, PA-05/W06 NOT_SIGNED and production WRITE OFF; no Railway or parallel BEX/CP03/Eidos/2D/global authority changes.
+
+
 > **2026-10-16 PA05-05/E01D current candidate (NOT_SIGNED):** [default-off Host admin endpoint, live Bootstrap identity + Provider policy, deferred authorized Purchase Attention READ admission](PA05-E01D-ADMIN-HOST-READ-ADMISSION-20261016.md) → [baseline §47](PA05-CERTIFICATION-BASELINE-20261015.md) → [#979 P05-E01–E05](https://github.com/jiangxng/EVO-App-Platform/issues/979). E01C [PR #983](https://github.com/jiangxng/EVO-App-Platform/pull/983) merged at `main@a3044ec10517e4295dac7feb6049eaf8a6058f83`; candidate branch `agent/pa05-e01d-host-admin-admission-20261016`. Route is OFF by default, requires two independent Host admission gates, never installs or executes business, no production credentials or Railway changes. Require exact HEAD CI before merging. #913 OPEN, PA-05/W06 NOT_SIGNED, production WRITE OFF; no BEX/CP03/Eidos/2D or global state edits.
 
 
