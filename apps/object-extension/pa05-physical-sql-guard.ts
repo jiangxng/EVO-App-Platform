@@ -294,7 +294,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
       const source=(key:string)=>"current_setting('evo.pa05."+key+"',true)";
       const body=[
         "DECLARE v_scope text;v_run text;v_effect text;v_digest text;",
-        " v_permit text;",
+        " v_permit text;v_resource jsonb;v_evidence jsonb;",
+        " v_edigest text;v_ihash text;",
         " v_context text;v_enterprise text;",
         "BEGIN",
         "IF TG_OP!='INSERT' THEN",
@@ -341,7 +342,10 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " SELECT 1 FROM "+d+".pa02_contexts c WHERE",
           " c.context_id=NEW.context_id AND c.enterprise_id=NEW.enterprise_id)",
           " THEN RETURN NEW; END IF;",
-          "SELECT p.token INTO v_permit FROM "+d+".pa05_object_host_permits p",
+          "SELECT p.token,p.approved_resource,p.approved_evidence,",
+          " p.approved_evidence_digest,p.approved_idempotency_hash",
+          " INTO v_permit,v_resource,v_evidence,v_edigest,v_ihash",
+          " FROM "+d+".pa05_object_host_permits p",
           " WHERE p.scope_key=v_scope AND p.effect_id=v_effect",
           " AND p.run_id=v_run AND p.input_digest=v_digest",
           " AND p.context_id=v_context AND p.enterprise_id=v_enterprise",
