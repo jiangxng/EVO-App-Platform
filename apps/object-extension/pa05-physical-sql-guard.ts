@@ -256,6 +256,52 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
         "BEGIN RAISE EXCEPTION 'PA05_OBJECT_SQL_TRUNCATE_DENIED'; END;"+
         "$pa05$");
+      if(hostRole){
+        // A valid but partially used Host permit MUST NOT let raw SQL persist
+        // orphan business rows without an actual immutable Owner receipt.
+        // Deferred validation is evaluated at the real transaction COMMIT.
+        const receiptBody=[
+          "DECLARE v_token text;",
+          "BEGIN",
+          "IF SESSION_USER!='"+role+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_LOGIN_DENIED'; END IF;",
+          "v_token:=current_setting('evo.pa05.host_permit',true);",
+          "IF v_token IS NULL OR v_token='' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_PERMIT_REQUIRED'; END IF;",
+          "IF TG_TABLE_NAME='pa02_contexts' THEN",
+          " IF NOT EXISTS(SELECT 1 FROM "+d+".pa05_object_host_permits p",
+          " JOIN "+d+".pa02_owner_evidence e",
+          " ON e.run_id=p.run_id AND e.effect_id=p.effect_id",
+          " AND e.input_digest=p.input_digest AND e.context_id=p.context_id",
+          " AND e.enterprise_id=p.enterprise_id",
+          " WHERE p.token=v_token AND p.consumed",
+          " AND p.context_id=NEW.context_id AND p.enterprise_id=NEW.enterprise_id)",
+          " THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_REQUIRED'; END IF;",
+          "ELSE",
+          " IF NOT EXISTS(SELECT 1 FROM "+d+".pa05_object_host_permits p",
+          " JOIN "+d+".pa02_owner_evidence e",
+          " ON e.run_id=p.run_id AND e.effect_id=p.effect_id",
+          " AND e.input_digest=p.input_digest AND e.context_id=p.context_id",
+          " AND e.enterprise_id=p.enterprise_id",
+          " WHERE p.token=v_token AND p.consumed",
+          " AND e.resource_id=NEW.extension_id",
+          " AND e.context_id=NEW.context_id AND e.enterprise_id=NEW.enterprise_id)",
+          " THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_REQUIRED'; END IF;",
+          "END IF;",
+          "RETURN NULL; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_receipt_commit_guard() RETURNS trigger LANGUAGE plpgsql "+
+          "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+          receiptBody+"$pa05$");
+        for(const table of ["pa02_contexts","pa02_definitions"]){
+          await tx.unsafe("CREATE CONSTRAINT TRIGGER "+
+            "pa05_object_commit_receipt_guard AFTER INSERT ON "+
+            d+'."'+table+'"'+
+            " DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "+
+            d+".pa05_object_receipt_commit_guard()");
+        }
+      }
       for(const table of tables){
         const target=d+'."'+table+'"';
         await tx.unsafe("DROP TRIGGER IF EXISTS pa05_object_physical_guard ON "+target);
