@@ -360,6 +360,27 @@ export function createObjectExtensionBatchImportPageV010(input: {
       ]
     }
   };
+  // The preview reads exactly the same Human choices as the Host command.
+  // It neither preapproves an enterprise field nor invokes a mutation.
+  const reviewPlan = {
+    title: zh ? "本批字段处理方案预览" : "Review proposed field changes",
+    description: zh
+      ? "确认之前先检查全部来源列的处理方式；已隐藏的行也会计入预览。"
+      : "Review every source decision, including filtered-out rows.",
+    warning: zh
+      ? "仅预览当前未保存的选择。新建企业字段需显式确认并通过 Host 校验；供应商数据仍须独立预检查与确认导入。"
+      : "Preview of unsaved choices only. Host approval and separate import validation are required.",
+    categories: [
+      {id:"create",label:zh ? "拟新建企业字段" : "Proposed new fields",statusKeys:["proposed"]},
+      {id:"reuse",label:zh ? "复用已有字段" : "Reuse existing fields",
+        statusKeys:statusKeys.includes("suggested") ? ["suggested"] : []},
+      {id:"ignore",label:zh ? "本次不导入" : "Exclude from this import",statusKeys:["ignored"]},
+      {id:"pending",label:zh ? "尚待人工决定" : "Human decision pending",statusKeys:["attention"]}
+    ],
+    proposedFields: columns.map((_,index)=>({
+      groupId:"source-"+index,labelFieldKey:"label_"+index,typeFieldKey:"type_"+index
+    }))
+  };
   const count = (key: string) =>
     columnStatuses.filter(status => status.key === key).length;
   const issues = reviewGroups.filter(group =>
@@ -413,7 +434,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
   return {
     contractVersion: "0.1.1" as const, kind: "form" as const,
     id: "evo-object-extension.batch-import",
-    ...(columns.length ? { reviewTable } : {}), reviewTask,
+    ...(columns.length ? { reviewTable, reviewPlan } : {}), reviewTask,
     title: !columns.length
       ? (zh ? "修改本次导入的批次固定值" : "Edit saved batch constant")
       : zh ? "集中审核 " + columns.length + " 个未匹配字段"

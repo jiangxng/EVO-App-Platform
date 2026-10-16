@@ -3084,4 +3084,52 @@ form[data-eidos-id] button:hover,
   [data-eidos-form-task-issues] li button{min-height:44px}
 }
 
+
+/* E6: evidence-led decision preview; presentation only, never Host approval. */
+[data-eidos-form-review-plan]{
+  margin-block:var(--eidos-space-lg);
+  padding:var(--eidos-space-lg);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  display:grid;
+  gap:var(--eidos-space-md);
+  min-width:0;
+}
+[data-eidos-form-review-plan] header{display:grid;gap:var(--eidos-space-xs)}
+[data-eidos-form-review-plan] h2{margin:0;font-size:var(--eidos-font-section);color:var(--eidos-fg)}
+[data-eidos-form-review-plan] header p{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);
+}
+[data-eidos-review-plan-counts]{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,128px),1fr));
+  gap:var(--eidos-space-sm);margin:0;
+}
+[data-eidos-review-plan-counts]>div{
+  padding:var(--eidos-space-sm);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);display:grid;gap:var(--eidos-space-xs);
+}
+[data-eidos-review-plan-counts] strong{font-size:var(--eidos-font-page);font-variant-numeric:tabular-nums}
+[data-eidos-review-plan-counts] span{font-size:var(--eidos-font-compact);color:var(--eidos-fg-muted)}
+[data-eidos-review-plan-items]{
+  margin:0;padding:0;list-style:none;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));
+  gap:var(--eidos-space-xs);
+}
+[data-eidos-review-plan-items] li{
+  padding:var(--eidos-space-sm);border-bottom:1px solid var(--eidos-border);
+  display:grid;gap:var(--eidos-space-xs);min-width:0;
+}
+[data-eidos-review-plan-items] li strong{
+  font-size:var(--eidos-font-compact);overflow-wrap:anywhere;
+}
+[data-eidos-review-plan-items] li span{
+  font-size:var(--eidos-font-meta);color:var(--eidos-fg-muted);
+  overflow-wrap:anywhere;
+}
+[data-eidos-review-plan-warning]{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+}
+
 `;

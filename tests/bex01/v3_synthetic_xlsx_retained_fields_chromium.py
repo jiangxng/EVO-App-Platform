@@ -263,6 +263,13 @@ with sync_playwright() as pw:
     # A batch constant would overwrite mixed rows and MUST NOT be offered.
     expect(form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
     expect(form.locator('select[name="batchSubjectType"]')).to_have_count(0)
+    plan=form.locator('[data-eidos-form-review-plan]')
+    expect(plan).to_be_visible()
+    expect(plan.locator('[data-eidos-review-plan-items] li')).to_have_count(18)
+    proposed_preview=plan.locator('[data-eidos-review-plan-count="create"] strong')
+    ignored_preview=plan.locator('[data-eidos-review-plan-count="ignore"] strong')
+    first_plan_proposed=int(proposed_preview.inner_text())
+    first_plan_ignored=int(ignored_preview.inner_text())
     # V3: changing a proposed field locally updates status, filter and counts
     # without any creation, mapping write or supplier data submission.
     batch_filter=form.locator('[data-eidos-form-review-table-filter]')
@@ -280,6 +287,9 @@ with sync_playwright() as pw:
     expect(proposed_count).to_have_text(str(before_proposed-1))
     expect(ignored_count).to_have_text(str(before_ignored+1))
     expect(first_batch_row).to_be_hidden()
+    expect(proposed_preview).to_have_text(str(first_plan_proposed-1))
+    expect(ignored_preview).to_have_text(str(first_plan_ignored+1))
+    expect(plan.locator('[data-eidos-review-plan-items] li')).to_have_count(18)
     batch_filter.select_option("all")
     expect(first_batch_row).to_be_visible()
     first_choice.select_option("__CREATE__")
@@ -287,6 +297,22 @@ with sync_playwright() as pw:
     expect(first_batch_row.locator('[data-eidos-review-table-status]')).to_have_text("待新增")
     expect(proposed_count).to_have_text(str(before_proposed))
     expect(ignored_count).to_have_text(str(before_ignored))
+    expect(proposed_preview).to_have_text(str(first_plan_proposed))
+    expect(ignored_preview).to_have_text(str(first_plan_ignored))
+    first_batch_row.locator('[data-eidos-review-group-detail] summary').click()
+    name_field=first_batch_row.locator('input[name="label_0"]')
+    original_name=name_field.input_value()
+    name_field.fill("人工审核后的名称")
+    expect(plan.locator('[data-eidos-review-plan-items] li').first).to_contain_text("人工审核后的名称")
+    assert "仅预览当前未保存的选择" in plan.inner_text()
+    plan.locator("h2").scroll_into_view_if_needed()
+    page.evaluate("""async () => {await new Promise(done =>
+      requestAnimationFrame(()=>requestAnimationFrame(done)));}""")
+    page.screenshot(path=str(OUT/"v3-e6-plan-preview-desktop.png"),full_page=False)
+    # This scenario later verifies original business fields were preserved.
+    # Restore the intentionally edited *unsaved* test input before approval.
+    name_field.fill(original_name)
+    expect(plan.locator('[data-eidos-review-plan-items] li').first).to_contain_text(original_name)
     batch_filter.select_option("needs")
     expect(first_batch_row).to_be_visible()
     print("BEX01_V3_LIVE_CHOICE_STATUS_NO_HOST_WRITE_PASS",flush=True)
@@ -369,6 +395,13 @@ with sync_playwright() as pw:
     expect(mobile_form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     expect(mobile_form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
     expect(mobile_form.locator('select[name="batchSubjectType"]')).to_have_count(0)
+    mobile_plan=mobile_form.locator('[data-eidos-form-review-plan]')
+    expect(mobile_plan.locator('[data-eidos-review-plan-items] li')).to_have_count(18)
+    expect(mobile_plan.locator('[data-eidos-review-plan-count="create"] strong')).to_be_visible()
+    mobile_plan.locator("h2").scroll_into_view_if_needed()
+    small.evaluate("""async () => {await new Promise(done =>
+      requestAnimationFrame(()=>requestAnimationFrame(done)));}""")
+    small.screenshot(path=str(OUT/"v3-e6-plan-preview-phone.png"),full_page=False)
     mobile_group=mobile_form.locator('[data-eidos-form-review-table-row]').first
     mobile_group.locator('[data-eidos-review-group-detail] summary').click()
     expect(mobile_group.locator('input[name="label_0"]')).to_be_visible()
