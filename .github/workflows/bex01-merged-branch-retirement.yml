@@ -58,6 +58,7 @@ jobs:
               {n:978,branch:'test/bex01-e4-complete-map-scroll-evidence-20261016',noUniqueAhead:true},
               {n:981,branch:'feat/bex01-e4-05-eidos-compact-mobile-review-20261016',noUniqueAhead:true},
               {n:984,branch:'feat/bex01-v3-real-batch-review-decision-table-20261016',noUniqueAhead:true},
+              {n:989,branch:'feat/bex01-v3-live-decision-state-20261016',noUniqueAhead:true},
               {n:973,branch:'feat/bex01-e4-02-compact-mapping-evidence-20261016',noUniqueAhead:true}
             ];
             const allOpen=(await github.paginate(github.rest.pulls.list,
