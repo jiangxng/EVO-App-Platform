@@ -156,7 +156,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
           const token=await issuer.issue(request);
           issued.push(token);
           return token;
-        }
+        },
+        bindTransaction:request=>issuer.bindTransaction(request)
       }}
     });
     const noTicket=request("without-ticket");
@@ -243,6 +244,10 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         scope.contextId,scope.enterpriseId,
         stolen.json({runId:real.runId,effectId:real.effectId})
       ]),/permission denied/);
+    await assert.rejects(stolen.unsafe("SELECT "+d+
+      ".pa05_object_bind_host_permit($1,$2,$3,$4,$5)",[
+        scopeKey,real.effectId,"0".repeat(64),1,"1"
+      ]),/permission denied/);
     await assert.rejects(stolen.unsafe("SET ROLE "+q(hostRole)),
       /permission denied/);
     const stolenIssue=approvedRequest(real);
@@ -284,7 +289,16 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await gateway.stagePreparedEffect({scopeKey,effectId:orphan.effectId});
     await start(orphan);
     const orphanToken=await issuer.issue(approvedRequest(orphan));
-    const orphanWrite=()=>stolen.begin(async tx=>{
+    const orphanWrite=(bindHere=false)=>stolen.begin(async tx=>{
+      if(bindHere){
+        const identity=await tx.unsafe(
+          "SELECT pg_backend_pid() AS pid,pg_current_xact_id()::text AS txid");
+        assert.equal(await issuer.bindTransaction({
+          scopeKey,effectId:orphan.effectId,token:orphanToken,
+          backendPid:Number(identity[0].pid),
+          transactionId:String(identity[0].txid)
+        }),"BOUND");
+      }
       for(const [key,value] of [["scope_key",scopeKey],
         ["run_id",orphan.runId],["effect_id",orphan.effectId],
         ["input_digest",orphan.inputDigest],["context_id",scope.contextId],
@@ -301,7 +315,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(orphanWrite(),/PA05_OBJECT_SQL_ROLE_DRIFT/);
     await db.unsafe('REVOKE SELECT ON '+d+
       '.pa05_object_host_permits FROM "'+businessRole+'"');
-    await assert.rejects(orphanWrite(),/PA05_OBJECT_SQL_RECEIPT_REQUIRED/);
+    await assert.rejects(orphanWrite(true),/PA05_OBJECT_SQL_RECEIPT_REQUIRED/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
       ".pa02_contexts"))[0].n,0);
     // D14C7: independently revoke a real issued, unused one-effect permit.
@@ -454,7 +468,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         issue:async req=>{
           raceToken=await issuer.issue(req);
           return raceToken;
-        }
+        },
+        bindTransaction:request=>issuer.bindTransaction(request)
       }}
     });
     try{
