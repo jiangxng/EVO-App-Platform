@@ -1,0 +1,106 @@
+# A01 基础对象装载：消费者、存储归属与整改边界
+
+日期：2026-10-16。核对 main：`5d06b0a45f3cfcd6a1ae252e8e3db03217a65db7`（#954）。
+状态：代码审查与实施边界已记录；本批不修改运行代码，不代表基础对象已按需装载。
+入口：[固定任务状态表](CLOSEOUT-COUNTDOWN.md)。沿用 A01，不新增治理任务，不接管 BEX/Agent。
+
+## 1. 结论和证据级别
+
+**需要修的是 Host 对业务实现的提前装配及跨能力过度装载，不是另建基础对象存储，也不是把共享功能合成一个必装大插件。**
+
+本批源代码确认：
+
+- `manager/server.ts` 在创建 manager 前构造 Counterparty 的五个仓库、投影服务，以及 Responsibility、Object Extension 定义/值、Data Import Job/Recipe 仓库。对应实现仍被静态导入。
+- 检查这些工厂的构造部分，主要返回捕获共享资源仓库的方法；投影在 `read` 时查询。不能把这些构造描述成已经建立十个数据库连接或执行十次数据加载。
+- 通用 `providers/enterprise-context/resources.ts` 的文件仓库构造创建 read/write 闭包；读取、mkdir、临时文件写入及 rename 位于调用路径，不是构造即创建全部业务数据。内存实现保存自身 snapshot。
+- Object Extension 四个命令共用的 lazy handler `load` 无条件调用 `resolveEffectiveDataImportTargetsV010` 并构造导入服务。因此普通扩展定义 list/upsert/archive 的首次装载，也会装配所有当前有效导入目标，不仅是批量导入建字段命令。这是有代码依据的过度装载路径，不是重复插件的证据。
+- `resolveEffectiveDataImportTargetsV010` 会解析所有有效 contribution；它按 ref 缓存 Promise、清除已失效 ref，但没有在 rejection 时删除仍有效 ref，也没有等待完成后的生命周期复核。现有 Item/Warehouse resolver 同样不能直接当作完整竞态处理模板。
+
+以上是源码事实。本批未重跑启动审计、未测 RSS/耗时、未操作真实企业数据。历史 362 和 #922 的 356 模块是各自基线的测量值，不是本次 #954 实测，更不能直接算成同基线性能提升。
+
+## 2. 实际消费者与归属
+
+以下路径均相对仓库根；server 位置以函数/命令为锚点，避免行号随并行开发失效。
+
+| 实例/语义 owner | 真实消费者（本次核对） | 存储与整改约束 |
+|---|---|---|
+| Counterparty subject/role/contact/address/profile，`apps/counterparty/{repository,roles,facets}.ts` | server 的 Counterparty 动作和目录/详情/编辑页面；投影；`resolveEffectiveDataImportTargetsV010` 的 Counterparty adapter | `evo.counterparty`，所有 adapter 继续使用同一 EnterpriseResourceRepository；不把客户/供应商规则移入 Host |
+| Counterparty projection，`apps/counterparty/projection-service.ts` | My Customers/My Suppliers 动作及投影页面 | 派生读模型；依赖对象、角色、职责及授权；不能用缓存替代当前权限 |
+| Responsibility，`apps/responsibility/repository.ts` | 职责动作；Counterparty 页面/投影；Item、Warehouse 投影运行时 | `evo.responsibility/assignments`；跨对象复用，不能挂在 Counterparty 独有生命周期上 |
+| Object Extension 定义，`apps/object-extension/repository.ts` | 扩展动作、导入建字段页、Counterparty 字段展示；Counterparty/Item import target | `evo.object-extension/definitions`；定义语义属于扩展应用，不属于 Data Import |
+| Object Extension 值，`apps/object-extension/values.ts` | Counterparty 详情和 import target；Item/Warehouse projection；Item import target | `evo.object-extension/values`；保留 object/slot/namespace 寻址，停用管理入口不等于删除对象侧已有值 |
+| Data Import Job/Recipe，`apps/data-import/{repository,recipe}.ts` | 导入动作与目录/映射/纠错/审核页面；Object Extension 批量建字段的 job 查询与 mapping 更新 | `evo.data-import`；Job/Recipe 不复制进扩展插件；导入 owner 负责提交、恢复和映射行为 |
+| Data Import service/target resolver | 导入动作；目前所有扩展动作的 loader | service 是编排，目标由有效 contribution 提供；普通定义读取不应启动导入编排 |
+| EC advisor，`apps/data-import/experience-advisor.ts` | 配置存在时注入 Data Import action handlers | 构造保存 URL/fetch；真正 post 内才创建请求计时器并 fetch。应随合法 advisory 调用装配，不声称启动即发请求 |
+| EnterpriseResourceRepository，`providers/enterprise-context/resources.ts` | 上述适配器及其他企业资源能力；Agent sandbox 的文件权威冲突检查 | 通用企业资源容器可共享；不是 Counterparty 的私有仓库。不得为懒加载每个插件各建内存副本或并行文件写者 |
+
+### Agent 的额外消费者不能遗漏
+
+`manager/server.ts` 的 `optionalPa02ObjectExtensionOwner` 在明确 `OWNER_SANDBOX` 模式下调用 `manager/agent-pa02-sandbox-object-extension.ts`。后者：
+
+1. 拒绝 production，要求隔离确认、指定 context/enterprise/schema；
+2. 用共享资源仓库检查该 context 已有 Object Extension 文件权威，避免覆盖；
+3. 创建独立 PostgreSQL atomic owner 并验证预建 schema；不在普通启动自动建表；
+4. 后续授权/发现再次执行文件权威冲突检查。
+
+这是显式 opt-in 沙箱路径，不是 Human 文件仓库已经切换为 PostgreSQL。#954 的物理 SQL fence 属于 Agent owner；本批只定位关联，不重新认证其 SQL 实现。后续懒加载不得删除冲突检查、替换 owner、绕过 PA05 写入门禁，或把隔离沙箱当作通用存储迁移。
+
+## 3. 采用的方案与排除理由（工程决定）
+
+| 方案 | 决定及理由 | 限制 |
+|---|---|---|
+| 保留共享资源容器，业务 adapter 按合法使用解析 | 采用；符合既有 Resource Container 与 Foundation Object 权威，保留寻址/事务/数据恢复 | 同进程可复用无用户状态的 adapter；所有方法仍显式传 context，不缓存某个人的授权结果 |
+| 按能力拆开 loader，扩展管理仅在 import-create 时取得导入依赖 | 作为下一代码批次；最小可核验切口，先消除真实跨能力过度装载 | 保持 action metadata、权限与 handler 结果；不顺手重写 UI 或映射算法 |
+| 一次性把全部基础对象做成大 runtime | 排除；读取一个能力仍可能创建全部，掩盖独立 owner/生命周期 | 只有同 owner、同依赖和生命周期的内部实现适合组合 |
+| 每个插件各建 EnterpriseResourceRepository | 排除；内存实例会形成独立真相，文件多写者/事务边界风险不能用懒加载掩盖 | 存储替换是另一个有明确迁移/单写者合同的任务 |
+| 停用扩展管理即清掉定义/值或让所有对象读取失败 | 排除；管理能力资格与既有企业数据存在不同 | 哪些运行时读能力必须依赖 active feature，需按现有公开合同核对，不能自行扩大或削弱访问 |
+| 只减少模块数或静态基线 | 排除；已经加载的模块内仍可能新增副作用 | 模块禁入断言配合实例/资源 spy；同时验证业务行为 |
+
+## 4. 有界实施顺序与验收
+
+这是 A01 内部执行顺序，不承诺三个 PR 就关闭整个 A01。
+
+### 下一批：扩展管理不连带装配导入引擎
+
+修改范围限于 Object Extension handler 的依赖装配与对应测试。先读 `apps/object-extension/actions.ts` 中每个命令实际用到的 callback，将导入依赖延迟到 import-create 的合法调用路径；复用已有 service/target contracts。不得全局修改 action router 来绕过检查。
+
+验收：
+
+- list/upsert/archive 与 import-create 分别调用：前三者不加载 Data Import service/目标实现，后者仍使用原 Job/Recipe 和 mapping 更新。
+- 未安装、停用、未授权请求不触发这组新增依赖；检查实际鉴权顺序，不能仅因用了 lazy handler 就声称授权前零初始化。
+- 正常批量建字段与应用 mapping 的业务结果保持；保留 Human 审批、数据 scope、回滚和已有幂等约束。
+- 导入依赖加载失败可重试；等候期间停用后不得开始业务写入。缓存不能把旧有效目标永久带入后续执行。
+- 不改变前端交互、公共命令/错误合同和 Agent SQL owner；若必须改变共同合同，先在同一 PR 明确影响再实施。
+
+### 随后：迁移业务 adapter 和投影构造
+
+从 Counterparty 独有装配开始，复用其原仓库/投影算法；共享 Responsibility、Extension 的作用域与读/管理生命周期分别处理，不挂靠某一个对象。并发首次使用共享 pending；失败清除；重新启用可恢复；保存的企业数据不随实例销毁。真实连接/订阅出现时必须增加 disposer，不能因当前只是闭包而永久省略停止策略。
+
+保留 `EnterpriseResourceRepository.transaction/putMany` 的原边界；不要在同步 transaction 回调里引入跨 await 写入。Item/Warehouse 与导入适配器必须取得同一存储权威。
+
+### 验证入口和防回归
+
+| 验证层 | 复用入口 | 新增的必要断言 |
+|---|---|---|
+| 命令/导入回归 | `tests/protocol/object-extension-capability.test.mjs`、`data-import-counterparty.test.mjs`、`data-import-recipe.test.mjs` | 命令结果等价、导入回调只在需要时解析 |
+| 目标生命周期 | `tests/protocol/data-import-target-lifecycle.test.mjs` | 拒绝缓存可重试，停用竞态不执行旧目标 |
+| 对象/跨对象 | `tests/integration/counterparty-plugin.test.mjs`、`tests/protocol/cp04-responsibility-projections.test.mjs`、`it01-item-data-import.test.mjs` | 重启/重装数据保留，隔离和权限不退化 |
+| Host 冷启动 | `tools/plugin-loading-audit.mjs` 与现有 Lightweight Host CI | 迁移后逐个添加已确认业务实现的禁入断言；保留廉价清单，不盲禁共享安全契约 |
+| 新增装配行为 | 在对应 owner 测试中 spy factory/资源调用 | 未用零构造，并发只构造一次，失败恢复；不能仅测源代码含有 import 字符串 |
+| Agent 兼容（触及相应 glue 时） | `tests/agent-line/pa02-host-server-sandbox-object-owner.test.mjs` 及 PA05 owner 回归 | opt-in、文件冲突拒绝、现有 fence 不被绕过；不冒充生产认证 |
+
+本批仅记录这些测试入口，没有执行它们；后续按真实改动选择运行，不以完整测试清单扩大工作范围。
+
+## 5. 并行工作及未决问题
+
+本次查询开放 PR 为 #909（BEX 设计 Draft）、#878（批量扩展审查）、#846（BEX 交接 Draft）。读取时 main 已含 #954。代码批次开始前必须重新检查，尤其 `manager/server.ts`、`apps/object-extension/actions.ts` 和导入页；本批只编辑本专项文档，不替其他窗口合并或覆盖。
+
+仍待实施验证：共享扩展/职责能力在消费者停用后的精确运行策略；所有入口的鉴权与装配顺序；目标 resolver 的失败/停用竞态。文件存储并发能力和全量资源归档成本不在本批改写。记忆调度归属仍交 Host/Agent 核对，不为了数字擅停任务。
+
+## 6. 阅读范围与保存
+
+- 完整读取：本仓 AGENTS、交付/整体理解规则、开发交付规范、治理 README/固定表/审查入口、`PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md`、`ENTERPRISE-CONTEXT-RESOURCE-CONTAINER-v1.0.md`、`FOUNDATION-OBJECT-PLATFORM-ARCHITECTURE-v0.1.md`。
+- 定向读取：server 的上述构造、消费与 Agent sandbox 入口；仓库工厂构造及资源操作；lazy handler；资源持久化；`LLM.md` 的基础对象/装载章节。没有声称通读整个 server 或全部 Agent 实现。
+- 连续性核对：project.status 与 foundation-map 的当前里程碑/基础对象字段、生成 handoff 的当前里程碑及已闭环入口。它们仍含早期 TR 快照；本专项不覆盖其他 owner 的全局状态。
+- 未新增外部网络研究；资源容器文档引用的外部产品网址只是继承引用，本批没有访问原文，不算新研究证据。
+- 本文与 README/固定表一起保存。代码核对基线见页首；最终 PR、提交、CI 和过程分支清理状态由本 PR 记录。未部署。
