@@ -260,6 +260,11 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ".pa02_definitions DISABLE TRIGGER pa05_object_physical_guard");
     await db.unsafe("ALTER TABLE "+d+
       ".pa02_owner_evidence DISABLE TRIGGER pa05_object_physical_guard");
+    // Privileged table owner can disable BOTH admission and deferred receipt
+    // constraints: application SQL cannot protect against administrator tamper.
+    for(const table of ["pa02_contexts","pa02_definitions"])
+      await db.unsafe("ALTER TABLE "+d+"."+table+
+        " DISABLE TRIGGER pa05_object_commit_receipt_guard");
     const escape=request("privileged-bypass");
     await privileged.owner.invoke(escape);
     assert.equal((await privileged.verifier.verify({
@@ -272,6 +277,9 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     for(const table of ["pa02_contexts","pa02_definitions","pa02_owner_evidence"])
       await db.unsafe("ALTER TABLE "+d+"."+table+
         " ENABLE TRIGGER pa05_object_physical_guard");
+    for(const table of ["pa02_contexts","pa02_definitions"])
+      await db.unsafe("ALTER TABLE "+d+"."+table+
+        " ENABLE TRIGGER pa05_object_commit_receipt_guard");
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
     assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,3);
