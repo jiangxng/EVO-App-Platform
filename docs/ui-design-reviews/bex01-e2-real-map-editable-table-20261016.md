@@ -8,11 +8,15 @@
 
 拥有授权的业务用户在原 Import Job 上继续查看来源表头/非空及示例值、对应企业 field ID/候选用途、处理状态。四列标题由 Platform 使用当前 locale 提供：「来源列名｜示例值｜对应系统字段｜状态」。默认只看「需要关注」的来源列；点击「全部字段」仍能浏览完整 22 列，进行同一 `map_N` 选择、展开来源/同名用途、返回「需要关注」，**任一已选择的值都不能被视图筛选擦除**。原操作保持为单次「预检查」及随后独立的最终导入确认，字段扩展集中审核入口、AI 自助建议、Recipe 和 Batch Job 信息均继续可用。E2 不是完整 E3/E4 产品签收。
 
+## 流程与步骤
+
+用户在原 `/data-import/jobs/:id/map` 入口查看授权来源列，默认「需要关注」并逐行查看证据，在同一行以原 `map_N` 下拉框明确复用/新建/忽略。对需要业务解释的候选字段，在当前行展开来源与用途详情。切换「全部字段」时，先前映射项及其输入值始终保留；继续操作通过同一个原始 `data-import.review` Host 命令完成预检查，再按原业务授权进入最终提交。任何 AI 建议不能代替用户对同名银行用途、主体类型和源系统元数据的明确判断。尚未实施的 E3 保存反馈与跨步骤恢复不属于本阶段已交付内容。
+
 ## 导航与信息架构
 
 `apps/data-import/page.ts` 是真实映射 page owner，仍返回原来的 `evo-data-import.mapping` Form UIDL、`DATA_IMPORT_REVIEW_COMMAND_V010`、所有 input key（`map_N` / `sourceEvidence_N` / `candidateEvidence_N`）、顶部已有面包屑和原 `batchReviewEntry` 链接。仅声明 Eidos 通用 `reviewGroups` + `reviewTable` 的页面呈现。导入来源数据、target schema、Host 身份权限、Agent 工具注册和真实字段映射逻辑不移入 Eidos。Eidos vendor 消费严格对应 #189 公共合同的字段/校验/渲染/样式和浏览器 filter 代码，保留 EVO 已有 Eidos 扩展（导航/Agent）。
 
-## 视觉、颜色与密度
+## 视觉与颜色
 
 按照 Eidos 的 Experience Architecture / Productive Design Language v0.1 / Business Office Visual v0.2：白色文档式内容表面、中性表头、四列紧凑业务阅读、蓝色仅用于动作和焦点、语义 warning 仅用于真正未决、已匹配使用 positive。移动宽度直接转为**同一份语义表格的可操作卡片**，不存在第二套 HTML 原型、BEX 私有 CSS 或额外映射数据副本。所有原始证据文本经过 Eidos 渲染器 HTML escape；技术 Job ID 与辅助内容仍待 E3 的业务流程架构继续精简。
 
