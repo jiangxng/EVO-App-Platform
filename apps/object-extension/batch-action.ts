@@ -38,6 +38,36 @@ export function executeObjectExtensionBatchImportV010(input: {
   if (job.targetId !== "counterparty.subject") {
     throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
   }
+  // A batch constant is a real, auditable mapping decision, not an import
+  // default and not a replacement for mixed per-row source values.
+  if (job.state === "COMMITTED" || job.state === "COMMITTED_WITH_ERRORS") {
+    throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
+  }
+  const previousSubject = job.mapping.find(entry =>
+    entry.targetFieldId === "subjectType"
+  );
+  const submittedSubject = input.values.batchSubjectType;
+  const constantDecisionProvided = submittedSubject !== undefined;
+  if (constantDecisionProvided && (
+    typeof submittedSubject !== "string" ||
+    !["__KEEP__", "ORGANIZATION", "PERSON"].includes(submittedSubject)
+  )) {
+    throw new Error("OBJECT_EXTENSION_BATCH_SUBJECT_TYPE_INVALID");
+  }
+  if (constantDecisionProvided && submittedSubject !== "__KEEP__"
+    && previousSubject?.sourceColumn) {
+    throw new Error("OBJECT_EXTENSION_BATCH_SUBJECT_SOURCE_CONFLICT");
+  }
+  // Undefined is the legacy route (preserve), __KEEP__ explicitly clears
+  // an existing constant, and an enum choice explicitly sets it.
+  const selectedSubject = constantDecisionProvided
+    ? submittedSubject === "__KEEP__" ? undefined : submittedSubject as "ORGANIZATION" | "PERSON"
+    : previousSubject?.transform?.kind === "CONSTANT"
+      ? previousSubject.transform.value : undefined;
+  const changeSubject = constantDecisionProvided
+    && (!previousSubject?.sourceColumn)
+    && (selectedSubject !== (previousSubject?.transform?.kind === "CONSTANT"
+      ? previousSubject.transform.value : undefined));
   const columns = batchUnmappedColumnsV010(job);
   if (!columns.length || columns.length > 200) {
     throw new Error("OBJECT_EXTENSION_BATCH_COLUMNS_INVALID");
@@ -53,6 +83,7 @@ export function executeObjectExtensionBatchImportV010(input: {
     fieldId: x.fieldId, label: x.label.default, valueType: x.valueType
   }));
   const reserved = new Set(job.mapping.map(x => x.targetFieldId));
+  if (selectedSubject !== undefined) reserved.add("subjectType");
   const labels = new Set<string>();
   const choices: Array<{
     column: string; fieldId: string; type: "NEW" | "EXISTING";
@@ -155,6 +186,12 @@ export function executeObjectExtensionBatchImportV010(input: {
       created.push(item.column);
     }
     const latest = input.getCurrentJob();
+    const latestSubject = latest?.mapping.find(item =>
+      item.targetFieldId === "subjectType");
+    if (JSON.stringify(latestSubject ?? null)
+      !== JSON.stringify(previousSubject ?? null)) {
+      throw new Error("OBJECT_EXTENSION_BATCH_SUBJECT_STALE");
+    }
     if (!latest || latest.targetId !== job.targetId
       || latest.source.headers.length !== job.source.headers.length
       || latest.source.headers.some((x, i) => x !== job.source.headers[i])) {
@@ -171,9 +208,18 @@ export function executeObjectExtensionBatchImportV010(input: {
     }
     input.applyMapping({
       contextId: input.contextId, importJobId: job.importJobId,
-      mapping: [...latest.mapping, ...choices.map(item => ({
-        sourceColumn: item.column, targetFieldId: item.fieldId
-      }))],
+      mapping: [
+        ...latest.mapping.filter(item =>
+          !(changeSubject && item.targetFieldId === "subjectType")
+        ),
+        ...choices.map(item => ({
+          sourceColumn: item.column, targetFieldId: item.fieldId
+        })),
+        ...(changeSubject && selectedSubject !== undefined ? [{
+          targetFieldId: "subjectType",
+          transform: {kind:"CONSTANT" as const,value:selectedSubject}
+        }] : [])
+      ],
       ignoredSourceColumns: [...new Set([
         ...(latest.ignoredSourceColumns ?? []).filter(column =>
           !choices.some(item => item.column === column)
@@ -188,6 +234,7 @@ export function executeObjectExtensionBatchImportV010(input: {
       message: "Created " + created.length + " field(s), reused " + reused.length
         + ", ignored " + ignored.length + ". Mapping saved. Run validation before committing any suppliers.",
       created, reused, ignored, mapped: choices.map(x => x.column),
+      batchSubjectType: selectedSubject ?? null,
       navigateTo: dataImportMappingRouteV010(job.importJobId)
     } as JsonValue;
   } catch (error) {
