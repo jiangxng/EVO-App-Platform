@@ -3228,13 +3228,13 @@ async function authorizeHostAdministration(
 // package lifecycle behavior is unchanged. This gate is never derived from
 // caller-controlled `confirmed` or `trustApproved` booleans.
 const pa05E01fProtectedPackageId = "evo-purchase-attention";
-const pa05E01fProtectedActions = new Map([
+const pa05E01fProtectedActions = new Map<string, string>([
   ["app-platform.install-package", "INSTALL"],
   ["app-platform.enable-package", "ENABLE"],
   ["app-platform.disable-package", "DISABLE"],
   ["app-platform.uninstall-package", "UNINSTALL"],
   ["app-platform.upgrade-package", "UPGRADE"]
-] as const);
+]);
 async function authorizePa05E01fLifecycle(
   request: IncomingMessage,
   packageId: string | undefined,
@@ -9007,7 +9007,7 @@ const server = createServer(async (request, response) => {
       const action = body as AppActionRequestV010;
       const itemId = typeof action.values.itemId === "string" ? action.values.itemId : undefined;
       const pa05ProtectedOperation = pa05E01fProtectedActions.get(
-        action.command.code as keyof typeof pa05E01fProtectedActions
+        action.command.code
       );
       if (pa05ProtectedOperation && itemId === pa05E01fProtectedPackageId
           && !(await authorizePa05E01fLifecycle(
