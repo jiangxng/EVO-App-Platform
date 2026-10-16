@@ -910,7 +910,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(raw.owner.invoke(frozen),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+
-      d+".pa02_owner_evidence"))[0].n,6);
+      d+".pa02_owner_evidence"))[0].n,5);
 
     // A privileged database table owner can still disable the physical SQL
     // trigger. This remains a named production blocker, not a signoff.
@@ -936,7 +936,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID
     })).outcome,"SUCCEEDED");
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+
-      d+".pa02_owner_evidence"))[0].n,5);
+      d+".pa02_owner_evidence"))[0].n,6);
     for(const table of ["pa02_contexts","pa02_definitions","pa02_owner_evidence"])
       await db.unsafe("ALTER TABLE "+d+"."+table+
         " ENABLE TRIGGER pa05_object_physical_guard");
