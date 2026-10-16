@@ -988,7 +988,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     ["matched","proposed","proposed","attention"],
     "Host-restored mapping, new definition and metadata exceptions must remain distinct");
   assert.deepEqual(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys,
-    ["attention","proposed","suggested","matched","ignored"]);
+    ["matched","proposed","attention"],
+    "Eidos filters must reference only status values in this authorized Job");
   const mapHtml=renderToHtml(page);
   assert.match(mapHtml,/<table data-eidos-form-review-table/);
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
