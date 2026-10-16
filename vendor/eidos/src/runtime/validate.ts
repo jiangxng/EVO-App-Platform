@@ -30,6 +30,7 @@ const docKeys = new Set([
   "purpose",
   "command",
   "fields",
+  "reviewGroups",
   "actions",
   "metadata"
 ]);
@@ -742,6 +743,60 @@ export function validateUidl(
     });
   }
 
+  const reviewGroups: import("./contracts.js").UidlFormReviewGroupV010[] = [];
+  if (document.reviewGroups !== undefined) {
+    if (!Array.isArray(document.reviewGroups)) {
+      out.push(d("EIDOS_REVIEW_GROUPS_INVALID", "$.reviewGroups", "reviewGroups must be an array"));
+    } else {
+      const ids = new Set<string>(), used = new Set<string>();
+      document.reviewGroups.forEach((group, index) => {
+        const path = "$.reviewGroups[" + index + "]";
+        if (!isPlainObject(group)) {
+          out.push(d("EIDOS_REVIEW_GROUP_INVALID", path, "Group must be an object"));
+          return;
+        }
+        extraKeys(group, new Set([
+          "id", "title", "summary", "primaryFieldKey",
+          "detailFieldKeys", "detailsLabel", "defaultExpanded"
+        ]), path, out);
+        if (!nonEmpty(group.id) || !group.id.trim()
+          || !nonEmpty(group.title) || !group.title.trim()
+          || !nonEmpty(group.primaryFieldKey)
+          || !Array.isArray(group.detailFieldKeys)
+          || !group.detailFieldKeys.every(nonEmpty)
+          || group.summary !== undefined && typeof group.summary !== "string"
+          || group.detailsLabel !== undefined && !nonEmpty(group.detailsLabel)
+          || group.defaultExpanded !== undefined
+            && typeof group.defaultExpanded !== "boolean") {
+          out.push(d("EIDOS_REVIEW_GROUP_INVALID", path, "Group requires id, title, primary field and detail field keys"));
+          return;
+        }
+        if (ids.has(group.id)) {
+          out.push(d("EIDOS_REVIEW_GROUP_DUPLICATE", path + ".id", "Duplicate group ID"));
+        }
+        ids.add(group.id);
+        const refs = [group.primaryFieldKey, ...group.detailFieldKeys];
+        for (const key of refs) {
+          if (!fieldKeysSeen.has(key)) {
+            out.push(d("EIDOS_REVIEW_GROUP_FIELD_MISSING", path, "Unknown field key: " + key));
+          }
+          if (used.has(key)) {
+            out.push(d("EIDOS_REVIEW_GROUP_FIELD_REUSED", path, "Field belongs to multiple group slots: " + key));
+          }
+          used.add(key);
+        }
+        reviewGroups.push({
+          id:group.id,title:group.title,
+          ...(typeof group.summary === "string" ? {summary:group.summary} : {}),
+          primaryFieldKey:group.primaryFieldKey,
+          detailFieldKeys:[...group.detailFieldKeys],
+          ...(typeof group.detailsLabel === "string" ? {detailsLabel:group.detailsLabel} : {}),
+          ...(typeof group.defaultExpanded === "boolean" ? {defaultExpanded:group.defaultExpanded} : {})
+        });
+      });
+    }
+  }
+
   const actions: UidlAction[] = [];
   const actionIds = new Set<string>();
   if (!Array.isArray(document.actions) || document.actions.length === 0) {
@@ -840,6 +895,7 @@ export function validateUidl(
       purpose: "execute-command",
       command,
       fields,
+      ...(document.reviewGroups !== undefined ? {reviewGroups} : {}),
       actions,
       ...(document.metadata !== undefined
         ? {
