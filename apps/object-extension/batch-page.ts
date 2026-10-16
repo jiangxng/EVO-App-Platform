@@ -191,6 +191,35 @@ export function createObjectExtensionBatchImportPageV010(input: {
       ];
     })
   ];
+  // BEX owns source values, matched field IDs and business choices.
+  // Eidos #187 owns generic rows, primary decision and detail disclosure.
+  const reviewGroups = columns.map((column, index) => {
+    const count = job.source.rows.filter(row =>
+      row[column] !== null && row[column] !== undefined
+      && String(row[column]).trim() !== ""
+    ).length;
+    const same = all.filter(field =>
+      normalizedLabel(field.label) === normalizedLabel(column)
+    );
+    const ambiguous = same.length > 1
+      || (same.length === 1 && usedTargets.has(same[0].fieldId));
+    const requiresReview = ambiguous || metadataLike.test(column);
+    return {
+      id: "source-" + index,
+      title: column,
+      summary: (zh ? "非空 " : "Nonempty ") + count
+        + " / " + job.source.rows.length
+        + " · " + batchSourceExamplesV010(job, column, zh),
+      primaryFieldKey: "choice_" + index,
+      detailFieldKeys: [
+        ...(ambiguous ? ["candidate_" + index] : []),
+        "label_" + index, "type_" + index, "sample_" + index
+      ],
+      detailsLabel: zh ? "核对字段名称、类型与原值"
+        : "Review field name, type and source evidence",
+      defaultExpanded: requiresReview
+    };
+  });
   return {
     contractVersion: "0.1.1" as const, kind: "form" as const,
     id: "evo-object-extension.batch-import",
@@ -205,6 +234,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
     ] },
     purpose: "execute-command" as const,
     command: { code: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, inputVersion: "0.1.0" },
+    reviewGroups,
     fields,
     actions: [{ id: "create-extension-batch",
       label: zh ? "确认：批量创建并自动映射" : "Confirm: create and map selected fields",
