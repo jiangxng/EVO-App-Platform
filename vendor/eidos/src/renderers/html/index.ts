@@ -65,11 +65,35 @@ function input(field: RenderFieldV010): string {
 
 export function renderToHtml(document: unknown): string {
   const model = toRenderModel(document);
-  const fields = model.fields
-    .map(field => `<div data-eidos-form-field><label>${esc(field.label)}${input(field)}</label>${field.contextLink
+  const renderField = (field: RenderFieldV010) =>
+    `<div data-eidos-form-field><label>${esc(field.label)}${input(field)}</label>${field.contextLink
       ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>`
-      : ""}</div>`)
-    .join("");
+      : ""}</div>`;
+  const byKey = new Map(model.fields.map(field => [field.key, field]));
+  const used = new Set<string>();
+  const groups = (model.reviewGroups ?? []).map(group => {
+    const primary = byKey.get(group.primaryFieldKey)!;
+    used.add(primary.key);
+    const details = group.detailFieldKeys.map(key => {
+      used.add(key);
+      return renderField(byKey.get(key)!);
+    }).join("");
+    return `<section data-eidos-form-review-group="${esc(group.id)}">
+      <header data-eidos-review-group-heading>
+        <div><strong>${esc(group.title)}</strong>
+        ${group.summary ? `<p>${esc(group.summary)}</p>` : ""}</div>
+        <div data-eidos-review-group-primary>${renderField(primary)}</div>
+      </header>
+      ${details ? `<details data-eidos-review-group-detail${group.defaultExpanded ? " open" : ""}>
+        <summary>${esc(group.detailsLabel ?? "Details")}</summary>
+        <div data-eidos-review-group-fields>${details}</div>
+      </details>` : ""}
+    </section>`;
+  }).join("");
+  const standalone = model.fields.filter(field => !used.has(field.key))
+    .map(renderField).join("");
+  const fields = standalone + (groups
+    ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
   const agentActions = model.agentActions
     .map(action =>
       `<button type="button" data-eidos-agent-action="${esc(action.id)}">${esc(action.label)}</button>`

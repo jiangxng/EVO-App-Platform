@@ -2833,4 +2833,23 @@ form[data-eidos-id] button:hover,
   }
 }
 
+/* Generic Eidos grouped form review: no product names, source data or decisions. */
+[data-eidos-form-review-groups]{display:grid;gap:0;margin-top:var(--eidos-space-lg);border-block-start:1px solid var(--eidos-border)}
+[data-eidos-form-review-group]{padding:var(--eidos-space-md) 0;border-block-end:1px solid var(--eidos-border);min-width:0}
+[data-eidos-review-group-heading]{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1fr);gap:var(--eidos-space-lg);align-items:center}
+[data-eidos-review-group-heading]>div{min-width:0}
+[data-eidos-review-group-heading] strong{display:block;font-size:var(--eidos-font-compact)}
+[data-eidos-review-group-heading] p{color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);margin:var(--eidos-space-xs) 0 0;overflow-wrap:anywhere}
+[data-eidos-form-review-group] [data-eidos-form-field] label{margin:0}
+[data-eidos-form-review-group] [data-eidos-form-field] select{margin-top:var(--eidos-space-xs)}
+[data-eidos-review-group-detail]{margin-top:var(--eidos-space-sm);min-width:0}
+[data-eidos-review-group-detail]>summary{cursor:pointer;color:var(--eidos-primary);font-weight:600;font-size:var(--eidos-font-compact);min-height:32px;display:list-item;align-content:center}
+[data-eidos-review-group-detail]>summary:focus-visible{outline:2px solid var(--eidos-primary);outline-offset:2px}
+[data-eidos-review-group-fields]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--eidos-space-md);padding:var(--eidos-space-md) 0}
+[data-eidos-review-group-fields]>[data-eidos-form-field]{min-width:0}
+@media(max-width:680px){
+ [data-eidos-review-group-heading]{grid-template-columns:minmax(0,1fr);gap:var(--eidos-space-sm)}
+ [data-eidos-review-group-fields]{grid-template-columns:minmax(0,1fr)}
+}
+
 `;
