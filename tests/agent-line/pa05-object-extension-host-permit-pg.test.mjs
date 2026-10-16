@@ -304,7 +304,10 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       }
     }),/PA05_OBJECT_SQL_APPROVED_COMMAND_MISMATCH/);
     const approvedToken=await issuer.issue(expected);
+    console.log("PA05_C8_DIAGNOSTIC=HOST_APPROVAL_ISSUED");
     const forge=async(changeReceipt)=>stolen.begin(async tx=>{
+      await tx.unsafe("SET LOCAL statement_timeout = '8000ms'");
+      await tx.unsafe("SET LOCAL lock_timeout = '6000ms'");
       for(const [key,value] of [["scope_key",scopeKey],
         ["run_id",tampered.runId],["effect_id",tampered.effectId],
         ["input_digest",tampered.inputDigest],
@@ -343,6 +346,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       /PA05_OBJECT_SQL_APPROVED_RESOURCE_MISMATCH/);
     await assert.rejects(forge(true),
       /PA05_OBJECT_SQL_APPROVED_EVIDENCE_MISMATCH/);
+    console.log("PA05_C8_DIAGNOSTIC=FORGED_RESOURCE_AND_RECEIPT_DENIED");
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
       ".pa02_definitions"))[0].n,0);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
