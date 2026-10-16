@@ -66,6 +66,9 @@ async function sample(name, directory, profile, extra = {}) {
         throw new Error('COUNTERPARTY_RUNTIME_EAGER: ' + module);
       }
     }
+    if (report.loadedModules.includes('dist/apps/responsibility/repository.js')) {
+      throw new Error('RESPONSIBILITY_RUNTIME_EAGER');
+    }
     // Hook instrumentation makes these unsuitable for performance comparisons.
     const { port, readyMs, memoryBytes, idleCpuMicros, ...observations } = report;
     return { profile: name, ...observations, installedPackages: lifecycle.installedPackages.map(p => p.packageId).sort(),
@@ -112,6 +115,8 @@ const report = {
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
     'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
     'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
+    'manager/responsibility-runtime.ts', 'apps/responsibility/actions.ts',
+    'apps/responsibility/repository.ts',
     'manager/counterparty-runtime.ts', 'apps/counterparty/runtime.ts',
     'apps/counterparty/constants.ts', 'apps/counterparty/foundation-object.ts',
     'apps/counterparty/repository.ts', 'apps/counterparty/actions.ts',

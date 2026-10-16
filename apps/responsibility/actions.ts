@@ -77,8 +77,9 @@ function failure(
   };
 }
 
-export function createResponsibilityActionHandlersV010(input: {
-  repository: ResponsibilityRepositoryV010;
+export function createResponsibilityActionHandlersV010(input: ({ repository: ResponsibilityRepositoryV010 } | {
+  resolveRepository(): Promise<ResponsibilityRepositoryV010>;
+}) & {
   canManageEnterpriseContext(
     principal: PlatformPrincipalV010,
     contextId: string
@@ -100,7 +101,10 @@ export function createResponsibilityActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
-        const saved = input.repository.assign({
+        const repository = "resolveRepository" in input
+          ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        const saved = repository.assign({
           contextId: active.contextId,
           targetRef: {
             objectType: required(
@@ -155,7 +159,10 @@ export function createResponsibilityActionHandlersV010(input: {
           request.values.assignmentId,
           "RESPONSIBILITY_ASSIGNMENT_ID_REQUIRED"
         );
-        input.repository.archive({
+        const repository = "resolveRepository" in input
+          ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        repository.archive({
           contextId: active.contextId,
           assignmentId,
           actorSubjectId: context.principal.subjectId,

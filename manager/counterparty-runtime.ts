@@ -5,7 +5,7 @@ type Factory = typeof createCounterpartyRuntimeV010;
 /** Reuse the existing activation lease; this is application wiring, not a new Provider. */
 export function createCounterpartyRuntimeHostV010(input: {
   isActive(): boolean;
-  dependencies: Parameters<Factory>[0];
+  dependencies: Parameters<Factory>[0] | (() => Promise<Parameters<Factory>[0]>);
   loadFactory?: () => Promise<Factory>;
 }) {
   const lease = createLazyProviderRuntimeV010<CounterpartyRuntimeV010>({
@@ -17,7 +17,12 @@ export function createCounterpartyRuntimeHostV010(input: {
       if (!input.isActive() || lease.diagnostics().blocked) {
         throw new Error("PROVIDER_NOT_ACTIVE_OR_STOPPING");
       }
-      return factory(input.dependencies);
+      const dependencies = typeof input.dependencies === "function"
+        ? await input.dependencies() : input.dependencies;
+      if (!input.isActive() || lease.diagnostics().blocked) {
+        throw new Error("PROVIDER_NOT_ACTIVE_OR_STOPPING");
+      }
+      return factory(dependencies);
     }
   });
   return {
