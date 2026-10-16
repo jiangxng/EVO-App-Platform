@@ -332,16 +332,18 @@ test("BEX V3 batch filter honors previous exclusions without falsely showing an 
   assert.equal(validateUidl(page).ok,true);
 });
 
-test("BEX V3 only shows batch constant when the authorized Job actually persisted it",()=>{
+test("BEX V3 restores a saved constant, never fabricates one from supplier role",()=>{
   const job=fixture();
   const absent=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
-  assert.equal(absent.fields.some(x=>x.semanticType==="object-extension-saved-batch-constant"),false);
-  job.mapping[1].transform={kind:"CONSTANT",value:"ORGANIZATION"};
+  assert.equal(absent.fields.some(x=>x.key==="batchSubjectType"),false,
+    "a mapped source column is authoritative even if batch has a supplier role");
+  job.mapping[1]={targetFieldId:"subjectType",
+    transform:{kind:"CONSTANT",value:"ORGANIZATION"}};
   const saved=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
-  const constant=saved.fields.find(x=>x.semanticType==="object-extension-saved-batch-constant");
-  assert.match(constant.label,/已保存批次固定值：主体类型/);
+  const constant=saved.fields.find(x=>x.key==="batchSubjectType");
+  assert.match(constant.label,/批次固定值 · 主体类型/);
   assert.equal(constant.initialValue,"ORGANIZATION");
-  assert.equal(constant.readOnly,true);
+  assert.equal(constant.control,"select");
   assert.equal(validateUidl(saved).ok,true);
 });
 
