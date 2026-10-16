@@ -134,11 +134,78 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           ".pa05_object_host_permits FROM PUBLIC");
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_permits FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
+        // D14C6: re-attest real database role grants INSIDE SQL authority,
+        // not in an optional JS wrapper. A committed GRANT / membership
+        // change invalidates both subsequent Host issuances and Owner writes.
+        // It is not a global lock on concurrent administrator ACL mutations.
+        const driftBody=[
+          "DECLARE v_business oid;v_host oid;",
+          "BEGIN",
+          "SELECT oid INTO v_business FROM pg_roles WHERE rolname='"+role+"';",
+          "SELECT oid INTO v_host FROM pg_roles WHERE rolname='"+hostRole+"';",
+          "IF v_business IS NULL OR v_host IS NULL THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
+          "IF EXISTS(SELECT 1 FROM pg_roles a",
+          " WHERE a.oid IN(v_business,v_host) AND",
+          " (NOT a.rolcanlogin OR a.rolsuper OR a.rolbypassrls",
+          " OR a.rolcreatedb OR a.rolcreaterole OR a.rolreplication",
+          " OR pg_has_role(a.oid,(SELECT datdba FROM pg_database",
+          " WHERE datname=current_database()),'MEMBER'))) OR",
+          " pg_has_role(v_business,v_host,'MEMBER') OR",
+          " pg_has_role(v_host,v_business,'MEMBER') THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
+          "IF (SELECT count(*) FROM pg_class c",
+          " JOIN pg_namespace n ON n.oid=c.relnamespace",
+          " WHERE (n.nspname='"+object+"' AND c.relname IN",
+          " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
+          " 'pa05_object_host_permits')) OR",
+          " (n.nspname='"+worker+"' AND c.relname IN",
+          " ('pa02b_writes','pa05_xdb_remote_tickets',",
+          " 'pa05_xdb_remote_config'))) != 7 THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
+          "IF EXISTS(SELECT 1 FROM pg_roles a",
+          " JOIN pg_roles delegated ON delegated.oid=a.oid OR",
+          " pg_has_role(a.oid,delegated.oid,'MEMBER')",
+          " JOIN pg_class c ON true",
+          " JOIN pg_namespace n ON n.oid=c.relnamespace",
+          " WHERE a.oid IN(v_business,v_host) AND",
+          " ((n.nspname='"+object+"' AND c.relname IN",
+          " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
+          " 'pa05_object_host_permits')) OR",
+          " (n.nspname='"+worker+"' AND c.relname IN",
+          " ('pa02b_writes','pa05_xdb_remote_tickets',",
+          " 'pa05_xdb_remote_config'))) AND",
+          " (pg_has_role(delegated.oid,c.relowner,'MEMBER') OR",
+          " has_schema_privilege(delegated.oid,n.oid,'CREATE') OR",
+          " has_table_privilege(delegated.oid,c.oid,'UPDATE') OR",
+          " has_table_privilege(delegated.oid,c.oid,'DELETE') OR",
+          " has_table_privilege(delegated.oid,c.oid,'TRUNCATE') OR",
+          " has_table_privilege(delegated.oid,c.oid,'TRIGGER') OR",
+          " has_table_privilege(delegated.oid,c.oid,'MAINTAIN') OR",
+          " ((n.nspname='"+worker+"' OR",
+          " c.relname='pa05_object_host_permits' OR",
+          " a.oid=v_host) AND",
+          " (has_table_privilege(delegated.oid,c.oid,'SELECT') OR",
+          " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
+          "IF has_function_privilege(v_business,",
+          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text)',",
+          " 'EXECUTE') THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
+          "RETURN; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_assert_role_boundary() RETURNS void "+
+          "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog "+
+          "AS $pa05$"+driftBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_assert_role_boundary() FROM PUBLIC");
         const issueBody=[
           "DECLARE v_token text;",
           "BEGIN",
           "IF SESSION_USER!='"+hostRole+"' THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_LOGIN_REQUIRED'; END IF;",
+          "PERFORM "+d+".pa05_object_assert_role_boundary();",
           "IF NOT EXISTS (SELECT 1 FROM "+w+".pa05_xdb_remote_config c",
           " WHERE c.singleton AND c.state='ACTIVE' FOR SHARE) THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_REMOTE_FROZEN'; END IF;",
@@ -190,6 +257,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         " RAISE EXCEPTION 'PA05_OBJECT_SQL_MUTATION_DENIED'; END IF;",
         "IF SESSION_USER!='"+role+"' THEN",
         " RAISE EXCEPTION 'PA05_OBJECT_SQL_WRONG_LOGIN'; END IF;",
+        ...(hostRole?["PERFORM "+d+".pa05_object_assert_role_boundary();"]:[]),
         "v_scope:="+source("scope_key")+";",
         "v_run:="+source("run_id")+";",
         "v_effect:="+source("effect_id")+";",
