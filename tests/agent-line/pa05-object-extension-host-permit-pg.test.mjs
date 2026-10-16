@@ -82,6 +82,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
   let authority,gateway,raw,guarded,issuer,privileged,stolen;
   let originalHost,originalOwner,originalRaw,rotatingOwner,rotatedIssuer,rotatedOwner,oldHost,rrStale;
   let liveTlsHost,renewedTlsHost,renewedIssuer,renewedOwner,revokedIssuer,revokedOwner;
+  let liveBusinessBeforeCutover;
   const issued=[];
   const w=q(workerSchema),d=q(ownerSchema);
   const scopeKey=hostAgentDurabilityScopeKeyV020(scope);
@@ -811,6 +812,10 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     liveTlsHost=postgres(u(urls[1],hostRole,newPw),{max:1,idle_timeout:120,
       ssl:{...hostTls,rejectUnauthorized:true}});
     const tlsPid=(await liveTlsHost.unsafe("SELECT pg_backend_pid() AS pid"))[0].pid;
+    liveBusinessBeforeCutover=postgres(u(urls[1],businessRole,newPw),
+      {max:1,idle_timeout:120});
+    const oldBusinessPid=(await liveBusinessBeforeCutover.unsafe(
+      "SELECT pg_backend_pid() AS pid"))[0].pid;
     const certSource=request("tls-old-live-session");
     const liveRegister=async (conn,r)=>conn.unsafe("SELECT "+d+
       ".pa05_object_register_host_command"+
@@ -826,6 +831,12 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     ]);
     assert.equal((await liveRegister(liveTlsHost,certSource))[0].state,
       "APPROVED");
+    await assert.rejects(liveTlsHost.unsafe("UPDATE "+d+
+      ".pa05_object_host_tls_policy SET enabled=true WHERE slot=true"),
+      /permission denied/);
+    await assert.rejects(liveBusinessBeforeCutover.unsafe("UPDATE "+d+
+      ".pa05_object_host_tls_policy SET enabled=true WHERE slot=true"),
+      /permission denied/);
     await assert.rejects(liveTlsHost.unsafe("SELECT "+d+
       ".pa05_object_cutover_host_tls($1,$2)",["4242",false]),
       /permission denied/);
@@ -835,6 +846,13 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     // SQL revocation alone does not force TLS to disconnect. The same
     // authenticated PID can still SELECT but has NO Host authority.
     assert.equal((await liveTlsHost.unsafe("SELECT pg_backend_pid() AS pid"))[0].pid,tlsPid);
+    assert.equal((await liveBusinessBeforeCutover.unsafe(
+      "SELECT pg_backend_pid() AS pid"))[0].pid,oldBusinessPid);
+    await assert.rejects(liveBusinessBeforeCutover.begin(async tx=>{
+      await tx.unsafe("INSERT INTO "+d+
+        ".pa02_contexts(context_id,enterprise_id) VALUES($1,$2)",
+        [scope.contextId,scope.enterpriseId]);
+    }),/PA05_OBJECT_SQL_SESSION_ROTATED/);
     await assert.rejects(liveRegister(liveTlsHost,
       request("tls-old-session-denied")),
       /PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED/);
@@ -1054,7 +1072,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       privilegedHostMachineCertified:false
     }));
   }finally{
-    for(const x of [liveTlsHost,renewedTlsHost,renewedIssuer,renewedOwner,
+    for(const x of [liveBusinessBeforeCutover,liveTlsHost,renewedTlsHost,renewedIssuer,renewedOwner,
       revokedIssuer,revokedOwner,oldHost,rrStale,rotatingOwner,originalHost,originalOwner,
       originalRaw,rotatedIssuer,rotatedOwner,stolen,guarded,raw,
       privileged,issuer,gateway,authority])
