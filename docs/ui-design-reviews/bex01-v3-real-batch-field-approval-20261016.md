@@ -38,3 +38,9 @@
 - 通过真实 `renderToHtml` + `validateUidl` 合同检查 5 列样本、同名银行冲突、建议状态、筛选、全部来源一次渲染及原值保留；通过现有真实隔离 Host 172×22、桌面/390px 浏览器回归与最终字段创建/供应商读取证明实际路线，不以这组 synthetic 模拟客户签收。
 - **未涵盖的 V3 差异：** 批次固定值编辑/保存的独立 Host 命令、选择改变后无需保存即可更新视觉状态、同一页完成字段计划预览及人工签收、真客户 Excel 与已登录 Railway 的 Human 视觉验收。这些属于后续批次，在没有真实合同/证据前不伪称完成。
 - 不能因为此次 PR 的测试通过，就把 E4-03 原客户数据或 E4-04 用户视觉签收标记为完成。
+
+## 本批真实截图复核与细节修正
+
+PR #984 首次 HEAD `6ca16b7592aeaf2923742e24b35b21654c463f63` 的 [隔离真实 Host Chromium run 38903655890](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38903655890) **SUCCESS**，[artifact 12046174212](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38903655890/artifacts/12046174212) 的 `extension-batch-review-before-confirm.png`、`v3-retained-xlsx-batch-17-fields.png`、`v3-eidos-v3-batch-17-review-table-phone.png` 已实际打开审查：四列、任务上下文、来源样例与行内详情确实出现在真实浏览器页面，不是单独 HTML 原型。继续发现「来源字段名 · 已有字段 / 新建 / 忽略」重复、唯一字段后暴露技术 ID 等认知噪声，因此又在本 PR 内收敛为：决策标签只显示来源业务列名；**只在同名候选**显示目的 + fieldId；新建建议明确提示「集中审核确认」。上述后续提交需要再次由最新精确 HEAD 重新验证，不能沿用首次截图冒充最终实现证据。
+
+仍待其他阶段解决：调整选择后状态无须离开页面即可更新；企业字段新建计划在同一核对任务中结构化预览；批次固定值要经过真实 Host 授权写入而不是显示模拟常量；用户原 Excel 和 Railway 登录后的 Human 签收。
