@@ -165,6 +165,27 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_commands FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
 
+        // D14C13: CRL revalidation applies to new handshakes only.
+        // Every Host SQL authority call also checks this DBA-owned pin.
+        if(hostCertificate){
+          await tx.unsafe("CREATE TABLE "+d+".pa05_object_host_tls_policy ("+
+            "slot boolean PRIMARY KEY DEFAULT true CHECK(slot),"+
+            "client_dn text NOT NULL,issuer_dn text NOT NULL,"+
+            "client_serial numeric NOT NULL,enabled boolean NOT NULL)");
+          await tx.unsafe("REVOKE ALL ON "+d+
+            ".pa05_object_host_tls_policy FROM PUBLIC");
+          await tx.unsafe("REVOKE ALL ON "+d+
+            ".pa05_object_host_tls_policy FROM "+'"'+role+'"'+","
+              +'"'+hostRole+'"');
+          await tx.unsafe("INSERT INTO "+d+
+            ".pa05_object_host_tls_policy"+
+            "(slot,client_dn,issuer_dn,client_serial,enabled) "+
+            "VALUES(true,$1,$2,$3::numeric,true)",[
+              hostCertificate.clientDn,hostCertificate.issuerDn,
+              hostCertificate.serial
+            ]);
+        }
+
         // D14C11: credential rollover fences authenticated sessions that
         // survive ALTER ROLE PASSWORD. Admin advances both role cutoffs in
         // the SAME committed transaction as rotating the SQL passwords.
@@ -222,6 +243,34 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "AS $pa05$"+advanceBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
           ".pa05_object_advance_sql_session_epoch(text) FROM PUBLIC");
+        // D14C13: DBA-only atomic certificate cutover with both SQL epochs.
+        if(hostCertificate){
+          const tlsCutoverBody=[
+            "DECLARE n integer;",
+            "BEGIN",
+            "IF SESSION_USER!='"+adminLogin+"' OR",
+            " p_serial !~ '^[0-9]{1,30}$' THEN",
+            " RAISE EXCEPTION 'PA05_OBJECT_SQL_TLS_CUTOVER_ADMIN_REQUIRED'; END IF;",
+            "UPDATE "+d+".pa05_object_host_tls_policy",
+            " SET client_serial=p_serial::numeric,enabled=p_enabled",
+            " WHERE slot=true;",
+            "IF NOT FOUND THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_TLS_POLICY_MISSING'; END IF;",
+            "UPDATE "+d+".pa05_object_sql_session_epochs",
+            " SET not_before=clock_timestamp()",
+            " WHERE login_role IN('"+role+"','"+hostRole+"');",
+            "GET DIAGNOSTICS n=ROW_COUNT;",
+            "IF n!=2 THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_TLS_EPOCH_MISSING'; END IF;",
+            "RETURN CASE WHEN p_enabled THEN 'ROTATED' ELSE 'REVOKED' END;",
+            "END;"
+          ].join("\n");
+          await tx.unsafe("CREATE FUNCTION "+d+
+            ".pa05_object_cutover_host_tls(p_serial text,p_enabled boolean) "+
+            "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
+            "SET search_path=pg_catalog AS $pa05$"+tlsCutoverBody+"$pa05$");
+          await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+            ".pa05_object_cutover_host_tls(text,boolean) FROM PUBLIC");
+        }
+
         // D14C6: re-attest real database role grants INSIDE SQL authority,
         // not in an optional JS wrapper. A committed GRANT / membership
         // change invalidates both subsequent Host issuances and Owner writes.
@@ -230,14 +279,16 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "DECLARE v_business oid;v_host oid;",
           "BEGIN",
           ...(hostCertificate?[
-            "IF SESSION_USER='"+hostRole+"' AND NOT EXISTS(",
-            " SELECT 1 FROM pg_stat_ssl ssl",
-            " WHERE ssl.pid=pg_backend_pid() AND ssl.ssl IS TRUE",
-            " AND ssl.client_dn='"+hostCertificate.clientDn.replaceAll("'","''")+"'",
-            " AND ssl.issuer_dn='"+hostCertificate.issuerDn.replaceAll("'","''")+"'",
-            " AND ssl.client_serial="+hostCertificate.serial+"::numeric",
-            ") THEN",
+            "IF SESSION_USER='"+hostRole+"' THEN",
+            "PERFORM 1 FROM "+d+".pa05_object_host_tls_policy p",
+            " JOIN pg_stat_ssl ssl ON ssl.pid=pg_backend_pid()",
+            " WHERE p.slot=true AND p.enabled AND ssl.ssl IS TRUE",
+            " AND ssl.client_dn=p.client_dn",
+            " AND ssl.issuer_dn=p.issuer_dn",
+            " AND ssl.client_serial=p.client_serial FOR SHARE OF p;",
+            "IF NOT FOUND THEN",
             " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED';",
+            "END IF;",
             "END IF;"
           ]:[]),
           "PERFORM "+d+".pa05_object_assert_fresh_session();",
@@ -259,10 +310,11 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " WHERE (n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
           " 'pa05_object_host_permits','pa05_object_host_commands',",
-          " 'pa05_object_sql_session_epochs')) OR",
+          " 'pa05_object_sql_session_epochs'"+
+          (hostCertificate?",'pa05_object_host_tls_policy'":"")+")) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
-          " 'pa05_xdb_remote_config'))) != 9 THEN",
+          " 'pa05_xdb_remote_config'))) != "+(hostCertificate?"10":"9")+" THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF EXISTS(SELECT 1 FROM pg_roles a",
           " JOIN pg_roles delegated ON delegated.oid=a.oid OR",
@@ -273,7 +325,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " ((n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
           " 'pa05_object_host_permits','pa05_object_host_commands',",
-          " 'pa05_object_sql_session_epochs')) OR",
+          " 'pa05_object_sql_session_epochs'"+
+          (hostCertificate?",'pa05_object_host_tls_policy'":"")+")) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
           " 'pa05_xdb_remote_config'))) AND",
@@ -286,7 +339,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " has_table_privilege(delegated.oid,c.oid,'MAINTAIN') OR",
           " ((n.nspname='"+worker+"' OR",
           " c.relname IN('pa05_object_host_permits',",
-          " 'pa05_object_host_commands','pa05_object_sql_session_epochs') OR",
+          " 'pa05_object_host_commands','pa05_object_sql_session_epochs'"+
+          (hostCertificate?",'pa05_object_host_tls_policy'":"")+") OR",
           " a.oid=v_host) AND",
           " (has_table_privilege(delegated.oid,c.oid,'SELECT') OR",
           " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
@@ -303,7 +357,12 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " '"+object+".pa05_object_advance_sql_session_epoch(text)',",
           " 'EXECUTE') OR has_function_privilege(v_host,",
           " '"+object+".pa05_object_advance_sql_session_epoch(text)',",
-          " 'EXECUTE') THEN",
+          " 'EXECUTE')"+
+          (hostCertificate?" OR has_function_privilege(v_business,'"+object+
+            ".pa05_object_cutover_host_tls(text,boolean)','EXECUTE')"+
+            " OR has_function_privilege(v_host,'"+object+
+            ".pa05_object_cutover_host_tls(text,boolean)','EXECUTE')":"")+
+          " THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
         ].join("\n");
