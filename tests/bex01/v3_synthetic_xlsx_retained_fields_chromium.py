@@ -257,8 +257,8 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
-    expect(form.locator('[data-eidos-form-review-group]')).to_have_count(18)
-    expect(form.locator('[data-eidos-review-group-primary] select')).to_have_count(18)
+    expect(form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
+    expect(form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     # The Eidos framework renders a compact generic group. Business controls
     # remain the exact same 17 one-to-one source-column keys and Host actions.
     phone=browser.new_context(viewport={"width":390,"height":844},
@@ -334,9 +334,9 @@ with sync_playwright() as pw:
     small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     mobile_form=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(mobile_form).to_be_visible(timeout=30000)
-    expect(mobile_form.locator('[data-eidos-form-review-group]')).to_have_count(18)
-    expect(mobile_form.locator('[data-eidos-review-group-primary] select')).to_have_count(18)
-    mobile_group=mobile_form.locator('[data-eidos-form-review-group]').first
+    expect(mobile_form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
+    expect(mobile_form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
+    mobile_group=mobile_form.locator('[data-eidos-form-review-table-row]').first
     mobile_group.locator('[data-eidos-review-group-detail] summary').click()
     expect(mobile_group.locator('input[name="label_0"]')).to_be_visible()
     geometry=small.evaluate("""() => ({
