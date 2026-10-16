@@ -213,7 +213,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_register_host_command(text,text,text,text,text,text,jsonb)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
-          " '"+object+".pa05_object_revoke_host_permit(text,text,text)',"
+          " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
           " 'EXECUTE') THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
