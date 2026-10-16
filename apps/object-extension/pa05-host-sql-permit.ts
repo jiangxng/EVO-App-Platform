@@ -135,6 +135,33 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
         throw Error("PA05_OBJECT_SQL_HOST_ISSUER_UNVERIFIED");
       return token;
     },
+    async bindTransaction(request:{
+      scopeKey:string;effectId:string;token:string;
+      backendPid:number;transactionId:string;
+    }):Promise<"BOUND">{
+      if(!request||typeof request.scopeKey!=="string"||
+        !request.scopeKey||request.scopeKey.length>512||
+        typeof request.effectId!=="string"||!request.effectId||
+        request.effectId.length>512||
+        typeof request.token!=="string"||
+        !/^[a-f0-9]{64}$/.test(request.token)||
+        !Number.isSafeInteger(request.backendPid)||request.backendPid<=0||
+        typeof request.transactionId!=="string"||
+        !/^[0-9]{1,20}$/.test(request.transactionId))
+        throw Error("PA05_OBJECT_SQL_BIND_SOURCE_INVALID");
+      // Same trusted Host SQL LOGIN, separate from business LOGIN. The
+      // SECURITY DEFINER function checks a LIVE physical SQL transaction,
+      // not an Owner-controlled custom GUC or application-supplied bool.
+      const rows=await sql.unsafe("SELECT "+
+        '"'+input.objectSchema+'".pa05_object_bind_host_permit'+
+        "($1,$2,$3,$4,$5) AS state",[
+          request.scopeKey,request.effectId,request.token,
+          request.backendPid,request.transactionId
+        ]);
+      if(rows[0]?.state!=="BOUND")
+        throw Error("PA05_OBJECT_SQL_BIND_OUTCOME_UNVERIFIED");
+      return "BOUND";
+    },
     async revoke(request:{
       scopeKey:string;effectId:string;token:string;
     }):Promise<"REVOKED"|"COMMITTED"|"NOT_FOUND">{
