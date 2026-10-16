@@ -155,7 +155,14 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   /** D14C4: trusted opt-in transaction-local source for database physical
    * guard; only install against an explicitly prepared isolated PA-02 schema.
    * Ordinary Object Extension existing file-backed production is unchanged. */
-  pa05PhysicalAdmission?:{workerSchema:string};
+  pa05PhysicalAdmission?:{
+    workerSchema:string;
+    /** D14C5: independent Host-only issuance, never the business SQL LOGIN. */
+    hostPermitIssuer?:{issue:(request:{
+      scopeKey:string;runId:string;effectId:string;inputDigest:string;
+      contextId:string;enterpriseId:string;
+    })=>Promise<string>};
+  };
 }):{
   owner:GovernedAgentBusinessOwnerV040;
   verifier:AgentOwnerVerifierV030;
@@ -190,6 +197,15 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
         toolId:r.toolId,recordId:definition.extensionId,
         definition,recordedAt:now().toISOString()
       };
+      const hostPermit=input.pa05PhysicalAdmission?.hostPermitIssuer
+        ?await input.pa05PhysicalAdmission.hostPermitIssuer.issue({
+          scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
+          runId:r.runId,effectId:r.effectId,inputDigest:r.inputDigest,
+          contextId:s.contextId,enterpriseId:s.enterpriseId
+        }):undefined;
+      if(hostPermit!==undefined && !/^[a-f0-9]{64}$/.test(hostPermit) &&
+        !/^[a-f0-9]{32}$/.test(hostPermit))
+        throw Error("PA05_OBJECT_SQL_HOST_PERMIT_INVALID");
       await sql.begin(async tx=>{
         if(input.pa05PhysicalAdmission){
           // All markers are SET LOCAL and cleared on transaction commit or
@@ -204,7 +220,8 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
             ["effect_id",r.effectId],
             ["input_digest",r.inputDigest],
             ["context_id",s.contextId],
-            ["enterprise_id",s.enterpriseId]
+            ["enterprise_id",s.enterpriseId],
+            ...(hostPermit?[["host_permit",hostPermit] as [string,string]]:[])
           ];
           for(const [key,value] of values)
             await tx.unsafe("SELECT set_config($1,$2,true)",
