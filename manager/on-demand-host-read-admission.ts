@@ -2,7 +2,7 @@ import type { PackageCatalog } from "../catalog/catalog.js";
 import type { PackageManifestV010 } from "../contracts/package.js";
 import { validatePluginManifestV010 } from "../contracts/plugin-protocol.js";
 import type { AppActionHandler } from "../actions/contracts.js";
-import type { AppActionRouter } from "../actions/router.js";
+import type { HostMutableAppActionRouter } from "../actions/router.js";
 
 /**
  * Trusted Host composition boundary, deliberately not a public HTTP API.
@@ -17,7 +17,7 @@ import type { AppActionRouter } from "../actions/router.js";
  */
 export function createOnDemandHostReadAdmissionV010(input: {
   catalog: PackageCatalog;
-  router: AppActionRouter;
+  router: HostMutableAppActionRouter;
   expectedPackageId: string;
   expectedOperationId: string;
   expectedCommandCode: string;
