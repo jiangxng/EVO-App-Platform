@@ -13,7 +13,21 @@ const policy=JSON.stringify({contractVersion:"0.1.0",rules:[{
   actions:["host.plugin.read.admit"],subjectIds:["bootstrap-admin"],
   actorTypes:["HUMAN"],resourceTypes:["plugin-package"],
   resourceIds:[PACKAGE_ID]
+},{
+  id:"pa05-e01f-test-operator-lifecycle",effect:"ALLOW",
+  actions:["host.plugin.lifecycle.install","host.plugin.lifecycle.enable",
+    "host.plugin.lifecycle.disable","host.plugin.lifecycle.uninstall",
+    "host.plugin.lifecycle.upgrade"],
+  subjectIds:["bootstrap-admin"],actorTypes:["HUMAN"],
+  resourceTypes:["plugin-package"],resourceIds:[PACKAGE_ID]
 }]});
+const admitOnlyPolicy=JSON.stringify({
+  contractVersion:"0.1.0",
+  rules:[{id:"e01e-admit-only",effect:"ALLOW",
+    actions:["host.plugin.read.admit"],subjectIds:["bootstrap-admin"],
+    actorTypes:["HUMAN"],resourceTypes:["plugin-package"],
+    resourceIds:[PACKAGE_ID]}]
+});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function freePort(){
   const server=createServer();
@@ -23,7 +37,7 @@ async function freePort(){
   await new Promise(resolve=>server.close(resolve));
   return port;
 }
-async function startHost({mode="OFF",withPolicy=false}={}){
+async function startHost({mode="OFF",withPolicy=false,lifecycleAllowed=true}={}){
   const port=await freePort();
   const dir=mkdtempSync(join(tmpdir(),"pa05-e01e-host-"));
   const env={
@@ -31,7 +45,7 @@ async function startHost({mode="OFF",withPolicy=false}={}){
     NODE_ENV:"test",APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN:ADMIN,
     APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION:mode,
     APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:
-      withPolicy?policy:JSON.stringify({contractVersion:"0.1.0",rules:[]})
+      withPolicy?(lifecycleAllowed?policy:admitOnlyPolicy):JSON.stringify({contractVersion:"0.1.0",rules:[]})
   };
   // Deliberately DO NOT inherit caller production DB/identity/key env vars.
   // This process is disposable; only its in-memory lifecycle may mutate.
@@ -144,22 +158,29 @@ test("E01E actual Node Host HTTP: authenticated admin + policy + explicit confir
     const retry=await api(host,"/v1/admin/pa05/read-plugin/admit",command);
     assert.equal(retry.status,409);
     assert.equal(retry.payload.error.code,"ON_DEMAND_HOST_ALREADY_REGISTERED");
-    // A separate explicit lifecycle call is required; it still uses the
-    // original AppManager and must not produce any material business WRITE.
-    // Known missing certification gate: the legacy installer currently
-    // accepts this request without an authenticated administrator bearer.
-    // Do NOT equate the following test-only HTTP mutation with signed
-    // Human consent or with a safe production installation.
-    const install=await api(host,"/v1/install",{
+    // E01F closes the E01E-found bypass: body consent alone is insufficient.
+    const untrustedInstall=await api(host,"/v1/install",{
       method:"POST",
+      body:{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}
+    });
+    assert.equal(untrustedInstall.status,403);
+    assert.equal(untrustedInstall.payload.code,"PA05_E01F_LIFECYCLE_ADMIN_DENIED");
+    assert.equal(includesPackage((await api(host,"/v1/platform/snapshot"))
+      .payload.installedPackages),false);
+    const install=await api(host,"/v1/install",{
+      method:"POST",bearer:ADMIN,
       body:{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}
     });
     assert.equal(install.status,200,JSON.stringify(install.payload));
     const snapshot=await api(host,"/v1/platform/snapshot");
     assert.equal(snapshot.status,200);
     assert.equal(includesPackage(snapshot.payload.installedPackages),true);
-    const disable=await api(host,"/v1/disable",{
+    const deniedDisable=await api(host,"/v1/disable",{
       method:"POST",body:{packageId:PACKAGE_ID}
+    });
+    assert.equal(deniedDisable.status,403);
+    const disable=await api(host,"/v1/disable",{
+      method:"POST",bearer:ADMIN,body:{packageId:PACKAGE_ID}
     });
     assert.equal(disable.status,200,JSON.stringify(disable.payload));
     const disabled=await api(host,"/v1/platform/snapshot");
@@ -171,7 +192,9 @@ test("E01E actual Node Host HTTP: authenticated admin + policy + explicit confir
       defaultOffAndUnauthorizedDenied:true,bodyInjectionDenied:true,
       registeredInLiveOriginalHostCatalog:true,
       originalAppManagerInstallAndDisableThroughHttp:true,
-      legacyInstallerWithoutAdminBearerObserved:true,
+      legacyInstallerWithoutAdminBearerObserved:false,
+      formerlyUnguardedInstallerNowRejected:true,
+      isolatedOperatorLifecycleAuthRequired:true,
       realOperatorInstallationAuthorizationCertified:false,
       realEnterpriseDataReadCertified:false,
       actualHumanOrAgentSessionsCertified:false,
@@ -188,5 +211,55 @@ test("E01E actual Host with missing policy denies even correct admin credential"
     const denied=await api(host,"/v1/admin/pa05/read-plugin/admit",command);
     assert.equal(denied.status,403);
     assert.equal(includesPackage((await api(host,"/v1/catalog")).payload),false);
+  }finally{await host.stop();}
+});
+
+test("E01F actual Host HTTP: every direct and plugin-store lifecycle mutation refuses anonymous, wrong and policy-unapproved callers",{
+  timeout:90000
+},async()=>{
+  const host=await startHost({mode:"OPT_IN",withPolicy:true,lifecycleAllowed:false});
+  try{
+    const admitResult=await api(host,"/v1/admin/pa05/read-plugin/admit",command);
+    assert.equal(admitResult.status,200,JSON.stringify(admitResult.payload));
+    const direct=[
+      ["/v1/install",{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}],
+      ["/v1/enable",{packageId:PACKAGE_ID}],
+      ["/v1/disable",{packageId:PACKAGE_ID}],
+      ["/v1/uninstall",{packageId:PACKAGE_ID}],
+      ["/v1/upgrade",{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}]
+    ];
+    for(const [path,body] of direct){
+      for(const bearer of [undefined,"wrong",ADMIN]){
+        const res=await api(host,path,{method:"POST",bearer,body});
+        assert.equal(res.status,403,path+" bearer="+String(bearer));
+        assert.equal(res.payload.code,"PA05_E01F_LIFECYCLE_ADMIN_DENIED");
+      }
+    }
+    for(const code of ["app-platform.install-package",
+      "app-platform.enable-package","app-platform.disable-package",
+      "app-platform.uninstall-package","app-platform.upgrade-package"]){
+      const req={contractVersion:"0.1.0",type:"command",
+        command:{code,inputVersion:"0.1.0"},
+        values:{itemId:PACKAGE_ID,confirmed:true,trustApproved:true},
+        sourceInteractionId:"e01f-http",actionId:"e01f-"+code,
+        requiresConfirmation:false};
+      for(const bearer of [undefined,"wrong",ADMIN]){
+        const res=await api(host,"/v1/actions",{
+          method:"POST",bearer,body:req
+        });
+        assert.equal(res.status,403,code+" bearer="+String(bearer));
+        assert.equal(res.payload.error.code,"PA05_E01F_LIFECYCLE_ADMIN_DENIED");
+      }
+    }
+    assert.equal(includesPackage((await api(host,"/v1/platform/snapshot"))
+      .payload.installedPackages),false);
+    console.log("PA05_E01F_REAL_HOST_LIFECYCLE="+JSON.stringify({
+      realHttpNegativeDirectRoutes:5,realHttpNegativeActionCodes:5,
+      testedBearerVariants:3,policyDenyCannotBeOverriddenByToken:true,
+      spoofedBodyConfirmationDenied:true,
+      noUnauthorizedTargetInstall:true,
+      defaultProductionWriteEnabled:false,
+      realHumanOperatorAcceptance:false
+    }));
   }finally{await host.stop();}
 });
