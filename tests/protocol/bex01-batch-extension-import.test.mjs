@@ -349,3 +349,23 @@ test("BEX V3 only shows batch constant when the authorized Job actually persiste
   assert.equal(constant.readOnly,true);
   assert.equal(validateUidl(saved).ok,true);
 });
+
+
+test("V3 batch approval plan is derived from every real option, not a static proposed-count mock",()=>{
+  const job=fixture();
+  const page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(page.reviewPlan.title,"本批字段处理方案预览");
+  assert.deepEqual(page.reviewPlan.categories.map(x=>x.id),
+    ["create","reuse","ignore","pending"]);
+  assert.equal(page.reviewPlan.proposedFields.length,5);
+  assert.equal(page.reviewPlan.proposedFields[0].groupId,"source-0");
+  assert.equal(page.reviewPlan.proposedFields[0].labelFieldKey,"label_0");
+  assert.equal(validateUidl(page).ok,true,JSON.stringify(validateUidl(page).diagnostics));
+  const html=renderToHtml(page);
+  assert.match(html,/data-eidos-form-review-plan/);
+  assert.match(html,/data-eidos-review-plan-items/);
+  assert.match(html,/data-eidos-plan-label-field="label_0"/);
+  assert.match(html,/仅预览当前未保存的选择/);
+  assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5,
+    "same Host source rows and original choice_N are used by preview and submit");
+});
