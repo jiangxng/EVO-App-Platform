@@ -23,3 +23,10 @@ Modify the **same actual process HTTP suite** [E01E/E01F](../../tests/agent-line
 **Remaining gaps**: production operator identity, actual live enterprise→EVO source, independently authenticated Human/Agent, real Provider/model/browser acceptance, runtime cross-worker/global lifecycle freeze, review of *other* plugin lifecycle authorizers/indirect dependencies, and production PKI. Even if this PR merges, E01 real Human signoff and all E02–E05 stay NOT_SIGNED; #979/#913 OPEN, production WRITE OFF. Update #988 with actual CI evidence only after successful exact-head validation.
 
 **Evidence status at creation:** CANDIDATE, not PASS, pending PR head CI.
+
+
+## Actual first complete engineering-head proof (2026-10-16)
+
+Directly retrieved [GitHub Actions PA05 Cross-business READ #38907464527](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38907464527) at precise engineering HEAD `daedc134efae749c877df2824e0f39059f5868e9`: **actual compiled disposable Host HTTP suite 4/4 PASS, 0 skipped**, E01A–D and previous business owner regressions green. `PA05_E01E_REAL_HOST_HTTP` now expressly reports `legacyInstallerWithoutAdminBearerObserved:false`, `formerlyUnguardedInstallerNowRejected:true`, `realOperatorInstallationAuthorizationCertified:false`. New `PA05_E01F_REAL_HOST_LIFECYCLE` reports 5 direct routes, 5 Action command identities, three bearer variants, denied policy even with the correct bearer, no unauthorized installation, production WRITE false and real Human operator acceptance false.
+
+**All 44/44 exact engineering-HEAD GitHub Actions workflows SUCCESS**, including PA05 READ, Governed WRITE, three isolated PostgreSQL18, Lightweight Host, Platform Core, identity, generic OIDC and other shared Host/Agent regressions. This is **direct inspected** tool evidence; it is *not* a real Railway identity, data, PKI or Human E01 signoff. The updated documentation itself creates a new HEAD; require all relevant final-head CI again before merging. The security remediation is bounded to exact `evo-purchase-attention` direct/Action lifecycle entrypoints. Non-target package lifecycle and indirect plugin dependencies are not newly certified here.
