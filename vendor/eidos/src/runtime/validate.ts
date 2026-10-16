@@ -32,6 +32,7 @@ const docKeys = new Set([
   "fields",
   "reviewGroups",
   "reviewTable",
+  "reviewTask",
   "actions",
   "metadata"
 ]);
@@ -889,6 +890,84 @@ export function validateUidl(
     }
   }
 
+  let reviewTask: import("./contracts.js").UidlFormReviewTaskV010 | undefined;
+  if (document.reviewTask !== undefined) {
+    const task = document.reviewTask, path = "$.reviewTask";
+    let invalid = false;
+    const fail = (part: string, msg: string) => {
+      invalid = true;
+      out.push(d("EIDOS_REVIEW_TASK_INVALID", part, msg));
+    };
+    if (!isPlainObject(task) || !isPlainObject(task.subject)
+      || !nonEmpty(task.subject.title) || !task.subject.title.trim()) {
+      fail(path, "Review task requires a subject title");
+    } else {
+      extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
+        "issuesDescription","issues","helpText"]),path,out);
+      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
+        path+".subject",out);
+      if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")
+        || (task.subject.statusLabel !== undefined
+          && typeof task.subject.statusLabel !== "string")) {
+        fail(path+".subject","Subject copy must be text");
+      }
+      const checkIds = (items: unknown, pathName: string, max: number,
+        predicate: (item:Record<string,unknown>,at:string)=>boolean) => {
+        if (items === undefined) return;
+        if (!Array.isArray(items) || items.length>max) {
+          fail(pathName,"Review task collection is not a bounded array");return;
+        }
+        const ids=new Set<string>();
+        items.forEach((raw:unknown,index:number)=>{
+          const at=pathName+"["+index+"]";
+          if (!isPlainObject(raw) || !nonEmpty(raw.id) || !raw.id.trim()
+            || ids.has(raw.id) || !predicate(raw,at)) {
+            fail(at,"Review task item has missing, duplicate or invalid fields");
+          } else ids.add(raw.id);
+        });
+      };
+      checkIds(task.subject.facts,path+".subject.facts",8,(item,at)=>{
+        extraKeys(item,new Set(["id","label","value"]),at,out);
+        return nonEmpty(item.label) && typeof item.value==="string";
+      });
+      checkIds(task.steps,path+".steps",6,(item,at)=>{
+        extraKeys(item,new Set(["id","label","state"]),at,out);
+        return nonEmpty(item.label)
+          && ["complete","current","upcoming"].includes(item.state as string);
+      });
+      if (Array.isArray(task.steps) && task.steps.length
+        && task.steps.filter((step:unknown)=>isPlainObject(step)
+          && step.state==="current").length !== 1) {
+        fail(path+".steps","Exactly one step must be current");
+      }
+      checkIds(task.metrics,path+".metrics",8,(item,at)=>{
+        extraKeys(item,new Set(["id","label","value","tone"]),at,out);
+        return nonEmpty(item.label) && typeof item.value==="string"
+          && (item.tone===undefined
+            || ["neutral","positive","warning","danger"].includes(item.tone as string));
+      });
+      checkIds(task.issues,path+".issues",12,(item,at)=>{
+        extraKeys(item,new Set(["id","title","description",
+          "focusGroupId","actionLabel"]),at,out);
+        return nonEmpty(item.title)
+          && (item.description===undefined || typeof item.description==="string")
+          && (item.focusGroupId===undefined
+            || nonEmpty(item.focusGroupId)
+              && reviewGroups.some(group=>group.id===item.focusGroupId))
+          && (item.actionLabel===undefined || nonEmpty(item.actionLabel))
+          && (item.actionLabel===undefined || item.focusGroupId!==undefined);
+      });
+      for (const key of ["issuesTitle","issuesDescription","helpText"] as const) {
+        if (task[key]!==undefined && typeof task[key]!=="string") {
+          fail(path+"."+key,"Review task copy must be text");
+        }
+      }
+      if (!invalid) {
+        reviewTask = structuredClone(task) as unknown as import("./contracts.js").UidlFormReviewTaskV010;
+      }
+    }
+  }
+
   const actions: UidlAction[] = [];
   const actionIds = new Set<string>();
   if (!Array.isArray(document.actions) || document.actions.length === 0) {
@@ -989,6 +1068,7 @@ export function validateUidl(
       fields,
       ...(document.reviewGroups !== undefined ? {reviewGroups} : {}),
       ...(reviewTable ? {reviewTable} : {}),
+      ...(reviewTask ? {reviewTask} : {}),
       actions,
       ...(document.metadata !== undefined
         ? {

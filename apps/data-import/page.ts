@@ -722,12 +722,71 @@ export function createDataImportMappingPageV010(input: {
     }
   };
 
+  const countStatus = (key: string): number =>
+    reviewGroups.filter(group => group.reviewStatus.key === key).length;
+  const attentionColumns = reviewGroups.filter(group =>
+    group.reviewStatus.key === "attention"
+      || group.reviewStatus.key === "suggested");
+  const reviewTask = {
+    subject: {
+      title: input.job.source.name ?? input.job.importJobId,
+      subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
+        + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
+        + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
+      statusLabel: zh(input.locale) ? "来源数据已保留" : "Source preserved",
+      facts: [{
+        id:"records",label:zh(input.locale)?"记录数":"Records",
+        value:String(input.job.source.rows.length)
+      }, {
+        id:"columns",label:zh(input.locale)?"来源列数":"Columns",
+        value:String(input.job.source.headers.length)
+      }]
+    },
+    steps: [{
+      id:"source",label:zh(input.locale)?"选择文件":"Choose file",
+      state:"complete" as const
+    }, {
+      id:"review",label:zh(input.locale)?"核对映射":"Review mapping",
+      state:"current" as const
+    }, {
+      id:"commit",label:zh(input.locale)?"预检查与导入":"Validate & import",
+      state:"upcoming" as const
+    }],
+    metrics: [{
+      id:"matched",label:zh(input.locale)?"已匹配":"Matched",
+      value:String(countStatus("matched")),tone:"positive" as const
+    }, {
+      id:"proposed",label:zh(input.locale)?"待新增字段":"Proposed fields",
+      value:String(countStatus("proposed"))
+    }, {
+      id:"ignored",label:zh(input.locale)?"不导入的列":"Excluded columns",
+      value:String(countStatus("ignored"))
+    }, {
+      id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
+      value:String(attentionColumns.length),tone:"warning" as const
+    }],
+    issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
+    issuesDescription: zh(input.locale)
+      ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
+      : "Review only uncertain sources; jump directly to the relevant choice.",
+    issues: attentionColumns.slice(0,12).map(group => ({
+      id:group.id,
+      title:group.title,
+      description:group.reviewStatus.label + " · " + group.summary,
+      focusGroupId:group.id,
+      actionLabel:zh(input.locale)?"核对本列":"Review column"
+    })),
+    helpText:zh(input.locale)
+      ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
+      : "Changes require explicit save and validation; viewing does not commit records."
+  };
   return {
     contractVersion: "0.1.1" as const,
     kind: "form" as const,
     id: "evo-data-import.mapping",
     reviewGroups,
     reviewTable,
+    reviewTask,
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
     description: input.job.mappingOrigin === "RECIPE"
       ? t.recipeAppliedDescription
