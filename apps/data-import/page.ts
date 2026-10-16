@@ -610,6 +610,52 @@ export function createDataImportMappingPageV010(input: {
       };
     });
 
+  const mappingSelectionFor = (sourceColumn: string): string =>
+    current.get(sourceColumn)
+      ?? (input.createdMapping?.sourceColumn === sourceColumn
+        && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
+          ? input.createdMapping.fieldId
+          : input.job.ignoredSourceColumns?.includes(sourceColumn)
+            ? "__IGNORE__"
+            : uniqueExistingField(sourceColumn)
+              ?? (candidatesFor(sourceColumn).length > 0
+                ? "__PENDING__"
+                : input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                  ? "__CREATE__" : "__PENDING__"));
+  // Status reflects the Host-restored decision, not an unverified suggestion.
+  // Source metadata-looking headings are surfaced for Human review, never auto-ignored.
+  const metadataLikeColumn = (column: string) =>
+    /^(系统编码|系统编号|流程状态|表单状态|系统状态|内部编号)$/.test(column.trim());
+  const reviewStatusFor = (sourceColumn: string) => {
+    const selected = mappingSelectionFor(sourceColumn);
+    const candidates = candidatesFor(sourceColumn);
+    const resolved = current.has(sourceColumn) && importFields.some(field =>
+      field.fieldId === current.get(sourceColumn));
+    if (selected === "__IGNORE__") return {
+      key: "ignored", label: zh(input.locale) ? "不导入" : "Excluded",
+      tone: "neutral" as const
+    };
+    if (resolved && candidates.length <= 1 && !metadataLikeColumn(sourceColumn)) return {
+      key: "matched", label: zh(input.locale) ? "已匹配" : "Matched",
+      tone: "positive" as const
+    };
+    if (selected === "__CREATE__" && !metadataLikeColumn(sourceColumn))
+      return {
+        key: "proposed", label: zh(input.locale) ? "待新增" : "Proposed",
+        tone: "neutral" as const
+      };
+    if (selected !== "__PENDING__" && !current.has(sourceColumn)
+      && selected !== "__CREATE__" && candidates.length === 1
+      && !metadataLikeColumn(sourceColumn)) return {
+        key: "suggested", label: zh(input.locale) ? "待确认匹配" : "Suggested",
+        tone: "neutral" as const
+      };
+    return {
+      key: "attention", label: zh(input.locale) ? "需要核对" : "Needs review",
+      tone: "warning" as const
+    };
+  };
+
   const reviewGroups = input.job.source.headers.map((sourceColumn, index) => {
     const candidates = candidatesFor(sourceColumn);
     const target = current.get(sourceColumn);
@@ -621,6 +667,7 @@ export function createDataImportMappingPageV010(input: {
       title: sourceColumn,
       summary: sourceProfiles[index].summary,
       primaryFieldKey: "map_" + index,
+      reviewStatus: reviewStatusFor(sourceColumn),
       detailFieldKeys: [
         ...(!current.has(sourceColumn) || ambiguous
           ? ["sourceEvidence_" + index] : []),
@@ -632,11 +679,41 @@ export function createDataImportMappingPageV010(input: {
     };
   });
 
+  const reviewTable = {
+    columnLabels: {
+      subject: zh(input.locale) ? "来源列名" : "Source column",
+      evidence: zh(input.locale) ? "示例值" : "Examples",
+      decision: zh(input.locale) ? "对应系统字段" : "Target field",
+      status: zh(input.locale) ? "状态" : "Status"
+    },
+    filter: {
+      label: zh(input.locale) ? "显示" : "Show",
+      selectedId: "needs",
+      noMatchesMessage: zh(input.locale)
+        ? "当前筛选没有需要处理的列。可选择“全部字段”查看原始列。"
+        : "No matching columns. Choose All fields to inspect the source.",
+      options: [{
+        id: "needs",
+        label: zh(input.locale) ? "需要关注" : "Needs attention",
+        statusKeys: ["attention", "proposed", "suggested"]
+      }, {
+        id: "all",
+        label: zh(input.locale) ? "全部字段" : "All fields",
+        statusKeys: ["attention", "proposed", "suggested", "matched", "ignored"]
+      }, {
+        id: "matched",
+        label: zh(input.locale) ? "已处理" : "Handled",
+        statusKeys: ["matched", "ignored"]
+      }]
+    }
+  };
+
   return {
     contractVersion: "0.1.1" as const,
     kind: "form" as const,
     id: "evo-data-import.mapping",
     reviewGroups,
+    reviewTable,
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
     description: input.job.mappingOrigin === "RECIPE"
       ? t.recipeAppliedDescription
@@ -734,17 +811,7 @@ export function createDataImportMappingPageV010(input: {
       control: "select" as const,
       exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"] },
       required: true,
-      initialValue: current.get(sourceColumn)
-        ?? (input.createdMapping?.sourceColumn === sourceColumn
-          && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
-            ? input.createdMapping.fieldId
-            : input.job.ignoredSourceColumns?.includes(sourceColumn)
-              ? "__IGNORE__"
-              : uniqueExistingField(sourceColumn)
-                ?? (candidatesFor(sourceColumn).length > 0
-                  ? "__PENDING__"
-                  : input.canCreateExtension && input.job.targetId === "counterparty.subject"
-                    ? "__CREATE__" : "__PENDING__")),
+      initialValue: mappingSelectionFor(sourceColumn),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)
