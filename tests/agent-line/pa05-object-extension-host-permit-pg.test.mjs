@@ -189,6 +189,29 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(forgedInsert(),/PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED/);
     await assert.rejects(forgedInsert("00000000000000000000000000000000"),
       /PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED/);
+    // Even a valid trusted Host permit cannot commit an orphan physical
+    // business row without the original PA-02 immutable Owner evidence.
+    const orphan=request("host-permit-orphan");
+    await seed(orphan);
+    await gateway.stagePreparedEffect({scopeKey,effectId:orphan.effectId});
+    await start(orphan);
+    const orphanToken=await issuer.issue({
+      scopeKey,runId:orphan.runId,effectId:orphan.effectId,
+      inputDigest:orphan.inputDigest,contextId:scope.contextId,
+      enterpriseId:scope.enterpriseId
+    });
+    await assert.rejects(stolen.begin(async tx=>{
+      for(const [key,value] of [["scope_key",scopeKey],
+        ["run_id",orphan.runId],["effect_id",orphan.effectId],
+        ["input_digest",orphan.inputDigest],["context_id",scope.contextId],
+        ["enterprise_id",scope.enterpriseId],["host_permit",orphanToken]])
+        await tx.unsafe("SELECT set_config($1,$2,true)",["evo.pa05."+key,value]);
+      await tx.unsafe("INSERT INTO "+d+
+        ".pa02_contexts(context_id,enterprise_id) VALUES($1,$2)",
+        [scope.contextId,scope.enterpriseId]);
+    }),/PA05_OBJECT_SQL_RECEIPT_REQUIRED/);
+    assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
+      ".pa02_contexts"))[0].n,0);
     // D14C3's raw original Owner bypass is also physically denied.
     await assert.rejects(raw.owner.invoke(real),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
@@ -251,7 +274,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         " ENABLE TRIGGER pa05_object_physical_guard");
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
-    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,2);
+    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,3);
     console.log("PA05_ACTUAL_OBJECT_HOST_PERMIT_PG="+JSON.stringify({
       realPlugin:"evo-object-extension",physicalClusters:3,
       stolenBusinessLoginCanForgeGuc:true,
@@ -259,6 +282,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       validExistingD10TicketNotSufficient:true,
       hostSqlLoginDistinct:true,consumedValidPermitReplayDenied:true,
       perEffectPermitBoundToOwnerEvidence:true,
+      orphanBusinessCommitWithoutOwnerEvidenceDenied:true,
       actualDomainTablesGuarded:3,actualBusinessOwnerRestrictedLogin:true,
       originalRawOwnerDeniedWithoutSource:true,
       originalRawOwnerDeniedEvenWithValidTicket:true,
