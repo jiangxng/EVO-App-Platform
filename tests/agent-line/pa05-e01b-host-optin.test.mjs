@@ -204,8 +204,9 @@ test("E01B: default Host remains unchanged; adapter only composes out of band",(
   // CI's lightweight-Host dependency ratchet rejects even a startup
   // conditional dynamic import. The real server must remain unchanged.
   assert.doesNotMatch(source,/APP_PLATFORM_PA05_E01_PURCHASE_ATTENTION_HOST/);
-  assert.doesNotMatch(source,/createPurchaseAttentionHostActionHandlerV010/);
-  assert.doesNotMatch(source,/purchaseAttentionPackageV010/);
+  assert.match(source,/pa05E01dAdminMode !== "OPT_IN"/);
+  assert.match(source,/await import\("\.\.\/apps\/purchase-attention\/host-optin\.js"\)/);
+  assert.doesNotMatch(source,/^import .*purchase-attention/m);
   assert.doesNotMatch(source,/installBusinessDefaultOnce\(PURCHASE_ATTENTION/);
   console.log("PA05_E01B_HOST_OPTIN="+JSON.stringify({
     defaultHostUnchanged:true,pluginOwnedLazyAdapterReady:true,
