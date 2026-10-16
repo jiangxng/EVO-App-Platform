@@ -29,3 +29,15 @@
 4. 获得受权客户文件与 Job 证据后进入 E4-03 真数据闭环；如果尚未取得，只能写明受阻，不能以 synthetic 测试宣布真实客户数据完成。
 
 **结论：E4-02 的本批工程整改已到部署成功，但 E4 整体还未 Human closed。**
+
+
+## 4. E4 连续滚动的浏览器证据补齐（2026-10-16）
+
+- [Platform PR #978](https://github.com/jiangxng/EVO-App-Platform/pull/978) 针对实际 `/data-import/jobs/:id/map` 的 Eidos **内部滚动层**进行连续截图，而不是以 `page.screenshot(full_page=True)` 错认全页。代码只改 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py`，无 UI/Host 命令/业务数据变更。
+- 已实际运行 [BEX-01 Real Host Chromium Supplier Journey run #38895420715](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38895420715)，结果 PASS；[artifact #12044215349](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38895420715/artifacts/12044215349) 含全部原始 PNG 和 JSON manifest，经下载逐一核验。
+- **1280×900 桌面**：真实 Eidos 内部滚动层高度 3,981px、可见高度 848px，0–3,133px；**6 张连续截图**，相邻起点最大间距 678px（保证有约 20% 重叠）。
+- **390×844 手机模拟**：内部滚动层高度 9,139px、可见高度 706px，0–8,433px；**16 张连续截图**，相邻起点最大间距 564px。同场景全部 22 来源列展开审阅；可用于审查长表格的效率及底部动作是否可达，但不能直接推出客户现场也有同等列数或同样页面长度。
+- 另有桌面与手机各四张定点快照（任务概览、第一行、末行、最终按钮）；`v3-e4-map-{desktop,phone}-scroll-manifest.json` 持久化各自滚动几何与定点屏幕坐标。检测只在 synthetic/isolated Host 内运行，不包括正式部署的账号会话。
+- **新增待判断的体验风险**：手机上 22 列映射的完整纵向审阅达 9,139px；这支持实际做移动端减少重复信息、分组焦点和动作可达性评估，而**不是**凭屏幕高度直接批准新的固定底栏或改变 Eidos 组件全局样式。真正修改前应先获得用户的 V3 Human 视觉评审与现有触摸/键盘冲突结论。
+
+**验收边界仍然不变：** 登录后的 Railway 真实客户作业截图、原 Excel、两个同名银行字段的真实 ID、缺失主体类型的实际数据及客户书面视觉签收均尚未取得。逐屏隔离 Host 证据只补齐自动化视觉审查的盲区，不将 E4-03/E4-04 标为完成。
