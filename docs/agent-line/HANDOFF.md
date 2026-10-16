@@ -1,5 +1,7 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-04D14C7 当前工程入口：** [Host 许可撤销与真实业务 Owner 事务提交竞态／PG18 原文访问等级／未签问题](PA05-D14C7-PERMIT-REVOKE-COMMIT-RACE-20261016.md) · [认证基线 §37](PA05-CERTIFICATION-BASELINE-20261015.md)。本次不重建 D9/D10/D14C5/C6，仅在显式隔离测试 Host SQL 身份中提供有界撤销；**已泄露且未撤销令牌＋业务 SQL 凭证的命令字段/凭据伪造仍为未签安全缺口**。准确 HEAD CI、PR/分支及 main 以 GitHub 为准；#913 OPEN，PA-05/W06 NOT_SIGNED、生产 WRITE OFF，不改 BEX/Eidos/2D 或全局状态。
+
 > **2026-10-16 PA05-04D14C6 当前工程增量：** [Post-install Host/Business SQL 角色授权漂移与 NOINHERIT/PUBLIC 反例、官方 PG18 源阅读等级](PA05-D14C6-OBJECT-SQL-ROLE-DRIFT-20261016.md) · [PA05 认证基线 §36](PA05-CERTIFICATION-BASELINE-20261015.md)。接续已合并的 D14C5 [#959](https://github.com/jiangxng/EVO-App-Platform/pull/959)，仅增加实际数据库签发和业务 SQL INSERT 时的动态角色漂移阻断，复用三物理 PG18 实证；精确 PR/CI/合并状态必须从 GitHub 核验。PA-05、PA05-W06 NOT_SIGNED，#913 OPEN，生产 WRITE OFF，不动全局 continuity/BEX/Eidos/2D/默认生产路由。
 
 > **2026-10-16 PA05-04D14C5 工程增量（#959，精确合并前状态以 PR 为准）：** [Host→真实 Object Extension Business LOGIN 不可冒用的许可边界与反例/资料等级](PA05-D14C5-HOST-PERMIT-BOUNDARY-20261016.md) · [PA05 专项基线 §35](PA05-CERTIFICATION-BASELINE-20261015.md)。沿用旧窗口 [交接入口](PA05-WINDOW-HANDOFF-ENTRY-20261016.md) 及 [参考索引](PA05-WINDOW-RESEARCH-REFERENCE-INDEX-20261016.md)，不覆盖历史阅读等级。新做独立 Host SQL LOGIN + 物理许可/提交前原 Owner 凭据核验，工程验收见 [PR #959](https://github.com/jiangxng/EVO-App-Platform/pull/959)；**PA05-W06 / PA-05 NOT_SIGNED，#913 OPEN，生产 WRITE OFF**。DBA/Host+Owner 双凭证/失联 ACTIVE 旧票/生产身份与 PA05-05 均未签，勿改默认生产路由。
