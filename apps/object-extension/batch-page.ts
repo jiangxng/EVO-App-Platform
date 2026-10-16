@@ -107,16 +107,17 @@ export function createObjectExtensionBatchImportPageV010(input: {
             ? (purpose.length > 52 ? purpose.slice(0, 52) + "…" : purpose)
             : zh ? "用途待核对" : "Purpose needs review")
           : "")
-        + " · " + field.fieldId
+        + (duplicate ? " · " + field.fieldId : "")
     };
   });
   const usedBy = new Map(job.mapping.map(entry =>
     [entry.targetFieldId, entry.sourceColumn] as const));
   const fields = [
-    { key: "importJobId", label: "Import Job", semanticType: "data-import-job-id", control: "select" as const,
+    { key: "importJobId", label: zh ? "当前文件" : "Current file", semanticType: "data-import-job-id", control: "select" as const,
       required: true, initialValue: job.importJobId,
-      options: [{ value: job.importJobId, label: job.importJobId }] },
-    { key: "batchMode", label: "Batch mode", semanticType: "object-extension-batch-mode", control: "select" as const,
+      options: [{ value: job.importJobId, label: job.source.name
+        ?? (zh ? "已保存的导入文件" : "Saved import file") }] },
+    { key: "batchMode", label: zh ? "审核方式" : "Review mode", semanticType: "object-extension-batch-mode", control: "select" as const,
       required: true, initialValue: "BATCH",
       options: [{ value: "BATCH", label: zh ? "集中创建与映射" : "Review and map" }] },
     ...columns.flatMap((column, i) => {
@@ -223,9 +224,9 @@ export function createObjectExtensionBatchImportPageV010(input: {
     return {
       id: "source-" + index,
       title: column,
-      summary: (zh ? "非空 " : "Nonempty ") + count
-        + " / " + job.source.rows.length
-        + " · " + batchSourceExamplesV010(job, column, zh),
+      // One short sample is enough for scanning; the existing disclosure
+      // still exposes the full nonempty count and all 3 original examples.
+      summary: batchSourceExamplesV010(job, column, zh).split(" · ")[0],
       primaryFieldKey: "choice_" + index,
       reviewStatus: reviewStatusFor(column, index),
       detailFieldKeys: [
