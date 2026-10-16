@@ -101,22 +101,27 @@ export function createObjectExtensionBatchImportPageV010(input: {
     const purpose = field.description?.trim();
     return {
       value: field.fieldId,
-      label: field.label
-        + (duplicate
-          ? " · " + (purpose
-            ? (purpose.length > 52 ? purpose.slice(0, 52) + "…" : purpose)
-            : zh ? "用途待核对" : "Purpose needs review")
-          : "")
-        + " · " + field.fieldId
+      // Ordinary candidates are named for Humans. Only duplicate labels
+      // need a purpose qualifier and a stable technical disambiguator.
+      label: field.label + (duplicate
+        ? " · " + (purpose
+          ? (purpose.length > 52 ? purpose.slice(0, 52) + "…" : purpose)
+          : zh ? "用途待核对" : "Purpose needs review")
+          + " · " + field.fieldId
+        : "")
     };
   });
   const usedBy = new Map(job.mapping.map(entry =>
     [entry.targetFieldId, entry.sourceColumn] as const));
   const fields = [
-    { key: "importJobId", label: "Import Job", semanticType: "data-import-job-id", control: "select" as const,
+    { key: "importJobId", label: zh ? "当前文件" : "Current file",
+      semanticType: "data-import-job-id", control: "select" as const,
       required: true, initialValue: job.importJobId,
-      options: [{ value: job.importJobId, label: job.importJobId }] },
-    { key: "batchMode", label: "Batch mode", semanticType: "object-extension-batch-mode", control: "select" as const,
+      // The stable Job ID is submitted to Host, but the Human sees the file.
+      options: [{ value: job.importJobId,
+        label: job.source.name ?? (zh ? "已保存的导入任务" : "Saved import task") }] },
+    { key: "batchMode", label: zh ? "审核方式" : "Review mode",
+      semanticType: "object-extension-batch-mode", control: "select" as const,
       required: true, initialValue: "BATCH",
       options: [{ value: "BATCH", label: zh ? "集中创建与映射" : "Review and map" }] },
     ...columns.flatMap((column, i) => {
@@ -158,13 +163,13 @@ export function createObjectExtensionBatchImportPageV010(input: {
           readOnly: true,
           initialValue: comparison
         }] : []),
-        { key: "choice_" + i, label: column + (zh ? " · 已有字段 / 新建 / 忽略" : " · Reuse / create / ignore"),
+        { key: "choice_" + i, label: column,
           semanticType: "object-extension-batch-action", control: "select" as const,
           exclusiveSelect: { group: "bex-batch-targets",
             exemptValues: [BEX_BATCH_CREATE, BEX_BATCH_IGNORE, BEX_BATCH_REVIEW] },
           required: true, initialValue: action,
           options: [
-            { value: BEX_BATCH_CREATE, label: zh ? "＋ 新建企业扩展字段（待确认）" : "Create enterprise field" },
+            { value: BEX_BATCH_CREATE, label: zh ? "＋ 建议新建企业字段（集中审核确认）" : "+ Propose enterprise field (batch approval)" },
             { value: BEX_BATCH_IGNORE, label: zh ? "忽略此列" : "Ignore column" },
             { value: BEX_BATCH_REVIEW, label: zh ? "需要人工确认（不可直接提交）" : "Needs review" },
             ...fieldOptions
@@ -191,8 +196,105 @@ export function createObjectExtensionBatchImportPageV010(input: {
       ];
     })
   ];
-  // BEX owns source values, matched field IDs and business choices.
-  // Eidos #187 owns generic rows, primary decision and detail disclosure.
+  // A suggestion is NOT an approved field definition. The same concrete
+  // choice values flow unchanged to the governed Host batch-create action.
+  // Every status is based on this saved Job, not a guessed browser state.
+  const initialChoiceFor = (index: number) => {
+    const field = fields.find(item => item.key === "choice_" + index);
+    return field && typeof field.initialValue === "string"
+      ? field.initialValue : BEX_BATCH_REVIEW;
+  };
+  const statusForValue = (choice: string) => {
+    if (choice === BEX_BATCH_IGNORE) return {
+      key: "ignored", label: zh ? "不导入" : "Excluded",
+      tone: "neutral" as const
+    };
+    if (choice === BEX_BATCH_CREATE) return {
+      key: "proposed", label: zh ? "待新增" : "Proposed",
+      tone: "neutral" as const
+    };
+    if (choice === BEX_BATCH_REVIEW) return {
+      key: "attention", label: zh ? "需要校对" : "Needs review",
+      tone: "warning" as const
+    };
+    return {
+      key: "suggested", label: zh ? "待确认匹配" : "Suggested",
+      tone: "neutral" as const
+    };
+  };
+  const statusFor = (index: number) => statusForValue(initialChoiceFor(index));
+  const columnStatuses = columns.map((_, index) => statusFor(index));
+  const statusByChoiceFor = (index: number) => {
+    const field = fields.find(item => item.key === "choice_" + index);
+    const options = field && "options" in field && Array.isArray(field.options)
+      ? field.options : [];
+    // Every local display result is keyed to a real authorized select option.
+    // The underlying Host receives ONLY the original choice_N value.
+    return Object.fromEntries(options.map(option => [
+      String(option.value), statusForValue(String(option.value))
+    ]));
+  };
+  // Existing enterprise-wide constant decisions are shown only when they
+  // already exist in the authorized Job. Never invent an ORGANIZATION default.
+  const batchConstants = job.mapping.filter(entry =>
+    entry.transform?.kind === "CONSTANT"
+  );
+  const subjectSource = job.mapping.find(entry =>
+    entry.targetFieldId === "subjectType" && entry.sourceColumn
+  );
+  const subjectConstant = batchConstants.find(entry =>
+    entry.targetFieldId === "subjectType"
+  );
+  const otherConstantFacts = batchConstants
+    .filter(entry => entry.targetFieldId !== "subjectType")
+    .map((entry, index) => ({
+      key: "existingBatchConstant_" + index,
+      label: (zh ? "已保存批次固定值：" : "Saved batch constant: ")
+        + entry.targetFieldId,
+      semanticType: "object-extension-saved-batch-constant",
+      control: "text" as const, required: false, readOnly: true,
+      initialValue: String(entry.transform?.kind === "CONSTANT"
+        ? entry.transform.value ?? "" : "")
+    }));
+  // One batch value applies to *every* imported record. A source-column
+  // mapping can represent mixed identities, so it must never be overwritten
+  // by a convenient batch default.
+  const subjectFixedValue = subjectSource
+    ? [{
+      key: "subjectTypeSourceNotice",
+      label: zh ? "主体类型 · 按来源列逐行读取" : "Subject type · Per source row",
+      semanticType: "object-extension-source-mapped-subject-type",
+      control: "text" as const, readOnly: true, required: false,
+      initialValue: (zh ? "已映射来源列：" : "Mapped source column: ")
+        + subjectSource.sourceColumn
+        + (zh ? "。如有缺失，请在预检查后逐行修正；不能用批次值覆盖。"
+          : ". Correct missing rows after validation; do not override with a batch constant.")
+    }]
+    : [{
+      key: "batchSubjectType",
+      label: zh ? "批次固定值 · 主体类型（应用于所有导入记录）"
+        : "Batch constant · Subject type (all imported records)",
+      semanticType: "object-extension-batch-subject-type",
+      control: "select" as const, required: true,
+      // Only the explicitly persisted constant is restored; never guess
+      // ORGANIZATION from a supplier relationship role or a sample.
+      initialValue: subjectConstant?.transform?.kind === "CONSTANT"
+        ? String(subjectConstant.transform.value) : "__KEEP__",
+      options: [
+        {value:"__KEEP__",label:zh ? "— 不设置批次固定值 —" : "— No batch constant —"},
+        {value:"ORGANIZATION",label:zh ? "机构／法人（ORGANIZATION）" : "Organization"},
+        {value:"PERSON",label:zh ? "个人（PERSON）" : "Person"}
+      ]
+    }, {
+      key:"subjectTypeScopeNotice",
+      label: zh ? "适用范围及后果" : "Scope and consequences",
+      semanticType:"object-extension-batch-constant-scope",
+      control:"text" as const,readOnly:true,required:false,
+      initialValue:zh
+        ? "仅在整批主体身份一致时选择。保存到当前导入任务，不修改原 Excel；须重新预检查。"
+        : "Only choose when every record has the same identity. Source Excel is unchanged; validate again."
+    }];
+  const fixedValueFacts = [...subjectFixedValue, ...otherConstantFacts];
   const reviewGroups = columns.map((column, index) => {
     const count = job.source.rows.filter(row =>
       row[column] !== null && row[column] !== undefined
@@ -207,23 +309,136 @@ export function createObjectExtensionBatchImportPageV010(input: {
     return {
       id: "source-" + index,
       title: column,
-      summary: (zh ? "非空 " : "Nonempty ") + count
-        + " / " + job.source.rows.length
-        + " · " + batchSourceExamplesV010(job, column, zh),
+      // Show one immediately readable source sample. Counts, complete
+      // examples, candidate purposes, editable label and type remain in place.
+      summary: batchSourceExamplesV010(job, column, zh).split(" · ")[0],
       primaryFieldKey: "choice_" + index,
+      reviewStatus: columnStatuses[index],
+      statusByChoice: statusByChoiceFor(index),
       detailFieldKeys: [
         ...(ambiguous ? ["candidate_" + index] : []),
-        "label_" + index, "type_" + index, "sample_" + index
+        "sample_" + index, "label_" + index, "type_" + index
       ],
-      detailsLabel: zh ? "核对字段名称、类型与原值"
-        : "Review field name, type and source evidence",
+      detailsLabel: zh ? "查看来源及候选字段用途"
+        : "Inspect source and target-field purposes",
       defaultExpanded: requiresReview
     };
   });
+  const statusKeys = [...new Set(reviewGroups.flatMap(group => [
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status => status.key)
+  ]))];
+  const hasInitialAttention = columnStatuses.some(status =>
+    status.key === "attention" || status.key === "proposed"
+      || status.key === "suggested");
+  const attentionKeys = statusKeys.filter(key =>
+    key === "attention" || key === "proposed" || key === "suggested");
+  const handledKeys = statusKeys.filter(key => key === "ignored");
+  const reviewTable = {
+    columnLabels: {
+      subject: zh ? "来源列名" : "Source column",
+      evidence: zh ? "示例值" : "Example",
+      decision: zh ? "对应系统字段" : "Target field",
+      status: zh ? "状态" : "Status"
+    },
+    filter: {
+      label: zh ? "显示" : "Show",
+      selectedId: hasInitialAttention ? "needs" : "all",
+      noMatchesMessage: zh
+        ? "当前筛选没有需要处理的来源列，请选择全部字段。"
+        : "No matching sources. Choose All fields.",
+      options: [
+        ...(attentionKeys.length ? [{
+          id: "needs", label: zh ? "需要关注" : "Needs attention",
+          statusKeys: attentionKeys
+        }] : []),
+        { id: "all", label: zh ? "全部字段" : "All fields", statusKeys },
+        ...(handledKeys.length ? [{
+          id: "handled", label: zh ? "不导入" : "Excluded",
+          statusKeys: handledKeys
+        }] : [])
+      ]
+    }
+  };
+  // The preview reads exactly the same Human choices as the Host command.
+  // It neither preapproves an enterprise field nor invokes a mutation.
+  const reviewPlan = {
+    title: zh ? "本批字段处理方案预览" : "Review proposed field changes",
+    description: zh
+      ? "确认之前先检查全部来源列的处理方式；已隐藏的行也会计入预览。"
+      : "Review every source decision, including filtered-out rows.",
+    warning: zh
+      ? "仅预览当前未保存的选择。新建企业字段需显式确认并通过 Host 校验；供应商数据仍须独立预检查与确认导入。"
+      : "Preview of unsaved choices only. Host approval and separate import validation are required.",
+    categories: [
+      {id:"create",label:zh ? "拟新建企业字段" : "Proposed new fields",statusKeys:["proposed"]},
+      {id:"reuse",label:zh ? "复用已有字段" : "Reuse existing fields",
+        statusKeys:statusKeys.includes("suggested") ? ["suggested"] : []},
+      {id:"ignore",label:zh ? "本次不导入" : "Exclude from this import",statusKeys:["ignored"]},
+      {id:"pending",label:zh ? "尚待人工决定" : "Human decision pending",statusKeys:["attention"]}
+    ],
+    proposedFields: columns.map((_,index)=>({
+      groupId:"source-"+index,labelFieldKey:"label_"+index,typeFieldKey:"type_"+index
+    }))
+  };
+  const count = (key: string) =>
+    columnStatuses.filter(status => status.key === key).length;
+  const issues = reviewGroups.filter(group =>
+    group.reviewStatus.key === "attention"
+      || group.reviewStatus.key === "suggested");
+  const reviewTask = {
+    subject: {
+      title: job.source.name ?? (zh ? "未完成的导入任务" : "Saved import task"),
+      subtitle: (zh ? "集中审核 · " : "Batch review · ") +
+        job.source.rows.length + (zh ? " 条记录 · " : " rows · ") +
+        columns.length + (zh ? " 列待处理" : " pending columns"),
+      statusLabel: zh ? "原始 Excel 已保留" : "Original Excel retained",
+      facts: [
+        { id: "sourceColumns", label: zh ? "来源列总数" : "Source columns",
+          value: String(job.source.headers.length) },
+        { id: "unmatched", label: zh ? "待集中审核" : "Batch review",
+          value: String(columns.length) }
+      ]
+    },
+    steps: [
+      { id: "upload", label: zh ? "选择文件" : "Choose file",
+        state: "complete" as const },
+      { id: "review", label: zh ? "集中审核字段" : "Review field decisions",
+        state: "current" as const },
+      { id: "commit", label: zh ? "预检查与导入" : "Validate & import",
+        state: "upcoming" as const }
+    ],
+    metrics: [
+      { id: "proposed", label: zh ? "待新增字段" : "Proposed fields",
+        value: String(count("proposed")) },
+      { id: "suggested", label: zh ? "待确认匹配" : "Suggested matches",
+        value: String(count("suggested")) },
+      { id: "ignored", label: zh ? "不导入的列" : "Excluded",
+        value: String(count("ignored")) },
+      { id: "attention", label: zh ? "需要校对" : "Needs review",
+        value: String(count("attention")), tone: "warning" as const }
+    ],
+    issuesTitle: zh ? "需要处理" : "Requires attention",
+    issuesDescription: zh
+      ? "先核对有歧义的目标字段，再集中确认新增字段；系统不会自行创建。"
+      : "Review ambiguous targets before approving creation.",
+    issues: issues.slice(0, 12).map(group => ({
+      id: group.id, title: group.title,
+      description: group.reviewStatus.label + " · " + group.summary,
+      focusGroupId: group.id, actionLabel: zh ? "核对本列" : "Review column"
+    })),
+    helpText: zh
+      ? "建议不会自动生效。确认本页只会创建获批企业字段并保存映射，供应商数据仍须预检查和另行确认导入。"
+      : "Only confirmed definitions and mappings are saved. Import requires separate validation and approval."
+  };
   return {
     contractVersion: "0.1.1" as const, kind: "form" as const,
     id: "evo-object-extension.batch-import",
-    title: zh ? "集中审核 Excel 未匹配字段" : "Review unmatched Excel columns",
+    ...(columns.length ? { reviewTable, reviewPlan } : {}), reviewTask,
+    title: !columns.length
+      ? (zh ? "修改本次导入的批次固定值" : "Edit saved batch constant")
+      : zh ? "集中审核 " + columns.length + " 个未匹配字段"
+        : "Review " + columns.length + " unmatched Excel columns",
     description: zh
       ? "已有字段优先。逐列选择复用、新建或忽略；确认后一次创建并自动映射。仅修改企业字段定义和映射，不导入供应商记录。主体类型仍需真实数据。"
       : "Reuse existing fields first, then confirm creation or ignore. This does not import supplier records.",
@@ -235,7 +450,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
     purpose: "execute-command" as const,
     command: { code: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, inputVersion: "0.1.0" },
     reviewGroups,
-    fields,
+    fields: [...fixedValueFacts, ...fields],
     actions: [{ id: "create-extension-batch",
       label: zh ? "确认：批量创建并自动映射" : "Confirm: create and map selected fields",
       type: "submit" as const, command: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,

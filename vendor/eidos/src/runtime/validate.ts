@@ -33,6 +33,7 @@ const docKeys = new Set([
   "reviewGroups",
   "reviewTable",
   "reviewTask",
+  "reviewPlan",
   "actions",
   "metadata"
 ]);
@@ -759,7 +760,8 @@ export function validateUidl(
         }
         extraKeys(group, new Set([
           "id", "title", "summary", "primaryFieldKey",
-          "detailFieldKeys", "detailsLabel", "defaultExpanded", "reviewStatus"
+          "detailFieldKeys", "detailsLabel", "defaultExpanded", "reviewStatus",
+          "statusByChoice"
         ]), path, out);
         if (!nonEmpty(group.id) || !group.id.trim()
           || !nonEmpty(group.title) || !group.title.trim()
@@ -798,6 +800,35 @@ export function validateUidl(
           extraKeys(group.reviewStatus, new Set(["key","label","tone"]),
             path + ".reviewStatus",out);
         }
+        let statusByChoice: import("./contracts.js").UidlFormReviewGroupV010["statusByChoice"];
+        if (group.statusByChoice !== undefined) {
+          const primary = fields.find(field => field.key === group.primaryFieldKey);
+          const choices = new Set((primary?.options ?? []).map(option => String(option.value)));
+          const entries = isPlainObject(group.statusByChoice)
+            ? Object.entries(group.statusByChoice) : [];
+          if (primary?.control !== "select" || entries.length < 1
+            || entries.length > 300 || entries.some(([value,status]) =>
+              !choices.has(value) || !isPlainObject(status)
+              || !nonEmpty(status.key)
+              || !/^[A-Za-z0-9._:-]{1,80}$/.test(status.key)
+              || !nonEmpty(status.label)
+              || status.tone !== undefined
+                && !["neutral","warning","positive"].includes(status.tone as string))) {
+            out.push(d("EIDOS_REVIEW_STATUS_BY_CHOICE_INVALID",
+              path + ".statusByChoice",
+              "Choice states require a select and bounded, real option values"));
+          } else {
+            for (const [value,status] of entries) {
+              extraKeys(status as Record<string,unknown>,new Set(["key","label","tone"]),
+                path + ".statusByChoice." + value,out);
+            }
+            statusByChoice=Object.fromEntries(entries.map(([value,raw]) => {
+              const status=raw as {key:string;label:string;tone?:"neutral"|"warning"|"positive"};
+              return [value,{key:status.key,label:status.label,
+                ...(status.tone ? {tone:status.tone} : {})}];
+            }));
+          }
+        }
         reviewGroups.push({
           id:group.id,title:group.title,
           ...(typeof group.summary === "string" ? {summary:group.summary} : {}),
@@ -813,7 +844,8 @@ export function validateUidl(
                 ...(typeof group.reviewStatus.tone === "string"
                   ? {tone:group.reviewStatus.tone as "neutral"|"warning"|"positive"}
                   : {})
-              }} : {})
+              }} : {}),
+          ...(statusByChoice ? {statusByChoice} : {})
         });
       });
     }
@@ -840,7 +872,10 @@ export function validateUidl(
       let filter: import("./contracts.js").UidlFormReviewTableV010["filter"];
       if (table.filter !== undefined) {
         const f = table.filter;
-        const keys = new Set(reviewGroups.map(g => g.reviewStatus!.key));
+        const keys = new Set(reviewGroups.flatMap(group => [
+          group.reviewStatus!.key,
+          ...Object.values(group.statusByChoice ?? {}).map(status => status.key)
+        ]));
         if (!isPlainObject(f) || !nonEmpty(f.label)
           || !nonEmpty(f.selectedId) || !nonEmpty(f.noMatchesMessage)
           || !Array.isArray(f.options) || f.options.length===0
@@ -887,6 +922,82 @@ export function validateUidl(
         },
         ...(filter ? {filter} : {})
       };
+    }
+  }
+
+  let reviewPlan: import("./contracts.js").UidlFormReviewPlanV010 | undefined;
+  if (document.reviewPlan !== undefined) {
+    const raw=document.reviewPlan, path="$.reviewPlan";
+    const fail=(reason:string)=>out.push(d("EIDOS_REVIEW_PLAN_INVALID",path,reason));
+    const possible=new Set(reviewGroups.flatMap(group=>[
+      group.reviewStatus?.key ?? "",
+      ...Object.values(group.statusByChoice ?? {}).map(status=>status.key)
+    ]).filter(Boolean));
+    if (!reviewTable || !isPlainObject(raw)
+      || !nonEmpty(raw.title) || !nonEmpty(raw.warning)
+      || raw.description !== undefined && typeof raw.description !== "string"
+      || !Array.isArray(raw.categories) || raw.categories.length<2
+      || raw.categories.length>8 || possible.size===0) {
+      fail("Plan needs a review table, title, warning and bounded status categories");
+    } else {
+      extraKeys(raw,new Set(["title","description","warning","categories","proposedFields"]),path,out);
+      const categories: NonNullable<typeof reviewPlan>["categories"]=[];
+      const allKeys=new Set<string>(), ids=new Set<string>();
+      for (const [index,c] of raw.categories.entries()) {
+        const at=path+".categories["+index+"]";
+        if (!isPlainObject(c) || !nonEmpty(c.id) || !nonEmpty(c.label)
+          || ids.has(c.id) || !Array.isArray(c.statusKeys)
+          || c.statusKeys.some(k=>
+            typeof k!=="string" || !possible.has(k) || allKeys.has(k))) {
+          out.push(d("EIDOS_REVIEW_PLAN_INVALID",at,
+            "Each category must have a unique ID and unique, real status keys"));
+          continue;
+        }
+        extraKeys(c,new Set(["id","label","statusKeys"]),at,out);
+        ids.add(c.id);
+        c.statusKeys.forEach((k:string)=>allKeys.add(k));
+        categories.push({id:c.id,label:c.label,statusKeys:[...c.statusKeys]});
+      }
+      if ([...possible].some(k=>!allKeys.has(k))) {
+        fail("All reachable statuses need a preview outcome");
+      }
+      const proposedFields: NonNullable<typeof reviewPlan>["proposedFields"]=[];
+      if (raw.proposedFields !== undefined) {
+        if (!Array.isArray(raw.proposedFields) || raw.proposedFields.length>200) {
+          fail("Proposed field list must be bounded");
+        } else {
+          const included=new Set<string>();
+          raw.proposedFields.forEach((v:unknown,i:number)=>{
+            const at=path+".proposedFields["+i+"]";
+            if (!isPlainObject(v) || !nonEmpty(v.groupId)
+              || !nonEmpty(v.labelFieldKey) || !nonEmpty(v.typeFieldKey)
+              || included.has(v.groupId)) {
+              out.push(d("EIDOS_REVIEW_PLAN_INVALID",at,"Invalid group/field references"));return;
+            }
+            extraKeys(v,new Set(["groupId","labelFieldKey","typeFieldKey"]),at,out);
+            const group=reviewGroups.find(g=>g.id===v.groupId);
+            const label=fields.find(f=>f.key===v.labelFieldKey);
+            const type=fields.find(f=>f.key===v.typeFieldKey);
+            if (!group || !group.detailFieldKeys.includes(v.labelFieldKey)
+              || !group.detailFieldKeys.includes(v.typeFieldKey)
+              || !label || label.control!=="text" || label.readOnly
+              || !type || type.control!=="select" || type.readOnly) {
+              out.push(d("EIDOS_REVIEW_PLAN_INVALID",at,"Proposal keys must be editable fields in the same group"));
+              return;
+            }
+            included.add(v.groupId);
+            proposedFields.push({groupId:v.groupId,
+              labelFieldKey:v.labelFieldKey,typeFieldKey:v.typeFieldKey});
+          });
+        }
+      }
+      if (categories.length===raw.categories.length
+        && [...possible].every(k=>allKeys.has(k))) {
+        reviewPlan={title:raw.title,warning:raw.warning,
+          ...(typeof raw.description==="string"?{description:raw.description}:{}),
+          categories,
+          ...(proposedFields.length?{proposedFields}:{})};
+      }
     }
   }
 
@@ -1069,6 +1180,7 @@ export function validateUidl(
       ...(document.reviewGroups !== undefined ? {reviewGroups} : {}),
       ...(reviewTable ? {reviewTable} : {}),
       ...(reviewTask ? {reviewTask} : {}),
+      ...(reviewPlan ? {reviewPlan} : {}),
       actions,
       ...(document.metadata !== undefined
         ? {

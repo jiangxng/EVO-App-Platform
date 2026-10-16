@@ -504,6 +504,10 @@ export function createDataImportMappingPageV010(input: {
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
     .filter(field => field.writable);
   const unmapped = unmappedSourceColumns(input.job);
+  const canReviewBatchConstant = input.canCreateExtension === true
+    && input.job.targetId === "counterparty.subject"
+    && !input.job.mapping.some(entry =>
+      entry.targetFieldId === "subjectType" && Boolean(entry.sourceColumn));
   const current = new Map(
     input.job.mapping
       .filter(item => Boolean(item.sourceColumn))
@@ -534,7 +538,11 @@ export function createDataImportMappingPageV010(input: {
     return {
       nonempty,
       examples,
-      summary: (zh(input.locale) ? "非空 " : "Nonempty ")
+      // The four-column table needs a quick visual sample; the expanded evidence
+      // remains available even on already-mapped source columns.
+      summary: examples[0]
+        ?? (zh(input.locale) ? "来源数据为空" : "Blank source data"),
+      detailSummary: (zh(input.locale) ? "非空 " : "Nonempty ")
         + nonempty + " / " + input.job.source.rows.length + " · "
         + (examples.length ? examples.join(" · ")
           : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
@@ -549,12 +557,14 @@ export function createDataImportMappingPageV010(input: {
   };
   const fieldLabel = new Map(importFields.map(field => [
     field.fieldId,
+    // Value always remains the real fieldId; show its technical identity only
+    // when identical business labels require a Human choice between candidates.
     field.resolvedLabel
       + (candidatesFor(field.resolvedLabel).length > 1
         ? " · " + (field.resolvedDescription?.trim()
           || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
+          + " · " + field.fieldId
         : "")
-      + " · " + field.fieldId
   ] as const));
   const advisoryFields = input.job.mapping
     .filter(item => Boolean(item.advisory))
@@ -668,9 +678,10 @@ export function createDataImportMappingPageV010(input: {
       summary: sourceProfiles[index].summary,
       primaryFieldKey: "map_" + index,
       reviewStatus: reviewStatusFor(sourceColumn),
+      // One row = one short visible sample, plus complete source preview on demand.
+      // Keep original column/row values in the unchanged, durable Import Job.
       detailFieldKeys: [
-        ...(!current.has(sourceColumn) || ambiguous
-          ? ["sourceEvidence_" + index] : []),
+        "sourceEvidence_" + index,
         ...(ambiguous ? ["candidateEvidence_" + index] : [])
       ],
       ...(ambiguous || unavailable ? { defaultExpanded: true } : {}),
@@ -813,7 +824,12 @@ export function createDataImportMappingPageV010(input: {
               label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
               route:objectExtensionImportRouteV010(input.job.importJobId)
             }]
-          : [])
+          : []),
+        ...(!unmapped.length && canReviewBatchConstant ? [{
+          id:"batch-constant",
+          label:zh(input.locale) ? "核对本次导入的批次固定值" : "Review batch constant",
+          route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+        }] : [])
       ]
     },
     purpose: "execute-command" as const,
@@ -823,16 +839,30 @@ export function createDataImportMappingPageV010(input: {
     },
     fields: [{
       key: "importJobId",
-      label: "Import Job",
+      // Job identity stays the Host command value, never the visible file name.
+      label: zh(input.locale) ? "当前文件" : "Current file",
       semanticType: "data-import-job-id",
       control: "select" as const,
       required: true,
       initialValue: input.job.importJobId,
       options: [{
         value: input.job.importJobId,
-        label: input.job.importJobId
+        label: input.job.source.name
+          ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
       }]
-    }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
+    }, ...(!unmapped.length && canReviewBatchConstant ? [{
+      key:"batchConstantEntry",
+      label:zh(input.locale) ? "本次导入的批次固定值" : "Batch constant for this import",
+      semanticType:"data-import-batch-constant-review-link",
+      control:"text" as const,readOnly:true,required:false,
+      initialValue:zh(input.locale)
+        ? "批次值作用于全部记录。仅当来源列未映射主体类型时可人工设置；保存后必须重新预检查。"
+        : "A batch value applies to all rows. Confirm explicitly and validate again.",
+      contextLink:{
+        label:zh(input.locale) ? "查看或修改批次固定值" : "Review or edit batch constant",
+        route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+      }
+    }] : []), ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
       ? [{
           key: "batchReviewEntry",
           label: zh(input.locale)
@@ -856,13 +886,13 @@ export function createDataImportMappingPageV010(input: {
       const candidates = candidatesFor(sourceColumn);
 
       return [
-        ...(!current.has(sourceColumn) || candidates.length > 1 ? [{
+        {
           key:"sourceEvidence_" + index,
           label:sourceColumn + (zh(input.locale) ? " · 原始样本" : " · Source examples"),
           semanticType:"data-import-original-source-evidence",
           control:"text" as const,readOnly:true,required:false,
-          initialValue: sourceProfiles[index].summary
-        }] : []),
+          initialValue: sourceProfiles[index].detailSummary
+        },
         ...(candidates.length > 1 ? [{
           key:"candidateEvidence_" + index,
           label:sourceColumn + (zh(input.locale)

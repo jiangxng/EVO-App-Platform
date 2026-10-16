@@ -49,6 +49,10 @@ export interface UidlFormReviewGroupV010 {
   detailsLabel?: string;
   defaultExpanded?: boolean;
   reviewStatus?: { key: string; label: string; tone?: "neutral" | "warning" | "positive" };
+  /** Optional local feedback when the existing select changes. No save/commit.
+   * Keys MUST be actual option values from primaryFieldKey. */
+  statusByChoice?: Record<string, {key: string; label: string;
+    tone?: "neutral" | "warning" | "positive"}>;
 }
 /** Optional table realization of existing reviewGroups, preserving form field identity. */
 export interface UidlFormReviewTableV010 {
@@ -61,6 +65,16 @@ export interface UidlFormReviewTableV010 {
   };
 }
 
+/** Read-only, locally recomputed proposal plan. No Host approval or mutation.
+ * Category keys must be statuses from actual reviewGroups / statusByChoice. */
+export interface UidlFormReviewPlanV010 {
+  title: string;
+  description?: string;
+  warning: string;
+  categories: { id: string; label: string; statusKeys: string[] }[];
+  /** Optional Human-facing proposed field name and type, both real Form keys. */
+  proposedFields?: { groupId: string; labelFieldKey: string; typeFieldKey: string }[];
+}
 /** Reusable task context; all facts and issue semantics are Host/app supplied. */
 export interface UidlFormReviewTaskV010 {
   subject: {
@@ -91,6 +105,7 @@ export interface UidlFormV011 {
   reviewGroups?: UidlFormReviewGroupV010[];
   reviewTable?: UidlFormReviewTableV010;
   reviewTask?: UidlFormReviewTaskV010;
+  reviewPlan?: UidlFormReviewPlanV010;
   contractVersion: "0.1.1"; kind: "form"; id: string; title: string; purpose: "execute-command";
   description?: string;
   contextNavigation?: EidosContextNavigationV010;
@@ -102,6 +117,7 @@ export interface FormRenderModelV010 {
   reviewGroups?: UidlFormReviewGroupV010[];
   reviewTable?: UidlFormReviewTableV010;
   reviewTask?: UidlFormReviewTaskV010;
+  reviewPlan?: UidlFormReviewPlanV010;
   modelVersion: "0.1.0"; sourceContractVersion: "0.1.1"; kind: "form";
   id: string; title: string; description?: string;
   contextNavigation?: EidosContextNavigationV010;

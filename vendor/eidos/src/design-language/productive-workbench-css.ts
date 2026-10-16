@@ -2946,16 +2946,26 @@ form[data-eidos-id] button:hover,
   max-width:100%;
   min-height:var(--eidos-control-normal);
 }
-[data-eidos-review-table-detail-row]>td{
-  padding:0 var(--eidos-space-lg);
-  background:var(--eidos-bg-subtle);
+/* E4: a collapsed disclosure belongs beside its evidence, not in a full-width
+   second table row. Expanded details grow only the owning source row. */
+[data-eidos-review-table-evidence] [data-eidos-review-group-detail]{
+  margin-top:var(--eidos-space-xs);
+  min-width:0;
 }
-[data-eidos-review-table-detail-row] [data-eidos-review-group-detail]{
-  margin:0;
-  padding-block:var(--eidos-space-sm);
+[data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{
+  font-size:var(--eidos-font-meta);
+  font-weight:600;
+  min-height:var(--eidos-control-normal);
 }
-[data-eidos-review-table-detail-row] [data-eidos-review-group-fields]{
-  padding:var(--eidos-space-sm) 0;
+[data-eidos-review-table-evidence] [data-eidos-review-group-fields]{
+  grid-template-columns:minmax(0,1fr);
+  gap:var(--eidos-space-xs);
+  padding:var(--eidos-space-sm) 0 0;
+}
+[data-eidos-review-table-evidence] [data-eidos-review-group-fields] input{
+  min-width:0;
+  width:100%;
+  max-width:100%;
 }
 [data-eidos-form-review-table-empty]{
   padding:var(--eidos-space-lg);
@@ -2977,9 +2987,36 @@ form[data-eidos-id] button:hover,
    min-width:0;
    overflow:hidden;
  }
+ /* Keep source identity and read-only status in one glanceable header.
+    Editable target and evidence remain full width for 44px touch controls. */
  [data-eidos-form-review-table] tbody>tr{
    display:grid;
-   grid-template-columns:minmax(0,1fr);
+   grid-template-columns:minmax(0,1fr) auto;
+   align-items:start;
+   column-gap:var(--eidos-space-xs);
+ }
+ [data-eidos-form-review-table] tbody th[data-eidos-review-table-subject]{
+   grid-column:1;
+   grid-row:1;
+   width:100%;
+   min-width:0;
+   align-self:center;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-status]{
+   grid-column:2;
+   grid-row:1;
+   align-self:center;
+   justify-self:end;
+   width:auto;
+   white-space:nowrap;
+   text-align:end;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-status][data-heading]:before{
+   display:none;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence],
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-choice]{
+   grid-column:1/-1;
  }
  [data-eidos-form-review-table] tbody th,
  [data-eidos-form-review-table] tbody td{
@@ -3001,7 +3038,7 @@ form[data-eidos-id] button:hover,
  [data-eidos-form-review-table] input{min-height:44px}
  [data-eidos-form-review-table-toolbar] label{width:100%}
  [data-eidos-form-review-table-toolbar] select{flex:1;min-width:0}
- [data-eidos-review-table-detail-row]>td{padding:0 var(--eidos-space-md)}
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{min-height:44px}
 }
 
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
@@ -3045,6 +3082,54 @@ form[data-eidos-id] button:hover,
   [data-eidos-form-task-source-status]{justify-self:start}
   [data-eidos-form-task-issues] li{flex-wrap:wrap;gap:var(--eidos-space-sm)}
   [data-eidos-form-task-issues] li button{min-height:44px}
+}
+
+
+/* E6: evidence-led decision preview; presentation only, never Host approval. */
+[data-eidos-form-review-plan]{
+  margin-block:var(--eidos-space-lg);
+  padding:var(--eidos-space-lg);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  display:grid;
+  gap:var(--eidos-space-md);
+  min-width:0;
+}
+[data-eidos-form-review-plan] header{display:grid;gap:var(--eidos-space-xs)}
+[data-eidos-form-review-plan] h2{margin:0;font-size:var(--eidos-font-section);color:var(--eidos-fg)}
+[data-eidos-form-review-plan] header p{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);
+}
+[data-eidos-review-plan-counts]{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,128px),1fr));
+  gap:var(--eidos-space-sm);margin:0;
+}
+[data-eidos-review-plan-counts]>div{
+  padding:var(--eidos-space-sm);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);display:grid;gap:var(--eidos-space-xs);
+}
+[data-eidos-review-plan-counts] strong{font-size:var(--eidos-font-page);font-variant-numeric:tabular-nums}
+[data-eidos-review-plan-counts] span{font-size:var(--eidos-font-compact);color:var(--eidos-fg-muted)}
+[data-eidos-review-plan-items]{
+  margin:0;padding:0;list-style:none;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));
+  gap:var(--eidos-space-xs);
+}
+[data-eidos-review-plan-items] li{
+  padding:var(--eidos-space-sm);border-bottom:1px solid var(--eidos-border);
+  display:grid;gap:var(--eidos-space-xs);min-width:0;
+}
+[data-eidos-review-plan-items] li strong{
+  font-size:var(--eidos-font-compact);overflow-wrap:anywhere;
+}
+[data-eidos-review-plan-items] li span{
+  font-size:var(--eidos-font-meta);color:var(--eidos-fg-muted);
+  overflow-wrap:anywhere;
+}
+[data-eidos-review-plan-warning]{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
 }
 
 `;

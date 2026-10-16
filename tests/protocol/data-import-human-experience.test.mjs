@@ -803,7 +803,9 @@ test("CP-03D EC learns a Human-confirmed field mapping and reuses it across a di
     field => field.semanticType === "data-import-ec-recommendation"
   );
   assert.ok(advisoryField);
-  assert.match(advisoryField.initialValue, /编码 → 往来编码 · code/);
+  assert.match(advisoryField.initialValue, /编码 → 往来编码 · 90%/);
+  assert.doesNotMatch(advisoryField.initialValue, /· code/,
+    "EC suggestion is business-readable; the actual mapped option value is still code");
   assert.match(advisoryField.initialValue, /90%/);
 });
 
@@ -971,6 +973,13 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     locale:"zh-CN",canCreateExtension:true
   });
   assert.equal(page.fields.find(x=>x.key==="map_0").initialValue,"code");
+  const currentFile=page.fields.find(x=>x.key==="importJobId");
+  assert.equal(currentFile.label,"当前文件");
+  assert.equal(currentFile.initialValue,"batch-proposals");
+  assert.equal(currentFile.options[0].value,"batch-proposals",
+    "Host must continue receiving the stable Import Job ID");
+  assert.equal(currentFile.options[0].label,"已保存的导入任务",
+    "technical Job UUID must not be visible in the business-facing option");
   assert.equal(page.reviewGroups.length,source.headers.length,
     "actual /map route must group every source column, not just the other batch page");
   assert.equal(validateUidl(page).ok,true,
@@ -978,8 +987,21 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(x=>x.title),source.headers);
   assert.equal(page.reviewGroups[0].primaryFieldKey,"map_0");
   assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
-  assert.match(page.reviewGroups[3].summary,new RegExp("非空 1 / 1 · old-001"));
+  assert.equal(page.reviewGroups[3].summary,"old-001",
+    "E4 visible cell shows a representative source value, not all samples/statistics");
   assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
+  assert.deepEqual(page.reviewGroups[0].detailFieldKeys,["sourceEvidence_0"],
+    "mapped fields must still expose the original source preview on demand");
+  assert.equal(page.fields.find(x=>x.key==="sourceEvidence_0").readOnly,true);
+  assert.match(page.fields.find(x=>x.key==="sourceEvidence_3").initialValue,
+    /非空 1 \/ 1 · old-001/,
+    "full source preview remains readable after compacting the table");
+  const actualTarget=page.fields.find(x=>x.key==="map_0").options
+    .find(x=>x.value==="code");
+  assert.ok(actualTarget);
+  assert.doesNotMatch(actualTarget.label,/ · code$/,
+    "one unambiguous business field should not show raw technical fieldId");
+  assert.equal(actualTarget.value,"code","submission still uses the exact Host fieldId");
   assert.equal(page.reviewTask.subject.title,"batch-proposals");
   assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
@@ -1009,6 +1031,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
   assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);
+  assert.equal((mapHtml.match(/name="sourceEvidence_0"/g)??[]).length,1);
   assert.match(mapHtml,/old-001/);
   assert.doesNotMatch(mapHtml,/B 方案/);
   assert.match(mapHtml,/data-eidos-field-context-link/);
@@ -1041,4 +1064,25 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     "Original 4 columns must survive save / reopen even when filtered out");
   assert.equal(reopened.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(extensions.list("enterprise-context:a",target.targetId).length,0);
+  const complete={
+    ...saved,ignoredSourceColumns:[],
+    mapping:[
+      {sourceColumn:"编码",targetFieldId:"code"},
+      {sourceColumn:"名称",targetFieldId:"displayName"},
+      {sourceColumn:"结算方式",targetFieldId:"legalName"},
+      {sourceColumn:"系统编码",targetFieldId:"legacyExternalCode"},
+      {targetFieldId:"subjectType",transform:{kind:"CONSTANT",value:"ORGANIZATION"}}
+    ]
+  };
+  const completedPage=createDataImportMappingPageV010({
+    job:complete,schema:target.describe({
+      contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
+    }),locale:"zh-CN",canCreateExtension:true
+  });
+  assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
+    && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
+  assert.match(completedPage.fields.find(x=>x.key==="batchConstantEntry").contextLink.label,
+    /查看或修改批次固定值/);
+  assert.equal(validateUidl(completedPage).ok,true,
+    JSON.stringify(validateUidl(completedPage).diagnostics));
 });

@@ -24,6 +24,33 @@ for item in good bad; do
     -extfile "$out/client.ext" -out "$out/$item.crt" >/dev/null 2>&1
 done
 
+# D14C13: genuine renewed Host leaf with the SAME issuer and subject but
+# a DIFFERENT unique serial. Revoke the old leaf in a CA-signed CRL.
+openssl req -newkey rsa:2048 -nodes -sha256 \
+  -subj '/CN=pa05-certified-host' -keyout "$out/renewed.key" \
+  -out "$out/renewed.csr" >/dev/null 2>&1
+openssl x509 -req -days 1 -sha256 -in "$out/renewed.csr" \
+  -CA "$out/ca.crt" -CAkey "$out/ca.key" -set_serial 5252 \
+  -extfile "$out/client.ext" -out "$out/renewed.crt" >/dev/null 2>&1
+touch "$out/index.txt"
+echo 1000 > "$out/crlnumber"
+cat > "$out/ca-revoke.cnf" <<EOF
+[ca]
+default_ca = root
+[root]
+database = $out/index.txt
+new_certs_dir = $out
+serial = $out/crlnumber
+crlnumber = $out/crlnumber
+certificate = $out/ca.crt
+private_key = $out/ca.key
+default_md = sha256
+default_crl_days = 1
+EOF
+openssl ca -batch -config "$out/ca-revoke.cnf" -revoke "$out/good.crt" >/dev/null 2>&1
+openssl ca -batch -config "$out/ca-revoke.cnf" -gencrl -out "$out/revoked.crl" >/dev/null 2>&1
+openssl crl -in "$out/revoked.crl" -noout -text | grep -q 'Serial Number: 1092'
+
 docker exec -u root "$cid" mkdir -p /tmp/pa05-server-tls
 for file in ca.crt server.crt server.key; do
   docker cp "$out/$file" "$cid:/tmp/pa05-server-tls/$file"
@@ -59,5 +86,8 @@ fi
   echo "PA05_C12_HOST_KEY=$out/good.key"
   echo "PA05_C12_BAD_CERT=$out/bad.crt"
   echo "PA05_C12_BAD_KEY=$out/bad.key"
+  echo "PA05_C13_RENEWED_CERT=$out/renewed.crt"
+  echo "PA05_C13_RENEWED_KEY=$out/renewed.key"
+  echo "PA05_C13_WORKER_A_CONTAINER=$cid"
 } >> "${GITHUB_ENV:?}"
 echo "PA05_D14C12_WORKER_A_ACTUAL_TLS_CERT_CA_AND_HBA_CONFIGURED"

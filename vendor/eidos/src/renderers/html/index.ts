@@ -79,6 +79,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
   </ol>` : "";
   const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
     ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
+      data-eidos-form-task-metric-id="${esc(metric.id)}"
       data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
       <span>${esc(metric.label)}</span></div>`).join("")}
   </section>` : "";
@@ -140,20 +141,26 @@ export function renderToHtml(document: unknown): string {
         renderField(byKey.get(key)!)
       ).join("");
       const visible = !allowed || allowed.includes(status.key);
+      const planFields=model.reviewPlan?.proposedFields?.find(item=>item.groupId===group.id);
+      const planAttrs=planFields
+        ? ` data-eidos-plan-label-field="${esc(planFields.labelFieldKey)}" data-eidos-plan-type-field="${esc(planFields.typeFieldKey)}"`
+        : "";
       return `<tbody data-eidos-form-review-table-row="${esc(group.id)}"
-        data-eidos-review-table-status-key="${esc(status.key)}"${visible ? "" : " hidden"}>
+        data-eidos-review-table-status-key="${esc(status.key)}"${planAttrs}${group.statusByChoice
+          ? ` data-eidos-review-status-by-choice="${esc(JSON.stringify(group.statusByChoice))}"` : ""}${visible ? "" : " hidden"}>
         <tr>
           <th scope="row" data-eidos-review-table-subject>${esc(group.title)}</th>
-          <td data-eidos-review-table-evidence data-heading="${esc(columns.evidence)}">${esc(group.summary ?? "")}</td>
+          <td data-eidos-review-table-evidence data-heading="${esc(columns.evidence)}">
+            <span data-eidos-review-table-sample>${esc(group.summary ?? "")}</span>
+            ${details ? `<details data-eidos-review-group-detail${group.defaultExpanded ? " open" : ""}>
+              <summary>${esc(group.detailsLabel ?? "Details")}</summary>
+              <div data-eidos-review-group-fields>${details}</div>
+            </details>` : ""}
+          </td>
           <td data-eidos-review-table-choice data-heading="${esc(columns.decision)}">${primary}</td>
           <td data-eidos-review-table-status data-tone="${esc(status.tone ?? "neutral")}"
             data-heading="${esc(columns.status)}">${esc(status.label)}</td>
         </tr>
-        ${details ? `<tr data-eidos-review-table-detail-row><td colspan="4"><details
-          data-eidos-review-group-detail${group.defaultExpanded ? " open" : ""}>
-          <summary>${esc(group.detailsLabel ?? "Details")}</summary>
-          <div data-eidos-review-group-fields>${details}</div>
-        </details></td></tr>` : ""}
       </tbody>`;
     }).join("");
     const count=(model.reviewGroups ?? []).filter(group =>
@@ -180,6 +187,15 @@ export function renderToHtml(document: unknown): string {
       ${filter ? `<p data-eidos-form-review-table-empty${count ? " hidden" : ""}>${esc(filter.noMatchesMessage)}</p>` : ""}
       </section>`;
   })() : "";
+  const preview=model.reviewPlan ? `<section data-eidos-form-review-plan
+    data-eidos-review-plan-categories="${esc(JSON.stringify(model.reviewPlan.categories))}"
+    aria-label="${esc(model.reviewPlan.title)}">
+    <header><h2>${esc(model.reviewPlan.title)}</h2>
+    ${model.reviewPlan.description ? `<p>${esc(model.reviewPlan.description)}</p>` : ""}</header>
+    <dl data-eidos-review-plan-counts role="status" aria-live="polite"></dl>
+    <ul data-eidos-review-plan-items></ul>
+    <p data-eidos-review-plan-warning>${esc(model.reviewPlan.warning)}</p>
+  </section>` : "";
   const taskOverview=model.reviewTask ? renderReviewTask(model.reviewTask) : "";
   const fields = standalone + (model.reviewTable
     ? reviewTable : groups
@@ -207,6 +223,7 @@ ${model.description ? `<p data-eidos-page-description>${esc(model.description)}<
 </header>
 ${taskOverview}
 <div data-eidos-form-fields>${fields}</div>
+${preview}
 <footer data-eidos-form-actions>
 <button type="submit" data-eidos-action="${esc(model.submitAction.id)}" data-eidos-primary="true">${esc(model.submitAction.label)}</button>
 ${agentActions}${cancels}

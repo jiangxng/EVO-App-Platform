@@ -69,7 +69,7 @@ test("BEX batch page provides one screen, review gating, type suggestions, and A
   const job=fixture();
   const page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
   assert.equal(page.id,"evo-object-extension.batch-import");
-  assert.match(page.title,/集中审核/);
+  assert.equal(page.title,"集中审核 5 个未匹配字段");
   assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="choice_4").initialValue,"__REVIEW__");
   assert.equal(page.fields.find(x=>x.key==="type_3").initialValue,"NUMBER");
@@ -153,6 +153,11 @@ test("BEX batch offers core targets first, and two same-name opening bank fields
     ]
   });
   assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"core_payment");
+  assert.equal(page.fields.find(x=>x.key==="choice_0").options
+    .find(x=>x.value==="core_payment").label,"默认支付方式",
+    "unique targets should not expose technical IDs");
+  assert.equal(page.fields.find(x=>x.key==="choice_0").label,"默认支付方式",
+    "the decision label should be a business field, not a verbose instruction");
   assert.equal(page.fields.find(x=>x.key==="choice_5").initialValue,"__REVIEW__");
   assert.deepEqual(page.fields.find(x=>x.key==="choice_5").options
     .filter(x=>x.label.startsWith("开户银行")).map(x=>x.value),
@@ -236,37 +241,61 @@ test("V3 occupied candidate and undocumented same-name purpose remain explicit H
     "exclusive selection prevents reusing a reserved field even if it has the same name");
 });
 
-test("BEX V3 consumes neutral Eidos grouped Form: one visible decision per source, details retained", () => {
+test("BEX V3 real Host batch route uses an Eidos four-column decision table with actionable status", () => {
   const job=fixture();
+  const original=structuredClone(job.source);
   const page=createObjectExtensionBatchImportPageV010({
     job,definitions:[],locale:"zh-CN"
   });
   assert.equal(validateUidl(page).ok,true,
     JSON.stringify(validateUidl(page).diagnostics));
+  assert.equal(page.fields.find(x=>x.key==="importJobId").options[0].label,"supplier.xlsx");
+  assert.equal(page.fields.find(x=>x.key==="importJobId").initialValue,job.importJobId);
   assert.equal(page.reviewGroups.length,5);
+  assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
+  assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
+  assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
+  assert.equal(page.reviewTable.columnLabels.status,"状态");
+  assert.equal(page.reviewTable.filter.selectedId,"needs");
+  assert.ok(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys
+    .includes("ignored"),"All must include statuses reachable by an unsaved choice");
+  assert.equal(page.reviewTask.subject.title,"supplier.xlsx");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="proposed").value,"4");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="attention").value,"1");
+  assert.equal(page.reviewTask.issues.length,1);
+  assert.equal(page.reviewTask.issues[0].focusGroupId,"source-4");
   for(let i=0;i<5;i++){
     const group=page.reviewGroups[i];
     assert.equal(group.title,columns[i]);
     assert.equal(group.primaryFieldKey,"choice_"+i);
-    assert.deepEqual(group.detailFieldKeys,["label_"+i,"type_"+i,"sample_"+i]);
-    assert.match(group.summary,/非空/);
+    assert.deepEqual(group.detailFieldKeys,["sample_"+i,"label_"+i,"type_"+i]);
+    assert.ok(group.summary.length>0);
+    assert.equal(group.reviewStatus.key,i===4?"attention":"proposed");
+    assert.equal(group.statusByChoice.__CREATE__.key,"proposed");
+    assert.equal(group.statusByChoice.__IGNORE__.key,"ignored");
+    assert.equal(group.statusByChoice.__REVIEW__.key,"attention");
   }
   assert.equal(page.reviewGroups[4].defaultExpanded,true,
-    "metadata-like columns remain explicit Human exceptions");
+    "metadata-like source must remain explicit Human exception");
   assert.equal(page.reviewGroups[0].defaultExpanded,false);
   const html=renderToHtml(page);
-  assert.equal((html.match(/data-eidos-form-review-group="source-/g)??[]).length,5);
-  assert.equal((html.match(/data-eidos-review-group-primary/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-review-table-choice/g)??[]).length,5);
   assert.equal((html.match(/data-eidos-review-group-detail/g)??[]).length,5);
+  assert.match(html,/data-eidos-form-review-table-filter/);
+  assert.match(html,/data-eidos-form-task-overview/);
+  assert.match(html,/查看来源及候选字段用途/);
+  assert.match(html,/需要校对/);
+  assert.match(html,/待新增/);
   for(let i=0;i<5;i++){
     assert.equal((html.match(new RegExp('name="choice_'+i+'"','g'))??[]).length,1);
     assert.equal((html.match(new RegExp('name="label_'+i+'"','g'))??[]).length,1);
+    assert.equal((html.match(new RegExp('name="sample_'+i+'"','g'))??[]).length,1);
   }
-  assert.match(html,/数据概况/);
   assert.match(html,/来源样本/);
   assert.match(html,/data-eidos-exclusive-group="bex-batch-targets"/);
   assert.match(html,/data-eidos-action="create-extension-batch"/);
-  assert.deepEqual(job.source.rows,fixture().source.rows);
+  assert.deepEqual(job.source,original,"review presentation must not rewrite original XLSX data");
 });
 
 test("BEX V3 same-name purposes are visible only as exact trusted data within Eidos field groups",()=>{
@@ -284,11 +313,162 @@ test("BEX V3 same-name purposes are visible only as exact trusted data within Ei
   assert.equal(group.primaryFieldKey,"choice_5");
   assert.equal(group.defaultExpanded,true);
   assert.deepEqual(group.detailFieldKeys,
-    ["candidate_5","label_5","type_5","sample_5"]);
+    ["candidate_5","sample_5","label_5","type_5"]);
   const html=renderToHtml(page);
   assert.match(html,/客户收款账户/);
   assert.match(html,/供应商付款账户/);
   assert.match(html,/value="__REVIEW__" selected/);
   assert.match(html,/name="choice_5"/);
   assert.equal(validateUidl(page).ok,true);
+});
+
+test("BEX V3 batch filter honors previous exclusions without falsely showing an approval",()=>{
+  const job=fixture();
+  job.ignoredSourceColumns=["默认支付方式"];
+  const page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(page.reviewGroups[0].reviewStatus.key,"ignored");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="ignored").value,"1");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="proposed").value,"3");
+  assert.equal(page.reviewTable.filter.options.find(x=>x.id==="needs").statusKeys
+    .includes("ignored"),false);
+  assert.equal(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys
+    .includes("ignored"),true);
+  assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__IGNORE__");
+  assert.equal(validateUidl(page).ok,true);
+});
+
+test("BEX V3 restores a saved constant, never fabricates one from supplier role",()=>{
+  const job=fixture();
+  const absent=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(absent.fields.some(x=>x.key==="batchSubjectType"),false,
+    "a mapped source column is authoritative even if batch has a supplier role");
+  job.mapping[1]={targetFieldId:"subjectType",
+    transform:{kind:"CONSTANT",value:"ORGANIZATION"}};
+  const saved=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  const constant=saved.fields.find(x=>x.key==="batchSubjectType");
+  assert.match(constant.label,/批次固定值 · 主体类型/);
+  assert.equal(constant.initialValue,"ORGANIZATION");
+  assert.equal(constant.control,"select");
+  assert.equal(validateUidl(saved).ok,true);
+});
+
+
+test("V3 batch constant is not offered over a real source-column subject type", async()=>{
+  const x=setup();
+  const page=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:[],locale:"zh-CN"
+  });
+  assert.equal(page.fields.some(f=>f.key==="batchSubjectType"),false);
+  assert.match(page.fields.find(f=>f.key==="subjectTypeSourceNotice").initialValue,
+    /不能用批次值覆盖/);
+  const forged=request(x.getJob());
+  forged.values.batchSubjectType="ORGANIZATION";
+  const result=await x.action.execute(forged,ctx());
+  assert.equal(result.ok,false);
+  assert.equal(result.error.code,"OBJECT_EXTENSION_BATCH_SUBJECT_SOURCE_CONFLICT");
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.equal(x.getCalls(),0);
+});
+
+test("V3 explicit batch subject type persists as a true constant and restores without modifying source",async()=>{
+  const x=setup();
+  // This fixture has no authoritative subject type source column.
+  const job=x.getJob();
+  job.source.headers=job.source.headers.filter(h=>h!=="主体类型");
+  job.source.rows=job.source.rows.map(row=>{
+    const copy={...row};delete copy["主体类型"];return copy;
+  });
+  job.mapping=job.mapping.filter(item=>item.targetFieldId!=="subjectType");
+  const before=structuredClone(job.source);
+  let page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(page.fields.find(f=>f.key==="batchSubjectType").initialValue,"__KEEP__",
+    "a supplier relationship does not imply ORGANIZATION");
+  let req=request(job);
+  req.values.batchSubjectType="ORGANIZATION";
+  let result=await x.action.execute(req,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.state,"MAPPED");
+  const saved=x.getJob().mapping.find(item=>item.targetFieldId==="subjectType");
+  assert.deepEqual(saved,{targetFieldId:"subjectType",
+    transform:{kind:"CONSTANT",value:"ORGANIZATION"}});
+  assert.deepEqual(x.getJob().source,before,"source file rows stay untouched");
+  assert.equal(x.getJob().state,"STAGED");
+  page=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:x.repo.list(contextId,"counterparty.subject"),locale:"zh-CN"
+  });
+  assert.equal(page.fields.find(f=>f.key==="batchSubjectType").initialValue,"ORGANIZATION",
+    "Human decision survives reopening");
+});
+
+test("V3 batch constant preflight rejects invalid enum before creating any field",async()=>{
+  const x=setup();
+  const job=x.getJob();
+  job.mapping=job.mapping.filter(item=>item.targetFieldId!=="subjectType");
+  let req=request(job);
+  req.values.batchSubjectType="UNKNOWN";
+  const result=await x.action.execute(req,ctx());
+  assert.equal(result.ok,false);
+  assert.equal(result.error.code,"OBJECT_EXTENSION_BATCH_SUBJECT_TYPE_INVALID");
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.equal(x.getCalls(),0);
+});
+
+
+test("V3 saved constant can be edited and cleared after every Excel column is mapped",async()=>{
+  const x=setup();
+  const job=x.getJob();
+  job.source.headers=job.source.headers.filter(h=>h!=="主体类型");
+  job.source.rows=job.source.rows.map(row=>{
+    const copy={...row};delete copy["主体类型"];return copy;
+  });
+  job.mapping=job.mapping.filter(item=>item.targetFieldId!=="subjectType");
+  const source=structuredClone(job.source);
+  const initial=request(job,Array(5).fill("__CREATE__"));
+  initial.values.batchSubjectType="ORGANIZATION";
+  const first=await x.action.execute(initial,ctx());
+  assert.equal(first.ok,true,JSON.stringify(first));
+  assert.equal(x.getJob().mapping.length,7);
+  const ownerFields=x.repo.list(contextId,"counterparty.subject").length;
+  let page=createObjectExtensionBatchImportPageV010({
+    job:x.getJob(),definitions:x.repo.list(contextId,"counterparty.subject"),locale:"zh-CN"
+  });
+  assert.equal(page.title,"修改本次导入的批次固定值");
+  assert.equal(page.reviewTable,undefined);
+  assert.equal(page.fields.find(f=>f.key==="batchSubjectType").initialValue,"ORGANIZATION");
+  const savedChange={...request(x.getJob()),values:{
+    importJobId:job.importJobId,batchMode:"BATCH",batchSubjectType:"PERSON"
+  }};
+  const updated=await x.action.execute(savedChange,ctx());
+  assert.equal(updated.ok,true,JSON.stringify(updated));
+  assert.equal(updated.result.state,"MAPPED");
+  assert.equal(x.getJob().mapping.find(m=>m.targetFieldId==="subjectType").transform.value,"PERSON");
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,ownerFields);
+  assert.deepEqual(x.getJob().source,source);
+  const clear={...request(x.getJob()),values:{
+    importJobId:job.importJobId,batchMode:"BATCH",batchSubjectType:"__KEEP__"
+  }};
+  const result=await x.action.execute(clear,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(x.getJob().mapping.some(m=>m.targetFieldId==="subjectType"),false);
+  assert.equal(x.getJob().mapping.length,6);
+  assert.deepEqual(x.getJob().source,source);
+});
+
+test("V3 batch approval plan is derived from every real option, not a static proposed-count mock",()=>{
+  const job=fixture();
+  const page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(page.reviewPlan.title,"本批字段处理方案预览");
+  assert.deepEqual(page.reviewPlan.categories.map(x=>x.id),
+    ["create","reuse","ignore","pending"]);
+  assert.equal(page.reviewPlan.proposedFields.length,5);
+  assert.equal(page.reviewPlan.proposedFields[0].groupId,"source-0");
+  assert.equal(page.reviewPlan.proposedFields[0].labelFieldKey,"label_0");
+  assert.equal(validateUidl(page).ok,true,JSON.stringify(validateUidl(page).diagnostics));
+  const html=renderToHtml(page);
+  assert.match(html,/data-eidos-form-review-plan/);
+  assert.match(html,/data-eidos-review-plan-items/);
+  assert.match(html,/data-eidos-plan-label-field="label_0"/);
+  assert.match(html,/仅预览当前未保存的选择/);
+  assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5,
+    "same Host source rows and original choice_N are used by preview and submit");
 });
