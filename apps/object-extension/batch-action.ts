@@ -69,7 +69,7 @@ export function executeObjectExtensionBatchImportV010(input: {
     && (selectedSubject !== (previousSubject?.transform?.kind === "CONSTANT"
       ? previousSubject.transform.value : undefined));
   const columns = batchUnmappedColumnsV010(job);
-  if (!columns.length || columns.length > 200) {
+  if (columns.length > 200 || (!columns.length && !changeSubject)) {
     throw new Error("OBJECT_EXTENSION_BATCH_COLUMNS_INVALID");
   }
   const role = job.targetParameters?.relationshipMode;
@@ -142,7 +142,7 @@ export function executeObjectExtensionBatchImportV010(input: {
   }
   // Explicitly ignoring all optional columns is a valid, reversible
   // decision. It must be saved instead of forcing a meaningless field write.
-  if (!choices.length && !ignored.length) {
+  if (!choices.length && !ignored.length && !changeSubject) {
     throw new Error("OBJECT_EXTENSION_BATCH_NO_DECISIONS_SELECTED");
   }
   const created: string[] = [];
