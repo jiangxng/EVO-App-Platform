@@ -158,12 +158,12 @@ test("E01C: revalidation after a delayed import blocks revoked Host authority",a
   const gate=new Promise(resolve=>{unblock=resolve;});
   const a=f.make({async load(){
     await gate;
-    return (await import("../../dist/apps/purchase-attention/host-optin.js"))
-      .then(mod=>({manifest:mod.purchaseAttentionPackageV010,
-        handler:mod.createPurchaseAttentionHostActionHandlerV010({
-          resolveSourceRouter:()=>f.router,
-          resolveAuthorizationProvider:()=>undefined
-        })}));
+    const mod=await import("../../dist/apps/purchase-attention/host-optin.js");
+    return {manifest:mod.purchaseAttentionPackageV010,
+      handler:mod.createPurchaseAttentionHostActionHandlerV010({
+        resolveSourceRouter:()=>f.router,
+        resolveAuthorizationProvider:()=>undefined
+      })};
   }});
   const pending=a.admit();await Promise.resolve();f.allow(false);unblock();
   await assert.rejects(pending,/ON_DEMAND_HOST_ADMISSION_REVOKED|ON_DEMAND_HOST_ADMISSION_DENIED/);
