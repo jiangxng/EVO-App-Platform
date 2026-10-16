@@ -1,0 +1,30 @@
+# PA05-05/E01J1 — central PostgreSQL18 shared READ Owner epoch, two independent Node Host processes
+
+**Date:** 2026-10-16. **DECISION_RECORD / engineering candidate**, not production/E01 signoff. Issues #988/#979/#913 OPEN; PA-05/W06 IN_PROGRESS/NOT_SIGNED; production material WRITE OFF.
+
+## Actual original sources checked, reuse and boundary
+
+- [E01I PR #995](https://github.com/jiangxng/EVO-App-Platform/pull/995) merged at `main@20c8a94772f8d83ec9d85a4e81645e9a977084aa`. Accurate HEAD 44/44 GitHub workflows SUCCESS, actual spawned disposable Host startup 4/4 PASS/0 skips; E01I denies persistent uncertified READ Owner after restart. See [E01I decision](PA05-E01I-RESTART-READ-OWNER-QUARANTINE-20261016.md) and certification baseline §52.
+- [`manager/store.ts`](../../manager/store.ts): AppManager lifecycle state is memory or a local JSON file. These stores do not supply shared Worker state or a SQL serializable installation transaction.
+- [Existing `manager/agent-plugin-write-lifecycle-gate.ts`](../../manager/agent-plugin-write-lifecycle-gate.ts) provides **opt-in WRITE Owner** PostgreSQL table locks and worker inventory. It is for READ's safety *conceptual reference only*, not a compatible owner permission or proof of deployed READ Handler protection. Its durable WRITE row cannot be reused directly for Purchase Attention.
+- [Existing 3-PG18 workflow](../../.github/workflows/agent-pa05-cross-database-admission.yml) runs independently provisioned disposable PostgreSQL18 authority, Worker A and Worker B clusters, with original Object Extension WRITE/Host certificate tests 12/12. Use this same actual physical database evidence. No external source/web search required; the claims are from direct GitHub source and CI, not from model conjecture.
+
+## Selected narrow E01J1 delivery
+
+Add opt-in, **separately exported and NOT wired to production Host**, `createPa05SharedReadOwnerGateV010` for **only** `evo-purchase-attention`:
+
+1. Trusted constructor pins complete sorted Host ID inventory (at least two) in central PostgreSQL `pa05_read_trusted_hosts`. The unique Owner `pa05_read_owner_epoch` row begins `FROZEN`, epoch 1; persisted changes to Host inventory are rejected on reinitialization and while admitting.
+2. The **trusted test administrator** may explicitly certify a known frozen epoch with *two* approvals; this transitions to `ACTIVE` and increments epoch. There is no HTTP, client flag or production operator implied. Stale or already-active recertification is denied.
+3. A given Host may enter `withReadAdmission` only if it is in the immutable trusted ID set and its supplied known epoch matches the current `ACTIVE` state. The asynchronous work callback executes **while a real PostgreSQL transaction holds the Owner row `FOR SHARE` lock**.
+4. A different actual OS Host process issues revoke: it acquires the **same central row** `FOR UPDATE`, waits for an in-flight READ, increments epoch and commits `FROZEN`. Both old Host processes' old epochs are thereafter denied; no automatically reopening. Even after recertification to a newer epoch, stale worker epochs still fail. If the central SQL connection is down, constructor/admission cannot locally fall back.
+5. Use the actual PostgreSQL18 three distinct physical clusters, check `pg_control_system()` identifiers, fork **two genuine independent Node processes** with IPC, require a held READ / blocked cross-process revoke, and test after-revoke stale epoch failures and explicit new certification, unregistered Host, changed inventory, no operator approval, wrong DB endpoint. Never simulate a Worker with two objects in one process. CI marker `PA05_E01J_SHARED_READ_OWNER_PG` and two additional markers must be present; zero skipped.
+
+**Why not immediately wire into production `manager/server.ts` / AppManager?** The current trusted Host identity, operator bootstrap policy and SQL role separation for READ operations are not yet proven to bind a *single authoritative transaction* to an actual business READ or install. An AppManager mutation writes local file/in-memory outside SQL; wrapping that local mutation in a SQL callback would NOT create atomic rollback of the local store and may create a false safety claim. Wiring a partial SQL gate into production would give dangerous false assurance. E01J1 is a valid bounded foundational proof of cross-process central READ fencing, not completion of E01J global lifecycle.
+
+**Rejected:** copying the WRITE Owner gate and calling its existing PASS sufficient; JSON file locks, process-local mutexes, fabricated Human/provider credentials; trusting a user-selected Host ID; silently installing the plugin or reopening on restart; enabling production material WRITE. The new gate is not imported at Host startup and is only used in isolated CI.
+
+## Evidence ceiling and remaining E01J2 acceptance
+
+Even if the genuine two-process PG18 test passes, **all the following remain unsigned**: production SQL role separation and least privilege (CI test role is privileged); real Host cryptographic identity and Worker inventory attestation; actual dynamically admitted Purchase Attention READ Handler executing inside the SQL fence; durable atomic *AppManager install/activate/disable* across Workers and databases; already-running business reads during network partition; Host operational recovery and real operator/Owner approvals; enterprise→EVO business data and independently authenticated Human/Personal Agent/model Provider/browser approval. A durable row-lock proof cannot substitute these. Carry explicit markers `productionHostBusinessHandlerIntegrated:false`, `sqlRoleSeparationCertified:false`, `runtimePartitionDuringActiveReadCertified:false`, `productionWriteEnabled:false`. #988/#979/#913 stay OPEN, PA05-05 E01–E05 and W06 NOT_SIGNED. Subsequent E01J2 should use versioned Host identity and SQL least-privilege Role separation, then connect the actual READ Handler with cutover/partition tests, rather than another self-referential in-process proof.
+
+**At authoring:** engineering candidate awaiting final precise PR HEAD CI, merge and temporary branch retirement.
