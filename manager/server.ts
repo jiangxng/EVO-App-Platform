@@ -60,6 +60,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import {
@@ -854,17 +855,6 @@ import {
   parseCounterpartyEditRouteV010
 } from "../apps/counterparty/constants.js";
 import {
-  createCounterpartyRepositoryV010
-} from "../apps/counterparty/repository.js";
-import {
-  createCounterpartyRoleRepositoryV010
-} from "../apps/counterparty/roles.js";
-import {
-  createCounterpartyAddressRepositoryV010,
-  createCounterpartyContactRepositoryV010,
-  createCounterpartyProfileRepositoryV010
-} from "../apps/counterparty/facets.js";
-import {
   counterpartyCoreSchemaV010
 } from "../apps/counterparty/foundation-object.js";
 import {
@@ -880,9 +870,6 @@ import {
   COUNTERPARTY_SUPPLIER_PROJECTION_V010,
   type CounterpartyProjectionIdV010
 } from "../apps/counterparty/projections.js";
-import {
-  createCounterpartyProjectionServiceV010
-} from "../apps/counterparty/projection-service.js";
 import {
   ITEM_ARCHIVE_COMMAND,
   ITEM_CREATE_COMMAND,
@@ -1104,40 +1091,17 @@ const enterpriseResourceRepository =
         enterpriseResourceStateFile
       )
     : createMemoryEnterpriseResourceRepositoryV010();
-const counterpartyRepository =
-  createCounterpartyRepositoryV010(enterpriseResourceRepository);
-const counterpartyRoleRepository =
-  createCounterpartyRoleRepositoryV010(
-    enterpriseResourceRepository,
-    counterpartyRepository
-  );
-const counterpartyContactRepository =
-  createCounterpartyContactRepositoryV010({
-    resources: enterpriseResourceRepository,
-    counterpartyRepository
-  });
-const counterpartyAddressRepository =
-  createCounterpartyAddressRepositoryV010({
-    resources: enterpriseResourceRepository,
-    counterpartyRepository
-  });
-const counterpartyProfileRepository =
-  createCounterpartyProfileRepositoryV010({
-    resources: enterpriseResourceRepository,
-    counterpartyRepository,
-    roleRepository: counterpartyRoleRepository
-  });
 const responsibilityRepository =
   createResponsibilityRepositoryV010(enterpriseResourceRepository);
-const counterpartyProjectionService =
-  createCounterpartyProjectionServiceV010({
-    repository: counterpartyRepository,
-    roleRepository: counterpartyRoleRepository,
+const counterpartyRuntimeHost = createCounterpartyRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === COUNTERPARTY_PACKAGE_ID && feature.featureId === COUNTERPARTY_FEATURE_ID),
+  dependencies: {
+    resources: enterpriseResourceRepository,
     responsibilityRepository,
-    resolveAuthorizationProvider,
-    fieldIds: () =>
-      counterpartyCoreSchemaV010.fields.map(field => field.fieldId)
-  });
+    resolveAuthorizationProvider
+  }
+});
 const objectExtensionRepository =
   createObjectExtensionRepositoryV010(enterpriseResourceRepository);
 const objectExtensionValueRepository =
@@ -2250,6 +2214,10 @@ const manager = createAppManagerService(
       if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
         void disposeBiWorkbenchRuntimeV010();
       }
+      if (event.packageId === COUNTERPARTY_PACKAGE_ID) {
+        dataImportTargetPromises.delete("evo-counterparty.import-target.v0.1");
+        void counterpartyRuntimeHost.stop().catch(error => console.error("Counterparty runtime stop failed", error));
+      }
       if (event.packageId === ITEM_PACKAGE_ID) {
         itemRuntimePromise = undefined;
       }
@@ -2375,14 +2343,15 @@ Promise<FoundationObjectImportTargetV010[]> {
     let pending = dataImportTargetPromises.get(ref);
     if (!pending) {
       if (ref === "evo-counterparty.import-target.v0.1") {
-        pending = import("../apps/counterparty/import-target.js")
-          .then(module => module.createCounterpartyImportTargetV010({
+        pending = Promise.all([
+          import("../apps/counterparty/import-target.js"), counterpartyRuntimeHost.resolve()
+        ]).then(([module, runtime]) => module.createCounterpartyImportTargetV010({
             resources: enterpriseResourceRepository,
-            repository: counterpartyRepository,
-            roleRepository: counterpartyRoleRepository,
-            contactRepository: counterpartyContactRepository,
-            addressRepository: counterpartyAddressRepository,
-            profileRepository: counterpartyProfileRepository,
+            repository: runtime.repository,
+            roleRepository: runtime.roleRepository,
+            contactRepository: runtime.contactRepository,
+            addressRepository: runtime.addressRepository,
+            profileRepository: runtime.profileRepository,
             extensionRepository: objectExtensionRepository,
             extensionValueRepository: objectExtensionValueRepository
           }));
@@ -4790,8 +4759,7 @@ const actionRouter = createAppActionRouter(
         async load() {
           const module = await import("../apps/counterparty/actions.js");
           const handlers = module.createCounterpartyActionHandlersV010({
-            repository: counterpartyRepository,
-            roleRepository: counterpartyRoleRepository,
+            resolveRepositories: () => counterpartyRuntimeHost.resolve(),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -4830,7 +4798,7 @@ const actionRouter = createAppActionRouter(
           );
           const handlers =
             module.createCounterpartyProjectionActionHandlersV010({
-              service: counterpartyProjectionService,
+              resolveService: async () => (await counterpartyRuntimeHost.resolve()).projectionService,
               resolveEnterpriseRelationshipKind(principal, contextId) {
                 return (
                   resolveEnterpriseContextRelationshipProvider()
@@ -6875,6 +6843,7 @@ const server = createServer(async (request, response) => {
         const canManage = relationship?.kind === "OWNER"
           || relationship?.kind === "ADMIN";
         const module = await import("../apps/counterparty/page.js");
+        const runtime = await counterpartyRuntimeHost.resolve();
         // Projection pages have their own governed read. Avoid loading and
         // authorizing the full collection here before the same owner read.
         // Directory/detail/edit retain their existing access path.
@@ -6904,7 +6873,7 @@ const server = createServer(async (request, response) => {
             url.searchParams.get("route"), projectionRoute
           );
           const pagingQuery = { ...userQuery, pageSize: userQuery.pageSize ?? 25 };
-          const projection = await counterpartyProjectionService.read({
+          const projection = await runtime.projectionService.read({
             contextId: active.contextId,
             projectionId,
             query: pagingQuery,
@@ -6940,7 +6909,7 @@ const server = createServer(async (request, response) => {
         }
 
         const allCounterparties =
-          counterpartyRepository.list(active.contextId);
+          runtime.repository.list(active.contextId);
         const responsibilities = responsibilityRepository.list(
           active.contextId,
           { objectType: "counterparty.subject" }
@@ -7012,7 +6981,7 @@ const server = createServer(async (request, response) => {
           });
         }
         const counterparty =
-          counterpartyRepository.get(active.contextId, counterpartyId);
+          runtime.repository.get(active.contextId, counterpartyId);
         if (
           !counterparty
           || !authorizedCounterpartyIds.has(counterpartyId)
@@ -7036,25 +7005,25 @@ const server = createServer(async (request, response) => {
               })
             : module.createCounterpartyDetailPageV010({
                 counterparty,
-                roles: counterpartyRoleRepository.list(
+                roles: runtime.roleRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
-                customerProfile: counterpartyProfileRepository.get(
+                customerProfile: runtime.profileRepository.get(
                   active.contextId,
                   counterpartyId,
                   "CUSTOMER"
                 ),
-                supplierProfile: counterpartyProfileRepository.get(
+                supplierProfile: runtime.profileRepository.get(
                   active.contextId,
                   counterpartyId,
                   "SUPPLIER"
                 ),
-                contacts: counterpartyContactRepository.list(
+                contacts: runtime.contactRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
-                addresses: counterpartyAddressRepository.list(
+                addresses: runtime.addressRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
@@ -9652,9 +9621,10 @@ async function shutdown(signal: string): Promise<void> {
   let shutdownFailed = false;
   try {
     await bottleneckRuntime.stop();
+    await counterpartyRuntimeHost.stop();
   } catch (error) {
     shutdownFailed = true;
-    console.error("Bottleneck runtime shutdown incomplete", error);
+    console.error("Managed runtime shutdown incomplete", error);
   }
   await optionalAgentAsyncRunReader?.close();
   await optionalAgentAsyncReadWorker?.close();

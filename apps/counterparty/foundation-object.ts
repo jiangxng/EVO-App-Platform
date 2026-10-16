@@ -22,7 +22,7 @@ import {
 import {
   COUNTERPARTY_RESOURCE_TYPE_V010,
   COUNTERPARTY_SCHEMA_V010
-} from "./repository.js";
+} from "./constants.js";
 
 export const COUNTERPARTY_IDENTITY_SLOT_V010 =
   "counterparty.identity" as const;
