@@ -130,6 +130,9 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "issued_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
           "consumed boolean NOT NULL DEFAULT false,"+
           "revoked boolean NOT NULL DEFAULT false,"+
+          "approved_resource jsonb NOT NULL,approved_evidence jsonb NOT NULL,"+
+          "approved_evidence_digest text NOT NULL,"+
+          "approved_idempotency_hash text NOT NULL,"+
           "PRIMARY KEY(scope_key,effect_id))");
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_permits FROM PUBLIC");
@@ -190,7 +193,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF has_function_privilege(v_business,",
-          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text)',",
+          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
           " 'EXECUTE') THEN",
@@ -234,20 +237,25 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "v_token:=replace(gen_random_uuid()::text,'-','') ||",
           " replace(gen_random_uuid()::text,'-','');",
           "INSERT INTO "+d+".pa05_object_host_permits",
-          " (scope_key,effect_id,run_id,input_digest,context_id,enterprise_id,token)",
-          " VALUES(p_scope,p_effect,p_run,p_digest,p_context,p_enterprise,v_token);",
+          " (scope_key,effect_id,run_id,input_digest,context_id,enterprise_id,token,"+
+          " approved_resource,approved_evidence,approved_evidence_digest,"+
+          " approved_idempotency_hash)",
+          " VALUES(p_scope,p_effect,p_run,p_digest,p_context,p_enterprise,v_token,"+
+          " p_resource,p_evidence,p_evidence_digest,p_idempotency_hash);",
           "RETURN v_token; END;"
         ].join("\n");
         await tx.unsafe("CREATE FUNCTION "+d+
           ".pa05_object_issue_host_permit(p_scope text,p_run text,"+
-          "p_effect text,p_digest text,p_context text,p_enterprise text) "+
+          "p_effect text,p_digest text,p_context text,p_enterprise text,"+
+          "p_resource jsonb,p_evidence jsonb,p_evidence_digest text,"+
+          "p_idempotency_hash text) "+
           "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
           "SET search_path=pg_catalog AS $pa05$"+issueBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text) FROM PUBLIC");
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) FROM PUBLIC");
         await tx.unsafe("GRANT USAGE ON SCHEMA "+d+" TO "+'\"'+hostRole+'\"');
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text) TO "+
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) TO "+
           '\"'+hostRole+'\"');
         // D14C7: one-effect revocation is a durable PostgreSQL row transition.
         // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
