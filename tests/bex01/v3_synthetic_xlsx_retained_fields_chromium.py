@@ -78,6 +78,29 @@ with sync_playwright() as pw:
     """ % (json.dumps(HOST),json.dumps(CTX)))
     page=context.new_page()
     page.on("dialog",lambda dialog: dialog.accept())
+    # Verify exactly the /map URL a Human actually opens. The former test
+    # only visited the separate /object-extensions/...&mode=batch screen.
+    mapping="/data-import/jobs/"+jobid+"/map"
+    page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
+    map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+    expect(map_form).to_be_visible(timeout=30000)
+    map_groups=map_form.locator('[data-eidos-form-review-group]')
+    expect(map_groups).to_have_count(22)
+    expect(map_form.locator('[data-eidos-review-group-primary] select')).to_have_count(22)
+    first_map=map_groups.first
+    expect(first_map).to_contain_text("往来编码")
+    expect(first_map.locator('select[name="map_0"]')).to_have_value("code")
+    expect(map_groups.nth(4)).to_contain_text("synthetic-4-0001")
+    expect(map_groups.nth(4).locator('select[name="map_4"]')).to_have_value("__CREATE__")
+    map_groups.nth(4).locator('[data-eidos-review-group-detail] summary').click()
+    expect(map_groups.nth(4).locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    expect(map_groups.nth(21).locator('select[name="map_21"]')).to_have_value("__IGNORE__")
+    assert map_form.locator('[data-eidos-agent-action="ai-auto-map"]').count()==1
+    entry=map_form.locator('[data-eidos-field-context-link]')
+    expect(entry.first).to_be_visible()
+    assert "B 方案" not in map_form.inner_text()
+    page.screenshot(path=str(OUT/"v3-actual-map-22-rows-desktop.png"),full_page=True)
+    print("BEX01_V3_ACTUAL_MAP_ROUTE_22_GROUPS_PASS:DESKTOP",flush=True)
     batch=reviewed["navigateTo"]
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
@@ -95,6 +118,17 @@ with sync_playwright() as pw:
       }
     """ % (json.dumps(HOST),json.dumps(CTX)))
     small=phone.new_page()
+    small.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
+    mobile_map=small.locator('form[data-eidos-id="evo-data-import.mapping"]')
+    expect(mobile_map).to_be_visible(timeout=30000)
+    expect(mobile_map.locator('[data-eidos-form-review-group]')).to_have_count(22)
+    mobile_map_group=mobile_map.locator('[data-eidos-form-review-group]').nth(4)
+    expect(mobile_map_group.locator('select[name="map_4"]')).to_be_visible()
+    mobile_map_group.locator('[data-eidos-review-group-detail] summary').click()
+    expect(mobile_map_group.locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    assert small.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+    small.screenshot(path=str(OUT/"v3-actual-map-22-rows-phone.png"),full_page=True)
+    print("BEX01_V3_ACTUAL_MAP_ROUTE_22_GROUPS_PASS:PHONE",flush=True)
     small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     mobile_form=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(mobile_form).to_be_visible(timeout=30000)

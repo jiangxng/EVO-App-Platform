@@ -55,6 +55,7 @@ import {
 import {
   renderToHtml
 } from "../../dist/vendor/eidos/src/renderers/html/index.js";
+import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
 import {
   validateValues
 } from "../../dist/vendor/eidos/src/runtime/values.js";
@@ -970,6 +971,23 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     locale:"zh-CN",canCreateExtension:true
   });
   assert.equal(page.fields.find(x=>x.key==="map_0").initialValue,"code");
+  assert.equal(page.reviewGroups.length,source.headers.length,
+    "actual /map route must group every source column, not just the other batch page");
+  assert.equal(validateUidl(page).ok,true,
+    JSON.stringify(validateUidl(page).diagnostics));
+  assert.deepEqual(page.reviewGroups.map(x=>x.title),source.headers);
+  assert.equal(page.reviewGroups[0].primaryFieldKey,"map_0");
+  assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
+  assert.match(page.reviewGroups[3].summary,new RegExp("非空 1 / 1 · old-001"));
+  assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
+  const mapHtml=renderToHtml(page);
+  assert.equal((mapHtml.match(/data-eidos-form-review-group="map-source-/g)??[]).length,4);
+  assert.equal((mapHtml.match(/data-eidos-review-group-primary/g)??[]).length,4);
+  assert.equal((mapHtml.match(/name="map_3"/g)??[]).length,1);
+  assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);
+  assert.match(mapHtml,/old-001/);
+  assert.doesNotMatch(mapHtml,/B 方案/);
+  assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
   assert.match(page.fields.find(x=>x.key==="batchReviewEntry").contextLink.label,/集中审核/);
