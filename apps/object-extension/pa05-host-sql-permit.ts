@@ -1,4 +1,11 @@
 import postgres from "postgres";
+import {createHash} from "node:crypto";
+const canonical=(v:unknown):unknown=>Array.isArray(v)?v.map(canonical):
+  v!==null&&typeof v==="object"?Object.fromEntries(
+    Object.entries(v as Record<string,unknown>).sort(([a],[b])=>a.localeCompare(b))
+      .map(([k,x])=>[k,canonical(x)])):v;
+const json=(v:unknown)=>JSON.stringify(canonical(v));
+const hash=(v:string)=>createHash("sha256").update(v).digest("hex");
 
 /**
  * PA05-04D14C5: a distinct, real authenticated Host SQL LOGIN mints an
@@ -22,17 +29,46 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
     async issue(request:{
       scopeKey:string;runId:string;effectId:string;inputDigest:string;
       contextId:string;enterpriseId:string;
+      approvedResource:unknown;approvedEvidence:unknown;
+      approvedEvidenceDigest:string;approvedIdempotencyHash:string;
     }):Promise<string>{
       if(!request||!Object.values(request).every(x=>
         typeof x==="string"&&x.length>0&&x.length<=512)||
         !/^[a-f0-9]{64}$/.test(request.inputDigest))
         throw Error("PA05_OBJECT_SQL_HOST_ISSUER_SOURCE_INVALID");
+      // A full approved snapshot is carried by a distinct SQL Host identity,
+      // never by a business SQL marker. Recompute the existing Owner canonical
+      // digest so a claimed approved document cannot silently diverge from D10.
+      const resource=request.approvedResource;
+      const evidence=request.approvedEvidence;
+      if(!resource||typeof resource!=="object"||Array.isArray(resource)||
+        !evidence||typeof evidence!=="object"||Array.isArray(evidence))
+        throw Error("PA05_OBJECT_SQL_APPROVAL_SNAPSHOT_REQUIRED");
+      const a=resource as Record<string,unknown>;
+      const e=evidence as Record<string,unknown>;
+      if(e.inputDigest!==request.inputDigest||
+        e.runId!==request.runId||e.effectId!==request.effectId||
+        e.contextId!==request.contextId||
+        e.enterpriseId!==request.enterpriseId||
+        a.contextId!==request.contextId||
+        a.resourceId!==e.recordId||
+        a.ownerPackageId!==e.ownerPackageId||
+        a.createdAt!==e.recordedAt||a.updatedAt!==e.recordedAt||
+        json(a.payload)!==json(e.definition)||
+        hash(json({definition:e.definition}))!==request.inputDigest||
+        hash(json(e))!==request.approvedEvidenceDigest||
+        hash(String(e.idempotencyKey))!==request.approvedIdempotencyHash||
+        !/^[a-f0-9]{64}$/.test(request.approvedEvidenceDigest)||
+        !/^[a-f0-9]{64}$/.test(request.approvedIdempotencyHash))
+        throw Error("PA05_OBJECT_SQL_APPROVED_COMMAND_MISMATCH");
       // The PostgreSQL function checks real SESSION_USER + immutable D10
       // ticket + PA-02 state + D14A ACTIVE and owns the permit table.
       const rows=await sql.unsafe("SELECT "+q+
-        "($1,$2,$3,$4,$5,$6) AS token",[
+        "($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10) AS token",[
           request.scopeKey,request.runId,request.effectId,
-          request.inputDigest,request.contextId,request.enterpriseId
+          request.inputDigest,request.contextId,request.enterpriseId,
+          json(resource),json(evidence),request.approvedEvidenceDigest,
+          request.approvedIdempotencyHash
         ]);
       const token=rows[0]?.token;
       if(typeof token!=="string"||!/^[a-f0-9]{32,64}$/.test(token))
