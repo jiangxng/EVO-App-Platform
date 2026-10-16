@@ -296,10 +296,16 @@ with sync_playwright() as pw:
     expect(proposed_preview).to_have_text(str(first_plan_proposed))
     expect(ignored_preview).to_have_text(str(first_plan_ignored))
     first_batch_row.locator('[data-eidos-review-group-detail] summary').click()
-    first_batch_row.locator('input[name="label_0"]').fill("人工审核后的名称")
+    name_field=first_batch_row.locator('input[name="label_0"]')
+    original_name=name_field.input_value()
+    name_field.fill("人工审核后的名称")
     expect(plan.locator('[data-eidos-review-plan-items] li').first).to_contain_text("人工审核后的名称")
     assert "仅预览当前未保存的选择" in plan.inner_text()
     page.screenshot(path=str(OUT/"v3-e6-plan-preview-desktop.png"),full_page=True)
+    # This scenario later verifies original business fields were preserved.
+    # Restore the intentionally edited *unsaved* test input before approval.
+    name_field.fill(original_name)
+    expect(plan.locator('[data-eidos-review-plan-items] li').first).to_contain_text(original_name)
     batch_filter.select_option("needs")
     expect(first_batch_row).to_be_visible()
     print("BEX01_V3_LIVE_CHOICE_STATUS_NO_HOST_WRITE_PASS",flush=True)
