@@ -153,6 +153,11 @@ test("BEX batch offers core targets first, and two same-name opening bank fields
     ]
   });
   assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"core_payment");
+  assert.equal(page.fields.find(x=>x.key==="choice_0").options
+    .find(x=>x.value==="core_payment").label,"默认支付方式",
+    "unique targets should not expose technical IDs");
+  assert.equal(page.fields.find(x=>x.key==="choice_0").label,"默认支付方式",
+    "the decision label should be a business field, not a verbose instruction");
   assert.equal(page.fields.find(x=>x.key==="choice_5").initialValue,"__REVIEW__");
   assert.deepEqual(page.fields.find(x=>x.key==="choice_5").options
     .filter(x=>x.label.startsWith("开户银行")).map(x=>x.value),
