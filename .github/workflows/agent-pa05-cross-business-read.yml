@@ -139,6 +139,8 @@ jobs:
           grep -Fq 'PA05_E01E_REAL_HOST_HTTP=' pa05-e01e.log
           grep -Fq '"actuallySpawnedNodeHost":true' pa05-e01e.log
           grep -Fq '"originalAppManagerInstallAndDisableThroughHttp":true' pa05-e01e.log
+          grep -Fq '"legacyInstallerWithoutAdminBearerObserved":true' pa05-e01e.log
+          grep -Fq '"realOperatorInstallationAuthorizationCertified":false' pa05-e01e.log
           grep -Fq '"realEnterpriseDataReadCertified":false' pa05-e01e.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01e.log
           grep -Eq '# pass 3' pa05-e01e.log
