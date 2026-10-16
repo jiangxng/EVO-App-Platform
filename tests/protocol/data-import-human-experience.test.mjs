@@ -980,6 +980,12 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
   assert.match(page.reviewGroups[3].summary,new RegExp("非空 1 / 1 · old-001"));
   assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
+  assert.equal(page.reviewTask.subject.title,source.name);
+  assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
+  assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
+  assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
+  assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
+  assert.equal(page.reviewTask.issues[0].actionLabel,"核对本列");
   assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
   assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
   assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
@@ -991,6 +997,9 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     ["matched","proposed","attention"],
     "Eidos filters must reference only status values in this authorized Job");
   const mapHtml=renderToHtml(page);
+  assert.match(mapHtml,/data-eidos-form-task-overview/);
+  assert.match(mapHtml,/data-eidos-form-task-metrics/);
+  assert.match(mapHtml,/data-eidos-form-task-focus="map-source-3"/);
   assert.match(mapHtml,/<table data-eidos-form-review-table/);
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
   assert.equal((mapHtml.match(/data-eidos-review-table-choice/g)??[]).length,4);
