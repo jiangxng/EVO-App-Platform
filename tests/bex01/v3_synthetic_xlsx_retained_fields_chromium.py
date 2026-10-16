@@ -287,8 +287,12 @@ with sync_playwright() as pw:
         const status=row.querySelector('[data-eidos-review-table-status]');
         const choice=row.querySelector('[data-eidos-review-table-choice] select');
         const s=subject.getBoundingClientRect(),t=status.getBoundingClientRect();
+        const textRange=document.createRange();
+        textRange.selectNodeContents(subject);
         return {name:subject.innerText,status:status.innerText,
           aligned:Math.abs((s.top+s.bottom-t.top-t.bottom)/2)<=16,
+          subjectWidth:Math.round(s.width),
+          subjectTextLines:textRange.getClientRects().length,
           choiceHeight:choice.getBoundingClientRect().height};
       });
       let scroller=form;
@@ -304,6 +308,9 @@ with sync_playwright() as pw:
     assert mobile_geometry["totalRows"]==22,mobile_geometry
     assert mobile_geometry["visibleRows"]==22,mobile_geometry
     assert mobile_geometry["aligned"],mobile_geometry
+    first_fields=mobile_geometry["statusExamples"][:4]
+    assert all(item["subjectWidth"]>=120 for item in first_fields),first_fields
+    assert all(item["subjectTextLines"]==1 for item in first_fields),first_fields
     assert mobile_geometry["minChoiceHeight"]>=44,mobile_geometry
     # Prior same fixture at 390px: 9,139px (#978 exact-HEAD artifact).
     # All original 22 source cards are still visible; inline status eliminates
