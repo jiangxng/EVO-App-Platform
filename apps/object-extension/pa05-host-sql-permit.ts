@@ -39,6 +39,28 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
         throw Error("PA05_OBJECT_SQL_HOST_ISSUER_UNVERIFIED");
       return token;
     },
+    async revoke(request:{
+      scopeKey:string;effectId:string;token:string;
+    }):Promise<"REVOKED"|"COMMITTED"|"NOT_FOUND">{
+      if(!request||typeof request.scopeKey!=="string"||
+        !request.scopeKey||request.scopeKey.length>512||
+        typeof request.effectId!=="string"||!request.effectId||
+        request.effectId.length>512||
+        typeof request.token!=="string"||
+        !/^[a-f0-9]{64}$/.test(request.token))
+        throw Error("PA05_OBJECT_SQL_REVOKE_SOURCE_INVALID");
+      // Do not advertise cancellation: COMMITTED means the effect won the
+      // permit-row transaction race, and must use original Owner verifier.
+      const rows=await sql.unsafe("SELECT "+
+        '"'+input.objectSchema+'".pa05_object_revoke_host_permit'+
+        "($1,$2,$3) AS state",[
+          request.scopeKey,request.effectId,request.token
+        ]);
+      const state=rows[0]?.state;
+      if(state!=="REVOKED"&&state!=="COMMITTED"&&state!=="NOT_FOUND")
+        throw Error("PA05_OBJECT_SQL_REVOKE_OUTCOME_UNVERIFIED");
+      return state;
+    },
     close:()=>sql.end()
   };
 }
