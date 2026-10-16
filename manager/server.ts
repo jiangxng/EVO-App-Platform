@@ -975,6 +975,7 @@ import {
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
+  OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
   parseObjectExtensionImportRouteV010,
   OBJECT_EXTENSION_FEATURE_ID,
@@ -5115,7 +5116,8 @@ const actionRouter = createAppActionRouter(
       OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
       OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
       OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
-      OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010
+      OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
+      OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: OBJECT_EXTENSION_PACKAGE_ID,
@@ -5157,6 +5159,26 @@ const actionRouter = createAppActionRouter(
                 applyImportMapping: values => {
                   assertAvailable();
                   batchImportService.updateMapping({ ...values, mappingOrigin: "HUMAN" });
+                },
+                saveBatchReviewDraft: values => {
+                  assertAvailable();
+                  if (values.actorSubjectId!==values.draft.actorSubjectId)
+                    throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_ACTOR_MISMATCH");
+                  const latest=dataImportRepository.get(values.contextId,values.importJobId);
+                  if (!latest || latest.targetId!=="counterparty.subject" ||
+                    latest.state==="COMMITTED" || latest.state==="COMMITTED_WITH_ERRORS") {
+                    throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_JOB_UNAVAILABLE");
+                  }
+                  const drafts=(latest.batchReviewDrafts??[]).filter(item=>
+                    item.actorSubjectId!==values.actorSubjectId);
+                  // One active draft per Human and Import Job, with a bounded
+                  // retention cap; never touch mapping, dry-run or raw source.
+                  dataImportRepository.save({
+                    contextId:values.contextId,
+                    job:{...latest,batchReviewDrafts:[...drafts,values.draft].slice(-16)},
+                    actorSubjectId:values.actorSubjectId,
+                    recordedAt:values.recordedAt
+                  });
                 }
               };
             },
@@ -7663,6 +7685,7 @@ const server = createServer(async (request, response) => {
             }));
           return json(response,200,batch.createObjectExtensionBatchImportPageV010({
             job,locale:requestedLocale(url),importableTargets,
+            actorSubjectId:session.principal.subjectId,
             definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
           }));
         }
