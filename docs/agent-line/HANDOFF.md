@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-05/E01F active security fix (NOT_SIGNED):** [E01F lifecycle route coverage, test matrix and original E01E bypass evidence](PA05-E01F-LIFECYCLE-AUTHORIZATION-20261016.md) → [baseline §49](PA05-CERTIFICATION-BASELINE-20261015.md) → [Issue #988](https://github.com/jiangxng/EVO-App-Platform/issues/988). E01E [PR #986](https://github.com/jiangxng/EVO-App-Platform/pull/986) merged at `main@f70e0a047a729b6b4fcd2fe91f669516b658cd75`. Current candidate branch `agent/pa05-e01f-target-lifecycle-authorization-20261016` guards exact Purchase Attention install/enable/disable/uninstall/upgrade on direct and Action routes using operator bearer + live policy. No production deploy, no other plugins' security claim, #979/#913 OPEN, W06 NOT_SIGNED, WRITE OFF. Must check accurate final CI, merge and clean branch without touching BEX/CP03/Eidos/2D.
+
+
 > **2026-10-16 PA05-05/E01E new candidate (NOT_SIGNED):** [actual disposable Node Host HTTP admission, original install/disable and source evidence](PA05-E01E-DISPOSABLE-REAL-HOST-HTTP-20261016.md) → [certification baseline §48](PA05-CERTIFICATION-BASELINE-20261015.md). E01D [PR #985](https://github.com/jiangxng/EVO-App-Platform/pull/985) merged `main@3395fe276c27528684caecfcd546cd9aab27ee8a`, 44/44 exact HEAD CI SUCCESS. E01E branch `agent/pa05-e01e-real-host-http-20261016` deliberately tests **real process HTTP with disposable tokens, never production data**; PR, exact HEAD CI, merged SHA pending. #979/#913 OPEN, PA-05/W06 NOT_SIGNED and production WRITE OFF; no Railway or parallel BEX/CP03/Eidos/2D/global authority changes.
 
 
