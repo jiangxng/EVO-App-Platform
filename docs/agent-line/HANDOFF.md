@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-05/E01J1 central READ Owner candidate (NOT_SIGNED):** [actual shared PG18 Owner epoch, two real separate OS Host processes, cross-process revoke serialization](PA05-E01J-SHARED-READ-OWNER-EPOCH-PG-20261016.md) → [baseline §53](PA05-CERTIFICATION-BASELINE-20261015.md) → [#988](https://github.com/jiangxng/EVO-App-Platform/issues/988). E01I [PR #995](https://github.com/jiangxng/EVO-App-Platform/pull/995) merged `main@20c8a94772f8d83ec9d85a4e81645e9a977084aa`; E01J1 branch `agent/pa05-e01j-shared-read-sql-gate-20261016`. Explicitly **not production Host/READ Handler/AppManager-installed authority**, role separation/partition not signed. Need true 3-PG18 zero-skipped and exact final CI before merging, no Railway/WRITE/BEX/CP03/Eidos/2D edits. #979/#913 OPEN, W06 NOT_SIGNED.
+
+
 > **2026-10-16 PA05-05/E01I startup safety candidate (NOT_SIGNED):** [persisted uncertified READ Owner denied before Host listen/restore](PA05-E01I-RESTART-READ-OWNER-QUARANTINE-20261016.md) → [baseline §52](PA05-CERTIFICATION-BASELINE-20261015.md) → [#988](https://github.com/jiangxng/EVO-App-Platform/issues/988). Previous E01H [PR #994](https://github.com/jiangxng/EVO-App-Platform/pull/994) MERGED `main@aa5bf6312e2a82cdba20e8a2b981021fdf25ad76`, exact PR HEAD 44/44 SUCCESS; new candidate branch `agent/pa05-e01i-restart-fail-closed-20261016`. Local persisted state is NOT a multi-Worker transactional authority; on restart with persisted installed/active Purchase Attention, fail closed without rewriting state. Real disposable Host startup regression pending CI. Cross-Worker atomics, real production identities/data/Provider and E01–E05 remain NOT_SIGNED; #979/#913 OPEN, production WRITE OFF. No Railway or parallel owner changes.
 
 

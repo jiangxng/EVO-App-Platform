@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - "manager/pa05-cross-database-admission.ts"
+      - "manager/pa05-read-owner-shared-sql-gate.ts"
+      - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j-sql-host-worker.mjs"
       - "manager/pa05-cross-database-remote-sql-admission.ts"
       - "manager/pa05-cross-database-freeze.ts"
       - "manager/pa05-cross-database-host-principal.ts"
@@ -34,6 +37,9 @@ on:
     branches: [main]
     paths:
       - "manager/pa05-cross-database-admission.ts"
+      - "manager/pa05-read-owner-shared-sql-gate.ts"
+      - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j-sql-host-worker.mjs"
       - "manager/pa05-cross-database-remote-sql-admission.ts"
       - "manager/pa05-cross-database-freeze.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
@@ -99,8 +105,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs | tee pa05-xdb.log
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J_SHARED_READ_OWNER_PG=' pa05-xdb.log
+          grep -Fq '"actualSeparateHostProcesses":2' pa05-xdb.log
+          grep -Fq '"oldReadHeldBlocksRevokeCommit":true' pa05-xdb.log
+          grep -Fq '"oldEpochDeniedBothWorkers":true' pa05-xdb.log
+          grep -Fq '"productionHostBusinessHandlerIntegrated":false' pa05-xdb.log
+          grep -Fq '"sqlRoleSeparationCertified":false' pa05-xdb.log
+          grep -Fq 'PA05_E01J_READ_INVENTORY_PG=' pa05-xdb.log
+          grep -Fq '"hostInventoryPinned":true' pa05-xdb.log
+          grep -Fq 'PA05_E01J_PARTITION_FAIL_CLOSED=' pa05-xdb.log
+          grep -Fq '"unavailableAuthorityDenied":true' pa05-xdb.log
+          grep -Fq '"runtimePartitionDuringActiveReadCertified":false' pa05-xdb.log
           grep -Fq '"physicalClusters":3' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           grep -Fq '"remoteWorkerEnforcementImplemented":false' pa05-xdb.log
