@@ -504,6 +504,10 @@ export function createDataImportMappingPageV010(input: {
   const importFields = fieldsForSurfaceV010(input.schema, "IMPORT")
     .filter(field => field.writable);
   const unmapped = unmappedSourceColumns(input.job);
+  const canReviewBatchConstant = input.canCreateExtension === true
+    && input.job.targetId === "counterparty.subject"
+    && !input.job.mapping.some(entry =>
+      entry.targetFieldId === "subjectType" && Boolean(entry.sourceColumn));
   const current = new Map(
     input.job.mapping
       .filter(item => Boolean(item.sourceColumn))
@@ -820,7 +824,12 @@ export function createDataImportMappingPageV010(input: {
               label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
               route:objectExtensionImportRouteV010(input.job.importJobId)
             }]
-          : [])
+          : []),
+        ...(!unmapped.length && canReviewBatchConstant ? [{
+          id:"batch-constant",
+          label:zh(input.locale) ? "核对本次导入的批次固定值" : "Review batch constant",
+          route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+        }] : [])
       ]
     },
     purpose: "execute-command" as const,
@@ -841,7 +850,19 @@ export function createDataImportMappingPageV010(input: {
         label: input.job.source.name
           ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
       }]
-    }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
+    }, ...(!unmapped.length && canReviewBatchConstant ? [{
+      key:"batchConstantEntry",
+      label:zh(input.locale) ? "本次导入的批次固定值" : "Batch constant for this import",
+      semanticType:"data-import-batch-constant-review-link",
+      control:"text" as const,readOnly:true,required:false,
+      initialValue:zh(input.locale)
+        ? "批次值作用于全部记录。仅当来源列未映射主体类型时可人工设置；保存后必须重新预检查。"
+        : "A batch value applies to all rows. Confirm explicitly and validate again.",
+      contextLink:{
+        label:zh(input.locale) ? "查看或修改批次固定值" : "Review or edit batch constant",
+        route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+      }
+    }] : []), ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
       ? [{
           key: "batchReviewEntry",
           label: zh(input.locale)

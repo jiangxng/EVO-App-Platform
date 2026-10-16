@@ -1064,4 +1064,25 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     "Original 4 columns must survive save / reopen even when filtered out");
   assert.equal(reopened.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(extensions.list("enterprise-context:a",target.targetId).length,0);
+  const complete={
+    ...saved,ignoredSourceColumns:[],
+    mapping:[
+      {sourceColumn:"编码",targetFieldId:"code"},
+      {sourceColumn:"名称",targetFieldId:"displayName"},
+      {sourceColumn:"结算方式",targetFieldId:"legalName"},
+      {sourceColumn:"系统编码",targetFieldId:"legacyExternalCode"},
+      {targetFieldId:"subjectType",transform:{kind:"CONSTANT",value:"ORGANIZATION"}}
+    ]
+  };
+  const completedPage=createDataImportMappingPageV010({
+    job:complete,schema:target.describe({
+      contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
+    }),locale:"zh-CN",canCreateExtension:true
+  });
+  assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
+    && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
+  assert.match(completedPage.fields.find(x=>x.key==="batchConstantEntry").contextLink.label,
+    /查看或修改批次固定值/);
+  assert.equal(validateUidl(completedPage).ok,true,
+    JSON.stringify(validateUidl(completedPage).diagnostics));
 });
