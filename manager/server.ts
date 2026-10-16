@@ -3240,7 +3240,20 @@ async function authorizePa05E01fLifecycle(
   packageId: string | undefined,
   operation: string
 ): Promise<boolean> {
-  if (packageId !== pa05E01fProtectedPackageId) return true;
+  if (packageId !== pa05E01fProtectedPackageId) {
+    if (operation !== "INSTALL" && operation !== "ENABLE") return true;
+    // E01G: a different package can bring a protected first-party Owner in
+    // through an AppManager dependency. Keep this helper out of startup.
+    const { pa05ProtectedReadLifecycleImpactV010 } =
+      await import("./pa05-protected-read-lifecycle-impact.js");
+    const impact = pa05ProtectedReadLifecycleImpactV010({
+      manager,
+      requestedPackageId: packageId,
+      protectedPackageId: pa05E01fProtectedPackageId,
+      operation
+    });
+    if (impact === "NONE") return true;
+  }
   const header = request.headers.authorization;
   const token = typeof header === "string" && header.startsWith("Bearer ")
     ? header.slice("Bearer ".length) : undefined;
@@ -9009,7 +9022,7 @@ const server = createServer(async (request, response) => {
       const pa05ProtectedOperation = pa05E01fProtectedActions.get(
         action.command.code
       );
-      if (pa05ProtectedOperation && itemId === pa05E01fProtectedPackageId
+      if (pa05ProtectedOperation && itemId
           && !(await authorizePa05E01fLifecycle(
             request, itemId, pa05ProtectedOperation))) {
         return json(response, 403, {
