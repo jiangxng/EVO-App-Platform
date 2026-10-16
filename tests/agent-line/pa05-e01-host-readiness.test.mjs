@@ -112,8 +112,12 @@ test("E01A: current actual production Host source does not wire purchase-attenti
   // A source-level negative audit of the precisely versioned Host code.
   // It does NOT inspect Railway, authenticated browser or persisted installs.
   const host=readFileSync(new URL("../../manager/server.ts",import.meta.url),"utf8");
-  assert.equal(host.includes("purchaseAttentionPackageV010"),false);
-  assert.equal(host.includes("createPurchaseAttentionActionHandlerV010"),false);
+  // E01D may mention the business adapter inside an authenticated request.
+  // It must NEVER be an eager import or a default-installed package.
+  assert.match(host,/pa05E01dAdminMode !== "OPT_IN"/);
+  assert.doesNotMatch(host,/^import .*purchase-attention/m);
+  assert.doesNotMatch(host,/installBusinessDefaultOnce\(PURCHASE_ATTENTION/);
+  assert.doesNotMatch(host,/\[\s*purchaseAttentionPackageV010\s*\]/);
   const f=fixture();
   f.manager.install(purchaseAttentionPackageV010.packageId);
   const isolated=f.inspect([f.attentionHandler,f.sourceHandler]);

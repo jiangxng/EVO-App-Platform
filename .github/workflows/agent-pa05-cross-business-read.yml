@@ -18,6 +18,8 @@ on:
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
       - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
+      - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
+      - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
       - "catalog/catalog.ts"
       - "actions/router.ts"
@@ -42,6 +44,8 @@ on:
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
       - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
+      - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
+      - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
       - "catalog/catalog.ts"
       - "actions/router.ts"
@@ -113,3 +117,15 @@ jobs:
           grep -Fq '"productionHostWiring":false' pa05-e01c.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01c.log
           if grep -Eq '# skipped [1-9][0-9]*' pa05-e01c.log; then exit 1; fi
+      - name: E01D default-off authorized Host administrator admission (no install)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01d-host-admin-admission.test.mjs | tee pa05-e01d.log
+          grep -Fq 'PA05_E01D_ADMIN_HOST_ADMISSION=' pa05-e01d.log
+          grep -Fq '"defaultEnabled":false' pa05-e01d.log
+          grep -Fq '"bootstrapTokenAndLiveAuthorizationRequired":true' pa05-e01d.log
+          grep -Fq '"adminAdmissionOnlyNotInstallation":true' pa05-e01d.log
+          grep -Fq '"realProductionCredentialsOrHumanCertified":false' pa05-e01d.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01d.log
+          if grep -Eq '# skipped [1-9][0-9]*' pa05-e01d.log; then exit 1; fi
