@@ -59,7 +59,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
   const systems=await Promise.all([central,db,b].map(async client=>
     String((await client.unsafe("SELECT system_identifier::text AS sid FROM pg_control_system()"))[0].sid)));
   assert.equal(new Set(systems).size,3);
-  let authority,gateway,raw,guarded,issuer,privileged;
+  let authority,gateway,raw,guarded,issuer,privileged,stolen;
   const issued=[];
   const w=q(workerSchema),d=q(ownerSchema);
   const scopeKey=hostAgentDurabilityScopeKeyV020(scope);
@@ -206,7 +206,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
 
     // Real stolen business LOGIN can forge all D10 transaction GUC fields,
     // but cannot read permits, mint one, or switch to the trusted Host LOGIN.
-    const stolen=postgres(u(urls[1],businessRole,password),{max:1});
+    stolen=postgres(u(urls[1],businessRole,password),{max:1});
     await assert.rejects(stolen.unsafe("SELECT token FROM "+d+
       ".pa05_object_host_permits"),/permission denied/);
     await assert.rejects(stolen.unsafe("SET ROLE "+q(hostRole)),
@@ -367,7 +367,6 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     // Consumed real permit is no longer valid even when GUCs are forged.
     await assert.rejects(forgedInsert(issued[0]),
       /PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED/);
-    await stolen.end();
     assert.equal((await guarded.verifier.verify({
       scope,runId:real.runId,effectId:real.effectId,
       receiptId:real.receiptId,inputDigest:real.inputDigest,
@@ -541,7 +540,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       privilegedHostMachineCertified:false
     }));
   }finally{
-    for(const x of [guarded,raw,privileged,issuer,gateway,authority])
+    for(const x of [stolen,guarded,raw,privileged,issuer,gateway,authority])
       if(x)try{await x.close();}catch{}
     try{await db.unsafe("DROP SCHEMA IF EXISTS "+d+" CASCADE");}catch{}
     try{await db.unsafe("DROP SCHEMA IF EXISTS "+w+" CASCADE");}catch{}
