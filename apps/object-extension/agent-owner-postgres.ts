@@ -148,6 +148,48 @@ export async function preparePostgresObjectExtensionOwnerSchemaV010(input:{
   }finally{await sql.end();}
 }
 
+
+/** Actual first-party Object Extension Owner material, not a second engine.
+ * D14C8 Host-only approval stores these exact values for SQL enforcement. */
+export function buildPa05ObjectExtensionApprovedMaterialV010(
+  r:Source,recordedAt:string
+){
+  const scope=scoped(r);
+  if(r.toolId!==OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010)
+    throw Error("PA02_OBJECT_PG_OPERATION_DENIED");
+  const definition=definitionOf(r.arguments);
+  if(hash(json(r.arguments))!==r.inputDigest)
+    throw Error("PA02_OBJECT_PG_DIGEST_MISMATCH");
+  const key=hash(id(r.idempotencyKey));
+  const s=scope;
+  const evidence:Evidence={
+    contractVersion:"0.1.0",runId:id(r.runId),effectId:id(r.effectId),
+    receiptId:id(r.receiptId),idempotencyKey:r.idempotencyKey,
+    inputDigest:r.inputDigest,ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
+    contextId:s.contextId,enterpriseId:s.enterpriseId,
+    principalSubjectId:s.subjectId,principalActorType:s.actorType,
+    toolId:r.toolId,recordId:definition.extensionId,
+    definition,recordedAt:recordedAt
+  };
+  const record:EnterpriseResourceV010={
+    contractVersion:"0.1.0",contextId:s.contextId,
+    namespace:OBJECT_EXTENSION_NAMESPACE_V010,
+    collectionId:OBJECT_EXTENSION_COLLECTION_V010,
+    resourceType:OBJECT_EXTENSION_RESOURCE_TYPE_V010,
+    resourceId:definition.extensionId,
+    schemaRef:OBJECT_EXTENSION_SCHEMA_V010,
+    ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
+    storageKind:"DOCUMENT",payload:JSON.parse(JSON.stringify(definition)),
+    metadata:{targetObjectType:definition.targetObjectType,
+      targetSlot:definition.targetSlot,fieldId:definition.fieldId,
+      namespace:definition.namespace},
+    lifecycleState:"ACTIVE",createdAt:evidence.recordedAt,
+    createdBySubjectId:s.subjectId,updatedAt:evidence.recordedAt,
+    updatedBySubjectId:s.subjectId
+  };
+  return {scope,definition,key,evidence,record,evidenceDigest:hash(json(evidence))};
+}
+
 export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   connectionString:string;schema:string;now?:()=>Date;
   /** Test-only crash checkpoint AFTER business insert, BEFORE evidence insert. */
@@ -161,6 +203,9 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
     hostPermitIssuer?:{issue:(request:{
       scopeKey:string;runId:string;effectId:string;inputDigest:string;
       contextId:string;enterpriseId:string;
+      approvedInputArguments:unknown;
+      approvedResource:EnterpriseResourceV010;approvedEvidence:Evidence;
+      approvedEvidenceDigest:string;approvedIdempotencyHash:string;
     })=>Promise<string>};
   };
 }):{
@@ -181,27 +226,17 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   const owner:GovernedAgentBusinessOwnerV040={
     ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
     async invoke(r) {
-      const s=scoped(r);
-      if(r.toolId!==OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010)
-        throw Error("PA02_OBJECT_PG_OPERATION_DENIED");
-      const definition=definitionOf(r.arguments);
-      if(hash(json(r.arguments))!==r.inputDigest)
-        throw Error("PA02_OBJECT_PG_DIGEST_MISMATCH");
-      const key=hash(id(r.idempotencyKey));
-      const evidence:Evidence={
-        contractVersion:"0.1.0",runId:id(r.runId),effectId:id(r.effectId),
-        receiptId:id(r.receiptId),idempotencyKey:r.idempotencyKey,
-        inputDigest:r.inputDigest,ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
-        contextId:s.contextId,enterpriseId:s.enterpriseId,
-        principalSubjectId:s.subjectId,principalActorType:s.actorType,
-        toolId:r.toolId,recordId:definition.extensionId,
-        definition,recordedAt:now().toISOString()
-      };
+      const approved=buildPa05ObjectExtensionApprovedMaterialV010(
+        r,now().toISOString());
+      const {scope:s,definition,key,evidence,record,evidenceDigest}=approved;
       const hostPermit=input.pa05PhysicalAdmission?.hostPermitIssuer
         ?await input.pa05PhysicalAdmission.hostPermitIssuer.issue({
           scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
           runId:r.runId,effectId:r.effectId,inputDigest:r.inputDigest,
-          contextId:s.contextId,enterpriseId:s.enterpriseId
+          contextId:s.contextId,enterpriseId:s.enterpriseId,
+          approvedInputArguments:r.arguments,
+          approvedResource:record,approvedEvidence:evidence,
+          approvedEvidenceDigest:evidenceDigest,approvedIdempotencyHash:key
         }):undefined;
       if(hostPermit!==undefined && !/^[a-f0-9]{64}$/.test(hostPermit) &&
         !/^[a-f0-9]{32}$/.test(hostPermit))
@@ -264,22 +299,6 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
             throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_EVIDENCE_INTEGRITY");
           return;
         }
-        const record:EnterpriseResourceV010={
-          contractVersion:"0.1.0",contextId:s.contextId,
-          namespace:OBJECT_EXTENSION_NAMESPACE_V010,
-          collectionId:OBJECT_EXTENSION_COLLECTION_V010,
-          resourceType:OBJECT_EXTENSION_RESOURCE_TYPE_V010,
-          resourceId:definition.extensionId,
-          schemaRef:OBJECT_EXTENSION_SCHEMA_V010,
-          ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
-          storageKind:"DOCUMENT",payload:JSON.parse(JSON.stringify(definition)),
-          metadata:{targetObjectType:definition.targetObjectType,
-            targetSlot:definition.targetSlot,fieldId:definition.fieldId,
-            namespace:definition.namespace},
-          lifecycleState:"ACTIVE",createdAt:evidence.recordedAt,
-          createdBySubjectId:s.subjectId,updatedAt:evidence.recordedAt,
-          updatedBySubjectId:s.subjectId
-        };
         const inserted=await tx.unsafe("INSERT INTO "+q+".pa02_definitions "+
           "(context_id,enterprise_id,extension_id,target_object_type,target_slot,"+
           "field_id,resource,created_at) "+
@@ -297,7 +316,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::timestamptz)",
           [s.contextId,s.enterpriseId,key,evidence.runId,evidence.effectId,
             evidence.receiptId,evidence.inputDigest,evidence.recordId,
-            sql.json(JSON.parse(JSON.stringify(evidence))),hash(json(evidence)),evidence.recordedAt]);
+            sql.json(JSON.parse(JSON.stringify(evidence))),evidenceDigest,evidence.recordedAt]);
       });
     }
   };
