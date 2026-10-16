@@ -82,9 +82,10 @@ export function createOnDemandHostReadAdmissionV010(input: {
   }
   return {
     async admit() {
-      // Concurrent authorized requests share a single registration attempt.
-      // Each caller still must be trusted: the Host never exposes this method
-      // to arbitrary Agents or unverified plugin modules.
+      // Authorize every caller, including those joining an in-flight load.
+      if (await input.authorizeHostAdmission() !== true) {
+        throw new Error("ON_DEMAND_HOST_ADMISSION_DENIED");
+      }
       if (!pending) {
         pending = admit().finally(() => {pending=undefined;});
       }
