@@ -72,12 +72,55 @@ def capture_map_scroll_evidence(page, form, device):
         readings.append({"landmark":name,"rectangle":{
           key:round(rect[key]) for key in ("x","y","width","height")},
           "scroll":scroll})
-    assert len(readings)==4
+    # A nested Host scroller can exceed the screen by 4–10x: four landmarks
+    # show top and bottom but do not prove *contiguous* visual coverage.
+    # Take viewport-sized frames with ~20% overlap from its actual scrollTop.
+    container=form.evaluate("""(el) => {
+      for(let parent=el;parent;parent=parent.parentElement){
+        if(parent.scrollHeight>parent.clientHeight+40){
+          return {height:parent.scrollHeight,viewport:parent.clientHeight,
+            tag:parent.tagName};
+        }
+      }
+      return null;
+    }""")
+    assert container and container["height"] > container["viewport"], (
+      device,container)
+    maximum=container["height"]-container["viewport"]
+    step=max(1,int(container["viewport"]*0.8))
+    positions=list(range(0,maximum+1,step))
+    if positions[-1]!=maximum:positions.append(maximum)
+    assert positions[0]==0 and positions[-1]==maximum
+    sweep=[]
+    for index,position in enumerate(positions):
+        actual=form.evaluate("""(el,position) => {
+          for(let p=el;p;p=p.parentElement){
+            if(p.scrollHeight>p.clientHeight+40){
+              p.scrollTop=position;
+              return Math.round(p.scrollTop);
+            }
+          }
+          return -1;
+        }""",position)
+        assert abs(actual-position)<=2,(device,position,actual)
+        page.screenshot(path=str(OUT/(
+          "v3-e4-map-%s-contiguous-%02d.png"%(device,index))),
+          full_page=False)
+        sweep.append({"frame":index,"scrollTop":actual})
+    assert all(sweep[i]["scrollTop"]<=sweep[i+1]["scrollTop"]
+      for i in range(len(sweep)-1))
+    assert len(sweep)>=5 and len(sweep)<=25,(device,len(sweep))
+    assert all(sweep[i+1]["scrollTop"]-sweep[i]["scrollTop"]<=
+      container["viewport"] for i in range(len(sweep)-1))
+    sweep_data={"scrollContainer":container,"lastScrollTop":maximum,
+      "overlapRatio":0.2,"frames":sweep}
     (OUT/("v3-e4-map-%s-scroll-manifest.json"%device)).write_text(
       json.dumps({"evidence":"synthetic isolated Host, not production",
-        "device":device,"viewport":viewport,"screens":readings},
+        "device":device,"viewport":viewport,"screens":readings,
+        "continuousSweep":sweep_data},
         ensure_ascii=False,indent=2),encoding="utf8")
     print("BEX01_E4_FULL_REVIEW_SCROLL_EVIDENCE_PASS:"+device,flush=True)
+
 
 with sync_playwright() as pw:
     api=pw.request.new_context(base_url=HOST,
