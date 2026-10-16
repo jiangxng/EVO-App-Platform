@@ -204,8 +204,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
     return field && typeof field.initialValue === "string"
       ? field.initialValue : BEX_BATCH_REVIEW;
   };
-  const statusFor = (index: number) => {
-    const choice = initialChoiceFor(index);
+  const statusForValue = (choice: string) => {
     if (choice === BEX_BATCH_IGNORE) return {
       key: "ignored", label: zh ? "不导入" : "Excluded",
       tone: "neutral" as const
@@ -223,7 +222,18 @@ export function createObjectExtensionBatchImportPageV010(input: {
       tone: "neutral" as const
     };
   };
+  const statusFor = (index: number) => statusForValue(initialChoiceFor(index));
   const columnStatuses = columns.map((_, index) => statusFor(index));
+  const statusByChoiceFor = (index: number) => {
+    const field = fields.find(item => item.key === "choice_" + index);
+    const options = field && "options" in field && Array.isArray(field.options)
+      ? field.options : [];
+    // Every local display result is keyed to a real authorized select option.
+    // The underlying Host receives ONLY the original choice_N value.
+    return Object.fromEntries(options.map(option => [
+      String(option.value), statusForValue(String(option.value))
+    ]));
+  };
   // Existing enterprise-wide constant decisions are shown only when they
   // already exist in the authorized Job. Never invent an ORGANIZATION default.
   const batchConstants = job.mapping.filter(entry =>
@@ -258,6 +268,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
       summary: batchSourceExamplesV010(job, column, zh).split(" · ")[0],
       primaryFieldKey: "choice_" + index,
       reviewStatus: columnStatuses[index],
+      statusByChoice: statusByChoiceFor(index),
       detailFieldKeys: [
         ...(ambiguous ? ["candidate_" + index] : []),
         "sample_" + index, "label_" + index, "type_" + index
@@ -267,7 +278,13 @@ export function createObjectExtensionBatchImportPageV010(input: {
       defaultExpanded: requiresReview
     };
   });
-  const statusKeys = [...new Set(columnStatuses.map(status => status.key))];
+  const statusKeys = [...new Set(reviewGroups.flatMap(group => [
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status => status.key)
+  ]))];
+  const hasInitialAttention = columnStatuses.some(status =>
+    status.key === "attention" || status.key === "proposed"
+      || status.key === "suggested");
   const attentionKeys = statusKeys.filter(key =>
     key === "attention" || key === "proposed" || key === "suggested");
   const handledKeys = statusKeys.filter(key => key === "ignored");
@@ -280,7 +297,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
     },
     filter: {
       label: zh ? "显示" : "Show",
-      selectedId: attentionKeys.length ? "needs" : "all",
+      selectedId: hasInitialAttention ? "needs" : "all",
       noMatchesMessage: zh
         ? "当前筛选没有需要处理的来源列，请选择全部字段。"
         : "No matching sources. Choose All fields.",
