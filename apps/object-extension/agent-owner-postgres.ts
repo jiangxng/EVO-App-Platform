@@ -206,7 +206,11 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
       approvedInputArguments:unknown;
       approvedResource:EnterpriseResourceV010;approvedEvidence:Evidence;
       approvedEvidenceDigest:string;approvedIdempotencyHash:string;
-    })=>Promise<string>};
+    })=>Promise<string>;
+    bindTransaction:(request:{
+      scopeKey:string;effectId:string;token:string;
+      backendPid:number;transactionId:string;
+    })=>Promise<"BOUND">};
   };
 }):{
   owner:GovernedAgentBusinessOwnerV040;
@@ -229,19 +233,39 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
       const approved=buildPa05ObjectExtensionApprovedMaterialV010(
         r,now().toISOString());
       const {scope:s,definition,key,evidence,record,evidenceDigest}=approved;
-      const hostPermit=input.pa05PhysicalAdmission?.hostPermitIssuer
-        ?await input.pa05PhysicalAdmission.hostPermitIssuer.issue({
-          scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
-          runId:r.runId,effectId:r.effectId,inputDigest:r.inputDigest,
-          contextId:s.contextId,enterpriseId:s.enterpriseId,
-          approvedInputArguments:r.arguments,
-          approvedResource:record,approvedEvidence:evidence,
-          approvedEvidenceDigest:evidenceDigest,approvedIdempotencyHash:key
-        }):undefined;
-      if(hostPermit!==undefined && !/^[a-f0-9]{64}$/.test(hostPermit) &&
-        !/^[a-f0-9]{32}$/.test(hostPermit))
-        throw Error("PA05_OBJECT_SQL_HOST_PERMIT_INVALID");
       await sql.begin(async tx=>{
+        const issuer=input.pa05PhysicalAdmission?.hostPermitIssuer;
+        let hostPermit:string|undefined;
+        if(issuer){
+          // The one original Owner business SQL transaction starts FIRST.
+          // PostgreSQL assigns its real xid (not a spoofable GUC), and the
+          // separately authenticated Host pins one permit to this backend/xid.
+          // Another connection with stolen Business LOGIN and bearer cannot
+          // reuse this specific transaction-bound approval.
+          const identity=await tx.unsafe(
+            "SELECT pg_backend_pid() AS pid,pg_current_xact_id()::text AS txid");
+          hostPermit=await issuer.issue({
+            scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
+            runId:r.runId,effectId:r.effectId,inputDigest:r.inputDigest,
+            contextId:s.contextId,enterpriseId:s.enterpriseId,
+            approvedInputArguments:r.arguments,
+            approvedResource:record,approvedEvidence:evidence,
+            approvedEvidenceDigest:evidenceDigest,approvedIdempotencyHash:key
+          });
+          if(typeof hostPermit!=="string"||
+            !/^[a-f0-9]{32,64}$/.test(hostPermit))
+            throw Error("PA05_OBJECT_SQL_HOST_PERMIT_INVALID");
+          // D14C5's historical 32-hex idempotent read-only sentinel must
+          // never be bound for a new write, but can reach the ORIGINAL
+          // Owner's immutable receipt idempotency comparison below.
+          if(hostPermit.length===64 && await issuer.bindTransaction({
+            scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
+            effectId:r.effectId,token:hostPermit,
+            backendPid:Number(identity[0]?.pid),
+            transactionId:String(identity[0]?.txid)
+          })!=="BOUND")
+            throw Error("PA05_OBJECT_SQL_TRANSACTION_BIND_UNVERIFIED");
+        }
         if(input.pa05PhysicalAdmission){
           // All markers are SET LOCAL and cleared on transaction commit or
           // rollback; the physical PG business-table trigger checks D10

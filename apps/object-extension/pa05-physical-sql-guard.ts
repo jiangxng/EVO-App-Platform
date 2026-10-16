@@ -130,6 +130,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "issued_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
           "consumed boolean NOT NULL DEFAULT false,"+
           "revoked boolean NOT NULL DEFAULT false,"+
+          "bound_backend_pid integer,bound_transaction_id text,"+
           "approved_resource jsonb NOT NULL,approved_evidence jsonb NOT NULL,"+
           "approved_evidence_digest text NOT NULL,"+
           "approved_idempotency_hash text NOT NULL,"+
@@ -214,6 +215,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " '"+object+".pa05_object_register_host_command(text,text,text,text,text,text,jsonb)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
+          " 'EXECUTE') OR has_function_privilege(v_business,",
+          " '"+object+".pa05_object_bind_host_permit(text,text,text,integer,text)',",
           " 'EXECUTE') THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
@@ -338,6 +341,56 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
           ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb) TO "+
           '\"'+hostRole+'\"');
+        // D14C10: Host-only, actual SQL-backend/transaction attestation.
+        // The original business SQL LOGIN has no EXECUTE rights.
+        const bindBody=[
+          "DECLARE v_bound integer;v_xid text;",
+          "BEGIN",
+          "IF SESSION_USER!='"+hostRole+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_LOGIN_REQUIRED'; END IF;",
+          "PERFORM "+d+".pa05_object_assert_role_boundary();",
+          "IF p_pid IS NULL OR p_pid<=0 OR p_xid IS NULL OR",
+          " p_xid !~ '^[0-9]{1,20}$' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_BIND_SOURCE_INVALID'; END IF;",
+          "IF NOT EXISTS(SELECT 1 FROM pg_stat_activity a",
+          " WHERE a.pid=p_pid",
+          " AND a.datid=(SELECT oid FROM pg_database",
+          " WHERE datname=current_database())",
+          " AND a.usesysid=(SELECT oid FROM pg_roles",
+          " WHERE rolname='"+role+"')",
+          " AND a.backend_xid IS NOT NULL",
+          " AND a.backend_xid::text=",
+          " ((p_xid::numeric % 4294967296)::bigint)::text",
+          " AND a.xact_start IS NOT NULL) THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_BACKEND_UNVERIFIED';",
+          "END IF;",
+          "SELECT bound_backend_pid,bound_transaction_id",
+          " INTO v_bound,v_xid FROM "+d+".pa05_object_host_permits",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND token=p_token AND NOT consumed AND NOT revoked",
+          " AND issued_at>clock_timestamp()-interval '2 minutes'",
+          " FOR UPDATE;",
+          "IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_BIND_PERMIT_UNAVAILABLE'; END IF;",
+          "IF v_bound IS NOT NULL AND",
+          " (v_bound IS DISTINCT FROM p_pid OR v_xid IS DISTINCT FROM p_xid)",
+          " THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_REBIND_DENIED';",
+          "END IF;",
+          "UPDATE "+d+".pa05_object_host_permits",
+          " SET bound_backend_pid=p_pid,bound_transaction_id=p_xid",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND token=p_token AND NOT consumed AND NOT revoked;",
+          "RETURN 'BOUND'; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_bind_host_permit(p_scope text,p_effect text,"+
+          "p_token text,p_pid integer,p_xid text) RETURNS text "+
+          "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog "+
+          "AS $pa05$"+bindBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_bind_host_permit(text,text,text,integer,text) FROM PUBLIC");
+        await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
+          ".pa05_object_bind_host_permit(text,text,text,integer,text) TO "+'\"'+hostRole+'\"');
         // D14C7: one-effect revocation is a durable PostgreSQL row transition.
         // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
         // same permit row. A committed effect returns COMMITTED, not REVOKED.
@@ -377,6 +430,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         "DECLARE v_scope text;v_run text;v_effect text;v_digest text;",
         " v_permit text;v_resource jsonb;v_evidence jsonb;",
         " v_edigest text;v_ihash text;",
+        " v_boundpid integer;v_boundxid text;",
         " v_context text;v_enterprise text;",
         "BEGIN",
         "IF TG_OP!='INSERT' THEN",
@@ -424,8 +478,10 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " c.context_id=NEW.context_id AND c.enterprise_id=NEW.enterprise_id)",
           " THEN RETURN NEW; END IF;",
           "SELECT p.token,p.approved_resource,p.approved_evidence,",
-          " p.approved_evidence_digest,p.approved_idempotency_hash",
-          " INTO v_permit,v_resource,v_evidence,v_edigest,v_ihash",
+          " p.approved_evidence_digest,p.approved_idempotency_hash,",
+          " p.bound_backend_pid,p.bound_transaction_id",
+          " INTO v_permit,v_resource,v_evidence,v_edigest,v_ihash,",
+          " v_boundpid,v_boundxid",
           " FROM "+d+".pa05_object_host_permits p",
           " WHERE p.scope_key=v_scope AND p.effect_id=v_effect",
           " AND p.run_id=v_run AND p.input_digest=v_digest",
@@ -436,6 +492,11 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "IF v_permit IS NULL OR v_permit IS DISTINCT FROM "+
             source("host_permit")+" THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED'; END IF;",
+          "IF v_boundpid IS DISTINCT FROM pg_backend_pid() OR",
+          " v_boundxid IS DISTINCT FROM",
+          " pg_current_xact_id_if_assigned()::text THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_BIND_REQUIRED';",
+          "END IF;",
           "IF TG_TABLE_NAME='pa02_definitions' THEN",
           " IF NEW.extension_id IS DISTINCT FROM v_resource->>'resourceId'",
           " OR NEW.target_object_type IS DISTINCT FROM",
