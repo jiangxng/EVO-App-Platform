@@ -112,6 +112,7 @@ jobs:
           grep -Fq 'PA05_ACTUAL_OBJECT_EXTENSION_OWNER_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_PHYSICAL_SQL_FENCE_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_HOST_PERMIT_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_ROLE_DRIFT_PG=' pa05-xdb.log
           grep -Fq '"originalRawOwnerDeniedEvenWithValidTicket":true' pa05-xdb.log
           grep -Fq '"privilegedTableOwnerCanStillDisableTrigger":true' pa05-xdb.log
           grep -Fq '"originalOwnerDirectBypassStillPossible":true' pa05-xdb.log
