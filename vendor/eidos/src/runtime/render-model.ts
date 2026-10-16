@@ -20,6 +20,11 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
       validation: field.validation ? { ...field.validation } : undefined,
       inputName: field.key
     })),
+    ...(doc.reviewGroups
+      ? { reviewGroups: doc.reviewGroups.map(group => ({
+          ...group, detailFieldKeys: [...group.detailFieldKeys]
+        })) }
+      : {}),
     submitAction: {
       id: submit.id,
       label: submit.label,
