@@ -232,8 +232,11 @@ test("E01C: concurrent caller authorization cannot ride another approved activat
 
 test("E01C: runtime addition has no production Host startup imports or signoff",()=>{
   const host=readFileSync(new URL("../../manager/server.ts",import.meta.url),"utf8");
-  assert.equal(host.includes("on-demand-host-read-admission"),false);
-  assert.equal(host.includes("purchaseAttentionPackageV010"),false);
+  // E01D invokes deferred admission only inside an authenticated admin
+  // request. The normal/default Host startup still has no business import.
+  assert.match(host,/pa05E01dAdminMode !== "OPT_IN"/);
+  assert.match(host,/await import\("\.\/on-demand-host-read-admission\.js"\)/);
+  assert.doesNotMatch(host,/^import .*purchase-attention/m);
   console.log("PA05_E01C_ON_DEMAND_HOST_ADMISSION="+JSON.stringify({
     trustedOperatorAdmissionRequired:true,
     loaderDeferredUntilApproval:true,revocationAfterLoadFailsClosed:true,
