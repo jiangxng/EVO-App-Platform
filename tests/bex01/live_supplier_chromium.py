@@ -269,10 +269,10 @@ with sync_playwright() as p:
    })"""),ensure_ascii=False),flush=True)
    form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
    expect(form).to_be_visible(timeout=30000)
-   groups=form.locator('[data-eidos-form-review-group]')
+   groups=form.locator('[data-eidos-form-review-table-row]')
    expect(groups).to_have_count(5)
    first=groups.first
-   expect(first.locator('[data-eidos-review-group-primary] select[name="choice_0"]')).to_be_visible()
+   expect(first.locator('[data-eidos-review-table-choice] select[name="choice_0"]')).to_be_visible()
    expect(first.locator('[data-eidos-review-group-detail]')).not_to_have_attribute("open","")
    first.locator('[data-eidos-review-group-detail] summary').click()
    expect(first.locator('input[name="label_0"]')).to_be_visible()
