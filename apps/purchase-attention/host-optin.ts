@@ -12,7 +12,7 @@ export { purchaseAttentionPackageV010 } from "./package.js";
 
 /**
  * Plugin-owned opt-in Host composition, NOT an additional Agent registry.
- * Host startup loads this module only for trusted OPT_IN configuration.
+ * This module is NOT referenced by production Host startup. An approved\n * on-demand Host activation adapter may compose it without changing the\n * default Host dependency graph.
  *
  * Registration is not installation. AppManager still requires an explicit
  * administrator install and the original Trading Reference dependency.
