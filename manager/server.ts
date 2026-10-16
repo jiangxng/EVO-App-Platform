@@ -1093,6 +1093,23 @@ const catalog = createPackageCatalog([
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
+
+// PA05-05/E01I: the local file store is NOT a shared, transactional
+// multi-Worker Plugin Owner authority. E01D dynamically registers this READ
+// package only after live Host admin/policy approval; no such proof survives
+// restart. Fail closed rather than serve a persisted installed/active owner
+// without its authenticated on-demand Handler and current policy.
+if (lifecycleStateFile) {
+  const restored = store.snapshot();
+  const owner = "evo-purchase-attention";
+  if (restored.installedPackages.some(entry => entry.packageId === owner)
+      || restored.activeFeatures.some(entry =>
+        entry.packageId === owner ||
+        entry.featureId === "evo-purchase-attention.default")) {
+    throw new Error("PA05_E01I_RESTORED_READ_OWNER_RECERTIFICATION_REQUIRED");
+  }
+}
+
 const enterpriseResourceStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_RESOURCES_FILE?.trim()
   || (lifecycleStateFile
