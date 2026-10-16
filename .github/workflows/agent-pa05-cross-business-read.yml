@@ -20,6 +20,8 @@ on:
       - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
       - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
       - "tests/agent-line/pa05-e01e-real-host-http.test.mjs"
+      - "tests/agent-line/pa05-e01g-transitive-lifecycle.test.mjs"
+      - "manager/pa05-protected-read-lifecycle-impact.ts"
       - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
       - "catalog/catalog.ts"
@@ -47,6 +49,8 @@ on:
       - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
       - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
       - "tests/agent-line/pa05-e01e-real-host-http.test.mjs"
+      - "tests/agent-line/pa05-e01g-transitive-lifecycle.test.mjs"
+      - "manager/pa05-protected-read-lifecycle-impact.ts"
       - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
       - "catalog/catalog.ts"
@@ -152,3 +156,16 @@ jobs:
           grep -Eq '# pass 4' pa05-e01e.log
           grep -Eq '# fail 0' pa05-e01e.log
           grep -Eq '# skipped 0' pa05-e01e.log
+      - name: E01G transitive protected dependency admission (real AppManager)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01g-transitive-lifecycle.test.mjs | tee pa05-e01g.log
+          grep -Fq 'PA05_E01G_TRANSITIVE_LIFECYCLE=' pa05-e01g.log
+          grep -Fq '"uninstalledProtectedDependencyDetected":true' pa05-e01g.log
+          grep -Fq '"disabledProtectedFeatureReactivationDetected":true' pa05-e01g.log
+          grep -Fq '"directAndActionRoutesNowPlanAware":true' pa05-e01g.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01g.log
+          grep -Eq '# pass 6' pa05-e01g.log
+          grep -Eq '# fail 0' pa05-e01g.log
+          grep -Eq '# skipped 0' pa05-e01g.log
