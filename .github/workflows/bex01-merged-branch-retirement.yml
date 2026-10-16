@@ -60,6 +60,7 @@ jobs:
               {n:984,branch:'feat/bex01-v3-real-batch-review-decision-table-20261016',noUniqueAhead:true},
               {n:989,branch:'feat/bex01-v3-live-decision-state-20261016',noUniqueAhead:true},
               {n:996,branch:'feat/bex01-v3-schema-plan-preview-20261016',noUniqueAhead:true},
+              {n:998,branch:'fix/bex01-v3-constant-only-after-all-mapped-20261016',noUniqueAhead:true},
               {n:991,branch:'feat/bex01-v3-governed-batch-subject-constant-20261016',noUniqueAhead:true},
               {n:973,branch:'feat/bex01-e4-02-compact-mapping-evidence-20261016',noUniqueAhead:true}
             ];
