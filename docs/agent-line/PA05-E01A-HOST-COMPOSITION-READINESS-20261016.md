@@ -33,3 +33,10 @@ The new `PA05_E01_HOST_COMPOSITION_PREFLIGHT` marker must contain source-observe
 - This record, PA05 certification baseline and Agent HANDOFF as the durable window handoff.
 
 Until the final accurate PR HEAD is CI green and merged, **no PASS asserted**. Even after merge, **E01 NOT_SIGNED** without actual owner and Human/Provider data.
+
+
+## Verified first engineering HEAD (2026-10-16; not E01 actual signoff)
+
+At exact candidate code+document HEAD `54f56591492b0c9da13d8e237f7e85d03dd085c8`, [PA05 cross-business READ Actions #38896985054](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38896985054) ran the existing owner/Agent READ tests and the new **6/6 E01A PASS, 0 skipped** inspector suite. The exact marker `PA05_E01_HOST_COMPOSITION_PREFLIGHT` emitted `defaultHostPackageCatalogIncludesTarget:false`, `defaultHostHandlerRegistered:false`, `isolatedHostCompositionReady:true`, `e01ProductionCertified:false`, `pa05Signed:false`, `productionWriteEnabled:false`. All **six** change-triggered workflows on this HEAD completed SUCCESS (PA05 READ/WRITE/three-PG18, Lightweight Host, Continuity, Human UI Gate). These are **direct inspected CI logs**, not Human or real Provider data. The subsequent final documentation HEAD still requires new exact-HEAD CI before merge; preserve the earlier candidate proof as a distinct historical evidence point.
+
+This preflight does **not** make E01 truly ready: real Host has no registered Purchase Attention handler, and the installed production catalog / signed owner version / genuine enterprise reader / Human and Agent identity sessions have not been attested. [PA05-05 Issue #979](https://github.com/jiangxng/EVO-App-Platform/issues/979) remains OPEN, with external owner/Human approval still required. Do not mark any real-environment checklist item completed.
