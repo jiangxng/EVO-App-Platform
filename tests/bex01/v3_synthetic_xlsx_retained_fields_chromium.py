@@ -259,6 +259,10 @@ with sync_playwright() as pw:
     expect(form).to_be_visible(timeout=30000)
     expect(form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
+    # V3: this authorized Job maps subjectType from an Excel source column.
+    # A batch constant would overwrite mixed rows and MUST NOT be offered.
+    expect(form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
+    expect(form.locator('select[name="batchSubjectType"]')).to_have_count(0)
     plan=form.locator('[data-eidos-form-review-plan]')
     expect(plan).to_be_visible()
     expect(plan.locator('[data-eidos-review-plan-items] li')).to_have_count(18)
@@ -389,6 +393,8 @@ with sync_playwright() as pw:
     expect(mobile_form).to_be_visible(timeout=30000)
     expect(mobile_form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(mobile_form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
+    expect(mobile_form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
+    expect(mobile_form.locator('select[name="batchSubjectType"]')).to_have_count(0)
     mobile_plan=mobile_form.locator('[data-eidos-form-review-plan]')
     expect(mobile_plan.locator('[data-eidos-review-plan-items] li')).to_have_count(18)
     expect(mobile_plan.locator('[data-eidos-review-plan-count="create"] strong')).to_be_visible()

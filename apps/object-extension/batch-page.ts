@@ -239,16 +239,62 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const batchConstants = job.mapping.filter(entry =>
     entry.transform?.kind === "CONSTANT"
   );
-  const fixedValueFacts = batchConstants.map((entry, index) => ({
-    key: "existingBatchConstant_" + index,
-    label: (zh ? "已保存批次固定值：" : "Saved batch constant: ")
-      + (entry.targetFieldId === "subjectType"
-        ? (zh ? "主体类型" : "Subject type") : entry.targetFieldId),
-    semanticType: "object-extension-saved-batch-constant",
-    control: "text" as const, required: false, readOnly: true,
-    initialValue: String(entry.transform?.kind === "CONSTANT"
-      ? entry.transform.value ?? "" : "")
-  }));
+  const subjectSource = job.mapping.find(entry =>
+    entry.targetFieldId === "subjectType" && entry.sourceColumn
+  );
+  const subjectConstant = batchConstants.find(entry =>
+    entry.targetFieldId === "subjectType"
+  );
+  const otherConstantFacts = batchConstants
+    .filter(entry => entry.targetFieldId !== "subjectType")
+    .map((entry, index) => ({
+      key: "existingBatchConstant_" + index,
+      label: (zh ? "已保存批次固定值：" : "Saved batch constant: ")
+        + entry.targetFieldId,
+      semanticType: "object-extension-saved-batch-constant",
+      control: "text" as const, required: false, readOnly: true,
+      initialValue: String(entry.transform?.kind === "CONSTANT"
+        ? entry.transform.value ?? "" : "")
+    }));
+  // One batch value applies to *every* imported record. A source-column
+  // mapping can represent mixed identities, so it must never be overwritten
+  // by a convenient batch default.
+  const subjectFixedValue = subjectSource
+    ? [{
+      key: "subjectTypeSourceNotice",
+      label: zh ? "主体类型 · 按来源列逐行读取" : "Subject type · Per source row",
+      semanticType: "object-extension-source-mapped-subject-type",
+      control: "text" as const, readOnly: true, required: false,
+      initialValue: (zh ? "已映射来源列：" : "Mapped source column: ")
+        + subjectSource.sourceColumn
+        + (zh ? "。如有缺失，请在预检查后逐行修正；不能用批次值覆盖。"
+          : ". Correct missing rows after validation; do not override with a batch constant.")
+    }]
+    : [{
+      key: "batchSubjectType",
+      label: zh ? "批次固定值 · 主体类型（应用于所有导入记录）"
+        : "Batch constant · Subject type (all imported records)",
+      semanticType: "object-extension-batch-subject-type",
+      control: "select" as const, required: true,
+      // Only the explicitly persisted constant is restored; never guess
+      // ORGANIZATION from a supplier relationship role or a sample.
+      initialValue: subjectConstant?.transform?.kind === "CONSTANT"
+        ? String(subjectConstant.transform.value) : "__KEEP__",
+      options: [
+        {value:"__KEEP__",label:zh ? "— 不设置批次固定值 —" : "— No batch constant —"},
+        {value:"ORGANIZATION",label:zh ? "机构／法人（ORGANIZATION）" : "Organization"},
+        {value:"PERSON",label:zh ? "个人（PERSON）" : "Person"}
+      ]
+    }, {
+      key:"subjectTypeScopeNotice",
+      label: zh ? "适用范围及后果" : "Scope and consequences",
+      semanticType:"object-extension-batch-constant-scope",
+      control:"text" as const,readOnly:true,required:false,
+      initialValue:zh
+        ? "仅在整批主体身份一致时选择。保存到当前导入任务，不修改原 Excel；须重新预检查。"
+        : "Only choose when every record has the same identity. Source Excel is unchanged; validate again."
+    }];
+  const fixedValueFacts = [...subjectFixedValue, ...otherConstantFacts];
   const reviewGroups = columns.map((column, index) => {
     const count = job.source.rows.filter(row =>
       row[column] !== null && row[column] !== undefined
@@ -388,9 +434,11 @@ export function createObjectExtensionBatchImportPageV010(input: {
   return {
     contractVersion: "0.1.1" as const, kind: "form" as const,
     id: "evo-object-extension.batch-import",
-    reviewTable, reviewTask, reviewPlan,
-    title: zh ? "集中审核 " + columns.length + " 个未匹配字段"
-      : "Review " + columns.length + " unmatched Excel columns",
+    ...(columns.length ? { reviewTable, reviewPlan } : {}), reviewTask,
+    title: !columns.length
+      ? (zh ? "修改本次导入的批次固定值" : "Edit saved batch constant")
+      : zh ? "集中审核 " + columns.length + " 个未匹配字段"
+        : "Review " + columns.length + " unmatched Excel columns",
     description: zh
       ? "已有字段优先。逐列选择复用、新建或忽略；确认后一次创建并自动映射。仅修改企业字段定义和映射，不导入供应商记录。主体类型仍需真实数据。"
       : "Reuse existing fields first, then confirm creation or ignore. This does not import supplier records.",
