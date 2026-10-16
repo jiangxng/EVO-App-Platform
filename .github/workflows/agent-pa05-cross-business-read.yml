@@ -19,6 +19,7 @@ on:
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
       - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
       - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
+      - "tests/agent-line/pa05-e01e-real-host-http.test.mjs"
       - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
       - "catalog/catalog.ts"
@@ -45,6 +46,7 @@ on:
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
       - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
       - "tests/agent-line/pa05-e01d-host-admin-admission.test.mjs"
+      - "tests/agent-line/pa05-e01e-real-host-http.test.mjs"
       - "manager/server.ts"
       - "manager/on-demand-host-read-admission.ts"
       - "catalog/catalog.ts"
@@ -129,3 +131,16 @@ jobs:
           grep -Fq '"realProductionCredentialsOrHumanCertified":false' pa05-e01d.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01d.log
           if grep -Eq '# skipped [1-9][0-9]*' pa05-e01d.log; then exit 1; fi
+      - name: E01E disposable real Host process + actual HTTP admin admission/install/disable
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01e-real-host-http.test.mjs | tee pa05-e01e.log
+          grep -Fq 'PA05_E01E_REAL_HOST_HTTP=' pa05-e01e.log
+          grep -Fq '"actuallySpawnedNodeHost":true' pa05-e01e.log
+          grep -Fq '"originalAppManagerInstallAndDisableThroughHttp":true' pa05-e01e.log
+          grep -Fq '"realEnterpriseDataReadCertified":false' pa05-e01e.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01e.log
+          grep -Eq '# pass 3' pa05-e01e.log
+          grep -Eq '# fail 0' pa05-e01e.log
+          grep -Eq '# skipped 0' pa05-e01e.log
