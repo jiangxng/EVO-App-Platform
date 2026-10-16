@@ -947,7 +947,7 @@ export function validateUidl(
         const at=path+".categories["+index+"]";
         if (!isPlainObject(c) || !nonEmpty(c.id) || !nonEmpty(c.label)
           || ids.has(c.id) || !Array.isArray(c.statusKeys)
-          || !c.statusKeys.length || c.statusKeys.some(k=>
+          || c.statusKeys.some(k=>
             typeof k!=="string" || !possible.has(k) || allKeys.has(k))) {
           out.push(d("EIDOS_REVIEW_PLAN_INVALID",at,
             "Each category must have a unique ID and unique, real status keys"));
