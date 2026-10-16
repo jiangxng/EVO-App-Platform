@@ -259,6 +259,10 @@ with sync_playwright() as pw:
     expect(form).to_be_visible(timeout=30000)
     expect(form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
+    # V3: this authorized Job maps subjectType from an Excel source column.
+    # A batch constant would overwrite mixed rows and MUST NOT be offered.
+    expect(form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
+    expect(form.locator('select[name="batchSubjectType"]')).to_have_count(0)
     # The Eidos framework renders a compact generic group. Business controls
     # remain the exact same 17 one-to-one source-column keys and Host actions.
     phone=browser.new_context(viewport={"width":390,"height":844},
@@ -336,6 +340,8 @@ with sync_playwright() as pw:
     expect(mobile_form).to_be_visible(timeout=30000)
     expect(mobile_form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(mobile_form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
+    expect(mobile_form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
+    expect(mobile_form.locator('select[name="batchSubjectType"]')).to_have_count(0)
     mobile_group=mobile_form.locator('[data-eidos-form-review-table-row]').first
     mobile_group.locator('[data-eidos-review-group-detail] summary').click()
     expect(mobile_group.locator('input[name="label_0"]')).to_be_visible()
