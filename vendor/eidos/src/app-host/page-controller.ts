@@ -644,6 +644,55 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     applyReviewTableFilter();
   }
 
+  // A task issue can focus an existing reviewed Form row. This is
+  // presentation navigation only: never a Host command, approval or save.
+  const onReviewTaskFocus = (event: MouseEvent) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>("[data-eidos-form-task-focus]");
+    if (!button || !container.contains(button)) return;
+    const groupId = button.dataset.eidosFormTaskFocus;
+    if (!groupId) return;
+    const rows = Array.from(container.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row],[data-eidos-form-review-group]"
+    ));
+    const row = rows.find(item =>
+      item.dataset.eidosFormReviewTableRow === groupId
+      || item.dataset.eidosFormReviewGroup === groupId);
+    if (!row) return;
+    if (row.hidden) {
+      const filter = container.querySelector<HTMLSelectElement>(
+        "[data-eidos-form-review-table-filter]"
+      );
+      if (filter) {
+        const allKeys = new Set(rows.map(item =>
+          item.dataset.eidosReviewTableStatusKey).filter((key): key is string => Boolean(key)));
+        const all = Array.from(filter.options).find(option => {
+          const keys = new Set((option.dataset.eidosReviewTableFilterKeys ?? "")
+            .split(",").filter(Boolean));
+          return [...allKeys].every(key => keys.has(key));
+        });
+        if (all) {
+          filter.value = all.value;
+          filter.dispatchEvent(new Event("change",{bubbles:true}));
+        }
+      }
+    }
+    const choice = row.querySelector<HTMLSelectElement|HTMLInputElement>(
+      "[data-eidos-review-table-choice] select,"
+      + "[data-eidos-review-table-choice] input,"
+      + "[data-eidos-review-group-primary] select,"
+      + "[data-eidos-review-group-primary] input"
+    );
+    if (!row.hidden) {
+      row.scrollIntoView({block:"nearest",behavior:"instant"});
+      choice?.focus();
+    }
+  };
+  container.addEventListener("click",onReviewTaskFocus);
+  listeners.push(() =>
+    container.removeEventListener("click",onReviewTaskFocus));
+
   const activateCatalogRow = (
     row: HTMLElement,
     event: Event
