@@ -4,7 +4,9 @@ import { createMemoryEnterpriseResourceRepositoryV010 } from "../../dist/provide
 import { createObjectExtensionRepositoryV010 } from "../../dist/apps/object-extension/repository.js";
 import { createObjectExtensionActionHandlersV010 } from "../../dist/apps/object-extension/actions.js";
 import { createObjectExtensionBatchImportPageV010 } from "../../dist/apps/object-extension/batch-page.js";
-import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
+import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
+import {assertDataImportJobV010} from "../../dist/apps/data-import/types.js";
+import {createActionRequest} from "../../dist/vendor/eidos/src/runtime/action.js";
 import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
 import { renderToHtml } from "../../dist/vendor/eidos/src/renderers/html/index.js";
 
@@ -471,4 +473,62 @@ test("V3 batch approval plan is derived from every real option, not a static pro
   assert.match(html,/仅预览当前未保存的选择/);
   assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5,
     "same Host source rows and original choice_N are used by preview and submit");
+});
+
+
+test("V3 saved batch review choices are actor-scoped and never create enterprise fields",async()=>{
+  const x=setup();
+  const current=x.getJob();
+  const untouched=structuredClone(current.source);
+  const originalMappings=structuredClone(current.mapping);
+  const before=createObjectExtensionBatchImportPageV010({
+    job:current,definitions:[],actorSubjectId:"owner",locale:"zh-CN"
+  });
+  assert.equal(before.actions.length,2);
+  assert.equal(before.actions[0].requiresConfirmation,true);
+  assert.equal(before.actions[1].requiresConfirmation,false);
+  assert.equal(before.actions[1].command,OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
+  assert.equal(validateUidl(before).ok,true,JSON.stringify(validateUidl(before).diagnostics));
+  assert.match(renderToHtml(before),/data-eidos-action="save-review-draft"/);
+  const values={...request(current).values};
+  values.choice_0="__IGNORE__";values.label_1="月结业务方式";
+  const draftRequest=createActionRequest(before,values,{actionId:"save-review-draft"});
+  assert.equal(draftRequest.command.code,OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
+  assert.equal(draftRequest.requiresConfirmation,false);
+  let saves=0,job=current;
+  const handlers=createObjectExtensionActionHandlersV010({
+    repository:x.repo,canManageEnterpriseContext:()=>true,
+    getImportJob:(_,id)=>id===job.importJobId?job:undefined,
+    getImportableTargets:()=>[],
+    saveBatchReviewDraft:input=>{
+      saves++;job=assertDataImportJobV010({...job,batchReviewDrafts:[input.draft]});
+    }
+  });
+  const save=handlers.find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
+  assert.ok(save);
+  const result=await save.execute(draftRequest,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.state,"DRAFT_SAVED");
+  assert.equal(saves,1);
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.deepEqual(job.mapping,originalMappings);
+  assert.deepEqual(job.source,untouched);
+  const restored=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"owner",locale:"zh-CN"
+  });
+  assert.equal(restored.fields.find(f=>f.key==="choice_0").initialValue,"__IGNORE__");
+  assert.equal(restored.fields.find(f=>f.key==="label_1").initialValue,"月结业务方式");
+  assert.match(restored.reviewTask.subject.statusLabel,/草稿已恢复/);
+  const other=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"another-owner",locale:"zh-CN"
+  });
+  assert.equal(other.fields.find(f=>f.key==="choice_0").initialValue,"__CREATE__");
+  assert.doesNotMatch(other.reviewTask.subject.statusLabel,/草稿/);
+  const forged={...draftRequest,values:{...draftRequest.values,choice_0:"unknown_target"}};
+  const failed=await save.execute(forged,ctx());
+  assert.equal(failed.ok,false);
+  assert.equal(saves,1);
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.throws(()=>createActionRequest(before,values,{actionId:"forged-approval"}),
+    /Selected submit action is not declared/);
 });
