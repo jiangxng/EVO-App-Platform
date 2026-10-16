@@ -22,8 +22,21 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
     })),
     ...(doc.reviewGroups
       ? { reviewGroups: doc.reviewGroups.map(group => ({
-          ...group, detailFieldKeys: [...group.detailFieldKeys]
+          ...group,
+          detailFieldKeys: [...group.detailFieldKeys],
+          ...(group.reviewStatus ? { reviewStatus: {...group.reviewStatus} } : {})
         })) }
+      : {}),
+    ...(doc.reviewTable
+      ? { reviewTable: {
+          columnLabels: {...doc.reviewTable.columnLabels},
+          ...(doc.reviewTable.filter ? { filter: {
+            ...doc.reviewTable.filter,
+            options: doc.reviewTable.filter.options.map(option => ({
+              ...option, statusKeys: [...option.statusKeys]
+            }))
+          }} : {})
+        }}
       : {}),
     submitAction: {
       id: submit.id,

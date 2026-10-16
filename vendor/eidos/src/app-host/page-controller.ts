@@ -613,6 +613,37 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
   }
 
+  // The table is only a different realization of the same Form inputs.
+  // Filters never disable, remove or rewrite any underlying Host field value.
+  const reviewTableFilter = container.querySelector<HTMLSelectElement>(
+    "[data-eidos-form-review-table-filter]"
+  );
+  if (reviewTableFilter) {
+    const rows = Array.from(container.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row]"
+    ));
+    const count = container.querySelector<HTMLElement>("[data-eidos-form-review-table-count]");
+    const empty = container.querySelector<HTMLElement>("[data-eidos-form-review-table-empty]");
+    const applyReviewTableFilter = () => {
+      const active = reviewTableFilter.selectedOptions.item(0);
+      const keys = new Set(
+        (active?.dataset.eidosReviewTableFilterKeys ?? "").split(",").filter(Boolean)
+      );
+      let visible = 0;
+      for (const row of rows) {
+        const match = keys.has(row.dataset.eidosReviewTableStatusKey ?? "");
+        row.hidden = !match;
+        if (match) visible++;
+      }
+      if (count) count.textContent = visible + " / " + rows.length;
+      if (empty) empty.hidden = visible !== 0;
+    };
+    reviewTableFilter.addEventListener("change", applyReviewTableFilter);
+    listeners.push(() =>
+      reviewTableFilter.removeEventListener("change", applyReviewTableFilter));
+    applyReviewTableFilter();
+  }
+
   const activateCatalogRow = (
     row: HTMLElement,
     event: Event
