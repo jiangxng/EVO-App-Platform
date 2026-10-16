@@ -181,7 +181,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " WHERE rolname=SESSION_USER);",
           "SELECT e.not_before INTO v_epoch",
           " FROM "+d+".pa05_object_sql_session_epochs e",
-          " WHERE e.login_role=SESSION_USER;",
+          " WHERE e.login_role=SESSION_USER FOR SHARE;",
           "IF v_start IS NULL OR v_epoch IS NULL OR v_start<=v_epoch THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_SESSION_ROTATED'; END IF;",
           "RETURN; END;"
