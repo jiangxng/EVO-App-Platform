@@ -60,6 +60,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
 import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -913,9 +914,6 @@ import {
   RESPONSIBILITY_PACKAGE_ID
 } from "../apps/responsibility/constants.js";
 import {
-  createResponsibilityRepositoryV010
-} from "../apps/responsibility/repository.js";
-import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_PAGE_SOURCE,
@@ -1108,16 +1106,19 @@ const enterpriseResourceRepository =
         enterpriseResourceStateFile
       )
     : createMemoryEnterpriseResourceRepositoryV010();
-const responsibilityRepository =
-  createResponsibilityRepositoryV010(enterpriseResourceRepository);
+const responsibilityRuntimeHost = createResponsibilityRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === RESPONSIBILITY_PACKAGE_ID && feature.featureId === RESPONSIBILITY_FEATURE_ID),
+  resources: enterpriseResourceRepository
+});
 const counterpartyRuntimeHost = createCounterpartyRuntimeHostV010({
   isActive: () => store.snapshot().activeFeatures.some(feature =>
     feature.packageId === COUNTERPARTY_PACKAGE_ID && feature.featureId === COUNTERPARTY_FEATURE_ID),
-  dependencies: {
+  dependencies: async () => ({
     resources: enterpriseResourceRepository,
-    responsibilityRepository,
+    responsibilityRepository: await responsibilityRuntimeHost.resolve(),
     resolveAuthorizationProvider
-  }
+  })
 });
 const objectExtensionRepository =
   createObjectExtensionRepositoryV010(enterpriseResourceRepository);
@@ -2239,6 +2240,9 @@ const manager = createAppManagerService(
       if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
         void disposeBiWorkbenchRuntimeV010();
       }
+      if (event.packageId === RESPONSIBILITY_PACKAGE_ID) {
+        void responsibilityRuntimeHost.stop().catch(error => console.error("Responsibility runtime stop failed", error));
+      }
       if (event.packageId === COUNTERPARTY_PACKAGE_ID) {
         dataImportTargetPromises.delete("evo-counterparty.import-target.v0.1");
         void counterpartyRuntimeHost.stop().catch(error => console.error("Counterparty runtime stop failed", error));
@@ -2274,6 +2278,8 @@ async function resolveItemRuntimeV010() {
   if (!itemFeatureActiveV010()) {
     throw new Error("ITEM_FEATURE_NOT_ACTIVE");
   }
+  const responsibilityRepository = await responsibilityRuntimeHost.resolve();
+  if (!itemFeatureActiveV010()) throw new Error("ITEM_FEATURE_NOT_ACTIVE");
   itemRuntimePromise ??= Promise.all([
     import("../apps/item/repository.js"),
     import("../apps/item/projection-service.js"),
@@ -2310,6 +2316,8 @@ async function resolveWarehouseRuntimeV010() {
   if (!warehouseFeatureActiveV010()) {
     throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
   }
+  const responsibilityRepository = await responsibilityRuntimeHost.resolve();
+  if (!warehouseFeatureActiveV010()) throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
   warehouseRuntimePromise ??= Promise.all([
     import("../apps/warehouse/repository.js"),
     import("../apps/warehouse/locations.js"),
@@ -5057,7 +5065,7 @@ const actionRouter = createAppActionRouter(
         async load() {
           const module = await import("../apps/responsibility/actions.js");
           const handlers = module.createResponsibilityActionHandlersV010({
-            repository: responsibilityRepository,
+            resolveRepository: () => responsibilityRuntimeHost.resolve(),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -7074,6 +7082,7 @@ const server = createServer(async (request, response) => {
 
         const allCounterparties =
           runtime.repository.list(active.contextId);
+        const responsibilityRepository = await responsibilityRuntimeHost.resolve();
         const responsibilities = responsibilityRepository.list(
           active.contextId,
           { objectType: "counterparty.subject" }
@@ -9812,6 +9821,7 @@ async function shutdown(signal: string): Promise<void> {
   try {
     await bottleneckRuntime.stop();
     await counterpartyRuntimeHost.stop();
+    await responsibilityRuntimeHost.stop();
   } catch (error) {
     shutdownFailed = true;
     console.error("Managed runtime shutdown incomplete", error);

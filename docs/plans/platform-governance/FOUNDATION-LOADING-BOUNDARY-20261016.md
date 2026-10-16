@@ -158,3 +158,31 @@ CI 集成修正：首轮 `Agent PA-02 Host Async READ Execution`（run `38831809
 ### 余项
 
 本批关闭的是 Counterparty 独有构造债务。共享 Responsibility、Object Extension、Data Import 构造，全部有效导入目标的过度解析、资源归档策略及记忆调度归属仍未全闭环。下一有界动作优先核对共享扩展/职责的按需装载及消费者生命周期，不扩大到新 Provider 试点。A01 仍部分完成；固定总数 7，4 闭环、3 部分完成。
+
+## 9. 实施增量：共享职责按需装配与消费者停止边界
+
+日期：2026-10-17（香港）；基线 main `2532f537f229936cf9275aeafc9c7dbb66e71707`，接续 #975。本批仅迁移 Responsibility，不改 BEX 导入草稿或 Agent 契约。
+
+### 决定与真实依赖
+
+Counterparty、Item、Warehouse 的真实 package manifest 都 requires `enterprise.responsibility`（实际常量以 constants 为准）。职责不是其中任一对象的私有实例。采用职责自身 Feature 控制的共享按需适配器；不能在停用某个对象时把共享职责仓库一起停止。既有 manager 会阻止在任一消费者仍活跃时停用所需 capability provider；新增测试使用三个真实对象 manifest 验证此行为，只有无关的通用资源/目录 provider 使用夹具。
+
+Object Extension 与之不同：定义管理入口和对象既有值的读取不等同；此批不把其生命周期硬挂到职责上。开放 #999 正在做 BEX 草稿，不编辑其页面、batch action、导入 Job 数据模型。扩展/导入其余构造债务保留，不将延期说成完成。
+
+### 实施与资源边界
+
+- `manager/responsibility-runtime.ts` 复用既有 lazy lease；只在首次合法管理或有效对象消费者调用时 import 原 repository 并用同一 EnterpriseResourceRepository 构造。未用不创建，首次并发共享，失败可重试。没有新 Provider 包、新加载框架或新存储。
+- 仓库方法仍同步执行。包装后的每个 list/get/assign/archive 在使用前检查 Feature、停止状态及实例代际；停止立即使旧引用失效，恢复后旧引用也不能复活。数据继续以 contextId 隔离，原算法、namespace、archive 和持久化保持。
+- 职责动作先检查企业上下文/管理资格，再等待仓库，等待后复核资格；旧直接注入仓库的 API 兼容。
+- Counterparty 接受异步依赖解析并在等待后复核自身状态；Item/Warehouse 先解析职责再创建各自运行时，避免职责加载失败污染它们的原 Promise 缓存。页面在原企业上下文和授权链内获取职责。各对象自身的生命周期及原安全判断保留。
+- 职责停用/卸载和 Host 正常停止清理职责实例；各对象停止不清理共享实例。adapter 不持有连接、后台任务、用户权限缓存；停止不是模块卸载、数据删除或 PA05 跨进程写事务取消。将来引入异步资源时必须扩展操作级 drain/dispose 证明。
+
+### 验证与限制
+
+新增 `tests/protocol/responsibility-runtime-lazy.test.mjs` 8 项行为测试，覆盖未用零创建、并发共享、企业隔离、文件恢复、旧引用永久失效、停用/恢复与加载竞态、失败重试、权限撤销零写入、合法 assign/archive、对象停止不影响其他消费者、真实 manifest 依赖阻断，以及 Counterparty 等待共享依赖时停止不得迟到构造。不是全平台生命周期认证。
+
+上述测试加入既有 Lightweight Host CI。静态基线从 279 缩至 277，只删除两条职责实现依赖，无扩基线。冷启动审计新增职责 repository 禁入断言；原 Counterparty/账本断言保留。四组合原始证据保存在 [职责装载审计](evidence/responsibility-lazy-audit-20261017.json)，文件哈希标识实测工作树；相同模块总数不能否定目标实现已移出冷路径，也不能拿总数宣称性能收益。最终构建、回归数量、CI 与合并状态以本批 PR 记录为准；未部署。
+
+阅读：本批完整复核整体理解规则、按需装载权威、本文；复用此前完整阅读的资源容器/基础对象权威和开发交付规则。定向读取 server 所有职责消费者、职责 repository/actions、三个真实对象 manifest 和 manager 依赖阻断实现；未声称重读整个 server 或 Agent 实现。无新增外部网络研究。
+
+A01 仍部分完成，固定 7 项仍为 4 闭环、3 部分完成。下一步核对 Object Extension 的管理与对象读取依赖，再推进其按需构造；Data Import、归档和记忆调度缺口保持原归属。
