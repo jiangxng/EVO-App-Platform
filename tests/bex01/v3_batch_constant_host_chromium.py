@@ -13,7 +13,7 @@ fixture=json.loads((OUT/"fixture.json").read_text(encoding="utf8"))
 HOST=fixture["hostUrl"];CTX=fixture["contextId"]
 assert HOST.startswith("http://127.0.0.1:") and fixture["isolated"]
 assert not fixture["productionUsed"]
-SOURCE="往来编码,往来名称,批次核对专用字段\\nBEX-CST-001,Constant Test Supplier A,Plan A\\nBEX-CST-002,Constant Test Supplier B,Plan B"
+SOURCE="往来编码,往来名称,批次核对专用字段\nBEX-CST-001,Constant Test Supplier A,Plan A\nBEX-CST-002,Constant Test Supplier B,Plan B"
 # An explicit omission: there is NO source column for subjectType.
 assert "主体类型" not in SOURCE
 with sync_playwright() as p:
