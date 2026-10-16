@@ -123,3 +123,6 @@
 本次没有把 Data Import service 从 Host 静态依赖图彻底移除，也没有迁移此前的基础对象仓库构造。有效 import-create 仍复用现有“解析所有有效目标”的合同；更细的目标按需解析及完整生命周期代际隔离未在本批声称完成。组件测试证明 resolver 失败重试；底层 factory 缓存失败清除同时有代码修正，未用故障注入覆盖所有真实模块加载错误。数据持久化和跨进程在途 WRITE 安全继续属于原 owner。
 
 下一步仍是第 4 节的业务 adapter 迁移：先 Counterparty 独有装配，复用共享存储并验证跨对象消费者；资源归档、记忆调度归属未关闭。A01 保持部分完成，固定 7 项仍为 4 闭环、3 部分完成。
+
+
+CI 集成修正：首轮 `Agent PA-02 Host Async READ Execution`（run `38831809969`）两项测试返回 BLOCKED：`pa02-host-async-read-execution.test.mjs:101` 预期 SUCCEEDED、`pa02-worker-cooperative-release.test.mjs:72` 预期 PAUSED。二者都把新 Run 的创建时间写死为 2026-10-13，Worker 使用真实当前时间和既有 72 小时期限；2026-10-16 已跨期限。仅将这两个新运行/租约测试的夹具时间改为本次测试时间；生产 deadline、权限和 Agent 代码不变，不通过放宽预算或跳过测试解决。最终 PostgreSQL CI 结果以 PR 记录为准。

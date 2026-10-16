@@ -37,7 +37,8 @@ test("PA02 fenced Worker yields lease immediately, and stale release cannot free
     await repo.claimTurn({scope,threadId:"thread:yield",clientTurnId:"turn:yield",
       taskPayload:{message:"read this"},taskDigest:createHash("sha256").update("read").digest("hex"),
       created:{contractVersion:"0.1.0",eventId:"event:"+randomUUID(),
-        runId,type:"RUN_CREATED",occurredAt:"2026-10-13T00:00:00.000Z",
+        // Lease release is tested with a fresh Run, not an expired historical fixture.
+        runId,type:"RUN_CREATED",occurredAt:new Date().toISOString(),
         payload:{principalSubjectId:principal.subjectId,principalActorType:principal.actorType,
           context:context.activeContext,sourceInteractionId:"thread:yield",
           sourceActionId:"turn:yield",input:{message:"read this",
