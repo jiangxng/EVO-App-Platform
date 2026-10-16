@@ -63,6 +63,40 @@ function input(field: RenderFieldV010): string {
   return `<input type="${type}" ${common}${initial}${min}${max}${pattern}>${field.unit ? `<span data-unit>${esc(field.unit)}</span>` : ""}`;
 }
 
+function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
+  const subject=task.subject;
+  const facts=(subject.facts ?? []).map(fact =>
+    `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
+  ).join("");
+  const context=`<section data-eidos-form-task-context>
+    <div data-eidos-form-task-identity><strong>${esc(subject.title)}</strong>
+      ${subject.subtitle ? `<p>${esc(subject.subtitle)}</p>` : ""}</div>
+    ${subject.statusLabel ? `<span data-eidos-form-task-source-status>${esc(subject.statusLabel)}</span>` : ""}
+    ${facts ? `<dl data-eidos-form-task-facts>${facts}</dl>` : ""}
+  </section>`;
+  const steps=task.steps?.length ? `<ol data-eidos-form-task-steps>
+    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
+  </ol>` : "";
+  const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
+    ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
+      data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
+      <span>${esc(metric.label)}</span></div>`).join("")}
+  </section>` : "";
+  const issues=task.issues?.length ? `<section data-eidos-form-task-issues>
+    <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
+    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}</header>
+    <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
+      <div><strong>${esc(issue.title)}</strong>
+      ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>
+      ${issue.focusGroupId ? `<button type="button"
+        data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
+    </li>`).join("")}</ol>
+  </section>` : "";
+  return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}
+    ${task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : ""}
+  </div>`;
+}
+
 export function renderToHtml(document: unknown): string {
   const model = toRenderModel(document);
   const renderField = (field: RenderFieldV010) =>
@@ -146,6 +180,7 @@ export function renderToHtml(document: unknown): string {
       ${filter ? `<p data-eidos-form-review-table-empty${count ? " hidden" : ""}>${esc(filter.noMatchesMessage)}</p>` : ""}
       </section>`;
   })() : "";
+  const taskOverview=model.reviewTask ? renderReviewTask(model.reviewTask) : "";
   const fields = standalone + (model.reviewTable
     ? reviewTable : groups
       ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
@@ -170,6 +205,7 @@ ${model.description ? `<p data-eidos-page-description>${esc(model.description)}<
 </div>
 </div>
 </header>
+${taskOverview}
 <div data-eidos-form-fields>${fields}</div>
 <footer data-eidos-form-actions>
 <button type="submit" data-eidos-action="${esc(model.submitAction.id)}" data-eidos-primary="true">${esc(model.submitAction.label)}</button>
