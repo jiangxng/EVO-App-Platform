@@ -679,6 +679,32 @@ export function createDataImportMappingPageV010(input: {
     };
   });
 
+  // Eidos E2 validates each filter status against THIS authorized Job.
+  // Do not advertise states absent from the current table: a fresh Job may
+  // contain only previously mapped columns, or only unresolved columns.
+  const statusKeys = [...new Set(reviewGroups.map(group =>
+    group.reviewStatus.key))];
+  const attentionKeys = statusKeys.filter(key =>
+    key === "attention" || key === "proposed" || key === "suggested");
+  const handledKeys = statusKeys.filter(key =>
+    key === "matched" || key === "ignored");
+  const filterOptions = [
+    ...(attentionKeys.length ? [{
+      id: "needs",
+      label: zh(input.locale) ? "需要关注" : "Needs attention",
+      statusKeys: attentionKeys
+    }] : []),
+    {
+      id: "all",
+      label: zh(input.locale) ? "全部字段" : "All fields",
+      statusKeys
+    },
+    ...(handledKeys.length ? [{
+      id: "handled",
+      label: zh(input.locale) ? "已处理" : "Handled",
+      statusKeys: handledKeys
+    }] : [])
+  ];
   const reviewTable = {
     columnLabels: {
       subject: zh(input.locale) ? "来源列名" : "Source column",
@@ -688,23 +714,11 @@ export function createDataImportMappingPageV010(input: {
     },
     filter: {
       label: zh(input.locale) ? "显示" : "Show",
-      selectedId: "needs",
+      selectedId: attentionKeys.length ? "needs" : "all",
       noMatchesMessage: zh(input.locale)
         ? "当前筛选没有需要处理的列。可选择“全部字段”查看原始列。"
         : "No matching columns. Choose All fields to inspect the source.",
-      options: [{
-        id: "needs",
-        label: zh(input.locale) ? "需要关注" : "Needs attention",
-        statusKeys: ["attention", "proposed", "suggested"]
-      }, {
-        id: "all",
-        label: zh(input.locale) ? "全部字段" : "All fields",
-        statusKeys: ["attention", "proposed", "suggested", "matched", "ignored"]
-      }, {
-        id: "matched",
-        label: zh(input.locale) ? "已处理" : "Handled",
-        statusKeys: ["matched", "ignored"]
-      }]
+      options: filterOptions
     }
   };
 
