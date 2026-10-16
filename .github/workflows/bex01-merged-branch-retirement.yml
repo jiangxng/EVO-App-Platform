@@ -50,7 +50,10 @@ jobs:
               {n:960,branch:'fix/bex01-v3-actual-map-route-review-groups-20261016',sha:'d68ce868a4cea715ab2fb62b9ead663390a4e12c',noUniqueAhead:true},
               {n:922,branch:'fix/governance-ledger-lazy-20261015',sha:'ff0c115b011619795df7cabadb3af7c94714e14c',noUniqueAhead:true},
               {n:916,branch:'fix/governance-loading-principles-20261015',sha:'8f0f8dce50fba85832362422fb9fc4bcbc0de2af',noUniqueAhead:true},
-              {n:904,branch:'governance/human-ui-design-review-gate-20261015',sha:'1171d6a340ccbbff716ae925fc883a7cce3d8437',noUniqueAhead:true}
+              {n:904,branch:'governance/human-ui-design-review-gate-20261015',sha:'1171d6a340ccbbff716ae925fc883a7cce3d8437',noUniqueAhead:true},
+              {n:970,branch:'chore/verified-merged-ref-retirement-e4-20261016',sha:'de2f1a545a59859eb593e8ac64367fb183dceb51',noUniqueAhead:true},
+              // Current PR head SHA is taken from its merged PR; self-referential static SHA cannot be pinned in this file.
+              {n:971,branch:'docs/bex01-e4-01-evidence-visual-gap-20261016',noUniqueAhead:true}
             ];
             const allOpen=(await github.paginate(github.rest.pulls.list,
               {owner,repo,state:'open',per_page:100})).filter(x=>x.head.repo?.full_name===owner+'/'+repo);
