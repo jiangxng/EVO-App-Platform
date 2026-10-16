@@ -391,9 +391,11 @@ export function createObjectExtensionBatchImportPageV010(input: {
   return {
     contractVersion: "0.1.1" as const, kind: "form" as const,
     id: "evo-object-extension.batch-import",
-    reviewTable, reviewTask,
-    title: zh ? "集中审核 " + columns.length + " 个未匹配字段"
-      : "Review " + columns.length + " unmatched Excel columns",
+    ...(columns.length ? { reviewTable } : {}), reviewTask,
+    title: !columns.length
+      ? (zh ? "修改本次导入的批次固定值" : "Edit saved batch constant")
+      : zh ? "集中审核 " + columns.length + " 个未匹配字段"
+        : "Review " + columns.length + " unmatched Excel columns",
     description: zh
       ? "已有字段优先。逐列选择复用、新建或忽略；确认后一次创建并自动映射。仅修改企业字段定义和映射，不导入供应商记录。主体类型仍需真实数据。"
       : "Reuse existing fields first, then confirm creation or ignore. This does not import supplier records.",
