@@ -101,13 +101,14 @@ export function createObjectExtensionBatchImportPageV010(input: {
     const purpose = field.description?.trim();
     return {
       value: field.fieldId,
-      label: field.label
-        + (duplicate
-          ? " · " + (purpose
-            ? (purpose.length > 52 ? purpose.slice(0, 52) + "…" : purpose)
-            : zh ? "用途待核对" : "Purpose needs review")
-          : "")
-        + " · " + field.fieldId
+      // Ordinary candidates are named for Humans. Only duplicate labels
+      // need a purpose qualifier and a stable technical disambiguator.
+      label: field.label + (duplicate
+        ? " · " + (purpose
+          ? (purpose.length > 52 ? purpose.slice(0, 52) + "…" : purpose)
+          : zh ? "用途待核对" : "Purpose needs review")
+          + " · " + field.fieldId
+        : "")
     };
   });
   const usedBy = new Map(job.mapping.map(entry =>
@@ -162,13 +163,13 @@ export function createObjectExtensionBatchImportPageV010(input: {
           readOnly: true,
           initialValue: comparison
         }] : []),
-        { key: "choice_" + i, label: column + (zh ? " · 已有字段 / 新建 / 忽略" : " · Reuse / create / ignore"),
+        { key: "choice_" + i, label: column,
           semanticType: "object-extension-batch-action", control: "select" as const,
           exclusiveSelect: { group: "bex-batch-targets",
             exemptValues: [BEX_BATCH_CREATE, BEX_BATCH_IGNORE, BEX_BATCH_REVIEW] },
           required: true, initialValue: action,
           options: [
-            { value: BEX_BATCH_CREATE, label: zh ? "＋ 新建企业扩展字段（待确认）" : "Create enterprise field" },
+            { value: BEX_BATCH_CREATE, label: zh ? "＋ 建议新建企业字段（集中审核确认）" : "+ Propose enterprise field (batch approval)" },
             { value: BEX_BATCH_IGNORE, label: zh ? "忽略此列" : "Ignore column" },
             { value: BEX_BATCH_REVIEW, label: zh ? "需要人工确认（不可直接提交）" : "Needs review" },
             ...fieldOptions
