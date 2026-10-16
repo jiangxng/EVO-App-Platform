@@ -130,6 +130,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "issued_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
           "consumed boolean NOT NULL DEFAULT false,"+
           "revoked boolean NOT NULL DEFAULT false,"+
+          "bound_backend_pid integer,bound_transaction_id text,"+
           "approved_resource jsonb NOT NULL,approved_evidence jsonb NOT NULL,"+
           "approved_evidence_digest text NOT NULL,"+
           "approved_idempotency_hash text NOT NULL,"+
@@ -214,6 +215,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " '"+object+".pa05_object_register_host_command(text,text,text,text,text,text,jsonb)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
+          " 'EXECUTE') OR has_function_privilege(v_business,",
+          " '"+object+".pa05_object_bind_host_permit(text,text,text,integer,text)',",
           " 'EXECUTE') THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
@@ -338,6 +341,268 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
           ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb) TO "+
           '\"'+hostRole+'\"');
+        // D14C10: separate Host authorization for one live PostgreSQL
+        // business backend + transaction ID. GUC and token alone are
+        // insufficient on another backend using the same business password.
+        const bindBody=[
+          "DECLARE v_current record;v_bound integer;v_xid text;",
+          "BEGIN",
+          "IF SESSION_USER!='"+hostRole+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_LOGIN_REQUIRED'; END IF;",
+          "PERFORM "+d+".pa05_object_assert_role_boundary();",
+          "IF p_pid IS NULL OR p_pid<=0 OR p_xid IS NULL OR",
+          " p_xid !~ '^[0-9]{1,20}
+        // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
+        // same permit row. A committed effect returns COMMITTED, not REVOKED.
+        const revokeBody=[
+          "DECLARE v_state text;",
+          "BEGIN",
+          "IF SESSION_USER!='"+hostRole+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_LOGIN_REQUIRED'; END IF;",
+          "PERFORM "+d+".pa05_object_assert_role_boundary();",
+          "SELECT CASE WHEN consumed THEN 'COMMITTED'",
+          " WHEN revoked THEN 'REVOKED' ELSE 'ACTIVE' END",
+          " INTO v_state FROM "+d+".pa05_object_host_permits",
+          " WHERE scope_key=p_scope AND effect_id=p_effect AND token=p_token",
+          " FOR UPDATE;",
+          "IF NOT FOUND THEN RETURN 'NOT_FOUND'; END IF;",
+          "IF v_state='COMMITTED' THEN RETURN 'COMMITTED'; END IF;",
+          "IF v_state='REVOKED' THEN RETURN 'REVOKED'; END IF;",
+          "UPDATE "+d+".pa05_object_host_permits SET revoked=true",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND token=p_token AND NOT consumed AND NOT revoked;",
+          "IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_REVOKE_RACE'; END IF;",
+          "RETURN 'REVOKED'; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_revoke_host_permit(p_scope text,p_effect text,p_token text) "+
+          "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
+          "SET search_path=pg_catalog AS $pa05$"+revokeBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_revoke_host_permit(text,text,text) FROM PUBLIC");
+        await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
+          ".pa05_object_revoke_host_permit(text,text,text) TO "+'\"'+hostRole+'\"');
+
+      }
+      const source=(key:string)=>"current_setting('evo.pa05."+key+"',true)";
+      const body=[
+        "DECLARE v_scope text;v_run text;v_effect text;v_digest text;",
+        " v_permit text;v_resource jsonb;v_evidence jsonb;",
+        " v_edigest text;v_ihash text;",
+        " v_boundpid integer;v_boundxid text;",
+        " v_context text;v_enterprise text;",
+        "BEGIN",
+        "IF TG_OP!='INSERT' THEN",
+        " RAISE EXCEPTION 'PA05_OBJECT_SQL_MUTATION_DENIED'; END IF;",
+        "IF SESSION_USER!='"+role+"' THEN",
+        " RAISE EXCEPTION 'PA05_OBJECT_SQL_WRONG_LOGIN'; END IF;",
+        ...(hostRole?["PERFORM "+d+".pa05_object_assert_role_boundary();"]:[]),
+        "v_scope:="+source("scope_key")+";",
+        "v_run:="+source("run_id")+";",
+        "v_effect:="+source("effect_id")+";",
+        "v_digest:="+source("input_digest")+";",
+        "v_context:="+source("context_id")+";",
+        "v_enterprise:="+source("enterprise_id")+";",
+        "IF v_scope IS NULL OR v_scope='' OR v_run IS NULL OR",
+        " v_effect IS NULL OR v_digest IS NULL OR",
+        " v_context IS NULL OR v_enterprise IS NULL THEN",
+        " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED'; END IF;",
+        "IF NEW.context_id IS DISTINCT FROM v_context OR",
+        " NEW.enterprise_id IS DISTINCT FROM v_enterprise THEN",
+        " RAISE EXCEPTION 'PA05_OBJECT_SQL_ENTERPRISE_MISMATCH'; END IF;",
+        "IF TG_TABLE_NAME='pa02_owner_evidence' THEN",
+        " IF NEW.run_id IS DISTINCT FROM v_run OR",
+        " NEW.effect_id IS DISTINCT FROM v_effect OR",
+        " NEW.input_digest IS DISTINCT FROM v_digest THEN",
+        "  RAISE EXCEPTION 'PA05_OBJECT_SQL_OWNER_EVIDENCE_SOURCE_MISMATCH'; END IF;",
+        "END IF;",
+        "IF NOT EXISTS(SELECT 1 FROM "+w+".pa05_xdb_remote_config c",
+        " WHERE c.singleton AND c.state='ACTIVE' FOR SHARE) THEN",
+        " RAISE EXCEPTION 'PA05_OBJECT_SQL_LOCAL_FREEZE'; END IF;",
+        "IF NOT EXISTS (SELECT 1 FROM "+w+".pa02b_writes p",
+        " JOIN "+w+".pa05_xdb_remote_tickets t",
+        " ON t.scope_key=p.scope_key AND t.effect_id=p.effect_id",
+        " AND t.run_id=p.run_id AND t.input_digest=p.input_digest",
+        " AND t.fence=p.fence",
+        " WHERE p.scope_key=v_scope AND p.run_id=v_run",
+        " AND p.effect_id=v_effect AND p.input_digest=v_digest",
+        " AND p.state IN ('INVOKING','UNKNOWN')) THEN",
+        " RAISE EXCEPTION 'PA05_OBJECT_SQL_DURABLE_ADMISSION_REQUIRED'; END IF;",
+        ...(hostRole?[
+          // An existing Context already belongs to the same enterprise and
+          // ON CONFLICT DO NOTHING does no material mutation. This exemption
+          // permits original Owner idempotency replay after consumed evidence.
+          "IF TG_TABLE_NAME='pa02_contexts' AND EXISTS(",
+          " SELECT 1 FROM "+d+".pa02_contexts c WHERE",
+          " c.context_id=NEW.context_id AND c.enterprise_id=NEW.enterprise_id)",
+          " THEN RETURN NEW; END IF;",
+          "SELECT p.token,p.approved_resource,p.approved_evidence,",
+          " p.approved_evidence_digest,p.approved_idempotency_hash,",
+          " p.bound_backend_pid,p.bound_transaction_id",
+          " INTO v_permit,v_resource,v_evidence,v_edigest,v_ihash,",
+          " v_boundpid,v_boundxid",
+          " FROM "+d+".pa05_object_host_permits p",
+          " WHERE p.scope_key=v_scope AND p.effect_id=v_effect",
+          " AND p.run_id=v_run AND p.input_digest=v_digest",
+          " AND p.context_id=v_context AND p.enterprise_id=v_enterprise",
+          " AND NOT p.consumed AND NOT p.revoked",
+          " AND p.issued_at > clock_timestamp()-interval '2 minutes'",
+          " FOR UPDATE;",
+          "IF v_permit IS NULL OR v_permit IS DISTINCT FROM "+
+            source("host_permit")+" THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED'; END IF;",
+          "IF v_boundpid IS DISTINCT FROM pg_backend_pid() OR",
+          " v_boundxid IS DISTINCT FROM",
+          " pg_current_xact_id_if_assigned()::text THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_BIND_REQUIRED';",
+          "END IF;",
+          "IF TG_TABLE_NAME='pa02_definitions' THEN",
+          " IF NEW.extension_id IS DISTINCT FROM v_resource->>'resourceId'",
+          " OR NEW.target_object_type IS DISTINCT FROM",
+          " (v_resource->'payload'->>'targetObjectType')",
+          " OR NEW.target_slot IS DISTINCT FROM",
+          " (v_resource->'payload'->>'targetSlot')",
+          " OR NEW.field_id IS DISTINCT FROM",
+          " (v_resource->'payload'->>'fieldId')",
+          " OR NEW.resource IS DISTINCT FROM v_resource",
+          " OR NEW.created_at IS DISTINCT FROM",
+          " (v_resource->>'createdAt')::timestamptz THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_APPROVED_RESOURCE_MISMATCH';",
+          " END IF; END IF;",
+          "IF TG_TABLE_NAME='pa02_owner_evidence' THEN",
+          " IF NEW.receipt_id IS DISTINCT FROM v_evidence->>'receiptId'",
+          " OR NEW.resource_id IS DISTINCT FROM v_resource->>'resourceId'",
+          " OR NEW.idempotency_hash IS DISTINCT FROM v_ihash",
+          " OR NEW.evidence_digest IS DISTINCT FROM v_edigest",
+          " OR NEW.evidence IS DISTINCT FROM v_evidence",
+          " OR NEW.recorded_at IS DISTINCT FROM",
+          " (v_evidence->>'recordedAt')::timestamptz THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_APPROVED_EVIDENCE_MISMATCH';",
+          " END IF; END IF;",
+          "IF TG_TABLE_NAME='pa02_owner_evidence' THEN",
+          " UPDATE "+d+".pa05_object_host_permits SET consumed=true",
+          " WHERE scope_key=v_scope AND effect_id=v_effect",
+          " AND NOT consumed AND NOT revoked;",
+          " IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_PERMIT_CONSUMED'; END IF;",
+          "END IF;"
+        ]:[]),
+        "RETURN NEW; END;"
+      ].join("\n");
+      await tx.unsafe("CREATE OR REPLACE FUNCTION "+d+
+        ".pa05_object_business_guard() RETURNS trigger LANGUAGE plpgsql "+
+        "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+        body+"$pa05$");
+      await tx.unsafe("CREATE OR REPLACE FUNCTION "+d+
+        ".pa05_object_truncate_guard() RETURNS trigger LANGUAGE plpgsql "+
+        "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+        "BEGIN RAISE EXCEPTION 'PA05_OBJECT_SQL_TRUNCATE_DENIED'; END;"+
+        "$pa05$");
+      if(hostRole){
+        // A valid but partially used Host permit MUST NOT let raw SQL persist
+        // orphan business rows without an actual immutable Owner receipt.
+        // Deferred validation is evaluated at the real transaction COMMIT.
+        const receiptBody=[
+          "DECLARE v_token text;",
+          "BEGIN",
+          "IF SESSION_USER!='"+role+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_LOGIN_DENIED'; END IF;",
+          "v_token:=current_setting('evo.pa05.host_permit',true);",
+          "IF v_token IS NULL OR v_token='' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_PERMIT_REQUIRED'; END IF;",
+          "IF TG_TABLE_NAME='pa02_contexts' THEN",
+          " IF NOT EXISTS(SELECT 1 FROM "+d+".pa05_object_host_permits p",
+          " JOIN "+d+".pa02_owner_evidence e",
+          " ON e.run_id=p.run_id AND e.effect_id=p.effect_id",
+          " AND e.input_digest=p.input_digest AND e.context_id=p.context_id",
+          " AND e.enterprise_id=p.enterprise_id",
+          " WHERE p.token=v_token AND p.consumed",
+          " AND p.context_id=NEW.context_id AND p.enterprise_id=NEW.enterprise_id)",
+          " THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_REQUIRED'; END IF;",
+          "ELSE",
+          " IF NOT EXISTS(SELECT 1 FROM "+d+".pa05_object_host_permits p",
+          " JOIN "+d+".pa02_owner_evidence e",
+          " ON e.run_id=p.run_id AND e.effect_id=p.effect_id",
+          " AND e.input_digest=p.input_digest AND e.context_id=p.context_id",
+          " AND e.enterprise_id=p.enterprise_id",
+          " WHERE p.token=v_token AND p.consumed",
+          " AND e.resource_id=NEW.extension_id",
+          " AND e.context_id=NEW.context_id AND e.enterprise_id=NEW.enterprise_id)",
+          " THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_RECEIPT_REQUIRED'; END IF;",
+          "END IF;",
+          "RETURN NULL; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_receipt_commit_guard() RETURNS trigger LANGUAGE plpgsql "+
+          "SECURITY DEFINER SET search_path=pg_catalog AS $pa05$"+
+          receiptBody+"$pa05$");
+        for(const table of ["pa02_contexts","pa02_definitions"]){
+          await tx.unsafe("CREATE CONSTRAINT TRIGGER "+
+            "pa05_object_commit_receipt_guard AFTER INSERT ON "+
+            d+'."'+table+'"'+
+            " DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "+
+            d+".pa05_object_receipt_commit_guard()");
+        }
+      }
+      for(const table of tables){
+        const target=d+'."'+table+'"';
+        await tx.unsafe("DROP TRIGGER IF EXISTS pa05_object_physical_guard ON "+target);
+        await tx.unsafe("CREATE TRIGGER pa05_object_physical_guard "+
+          "BEFORE INSERT OR UPDATE OR DELETE ON "+target+
+          " FOR EACH ROW EXECUTE FUNCTION "+d+".pa05_object_business_guard()");
+        await tx.unsafe("DROP TRIGGER IF EXISTS pa05_object_truncate_guard ON "+target);
+        await tx.unsafe("CREATE TRIGGER pa05_object_truncate_guard "+
+          "BEFORE TRUNCATE ON "+target+" FOR EACH STATEMENT EXECUTE FUNCTION "+
+          d+".pa05_object_truncate_guard()");
+      }
+    });
+  }finally{await pg.end();}
+}
+ THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_BIND_SOURCE_INVALID';",
+          "END IF;",
+          "SELECT a.pid,a.usesysid,a.datid,a.backend_xid::text AS xid",
+          " INTO v_current FROM pg_stat_activity a",
+          " WHERE a.pid=p_pid",
+          " AND a.datid=(SELECT oid FROM pg_database",
+          " WHERE datname=current_database())",
+          " AND a.usesysid=(SELECT oid FROM pg_roles",
+          " WHERE rolname='"+role+"')",
+          " AND a.backend_xid IS NOT NULL",
+          " AND a.backend_xid::text=",
+          " ((p_xid::numeric % 4294967296)::bigint)::text",
+          " AND a.xact_start IS NOT NULL;",
+          "IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_BACKEND_UNVERIFIED';",
+          "END IF;",
+          "SELECT bound_backend_pid,bound_transaction_id",
+          " INTO v_bound,v_xid FROM "+d+".pa05_object_host_permits",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND token=p_token AND NOT consumed AND NOT revoked",
+          " AND issued_at>clock_timestamp()-interval '2 minutes'",
+          " FOR UPDATE;",
+          "IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_BIND_PERMIT_UNAVAILABLE'; END IF;",
+          "IF v_bound IS NOT NULL AND",
+          " (v_bound IS DISTINCT FROM p_pid OR v_xid IS DISTINCT FROM p_xid)",
+          " THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_TRANSACTION_REBIND_DENIED';",
+          "END IF;",
+          "UPDATE "+d+".pa05_object_host_permits",
+          " SET bound_backend_pid=p_pid,bound_transaction_id=p_xid",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND token=p_token AND NOT consumed AND NOT revoked;",
+          "RETURN 'BOUND'; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_bind_host_permit(p_scope text,p_effect text,"+
+          "p_token text,p_pid integer,p_xid text) RETURNS text "+
+          "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog "+
+          "AS $pa05$"+bindBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_bind_host_permit(text,text,text,integer,text) FROM PUBLIC");
+        await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
+          ".pa05_object_bind_host_permit(text,text,text,integer,text) TO "+'\"'+hostRole+'\"');
         // D14C7: one-effect revocation is a durable PostgreSQL row transition.
         // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
         // same permit row. A committed effect returns COMMITTED, not REVOKED.
