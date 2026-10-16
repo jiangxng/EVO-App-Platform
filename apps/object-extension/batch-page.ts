@@ -193,6 +193,22 @@ export function createObjectExtensionBatchImportPageV010(input: {
   ];
   // BEX owns source values, matched field IDs and business choices.
   // Eidos #187 owns generic rows, primary decision and detail disclosure.
+  // V3 decision model: attention-first, with one source row = one Human decision.
+  // Keep every original choice key/field identity and the governed batch command.
+  const reviewStatusFor = (column: string, index: number) => {
+    const selected = fields.find(field => field.key === "choice_" + index)?.initialValue;
+    if (selected === BEX_BATCH_IGNORE) return {
+      key:"ignored", label:zh ? "不导入" : "Excluded", tone:"neutral" as const
+    };
+    if (selected === BEX_BATCH_REVIEW) return {
+      key:"attention", label:zh ? "需要校对" : "Needs review", tone:"warning" as const
+    };
+    if (selected === BEX_BATCH_CREATE) return {
+      key:"proposed", label:zh ? "待新增" : "Proposed", tone:"neutral" as const
+    };
+    return {key:"suggested", label:zh ? "待确认匹配" : "Confirm match", tone:"warning" as const};
+  };
+
   const reviewGroups = columns.map((column, index) => {
     const count = job.source.rows.filter(row =>
       row[column] !== null && row[column] !== undefined
@@ -211,6 +227,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
         + " / " + job.source.rows.length
         + " · " + batchSourceExamplesV010(job, column, zh),
       primaryFieldKey: "choice_" + index,
+      reviewStatus: reviewStatusFor(column, index),
       detailFieldKeys: [
         ...(ambiguous ? ["candidate_" + index] : []),
         "label_" + index, "type_" + index, "sample_" + index
@@ -220,6 +237,28 @@ export function createObjectExtensionBatchImportPageV010(input: {
       defaultExpanded: requiresReview
     };
   });
+  const statusKeys = [...new Set(reviewGroups.map(group => group.reviewStatus.key))];
+  const needs = statusKeys.filter(key => key !== "ignored");
+  const reviewTable = {
+    columnLabels: {
+      subject: zh ? "来源列名" : "Source column",
+      evidence: zh ? "示例值" : "Examples",
+      decision: zh ? "对应系统字段" : "Target field",
+      status: zh ? "状态" : "Status"
+    },
+    filter: {
+      label: zh ? "显示" : "Show",
+      selectedId: needs.length ? "needs" : "all",
+      noMatchesMessage: zh ? "当前筛选没有需要处理的来源列，可切换至全部字段。" : "No items need review. Show all fields.",
+      options: [
+        ...(needs.length ? [{id:"needs",label:zh ? "需要关注" : "Needs attention",statusKeys:needs}] : []),
+        {id:"all",label:zh ? "全部字段" : "All fields",statusKeys},
+        ...(statusKeys.includes("ignored") ? [{
+          id:"handled",label:zh ? "不导入的列" : "Excluded",statusKeys:["ignored"]
+        }] : [])
+      ]
+    }
+  };
   return {
     contractVersion: "0.1.1" as const, kind: "form" as const,
     id: "evo-object-extension.batch-import",
@@ -235,6 +274,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
     purpose: "execute-command" as const,
     command: { code: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, inputVersion: "0.1.0" },
     reviewGroups,
+    reviewTable,
     fields,
     actions: [{ id: "create-extension-batch",
       label: zh ? "确认：批量创建并自动映射" : "Confirm: create and map selected fields",
