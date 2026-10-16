@@ -17,6 +17,10 @@ on:
       - "certification/pa05-e01-host-readiness.mjs"
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
+      - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
+      - "manager/on-demand-host-read-admission.ts"
+      - "catalog/catalog.ts"
+      - "actions/router.ts"
       - "apps/purchase-attention/host-optin.ts"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
@@ -37,6 +41,10 @@ on:
       - "certification/pa05-e01-host-readiness.mjs"
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
+      - "tests/agent-line/pa05-e01c-on-demand-admission.test.mjs"
+      - "manager/on-demand-host-read-admission.ts"
+      - "catalog/catalog.ts"
+      - "actions/router.ts"
       - "apps/purchase-attention/host-optin.ts"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
@@ -93,3 +101,15 @@ jobs:
           grep -Fq '"realProductionInstallationVerified":false' pa05-e01b.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01b.log
           if grep -Eq '# skipped [1-9][0-9]*' pa05-e01b.log; then exit 1; fi
+      - name: E01C Host runtime-on-demand registration (no production installation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01c-on-demand-admission.test.mjs | tee pa05-e01c.log
+          grep -Fq 'PA05_E01C_ON_DEMAND_HOST_ADMISSION=' pa05-e01c.log
+          grep -Fq '"loaderDeferredUntilApproval":true' pa05-e01c.log
+          grep -Fq '"actualCatalogAndOriginalRouterRuntimeRegistration":true' pa05-e01c.log
+          grep -Fq '"defaultHostUnchanged":true' pa05-e01c.log
+          grep -Fq '"productionHostWiring":false' pa05-e01c.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01c.log
+          if grep -Eq '# skipped [1-9][0-9]*' pa05-e01c.log; then exit 1; fi
