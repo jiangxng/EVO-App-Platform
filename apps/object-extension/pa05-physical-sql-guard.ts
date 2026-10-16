@@ -130,6 +130,9 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "issued_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
           "consumed boolean NOT NULL DEFAULT false,"+
           "revoked boolean NOT NULL DEFAULT false,"+
+          "approved_resource jsonb NOT NULL,approved_evidence jsonb NOT NULL,"+
+          "approved_evidence_digest text NOT NULL,"+
+          "approved_idempotency_hash text NOT NULL,"+
           "PRIMARY KEY(scope_key,effect_id))");
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_permits FROM PUBLIC");
@@ -190,7 +193,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF has_function_privilege(v_business,",
-          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text)',",
+          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
           " 'EXECUTE') THEN",
@@ -234,20 +237,25 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "v_token:=replace(gen_random_uuid()::text,'-','') ||",
           " replace(gen_random_uuid()::text,'-','');",
           "INSERT INTO "+d+".pa05_object_host_permits",
-          " (scope_key,effect_id,run_id,input_digest,context_id,enterprise_id,token)",
-          " VALUES(p_scope,p_effect,p_run,p_digest,p_context,p_enterprise,v_token);",
+          " (scope_key,effect_id,run_id,input_digest,context_id,enterprise_id,token,"+
+          " approved_resource,approved_evidence,approved_evidence_digest,"+
+          " approved_idempotency_hash)",
+          " VALUES(p_scope,p_effect,p_run,p_digest,p_context,p_enterprise,v_token,"+
+          " p_resource,p_evidence,p_evidence_digest,p_idempotency_hash);",
           "RETURN v_token; END;"
         ].join("\n");
         await tx.unsafe("CREATE FUNCTION "+d+
           ".pa05_object_issue_host_permit(p_scope text,p_run text,"+
-          "p_effect text,p_digest text,p_context text,p_enterprise text) "+
+          "p_effect text,p_digest text,p_context text,p_enterprise text,"+
+          "p_resource jsonb,p_evidence jsonb,p_evidence_digest text,"+
+          "p_idempotency_hash text) "+
           "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
           "SET search_path=pg_catalog AS $pa05$"+issueBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text) FROM PUBLIC");
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) FROM PUBLIC");
         await tx.unsafe("GRANT USAGE ON SCHEMA "+d+" TO "+'\"'+hostRole+'\"');
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text) TO "+
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) TO "+
           '\"'+hostRole+'\"');
         // D14C7: one-effect revocation is a durable PostgreSQL row transition.
         // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
@@ -286,7 +294,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
       const source=(key:string)=>"current_setting('evo.pa05."+key+"',true)";
       const body=[
         "DECLARE v_scope text;v_run text;v_effect text;v_digest text;",
-        " v_permit text;",
+        " v_permit text;v_resource jsonb;v_evidence jsonb;",
+        " v_edigest text;v_ihash text;",
         " v_context text;v_enterprise text;",
         "BEGIN",
         "IF TG_OP!='INSERT' THEN",
@@ -333,7 +342,10 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " SELECT 1 FROM "+d+".pa02_contexts c WHERE",
           " c.context_id=NEW.context_id AND c.enterprise_id=NEW.enterprise_id)",
           " THEN RETURN NEW; END IF;",
-          "SELECT p.token INTO v_permit FROM "+d+".pa05_object_host_permits p",
+          "SELECT p.token,p.approved_resource,p.approved_evidence,",
+          " p.approved_evidence_digest,p.approved_idempotency_hash",
+          " INTO v_permit,v_resource,v_evidence,v_edigest,v_ihash",
+          " FROM "+d+".pa05_object_host_permits p",
           " WHERE p.scope_key=v_scope AND p.effect_id=v_effect",
           " AND p.run_id=v_run AND p.input_digest=v_digest",
           " AND p.context_id=v_context AND p.enterprise_id=v_enterprise",
@@ -343,6 +355,29 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "IF v_permit IS NULL OR v_permit IS DISTINCT FROM "+
             source("host_permit")+" THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED'; END IF;",
+          "IF TG_TABLE_NAME='pa02_definitions' THEN",
+          " IF NEW.extension_id IS DISTINCT FROM v_resource->>'resourceId'",
+          " OR NEW.target_object_type IS DISTINCT FROM",
+          " (v_resource->'payload'->>'targetObjectType')",
+          " OR NEW.target_slot IS DISTINCT FROM",
+          " (v_resource->'payload'->>'targetSlot')",
+          " OR NEW.field_id IS DISTINCT FROM",
+          " (v_resource->'payload'->>'fieldId')",
+          " OR NEW.resource IS DISTINCT FROM v_resource",
+          " OR NEW.created_at IS DISTINCT FROM",
+          " (v_resource->>'createdAt')::timestamptz THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_APPROVED_RESOURCE_MISMATCH';",
+          " END IF; END IF;",
+          "IF TG_TABLE_NAME='pa02_owner_evidence' THEN",
+          " IF NEW.receipt_id IS DISTINCT FROM v_evidence->>'receiptId'",
+          " OR NEW.resource_id IS DISTINCT FROM v_resource->>'resourceId'",
+          " OR NEW.idempotency_hash IS DISTINCT FROM v_ihash",
+          " OR NEW.evidence_digest IS DISTINCT FROM v_edigest",
+          " OR NEW.evidence IS DISTINCT FROM v_evidence",
+          " OR NEW.recorded_at IS DISTINCT FROM",
+          " (v_evidence->>'recordedAt')::timestamptz THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_APPROVED_EVIDENCE_MISMATCH';",
+          " END IF; END IF;",
           "IF TG_TABLE_NAME='pa02_owner_evidence' THEN",
           " UPDATE "+d+".pa05_object_host_permits SET consumed=true",
           " WHERE scope_key=v_scope AND effect_id=v_effect",
