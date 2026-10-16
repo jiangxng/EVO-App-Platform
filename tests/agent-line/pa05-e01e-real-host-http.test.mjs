@@ -158,6 +158,37 @@ test("E01E actual Node Host HTTP: authenticated admin + policy + explicit confir
     const retry=await api(host,"/v1/admin/pa05/read-plugin/admit",command);
     assert.equal(retry.status,409);
     assert.equal(retry.payload.error.code,"ON_DEMAND_HOST_ALREADY_REGISTERED");
+    // Under an ALLOWING lifecycle policy, each direct and Action mutation
+    // must still require a correctly authenticated administrator. This
+    // distinguishes an auth failure from a mere absent-policy rejection.
+    const mutationRoutes=[
+      ["/v1/install",{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}],
+      ["/v1/upgrade",{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}],
+      ["/v1/enable",{packageId:PACKAGE_ID}],
+      ["/v1/disable",{packageId:PACKAGE_ID}],
+      ["/v1/uninstall",{packageId:PACKAGE_ID}]
+    ];
+    for(const [path,body] of mutationRoutes){
+      for(const bearer of [undefined,"wrong"]){
+        const rejected=await api(host,path,{method:"POST",bearer,body});
+        assert.equal(rejected.status,403,path+" rejected invalid bearer");
+      }
+    }
+    for(const code of ["app-platform.install-package",
+      "app-platform.enable-package","app-platform.disable-package",
+      "app-platform.uninstall-package","app-platform.upgrade-package"]){
+      const action={contractVersion:"0.1.0",type:"command",
+        command:{code,inputVersion:"0.1.0"},
+        values:{itemId:PACKAGE_ID,confirmed:true,trustApproved:true},
+        sourceInteractionId:"e01f-allow-policy",
+        actionId:"e01f-auth-"+code,requiresConfirmation:false};
+      for(const bearer of [undefined,"wrong"]){
+        const rejected=await api(host,"/v1/actions",{
+          method:"POST",bearer,body:action
+        });
+        assert.equal(rejected.status,403,code+" rejected invalid bearer");
+      }
+    }
     // E01F closes the E01E-found bypass: body consent alone is insufficient.
     const untrustedInstall=await api(host,"/v1/install",{
       method:"POST",
@@ -195,6 +226,7 @@ test("E01E actual Node Host HTTP: authenticated admin + policy + explicit confir
       legacyInstallerWithoutAdminBearerObserved:false,
       formerlyUnguardedInstallerNowRejected:true,
       isolatedOperatorLifecycleAuthRequired:true,
+      invalidBearerDeniedEvenWithLifecycleAllowPolicy:true,
       realOperatorInstallationAuthorizationCertified:false,
       realEnterpriseDataReadCertified:false,
       actualHumanOrAgentSessionsCertified:false,
