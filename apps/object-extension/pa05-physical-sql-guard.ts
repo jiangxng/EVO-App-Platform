@@ -154,6 +154,63 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_commands FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
 
+        // D14C11: credential rollover fences authenticated sessions that
+        // survive ALTER ROLE PASSWORD. Admin advances both role cutoffs in
+        // the SAME committed transaction as rotating the SQL passwords.
+        // Old connections are rejected by PostgreSQL, even after login.
+        await tx.unsafe("CREATE TABLE "+d+".pa05_object_sql_session_epochs ("+
+          "login_role name PRIMARY KEY,not_before timestamptz NOT NULL)");
+        await tx.unsafe("REVOKE ALL ON "+d+
+          ".pa05_object_sql_session_epochs FROM PUBLIC");
+        await tx.unsafe("REVOKE ALL ON "+d+
+          ".pa05_object_sql_session_epochs FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
+        await tx.unsafe("INSERT INTO "+d+
+          ".pa05_object_sql_session_epochs(login_role,not_before) "+
+          "VALUES($1,'-infinity'::timestamptz),($2,'-infinity'::timestamptz)",
+          [role,hostRole]);
+        const sessionBody=[
+          "DECLARE v_start timestamptz;v_epoch timestamptz;",
+          "BEGIN",
+          "IF SESSION_USER NOT IN('"+role+"','"+hostRole+"') THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_SESSION_ROLE_UNTRUSTED'; END IF;",
+          "SELECT a.backend_start INTO v_start",
+          " FROM pg_stat_activity a WHERE a.pid=pg_backend_pid()",
+          " AND a.datid=(SELECT oid FROM pg_database",
+          " WHERE datname=current_database())",
+          " AND a.usesysid=(SELECT oid FROM pg_roles",
+          " WHERE rolname=SESSION_USER);",
+          "SELECT e.not_before INTO v_epoch",
+          " FROM "+d+".pa05_object_sql_session_epochs e",
+          " WHERE e.login_role=SESSION_USER;",
+          "IF v_start IS NULL OR v_epoch IS NULL OR v_start<=v_epoch THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_SESSION_ROTATED'; END IF;",
+          "RETURN; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_assert_fresh_session() RETURNS void "+
+          "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog "+
+          "AS $pa05$"+sessionBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_assert_fresh_session() FROM PUBLIC");
+        // Admin only, not the Host or Business SQL login. The actual
+        // password changes are DBA operations, not user supplied inputs.
+        const advanceBody=[
+          "BEGIN",
+          "IF SESSION_USER!='"+adminLogin+"' OR",
+          " p_role NOT IN('"+role+"','"+hostRole+"') THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_EPOCH_ADMIN_REQUIRED'; END IF;",
+          "UPDATE "+d+".pa05_object_sql_session_epochs",
+          " SET not_before=clock_timestamp() WHERE login_role=p_role;",
+          "IF NOT FOUND THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_EPOCH_ROW_MISSING'; END IF;",
+          "RETURN 'ROTATED'; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_advance_sql_session_epoch(p_role text) RETURNS text "+
+          "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog "+
+          "AS $pa05$"+advanceBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_advance_sql_session_epoch(text) FROM PUBLIC");
         // D14C6: re-attest real database role grants INSIDE SQL authority,
         // not in an optional JS wrapper. A committed GRANT / membership
         // change invalidates both subsequent Host issuances and Owner writes.
@@ -161,6 +218,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         const driftBody=[
           "DECLARE v_business oid;v_host oid;",
           "BEGIN",
+          "PERFORM "+d+".pa05_object_assert_fresh_session();",
           "SELECT oid INTO v_business FROM pg_roles WHERE rolname='"+role+"';",
           "SELECT oid INTO v_host FROM pg_roles WHERE rolname='"+hostRole+"';",
           "IF v_business IS NULL OR v_host IS NULL THEN",
@@ -178,10 +236,11 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " JOIN pg_namespace n ON n.oid=c.relnamespace",
           " WHERE (n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
-          " 'pa05_object_host_permits','pa05_object_host_commands')) OR",
+          " 'pa05_object_host_permits','pa05_object_host_commands',",
+          " 'pa05_object_sql_session_epochs')) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
-          " 'pa05_xdb_remote_config'))) != 8 THEN",
+          " 'pa05_xdb_remote_config'))) != 9 THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF EXISTS(SELECT 1 FROM pg_roles a",
           " JOIN pg_roles delegated ON delegated.oid=a.oid OR",
@@ -191,7 +250,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " WHERE a.oid IN(v_business,v_host) AND",
           " ((n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
-          " 'pa05_object_host_permits','pa05_object_host_commands')) OR",
+          " 'pa05_object_host_permits','pa05_object_host_commands',",
+          " 'pa05_object_sql_session_epochs')) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
           " 'pa05_xdb_remote_config'))) AND",
@@ -204,7 +264,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " has_table_privilege(delegated.oid,c.oid,'MAINTAIN') OR",
           " ((n.nspname='"+worker+"' OR",
           " c.relname IN('pa05_object_host_permits',",
-          " 'pa05_object_host_commands') OR",
+          " 'pa05_object_host_commands','pa05_object_sql_session_epochs') OR",
           " a.oid=v_host) AND",
           " (has_table_privilege(delegated.oid,c.oid,'SELECT') OR",
           " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
@@ -217,6 +277,10 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_bind_host_permit(text,text,text,integer,text)',",
+          " 'EXECUTE') OR has_function_privilege(v_business,",
+          " '"+object+".pa05_object_advance_sql_session_epoch(text)',",
+          " 'EXECUTE') OR has_function_privilege(v_host,",
+          " '"+object+".pa05_object_advance_sql_session_epoch(text)',",
           " 'EXECUTE') THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
