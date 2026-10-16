@@ -1,7 +1,7 @@
 import type { DataImportJobV010 } from "../data-import/types.js";
 import type { ObjectExtensionDefinitionV010 } from "../../contracts/foundation-object/extension.js";
 import { DATA_IMPORT_DIRECTORY_ROUTE, dataImportMappingRouteV010 } from "../data-import/constants.js";
-import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "./constants.js";
+import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010 } from "./constants.js";
 
 export type BexImportTargetField = {
   fieldId: string;
@@ -77,11 +77,17 @@ export function createObjectExtensionBatchImportPageV010(input: {
   job: DataImportJobV010;
   definitions: ObjectExtensionDefinitionV010[];
   importableTargets?: BexImportTargetField[];
+  /** Only a draft belonging to the authorized Human may be shown. */
+  actorSubjectId?: string;
   locale?: string;
 }) {
   const { job } = input;
   const zh = input.locale?.startsWith("zh") ?? false;
   const columns = batchUnmappedColumnsV010(job);
+  const draft=input.actorSubjectId
+    ? job.batchReviewDrafts?.find(d=>d.actorSubjectId===input.actorSubjectId)
+    : undefined;
+  const draftChoices=new Map(draft?.columns.map(d=>[d.sourceColumn,d] as const) ?? []);
   const available = batchApplicableDefinitionsV010(job, input.definitions);
   const usedTargets = new Set(job.mapping.map(x => x.targetFieldId));
   const all: BexImportTargetField[] = input.importableTargets ?? available.map(x => ({
@@ -150,6 +156,11 @@ export function createObjectExtensionBatchImportPageV010(input: {
         : same.length === 1 && !usedTargets.has(same[0].fieldId)
           ? same[0].fieldId
           : same.length > 0 || metadataLike.test(column) ? BEX_BATCH_REVIEW : BEX_BATCH_CREATE;
+      const savedDecision=draftChoices.get(column);
+      const originalOptions=new Set([BEX_BATCH_CREATE,BEX_BATCH_IGNORE,
+        BEX_BATCH_REVIEW,...fieldOptions.map(o=>o.value)]);
+      const selectedAction=savedDecision && originalOptions.has(savedDecision.choice)
+        ? savedDecision.choice : action;
       const count = job.source.rows.filter(row =>
         row[column] !== null && row[column] !== undefined && String(row[column]).trim() !== ""
       ).length;
@@ -167,7 +178,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
           semanticType: "object-extension-batch-action", control: "select" as const,
           exclusiveSelect: { group: "bex-batch-targets",
             exemptValues: [BEX_BATCH_CREATE, BEX_BATCH_IGNORE, BEX_BATCH_REVIEW] },
-          required: true, initialValue: action,
+          required: true, initialValue: selectedAction,
           options: [
             { value: BEX_BATCH_CREATE, label: zh ? "＋ 建议新建企业字段（集中审核确认）" : "+ Propose enterprise field (batch approval)" },
             { value: BEX_BATCH_IGNORE, label: zh ? "忽略此列" : "Ignore column" },
@@ -176,10 +187,10 @@ export function createObjectExtensionBatchImportPageV010(input: {
           ] },
         { key: "label_" + i, label: column + (zh ? " · 业务字段名称" : " · Field name"),
           semanticType: "object-extension-batch-label", control: "text" as const,
-          required: true, initialValue: column },
+          required: true, initialValue: savedDecision?.label ?? column },
         { key: "type_" + i, label: column + (zh ? " · 数据类型" : " · Data type"),
           semanticType: "object-extension-batch-type", control: "select" as const,
-          required: true, initialValue: batchSuggestedTypeV010(job, column),
+          required: true, initialValue: savedDecision?.valueType ?? batchSuggestedTypeV010(job, column),
           options: [
             { value: "STRING", label: zh ? "文本" : "Text" },
             { value: "NUMBER", label: zh ? "数字" : "Number" },
@@ -278,8 +289,9 @@ export function createObjectExtensionBatchImportPageV010(input: {
       control: "select" as const, required: true,
       // Only the explicitly persisted constant is restored; never guess
       // ORGANIZATION from a supplier relationship role or a sample.
-      initialValue: subjectConstant?.transform?.kind === "CONSTANT"
-        ? String(subjectConstant.transform.value) : "__KEEP__",
+      initialValue: draft?.batchSubjectType ?? (
+        subjectConstant?.transform?.kind === "CONSTANT"
+          ? String(subjectConstant.transform.value) : "__KEEP__"),
       options: [
         {value:"__KEEP__",label:zh ? "— 不设置批次固定值 —" : "— No batch constant —"},
         {value:"ORGANIZATION",label:zh ? "机构／法人（ORGANIZATION）" : "Organization"},
@@ -392,7 +404,9 @@ export function createObjectExtensionBatchImportPageV010(input: {
       subtitle: (zh ? "集中审核 · " : "Batch review · ") +
         job.source.rows.length + (zh ? " 条记录 · " : " rows · ") +
         columns.length + (zh ? " 列待处理" : " pending columns"),
-      statusLabel: zh ? "原始 Excel 已保留" : "Original Excel retained",
+      statusLabel: draft
+        ? (zh ? "当前审核人的未批准草稿已恢复" : "Your unapproved review draft restored")
+        : (zh ? "原始 Excel 已保留" : "Original Excel retained"),
       facts: [
         { id: "sourceColumns", label: zh ? "来源列总数" : "Source columns",
           value: String(job.source.headers.length) },
@@ -454,7 +468,11 @@ export function createObjectExtensionBatchImportPageV010(input: {
     actions: [{ id: "create-extension-batch",
       label: zh ? "确认：批量创建并自动映射" : "Confirm: create and map selected fields",
       type: "submit" as const, command: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
-      requiresConfirmation: true }],
+      requiresConfirmation: true },
+      { id: "save-review-draft",
+        label: zh ? "保存当前审核草稿（不创建字段）" : "Save review draft (no field creation)",
+        type: "submit" as const, command: OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010,
+        requiresConfirmation: false }],
     metadata: {
       packageId: "evo-object-extension", featureId: "evo-object-extension.default",
       importJobId: job.importJobId, unmatchedColumns: columns.length,

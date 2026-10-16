@@ -113,6 +113,19 @@ export interface DataImportExperienceLearningV010 {
   diagnostic?: string;
 }
 
+/** Owner-scoped, non-approved Human choices. Never drives import commit or schema changes. */
+export interface DataImportBatchReviewDraftV010 {
+  actorSubjectId: string;
+  recordedAt: string;
+  columns: Array<{
+    sourceColumn: string;
+    choice: string;
+    label: string;
+    valueType: "STRING" | "NUMBER" | "BOOLEAN" | "DATE";
+  }>;
+  batchSubjectType?: "__KEEP__" | "ORGANIZATION" | "PERSON";
+}
+
 export interface DataImportJobV010 {
   contractVersion: "0.1.0";
   importJobId: string;
@@ -121,6 +134,8 @@ export interface DataImportJobV010 {
   state: DataImportJobStateV010;
   source: DataImportSourceV010;
   mapping: DataImportMappingV010[];
+  /** Per-Human review only; saving drafts cannot approve enterprise definitions. */
+  batchReviewDrafts?: DataImportBatchReviewDraftV010[];
   /** Explicitly ignored source columns. All original cells remain in source.rows. */
   ignoredSourceColumns?: string[];
   /** Human-confirmed overrides; original Excel cells remain in source.rows. */
@@ -357,6 +372,53 @@ export function assertDataImportJobV010(
       rows: structuredClone(value.source.rows)
     },
     mapping,
+    ...(value.batchReviewDrafts !== undefined ? {
+      batchReviewDrafts: (() => {
+        if (!Array.isArray(value.batchReviewDrafts)
+          || value.batchReviewDrafts.length > 16) {
+          throw new Error("DATA_IMPORT_BATCH_DRAFTS_INVALID");
+        }
+        const seenActors=new Set<string>();
+        return value.batchReviewDrafts.map(draft=>{
+          if (!draft || typeof draft !== "object"
+            || typeof draft.actorSubjectId !== "string"
+            || !draft.actorSubjectId.trim()
+            || typeof draft.recordedAt !== "string"
+            || !draft.recordedAt.trim()
+            || !Array.isArray(draft.columns) || draft.columns.length > 200
+            || seenActors.has(draft.actorSubjectId)
+            || draft.batchSubjectType !== undefined && ![
+              "__KEEP__","ORGANIZATION","PERSON"
+            ].includes(draft.batchSubjectType)) {
+            throw new Error("DATA_IMPORT_BATCH_DRAFT_INVALID");
+          }
+          seenActors.add(draft.actorSubjectId);
+          const used=new Set<string>();
+          const columns=draft.columns.map(entry=>{
+            if (!entry || typeof entry.sourceColumn !== "string"
+              || !headers.includes(entry.sourceColumn)
+              || used.has(entry.sourceColumn)
+              || typeof entry.choice !== "string" || !entry.choice.trim()
+              || entry.choice.length > 160
+              || typeof entry.label !== "string"
+              || !entry.label.trim() || entry.label.length > 80
+              || !["STRING","NUMBER","BOOLEAN","DATE"].includes(entry.valueType)) {
+              throw new Error("DATA_IMPORT_BATCH_DRAFT_INVALID");
+            }
+            used.add(entry.sourceColumn);
+            return {...entry};
+          });
+          return {
+            actorSubjectId:draft.actorSubjectId,
+            recordedAt:draft.recordedAt,
+            columns,
+            ...(draft.batchSubjectType ? {
+              batchSubjectType:draft.batchSubjectType
+            } : {})
+          };
+        });
+      })()
+    } : {}),
     ...(ignoredSourceColumns.length ? { ignoredSourceColumns } : {}),
     ...(corrections.length ? { rowCorrections: corrections } : {}),
     ...(value.mappingOrigin

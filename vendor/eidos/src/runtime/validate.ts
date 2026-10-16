@@ -1108,23 +1108,19 @@ export function validateUidl(
   }
 
   const submits = actions.filter(action => action.type === "submit");
-  if (submits.length !== 1) {
-    out.push(d(
-      "EIDOS_SUBMIT_CARDINALITY",
-      "$.actions",
-      `Exactly one submit action is required; found ${submits.length}`
-    ));
+  if (submits.length < 1 || submits.length > 3) {
+    out.push(d("EIDOS_SUBMIT_CARDINALITY", "$.actions",
+      `One to three declared submit actions are allowed; found ${submits.length}`));
   }
-  if (
-    command
-    && submits[0]?.command
-    && submits[0].command !== command.code
-  ) {
-    out.push(d(
-      "EIDOS_COMMAND_MISMATCH",
-      "$.actions",
-      "Submit action command must match document command.code"
-    ));
+  if (command && submits[0]?.command && submits[0].command !== command.code) {
+    out.push(d("EIDOS_COMMAND_MISMATCH", "$.actions",
+      "Primary submit command must match document command.code"));
+  }
+  for (const [index,action] of submits.entries()) {
+    if (index > 0 && !action.command) {
+      out.push(d("EIDOS_ADDITIONAL_SUBMIT_COMMAND_REQUIRED",
+        "$.actions", "Every secondary submit requires an explicit command"));
+    }
   }
 
   if (document.metadata !== undefined) {

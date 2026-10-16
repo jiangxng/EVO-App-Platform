@@ -124,6 +124,7 @@ export interface FormRenderModelV010 {
   command: { code: string; inputVersion: string };
   fields: RenderFieldV010[];
   submitAction: { id: string; label: string; requiresConfirmation: boolean };
+  submitActions: Array<{ id: string; label: string; command: string; requiresConfirmation: boolean }>;
   cancelActions: Array<{ id: string; label: string }>;
   agentActions: Array<{
     id: string;

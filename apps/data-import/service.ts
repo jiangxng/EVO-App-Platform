@@ -667,6 +667,9 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: "STAGED",
         mapping: structuredClone(mappingInput.mapping),
+        // Approval or any authoritative mapping change invalidates old draft
+        // proposals. Draft save itself uses a separate repository path.
+        batchReviewDrafts: undefined,
         rowCorrections: (job.rowCorrections ?? []).filter(item =>
           mappingInput.mapping.some(nextMap =>
             nextMap.sourceColumn === item.sourceColumn
