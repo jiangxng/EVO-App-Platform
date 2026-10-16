@@ -66,7 +66,7 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
       const rows=await sql.unsafe("SELECT "+register+
         "($1,$2,$3,$4,$5,$6,$7::jsonb) AS state",[
           request.scopeKey,r.runId,r.effectId,r.inputDigest,
-          a.contextId,a.enterpriseId,
+          a.contextId,a.enterpriseId!,
           sql.json(JSON.parse(json(source)))
         ]);
       if(rows[0]?.state!=="APPROVED")
