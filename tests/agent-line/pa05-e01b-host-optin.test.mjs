@@ -199,17 +199,16 @@ test("E01B: unsupported tenant is denied without crossing EVO reader boundary",a
   assert.equal(f.state.sourceCalls,0);
 });
 
-test("E01B: actual server code is gated, lazy, default-OFF and does not auto-install",()=>{
+test("E01B: default Host remains unchanged; adapter only composes out of band",()=>{
   const source=readFileSync(new URL("../../manager/server.ts",import.meta.url),"utf8");
-  assert.match(source,/APP_PLATFORM_PA05_E01_PURCHASE_ATTENTION_HOST/);
-  assert.match(source,/pa05PurchaseAttentionMode === "OPT_IN"/);
-  assert.match(source,/pa05PurchaseAttentionMode !== "OFF"/);
-  assert.match(source,/PA05_E01_HOST_MODE_INVALID/);
-  assert.match(source,/await import\("\.\.\/apps\/purchase-attention\/host-optin\.js"\)/);
-  assert.match(source,/optionalPa05PurchaseAttentionHost\.createPurchaseAttentionHostActionHandlerV010/);
+  // CI's lightweight-Host dependency ratchet rejects even a startup
+  // conditional dynamic import. The real server must remain unchanged.
+  assert.doesNotMatch(source,/APP_PLATFORM_PA05_E01_PURCHASE_ATTENTION_HOST/);
+  assert.doesNotMatch(source,/createPurchaseAttentionHostActionHandlerV010/);
+  assert.doesNotMatch(source,/purchaseAttentionPackageV010/);
   assert.doesNotMatch(source,/installBusinessDefaultOnce\(PURCHASE_ATTENTION/);
   console.log("PA05_E01B_HOST_OPTIN="+JSON.stringify({
-    defaultMode:"OFF",trustedOptInMode:"OPT_IN",
+    defaultHostUnchanged:true,pluginOwnedLazyAdapterReady:true,
     sourceRouterReused:true,sourceAndTargetRightsIndependentlyChecked:true,
     installRemainsExplicit:true,realProductionInstallationVerified:false,
     liveHumanProviderCertified:false,productionWriteEnabled:false
