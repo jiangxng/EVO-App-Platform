@@ -79,7 +79,7 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
         "($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10) AS token",[
           request.scopeKey,request.runId,request.effectId,
           request.inputDigest,request.contextId,request.enterpriseId,
-          json(resource),json(evidence),request.approvedEvidenceDigest,
+          canonical(resource),canonical(evidence),request.approvedEvidenceDigest,
           request.approvedIdempotencyHash
         ]);
       const token=rows[0]?.token;
