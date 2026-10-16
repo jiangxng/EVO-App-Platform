@@ -84,6 +84,9 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(map_form).to_be_visible(timeout=30000)
+    expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
+    expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
+        "BEX-SYNTHETIC-RET-172.xlsx")
     expect(map_form.locator('[data-eidos-form-task-overview]')).to_be_visible()
     expect(map_form.locator('[data-eidos-form-task-metric]')).to_have_count(4)
     expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(3)
