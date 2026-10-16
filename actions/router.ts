@@ -6,6 +6,9 @@ import type {
 } from "./contracts.js";
 
 export interface AppActionRouter {
+  /** Trusted Host only; never expose handler registration to user tools. */
+  hasHandler(commandCode: string): boolean;
+  registerHandler(handler: AppActionHandler): void;
   execute(
     request: AppActionRequestV010,
     context?: PlatformRequestContextV010
@@ -36,6 +39,15 @@ export function createAppActionRouter(
   }
 
   return {
+    hasHandler(commandCode) {
+      return byCommand.has(commandCode);
+    },
+    registerHandler(handler) {
+      if (byCommand.has(handler.commandCode)) {
+        throw new Error(`DUPLICATE_ACTION_HANDLER: ${handler.commandCode}`);
+      }
+      byCommand.set(handler.commandCode, handler);
+    },
     async execute(request, context) {
       if (request.contractVersion !== "0.1.0" || request.type !== "command") {
         return {
