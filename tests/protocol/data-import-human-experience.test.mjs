@@ -803,7 +803,9 @@ test("CP-03D EC learns a Human-confirmed field mapping and reuses it across a di
     field => field.semanticType === "data-import-ec-recommendation"
   );
   assert.ok(advisoryField);
-  assert.match(advisoryField.initialValue, /编码 → 往来编码 · code/);
+  assert.match(advisoryField.initialValue, /编码 → 往来编码 · 90%/);
+  assert.doesNotMatch(advisoryField.initialValue, /· code/,
+    "EC suggestion is business-readable; the actual mapped option value is still code");
   assert.match(advisoryField.initialValue, /90%/);
 });
 
