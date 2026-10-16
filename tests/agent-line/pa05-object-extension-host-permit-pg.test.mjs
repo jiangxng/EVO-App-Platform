@@ -308,6 +308,10 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         ".pa02_contexts(context_id,enterprise_id) VALUES($1,$2)",
         [scope.contextId,scope.enterpriseId]);
     });
+    // D14C10: a real issued but not yet backend/XID-bound Host token,
+    // even with a genuine D10 ticket, cannot insert a business context.
+    await assert.rejects(orphanWrite(),
+      /PA05_OBJECT_SQL_TRANSACTION_BIND_REQUIRED/);
     // A permit already exists: granting its protected table to the
     // business credential must not open a physical-write window.
     await db.unsafe('GRANT SELECT ON '+d+
