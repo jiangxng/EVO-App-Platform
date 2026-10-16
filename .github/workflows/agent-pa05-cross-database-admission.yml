@@ -13,6 +13,8 @@ on:
       - "apps/object-extension/agent-owner-postgres.ts"
       - "apps/object-extension/pa05-physical-sql-guard.ts"
       - "apps/object-extension/pa05-host-sql-permit.ts"
+      - "scripts/ci/pa05-host-mtls-setup.sh"
+      - "scripts/ci/pa05-host-mtls-revoke.sh"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
@@ -121,6 +123,10 @@ jobs:
           grep -Fq 'PA05_ACTUAL_OBJECT_SQL_TRANSACTION_BINDING_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_SQL_HOST_MTLS_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_HOST_TLS_REVOKE_RENEW_PG=' pa05-xdb.log
+          grep -Fq '"newHandshakeRevokedCertificateDenied":true' pa05-xdb.log
+          grep -Fq '"oldTlsHostPrivilegeDeniedAfterDbCutover":true' pa05-xdb.log
+          grep -Fq '"renewedCertificateOriginalOwnerAndVerifierSucceeded":true' pa05-xdb.log
           grep -Fq '"originalRawOwnerDeniedEvenWithValidTicket":true' pa05-xdb.log
           grep -Fq '"privilegedTableOwnerCanStillDisableTrigger":true' pa05-xdb.log
           grep -Fq '"originalOwnerDirectBypassStillPossible":true' pa05-xdb.log
