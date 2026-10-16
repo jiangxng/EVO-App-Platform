@@ -82,6 +82,34 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
+    expect(form.locator('[data-eidos-form-review-group]')).to_have_count(17)
+    expect(form.locator('[data-eidos-review-group-primary] select')).to_have_count(17)
+    # The Eidos framework renders a compact generic group. Business controls
+    # remain the exact same 17 one-to-one source-column keys and Host actions.
+    phone=browser.new_context(viewport={"width":390,"height":844},
+        is_mobile=True,has_touch=True,locale="zh-CN")
+    phone.add_init_script("""
+      if(location.origin===%s){
+        localStorage.setItem("evo.context.id",%s);
+        localStorage.setItem("evo.locale","zh-CN");
+      }
+    """ % (json.dumps(HOST),json.dumps(CTX)))
+    small=phone.new_page()
+    small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
+    mobile_form=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
+    expect(mobile_form).to_be_visible(timeout=30000)
+    expect(mobile_form.locator('[data-eidos-form-review-group]')).to_have_count(17)
+    expect(mobile_form.locator('[data-eidos-review-group-primary] select')).to_have_count(17)
+    mobile_group=mobile_form.locator('[data-eidos-form-review-group]').first
+    mobile_group.locator('[data-eidos-review-group-detail] summary').click()
+    expect(mobile_group.locator('input[name="label_0"]')).to_be_visible()
+    geometry=small.evaluate("""() => ({
+      viewport:innerWidth,document:document.documentElement.scrollWidth
+    })""")
+    assert geometry["document"]<=geometry["viewport"]+2,geometry
+    small.screenshot(path=str(OUT/"v3-eidos-grouped-batch-17-phone.png"),full_page=True)
+    phone.close()
+    print("BEX01_V3_EIDOS_GROUPED_17_PHONE_PASS",flush=True)
     for i,label in enumerate(FIELDS):
         expect(form.locator('select[name="choice_%d"]'%i)).to_have_value("__CREATE__")
         expect(form.locator('input[name="label_%d"]'%i)).to_have_value(label)
