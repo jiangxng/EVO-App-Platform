@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import postgres from "postgres";
 import {readFileSync} from "node:fs";
+import {execFileSync} from "node:child_process";
 import {
   preparePostgresObjectExtensionOwnerSchemaV010,
   createPostgresObjectExtensionAtomicOwnerV010,
@@ -59,13 +60,18 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
   // D14C12 files are ephemeral runner-only CA/cert/key material, never
   // checked into Git or used in a production environment.
   for(const name of ["PA05_C12_CA_CERT","PA05_C12_HOST_CERT",
-    "PA05_C12_HOST_KEY","PA05_C12_BAD_CERT","PA05_C12_BAD_KEY"])
+    "PA05_C12_HOST_KEY","PA05_C12_BAD_CERT","PA05_C12_BAD_KEY",
+    "PA05_C13_RENEWED_CERT","PA05_C13_RENEWED_KEY",
+    "PA05_C13_WORKER_A_CONTAINER"])
     assert.ok(process.env[name],"PA05_C12_ACTUAL_TLS_CERT_MISSING:"+name);
   const hostTls={
     ca:readFileSync(process.env.PA05_C12_CA_CERT,"utf8"),
     cert:readFileSync(process.env.PA05_C12_HOST_CERT,"utf8"),
     key:readFileSync(process.env.PA05_C12_HOST_KEY,"utf8")
   };
+  const renewedHostTls={ca:hostTls.ca,
+    cert:readFileSync(process.env.PA05_C13_RENEWED_CERT,"utf8"),
+    key:readFileSync(process.env.PA05_C13_RENEWED_KEY,"utf8")};
   const wrongHostTls={ca:hostTls.ca,
     cert:readFileSync(process.env.PA05_C12_BAD_CERT,"utf8"),
     key:readFileSync(process.env.PA05_C12_BAD_KEY,"utf8")};
@@ -75,6 +81,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
   assert.equal(new Set(systems).size,3);
   let authority,gateway,raw,guarded,issuer,privileged,stolen;
   let originalHost,originalOwner,originalRaw,rotatingOwner,rotatedIssuer,rotatedOwner,oldHost,rrStale;
+  let liveTlsHost,renewedTlsHost,renewedIssuer,renewedOwner,revokedIssuer,revokedOwner;
   const issued=[];
   const w=q(workerSchema),d=q(ownerSchema);
   const scopeKey=hostAgentDurabilityScopeKeyV020(scope);
@@ -799,6 +806,98 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       releaseRotating?.();
       rrReleaseResolve?.();
     }
+    // D14C13: demonstrate a real Host TLS backend surviving CA revocation,
+    // and separately prove the DB certificate pin/role epochs stop it.
+    liveTlsHost=postgres(u(urls[1],hostRole,newPw),{max:1,idle_timeout:120,
+      ssl:{...hostTls,rejectUnauthorized:true}});
+    const tlsPid=(await liveTlsHost.unsafe("SELECT pg_backend_pid() AS pid"))[0].pid;
+    const certSource=request("tls-old-live-session");
+    const liveRegister=async (conn,r)=>conn.unsafe("SELECT "+d+
+      ".pa05_object_register_host_command"+
+      "($1,$2,$3,$4,$5,$6,$7::jsonb) AS state",[
+      scopeKey,r.runId,r.effectId,r.inputDigest,scope.contextId,
+      scope.enterpriseId,JSON.stringify({runId:r.runId,effectId:r.effectId,
+        receiptId:r.receiptId,idempotencyKey:r.idempotencyKey,
+        inputDigest:r.inputDigest,toolId:r.toolId,
+        contextId:scope.contextId,enterpriseId:scope.enterpriseId,
+        principalSubjectId:scope.principalSubjectId,
+        principalActorType:scope.principalActorType,
+        arguments:r.arguments})
+    ]);
+    assert.equal((await liveRegister(liveTlsHost,certSource))[0].state,
+      "APPROVED");
+    await assert.rejects(liveTlsHost.unsafe("SELECT "+d+
+      ".pa05_object_cutover_host_tls($1,$2)",["4242",false]),
+      /permission denied/);
+    assert.equal((await db.unsafe("SELECT "+d+
+      ".pa05_object_cutover_host_tls($1,$2) AS state",
+      ["4242",false]))[0].state,"REVOKED");
+    // SQL revocation alone does not force TLS to disconnect. The same
+    // authenticated PID can still SELECT but has NO Host authority.
+    assert.equal((await liveTlsHost.unsafe("SELECT pg_backend_pid() AS pid"))[0].pid,tlsPid);
+    await assert.rejects(liveRegister(liveTlsHost,
+      request("tls-old-session-denied")),
+      /PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED/);
+    assert.equal((await db.unsafe("SELECT enabled FROM "+d+
+      ".pa05_object_host_tls_policy WHERE slot=true"))[0].enabled,false);
+    // An actually signed CRL is copied into PG18 and its SSL config
+    // reloaded; a fresh connection with the revoked cert must fail TLS.
+    const applied=execFileSync("bash",[
+      "scripts/ci/pa05-host-mtls-revoke.sh",
+      process.env.PA05_C13_WORKER_A_CONTAINER
+    ],{encoding:"utf8",timeout:30000});
+    assert.match(applied,/PA05_D14C13_ACTUAL_PG18_CRL_RELOADED/);
+    const newOldCert=postgres(u(urls[1],hostRole,newPw),{max:1,
+      connect_timeout:3,ssl:{...hostTls,rejectUnauthorized:true}});
+    try{
+      await assert.rejects(newOldCert.unsafe("SELECT 1"),
+        /revoked|certificate|SSL|TLS|authentication|pg_hba/i);
+    }finally{await newOldCert.end();}
+    renewedTlsHost=postgres(u(urls[1],hostRole,newPw),{max:1,
+      ssl:{...renewedHostTls,rejectUnauthorized:true}});
+    assert.equal((await renewedTlsHost.unsafe("SELECT 1 AS alive"))[0].alive,1);
+    await assert.rejects(liveRegister(renewedTlsHost,
+      request("tls-new-before-cutover")),
+      /PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED/);
+    // Second DBA transaction activates the newly issued leaf and
+    // advances epochs again; old backend stays denied.
+    assert.equal((await db.unsafe("SELECT "+d+
+      ".pa05_object_cutover_host_tls($1,$2) AS state",
+      ["5252",true]))[0].state,"ROTATED");
+    await assert.rejects(liveRegister(liveTlsHost,
+      request("tls-old-even-after-renewal")),
+      /PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED/);
+    revokedIssuer=issuer;revokedOwner=guarded;
+    renewedIssuer=createPa05ObjectExtensionHostPermitIssuerV010({
+      connectionString:u(urls[1],hostRole,newPw),
+      objectSchema:ownerSchema,hostTls:renewedHostTls
+    });
+    renewedOwner=createPostgresObjectExtensionAtomicOwnerV010({
+      connectionString:u(urls[1],businessRole,newPw),schema:ownerSchema,
+      pa05PhysicalAdmission:{workerSchema,hostPermitIssuer:renewedIssuer}
+    });
+    issuer=renewedIssuer;guarded=renewedOwner;
+    const reissued=request("tls-renewed-real-owner");
+    await seed(reissued);
+    await gateway.stagePreparedEffect({scopeKey,effectId:reissued.effectId});
+    await start(reissued);
+    await guarded.owner.invoke(reissued);
+    assert.equal((await guarded.verifier.verify({
+      scope,runId:reissued.runId,effectId:reissued.effectId,
+      receiptId:reissued.receiptId,inputDigest:reissued.inputDigest,
+      ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID
+    })).outcome,"SUCCEEDED");
+    console.log("PA05_ACTUAL_OBJECT_SQL_HOST_TLS_REVOKE_RENEW_PG="+
+      JSON.stringify({physicalClusters:3,realPlugin:"evo-object-extension",
+        actualSignedCrlLoadedIntoPostgresql18:true,
+        newHandshakeRevokedCertificateDenied:true,
+        oldAuthenticatedTlsBackendStillAlive:true,
+        oldTlsHostPrivilegeDeniedAfterDbCutover:true,
+        renewedDifferentSerialAllowedAfterAdminCutover:true,
+        previousBusinessSessionEpochAlsoRetired:true,
+        renewedCertificateOriginalOwnerAndVerifierSucceeded:true,
+        productionPkiAndWorkloadIdentityCertified:false,
+        productionWriteEnabled:false}));
     // Previously INVOKING but not committed: local STOP acquires the same
     // config row lock, and the physical business table trigger checks it.
     const frozen=request("frozen-uncommitted");
@@ -811,7 +910,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(raw.owner.invoke(frozen),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+
-      d+".pa02_owner_evidence"))[0].n,4);
+      d+".pa02_owner_evidence"))[0].n,6);
 
     // A privileged database table owner can still disable the physical SQL
     // trigger. This remains a named production blocker, not a signoff.
@@ -846,7 +945,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         " ENABLE TRIGGER pa05_object_commit_receipt_guard");
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
-    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,9);
+    assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,10);
     console.log("PA05_ACTUAL_OBJECT_SQL_HOST_MTLS_PG="+JSON.stringify({
       physicalClusters:3,realPlugin:"evo-object-extension",
       postgresql18ActualHostsslHbaVerifiedCARequired:true,
@@ -955,7 +1054,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       privilegedHostMachineCertified:false
     }));
   }finally{
-    for(const x of [oldHost,rrStale,rotatingOwner,originalHost,originalOwner,
+    for(const x of [liveTlsHost,renewedTlsHost,renewedIssuer,renewedOwner,
+      revokedIssuer,revokedOwner,oldHost,rrStale,rotatingOwner,originalHost,originalOwner,
       originalRaw,rotatedIssuer,rotatedOwner,stolen,guarded,raw,
       privileged,issuer,gateway,authority])
       if(x)try{await x.close();}catch{}
