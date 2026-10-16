@@ -153,7 +153,9 @@ export async function createPa05SharedReadOwnerGateV010(input: {
         return next;
       });
     },
-    async withReadAdmission<T>({hostId,expectedEpoch: epoch,perform}: {\n      hostId: string; expectedEpoch: number; perform(): Promise<T>\n    }): Promise<T> {
+    async withReadAdmission<T>({hostId,expectedEpoch: epoch,perform}: {
+      hostId: string; expectedEpoch: number; perform(): Promise<T>
+    }): Promise<T> {
       expectedEpoch(epoch);
       if(!declared.includes(hostId) || typeof perform!=="function")
         throw Error("PA05_READ_SQL_HOST_NOT_TRUSTED");
