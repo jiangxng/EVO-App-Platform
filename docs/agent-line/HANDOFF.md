@@ -1,5 +1,7 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-04D14C12 当前候选工程：** [真实 PG18 TLS 客户端证书与独立 Host SQL 权限绑定、HBA 真正验证 CA、错误证书和无证书拒绝、未签生产 PKI/工作负载身份](PA05-D14C12-ACTUAL-POSTGRESQL-CLIENT-CERT-HOST-IDENTITY-20261016.md) · [专项认证基线 §42](PA05-CERTIFICATION-BASELINE-20261015.md)。只增强 opt-in Object Extension 三库测试；保留已合并 #969 的 SQL 凭据轮换、真实 Owner、D9–D14C11。#913 OPEN，PA05/W06 NOT_SIGNED，生产 WRITE OFF；不改 BEX/Eidos/2D 或全局状态。
+
 > **2026-10-16 PA05-04D14C11 当前工程：** [真实 Host/Business SQL 密码轮换后旧认证连接失效、水位锁与旧事务回滚、官方 PostgreSQL18 原文与未签生产机器身份](PA05-D14C11-SQL-CREDENTIAL-SESSION-ROTATION-20261016.md) · [专项认证基线 §41](PA05-CERTIFICATION-BASELINE-20261015.md)。从已合并 [#967](https://github.com/jiangxng/EVO-App-Platform/pull/967) 接续，继续独立三实例 PG18；受保护水位**必须由可信 DBA 与 SQL 密码变更同事务提交**，未声称无协调的密码变更自动阻断。Issue #913 OPEN、PA05/W06 NOT_SIGNED、生产 WRITE OFF；不触碰 BEX/Eidos/2D 或全局状态。
 
 > **2026-10-16 PA05-04D14C10 当前工程：** [真实 PostgreSQL 后端 PID 与事务 XID 绑定 Host 一次性许可、被盗完整命令跨连接防重放、官方源与未签机器身份边界](PA05-D14C10-TRANSACTION-BOUND-PERMIT-20261016.md) · [认证基线 §40](PA05-CERTIFICATION-BASELINE-20261015.md)。从已合并 [#965](https://github.com/jiangxng/EVO-App-Platform/pull/965) 接续；复用 D9–D14C9 原始 Owner 与三物理 PG18 验证，不重建业务引擎。#913 OPEN、PA05/W06 NOT_SIGNED、生产 WRITE OFF；不动 BEX/Eidos/2D 或全局状态。

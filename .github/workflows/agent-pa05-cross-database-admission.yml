@@ -91,6 +91,8 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
+      - name: Configure ephemeral worker A PostgreSQL18 Host client certificate authentication
+        run: bash scripts/ci/pa05-host-mtls-setup.sh ${{ job.services.worker_a.id }}
       - name: Three PostgreSQL18 clusters, central lock and remote Worker uncertainty
         shell: bash
         run: |
@@ -118,6 +120,7 @@ jobs:
           grep -Fq 'PA05_ACTUAL_OBJECT_HOST_COMMAND_PROVENANCE_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_SQL_TRANSACTION_BINDING_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_HOST_MTLS_PG=' pa05-xdb.log
           grep -Fq '"originalRawOwnerDeniedEvenWithValidTicket":true' pa05-xdb.log
           grep -Fq '"privilegedTableOwnerCanStillDisableTrigger":true' pa05-xdb.log
           grep -Fq '"originalOwnerDirectBypassStillPossible":true' pa05-xdb.log

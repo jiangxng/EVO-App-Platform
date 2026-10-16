@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import postgres from "postgres";
+import {readFileSync} from "node:fs";
 import {
   preparePostgresObjectExtensionOwnerSchemaV010,
   createPostgresObjectExtensionAtomicOwnerV010,
@@ -55,6 +56,19 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     centralSchema="pa05_c5c_"+suffix;
   const businessRole="pa05c5owner_"+suffix,workerRole="pa05c5worker_"+suffix,hostRole="pa05c5host_"+suffix;
   const password="Proof_"+randomUUID().replaceAll("-","");
+  // D14C12 files are ephemeral runner-only CA/cert/key material, never
+  // checked into Git or used in a production environment.
+  for(const name of ["PA05_C12_CA_CERT","PA05_C12_HOST_CERT",
+    "PA05_C12_HOST_KEY","PA05_C12_BAD_CERT","PA05_C12_BAD_KEY"])
+    assert.ok(process.env[name],"PA05_C12_ACTUAL_TLS_CERT_MISSING:"+name);
+  const hostTls={
+    ca:readFileSync(process.env.PA05_C12_CA_CERT,"utf8"),
+    cert:readFileSync(process.env.PA05_C12_HOST_CERT,"utf8"),
+    key:readFileSync(process.env.PA05_C12_HOST_KEY,"utf8")
+  };
+  const wrongHostTls={ca:hostTls.ca,
+    cert:readFileSync(process.env.PA05_C12_BAD_CERT,"utf8"),
+    key:readFileSync(process.env.PA05_C12_BAD_KEY,"utf8")};
   const [central,db,b]=urls.map(s=>postgres(s,{max:4}));
   const systems=await Promise.all([central,db,b].map(async client=>
     String((await client.unsafe("SELECT system_identifier::text AS sid FROM pg_control_system()"))[0].sid)));
@@ -116,7 +130,11 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await installPa05ObjectExtensionPhysicalFenceV010({
       connectionString:urls[1],objectSchema:ownerSchema,
       workerSchema,businessOwnerLoginRole:businessRole,
-      trustedHostLoginRole:hostRole
+      trustedHostLoginRole:hostRole,
+      trustedHostClientCertificate:{
+        clientDn:"/CN=pa05-certified-host",
+        issuerDn:"/CN=PA05 Test CA",serial:"4242"
+      }
     });
     // SQL permission itself must deny any ordinary DDL trigger tampering.
     const ownerSql=postgres(u(urls[1],businessRole,password),{max:1});
@@ -148,8 +166,41 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       connectionString:u(urls[1],businessRole,password),schema:ownerSchema
     });
     issuer=createPa05ObjectExtensionHostPermitIssuerV010({
+      connectionString:u(urls[1],hostRole,password),
+      objectSchema:ownerSchema,hostTls
+    });
+    const probe=postgres(u(urls[1],hostRole,password),{
+      max:1,ssl:{...hostTls,rejectUnauthorized:true}
+    });
+    try{
+      const actual=(await probe.unsafe(
+        "SELECT s.ssl,s.client_dn,s.issuer_dn,s.client_serial::text AS serial "+
+        "FROM pg_stat_ssl s WHERE s.pid=pg_backend_pid()"))[0];
+      assert.equal(actual.ssl,true);
+      assert.equal(actual.client_dn,"/CN=pa05-certified-host");
+      assert.equal(actual.issuer_dn,"/CN=PA05 Test CA");
+      assert.equal(actual.serial,"4242");
+    }finally{await probe.end();}
+    // A stolen SQL Host password by itself is no longer enough to register
+    // a command, and even a *different CA-valid cert* lacks this principal.
+    const passwordOnly=createPa05ObjectExtensionHostPermitIssuerV010({
       connectionString:u(urls[1],hostRole,password),objectSchema:ownerSchema
     });
+    const wrongIdentity=createPa05ObjectExtensionHostPermitIssuerV010({
+      connectionString:u(urls[1],hostRole,password),
+      objectSchema:ownerSchema,hostTls:wrongHostTls
+    });
+    try{
+      await assert.rejects(passwordOnly.approveCommand({
+        scopeKey,source:request("no-host-cert")
+      }),/pg_hba|reject|SSL|certificate|authentication/i);
+      await assert.rejects(wrongIdentity.approveCommand({
+        scopeKey,source:request("wrong-host-cert")
+      }),/PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED/);
+    }finally{
+      await passwordOnly.close();
+      await wrongIdentity.close();
+    }
     guarded=createPostgresObjectExtensionAtomicOwnerV010({
       connectionString:u(urls[1],businessRole,password),schema:ownerSchema,
       pa05PhysicalAdmission:{workerSchema,hostPermitIssuer:{
@@ -621,7 +672,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await start(rotating);
     const newPw="Rotated_"+randomUUID().replaceAll("-","");
     oldHost=postgres(u(urls[1],hostRole,password),
-      {max:1,idle_timeout:120});
+      {max:1,idle_timeout:120,ssl:{...hostTls,rejectUnauthorized:true}});
     await oldHost.unsafe("SELECT 1 AS old_session_exists");
     await stolen.unsafe("SELECT 1 AS old_session_exists");
     // Keep an independent business session's REPEATABLE READ snapshot from
@@ -713,14 +764,15 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         ".pa02_owner_evidence WHERE effect_id=$1",
         [rotating.effectId]))[0].n,0);
       const failedOldLogin=postgres(u(urls[1],hostRole,password),
-        {max:1,connect_timeout:2});
+        {max:1,connect_timeout:2,
+          ssl:{...hostTls,rejectUnauthorized:true}});
       try{
         await assert.rejects(failedOldLogin.unsafe("SELECT 1"),
           /password authentication failed/);
       }finally{await failedOldLogin.end();}
       rotatedIssuer=createPa05ObjectExtensionHostPermitIssuerV010({
         connectionString:u(urls[1],hostRole,newPw),
-        objectSchema:ownerSchema
+        objectSchema:ownerSchema,hostTls
       });
       rotatedOwner=createPostgresObjectExtensionAtomicOwnerV010({
         connectionString:u(urls[1],businessRole,newPw),
@@ -795,6 +847,19 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
     assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,9);
+    console.log("PA05_ACTUAL_OBJECT_SQL_HOST_MTLS_PG="+JSON.stringify({
+      physicalClusters:3,realPlugin:"evo-object-extension",
+      postgresql18ActualHostsslHbaVerifiedCARequired:true,
+      hostnameValidatedServerCaAndClientCertificate:true,
+      databaseObservedHostClientDnIssuerAndSerial:true,
+      sqlHostPasswordWithoutClientCertificateDenied:true,
+      wrongCaValidClientCertificateWithHostPasswordDenied:true,
+      genuineHostCertificateAndPasswordCanExecuteOriginalOwner:true,
+      earlierD9ToD14C11GuardsRetained:true,
+      testKeysAreEphemeralNotProductionSecrets:true,
+      physicalMachineIdentityCertified:false,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG="+JSON.stringify({
       realPlugin:"evo-object-extension",physicalClusters:3,
       atomicRealHostAndBusinessRolePasswordRotation:true,

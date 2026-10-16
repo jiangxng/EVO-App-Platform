@@ -20,6 +20,10 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
   businessOwnerLoginRole:string;
   /** D14C5: optional independent Host SQL LOGIN required to mint a one-effect permit. */
   trustedHostLoginRole?:string;
+  /** D14C12: explicit opt-in identity from real CA-verified TLS client cert. */
+  trustedHostClientCertificate?:{
+    clientDn:string;issuerDn:string;serial:string;
+  };
 }):Promise<void>{
   const object=ident(input.objectSchema,/^pa02_[a-z0-9_]{1,58}$/,
     "PA05_OBJECT_SQL_PHYSICAL_SCHEMA_INVALID");
@@ -31,6 +35,13 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
     ?ident(input.trustedHostLoginRole,/^[a-z][a-z0-9_]{0,62}$/,
       "PA05_OBJECT_SQL_HOST_LOGIN_INVALID"):null;
   if(hostRole===role)throw Error("PA05_OBJECT_SQL_HOST_OWNER_LOGIN_MUST_DIFFER");
+  const hostCertificate=input.trustedHostClientCertificate;
+  if(hostCertificate && (!hostRole||
+      ![hostCertificate.clientDn,hostCertificate.issuerDn,
+        hostCertificate.serial].every(v=>typeof v==="string"&&
+          v.length>0&&v.length<64)||
+      !/^[0-9]{1,30}$/.test(hostCertificate.serial)))
+    throw Error("PA05_OBJECT_SQL_HOST_TLS_IDENTITY_CONFIG_INVALID");
   if(!input.connectionString||worker===object)
     throw Error("PA05_OBJECT_SQL_DISTINCT_SCHEMAS_REQUIRED");
   const d='"'+object+'"',w='"'+worker+'"';
@@ -218,6 +229,17 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         const driftBody=[
           "DECLARE v_business oid;v_host oid;",
           "BEGIN",
+          ...(hostCertificate?[
+            "IF SESSION_USER='"+hostRole+"' AND NOT EXISTS(",
+            " SELECT 1 FROM pg_stat_ssl ssl",
+            " WHERE ssl.pid=pg_backend_pid() AND ssl.ssl IS TRUE",
+            " AND ssl.client_dn='"+hostCertificate.clientDn.replaceAll("'","''")+"'",
+            " AND ssl.issuer_dn='"+hostCertificate.issuerDn.replaceAll("'","''")+"'",
+            " AND ssl.client_serial="+hostCertificate.serial+"::numeric",
+            ") THEN",
+            " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED';",
+            "END IF;"
+          ]:[]),
           "PERFORM "+d+".pa05_object_assert_fresh_session();",
           "SELECT oid INTO v_business FROM pg_roles WHERE rolname='"+role+"';",
           "SELECT oid INTO v_host FROM pg_roles WHERE rolname='"+hostRole+"';",

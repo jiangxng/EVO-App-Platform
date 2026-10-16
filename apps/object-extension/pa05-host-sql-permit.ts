@@ -21,11 +21,18 @@ const hash=(v:string)=>createHash("sha256").update(v).digest("hex");
 export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
   connectionString:string;
   objectSchema:string;
+  /** D14C12 opt-in, independently CA-verified client certificate for Host SQL. */
+  hostTls?:{ca:string;cert:string;key:string};
 }){
   if(!input.connectionString||
      !/^pa02_[a-z0-9_]{1,58}$/.test(input.objectSchema))
     throw Error("PA05_OBJECT_SQL_HOST_ISSUER_CONFIG_INVALID");
-  const sql=postgres(input.connectionString,{max:2,connect_timeout:10,idle_timeout:15});
+  if(input.hostTls && (!input.hostTls.ca||!input.hostTls.cert||!input.hostTls.key))
+    throw Error("PA05_OBJECT_HOST_TLS_MATERIAL_REQUIRED");
+  const sql=postgres(input.connectionString,{
+    max:2,connect_timeout:10,idle_timeout:15,
+    ...(input.hostTls?{ssl:{...input.hostTls,rejectUnauthorized:true}}:{})
+  });
   const q='"'+input.objectSchema+'".pa05_object_issue_host_permit';
   const register='"'+input.objectSchema+'".pa05_object_register_host_command';
 
