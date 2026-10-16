@@ -146,6 +146,10 @@ test("E01E actual Node Host HTTP: authenticated admin + policy + explicit confir
     assert.equal(retry.payload.error.code,"ON_DEMAND_HOST_ALREADY_REGISTERED");
     // A separate explicit lifecycle call is required; it still uses the
     // original AppManager and must not produce any material business WRITE.
+    // Known missing certification gate: the legacy installer currently
+    // accepts this request without an authenticated administrator bearer.
+    // Do NOT equate the following test-only HTTP mutation with signed
+    // Human consent or with a safe production installation.
     const install=await api(host,"/v1/install",{
       method:"POST",
       body:{packageId:PACKAGE_ID,trustApproved:true,approvedPermissions:[]}
@@ -167,6 +171,8 @@ test("E01E actual Node Host HTTP: authenticated admin + policy + explicit confir
       defaultOffAndUnauthorizedDenied:true,bodyInjectionDenied:true,
       registeredInLiveOriginalHostCatalog:true,
       originalAppManagerInstallAndDisableThroughHttp:true,
+      legacyInstallerWithoutAdminBearerObserved:true,
+      realOperatorInstallationAuthorizationCertified:false,
       realEnterpriseDataReadCertified:false,
       actualHumanOrAgentSessionsCertified:false,
       realModelProviderCertified:false,productionWriteEnabled:false
