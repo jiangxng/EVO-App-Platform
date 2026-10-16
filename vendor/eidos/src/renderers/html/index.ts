@@ -144,16 +144,17 @@ export function renderToHtml(document: unknown): string {
         data-eidos-review-table-status-key="${esc(status.key)}"${visible ? "" : " hidden"}>
         <tr>
           <th scope="row" data-eidos-review-table-subject>${esc(group.title)}</th>
-          <td data-eidos-review-table-evidence data-heading="${esc(columns.evidence)}">${esc(group.summary ?? "")}</td>
+          <td data-eidos-review-table-evidence data-heading="${esc(columns.evidence)}">
+            <span data-eidos-review-table-sample>${esc(group.summary ?? "")}</span>
+            ${details ? `<details data-eidos-review-group-detail${group.defaultExpanded ? " open" : ""}>
+              <summary>${esc(group.detailsLabel ?? "Details")}</summary>
+              <div data-eidos-review-group-fields>${details}</div>
+            </details>` : ""}
+          </td>
           <td data-eidos-review-table-choice data-heading="${esc(columns.decision)}">${primary}</td>
           <td data-eidos-review-table-status data-tone="${esc(status.tone ?? "neutral")}"
             data-heading="${esc(columns.status)}">${esc(status.label)}</td>
         </tr>
-        ${details ? `<tr data-eidos-review-table-detail-row><td colspan="4"><details
-          data-eidos-review-group-detail${group.defaultExpanded ? " open" : ""}>
-          <summary>${esc(group.detailsLabel ?? "Details")}</summary>
-          <div data-eidos-review-group-fields>${details}</div>
-        </details></td></tr>` : ""}
       </tbody>`;
     }).join("");
     const count=(model.reviewGroups ?? []).filter(group =>
