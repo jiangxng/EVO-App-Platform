@@ -5,6 +5,8 @@ import { createObjectExtensionRepositoryV010 } from "../../dist/apps/object-exte
 import { createObjectExtensionActionHandlersV010 } from "../../dist/apps/object-extension/actions.js";
 import { createObjectExtensionBatchImportPageV010 } from "../../dist/apps/object-extension/batch-page.js";
 import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
+import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
+import { renderToHtml } from "../../dist/vendor/eidos/src/renderers/html/index.js";
 
 const contextId = "enterprise-context:bex-batch";
 const columns = ["默认支付方式", "结算方式", "默认账期方式", "账期天数", "系统编码"];
@@ -232,4 +234,61 @@ test("V3 occupied candidate and undocumented same-name purpose remain explicit H
   assert.equal(page.fields.find(x=>x.key==="choice_5").options
     .some(x=>x.value==="bank.receiving"),false,
     "exclusive selection prevents reusing a reserved field even if it has the same name");
+});
+
+test("BEX V3 consumes neutral Eidos grouped Form: one visible decision per source, details retained", () => {
+  const job=fixture();
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],locale:"zh-CN"
+  });
+  assert.equal(validateUidl(page).ok,true,
+    JSON.stringify(validateUidl(page).diagnostics));
+  assert.equal(page.reviewGroups.length,5);
+  for(let i=0;i<5;i++){
+    const group=page.reviewGroups[i];
+    assert.equal(group.title,columns[i]);
+    assert.equal(group.primaryFieldKey,"choice_"+i);
+    assert.deepEqual(group.detailFieldKeys,["label_"+i,"type_"+i,"sample_"+i]);
+    assert.match(group.summary,/非空/);
+  }
+  assert.equal(page.reviewGroups[4].defaultExpanded,true,
+    "metadata-like columns remain explicit Human exceptions");
+  assert.equal(page.reviewGroups[0].defaultExpanded,false);
+  const html=renderToHtml(page);
+  assert.equal((html.match(/data-eidos-form-review-group="source-/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-review-group-primary/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-review-group-detail/g)??[]).length,5);
+  for(let i=0;i<5;i++){
+    assert.equal((html.match(new RegExp('name="choice_'+i+'"','g'))??[]).length,1);
+    assert.equal((html.match(new RegExp('name="label_'+i+'"','g'))??[]).length,1);
+  }
+  assert.match(html,/数据概况/);
+  assert.match(html,/来源样本/);
+  assert.match(html,/data-eidos-exclusive-group="bex-batch-targets"/);
+  assert.match(html,/data-eidos-action="create-extension-batch"/);
+  assert.deepEqual(job.source.rows,fixture().source.rows);
+});
+
+test("BEX V3 same-name purposes are visible only as exact trusted data within Eidos field groups",()=>{
+  const job=fixture();
+  job.source.headers.push("开户银行");
+  job.source.rows.forEach(row=>row["开户银行"]="香港银行");
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],locale:"zh-CN",
+    importableTargets:[
+      {fieldId:"bank.a",label:"开户银行",valueType:"STRING",description:"客户收款账户"},
+      {fieldId:"bank.b",label:"开户银行",valueType:"STRING",description:"供应商付款账户"}
+    ]
+  });
+  const group=page.reviewGroups[5];
+  assert.equal(group.primaryFieldKey,"choice_5");
+  assert.equal(group.defaultExpanded,true);
+  assert.deepEqual(group.detailFieldKeys,
+    ["candidate_5","label_5","type_5","sample_5"]);
+  const html=renderToHtml(page);
+  assert.match(html,/客户收款账户/);
+  assert.match(html,/供应商付款账户/);
+  assert.match(html,/value="__REVIEW__" selected/);
+  assert.match(html,/name="choice_5"/);
+  assert.equal(validateUidl(page).ok,true);
 });
