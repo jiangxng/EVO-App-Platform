@@ -342,7 +342,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
           expected.approvedResource.payload.targetObjectType,
           expected.approvedResource.payload.targetSlot,
           changeReceipt?expected.approvedResource.payload.fieldId:"forged",
-          JSON.stringify(expected.approvedResource),
+          stolen.json(JSON.parse(JSON.stringify(expected.approvedResource))),
           expected.approvedResource.createdAt]);
       if(changeReceipt)
         await tx.unsafe("INSERT INTO "+d+".pa02_owner_evidence "+
@@ -353,7 +353,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
             expected.approvedIdempotencyHash,tampered.runId,tampered.effectId,
             "receipt:forged",tampered.inputDigest,
             expected.approvedResource.resourceId,
-            JSON.stringify(expected.approvedEvidence),
+            stolen.json(JSON.parse(JSON.stringify(expected.approvedEvidence))),
             expected.approvedEvidenceDigest,
             expected.approvedEvidence.recordedAt]);
     });
