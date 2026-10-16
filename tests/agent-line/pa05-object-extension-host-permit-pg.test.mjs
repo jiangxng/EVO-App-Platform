@@ -375,14 +375,29 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     assert.equal(approvalShape.recorded_id,expected.approvedResource.resourceId);
     assert.equal(approvalShape.recorded_field,
       expected.approvedResource.payload.fieldId);
-    const forge=async(changeReceipt)=>stolen.begin(async tx=>{
+    const receiptCase=request("approved-receipt-tamper");
+    await seed(receiptCase);
+    await gateway.stagePreparedEffect({scopeKey,effectId:receiptCase.effectId});
+    await start(receiptCase);
+    const approvedReceiptCase=approvedRequest(receiptCase);
+    const receiptToken=await issuer.issue(approvedReceiptCase);
+    const forge=async(attack,material,token,changeReceipt)=>stolen.begin(async tx=>{
+      const identity=await tx.unsafe(
+        "SELECT pg_backend_pid() AS pid,pg_current_xact_id()::text AS txid");
+      // Explicit, test-only trusted Host binding to the malicious backend:
+      // proves C8 payload/receipt gates are still effective once C10 passes.
+      assert.equal(await issuer.bindTransaction({
+        scopeKey,effectId:attack.effectId,token,
+        backendPid:Number(identity[0].pid),
+        transactionId:String(identity[0].txid)
+      }),"BOUND");
       await tx.unsafe("SET LOCAL statement_timeout = '8000ms'");
       await tx.unsafe("SET LOCAL lock_timeout = '6000ms'");
       for(const [key,value] of [["scope_key",scopeKey],
-        ["run_id",tampered.runId],["effect_id",tampered.effectId],
-        ["input_digest",tampered.inputDigest],
+        ["run_id",attack.runId],["effect_id",attack.effectId],
+        ["input_digest",attack.inputDigest],
         ["context_id",scope.contextId],["enterprise_id",scope.enterpriseId],
-        ["host_permit",approvedToken]])
+        ["host_permit",token]])
         await tx.unsafe("SELECT set_config($1,$2,true)",
           ["evo.pa05."+key,value]);
       await tx.unsafe("INSERT INTO "+d+
@@ -393,28 +408,28 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         "target_slot,field_id,resource,created_at) "+
         "VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8::timestamptz)",
         [scope.contextId,scope.enterpriseId,
-          expected.approvedResource.resourceId,
-          expected.approvedResource.payload.targetObjectType,
-          expected.approvedResource.payload.targetSlot,
-          changeReceipt?expected.approvedResource.payload.fieldId:"forged",
-          stolen.json(JSON.parse(JSON.stringify(expected.approvedResource))),
-          expected.approvedResource.createdAt]);
+          material.approvedResource.resourceId,
+          material.approvedResource.payload.targetObjectType,
+          material.approvedResource.payload.targetSlot,
+          changeReceipt?material.approvedResource.payload.fieldId:"forged",
+          stolen.json(JSON.parse(JSON.stringify(material.approvedResource))),
+          material.approvedResource.createdAt]);
       if(changeReceipt)
         await tx.unsafe("INSERT INTO "+d+".pa02_owner_evidence "+
           "(context_id,enterprise_id,idempotency_hash,run_id,effect_id,"+
           "receipt_id,input_digest,resource_id,evidence,evidence_digest,recorded_at) "+
           "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::timestamptz)",
           [scope.contextId,scope.enterpriseId,
-            expected.approvedIdempotencyHash,tampered.runId,tampered.effectId,
-            "receipt:forged",tampered.inputDigest,
+            material.approvedIdempotencyHash,attack.runId,attack.effectId,
+            "receipt:forged",attack.inputDigest,
             expected.approvedResource.resourceId,
-            stolen.json(JSON.parse(JSON.stringify(expected.approvedEvidence))),
-            expected.approvedEvidenceDigest,
-            expected.approvedEvidence.recordedAt]);
+            stolen.json(JSON.parse(JSON.stringify(material.approvedEvidence))),
+            material.approvedEvidenceDigest,
+            material.approvedEvidence.recordedAt]);
     });
-    await assert.rejects(forge(false),
+    await assert.rejects(forge(tampered,expected,approvedToken,false),
       /PA05_OBJECT_SQL_APPROVED_RESOURCE_MISMATCH/);
-    await assert.rejects(forge(true),
+    await assert.rejects(forge(receiptCase,approvedReceiptCase,receiptToken,true),
       /PA05_OBJECT_SQL_APPROVED_EVIDENCE_MISMATCH/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
       ".pa02_definitions"))[0].n,0);
