@@ -696,6 +696,83 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(()=>container.removeEventListener("change",onReviewChoiceChange));
   }
 
+  // E6: a read-only Human proposal preview of the CURRENT unsaved selects.
+  // It never invokes Host, validates a schema, stores draft data or approves.
+  const preview=container.querySelector<HTMLElement>("[data-eidos-form-review-plan]");
+  if (preview) {
+    const form=preview.closest("form");
+    const rows=Array.from(form?.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row]") ?? []);
+    const categories=JSON.parse(
+      preview.dataset.eidosReviewPlanCategories ?? "[]"
+    ) as Array<{id:string;label:string;statusKeys:string[]}>;
+    const counters=preview.querySelector<HTMLElement>(
+      "[data-eidos-review-plan-counts]");
+    const items=preview.querySelector<HTMLElement>("[data-eidos-review-plan-items]");
+    const currentField=(row:HTMLElement,key:string):HTMLInputElement|HTMLSelectElement|undefined =>
+      Array.from(row.querySelectorAll<HTMLInputElement|HTMLSelectElement>(
+        "input[name],select[name]")).find(input=>input.name===key);
+    const updatePlan=()=>{
+      const counts=new Map(categories.map(c=>[c.id,0]));
+      const list=document.createDocumentFragment();
+      for (const row of rows) {
+        const key=row.dataset.eidosReviewTableStatusKey;
+        const category=categories.find(c=>key && c.statusKeys.includes(key));
+        if (!category) continue;
+        counts.set(category.id,(counts.get(category.id) ?? 0)+1);
+        const li=document.createElement("li");
+        li.dataset.eidosReviewPlanOutcome=category.id;
+        const label=row.querySelector<HTMLElement>("[data-eidos-review-table-subject]")
+          ?.textContent?.trim() ?? "";
+        const choice=row.querySelector<HTMLSelectElement>(
+          "[data-eidos-review-table-choice] select");
+        const selected=choice?.selectedOptions.item(0)?.textContent?.trim() ?? "";
+        const nameKey=row.dataset.eidosPlanLabelField;
+        const typeKey=row.dataset.eidosPlanTypeField;
+        const proposalName=nameKey?currentField(row,nameKey)?.value.trim():"";
+        const type=typeKey?currentField(row,typeKey):undefined;
+        const typeName=type instanceof HTMLSelectElement
+          ? type.selectedOptions.item(0)?.textContent?.trim() ?? "" : "";
+        const strong=document.createElement("strong");
+        strong.textContent=label;
+        const outcome=document.createElement("span");
+        outcome.textContent=category.label+
+          (nameKey && category.id==="create"
+            ? " · "+(proposalName || label)+(typeName ? " · "+typeName : "")
+            : selected ? " · "+selected : "");
+        li.append(strong,outcome);
+        list.append(li);
+      }
+      if (counters) {
+        const countsFragment=document.createDocumentFragment();
+        for (const category of categories) {
+          const entry=document.createElement("div");
+          entry.dataset.eidosReviewPlanCount=category.id;
+          const value=document.createElement("strong");
+          value.textContent=String(counts.get(category.id) ?? 0);
+          const label=document.createElement("span");
+          label.textContent=category.label;
+          entry.append(value,label);
+          countsFragment.append(entry);
+        }
+        counters.replaceChildren(countsFragment);
+      }
+      items?.replaceChildren(list);
+    };
+    const listener=(event:Event)=>{
+      if (!form || !(event.target instanceof Element) ||
+        !form.contains(event.target)) return;
+      updatePlan();
+    };
+    form?.addEventListener("change",listener);
+    form?.addEventListener("input",listener);
+    listeners.push(()=>{
+      form?.removeEventListener("change",listener);
+      form?.removeEventListener("input",listener);
+    });
+    updatePlan();
+  }
+
   // A task issue can focus an existing reviewed Form row. This is
   // presentation navigation only: never a Host command, approval or save.
   const onReviewTaskFocus = (event: MouseEvent) => {
