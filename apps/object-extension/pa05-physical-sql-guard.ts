@@ -243,6 +243,34 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "AS $pa05$"+advanceBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
           ".pa05_object_advance_sql_session_epoch(text) FROM PUBLIC");
+        // D14C13: DBA-only atomic certificate cutover with both SQL epochs.
+        if(hostCertificate){
+          const tlsCutoverBody=[
+            "DECLARE n integer;",
+            "BEGIN",
+            "IF SESSION_USER!='"+adminLogin+"' OR",
+            " p_serial !~ '^[0-9]{1,30}$' THEN",
+            " RAISE EXCEPTION 'PA05_OBJECT_SQL_TLS_CUTOVER_ADMIN_REQUIRED'; END IF;",
+            "UPDATE "+d+".pa05_object_host_tls_policy",
+            " SET client_serial=p_serial::numeric,enabled=p_enabled",
+            " WHERE slot=true;",
+            "IF NOT FOUND THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_TLS_POLICY_MISSING'; END IF;",
+            "UPDATE "+d+".pa05_object_sql_session_epochs",
+            " SET not_before=clock_timestamp()",
+            " WHERE login_role IN('"+role+"','"+hostRole+"');",
+            "GET DIAGNOSTICS n=ROW_COUNT;",
+            "IF n!=2 THEN RAISE EXCEPTION 'PA05_OBJECT_SQL_TLS_EPOCH_MISSING'; END IF;",
+            "RETURN CASE WHEN p_enabled THEN 'ROTATED' ELSE 'REVOKED' END;",
+            "END;"
+          ].join("\n");
+          await tx.unsafe("CREATE FUNCTION "+d+
+            ".pa05_object_cutover_host_tls(p_serial text,p_enabled boolean) "+
+            "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
+            "SET search_path=pg_catalog AS $pa05$"+tlsCutoverBody+"$pa05$");
+          await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+            ".pa05_object_cutover_host_tls(text,boolean) FROM PUBLIC");
+        }
+
         // D14C6: re-attest real database role grants INSIDE SQL authority,
         // not in an optional JS wrapper. A committed GRANT / membership
         // change invalidates both subsequent Host issuances and Owner writes.
