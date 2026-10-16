@@ -197,7 +197,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     // A PUBLIC EXECUTE drift would let the stolen Owner invoke the Host
     // issuer unless the actual issuer independently revalidates its ACL.
     const issueSignature=d+
-      '.pa05_object_issue_host_permit(text,text,text,text,text,text)';
+      '.pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text)';
     await db.unsafe('GRANT EXECUTE ON FUNCTION '+issueSignature+' TO PUBLIC');
     await assert.rejects(guarded.owner.invoke(real),
       /PA05_OBJECT_SQL_ROLE_DRIFT/);
@@ -211,10 +211,16 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ".pa05_object_host_permits"),/permission denied/);
     await assert.rejects(stolen.unsafe("SET ROLE "+q(hostRole)),
       /permission denied/);
+    const stolenIssue=approvedRequest(real);
     await assert.rejects(stolen.unsafe("SELECT "+d+
-      ".pa05_object_issue_host_permit($1,$2,$3,$4,$5,$6)",[
+      ".pa05_object_issue_host_permit("+
+      "$1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10)",[
         scopeKey,real.runId,real.effectId,real.inputDigest,
-        scope.contextId,scope.enterpriseId
+        scope.contextId,scope.enterpriseId,
+        JSON.stringify(stolenIssue.approvedResource),
+        JSON.stringify(stolenIssue.approvedEvidence),
+        stolenIssue.approvedEvidenceDigest,
+        stolenIssue.approvedIdempotencyHash
       ]),/permission denied/);
     async function forgedInsert(permit){
       await stolen.begin(async tx=>{
