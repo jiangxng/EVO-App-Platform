@@ -3223,6 +3223,42 @@ async function authorizeHostAdministration(
   );
 }
 
+// PA05-05/E01F: protect the newly admitted first-party READ package on
+// EVERY externally reachable lifecycle mutation route. Existing unrelated
+// package lifecycle behavior is unchanged. This gate is never derived from
+// caller-controlled `confirmed` or `trustApproved` booleans.
+const pa05E01fProtectedPackageId = "evo-purchase-attention";
+const pa05E01fProtectedActions = new Map([
+  ["app-platform.install-package", "INSTALL"],
+  ["app-platform.enable-package", "ENABLE"],
+  ["app-platform.disable-package", "DISABLE"],
+  ["app-platform.uninstall-package", "UNINSTALL"],
+  ["app-platform.upgrade-package", "UPGRADE"]
+] as const);
+async function authorizePa05E01fLifecycle(
+  request: IncomingMessage,
+  packageId: string | undefined,
+  operation: string
+): Promise<boolean> {
+  if (packageId !== pa05E01fProtectedPackageId) return true;
+  const header = request.headers.authorization;
+  const token = typeof header === "string" && header.startsWith("Bearer ")
+    ? header.slice("Bearer ".length) : undefined;
+  try {
+    const decision = await authorizeHostAdministration(
+      token, `host.plugin.lifecycle.${operation.toLowerCase()}`,
+      {
+        type: "plugin-package",
+        id: pa05E01fProtectedPackageId,
+        attributes: { effect: "READ", operation, admission: "LIFECYCLE_ONLY" }
+      }
+    );
+    return decision.allowed === true;
+  } catch {
+    return false;
+  }
+}
+
 const providerLifecycleAdministration = createProviderLifecycleAdministrationV010({
   entries: new Map([[EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID, bottleneckRuntime]]),
   authorize: authorizeHostAdministration,
@@ -8970,6 +9006,17 @@ const server = createServer(async (request, response) => {
 
       const action = body as AppActionRequestV010;
       const itemId = typeof action.values.itemId === "string" ? action.values.itemId : undefined;
+      const pa05ProtectedOperation = pa05E01fProtectedActions.get(
+        action.command.code as keyof typeof pa05E01fProtectedActions
+      );
+      if (pa05ProtectedOperation && itemId === pa05E01fProtectedPackageId
+          && !(await authorizePa05E01fLifecycle(
+            request, itemId, pa05ProtectedOperation))) {
+        return json(response, 403, {
+          ok: false,
+          error: { code: "PA05_E01F_LIFECYCLE_ADMIN_DENIED" }
+        });
+      }
 
       if (action.command.code === "app-platform.update-provider-binding") {
         const namespace = typeof action.values.namespace === "string"
@@ -9605,6 +9652,9 @@ const server = createServer(async (request, response) => {
         approvedPermissions?: string[];
       };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      if (!(await authorizePa05E01fLifecycle(request, body.packageId, "INSTALL"))) {
+        return json(response, 403, { code: "PA05_E01F_LIFECYCLE_ADMIN_DENIED" });
+      }
       const current = installPlanWithDigest(body.packageId);
       if (current.blockers.length > 0) {
         return json(response, 409, {
@@ -9636,6 +9686,9 @@ const server = createServer(async (request, response) => {
         approvedPermissions?: string[];
       };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      if (!(await authorizePa05E01fLifecycle(request, body.packageId, "UPGRADE"))) {
+        return json(response, 403, { code: "PA05_E01F_LIFECYCLE_ADMIN_DENIED" });
+      }
       const plan = upgradePlanWithDigest(body.packageId);
       if (plan.blockers.length > 0) {
         return json(response, 409, { code: "UPGRADE_BLOCKED", plan });
@@ -9653,6 +9706,9 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/v1/enable") {
       const body = await readJson(request) as { packageId?: string };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      if (!(await authorizePa05E01fLifecycle(request, body.packageId, "ENABLE"))) {
+        return json(response, 403, { code: "PA05_E01F_LIFECYCLE_ADMIN_DENIED" });
+      }
       try {
         return json(response, 200, {
           snapshot: await pa05WriteLifecycleHost.admitActivation("ENABLE", body.packageId),
@@ -9672,6 +9728,9 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/v1/disable") {
       const body = await readJson(request) as { packageId?: string };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      if (!(await authorizePa05E01fLifecycle(request, body.packageId, "DISABLE"))) {
+        return json(response, 403, { code: "PA05_E01F_LIFECYCLE_ADMIN_DENIED" });
+      }
       const plan = manager.planDisable(body.packageId);
       if (plan.blockers.length > 0) return json(response, 409, { code: "DISABLE_BLOCKED", plan });
       return json(response, 200, {
@@ -9690,6 +9749,9 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && url.pathname === "/v1/uninstall") {
       const body = await readJson(request) as { packageId?: string };
       if (!body.packageId) return json(response, 400, { code: "PACKAGE_ID_REQUIRED" });
+      if (!(await authorizePa05E01fLifecycle(request, body.packageId, "UNINSTALL"))) {
+        return json(response, 403, { code: "PA05_E01F_LIFECYCLE_ADMIN_DENIED" });
+      }
       const plan = manager.planUninstall(body.packageId);
       if (plan.blockers.length > 0) return json(response, 409, { code: "UNINSTALL_BLOCKED", plan });
       return json(response, 200, {
