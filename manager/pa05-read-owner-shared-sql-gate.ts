@@ -89,7 +89,7 @@ export async function createPa05SharedReadOwnerGateV010(input: {
           await tx.unsafe("INSERT INTO "+a+
             ".pa05_read_trusted_hosts(owner_package_id,host_id) VALUES($1,$2)",
             [owner,id]);
-      }else if(JSON.stringify(actual.map(x=>x.host_id)) !== JSON.stringify(declared)){
+      }else if(JSON.stringify(actual.map((x: {host_id: string})=>x.host_id)) !== JSON.stringify(declared)){
         throw Error("PA05_READ_SQL_HOST_INVENTORY_CHANGED");
       }
     });
@@ -107,7 +107,7 @@ export async function createPa05SharedReadOwnerGateV010(input: {
   const hosts = async (tx: any) => {
     const actual=await tx.unsafe("SELECT host_id FROM "+a+
       ".pa05_read_trusted_hosts WHERE owner_package_id=$1 ORDER BY host_id",[owner]);
-    if(JSON.stringify(actual.map(x=>x.host_id)) !== JSON.stringify(declared))
+    if(JSON.stringify(actual.map((x: {host_id: string})=>x.host_id)) !== JSON.stringify(declared))
       throw Error("PA05_READ_SQL_HOST_INVENTORY_CHANGED");
   };
   return {
@@ -161,13 +161,16 @@ export async function createPa05SharedReadOwnerGateV010(input: {
       // transaction. A revoke on another Host cannot commit mid-callback.
       // This does NOT atomically bind an AppManager local install or the
       // currently unconnected business READ handler to PostgreSQL.
-      return sql.begin(async tx=>{
+      const result = await sql.begin(async tx=>{
         const current=await row(tx,"SHARE");
         await hosts(tx);
         if(current.state!=="ACTIVE" || current.epoch!==epoch)
           throw Error("PA05_READ_SQL_ADMISSION_DENIED");
-        return perform();
+        // Wrap generic T to preserve postgres.js begin's return typing:
+        // it normalizes bare arrays differently from normal value objects.
+        return {value:await perform()};
       });
+      return result.value as T;
     },
     async close(){await sql.end();}
   };
