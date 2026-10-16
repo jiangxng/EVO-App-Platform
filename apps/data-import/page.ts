@@ -514,6 +514,32 @@ export function createDataImportMappingPageV010(input: {
   const candidatesFor = (column: string) => importFields.filter(field =>
     normalizedLabel(field.resolvedLabel) === normalizedLabel(column)
   );
+  // The actual /data-import/jobs/:id/map route must consume Eidos reviewGroups;
+  // the separate object-extension batch route does not own this screen.
+  // These profiles are derived only from original, authorized source rows.
+  const sourceProfiles = input.job.source.headers.map(sourceColumn => {
+    const examples: string[] = [];
+    const seen = new Set<string>();
+    let nonempty = 0;
+    for (const row of input.job.source.rows) {
+      const value = row[sourceColumn];
+      if (value === null || value === undefined || value === "") continue;
+      nonempty++;
+      const literal = String(value);
+      if (!seen.has(literal) && examples.length < 3) {
+        seen.add(literal);
+        examples.push(literal.length > 48 ? literal.slice(0, 48) + "…" : literal);
+      }
+    }
+    return {
+      nonempty,
+      examples,
+      summary: (zh(input.locale) ? "非空 " : "Nonempty ")
+        + nonempty + " / " + input.job.source.rows.length + " · "
+        + (examples.length ? examples.join(" · ")
+          : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
+    };
+  });
   const usedTargets = new Set(input.job.mapping.map(item => item.targetFieldId));
   // Duplicate labels (including two 开户银行) are never selected by name alone.
   const uniqueExistingField = (column: string): string | undefined => {
@@ -584,10 +610,183 @@ export function createDataImportMappingPageV010(input: {
       };
     });
 
+  const mappingSelectionFor = (sourceColumn: string): string =>
+    current.get(sourceColumn)
+      ?? (input.createdMapping?.sourceColumn === sourceColumn
+        && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
+          ? input.createdMapping.fieldId
+          : input.job.ignoredSourceColumns?.includes(sourceColumn)
+            ? "__IGNORE__"
+            : uniqueExistingField(sourceColumn)
+              ?? (candidatesFor(sourceColumn).length > 0
+                ? "__PENDING__"
+                : input.canCreateExtension && input.job.targetId === "counterparty.subject"
+                  ? "__CREATE__" : "__PENDING__"));
+  // Status reflects the Host-restored decision, not an unverified suggestion.
+  // Source metadata-looking headings are surfaced for Human review, never auto-ignored.
+  const metadataLikeColumn = (column: string) =>
+    /^(系统编码|系统编号|流程状态|表单状态|系统状态|内部编号)$/.test(column.trim());
+  const reviewStatusFor = (sourceColumn: string) => {
+    const selected = mappingSelectionFor(sourceColumn);
+    const candidates = candidatesFor(sourceColumn);
+    const resolved = current.has(sourceColumn) && importFields.some(field =>
+      field.fieldId === current.get(sourceColumn));
+    if (selected === "__IGNORE__") return {
+      key: "ignored", label: zh(input.locale) ? "不导入" : "Excluded",
+      tone: "neutral" as const
+    };
+    if (resolved && candidates.length <= 1 && !metadataLikeColumn(sourceColumn)) return {
+      key: "matched", label: zh(input.locale) ? "已匹配" : "Matched",
+      tone: "positive" as const
+    };
+    if (selected === "__CREATE__" && !metadataLikeColumn(sourceColumn))
+      return {
+        key: "proposed", label: zh(input.locale) ? "待新增" : "Proposed",
+        tone: "neutral" as const
+      };
+    if (selected !== "__PENDING__" && !current.has(sourceColumn)
+      && selected !== "__CREATE__" && candidates.length === 1
+      && !metadataLikeColumn(sourceColumn)) return {
+        key: "suggested", label: zh(input.locale) ? "待确认匹配" : "Suggested",
+        tone: "neutral" as const
+      };
+    return {
+      key: "attention", label: zh(input.locale) ? "需要核对" : "Needs review",
+      tone: "warning" as const
+    };
+  };
+
+  const reviewGroups = input.job.source.headers.map((sourceColumn, index) => {
+    const candidates = candidatesFor(sourceColumn);
+    const target = current.get(sourceColumn);
+    const ambiguous = candidates.length > 1;
+    const unavailable = Boolean(target)
+      && !importFields.some(field => field.fieldId === target);
+    return {
+      id: "map-source-" + index,
+      title: sourceColumn,
+      summary: sourceProfiles[index].summary,
+      primaryFieldKey: "map_" + index,
+      reviewStatus: reviewStatusFor(sourceColumn),
+      detailFieldKeys: [
+        ...(!current.has(sourceColumn) || ambiguous
+          ? ["sourceEvidence_" + index] : []),
+        ...(ambiguous ? ["candidateEvidence_" + index] : [])
+      ],
+      ...(ambiguous || unavailable ? { defaultExpanded: true } : {}),
+      detailsLabel: zh(input.locale)
+        ? "查看来源及候选字段用途" : "Inspect source and field candidates"
+    };
+  });
+
+  // Eidos E2 validates each filter status against THIS authorized Job.
+  // Do not advertise states absent from the current table: a fresh Job may
+  // contain only previously mapped columns, or only unresolved columns.
+  const statusKeys = [...new Set(reviewGroups.map(group =>
+    group.reviewStatus.key))];
+  const attentionKeys = statusKeys.filter(key =>
+    key === "attention" || key === "proposed" || key === "suggested");
+  const handledKeys = statusKeys.filter(key =>
+    key === "matched" || key === "ignored");
+  const filterOptions = [
+    ...(attentionKeys.length ? [{
+      id: "needs",
+      label: zh(input.locale) ? "需要关注" : "Needs attention",
+      statusKeys: attentionKeys
+    }] : []),
+    {
+      id: "all",
+      label: zh(input.locale) ? "全部字段" : "All fields",
+      statusKeys
+    },
+    ...(handledKeys.length ? [{
+      id: "handled",
+      label: zh(input.locale) ? "已处理" : "Handled",
+      statusKeys: handledKeys
+    }] : [])
+  ];
+  const reviewTable = {
+    columnLabels: {
+      subject: zh(input.locale) ? "来源列名" : "Source column",
+      evidence: zh(input.locale) ? "示例值" : "Examples",
+      decision: zh(input.locale) ? "对应系统字段" : "Target field",
+      status: zh(input.locale) ? "状态" : "Status"
+    },
+    filter: {
+      label: zh(input.locale) ? "显示" : "Show",
+      selectedId: attentionKeys.length ? "needs" : "all",
+      noMatchesMessage: zh(input.locale)
+        ? "当前筛选没有需要处理的列。可选择“全部字段”查看原始列。"
+        : "No matching columns. Choose All fields to inspect the source.",
+      options: filterOptions
+    }
+  };
+
+  const countStatus = (key: string): number =>
+    reviewGroups.filter(group => group.reviewStatus.key === key).length;
+  const attentionColumns = reviewGroups.filter(group =>
+    group.reviewStatus.key === "attention"
+      || group.reviewStatus.key === "suggested");
+  const reviewTask = {
+    subject: {
+      title: input.job.source.name ?? input.job.importJobId,
+      subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
+        + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
+        + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
+      statusLabel: zh(input.locale) ? "来源数据已保留" : "Source preserved",
+      facts: [{
+        id:"records",label:zh(input.locale)?"记录数":"Records",
+        value:String(input.job.source.rows.length)
+      }, {
+        id:"columns",label:zh(input.locale)?"来源列数":"Columns",
+        value:String(input.job.source.headers.length)
+      }]
+    },
+    steps: [{
+      id:"source",label:zh(input.locale)?"选择文件":"Choose file",
+      state:"complete" as const
+    }, {
+      id:"review",label:zh(input.locale)?"核对映射":"Review mapping",
+      state:"current" as const
+    }, {
+      id:"commit",label:zh(input.locale)?"预检查与导入":"Validate & import",
+      state:"upcoming" as const
+    }],
+    metrics: [{
+      id:"matched",label:zh(input.locale)?"已匹配":"Matched",
+      value:String(countStatus("matched")),tone:"positive" as const
+    }, {
+      id:"proposed",label:zh(input.locale)?"待新增字段":"Proposed fields",
+      value:String(countStatus("proposed"))
+    }, {
+      id:"ignored",label:zh(input.locale)?"不导入的列":"Excluded columns",
+      value:String(countStatus("ignored"))
+    }, {
+      id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
+      value:String(attentionColumns.length),tone:"warning" as const
+    }],
+    issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
+    issuesDescription: zh(input.locale)
+      ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
+      : "Review only uncertain sources; jump directly to the relevant choice.",
+    issues: attentionColumns.slice(0,12).map(group => ({
+      id:group.id,
+      title:group.title,
+      description:group.reviewStatus.label + " · " + group.summary,
+      focusGroupId:group.id,
+      actionLabel:zh(input.locale)?"核对本列":"Review column"
+    })),
+    helpText:zh(input.locale)
+      ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
+      : "Changes require explicit save and validation; viewing does not commit records."
+  };
   return {
     contractVersion: "0.1.1" as const,
     kind: "form" as const,
     id: "evo-data-import.mapping",
+    reviewGroups,
+    reviewTable,
+    reviewTask,
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
     description: input.job.mappingOrigin === "RECIPE"
       ? t.recipeAppliedDescription
@@ -648,36 +847,21 @@ export function createDataImportMappingPageV010(input: {
             : "Unmatched source values are preserved. Confirm fields together before importing.",
           contextLink: {
             label: zh(input.locale)
-              ? "集中审核 " + unmapped.length + " 个未匹配字段（B 方案）"
+              ? "集中审核 " + unmapped.length + " 个未匹配字段"
               : "Review " + unmapped.length + " unmatched columns together",
             route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
           }
         }]
       : []), ...input.job.source.headers.flatMap((sourceColumn, index) => {
       const candidates = candidatesFor(sourceColumn);
-      const sample: string[] = [];
-      const seen = new Set<string>();
-      let count = 0;
-      for (const row of input.job.source.rows) {
-        const value = row[sourceColumn];
-        if (value === null || value === undefined || value === "") continue;
-        count++;
-        const literal = String(value);
-        if (!seen.has(literal) && sample.length < 3) {
-          seen.add(literal);
-          sample.push(literal.length > 48 ? literal.slice(0, 48) + "…" : literal);
-        }
-      }
+
       return [
         ...(!current.has(sourceColumn) || candidates.length > 1 ? [{
           key:"sourceEvidence_" + index,
           label:sourceColumn + (zh(input.locale) ? " · 原始样本" : " · Source examples"),
           semanticType:"data-import-original-source-evidence",
           control:"text" as const,readOnly:true,required:false,
-          initialValue:(zh(input.locale) ? "非空 " : "Nonempty ")
-            + count + " / " + input.job.source.rows.length + " · "
-            + (sample.length ? sample.join(" · ")
-              : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
+          initialValue: sourceProfiles[index].summary
         }] : []),
         ...(candidates.length > 1 ? [{
           key:"candidateEvidence_" + index,
@@ -700,17 +884,7 @@ export function createDataImportMappingPageV010(input: {
       control: "select" as const,
       exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"] },
       required: true,
-      initialValue: current.get(sourceColumn)
-        ?? (input.createdMapping?.sourceColumn === sourceColumn
-          && importFields.some(field => field.fieldId === input.createdMapping?.fieldId)
-            ? input.createdMapping.fieldId
-            : input.job.ignoredSourceColumns?.includes(sourceColumn)
-              ? "__IGNORE__"
-              : uniqueExistingField(sourceColumn)
-                ?? (candidatesFor(sourceColumn).length > 0
-                  ? "__PENDING__"
-                  : input.canCreateExtension && input.job.targetId === "counterparty.subject"
-                    ? "__CREATE__" : "__PENDING__")),
+      initialValue: mappingSelectionFor(sourceColumn),
       ...(input.canCreateExtension === true
         && input.job.targetId === "counterparty.subject"
         && unmapped.includes(sourceColumn)

@@ -12,6 +12,7 @@ on:
       - "apps/object-extension/pa05-governed-owner.ts"
       - "apps/object-extension/agent-owner-postgres.ts"
       - "apps/object-extension/pa05-physical-sql-guard.ts"
+      - "apps/object-extension/pa05-host-sql-permit.ts"
       - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
       - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
       - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
@@ -24,6 +25,7 @@ on:
       - "tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs"
       - "tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs"
       - "tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs"
+      - "tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs"
       - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
       - ".github/workflows/agent-pa05-cross-database-admission.yml"
   push:
@@ -89,11 +91,13 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
+      - name: Configure ephemeral worker A PostgreSQL18 Host client certificate authentication
+        run: bash scripts/ci/pa05-host-mtls-setup.sh ${{ job.services.worker_a.id }}
       - name: Three PostgreSQL18 clusters, central lock and remote Worker uncertainty
         shell: bash
         run: |
           set -euo pipefail
-          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs | tee pa05-xdb.log
+          node --test tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq '"physicalClusters":3' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
@@ -109,6 +113,14 @@ jobs:
           grep -Fq 'PA05_XDB_DOMAIN_COVERAGE_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_EXTENSION_OWNER_PG=' pa05-xdb.log
           grep -Fq 'PA05_ACTUAL_OBJECT_PHYSICAL_SQL_FENCE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_HOST_PERMIT_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_ROLE_DRIFT_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_HOST_PERMIT_REVOCATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_APPROVED_PAYLOAD_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_HOST_COMMAND_PROVENANCE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_TRANSACTION_BINDING_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_HOST_MTLS_PG=' pa05-xdb.log
           grep -Fq '"originalRawOwnerDeniedEvenWithValidTicket":true' pa05-xdb.log
           grep -Fq '"privilegedTableOwnerCanStillDisableTrigger":true' pa05-xdb.log
           grep -Fq '"originalOwnerDirectBypassStillPossible":true' pa05-xdb.log

@@ -63,6 +63,40 @@ function input(field: RenderFieldV010): string {
   return `<input type="${type}" ${common}${initial}${min}${max}${pattern}>${field.unit ? `<span data-unit>${esc(field.unit)}</span>` : ""}`;
 }
 
+function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
+  const subject=task.subject;
+  const facts=(subject.facts ?? []).map(fact =>
+    `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
+  ).join("");
+  const context=`<section data-eidos-form-task-context>
+    <div data-eidos-form-task-identity><strong>${esc(subject.title)}</strong>
+      ${subject.subtitle ? `<p>${esc(subject.subtitle)}</p>` : ""}</div>
+    ${subject.statusLabel ? `<span data-eidos-form-task-source-status>${esc(subject.statusLabel)}</span>` : ""}
+    ${facts ? `<dl data-eidos-form-task-facts>${facts}</dl>` : ""}
+  </section>`;
+  const steps=task.steps?.length ? `<ol data-eidos-form-task-steps>
+    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
+  </ol>` : "";
+  const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
+    ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
+      data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
+      <span>${esc(metric.label)}</span></div>`).join("")}
+  </section>` : "";
+  const issues=task.issues?.length ? `<section data-eidos-form-task-issues>
+    <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
+    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}</header>
+    <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
+      <div><strong>${esc(issue.title)}</strong>
+      ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>
+      ${issue.focusGroupId ? `<button type="button"
+        data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
+    </li>`).join("")}</ol>
+  </section>` : "";
+  return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}
+    ${task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : ""}
+  </div>`;
+}
+
 export function renderToHtml(document: unknown): string {
   const model = toRenderModel(document);
   const renderField = (field: RenderFieldV010) =>
@@ -92,8 +126,64 @@ export function renderToHtml(document: unknown): string {
   }).join("");
   const standalone = model.fields.filter(field => !used.has(field.key))
     .map(renderField).join("");
-  const fields = standalone + (groups
-    ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
+  // Table is a second, optional presentation of the SAME Form group keys.
+  // It does not create a new command, synthetic field or separate save path.
+  const reviewTable = model.reviewTable ? (() => {
+    const columns = model.reviewTable!.columnLabels;
+    const filter = model.reviewTable!.filter;
+    const selected = filter?.options.find(option => option.id === filter.selectedId);
+    const allowed = selected?.statusKeys;
+    const tableRows = (model.reviewGroups ?? []).map(group => {
+      const status = group.reviewStatus!;
+      const primary = renderField(byKey.get(group.primaryFieldKey)!);
+      const details = group.detailFieldKeys.map(key =>
+        renderField(byKey.get(key)!)
+      ).join("");
+      const visible = !allowed || allowed.includes(status.key);
+      return `<tbody data-eidos-form-review-table-row="${esc(group.id)}"
+        data-eidos-review-table-status-key="${esc(status.key)}"${visible ? "" : " hidden"}>
+        <tr>
+          <th scope="row" data-eidos-review-table-subject>${esc(group.title)}</th>
+          <td data-eidos-review-table-evidence data-heading="${esc(columns.evidence)}">${esc(group.summary ?? "")}</td>
+          <td data-eidos-review-table-choice data-heading="${esc(columns.decision)}">${primary}</td>
+          <td data-eidos-review-table-status data-tone="${esc(status.tone ?? "neutral")}"
+            data-heading="${esc(columns.status)}">${esc(status.label)}</td>
+        </tr>
+        ${details ? `<tr data-eidos-review-table-detail-row><td colspan="4"><details
+          data-eidos-review-group-detail${group.defaultExpanded ? " open" : ""}>
+          <summary>${esc(group.detailsLabel ?? "Details")}</summary>
+          <div data-eidos-review-group-fields>${details}</div>
+        </details></td></tr>` : ""}
+      </tbody>`;
+    }).join("");
+    const count=(model.reviewGroups ?? []).filter(group =>
+      !allowed || allowed.includes(group.reviewStatus!.key)).length;
+    const toolbar=filter
+      ? `<div data-eidos-form-review-table-toolbar><label>${esc(filter.label)}
+          <select data-eidos-form-review-table-filter>${filter.options.map(option =>
+            `<option value="${esc(option.id)}"
+              data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
+          ).join("")}</select></label>
+          <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span></div>`
+      : "";
+    return `<section data-eidos-form-review-table-wrap>
+      ${toolbar}
+      <div data-eidos-form-review-table-scroll>
+        <table data-eidos-form-review-table aria-label="${esc(model.title)}">
+          <thead><tr><th scope="col">${esc(columns.subject)}</th>
+            <th scope="col">${esc(columns.evidence)}</th>
+            <th scope="col">${esc(columns.decision)}</th>
+            <th scope="col">${esc(columns.status)}</th>
+          </tr></thead>${tableRows}
+        </table>
+      </div>
+      ${filter ? `<p data-eidos-form-review-table-empty${count ? " hidden" : ""}>${esc(filter.noMatchesMessage)}</p>` : ""}
+      </section>`;
+  })() : "";
+  const taskOverview=model.reviewTask ? renderReviewTask(model.reviewTask) : "";
+  const fields = standalone + (model.reviewTable
+    ? reviewTable : groups
+      ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
   const agentActions = model.agentActions
     .map(action =>
       `<button type="button" data-eidos-agent-action="${esc(action.id)}">${esc(action.label)}</button>`
@@ -115,6 +205,7 @@ ${model.description ? `<p data-eidos-page-description>${esc(model.description)}<
 </div>
 </div>
 </header>
+${taskOverview}
 <div data-eidos-form-fields>${fields}</div>
 <footer data-eidos-form-actions>
 <button type="submit" data-eidos-action="${esc(model.submitAction.id)}" data-eidos-primary="true">${esc(model.submitAction.label)}</button>

@@ -191,7 +191,10 @@ const proc = spawn(chrome, [
 
 let client;
 try {
-  const pages = await waitJson("http://127.0.0.1:" + port + "/json/list");
+  // On busy GitHub runners the headless Chrome process can take >15s to
+  // initialize DevTools even after both application servers are healthy.
+  // This changes only test startup patience, never the Host proof contract.
+  const pages = await waitJson("http://127.0.0.1:" + port + "/json/list", 60_000);
   const page = pages.find(item => item.type === "page");
   if (!page?.webSocketDebuggerUrl) throw new Error("No Chrome page target available");
 

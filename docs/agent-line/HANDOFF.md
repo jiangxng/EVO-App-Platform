@@ -1,5 +1,22 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-04D14C12 当前候选工程：** [真实 PG18 TLS 客户端证书与独立 Host SQL 权限绑定、HBA 真正验证 CA、错误证书和无证书拒绝、未签生产 PKI/工作负载身份](PA05-D14C12-ACTUAL-POSTGRESQL-CLIENT-CERT-HOST-IDENTITY-20261016.md) · [专项认证基线 §42](PA05-CERTIFICATION-BASELINE-20261015.md)。只增强 opt-in Object Extension 三库测试；保留已合并 #969 的 SQL 凭据轮换、真实 Owner、D9–D14C11。#913 OPEN，PA05/W06 NOT_SIGNED，生产 WRITE OFF；不改 BEX/Eidos/2D 或全局状态。
+
+> **2026-10-16 PA05-04D14C11 当前工程：** [真实 Host/Business SQL 密码轮换后旧认证连接失效、水位锁与旧事务回滚、官方 PostgreSQL18 原文与未签生产机器身份](PA05-D14C11-SQL-CREDENTIAL-SESSION-ROTATION-20261016.md) · [专项认证基线 §41](PA05-CERTIFICATION-BASELINE-20261015.md)。从已合并 [#967](https://github.com/jiangxng/EVO-App-Platform/pull/967) 接续，继续独立三实例 PG18；受保护水位**必须由可信 DBA 与 SQL 密码变更同事务提交**，未声称无协调的密码变更自动阻断。Issue #913 OPEN、PA05/W06 NOT_SIGNED、生产 WRITE OFF；不触碰 BEX/Eidos/2D 或全局状态。
+
+> **2026-10-16 PA05-04D14C10 当前工程：** [真实 PostgreSQL 后端 PID 与事务 XID 绑定 Host 一次性许可、被盗完整命令跨连接防重放、官方源与未签机器身份边界](PA05-D14C10-TRANSACTION-BOUND-PERMIT-20261016.md) · [认证基线 §40](PA05-CERTIFICATION-BASELINE-20261015.md)。从已合并 [#965](https://github.com/jiangxng/EVO-App-Platform/pull/965) 接续；复用 D9–D14C9 原始 Owner 与三物理 PG18 验证，不重建业务引擎。#913 OPEN、PA05/W06 NOT_SIGNED、生产 WRITE OFF；不动 BEX/Eidos/2D 或全局状态。
+
+> **2026-10-16 PA05-04D14C9 最新增量：** [可信 SQL Host 单独登记不可变命令、原 Object Extension Owner 后续 SQL 匹配、仍未签机器身份与被盗原样令牌竞态](PA05-D14C9-HOST-COMMAND-PROVENANCE-20261016.md) · [认证基线 §39](PA05-CERTIFICATION-BASELINE-20261015.md)。从已合并 [#963](https://github.com/jiangxng/EVO-App-Platform/pull/963) 接续，不重复 D9–D14C8 实现；精确 CI/PR/合并状态以 GitHub 为准。PA-05/W06 NOT_SIGNED、#913 OPEN、生产 WRITE OFF；BEX/Eidos/2D/全局状态不变。
+
+> **2026-10-16 PA05-04D14C8 当前工程入口：** [真实 Object Extension 业务资源与原始 Owner 凭据内容锁定、许可被盗负向验证、未签身份问题](PA05-D14C8-APPROVED-COMMAND-PAYLOAD-20261016.md) · [PA05 认证基线 §38](PA05-CERTIFICATION-BASELINE-20261015.md)。接续已合并 D14C7 [PR #962](https://github.com/jiangxng/EVO-App-Platform/pull/962)，仅增强现有隔离 PG18 Host 许可和物理门禁，不新建业务引擎。**Host 原始命令来源独立身份认证及同一获批命令被盗令牌抢先执行仍未签收**。准确主线及当前 PR/CI 以 GitHub 为准；#913 OPEN、PA-05/W06 NOT_SIGNED、生产 WRITE OFF，不修改 BEX/Eidos/2D 或全局进度。
+
+> **2026-10-16 PA05-04D14C7 当前工程入口：** [Host 许可撤销与真实业务 Owner 事务提交竞态／PG18 原文访问等级／未签问题](PA05-D14C7-PERMIT-REVOKE-COMMIT-RACE-20261016.md) · [认证基线 §37](PA05-CERTIFICATION-BASELINE-20261015.md)。本次不重建 D9/D10/D14C5/C6，仅在显式隔离测试 Host SQL 身份中提供有界撤销；**已泄露且未撤销令牌＋业务 SQL 凭证的命令字段/凭据伪造仍为未签安全缺口**。准确 HEAD CI、PR/分支及 main 以 GitHub 为准；#913 OPEN，PA-05/W06 NOT_SIGNED、生产 WRITE OFF，不改 BEX/Eidos/2D 或全局状态。
+
+> **2026-10-16 PA05-04D14C6 当前工程增量：** [Post-install Host/Business SQL 角色授权漂移与 NOINHERIT/PUBLIC 反例、官方 PG18 源阅读等级](PA05-D14C6-OBJECT-SQL-ROLE-DRIFT-20261016.md) · [PA05 认证基线 §36](PA05-CERTIFICATION-BASELINE-20261015.md)。接续已合并的 D14C5 [#959](https://github.com/jiangxng/EVO-App-Platform/pull/959)，仅增加实际数据库签发和业务 SQL INSERT 时的动态角色漂移阻断，复用三物理 PG18 实证；精确 PR/CI/合并状态必须从 GitHub 核验。PA-05、PA05-W06 NOT_SIGNED，#913 OPEN，生产 WRITE OFF，不动全局 continuity/BEX/Eidos/2D/默认生产路由。
+
+> **2026-10-16 PA05-04D14C5 工程增量（#959，精确合并前状态以 PR 为准）：** [Host→真实 Object Extension Business LOGIN 不可冒用的许可边界与反例/资料等级](PA05-D14C5-HOST-PERMIT-BOUNDARY-20261016.md) · [PA05 专项基线 §35](PA05-CERTIFICATION-BASELINE-20261015.md)。沿用旧窗口 [交接入口](PA05-WINDOW-HANDOFF-ENTRY-20261016.md) 及 [参考索引](PA05-WINDOW-RESEARCH-REFERENCE-INDEX-20261016.md)，不覆盖历史阅读等级。新做独立 Host SQL LOGIN + 物理许可/提交前原 Owner 凭据核验，工程验收见 [PR #959](https://github.com/jiangxng/EVO-App-Platform/pull/959)；**PA05-W06 / PA-05 NOT_SIGNED，#913 OPEN，生产 WRITE OFF**。DBA/Host+Owner 双凭证/失联 ACTIVE 旧票/生产身份与 PA05-05 均未签，勿改默认生产路由。
+
+
 > **2026-10-16 PA-05 最新换窗入口（优先于下方旧 PA05 D8 快照）：** [短交接入口](PA05-WINDOW-HANDOFF-ENTRY-20261016.md) · [详细研究资料/原链接/阅读等级/决策/PR/CI 索引](PA05-WINDOW-RESEARCH-REFERENCE-INDEX-20261016.md) · [PA05 专项工程证据 §22–34](PA05-CERTIFICATION-BASELINE-20261015.md)。编写时一手基线 `main@5d06b0a45f3cfcd6a1ae252e8e3db03217a65db7`，已包含 D14C4 [#954](https://github.com/jiangxng/EVO-App-Platform/pull/954)。**这只是 Agent 线固定快照**，本窗口未新访外站官网；新窗口必读 AI-BOOTSTRAP 及 GitHub 最新 main。下一项暂定 D14C5：真实 Object Extension business SQL 凭证/事务来源防冒用反例及信任边界；**#913 OPEN、PA05-W06 / PA-05 NOT_SIGNED、生产 WRITE OFF**。不得改 BEX/2D/Eidos 或默认为生产可写。
 
 > **2026-10-15 PA-05 旧窗口恢复入口（当前最新 Agent 专项导航，固定快照）**：[恢复后的决策／进度／待办](PA05-WINDOW-RECOVERY-HANDOFF-20261015.md) · [证据等级、原网址、PR/CI 和取舍详细索引](PA05-WINDOW-RECOVERED-SOURCES-DECISIONS-20261015.md) · [PA05 专项当前记录](PA05-CERTIFICATION-BASELINE-20261015.md)。截至保存基线 `main@ad0b4172eb1cf0086d4836b57203a62107ee1323`，#930 merged、同库 PG18 40/40、准确 HEAD 7/7；**跨独立数据库/多 Host 和 PA05-05 仍 OPEN；PA-05 IN_PROGRESS / NOT_SIGNED；生产 WRITE OFF**。此项是 Agent 独立窗口导航，不改写 `project.status.json` 或生成的全局 handoff。每次接续必须重查最新 GitHub。

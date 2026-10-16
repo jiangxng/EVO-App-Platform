@@ -22,10 +22,23 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
     })),
     ...(doc.reviewGroups
       ? { reviewGroups: doc.reviewGroups.map(group => ({
-          ...group, detailFieldKeys: [...group.detailFieldKeys]
+          ...group,
+          detailFieldKeys: [...group.detailFieldKeys],
+          ...(group.reviewStatus ? { reviewStatus: {...group.reviewStatus} } : {})
         })) }
       : {}),
-    submitAction: {
+    ...(doc.reviewTable
+      ? { reviewTable: {
+          columnLabels: {...doc.reviewTable.columnLabels},
+          ...(doc.reviewTable.filter ? { filter: {
+            ...doc.reviewTable.filter,
+            options: doc.reviewTable.filter.options.map(option => ({
+              ...option, statusKeys: [...option.statusKeys]
+            }))
+          }} : {})
+        }}
+      : {}),
+    ...(doc.reviewTask ? {reviewTask:structuredClone(doc.reviewTask)} : {}),submitAction: {
       id: submit.id,
       label: submit.label,
       requiresConfirmation: submit.requiresConfirmation ?? false

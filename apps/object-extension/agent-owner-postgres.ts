@@ -148,6 +148,48 @@ export async function preparePostgresObjectExtensionOwnerSchemaV010(input:{
   }finally{await sql.end();}
 }
 
+
+/** Actual first-party Object Extension Owner material, not a second engine.
+ * D14C8 Host-only approval stores these exact values for SQL enforcement. */
+export function buildPa05ObjectExtensionApprovedMaterialV010(
+  r:Source,recordedAt:string
+){
+  const scope=scoped(r);
+  if(r.toolId!==OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010)
+    throw Error("PA02_OBJECT_PG_OPERATION_DENIED");
+  const definition=definitionOf(r.arguments);
+  if(hash(json(r.arguments))!==r.inputDigest)
+    throw Error("PA02_OBJECT_PG_DIGEST_MISMATCH");
+  const key=hash(id(r.idempotencyKey));
+  const s=scope;
+  const evidence:Evidence={
+    contractVersion:"0.1.0",runId:id(r.runId),effectId:id(r.effectId),
+    receiptId:id(r.receiptId),idempotencyKey:r.idempotencyKey,
+    inputDigest:r.inputDigest,ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
+    contextId:s.contextId,enterpriseId:s.enterpriseId,
+    principalSubjectId:s.subjectId,principalActorType:s.actorType,
+    toolId:r.toolId,recordId:definition.extensionId,
+    definition,recordedAt:recordedAt
+  };
+  const record:EnterpriseResourceV010={
+    contractVersion:"0.1.0",contextId:s.contextId,
+    namespace:OBJECT_EXTENSION_NAMESPACE_V010,
+    collectionId:OBJECT_EXTENSION_COLLECTION_V010,
+    resourceType:OBJECT_EXTENSION_RESOURCE_TYPE_V010,
+    resourceId:definition.extensionId,
+    schemaRef:OBJECT_EXTENSION_SCHEMA_V010,
+    ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
+    storageKind:"DOCUMENT",payload:JSON.parse(JSON.stringify(definition)),
+    metadata:{targetObjectType:definition.targetObjectType,
+      targetSlot:definition.targetSlot,fieldId:definition.fieldId,
+      namespace:definition.namespace},
+    lifecycleState:"ACTIVE",createdAt:evidence.recordedAt,
+    createdBySubjectId:s.subjectId,updatedAt:evidence.recordedAt,
+    updatedBySubjectId:s.subjectId
+  };
+  return {scope,definition,key,evidence,record,evidenceDigest:hash(json(evidence))};
+}
+
 export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   connectionString:string;schema:string;now?:()=>Date;
   /** Test-only crash checkpoint AFTER business insert, BEFORE evidence insert. */
@@ -155,7 +197,21 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   /** D14C4: trusted opt-in transaction-local source for database physical
    * guard; only install against an explicitly prepared isolated PA-02 schema.
    * Ordinary Object Extension existing file-backed production is unchanged. */
-  pa05PhysicalAdmission?:{workerSchema:string};
+  pa05PhysicalAdmission?:{
+    workerSchema:string;
+    /** D14C5: independent Host-only issuance, never the business SQL LOGIN. */
+    hostPermitIssuer?:{issue:(request:{
+      scopeKey:string;runId:string;effectId:string;inputDigest:string;
+      contextId:string;enterpriseId:string;
+      approvedInputArguments:unknown;
+      approvedResource:EnterpriseResourceV010;approvedEvidence:Evidence;
+      approvedEvidenceDigest:string;approvedIdempotencyHash:string;
+    })=>Promise<string>;
+    bindTransaction:(request:{
+      scopeKey:string;effectId:string;token:string;
+      backendPid:number;transactionId:string;
+    })=>Promise<"BOUND">};
+  };
 }):{
   owner:GovernedAgentBusinessOwnerV040;
   verifier:AgentOwnerVerifierV030;
@@ -174,23 +230,42 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
   const owner:GovernedAgentBusinessOwnerV040={
     ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
     async invoke(r) {
-      const s=scoped(r);
-      if(r.toolId!==OBJECT_EXTENSION_DEFINITION_UPSERT_OPERATION_V010)
-        throw Error("PA02_OBJECT_PG_OPERATION_DENIED");
-      const definition=definitionOf(r.arguments);
-      if(hash(json(r.arguments))!==r.inputDigest)
-        throw Error("PA02_OBJECT_PG_DIGEST_MISMATCH");
-      const key=hash(id(r.idempotencyKey));
-      const evidence:Evidence={
-        contractVersion:"0.1.0",runId:id(r.runId),effectId:id(r.effectId),
-        receiptId:id(r.receiptId),idempotencyKey:r.idempotencyKey,
-        inputDigest:r.inputDigest,ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
-        contextId:s.contextId,enterpriseId:s.enterpriseId,
-        principalSubjectId:s.subjectId,principalActorType:s.actorType,
-        toolId:r.toolId,recordId:definition.extensionId,
-        definition,recordedAt:now().toISOString()
-      };
+      const approved=buildPa05ObjectExtensionApprovedMaterialV010(
+        r,now().toISOString());
+      const {scope:s,definition,key,evidence,record,evidenceDigest}=approved;
       await sql.begin(async tx=>{
+        const issuer=input.pa05PhysicalAdmission?.hostPermitIssuer;
+        let hostPermit:string|undefined;
+        if(issuer){
+          // The one original Owner business SQL transaction starts FIRST.
+          // PostgreSQL assigns its real xid (not a spoofable GUC), and the
+          // separately authenticated Host pins one permit to this backend/xid.
+          // Another connection with stolen Business LOGIN and bearer cannot
+          // reuse this specific transaction-bound approval.
+          const identity=await tx.unsafe(
+            "SELECT pg_backend_pid() AS pid,pg_current_xact_id()::text AS txid");
+          hostPermit=await issuer.issue({
+            scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
+            runId:r.runId,effectId:r.effectId,inputDigest:r.inputDigest,
+            contextId:s.contextId,enterpriseId:s.enterpriseId,
+            approvedInputArguments:r.arguments,
+            approvedResource:record,approvedEvidence:evidence,
+            approvedEvidenceDigest:evidenceDigest,approvedIdempotencyHash:key
+          });
+          if(typeof hostPermit!=="string"||
+            !/^[a-f0-9]{32,64}$/.test(hostPermit))
+            throw Error("PA05_OBJECT_SQL_HOST_PERMIT_INVALID");
+          // D14C5's historical 32-hex idempotent read-only sentinel must
+          // never be bound for a new write, but can reach the ORIGINAL
+          // Owner's immutable receipt idempotency comparison below.
+          if(hostPermit.length===64 && await issuer.bindTransaction({
+            scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
+            effectId:r.effectId,token:hostPermit,
+            backendPid:Number(identity[0]?.pid),
+            transactionId:String(identity[0]?.txid)
+          })!=="BOUND")
+            throw Error("PA05_OBJECT_SQL_TRANSACTION_BIND_UNVERIFIED");
+        }
         if(input.pa05PhysicalAdmission){
           // All markers are SET LOCAL and cleared on transaction commit or
           // rollback; the physical PG business-table trigger checks D10
@@ -204,7 +279,8 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
             ["effect_id",r.effectId],
             ["input_digest",r.inputDigest],
             ["context_id",s.contextId],
-            ["enterprise_id",s.enterpriseId]
+            ["enterprise_id",s.enterpriseId],
+            ...(hostPermit?[["host_permit",hostPermit] as [string,string]]:[])
           ];
           for(const [key,value] of values)
             await tx.unsafe("SELECT set_config($1,$2,true)",
@@ -247,22 +323,6 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
             throw Error("PA02_OBJECT_PG_IDEMPOTENCY_CONFLICT_EVIDENCE_INTEGRITY");
           return;
         }
-        const record:EnterpriseResourceV010={
-          contractVersion:"0.1.0",contextId:s.contextId,
-          namespace:OBJECT_EXTENSION_NAMESPACE_V010,
-          collectionId:OBJECT_EXTENSION_COLLECTION_V010,
-          resourceType:OBJECT_EXTENSION_RESOURCE_TYPE_V010,
-          resourceId:definition.extensionId,
-          schemaRef:OBJECT_EXTENSION_SCHEMA_V010,
-          ownerPackageId:OBJECT_EXTENSION_PACKAGE_ID,
-          storageKind:"DOCUMENT",payload:JSON.parse(JSON.stringify(definition)),
-          metadata:{targetObjectType:definition.targetObjectType,
-            targetSlot:definition.targetSlot,fieldId:definition.fieldId,
-            namespace:definition.namespace},
-          lifecycleState:"ACTIVE",createdAt:evidence.recordedAt,
-          createdBySubjectId:s.subjectId,updatedAt:evidence.recordedAt,
-          updatedBySubjectId:s.subjectId
-        };
         const inserted=await tx.unsafe("INSERT INTO "+q+".pa02_definitions "+
           "(context_id,enterprise_id,extension_id,target_object_type,target_slot,"+
           "field_id,resource,created_at) "+
@@ -280,7 +340,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           "VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::timestamptz)",
           [s.contextId,s.enterpriseId,key,evidence.runId,evidence.effectId,
             evidence.receiptId,evidence.inputDigest,evidence.recordId,
-            sql.json(JSON.parse(JSON.stringify(evidence))),hash(json(evidence)),evidence.recordedAt]);
+            sql.json(JSON.parse(JSON.stringify(evidence))),evidenceDigest,evidence.recordedAt]);
       });
     }
   };
