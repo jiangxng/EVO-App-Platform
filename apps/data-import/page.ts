@@ -830,14 +830,16 @@ export function createDataImportMappingPageV010(input: {
     },
     fields: [{
       key: "importJobId",
-      label: "Import Job",
+      // Job identity stays the Host command value, never the visible file name.
+      label: zh(input.locale) ? "当前文件" : "Current file",
       semanticType: "data-import-job-id",
       control: "select" as const,
       required: true,
       initialValue: input.job.importJobId,
       options: [{
         value: input.job.importJobId,
-        label: input.job.importJobId
+        label: input.job.source.name
+          ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
       }]
     }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
       ? [{
