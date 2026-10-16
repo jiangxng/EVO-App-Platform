@@ -32,8 +32,10 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
       approvedResource:unknown;approvedEvidence:unknown;
       approvedEvidenceDigest:string;approvedIdempotencyHash:string;
     }):Promise<string>{
-      if(!request||!Object.values(request).every(x=>
-        typeof x==="string"&&x.length>0&&x.length<=512)||
+      if(!request||![
+        request.scopeKey,request.runId,request.effectId,
+        request.inputDigest,request.contextId,request.enterpriseId
+      ].every(x=>typeof x==="string"&&x.length>0&&x.length<=512)||
         !/^[a-f0-9]{64}$/.test(request.inputDigest))
         throw Error("PA05_OBJECT_SQL_HOST_ISSUER_SOURCE_INVALID");
       // A full approved snapshot is carried by a distinct SQL Host identity,
