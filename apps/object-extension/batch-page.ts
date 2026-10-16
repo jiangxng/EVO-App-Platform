@@ -274,10 +274,15 @@ export function createObjectExtensionBatchImportPageV010(input: {
         {value:"__KEEP__",label:zh ? "— 不设置批次固定值 —" : "— No batch constant —"},
         {value:"ORGANIZATION",label:zh ? "机构／法人（ORGANIZATION）" : "Organization"},
         {value:"PERSON",label:zh ? "个人（PERSON）" : "Person"}
-      ],
-      description: zh
-        ? "仅在整批主体身份一致时选择。此值经人工确认后保存到当前导入任务；源文件不变，须重新预检查。"
-        : "Select only if every record has this identity. Saved to the job, not the source file; validation is required."
+      ]
+    }, {
+      key:"subjectTypeScopeNotice",
+      label: zh ? "适用范围及后果" : "Scope and consequences",
+      semanticType:"object-extension-batch-constant-scope",
+      control:"text" as const,readOnly:true,required:false,
+      initialValue:zh
+        ? "仅在整批主体身份一致时选择。保存到当前导入任务，不修改原 Excel；须重新预检查。"
+        : "Only choose when every record has the same identity. Source Excel is unchanged; validate again."
     }];
   const fixedValueFacts = [...subjectFixedValue, ...otherConstantFacts];
   const reviewGroups = columns.map((column, index) => {
