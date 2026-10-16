@@ -326,7 +326,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
       : "Preview of unsaved choices only. Host approval and separate import validation are required.",
     categories: [
       {id:"create",label:zh ? "拟新建企业字段" : "Proposed new fields",statusKeys:["proposed"]},
-      {id:"reuse",label:zh ? "复用已有字段" : "Reuse existing fields",statusKeys:["suggested"]},
+      {id:"reuse",label:zh ? "复用已有字段" : "Reuse existing fields",
+        statusKeys:statusKeys.includes("suggested") ? ["suggested"] : []},
       {id:"ignore",label:zh ? "本次不导入" : "Exclude from this import",statusKeys:["ignored"]},
       {id:"pending",label:zh ? "尚待人工决定" : "Human decision pending",statusKeys:["attention"]}
     ],
