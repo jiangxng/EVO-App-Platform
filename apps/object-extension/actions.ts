@@ -140,6 +140,11 @@ export function createObjectExtensionActionHandlersV010(input: {
     actorSubjectId: string; recordedAt: string;
   }): void;
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
+  saveBatchReviewDraft?(input:{
+    contextId:string; importJobId:string;
+    draft:DataImportBatchReviewDraftV010;
+    actorSubjectId:string; recordedAt:string;
+  }):void;
 }): AppActionHandler[] {
   const now = input.now ?? (() => new Date());
 
@@ -415,7 +420,7 @@ export function createObjectExtensionActionHandlersV010(input: {
         let job=input.getImportJob?.(active.contextId,importJobId);
         if (!job || job.targetId!=="counterparty.subject")
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
-        const services=input.resolveImportServices
+        const services: ObjectExtensionImportServicesV010=input.resolveImportServices
           ? await input.resolveImportServices(job) : input;
         ensureManage(context.principal,active.contextId,input.canManageEnterpriseContext);
         services.assertAvailable?.();
