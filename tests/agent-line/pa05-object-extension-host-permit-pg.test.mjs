@@ -60,7 +60,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     String((await client.unsafe("SELECT system_identifier::text AS sid FROM pg_control_system()"))[0].sid)));
   assert.equal(new Set(systems).size,3);
   let authority,gateway,raw,guarded,issuer,privileged,stolen;
-  let originalHost,originalOwner,originalRaw,rotatingOwner,rotatedIssuer,rotatedOwner,oldHost;
+  let originalHost,originalOwner,originalRaw,rotatingOwner,rotatedIssuer,rotatedOwner,oldHost,rrStale;
   const issued=[];
   const w=q(workerSchema),d=q(ownerSchema);
   const scopeKey=hostAgentDurabilityScopeKeyV020(scope);
@@ -624,6 +624,32 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       {max:1,idle_timeout:120});
     await oldHost.unsafe("SELECT 1 AS old_session_exists");
     await stolen.unsafe("SELECT 1 AS old_session_exists");
+    // Keep an independent business session's REPEATABLE READ snapshot from
+    // *before* credential rotation. Its old snapshot must not bypass the
+    // watermark after admin commits; FOR SHARE on the epoch row rejects it.
+    rrStale=postgres(u(urls[1],businessRole,password),
+      {max:1,idle_timeout:120});
+    let rrReadyResolve,rrReleaseResolve;
+    const rrReady=new Promise(resolve=>{rrReadyResolve=resolve;});
+    const rrRelease=new Promise(resolve=>{rrReleaseResolve=resolve;});
+    const oldSnapshotAttack=rrStale.begin(async tx=>{
+      await tx.unsafe("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+      await tx.unsafe("SELECT count(*)::int AS n FROM "+d+".pa02_contexts");
+      rrReadyResolve();
+      await rrRelease;
+      for(const [key,value] of [["scope_key",scopeKey],
+        ["run_id",rotating.runId],["effect_id",rotating.effectId],
+        ["input_digest",rotating.inputDigest],
+        ["context_id",scope.contextId],
+        ["enterprise_id",scope.enterpriseId],
+        ["host_permit","0".repeat(64)]])
+        await tx.unsafe("SELECT set_config($1,$2,true)",
+          ["evo.pa05."+key,value]);
+      await tx.unsafe("INSERT INTO "+d+
+        ".pa02_contexts(context_id,enterprise_id) VALUES($1,$2)",
+        [scope.contextId,scope.enterpriseId]);
+    });
+    await rrReady;
     let gotBound,releaseRotating;
     const boundPromise=new Promise(resolve=>{gotBound=resolve;});
     const releasePromise=new Promise(resolve=>{releaseRotating=resolve;});
@@ -658,6 +684,9 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
           ".pa05_object_advance_sql_session_epoch($1) AS state",
           [businessRole]))[0].state,"ROTATED");
       });
+      rrReleaseResolve();
+      await assert.rejects(oldSnapshotAttack,
+        /could not serialize access|PA05_OBJECT_SQL_SESSION_ROTATED/);
       // Existing physical connections remain authenticated after SQL
       // password change; the database authority itself must deny them.
       await assert.rejects(oldHost.unsafe("SELECT "+d+
@@ -716,6 +745,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       })).outcome,"SUCCEEDED");
     }finally{
       releaseRotating?.();
+      rrReleaseResolve?.();
     }
     // Previously INVOKING but not committed: local STOP acquires the same
     // config row lock, and the physical business table trigger checks it.
@@ -770,6 +800,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       atomicRealHostAndBusinessRolePasswordRotation:true,
       oldAuthenticatedHostSessionDeniedAfterRotation:true,
       oldAuthenticatedBusinessSessionDeniedAfterRotation:true,
+      repeatableReadPreRotationSnapshotDeniedAfterCutoff:true,
       inFlightBoundOriginalOwnerRollsBackAfterCredentialCutoff:true,
       oldPasswordCannotAuthenticateNewSession:true,
       newSqlCredentialsAndFreshSessionsRestoreLegitimateOwner:true,
@@ -859,7 +890,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       privilegedHostMachineCertified:false
     }));
   }finally{
-    for(const x of [oldHost,rotatingOwner,originalHost,originalOwner,
+    for(const x of [oldHost,rrStale,rotatingOwner,originalHost,originalOwner,
       originalRaw,rotatedIssuer,rotatedOwner,stolen,guarded,raw,
       privileged,issuer,gateway,authority])
       if(x)try{await x.close();}catch{}
