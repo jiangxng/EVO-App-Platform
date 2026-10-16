@@ -165,6 +165,27 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_commands FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
 
+        // D14C13: CRL revalidation applies to new handshakes only.
+        // Every Host SQL authority call also checks this DBA-owned pin.
+        if(hostCertificate){
+          await tx.unsafe("CREATE TABLE "+d+".pa05_object_host_tls_policy ("+
+            "slot boolean PRIMARY KEY DEFAULT true CHECK(slot),"+
+            "client_dn text NOT NULL,issuer_dn text NOT NULL,"+
+            "client_serial numeric NOT NULL,enabled boolean NOT NULL)");
+          await tx.unsafe("REVOKE ALL ON "+d+
+            ".pa05_object_host_tls_policy FROM PUBLIC");
+          await tx.unsafe("REVOKE ALL ON "+d+
+            ".pa05_object_host_tls_policy FROM "+'"'+role+'"'+","
+              +'"'+hostRole+'"');
+          await tx.unsafe("INSERT INTO "+d+
+            ".pa05_object_host_tls_policy"+
+            "(slot,client_dn,issuer_dn,client_serial,enabled) "+
+            "VALUES(true,$1,$2,$3::numeric,true)",[
+              hostCertificate.clientDn,hostCertificate.issuerDn,
+              hostCertificate.serial
+            ]);
+        }
+
         // D14C11: credential rollover fences authenticated sessions that
         // survive ALTER ROLE PASSWORD. Admin advances both role cutoffs in
         // the SAME committed transaction as rotating the SQL passwords.
@@ -230,14 +251,16 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "DECLARE v_business oid;v_host oid;",
           "BEGIN",
           ...(hostCertificate?[
-            "IF SESSION_USER='"+hostRole+"' AND NOT EXISTS(",
-            " SELECT 1 FROM pg_stat_ssl ssl",
-            " WHERE ssl.pid=pg_backend_pid() AND ssl.ssl IS TRUE",
-            " AND ssl.client_dn='"+hostCertificate.clientDn.replaceAll("'","''")+"'",
-            " AND ssl.issuer_dn='"+hostCertificate.issuerDn.replaceAll("'","''")+"'",
-            " AND ssl.client_serial="+hostCertificate.serial+"::numeric",
-            ") THEN",
+            "IF SESSION_USER='"+hostRole+"' THEN",
+            "PERFORM 1 FROM "+d+".pa05_object_host_tls_policy p",
+            " JOIN pg_stat_ssl ssl ON ssl.pid=pg_backend_pid()",
+            " WHERE p.slot=true AND p.enabled AND ssl.ssl IS TRUE",
+            " AND ssl.client_dn=p.client_dn",
+            " AND ssl.issuer_dn=p.issuer_dn",
+            " AND ssl.client_serial=p.client_serial FOR SHARE OF p;",
+            "IF NOT FOUND THEN",
             " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_TLS_IDENTITY_REQUIRED';",
+            "END IF;",
             "END IF;"
           ]:[]),
           "PERFORM "+d+".pa05_object_assert_fresh_session();",
