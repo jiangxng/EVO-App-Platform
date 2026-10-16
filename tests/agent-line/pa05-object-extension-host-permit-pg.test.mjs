@@ -75,11 +75,16 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       approvedIdempotencyHash:a.key
     };
   };
-  async function seed(r){
+  async function seed(r,options={}){
     await db.unsafe("INSERT INTO "+w+".pa02b_writes("+
       "scope_key,effect_id,run_id,input_digest,fence,state) "+
       "VALUES($1,$2,$3,$4,1,'PREPARED')",
       [scopeKey,r.effectId,r.runId,r.inputDigest]);
+    // Independent Host fixture, before original Owner dispatch. Never
+    // lazily approve inside the Owner -> issuer.issue() callback.
+    if(!options.withoutHostApproval)
+      assert.equal(await issuer.approveCommand({scopeKey,source:r}),
+        "APPROVED");
   }
   async function start(r){
     await db.unsafe("UPDATE "+w+".pa02b_writes SET state='INVOKING' "+
@@ -164,12 +169,23 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ".pa02_definitions"))[0].n,0);
 
     const real=request("physical-real-write");
-    await seed(real);
+    await seed(real,{withoutHostApproval:true});
     await gateway.stagePreparedEffect({scopeKey,effectId:real.effectId});
     // Even with a durable D10 ticket, Owner must wait for PA-02 INVOKING.
     await assert.rejects(guarded.owner.invoke(real),
       /PA05_OBJECT_SQL_HOST_ADMISSION_REQUIRED/);
     await start(real);
+    // D14C9: a genuine D10/PA-02 INVOKING command is still not authorized
+    // until the separate SQL Host explicitly, immutably stages it.
+    await assert.rejects(guarded.owner.invoke(real),
+      /PA05_OBJECT_SQL_HOST_COMMAND_NOT_APPROVED/);
+    assert.equal(await issuer.approveCommand({scopeKey,source:real}),
+      "APPROVED");
+    assert.equal(await issuer.approveCommand({scopeKey,source:real}),
+      "APPROVED");
+    await assert.rejects(issuer.approveCommand({
+      scopeKey,source:{...real,receiptId:"receipt:source-forged"}
+    }),/PA05_OBJECT_SQL_HOST_COMMAND_IMMUTABLE/);
     // D14C6: GRANT after installation is not trusted just because the
     // initial installer attested least privilege. This must fail inside
     // the real Host PostgreSQL SECURITY DEFINER issuer, not just JS.
@@ -197,30 +213,49 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     // A PUBLIC EXECUTE drift would let the stolen Owner invoke the Host
     // issuer unless the actual issuer independently revalidates its ACL.
     const issueSignature=d+
-      '.pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text)';
+      '.pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb)';
     await db.unsafe('GRANT EXECUTE ON FUNCTION '+issueSignature+' TO PUBLIC');
     await assert.rejects(guarded.owner.invoke(real),
       /PA05_OBJECT_SQL_ROLE_DRIFT/);
     await db.unsafe('REVOKE EXECUTE ON FUNCTION '+
       issueSignature+' FROM PUBLIC');
 
+    // Registering Host command is a privileged SQL function. An accidental
+    // PUBLIC EXECUTE GRANT must be caught at the live privilege boundary.
+    const registerSignature=d+
+      '.pa05_object_register_host_command(text,text,text,text,text,text,jsonb)';
+    await db.unsafe('GRANT EXECUTE ON FUNCTION '+registerSignature+' TO PUBLIC');
+    await assert.rejects(issuer.approveCommand({scopeKey,source:real}),
+      /PA05_OBJECT_SQL_ROLE_DRIFT/);
+    await db.unsafe('REVOKE EXECUTE ON FUNCTION '+registerSignature+
+      ' FROM PUBLIC');
     // Real stolen business LOGIN can forge all D10 transaction GUC fields,
     // but cannot read permits, mint one, or switch to the trusted Host LOGIN.
     stolen=postgres(u(urls[1],businessRole,password),{max:1});
     await assert.rejects(stolen.unsafe("SELECT token FROM "+d+
       ".pa05_object_host_permits"),/permission denied/);
+    await assert.rejects(stolen.unsafe("SELECT approved_source FROM "+d+
+      ".pa05_object_host_commands"),/permission denied/);
+    await assert.rejects(stolen.unsafe("SELECT "+d+
+      ".pa05_object_register_host_command("+
+      "$1,$2,$3,$4,$5,$6,$7::jsonb)",[
+        scopeKey,real.runId,real.effectId,real.inputDigest,
+        scope.contextId,scope.enterpriseId,
+        stolen.json({runId:real.runId,effectId:real.effectId})
+      ]),/permission denied/);
     await assert.rejects(stolen.unsafe("SET ROLE "+q(hostRole)),
       /permission denied/);
     const stolenIssue=approvedRequest(real);
     await assert.rejects(stolen.unsafe("SELECT "+d+
       ".pa05_object_issue_host_permit("+
-      "$1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10)",[
+      "$1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11::jsonb)",[
         scopeKey,real.runId,real.effectId,real.inputDigest,
         scope.contextId,scope.enterpriseId,
         JSON.stringify(stolenIssue.approvedResource),
         JSON.stringify(stolenIssue.approvedEvidence),
         stolenIssue.approvedEvidenceDigest,
-        stolenIssue.approvedIdempotencyHash
+        stolenIssue.approvedIdempotencyHash,
+        stolen.json(real.arguments)
       ]),/permission denied/);
     async function forgedInsert(permit){
       await stolen.begin(async tx=>{
@@ -303,6 +338,14 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         }
       }
     }),/PA05_OBJECT_SQL_APPROVED_COMMAND_MISMATCH/);
+    // The independent Host-approved source is immutable even when Owner
+    // provides internally consistent forged evidence under an existing D10.
+    const substituted={...expected,
+      approvedEvidence:{...expected.approvedEvidence,
+        receiptId:"receipt:alternate-unapproved"}};
+    substituted.approvedEvidenceDigest=hash(substituted.approvedEvidence);
+    await assert.rejects(issuer.issue(substituted),
+      /PA05_OBJECT_SQL_HOST_COMMAND_NOT_APPROVED/);
     const approvedToken=await issuer.issue(expected);
     const approvalShape=(await db.unsafe(
       "SELECT jsonb_typeof(approved_resource) AS resource_type,"+
@@ -495,6 +538,18 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
     assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,5);
+    console.log("PA05_ACTUAL_OBJECT_HOST_COMMAND_PROVENANCE_PG="+JSON.stringify({
+      realPlugin:"evo-object-extension",physicalClusters:3,
+      separateSqlHostApprovedBeforeOwnerInvoke:true,
+      unapprovedButValidD10OwnerInvocationDenied:true,
+      stagedCommandCannotBeMutated:true,
+      businessLoginCannotReadOrStageCommand:true,
+      publicRegisterFunctionPermissionDriftDenied:true,
+      forgedInternallyConsistentOwnerReceiptNotInHostCommandDenied:true,
+      independentlyStagedExactCommandGenuineOwnerStillWorks:true,
+      sourceIdentityIsHostSqlLoginNotMachineAttestation:true,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_ACTUAL_OBJECT_APPROVED_PAYLOAD_PG="+JSON.stringify({
       physicalClusters:3,realPlugin:"evo-object-extension",
       unrevokedCapturedPermitCannotChangeDomainFields:true,

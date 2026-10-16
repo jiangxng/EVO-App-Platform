@@ -138,6 +138,21 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           ".pa05_object_host_permits FROM PUBLIC");
         await tx.unsafe("REVOKE ALL ON "+d+
           ".pa05_object_host_permits FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
+        // D14C9: a separately authenticated Host command is staged BEFORE
+        // Owner invocation. This table is opaque to both business and Host
+        // SQL LOGINs; only the Host SECURITY DEFINER registrar can INSERT.
+        await tx.unsafe("CREATE TABLE "+d+".pa05_object_host_commands ("+
+          "scope_key text NOT NULL,effect_id text NOT NULL,"+
+          "run_id text NOT NULL,input_digest text NOT NULL,"+
+          "context_id text NOT NULL,enterprise_id text NOT NULL,"+
+          "approved_source jsonb NOT NULL CHECK(jsonb_typeof(approved_source)='object'),"+
+          "registered_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
+          "PRIMARY KEY(scope_key,effect_id))");
+        await tx.unsafe("REVOKE ALL ON "+d+
+          ".pa05_object_host_commands FROM PUBLIC");
+        await tx.unsafe("REVOKE ALL ON "+d+
+          ".pa05_object_host_commands FROM "+'\"'+role+'\"'+","+'\"'+hostRole+'\"');
+
         // D14C6: re-attest real database role grants INSIDE SQL authority,
         // not in an optional JS wrapper. A committed GRANT / membership
         // change invalidates both subsequent Host issuances and Owner writes.
@@ -162,10 +177,10 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " JOIN pg_namespace n ON n.oid=c.relnamespace",
           " WHERE (n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
-          " 'pa05_object_host_permits')) OR",
+          " 'pa05_object_host_permits','pa05_object_host_commands')) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
-          " 'pa05_xdb_remote_config'))) != 7 THEN",
+          " 'pa05_xdb_remote_config'))) != 8 THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF EXISTS(SELECT 1 FROM pg_roles a",
           " JOIN pg_roles delegated ON delegated.oid=a.oid OR",
@@ -175,7 +190,7 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " WHERE a.oid IN(v_business,v_host) AND",
           " ((n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
-          " 'pa05_object_host_permits')) OR",
+          " 'pa05_object_host_permits','pa05_object_host_commands')) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
           " 'pa05_xdb_remote_config'))) AND",
@@ -187,13 +202,16 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " has_table_privilege(delegated.oid,c.oid,'TRIGGER') OR",
           " has_table_privilege(delegated.oid,c.oid,'MAINTAIN') OR",
           " ((n.nspname='"+worker+"' OR",
-          " c.relname='pa05_object_host_permits' OR",
+          " c.relname IN('pa05_object_host_permits',",
+          " 'pa05_object_host_commands') OR",
           " a.oid=v_host) AND",
           " (has_table_privilege(delegated.oid,c.oid,'SELECT') OR",
           " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF has_function_privilege(v_business,",
-          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text)',",
+          " '"+object+".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb)',",
+          " 'EXECUTE') OR has_function_privilege(v_business,",
+          " '"+object+".pa05_object_register_host_command(text,text,text,text,text,text,jsonb)',",
           " 'EXECUTE') OR has_function_privilege(v_business,",
           " '"+object+".pa05_object_revoke_host_permit(text,text,text)',",
           " 'EXECUTE') THEN",
@@ -206,6 +224,54 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           "AS $pa05$"+driftBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
           ".pa05_object_assert_role_boundary() FROM PUBLIC");
+
+        // Host-only immutable command registration is deliberately a separate
+        // call from Owner's issue() request. No implicit auto-registration.
+        const registerBody=[
+          "DECLARE v_existing jsonb;",
+          "BEGIN",
+          "IF SESSION_USER!='"+hostRole+"' THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_LOGIN_REQUIRED'; END IF;",
+          "PERFORM "+d+".pa05_object_assert_role_boundary();",
+          "IF jsonb_typeof(p_source) IS DISTINCT FROM 'object'",
+          " OR jsonb_typeof(p_source->'arguments') IS DISTINCT FROM 'object'",
+          " OR p_source->>'runId' IS DISTINCT FROM p_run",
+          " OR p_source->>'effectId' IS DISTINCT FROM p_effect",
+          " OR p_source->>'inputDigest' IS DISTINCT FROM p_digest",
+          " OR p_source->>'contextId' IS DISTINCT FROM p_context",
+          " OR p_source->>'enterpriseId' IS DISTINCT FROM p_enterprise",
+          " OR COALESCE(p_source->>'receiptId','')=''",
+          " OR COALESCE(p_source->>'idempotencyKey','')=''",
+          " OR COALESCE(p_source->>'toolId','')=''",
+          " OR COALESCE(p_source->>'principalSubjectId','')=''",
+          " OR p_source->>'principalActorType' NOT IN('AI','HUMAN') THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_COMMAND_SOURCE_INVALID';",
+          "END IF;",
+          "INSERT INTO "+d+".pa05_object_host_commands",
+          " (scope_key,effect_id,run_id,input_digest,context_id,enterprise_id,approved_source)",
+          " VALUES(p_scope,p_effect,p_run,p_digest,p_context,p_enterprise,p_source)",
+          " ON CONFLICT DO NOTHING;",
+          "SELECT approved_source INTO v_existing",
+          " FROM "+d+".pa05_object_host_commands",
+          " WHERE scope_key=p_scope AND effect_id=p_effect",
+          " AND run_id=p_run AND input_digest=p_digest",
+          " AND context_id=p_context AND enterprise_id=p_enterprise",
+          " FOR SHARE;",
+          "IF NOT FOUND OR v_existing IS DISTINCT FROM p_source THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_COMMAND_IMMUTABLE';",
+          "END IF;",
+          "RETURN 'APPROVED'; END;"
+        ].join("\n");
+        await tx.unsafe("CREATE FUNCTION "+d+
+          ".pa05_object_register_host_command(p_scope text,p_run text,"+
+          "p_effect text,p_digest text,p_context text,p_enterprise text,"+
+          "p_source jsonb) RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
+          "SET search_path=pg_catalog AS $pa05$"+registerBody+"$pa05$");
+        await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
+          ".pa05_object_register_host_command(text,text,text,text,text,text,jsonb) FROM PUBLIC");
+        await tx.unsafe("GRANT USAGE ON SCHEMA "+d+" TO "+'\"'+hostRole+'\"');
+        await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
+          ".pa05_object_register_host_command(text,text,text,text,text,text,jsonb) TO "+'\"'+hostRole+'\"');
         const issueBody=[
           "DECLARE v_token text;",
           "BEGIN",
@@ -224,6 +290,21 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " AND p.run_id=p_run AND p.input_digest=p_digest",
           " AND p.state IN ('INVOKING','UNKNOWN')) THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_ADMISSION_REQUIRED'; END IF;",
+          // An actual separate authenticated Host registration must exist.
+          "IF NOT EXISTS(SELECT 1 FROM "+d+".pa05_object_host_commands cmd",
+          " WHERE cmd.scope_key=p_scope AND cmd.effect_id=p_effect",
+          " AND cmd.run_id=p_run AND cmd.input_digest=p_digest",
+          " AND cmd.context_id=p_context AND cmd.enterprise_id=p_enterprise",
+          " AND cmd.approved_source=jsonb_build_object(",
+          " 'runId',p_run,'effectId',p_effect,",
+          " 'receiptId',p_evidence->>'receiptId',",
+          " 'idempotencyKey',p_evidence->>'idempotencyKey',",
+          " 'inputDigest',p_digest,'toolId',p_evidence->>'toolId',",
+          " 'contextId',p_context,'enterpriseId',p_enterprise,",
+          " 'principalSubjectId',p_evidence->>'principalSubjectId',",
+          " 'principalActorType',p_evidence->>'principalActorType',",
+          " 'arguments',p_arguments) FOR SHARE) THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_COMMAND_NOT_APPROVED'; END IF;",
           "IF EXISTS(SELECT 1 FROM "+d+".pa05_object_host_permits",
           " WHERE scope_key=p_scope AND effect_id=p_effect AND consumed",
           " AND run_id=p_run AND input_digest=p_digest",
@@ -248,14 +329,14 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           ".pa05_object_issue_host_permit(p_scope text,p_run text,"+
           "p_effect text,p_digest text,p_context text,p_enterprise text,"+
           "p_resource jsonb,p_evidence jsonb,p_evidence_digest text,"+
-          "p_idempotency_hash text) "+
+          "p_idempotency_hash text,p_arguments jsonb) "+
           "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
           "SET search_path=pg_catalog AS $pa05$"+issueBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) FROM PUBLIC");
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb) FROM PUBLIC");
         await tx.unsafe("GRANT USAGE ON SCHEMA "+d+" TO "+'\"'+hostRole+'\"');
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) TO "+
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb) TO "+
           '\"'+hostRole+'\"');
         // D14C7: one-effect revocation is a durable PostgreSQL row transition.
         // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
