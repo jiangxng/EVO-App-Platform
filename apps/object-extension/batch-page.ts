@@ -229,16 +229,57 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const batchConstants = job.mapping.filter(entry =>
     entry.transform?.kind === "CONSTANT"
   );
-  const fixedValueFacts = batchConstants.map((entry, index) => ({
-    key: "existingBatchConstant_" + index,
-    label: (zh ? "已保存批次固定值：" : "Saved batch constant: ")
-      + (entry.targetFieldId === "subjectType"
-        ? (zh ? "主体类型" : "Subject type") : entry.targetFieldId),
-    semanticType: "object-extension-saved-batch-constant",
-    control: "text" as const, required: false, readOnly: true,
-    initialValue: String(entry.transform?.kind === "CONSTANT"
-      ? entry.transform.value ?? "" : "")
-  }));
+  const subjectSource = job.mapping.find(entry =>
+    entry.targetFieldId === "subjectType" && entry.sourceColumn
+  );
+  const subjectConstant = batchConstants.find(entry =>
+    entry.targetFieldId === "subjectType"
+  );
+  const otherConstantFacts = batchConstants
+    .filter(entry => entry.targetFieldId !== "subjectType")
+    .map((entry, index) => ({
+      key: "existingBatchConstant_" + index,
+      label: (zh ? "已保存批次固定值：" : "Saved batch constant: ")
+        + entry.targetFieldId,
+      semanticType: "object-extension-saved-batch-constant",
+      control: "text" as const, required: false, readOnly: true,
+      initialValue: String(entry.transform?.kind === "CONSTANT"
+        ? entry.transform.value ?? "" : "")
+    }));
+  // One batch value applies to *every* imported record. A source-column
+  // mapping can represent mixed identities, so it must never be overwritten
+  // by a convenient batch default.
+  const subjectFixedValue = subjectSource
+    ? [{
+      key: "subjectTypeSourceNotice",
+      label: zh ? "主体类型 · 按来源列逐行读取" : "Subject type · Per source row",
+      semanticType: "object-extension-source-mapped-subject-type",
+      control: "text" as const, readOnly: true, required: false,
+      initialValue: (zh ? "已映射来源列：" : "Mapped source column: ")
+        + subjectSource.sourceColumn
+        + (zh ? "。如有缺失，请在预检查后逐行修正；不能用批次值覆盖。"
+          : ". Correct missing rows after validation; do not override with a batch constant.")
+    }]
+    : [{
+      key: "batchSubjectType",
+      label: zh ? "批次固定值 · 主体类型（应用于所有导入记录）"
+        : "Batch constant · Subject type (all imported records)",
+      semanticType: "object-extension-batch-subject-type",
+      control: "select" as const, required: true,
+      // Only the explicitly persisted constant is restored; never guess
+      // ORGANIZATION from a supplier relationship role or a sample.
+      initialValue: subjectConstant?.transform?.kind === "CONSTANT"
+        ? String(subjectConstant.transform.value) : "__KEEP__",
+      options: [
+        {value:"__KEEP__",label:zh ? "— 不设置批次固定值 —" : "— No batch constant —"},
+        {value:"ORGANIZATION",label:zh ? "机构／法人（ORGANIZATION）" : "Organization"},
+        {value:"PERSON",label:zh ? "个人（PERSON）" : "Person"}
+      ],
+      description: zh
+        ? "仅在整批主体身份一致时选择。此值经人工确认后保存到当前导入任务；源文件不变，须重新预检查。"
+        : "Select only if every record has this identity. Saved to the job, not the source file; validation is required."
+    }];
+  const fixedValueFacts = [...subjectFixedValue, ...otherConstantFacts];
   const reviewGroups = columns.map((column, index) => {
     const count = job.source.rows.filter(row =>
       row[column] !== null && row[column] !== undefined
