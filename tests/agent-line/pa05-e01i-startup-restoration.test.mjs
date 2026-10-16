@@ -56,7 +56,6 @@ async function start(state){
   const env={
     PATH:process.env.PATH??"",HOME:state.dir,
     PORT:String(n),NODE_ENV:"test",APP_PLATFORM_STATE_FILE:state.file,
-    APP_PLATFORM_STARTUP_PROFILE:"minimal",
     APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION:"OFF"
   };
   const child=spawn(process.execPath,["dist/manager/server.js"],{
