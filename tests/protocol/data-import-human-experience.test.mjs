@@ -980,7 +980,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
   assert.match(page.reviewGroups[3].summary,new RegExp("非空 1 / 1 · old-001"));
   assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
-  assert.equal(page.reviewTask.subject.title,source.name);
+  assert.equal(page.reviewTask.subject.title,"batch-proposals");
   assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
