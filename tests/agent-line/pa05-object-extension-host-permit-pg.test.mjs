@@ -83,7 +83,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await db.unsafe('CREATE ROLE "'+workerRole+
       '" LOGIN PASSWORD \''+password+'\'');
     await db.unsafe('CREATE ROLE "'+hostRole+
-      '" LOGIN PASSWORD \' '+password+'\'');
+      '" LOGIN PASSWORD \''+password+'\'');
     await db.unsafe('GRANT USAGE ON SCHEMA '+w+' TO "'+workerRole+'"');
     await db.unsafe('GRANT SELECT,UPDATE ON '+w+
       '.pa02b_writes TO "'+workerRole+'"');
