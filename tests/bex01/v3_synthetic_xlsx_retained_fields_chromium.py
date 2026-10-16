@@ -301,7 +301,10 @@ with sync_playwright() as pw:
     name_field.fill("人工审核后的名称")
     expect(plan.locator('[data-eidos-review-plan-items] li').first).to_contain_text("人工审核后的名称")
     assert "仅预览当前未保存的选择" in plan.inner_text()
-    page.screenshot(path=str(OUT/"v3-e6-plan-preview-desktop.png"),full_page=True)
+    plan.locator("h2").scroll_into_view_if_needed()
+    page.evaluate("""async () => {await new Promise(done =>
+      requestAnimationFrame(()=>requestAnimationFrame(done)));}""")
+    page.screenshot(path=str(OUT/"v3-e6-plan-preview-desktop.png"),full_page=False)
     # This scenario later verifies original business fields were preserved.
     # Restore the intentionally edited *unsaved* test input before approval.
     name_field.fill(original_name)
@@ -389,7 +392,10 @@ with sync_playwright() as pw:
     mobile_plan=mobile_form.locator('[data-eidos-form-review-plan]')
     expect(mobile_plan.locator('[data-eidos-review-plan-items] li')).to_have_count(18)
     expect(mobile_plan.locator('[data-eidos-review-plan-count="create"] strong')).to_be_visible()
-    mobile_plan.screenshot(path=str(OUT/"v3-e6-plan-preview-phone.png"))
+    mobile_plan.locator("h2").scroll_into_view_if_needed()
+    small.evaluate("""async () => {await new Promise(done =>
+      requestAnimationFrame(()=>requestAnimationFrame(done)));}""")
+    small.screenshot(path=str(OUT/"v3-e6-plan-preview-phone.png"),full_page=False)
     mobile_group=mobile_form.locator('[data-eidos-form-review-table-row]').first
     mobile_group.locator('[data-eidos-review-group-detail] summary').click()
     expect(mobile_group.locator('input[name="label_0"]')).to_be_visible()
