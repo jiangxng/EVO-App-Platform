@@ -29,7 +29,7 @@ Extend the *existing* first-party Object Extension PG18 test and marker CI, with
 - Ordinary Business SQL login cannot UPDATE the protected epoch table or invoke the admin rotator, and grants/membership audit stays fail-closed.
 - Preserve prior D9–D14C10 and three distinct physical cluster IDs, 0 skipped tests. New marker: `PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG`, no false machine identity or production WRITE claims.
 
-**Status:** candidate until exact final PR HEAD, CI logs and merge/hygiene verification. No production credential was read, generated for deployment, rotated or migrated. The generated test password is throwaway and limited to isolated PG18 CI.
+**Verified preliminary engineering evidence (2026-10-16):** accurate test/code HEAD `dab4e6af8a48f631253f1d408fa77108136c30a6`; real [three physically independent PG18 Actions #38844841302](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38844841302), **12/12 PASS, 0 failures, 0 skips** with mandatory `PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG`, including **pre-rotation REPEATABLE READ snapshot denied** by the row-lock guard; old Host and Business authenticated sessions blocked, in-flight Owner rolled back, old password login refused and new credentials/new Owner+verifier passed. Preserve old D9–D14C10 markers. The documentation update changes PR HEAD, so the **final exact-HEAD CI, main-sync and GitHub branch protection** must still be checked. This does not certify a production credential-management system.
 
 ## Remaining NOT_SIGNED
 
