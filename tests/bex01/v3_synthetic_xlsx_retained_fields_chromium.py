@@ -103,6 +103,13 @@ def capture_map_scroll_evidence(page, form, device):
           return -1;
         }""",position)
         assert abs(actual-position)<=2,(device,position,actual)
+        # A nested compositor scroller can expose a partially blank frame if
+        # Playwright captures immediately after setting scrollTop. Wait for two
+        # animation frames before recording visual proof, not a fixed timer.
+        page.evaluate("""async () => {
+          await new Promise(resolve => requestAnimationFrame(
+            () => requestAnimationFrame(resolve)));
+        }""")
         page.screenshot(path=str(OUT/(
           "v3-e4-map-%s-contiguous-%02d.png"%(device,index))),
           full_page=False)
