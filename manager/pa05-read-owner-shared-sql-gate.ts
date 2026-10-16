@@ -89,7 +89,7 @@ export async function createPa05SharedReadOwnerGateV010(input: {
           await tx.unsafe("INSERT INTO "+a+
             ".pa05_read_trusted_hosts(owner_package_id,host_id) VALUES($1,$2)",
             [owner,id]);
-      }else if(JSON.stringify(actual.map(x=>String(x.host_id))) !== JSON.stringify(declared)){
+      }else if(JSON.stringify(actual.map((x: {host_id:string})=>String(x.host_id))) !== JSON.stringify(declared)){
         throw Error("PA05_READ_SQL_HOST_INVENTORY_CHANGED");
       }
     });
