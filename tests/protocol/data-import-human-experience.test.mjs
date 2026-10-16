@@ -978,7 +978,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(x=>x.title),source.headers);
   assert.equal(page.reviewGroups[0].primaryFieldKey,"map_0");
   assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
-  assert.match(page.reviewGroups[3].summary,/非空 1 \\/ 1 · old-001/);
+  assert.match(page.reviewGroups[3].summary,new RegExp("非空 1 / 1 · old-001"));
   assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
   const mapHtml=renderToHtml(page);
   assert.equal((mapHtml.match(/data-eidos-form-review-group="map-source-/g)??[]).length,4);
