@@ -84,21 +84,34 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(map_form).to_be_visible(timeout=30000)
+    expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
+    expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
+        "BEX-SYNTHETIC-RET-172.xlsx")
     expect(map_form.locator('[data-eidos-form-task-overview]')).to_be_visible()
     expect(map_form.locator('[data-eidos-form-task-metric]')).to_have_count(4)
     expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(3)
+    # Separate evidence view from the scrollable Eidos shell: capture actual E3
+    # overview/metrics rather than assuming a mid-table full_page shot includes it.
+    map_form.locator('[data-eidos-form-task-overview]').screenshot(
+        path=str(OUT/"v3-e4-task-overview-desktop.png"))
     focus_actions=map_form.locator('[data-eidos-form-task-focus]')
     # This synthetic fixture has already chosen every field: no invented blockers.
     # A focus button appears only for an actual ambiguous/unconfirmed source.
     map_rows=map_form.locator('[data-eidos-form-review-table-row]')
     expect(map_form.locator('table[data-eidos-form-review-table]')).to_be_visible()
     expect(map_rows).to_have_count(22)
+    assert map_form.locator('[data-eidos-review-table-detail-row]').count()==0, (
+        "Pinned Eidos E4 must not reserve an extra row for collapsed source details")
+    expect(map_rows.first.locator(
+        '[data-eidos-review-table-evidence] [data-eidos-review-group-detail]')).to_have_count(1)
     expect(map_form.locator('[data-eidos-review-table-choice] select')).to_have_count(22)
     map_filter=map_form.locator('[data-eidos-form-review-table-filter]')
     expect(map_filter).to_have_value("needs")
     expect(map_rows.first).to_be_hidden()
     expect(map_rows.nth(4)).to_be_visible()
     expect(map_rows.nth(4)).to_contain_text("synthetic-4-0001")
+    expect(map_rows.nth(4).locator('[data-eidos-review-table-evidence]')).not_to_contain_text(
+        "synthetic-4-0002")
     expect(map_rows.nth(4).locator('select[name="map_4"]')).to_have_value("__CREATE__")
     # Eidos E3 task issue focus must recover even a filtered-out row without
     # creating a Host command or changing any form values.
@@ -110,8 +123,18 @@ with sync_playwright() as pw:
     expect(map_rows.first).to_be_visible()
     expect(map_rows.first).to_contain_text("往来编码")
     expect(map_rows.first.locator('select[name="map_0"]')).to_have_value("code")
+    # Unambiguous labels remain business-language while submitted option values
+    # still carry the original stable schema field ID.
+    code_option=map_rows.first.locator('select[name="map_0"] option[value="code"]')
+    assert " · code" not in code_option.inner_text()
+    map_rows.first.locator('[data-eidos-review-group-detail] summary').click()
+    expect(map_rows.first.locator('input[name="sourceEvidence_0"]')).to_be_visible()
+    assert "RET-0002" in map_rows.first.locator(
+        'input[name="sourceEvidence_0"]').input_value()
     map_rows.nth(4).locator('[data-eidos-review-group-detail] summary').click()
     expect(map_rows.nth(4).locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    assert "synthetic-4-0002" in map_rows.nth(4).locator(
+        'input[name="sourceEvidence_4"]').input_value()
     expect(map_rows.nth(21).locator('select[name="map_21"]')).to_have_value("__IGNORE__")
     map_filter.select_option("needs")
     expect(map_rows.first).to_be_hidden()
@@ -152,6 +175,8 @@ with sync_playwright() as pw:
     expect(mobile_map_group.locator('select[name="map_4"]')).to_be_visible()
     mobile_map_group.locator('[data-eidos-review-group-detail] summary').click()
     expect(mobile_map_group.locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    mobile_map.locator('[data-eidos-form-task-overview]').screenshot(
+        path=str(OUT/"v3-e4-task-overview-phone.png"))
     mobile_filter.select_option("all")
     expect(mobile_map.locator('[data-eidos-form-review-table-row]').first).to_be_visible()
     expect(mobile_map.locator('select[name="map_0"]')).to_have_value("code")

@@ -2946,16 +2946,26 @@ form[data-eidos-id] button:hover,
   max-width:100%;
   min-height:var(--eidos-control-normal);
 }
-[data-eidos-review-table-detail-row]>td{
-  padding:0 var(--eidos-space-lg);
-  background:var(--eidos-bg-subtle);
+/* E4: a collapsed disclosure belongs beside its evidence, not in a full-width
+   second table row. Expanded details grow only the owning source row. */
+[data-eidos-review-table-evidence] [data-eidos-review-group-detail]{
+  margin-top:var(--eidos-space-xs);
+  min-width:0;
 }
-[data-eidos-review-table-detail-row] [data-eidos-review-group-detail]{
-  margin:0;
-  padding-block:var(--eidos-space-sm);
+[data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{
+  font-size:var(--eidos-font-meta);
+  font-weight:600;
+  min-height:var(--eidos-control-normal);
 }
-[data-eidos-review-table-detail-row] [data-eidos-review-group-fields]{
-  padding:var(--eidos-space-sm) 0;
+[data-eidos-review-table-evidence] [data-eidos-review-group-fields]{
+  grid-template-columns:minmax(0,1fr);
+  gap:var(--eidos-space-xs);
+  padding:var(--eidos-space-sm) 0 0;
+}
+[data-eidos-review-table-evidence] [data-eidos-review-group-fields] input{
+  min-width:0;
+  width:100%;
+  max-width:100%;
 }
 [data-eidos-form-review-table-empty]{
   padding:var(--eidos-space-lg);
@@ -3001,7 +3011,7 @@ form[data-eidos-id] button:hover,
  [data-eidos-form-review-table] input{min-height:44px}
  [data-eidos-form-review-table-toolbar] label{width:100%}
  [data-eidos-form-review-table-toolbar] select{flex:1;min-width:0}
- [data-eidos-review-table-detail-row]>td{padding:0 var(--eidos-space-md)}
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{min-height:44px}
 }
 
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
