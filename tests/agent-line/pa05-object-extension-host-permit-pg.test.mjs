@@ -4,7 +4,8 @@ import {createHash,randomUUID} from "node:crypto";
 import postgres from "postgres";
 import {
   preparePostgresObjectExtensionOwnerSchemaV010,
-  createPostgresObjectExtensionAtomicOwnerV010
+  createPostgresObjectExtensionAtomicOwnerV010,
+  buildPa05ObjectExtensionApprovedMaterialV010
 } from "../../dist/apps/object-extension/agent-owner-postgres.js";
 import {installPa05ObjectExtensionPhysicalFenceV010}
   from "../../dist/apps/object-extension/pa05-physical-sql-guard.js";
@@ -62,6 +63,17 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
   const issued=[];
   const w=q(workerSchema),d=q(ownerSchema);
   const scopeKey=hostAgentDurabilityScopeKeyV020(scope);
+  const approvedRequest=r=>{
+    const a=buildPa05ObjectExtensionApprovedMaterialV010(
+      r,new Date().toISOString());
+    return {
+      scopeKey,runId:r.runId,effectId:r.effectId,
+      inputDigest:r.inputDigest,contextId:scope.contextId,
+      enterpriseId:scope.enterpriseId,approvedResource:a.record,
+      approvedEvidence:a.evidence,approvedEvidenceDigest:a.evidenceDigest,
+      approvedIdempotencyHash:a.key
+    };
+  };
   async function seed(r){
     await db.unsafe("INSERT INTO "+w+".pa02b_writes("+
       "scope_key,effect_id,run_id,input_digest,fence,state) "+
@@ -229,11 +241,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await seed(orphan);
     await gateway.stagePreparedEffect({scopeKey,effectId:orphan.effectId});
     await start(orphan);
-    const orphanToken=await issuer.issue({
-      scopeKey,runId:orphan.runId,effectId:orphan.effectId,
-      inputDigest:orphan.inputDigest,contextId:scope.contextId,
-      enterpriseId:scope.enterpriseId
-    });
+    const orphanToken=await issuer.issue(approvedRequest(orphan));
     const orphanWrite=()=>stolen.begin(async tx=>{
       for(const [key,value] of [["scope_key",scopeKey],
         ["run_id",orphan.runId],["effect_id",orphan.effectId],
@@ -272,11 +280,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     }),"REVOKED");
     await assert.rejects(orphanWrite(),
       /PA05_OBJECT_SQL_HOST_PERMIT_REQUIRED/);
-    await assert.rejects(issuer.issue({
-      scopeKey,runId:orphan.runId,effectId:orphan.effectId,
-      inputDigest:orphan.inputDigest,contextId:scope.contextId,
-      enterpriseId:scope.enterpriseId
-    }),/PA05_OBJECT_SQL_HOST_PERMIT_UNRESOLVED/);
+    await assert.rejects(issuer.issue(approvedRequest(orphan)),
+      /PA05_OBJECT_SQL_HOST_PERMIT_UNRESOLVED/);
     // D14C3's raw original Owner bypass is also physically denied.
     await assert.rejects(raw.owner.invoke(real),
       /PA05_OBJECT_SQL_TRANSACTION_SOURCE_REQUIRED/);
