@@ -27,7 +27,52 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
     throw Error("PA05_OBJECT_SQL_HOST_ISSUER_CONFIG_INVALID");
   const sql=postgres(input.connectionString,{max:2,connect_timeout:10,idle_timeout:15});
   const q='"'+input.objectSchema+'".pa05_object_issue_host_permit';
+  const register='"'+input.objectSchema+'".pa05_object_register_host_command';
+
+  // D14C9: Only an explicit, earlier Host caller may approve a command.
+  // DO NOT call this from Owner.issue() or install default production routes.
+  // Registration is persisted by the independently authenticated SQL Host.
   return {
+    async approveCommand(request:{
+      scopeKey:string;source:{
+        scope:{contextKind:string;contextId:string;enterpriseId?:string;
+          principalSubjectId:string;principalActorType:string};
+        runId:string;effectId:string;receiptId:string;idempotencyKey:string;
+        inputDigest:string;toolId:string;arguments?:Record<string,unknown>;
+      }
+    }):Promise<"APPROVED">{
+      const r=request?.source,a=r?.scope;
+      if(!request||typeof request.scopeKey!=="string"||
+        !request.scopeKey||request.scopeKey.length>512||
+        a?.contextKind!=="ENTERPRISE"||
+        ![r?.runId,r?.effectId,r?.receiptId,r?.idempotencyKey,
+          r?.toolId,a?.contextId,a?.enterpriseId,a?.principalSubjectId]
+          .every(x=>typeof x==="string"&&x.length>0&&x.length<=512)||
+        !["AI","HUMAN"].includes(a.principalActorType)||
+        !r.arguments||typeof r.arguments!=="object"||
+        Array.isArray(r.arguments)||
+        typeof r.inputDigest!=="string"||
+        !/^[a-f0-9]{64}$/.test(r.inputDigest)||
+        hash(json(r.arguments))!==r.inputDigest)
+        throw Error("PA05_OBJECT_SQL_HOST_COMMAND_SOURCE_INVALID");
+      const source={
+        runId:r.runId,effectId:r.effectId,receiptId:r.receiptId,
+        idempotencyKey:r.idempotencyKey,inputDigest:r.inputDigest,
+        toolId:r.toolId,contextId:a.contextId,enterpriseId:a.enterpriseId,
+        principalSubjectId:a.principalSubjectId,
+        principalActorType:a.principalActorType,
+        arguments:r.arguments
+      };
+      const rows=await sql.unsafe("SELECT "+register+
+        "($1,$2,$3,$4,$5,$6,$7::jsonb) AS state",[
+          request.scopeKey,r.runId,r.effectId,r.inputDigest,
+          a.contextId,a.enterpriseId,
+          sql.json(JSON.parse(json(source)))
+        ]);
+      if(rows[0]?.state!=="APPROVED")
+        throw Error("PA05_OBJECT_SQL_HOST_COMMAND_APPROVAL_UNVERIFIED");
+      return "APPROVED";
+    },
     async issue(request:{
       scopeKey:string;runId:string;effectId:string;inputDigest:string;
       contextId:string;enterpriseId:string;
@@ -76,13 +121,14 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
       // The PostgreSQL function checks real SESSION_USER + immutable D10
       // ticket + PA-02 state + D14A ACTIVE and owns the permit table.
       const rows=await sql.unsafe("SELECT "+q+
-        "($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10) AS token",[
+        "($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11::jsonb) AS token",[
           request.scopeKey,request.runId,request.effectId,
           request.inputDigest,request.contextId,request.enterpriseId,
           sql.json(JSON.parse(json(resource))),
           sql.json(JSON.parse(json(evidence))),
           request.approvedEvidenceDigest,
-          request.approvedIdempotencyHash
+          request.approvedIdempotencyHash,
+          sql.json(JSON.parse(json(args)))
         ]);
       const token=rows[0]?.token;
       if(typeof token!=="string"||!/^[a-f0-9]{32,64}$/.test(token))
