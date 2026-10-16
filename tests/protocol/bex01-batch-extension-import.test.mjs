@@ -501,7 +501,9 @@ test("V3 saved batch review choices are actor-scoped and never create enterprise
     getImportJob:(_,id)=>id===job.importJobId?job:undefined,
     getImportableTargets:()=>[],
     saveBatchReviewDraft:input=>{
-      saves++;job=assertDataImportJobV010({...job,batchReviewDrafts:[input.draft]});
+      saves++;job=assertDataImportJobV010({...job,
+        stagedAt:"2026-10-16T00:00:00Z",stagedBySubjectId:"owner",
+        batchReviewDrafts:[input.draft]});
     }
   });
   const save=handlers.find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
