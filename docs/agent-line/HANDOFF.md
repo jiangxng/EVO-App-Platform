@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-05/E01B candidate, NOT_SIGNED:** [plugin-owned lazy Host adapter + Lightweight Host ratchet decision record](PA05-E01B-OPTIN-REAL-HOST-PURCHASE-READ-20261016.md) → [baseline §45](PA05-CERTIFICATION-BASELINE-20261015.md) → [PA05-05 actual Human/Provider blocker #979](https://github.com/jiangxng/EVO-App-Platform/issues/979). Candidate PR #982, branch `agent/pa05-e01b-optin-host-read-20261016`. The first opt-in startup implementation was **rejected by real CI** as an eager plugin import; `manager/server.ts` was restored unchanged. The remaining genuine plugin-owned adapter is tested only in isolated Host composition, no default Host install/routing, Provider or Human signing. Need final exact-HEAD CI before merge. #913 remains OPEN; PA-05/W06 NOT_SIGNED and production WRITE OFF. No BEX/CP03/Eidos/2D or global continuity edits.
+
+
 > **2026-10-16 PA05-05/E01A current isolated readiness (NOT_SIGNED):** [real Host active Capability/Action-handler composition audit and missing Purchase Attention production registration](PA05-E01A-HOST-COMPOSITION-READINESS-20261016.md) → [baseline §44](PA05-CERTIFICATION-BASELINE-20261015.md) → [PA05-05 Issue #979](https://github.com/jiangxng/EVO-App-Platform/issues/979). Candidate branch `agent/pa05-e01a-host-readiness-preflight-20261016`; require actual CI before engineering signoff; E01 live Human/Provider/data still BLOCKED. **Previous D14C13 [PR #976](https://github.com/jiangxng/EVO-App-Platform/pull/976) is MERGED**, main merge `22d830dd34086c76c5dd0bdcdf0fb88aa7e0848e`, exact three-PG18 12/12 and 6/6 CI, engineering branch retired. Issue #913 OPEN, PA-05/W06 NOT_SIGNED, production WRITE OFF. Do not edit global project continuity or parallel BEX/CP03/Eidos/2D.
 
 

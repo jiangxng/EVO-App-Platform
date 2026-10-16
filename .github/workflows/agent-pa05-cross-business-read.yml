@@ -16,6 +16,8 @@ on:
       - "tests/agent-line/pa05-independent-purchase-attention.test.mjs"
       - "certification/pa05-e01-host-readiness.mjs"
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
+      - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
+      - "apps/purchase-attention/host-optin.ts"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -34,6 +36,8 @@ on:
       - "tests/agent-line/pa05-independent-purchase-attention.test.mjs"
       - "certification/pa05-e01-host-readiness.mjs"
       - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
+      - "tests/agent-line/pa05-e01b-host-optin.test.mjs"
+      - "apps/purchase-attention/host-optin.ts"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -78,3 +82,14 @@ jobs:
           grep -Fq '"e01ProductionCertified":false' pa05-e01.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01.log
           if grep -Eq '# skipped [1-9][0-9]*' pa05-e01.log; then exit 1; fi
+      - name: E01B opt-in production Host composition (isolated, no live Provider)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01b-host-optin.test.mjs | tee pa05-e01b.log
+          grep -Fq 'PA05_E01B_HOST_OPTIN=' pa05-e01b.log
+          grep -Fq '"defaultHostUnchanged":true' pa05-e01b.log
+          grep -Fq '"installRemainsExplicit":true' pa05-e01b.log
+          grep -Fq '"realProductionInstallationVerified":false' pa05-e01b.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01b.log
+          if grep -Eq '# skipped [1-9][0-9]*' pa05-e01b.log; then exit 1; fi
