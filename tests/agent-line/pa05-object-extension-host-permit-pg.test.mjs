@@ -60,6 +60,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     String((await client.unsafe("SELECT system_identifier::text AS sid FROM pg_control_system()"))[0].sid)));
   assert.equal(new Set(systems).size,3);
   let authority,gateway,raw,guarded,issuer,privileged,stolen;
+  let originalHost,originalOwner,rotatingOwner,rotatedIssuer,rotatedOwner,oldHost;
   const issued=[];
   const w=q(workerSchema),d=q(ownerSchema);
   const scopeKey=hostAgentDurabilityScopeKeyV020(scope);
@@ -237,6 +238,12 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       ".pa05_object_host_permits"),/permission denied/);
     await assert.rejects(stolen.unsafe("SELECT approved_source FROM "+d+
       ".pa05_object_host_commands"),/permission denied/);
+    await assert.rejects(stolen.unsafe("UPDATE "+d+
+      ".pa05_object_sql_session_epochs SET not_before=clock_timestamp()"),
+      /permission denied/);
+    await assert.rejects(stolen.unsafe("SELECT "+d+
+      ".pa05_object_advance_sql_session_epoch($1)",[businessRole]),
+      /permission denied/);
     await assert.rejects(stolen.unsafe("SELECT "+d+
       ".pa05_object_register_host_command("+
       "$1,$2,$3,$4,$5,$6,$7::jsonb)",[
