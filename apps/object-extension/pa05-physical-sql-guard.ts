@@ -290,6 +290,21 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " AND p.run_id=p_run AND p.input_digest=p_digest",
           " AND p.state IN ('INVOKING','UNKNOWN')) THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_ADMISSION_REQUIRED'; END IF;",
+          // An actual separate authenticated Host registration must exist.
+          "IF NOT EXISTS(SELECT 1 FROM "+d+".pa05_object_host_commands cmd",
+          " WHERE cmd.scope_key=p_scope AND cmd.effect_id=p_effect",
+          " AND cmd.run_id=p_run AND cmd.input_digest=p_digest",
+          " AND cmd.context_id=p_context AND cmd.enterprise_id=p_enterprise",
+          " AND cmd.approved_source=jsonb_build_object(",
+          " 'runId',p_run,'effectId',p_effect,",
+          " 'receiptId',p_evidence->>'receiptId',",
+          " 'idempotencyKey',p_evidence->>'idempotencyKey',",
+          " 'inputDigest',p_digest,'toolId',p_evidence->>'toolId',",
+          " 'contextId',p_context,'enterpriseId',p_enterprise,",
+          " 'principalSubjectId',p_evidence->>'principalSubjectId',",
+          " 'principalActorType',p_evidence->>'principalActorType',",
+          " 'arguments',p_arguments) FOR SHARE) THEN",
+          " RAISE EXCEPTION 'PA05_OBJECT_SQL_HOST_COMMAND_NOT_APPROVED'; END IF;",
           "IF EXISTS(SELECT 1 FROM "+d+".pa05_object_host_permits",
           " WHERE scope_key=p_scope AND effect_id=p_effect AND consumed",
           " AND run_id=p_run AND input_digest=p_digest",
@@ -314,14 +329,14 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           ".pa05_object_issue_host_permit(p_scope text,p_run text,"+
           "p_effect text,p_digest text,p_context text,p_enterprise text,"+
           "p_resource jsonb,p_evidence jsonb,p_evidence_digest text,"+
-          "p_idempotency_hash text) "+
+          "p_idempotency_hash text,p_arguments jsonb) "+
           "RETURNS text LANGUAGE plpgsql SECURITY DEFINER "+
           "SET search_path=pg_catalog AS $pa05$"+issueBody+"$pa05$");
         await tx.unsafe("REVOKE ALL ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) FROM PUBLIC");
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb) FROM PUBLIC");
         await tx.unsafe("GRANT USAGE ON SCHEMA "+d+" TO "+'\"'+hostRole+'\"');
         await tx.unsafe("GRANT EXECUTE ON FUNCTION "+d+
-          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text) TO "+
+          ".pa05_object_issue_host_permit(text,text,text,text,text,text,jsonb,jsonb,text,text,jsonb) TO "+
           '\"'+hostRole+'\"');
         // D14C7: one-effect revocation is a durable PostgreSQL row transition.
         // Competing Owner trigger FOR UPDATE and Host revoke serialize on the
