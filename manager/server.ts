@@ -789,9 +789,6 @@ import {
   itemPackage,
   warehousePackage,
   tradingReferencePackageV010,
-  ...(optionalPa05PurchaseAttentionHost
-    ? [optionalPa05PurchaseAttentionHost.purchaseAttentionPackageV010]
-    : []),
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -1070,6 +1067,9 @@ const catalog = createPackageCatalog([
   itemPackage,
   warehousePackage,
   tradingReferencePackageV010,
+  ...(optionalPa05PurchaseAttentionHost
+    ? [optionalPa05PurchaseAttentionHost.purchaseAttentionPackageV010]
+    : []),
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
