@@ -1,0 +1,33 @@
+# PA05-04D14C9 — separately staged Host command provenance before Object Extension Owner execution
+
+**2026-10-16 · isolated Agent-only PG18 certification candidate. Production WRITE OFF; PA-05/W06 NOT_SIGNED; #913 OPEN.**
+
+## Source access and evidence grades
+
+- **Actually read scoped original GitHub sources in this continuation (2026-10-16):** [existing Object Extension PA-02 atomic Owner+Verifier](../../apps/object-extension/agent-owner-postgres.ts), [Host-only SQL permit issuer](../../apps/object-extension/pa05-host-sql-permit.ts), [actual PG18 physical guard](../../apps/object-extension/pa05-physical-sql-guard.ts), [three genuinely distinct PG18 test](../../tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs), [project delivery rule](../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md), and [D14C8 signed-off *engineering only* decision](PA05-D14C8-APPROVED-COMMAND-PAYLOAD-20261016.md). #913 inspected and remains OPEN.
+- **External PostgreSQL webpages:** no new original external website opened for this D14C9 slice. Prior PostgreSQL18 role/SECURITY DEFINER/row-lock sources are inherited from D14C5–D14C8 documentation; do not represent them as freshly re-read.
+- **Source fact:** D14C8's trusted Host adapter was invoked **from inside original Owner invocation**, and allowed any self-consistent Owner-supplied request to mint a one-effect Host SQL permit as soon as remote D10 and PA-02 INVOKING/UNKNOWN allowed it. That made Owner-supplied claims rather than a separately stored Host command record the minting source.
+
+## Bounded engineering choice
+
+**Adopt:** an independently Host-authenticated immutable command registration step **before** Owner dispatch. Extend **only the existing opt-in isolated Object Extension PostgreSQL physical guard** with `pa05_object_host_commands`, a Host-controlled protected schema table. A distinct real `SESSION_USER` Host SQL LOGIN can invoke the protected `SECURITY DEFINER` command registrar; Business LOGIN cannot read or register commands, cannot GRANT itself access and cannot modify the stored command. Each command is keyed by `scope_key/effect_id`, binds run, effect, inputDigest, context, enterprise and complete raw original Owner command envelope including receipt, idempotency key, operation, subject, actor type and original arguments. One effect's command is immutable: identical re-registration idempotently succeeds, an altered envelope must reject rather than overwrite.
+
+**Separate issuance:** the same original Host SQL permit issuer now demands an exact comparison against this *previously separately registered* immutable command row **inside SQL**, in addition to actual D10 ticket, PA-02 INVOKING/UNKNOWN, local ACTIVE/no freeze, D14C6 live ACL drift, D14C7 consumed/revoked lock and D14C8 approved resource/evidence payload equality. Host command registration **does not issue a write permit** and does not replace remote ticket or Owner verification. If Owner submits a correct-looking request with no prior Host command, return `PA05_OBJECT_SQL_HOST_COMMAND_NOT_APPROVED`. A forged receipt/source principal/idempotency/operation/argument cannot pass even when attacker can compute consistent Owner evidence and an accepted D10 digest. No `approveCommand` call appears inside Owner or its `issue` adapter: it must come from independent trusted Host orchestration.
+
+**Rejected:** using D10 digest alone as a Host original command store (no full request), automatically staging the command inside Owner's issue method (same provenance weakness), new generic execution Host API or a second Owner, and incorrectly asserting that this is cryptographically attested physical machine identity.
+
+## Real PG18 acceptance (existing 3 independent clusters)
+
+- Same original tests and SQL user separation; actual Host registers a command from an explicitly separate setup call before original Owner invocation.
+- Real D10 ticket + PA-02 INVOKING + matching Owner self-consistent request but **no** Host command registration: deny.
+- Post-registration exact original command succeeds; identical Host re-registration succeeds, conflicting receipt/source re-registration fails.
+- A forged alternate Owner evidence with valid internal hash but different Host-registered receipt is rejected **inside SQL**, not only JS; Business SQL LOGIN cannot read/register command; a dangerous PUBLIC EXECUTE grant on registrar is detected by live role audit.
+- Preserve D14C8 stolen unrevoked permit payload/evidence forgery negatives, D14C7 revoke/commit ordering, D14C6 ACL drift, D9/D10 actual distinct PG18 and original verifier; no skipped tests. Require `PA05_ACTUAL_OBJECT_HOST_COMMAND_PROVENANCE_PG` in [isolated workflow](../../.github/workflows/agent-pa05-cross-database-admission.yml). Exact final HEAD and merge/branch hygiene must be checked; this doc is not an unearned PASS.
+
+## Remaining explicit trust boundaries — NOT_SIGNED
+
+- The Host SQL LOGIN is still a test-deployment credential, **not** signed real host machine identity. Someone who steals it can stage a forged command under that role. Host source admission occurs in the isolated SQL adapter/test harness; real Provider/Human/Agent and real application Host governance have not been wired or independently authorized for production. The stage can occur before remote D10; only **issuance** after genuine D10/PA-02 state permits actual work.
+- A stolen unrevoked Host permit together with Business SQL LOGIN can **race the exact same Host-approved business resource/evidence** before original Owner; PostgreSQL cannot infer process identity from a shared Business SQL LOGIN and stolen bearer token. Independent machine identity / per-command trusted execution origin remains distinct work.
+- High privilege DBA/table owner can rewrite functions/drop triggers, grant drift can race an already-open transaction; network-partition ACTIVE remote with staged D10 ticket cannot be globally revoked atomically. Multi-plugin actual Owner tests, production credential custody/network segregation/rotation and PA05-05 real Provider/Human/Agent remain NOT_SIGNED. No default production write, schema migration or routes modified.
+
+Issue [#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) stays OPEN, PA-05/W06 IN_PROGRESS / NOT_SIGNED, production WRITE OFF. No BEX/CP03/Eidos/2D/global `project.status.json` or generated handoff edits.
