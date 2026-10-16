@@ -144,6 +144,7 @@ jobs:
           grep -Fq '"realEnterpriseDataReadCertified":false' pa05-e01e.log
           grep -Fq '"productionWriteEnabled":false' pa05-e01e.log
           grep -Fq '"formerlyUnguardedInstallerNowRejected":true' pa05-e01e.log
+          grep -Fq '"invalidBearerDeniedEvenWithLifecycleAllowPolicy":true' pa05-e01e.log
           grep -Fq 'PA05_E01F_REAL_HOST_LIFECYCLE=' pa05-e01e.log
           grep -Fq '"realHttpNegativeActionCodes":5' pa05-e01e.log
           grep -Fq '"realHttpNegativeDirectRoutes":5' pa05-e01e.log
