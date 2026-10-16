@@ -132,8 +132,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       workerSchema,businessOwnerLoginRole:businessRole,
       trustedHostLoginRole:hostRole,
       trustedHostClientCertificate:{
-        clientDn:"CN=pa05-certified-host",
-        issuerDn:"CN=PA05 Test CA",serial:"4242"
+        clientDn:"/CN=pa05-certified-host",
+        issuerDn:"/CN=PA05 Test CA",serial:"4242"
       }
     });
     // SQL permission itself must deny any ordinary DDL trigger tampering.
@@ -177,8 +177,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
         "SELECT s.ssl,s.client_dn,s.issuer_dn,s.client_serial::text AS serial "+
         "FROM pg_stat_ssl s WHERE s.pid=pg_backend_pid()"))[0];
       assert.equal(actual.ssl,true);
-      assert.equal(actual.client_dn,"CN=pa05-certified-host");
-      assert.equal(actual.issuer_dn,"CN=PA05 Test CA");
+      assert.equal(actual.client_dn,"/CN=pa05-certified-host");
+      assert.equal(actual.issuer_dn,"/CN=PA05 Test CA");
       assert.equal(actual.serial,"4242");
     }finally{await probe.end();}
     // A stolen SQL Host password by itself is no longer enough to register
