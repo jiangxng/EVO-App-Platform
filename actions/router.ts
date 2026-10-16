@@ -6,13 +6,16 @@ import type {
 } from "./contracts.js";
 
 export interface AppActionRouter {
-  /** Trusted Host only; never expose handler registration to user tools. */
-  hasHandler(commandCode: string): boolean;
-  registerHandler(handler: AppActionHandler): void;
   execute(
     request: AppActionRequestV010,
     context?: PlatformRequestContextV010
   ): Promise<AppActionExecutionResultV010>;
+}
+
+/** Privileged Host-composition interface; plugin Owners get AppActionRouter only. */
+export interface HostMutableAppActionRouter extends AppActionRouter {
+  hasHandler(commandCode: string): boolean;
+  registerHandler(handler: AppActionHandler): void;
 }
 
 export type AppActionPreExecuteV010 = (input: {
@@ -28,7 +31,7 @@ export function createAppActionRouter(
   handlers: readonly AppActionHandler[],
   isFeatureActive: (featureId: string) => boolean,
   preExecute?: AppActionPreExecuteV010
-): AppActionRouter {
+): HostMutableAppActionRouter {
   const byCommand = new Map<string, AppActionHandler>();
 
   for (const handler of handlers) {
