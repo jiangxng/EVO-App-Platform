@@ -61,9 +61,36 @@ export interface UidlFormReviewTableV010 {
   };
 }
 
+/** Reusable task context; all facts and issue semantics are Host/app supplied. */
+export interface UidlFormReviewTaskV010 {
+  subject: {
+    title: string;
+    subtitle?: string;
+    statusLabel?: string;
+    facts?: { id: string; label: string; value: string }[];
+  };
+  steps?: { id: string; label: string; state: "complete" | "current" | "upcoming" }[];
+  metrics?: {
+    id: string; label: string; value: string;
+    tone?: "neutral" | "positive" | "warning" | "danger";
+  }[];
+  issuesTitle?: string;
+  issuesDescription?: string;
+  issues?: {
+    id: string;
+    title: string;
+    description?: string;
+    /** Focus an already defined group; never acts upon Host data. */
+    focusGroupId?: string;
+    actionLabel?: string;
+  }[];
+  /** Presentation-only guidance; not a claim of a successful save. */
+  helpText?: string;
+}
 export interface UidlFormV011 {
   reviewGroups?: UidlFormReviewGroupV010[];
   reviewTable?: UidlFormReviewTableV010;
+  reviewTask?: UidlFormReviewTaskV010;
   contractVersion: "0.1.1"; kind: "form"; id: string; title: string; purpose: "execute-command";
   description?: string;
   contextNavigation?: EidosContextNavigationV010;
@@ -74,6 +101,7 @@ export interface RenderFieldV010 extends UidlField { inputName: string }
 export interface FormRenderModelV010 {
   reviewGroups?: UidlFormReviewGroupV010[];
   reviewTable?: UidlFormReviewTableV010;
+  reviewTask?: UidlFormReviewTaskV010;
   modelVersion: "0.1.0"; sourceContractVersion: "0.1.1"; kind: "form";
   id: string; title: string; description?: string;
   contextNavigation?: EidosContextNavigationV010;

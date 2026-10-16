@@ -38,7 +38,7 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
           }} : {})
         }}
       : {}),
-    submitAction: {
+    ...(doc.reviewTask ? {reviewTask:structuredClone(doc.reviewTask)} : {}),submitAction: {
       id: submit.id,
       label: submit.label,
       requiresConfirmation: submit.requiresConfirmation ?? false
