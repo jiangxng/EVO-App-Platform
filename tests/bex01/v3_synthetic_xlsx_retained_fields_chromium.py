@@ -97,6 +97,10 @@ with sync_playwright() as pw:
     map_rows=map_form.locator('[data-eidos-form-review-table-row]')
     expect(map_form.locator('table[data-eidos-form-review-table]')).to_be_visible()
     expect(map_rows).to_have_count(22)
+    assert map_form.locator('[data-eidos-review-table-detail-row]').count()==0, (
+        "Pinned Eidos E4 must not reserve an extra row for collapsed source details")
+    expect(map_rows.first.locator(
+        '[data-eidos-review-table-evidence] [data-eidos-review-group-detail]')).to_have_count(1)
     expect(map_form.locator('[data-eidos-review-table-choice] select')).to_have_count(22)
     map_filter=map_form.locator('[data-eidos-form-review-table-filter]')
     expect(map_filter).to_have_value("needs")
