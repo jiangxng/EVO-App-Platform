@@ -69,7 +69,8 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     return {
       scopeKey,runId:r.runId,effectId:r.effectId,
       inputDigest:r.inputDigest,contextId:scope.contextId,
-      enterpriseId:scope.enterpriseId,approvedResource:a.record,
+      enterpriseId:scope.enterpriseId,approvedInputArguments:r.arguments,
+      approvedResource:a.record,
       approvedEvidence:a.evidence,approvedEvidenceDigest:a.evidenceDigest,
       approvedIdempotencyHash:a.key
     };
