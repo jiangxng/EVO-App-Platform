@@ -2987,9 +2987,36 @@ form[data-eidos-id] button:hover,
    min-width:0;
    overflow:hidden;
  }
+ /* Keep source identity and read-only status in one glanceable header.
+    Editable target and evidence remain full width for 44px touch controls. */
  [data-eidos-form-review-table] tbody>tr{
    display:grid;
-   grid-template-columns:minmax(0,1fr);
+   grid-template-columns:minmax(0,1fr) auto;
+   align-items:start;
+   column-gap:var(--eidos-space-xs);
+ }
+ [data-eidos-form-review-table] tbody th[data-eidos-review-table-subject]{
+   grid-column:1;
+   grid-row:1;
+   width:100%;
+   min-width:0;
+   align-self:center;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-status]{
+   grid-column:2;
+   grid-row:1;
+   align-self:center;
+   justify-self:end;
+   width:auto;
+   white-space:nowrap;
+   text-align:end;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-status][data-heading]:before{
+   display:none;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence],
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-choice]{
+   grid-column:1/-1;
  }
  [data-eidos-form-review-table] tbody th,
  [data-eidos-form-review-table] tbody td{

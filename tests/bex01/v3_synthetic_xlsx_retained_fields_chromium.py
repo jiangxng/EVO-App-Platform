@@ -103,6 +103,13 @@ def capture_map_scroll_evidence(page, form, device):
           return -1;
         }""",position)
         assert abs(actual-position)<=2,(device,position,actual)
+        # A nested compositor scroller can expose a partially blank frame if
+        # Playwright captures immediately after setting scrollTop. Wait for two
+        # animation frames before recording visual proof, not a fixed timer.
+        page.evaluate("""async () => {
+          await new Promise(resolve => requestAnimationFrame(
+            () => requestAnimationFrame(resolve)));
+        }""")
         page.screenshot(path=str(OUT/(
           "v3-e4-map-%s-contiguous-%02d.png"%(device,index))),
           full_page=False)
@@ -279,6 +286,48 @@ with sync_playwright() as pw:
     expect(mobile_map.locator('[data-eidos-form-review-table-row]').first).to_be_visible()
     expect(mobile_map.locator('select[name="map_0"]')).to_have_value("code")
     assert small.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+    mobile_geometry=small.evaluate("""() => {
+      const form=document.querySelector('form[data-eidos-id="evo-data-import.mapping"]');
+      const rows=[...form.querySelectorAll('[data-eidos-form-review-table-row]')];
+      const aligned=rows.filter(row => !row.hidden).map(row => {
+        const subject=row.querySelector('[data-eidos-review-table-subject]');
+        const status=row.querySelector('[data-eidos-review-table-status]');
+        const choice=row.querySelector('[data-eidos-review-table-choice] select');
+        const s=subject.getBoundingClientRect(),t=status.getBoundingClientRect();
+        const textRange=document.createRange();
+        textRange.selectNodeContents(subject);
+        return {name:subject.innerText,status:status.innerText,
+          aligned:Math.abs((s.top+s.bottom-t.top-t.bottom)/2)<=16,
+          subjectWidth:Math.round(s.width),
+          subjectTextLines:textRange.getClientRects().length,
+          choiceHeight:choice.getBoundingClientRect().height};
+      });
+      let scroller=form;
+      while(scroller && scroller.scrollHeight<=scroller.clientHeight+40)
+        scroller=scroller.parentElement;
+      return {totalRows:rows.length,visibleRows:aligned.length,
+        aligned:aligned.every(x=>x.aligned),
+        minChoiceHeight:Math.min(...aligned.map(x=>x.choiceHeight)),
+        scrollHeight:scroller?.scrollHeight,
+        scrollerViewport:scroller?.clientHeight,
+        statusExamples:aligned.slice(0,4)};
+    }""")
+    assert mobile_geometry["totalRows"]==22,mobile_geometry
+    assert mobile_geometry["visibleRows"]==22,mobile_geometry
+    assert mobile_geometry["aligned"],mobile_geometry
+    first_fields=mobile_geometry["statusExamples"][:4]
+    assert all(item["subjectWidth"]>=120 for item in first_fields),first_fields
+    assert all(item["subjectTextLines"]==1 for item in first_fields),first_fields
+    assert mobile_geometry["minChoiceHeight"]>=44,mobile_geometry
+    # Prior same fixture at 390px: 9,139px (#978 exact-HEAD artifact).
+    # All original 22 source cards are still visible; inline status eliminates
+    # a repeated dedicated heading/row without hiding inputs or source values.
+    assert mobile_geometry["scrollHeight"]<9139,mobile_geometry
+    (OUT/"v3-e4-mobile-inline-status-measurement.json").write_text(
+      json.dumps({"source":"Eidos #193 generic mobile CSS; isolated synthetic Host",
+        "baselineScrollHeight":9139,"measured":mobile_geometry},
+        ensure_ascii=False,indent=2),encoding="utf8")
+    print("BEX01_E4_MOBILE_INLINE_STATUS_ALIGNMENT_PASS",flush=True)
     capture_map_scroll_evidence(small,mobile_map,"phone")
     small.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-phone.png"),full_page=True)
     print("BEX01_V3_E2_ACTUAL_MAP_22_TABLE_ROWS_PASS:PHONE",flush=True)
