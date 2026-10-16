@@ -514,6 +514,32 @@ export function createDataImportMappingPageV010(input: {
   const candidatesFor = (column: string) => importFields.filter(field =>
     normalizedLabel(field.resolvedLabel) === normalizedLabel(column)
   );
+  // The actual /data-import/jobs/:id/map route must consume Eidos reviewGroups;
+  // the separate object-extension batch route does not own this screen.
+  // These profiles are derived only from original, authorized source rows.
+  const sourceProfiles = input.job.source.headers.map(sourceColumn => {
+    const examples: string[] = [];
+    const seen = new Set<string>();
+    let nonempty = 0;
+    for (const row of input.job.source.rows) {
+      const value = row[sourceColumn];
+      if (value === null || value === undefined || value === "") continue;
+      nonempty++;
+      const literal = String(value);
+      if (!seen.has(literal) && examples.length < 3) {
+        seen.add(literal);
+        examples.push(literal.length > 48 ? literal.slice(0, 48) + "…" : literal);
+      }
+    }
+    return {
+      nonempty,
+      examples,
+      summary: (zh(input.locale) ? "非空 " : "Nonempty ")
+        + nonempty + " / " + input.job.source.rows.length + " · "
+        + (examples.length ? examples.join(" · ")
+          : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
+    };
+  });
   const usedTargets = new Set(input.job.mapping.map(item => item.targetFieldId));
   // Duplicate labels (including two 开户银行) are never selected by name alone.
   const uniqueExistingField = (column: string): string | undefined => {
@@ -584,10 +610,33 @@ export function createDataImportMappingPageV010(input: {
       };
     });
 
+  const reviewGroups = input.job.source.headers.map((sourceColumn, index) => {
+    const candidates = candidatesFor(sourceColumn);
+    const target = current.get(sourceColumn);
+    const ambiguous = candidates.length > 1;
+    const unavailable = Boolean(target)
+      && !importFields.some(field => field.fieldId === target);
+    return {
+      id: "map-source-" + index,
+      title: sourceColumn,
+      summary: sourceProfiles[index].summary,
+      primaryFieldKey: "map_" + index,
+      detailFieldKeys: [
+        ...(!current.has(sourceColumn) || ambiguous
+          ? ["sourceEvidence_" + index] : []),
+        ...(ambiguous ? ["candidateEvidence_" + index] : [])
+      ],
+      ...(ambiguous || unavailable ? { defaultExpanded: true } : {}),
+      detailsLabel: zh(input.locale)
+        ? "查看来源及候选字段用途" : "Inspect source and field candidates"
+    };
+  });
+
   return {
     contractVersion: "0.1.1" as const,
     kind: "form" as const,
     id: "evo-data-import.mapping",
+    reviewGroups,
     title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
     description: input.job.mappingOrigin === "RECIPE"
       ? t.recipeAppliedDescription
@@ -648,36 +697,21 @@ export function createDataImportMappingPageV010(input: {
             : "Unmatched source values are preserved. Confirm fields together before importing.",
           contextLink: {
             label: zh(input.locale)
-              ? "集中审核 " + unmapped.length + " 个未匹配字段（B 方案）"
+              ? "集中审核 " + unmapped.length + " 个未匹配字段"
               : "Review " + unmapped.length + " unmatched columns together",
             route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
           }
         }]
       : []), ...input.job.source.headers.flatMap((sourceColumn, index) => {
       const candidates = candidatesFor(sourceColumn);
-      const sample: string[] = [];
-      const seen = new Set<string>();
-      let count = 0;
-      for (const row of input.job.source.rows) {
-        const value = row[sourceColumn];
-        if (value === null || value === undefined || value === "") continue;
-        count++;
-        const literal = String(value);
-        if (!seen.has(literal) && sample.length < 3) {
-          seen.add(literal);
-          sample.push(literal.length > 48 ? literal.slice(0, 48) + "…" : literal);
-        }
-      }
+
       return [
         ...(!current.has(sourceColumn) || candidates.length > 1 ? [{
           key:"sourceEvidence_" + index,
           label:sourceColumn + (zh(input.locale) ? " · 原始样本" : " · Source examples"),
           semanticType:"data-import-original-source-evidence",
           control:"text" as const,readOnly:true,required:false,
-          initialValue:(zh(input.locale) ? "非空 " : "Nonempty ")
-            + count + " / " + input.job.source.rows.length + " · "
-            + (sample.length ? sample.join(" · ")
-              : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
+          initialValue: sourceProfiles[index].summary
         }] : []),
         ...(candidates.length > 1 ? [{
           key:"candidateEvidence_" + index,
