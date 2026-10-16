@@ -14,6 +14,8 @@ on:
       - "apps/trading-reference/**"
       - "apps/purchase-attention/**"
       - "tests/agent-line/pa05-independent-purchase-attention.test.mjs"
+      - "certification/pa05-e01-host-readiness.mjs"
+      - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -30,6 +32,8 @@ on:
       - "apps/trading-reference/**"
       - "apps/purchase-attention/**"
       - "tests/agent-line/pa05-independent-purchase-attention.test.mjs"
+      - "certification/pa05-e01-host-readiness.mjs"
+      - "tests/agent-line/pa05-e01-host-readiness.test.mjs"
       - "apps/ledger-runtime-configurator/**"
       - "agents/enterprise-agent/capability-fabric-tools.ts"
       - "manager/capability-operation-access.ts"
@@ -63,3 +67,14 @@ jobs:
           tests/protocol/personal-agent-capability-fabric.test.mjs
           tests/protocol/tr01-purchase-operational-capability.test.mjs
           tests/configurator/capability-operations.test.mjs
+      - name: E01A actual Host plugin composition (non-production, must remain unsigned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/agent-line/pa05-e01-host-readiness.test.mjs | tee pa05-e01.log
+          grep -Fq 'PA05_E01_HOST_COMPOSITION_PREFLIGHT=' pa05-e01.log
+          grep -Fq '"defaultHostHandlerRegistered":false' pa05-e01.log
+          grep -Fq '"isolatedHostCompositionReady":true' pa05-e01.log
+          grep -Fq '"e01ProductionCertified":false' pa05-e01.log
+          grep -Fq '"productionWriteEnabled":false' pa05-e01.log
+          if grep -Eq '# skipped [1-9][0-9]*' pa05-e01.log; then exit 1; fi
