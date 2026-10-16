@@ -644,6 +644,58 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     applyReviewTableFilter();
   }
 
+  // Opt-in, purely local review feedback. Never sends a Host command,
+  // changes values, approves a recommendation, or mutates source evidence.
+  // Applications enumerate actual select option values via validated UIDL.
+  const reviewChoiceStatuses = Array.from(container.querySelectorAll<HTMLElement>(
+    "[data-eidos-form-review-table-row][data-eidos-review-status-by-choice]"
+  ));
+  if (reviewChoiceStatuses.length) {
+    const allRows = Array.from(container.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row]"
+    ));
+    const supported = new Set<string>();
+    for (const row of reviewChoiceStatuses) {
+      const statuses = JSON.parse(row.dataset.eidosReviewStatusByChoice ?? "{}") as Record<string,{key:string;label:string;tone?:"neutral"|"warning"|"positive"}>;
+      Object.values(statuses).forEach(status => supported.add(status.key));
+    }
+    const updateCounts = () => {
+      // Only id-matching status metrics opt into reactive counts.
+      for (const metric of Array.from(container.querySelectorAll<HTMLElement>(
+        "[data-eidos-form-task-metric-id]"
+      ))) {
+        const key=metric.dataset.eidosFormTaskMetricId;
+        if (!key || !supported.has(key)) continue;
+        const value=metric.querySelector<HTMLElement>("strong");
+        if(value) value.textContent=String(allRows.filter(row =>
+          row.dataset.eidosReviewTableStatusKey===key).length);
+      }
+    };
+    const onReviewChoiceChange = (event: Event) => {
+      const target=event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const row=target.closest<HTMLElement>(
+        "[data-eidos-form-review-table-row][data-eidos-review-status-by-choice]");
+      if (!row || !container.contains(row)
+        || !target.closest("[data-eidos-review-table-choice]")) return;
+      const statuses=JSON.parse(row.dataset.eidosReviewStatusByChoice ?? "{}") as Record<string,{key:string;label:string;tone?:"neutral"|"warning"|"positive"}>;
+      const status=Object.prototype.hasOwnProperty.call(statuses,target.value)
+        ? statuses[target.value] : undefined;
+      if (!status) return;
+      const cell=row.querySelector<HTMLElement>("[data-eidos-review-table-status]");
+      if (!cell) return;
+      row.dataset.eidosReviewTableStatusKey=status.key;
+      cell.textContent=status.label;
+      cell.dataset.tone=status.tone ?? "neutral";
+      updateCounts();
+      if (reviewTableFilter) {
+        reviewTableFilter.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    };
+    container.addEventListener("change",onReviewChoiceChange);
+    listeners.push(()=>container.removeEventListener("change",onReviewChoiceChange));
+  }
+
   // A task issue can focus an existing reviewed Form row. This is
   // presentation navigation only: never a Host command, approval or save.
   const onReviewTaskFocus = (event: MouseEvent) => {

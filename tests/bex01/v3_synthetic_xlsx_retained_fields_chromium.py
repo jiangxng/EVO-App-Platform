@@ -263,6 +263,33 @@ with sync_playwright() as pw:
     # A batch constant would overwrite mixed rows and MUST NOT be offered.
     expect(form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
     expect(form.locator('select[name="batchSubjectType"]')).to_have_count(0)
+    # V3: changing a proposed field locally updates status, filter and counts
+    # without any creation, mapping write or supplier data submission.
+    batch_filter=form.locator('[data-eidos-form-review-table-filter]')
+    expect(batch_filter).to_have_value("needs")
+    first_batch_row=form.locator('[data-eidos-form-review-table-row]').first
+    first_choice=first_batch_row.locator('select[name="choice_0"]')
+    expect(first_choice).to_have_value("__CREATE__")
+    proposed_count=form.locator('[data-eidos-form-task-metric-id="proposed"] strong')
+    ignored_count=form.locator('[data-eidos-form-task-metric-id="ignored"] strong')
+    before_proposed=int(proposed_count.inner_text())
+    before_ignored=int(ignored_count.inner_text())
+    first_choice.select_option("__IGNORE__")
+    expect(first_batch_row).to_have_attribute("data-eidos-review-table-status-key","ignored")
+    expect(first_batch_row.locator('[data-eidos-review-table-status]')).to_have_text("不导入")
+    expect(proposed_count).to_have_text(str(before_proposed-1))
+    expect(ignored_count).to_have_text(str(before_ignored+1))
+    expect(first_batch_row).to_be_hidden()
+    batch_filter.select_option("all")
+    expect(first_batch_row).to_be_visible()
+    first_choice.select_option("__CREATE__")
+    expect(first_batch_row).to_have_attribute("data-eidos-review-table-status-key","proposed")
+    expect(first_batch_row.locator('[data-eidos-review-table-status]')).to_have_text("待新增")
+    expect(proposed_count).to_have_text(str(before_proposed))
+    expect(ignored_count).to_have_text(str(before_ignored))
+    batch_filter.select_option("needs")
+    expect(first_batch_row).to_be_visible()
+    print("BEX01_V3_LIVE_CHOICE_STATUS_NO_HOST_WRITE_PASS",flush=True)
     # The Eidos framework renders a compact generic group. Business controls
     # remain the exact same 17 one-to-one source-column keys and Host actions.
     phone=browser.new_context(viewport={"width":390,"height":844},

@@ -49,6 +49,10 @@ export interface UidlFormReviewGroupV010 {
   detailsLabel?: string;
   defaultExpanded?: boolean;
   reviewStatus?: { key: string; label: string; tone?: "neutral" | "warning" | "positive" };
+  /** Optional local feedback when the existing select changes. No save/commit.
+   * Keys MUST be actual option values from primaryFieldKey. */
+  statusByChoice?: Record<string, {key: string; label: string;
+    tone?: "neutral" | "warning" | "positive"}>;
 }
 /** Optional table realization of existing reviewGroups, preserving form field identity. */
 export interface UidlFormReviewTableV010 {

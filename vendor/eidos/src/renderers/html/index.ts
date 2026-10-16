@@ -79,6 +79,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
   </ol>` : "";
   const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
     ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
+      data-eidos-form-task-metric-id="${esc(metric.id)}"
       data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
       <span>${esc(metric.label)}</span></div>`).join("")}
   </section>` : "";
@@ -141,7 +142,8 @@ export function renderToHtml(document: unknown): string {
       ).join("");
       const visible = !allowed || allowed.includes(status.key);
       return `<tbody data-eidos-form-review-table-row="${esc(group.id)}"
-        data-eidos-review-table-status-key="${esc(status.key)}"${visible ? "" : " hidden"}>
+        data-eidos-review-table-status-key="${esc(status.key)}"${group.statusByChoice
+          ? ` data-eidos-review-status-by-choice="${esc(JSON.stringify(group.statusByChoice))}"` : ""}${visible ? "" : " hidden"}>
         <tr>
           <th scope="row" data-eidos-review-table-subject>${esc(group.title)}</th>
           <td data-eidos-review-table-evidence data-heading="${esc(columns.evidence)}">
