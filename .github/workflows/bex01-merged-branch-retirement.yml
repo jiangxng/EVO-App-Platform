@@ -74,7 +74,7 @@ jobs:
               if(comparison.behind_by!==0)throw Error('Merge not in main '+x.n);
               if(reserved.has(x.branch))throw Error('Branch still used by an open PR '+x.branch);
               if(x.noUniqueAhead){
-                const ancestry=(await github.rest.repos.compareCommits({owner,repo,base:main,head:x.branch})).data;
+                const ancestry=(await github.rest.repos.compareCommits({owner,repo,base:main,head:expected})).data;
                 if(ancestry.ahead_by!==0)throw Error('Unmerged branch commits, refuse deletion '+x.branch);
               }
               let current;
