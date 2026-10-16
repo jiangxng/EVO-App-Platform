@@ -35,3 +35,8 @@ The two-phase check is deliberately fail closed on any exception from the planne
 The PA05 READ workflow must require six passing new tests, 0 skipped. Existing E01A–G Owner/Agent and **real spawned Host HTTP** regression plus 3 physical PostgreSQL18, governed WRITE, Host lightweight architecture, identity and cross-project jobs remain the authoritative exact-head gates. No Railway deployment or live credential/enterprise data is introduced. See baseline §51 and Agent HANDOFF.
 
 **State when drafted:** engineering candidate, accurate PR HEAD CI and merge to be verified; issues #988/#979/#913 stay open and PA-05/W06 NOT_SIGNED.
+
+
+## First verified engineering head (2026-10-16)
+
+**Direct actual GitHub Actions evidence:** exact first PR HEAD `fb1381ad9af3abd5fc44cb29e26a366835787d54` passed **44/44 change-triggered workflows SUCCESS**. [PA05 Cross-business READ run #38912510540](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38912510540) ran E01H deterministic in-process races **6/6 PASS / 0 skipped**; marker `PA05_E01H_AUTHORIZATION_RACE` attests testing both mid-policy revocation and changing real AppManager impact while waiting for first and second approvals. E01A–G and spawned actual Host HTTP regressions remained green. [Lightweight Host #38912510368](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38912510368), Platform Core, Governed WRITE and physical 3-PG18 workflows also succeeded. An unrelated BEX browser CI update advanced main during this run with no overlap. **Final merged-main HEAD still requires separate exact-CI validation after sync.** This is CI-only local Host evidence, not production signing.
