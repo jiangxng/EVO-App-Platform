@@ -117,3 +117,9 @@ export const COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010 =
   "counterparty.projection.my-customers.read" as const;
 export const COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010 =
   "counterparty.projection.my-suppliers.read" as const;
+
+// Lightweight resource identity; repository.ts retains compatibility re-exports.
+export const COUNTERPARTY_NAMESPACE_V010 = "evo.counterparty" as const;
+export const COUNTERPARTY_COLLECTION_V010 = "counterparties" as const;
+export const COUNTERPARTY_RESOURCE_TYPE_V010 = "counterparty.subject" as const;
+export const COUNTERPARTY_SCHEMA_V010 = "evo.counterparty/0.1.0" as const;

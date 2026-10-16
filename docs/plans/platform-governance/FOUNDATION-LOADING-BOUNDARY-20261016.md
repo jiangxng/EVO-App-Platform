@@ -126,3 +126,35 @@
 
 
 CI 集成修正：首轮 `Agent PA-02 Host Async READ Execution`（run `38831809969`）两项测试返回 BLOCKED：`pa02-host-async-read-execution.test.mjs:101` 预期 SUCCEEDED、`pa02-worker-cooperative-release.test.mjs:72` 预期 PAUSED。二者都把新 Run 的创建时间写死为 2026-10-13，Worker 使用真实当前时间和既有 72 小时期限；2026-10-16 已跨期限。仅将这两个新运行/租约测试的夹具时间改为本次测试时间；生产 deadline、权限和 Agent 代码不变，不通过放宽预算或跳过测试解决。最终 PostgreSQL CI 结果以 PR 记录为准。
+
+
+## 8. 实施增量：Counterparty 独有业务运行时按需创建
+
+基线 main `c85ecb643ff89d0b1ed32d953bb5a1902f342cef`（#958）。本节继续 A01，不新增 Provider 产品或第二套生命周期框架。
+
+### 归属、触发及兼容
+
+- `apps/counterparty/runtime.ts` 装配原 subject/role/contact/address/profile 仓库和原 projection service；注入原 EnterpriseResourceRepository、共享 Responsibility 和授权解析器，不另建文件/内存存储。
+- `manager/counterparty-runtime.ts` 复用既有 `createLazyProviderRuntimeV010` 的首次并发共享、失败重试与停止机制，仅提供 Counterparty 的装配入口；动态 import 完成后检查启用/停止状态才构造业务实例。
+- Host 的普通对象动作、投影动作、对象页面及导入 target 改用同一运行时。管理动作先验证企业上下文和管理资格，再解析仓库，等待后重新验证管理资格及可用性。Host 原 Capability/Feature preExecute 保持；原直接注入仓库/投影 service 的调用兼容。
+- 资源标识常量移至现有 `constants.ts`，`repository.ts` 继续兼容转导出。`foundation-object.ts` 读取轻量标识，不再为获取 schema/resourceType 导入整个 repository。
+- 未安装、停用、启用未用不创建业务实例；首次合法使用创建。停用/卸载清理运行时引用及 Counterparty import-target 缓存，重启和重新安装继续使用同一企业资源寻址。
+
+### 作用域与停止限制
+
+实例为进程级无用户状态 adapter，数据访问仍逐次带 contextId；没有新增数据库连接、定时器、订阅或业务缓存。共享资源容器和 Responsibility/Extension/Import 的既有实例不在本批销毁。
+
+既有 lease 在本适配器中保护初始化与获取实例，不是业务事务锁。实例交出后的业务操作、原投影授权和跨进程 WRITE 仍走原合同；Node 模块缓存不会卸载。禁止据此宣称已证明所有入口停用时的在途业务取消，或以 adapter stop 替代 PA05 的冻结/回执机制。旧引用不是私有数据副本；此批没有添加后台资源，后续若引入连接/任务必须重新审查整个操作生命周期。
+
+### 验证及防回归
+
+- `tests/protocol/counterparty-runtime-lazy.test.mjs` 新增 6 项：停用/启用未用/管理拒绝零构造；并发首次调用共用仓库；原命名空间与企业隔离；停用恢复和文件仓库重启保留数据；装载期间停用并立即重启仍拒绝迟到构造；加载失败重试；等待期间撤销管理资格零写入（相关场景合并在六项测试内）。
+- build 与 48 项定向回归通过，包含原 Counterparty、facet、投影、Data Import、Item 导入和共享 lease 回归；没有仅用源码字符串冒充业务验证。
+- 静态依赖边从 288 缩至 279，移除 9 条，无新增边。保留原轻量清单与安全契约。
+- `tools/plugin-loading-audit.mjs` 在四种未用启动组合新增 `runtime/repository/roles/facets/projection-service` 明确禁入断言，接入现有 Lightweight Host CI。不是把当前模块总量设为永久上限。
+- [本地四组合原始证据](evidence/counterparty-lazy-audit-20261016.json)：7/16 包组合均为 353 个 dist ESM 模块、628 个归档文件；五个目标业务模块均未加载，捕获出站为零、退出码为零。记录源码哈希和 Node 版本。这是带探针的隔离冷启动证据，不是生产性能结论；不得把此前不同 main 的 362/356 直接减成优化收益。
+- 六项新测试和冷启动断言进入现有 CI。真实浏览器/跨项目验证及最终 head/合并状态见本 PR，未执行部署。
+
+### 余项
+
+本批关闭的是 Counterparty 独有构造债务。共享 Responsibility、Object Extension、Data Import 构造，全部有效导入目标的过度解析、资源归档策略及记忆调度归属仍未全闭环。下一有界动作优先核对共享扩展/职责的按需装载及消费者生命周期，不扩大到新 Provider 试点。A01 仍部分完成；固定总数 7，4 闭环、3 部分完成。

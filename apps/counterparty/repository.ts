@@ -3,10 +3,14 @@ import type {
   EnterpriseResourceRepositoryV010
 } from "../../contracts/enterprise-resource.js";
 
-export const COUNTERPARTY_NAMESPACE_V010 = "evo.counterparty" as const;
-export const COUNTERPARTY_COLLECTION_V010 = "counterparties" as const;
-export const COUNTERPARTY_RESOURCE_TYPE_V010 = "counterparty.subject" as const;
-export const COUNTERPARTY_SCHEMA_V010 = "evo.counterparty/0.1.0" as const;
+import {
+  COUNTERPARTY_NAMESPACE_V010, COUNTERPARTY_COLLECTION_V010,
+  COUNTERPARTY_RESOURCE_TYPE_V010, COUNTERPARTY_SCHEMA_V010
+} from "./constants.js";
+export {
+  COUNTERPARTY_NAMESPACE_V010, COUNTERPARTY_COLLECTION_V010,
+  COUNTERPARTY_RESOURCE_TYPE_V010, COUNTERPARTY_SCHEMA_V010
+} from "./constants.js";
 
 export type CounterpartySubjectTypeV010 = "ORGANIZATION" | "PERSON";
 export type CounterpartyStatusV010 = "ACTIVE" | "INACTIVE";
