@@ -310,10 +310,11 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " WHERE (n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
           " 'pa05_object_host_permits','pa05_object_host_commands',",
-          " 'pa05_object_sql_session_epochs')) OR",
+          " 'pa05_object_sql_session_epochs'"+
+          (hostCertificate?",'pa05_object_host_tls_policy'":"")+")) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
-          " 'pa05_xdb_remote_config'))) != 9 THEN",
+          " 'pa05_xdb_remote_config'))) != "+(hostCertificate?"10":"9")+" THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "IF EXISTS(SELECT 1 FROM pg_roles a",
           " JOIN pg_roles delegated ON delegated.oid=a.oid OR",
@@ -324,7 +325,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " ((n.nspname='"+object+"' AND c.relname IN",
           " ('pa02_contexts','pa02_definitions','pa02_owner_evidence',",
           " 'pa05_object_host_permits','pa05_object_host_commands',",
-          " 'pa05_object_sql_session_epochs')) OR",
+          " 'pa05_object_sql_session_epochs'"+
+          (hostCertificate?",'pa05_object_host_tls_policy'":"")+")) OR",
           " (n.nspname='"+worker+"' AND c.relname IN",
           " ('pa02b_writes','pa05_xdb_remote_tickets',",
           " 'pa05_xdb_remote_config'))) AND",
@@ -337,7 +339,8 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " has_table_privilege(delegated.oid,c.oid,'MAINTAIN') OR",
           " ((n.nspname='"+worker+"' OR",
           " c.relname IN('pa05_object_host_permits',",
-          " 'pa05_object_host_commands','pa05_object_sql_session_epochs') OR",
+          " 'pa05_object_host_commands','pa05_object_sql_session_epochs'"+
+          (hostCertificate?",'pa05_object_host_tls_policy'":"")+") OR",
           " a.oid=v_host) AND",
           " (has_table_privilege(delegated.oid,c.oid,'SELECT') OR",
           " has_table_privilege(delegated.oid,c.oid,'INSERT'))))) THEN",
@@ -354,7 +357,12 @@ export async function installPa05ObjectExtensionPhysicalFenceV010(input:{
           " '"+object+".pa05_object_advance_sql_session_epoch(text)',",
           " 'EXECUTE') OR has_function_privilege(v_host,",
           " '"+object+".pa05_object_advance_sql_session_epoch(text)',",
-          " 'EXECUTE') THEN",
+          " 'EXECUTE')"+
+          (hostCertificate?" OR has_function_privilege(v_business,'"+object+
+            ".pa05_object_cutover_host_tls(text,boolean)','EXECUTE')"+
+            " OR has_function_privilege(v_host,'"+object+
+            ".pa05_object_cutover_host_tls(text,boolean)','EXECUTE')":"")+
+          " THEN",
           " RAISE EXCEPTION 'PA05_OBJECT_SQL_ROLE_DRIFT'; END IF;",
           "RETURN; END;"
         ].join("\n");
