@@ -236,37 +236,56 @@ test("V3 occupied candidate and undocumented same-name purpose remain explicit H
     "exclusive selection prevents reusing a reserved field even if it has the same name");
 });
 
-test("BEX V3 consumes neutral Eidos grouped Form: one visible decision per source, details retained", () => {
+test("BEX V3 real Host batch route uses an Eidos four-column decision table with actionable status", () => {
   const job=fixture();
+  const original=structuredClone(job.source);
   const page=createObjectExtensionBatchImportPageV010({
     job,definitions:[],locale:"zh-CN"
   });
   assert.equal(validateUidl(page).ok,true,
     JSON.stringify(validateUidl(page).diagnostics));
+  assert.equal(page.fields.find(x=>x.key==="importJobId").options[0].label,"supplier.xlsx");
+  assert.equal(page.fields.find(x=>x.key==="importJobId").initialValue,job.importJobId);
   assert.equal(page.reviewGroups.length,5);
+  assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
+  assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
+  assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
+  assert.equal(page.reviewTable.columnLabels.status,"状态");
+  assert.equal(page.reviewTable.filter.selectedId,"needs");
+  assert.equal(page.reviewTask.subject.title,"supplier.xlsx");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="proposed").value,"4");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="attention").value,"1");
+  assert.equal(page.reviewTask.issues.length,1);
+  assert.equal(page.reviewTask.issues[0].focusGroupId,"source-4");
   for(let i=0;i<5;i++){
     const group=page.reviewGroups[i];
     assert.equal(group.title,columns[i]);
     assert.equal(group.primaryFieldKey,"choice_"+i);
-    assert.deepEqual(group.detailFieldKeys,["label_"+i,"type_"+i,"sample_"+i]);
-    assert.match(group.summary,/非空/);
+    assert.deepEqual(group.detailFieldKeys,["sample_"+i,"label_"+i,"type_"+i]);
+    assert.ok(group.summary.length>0);
+    assert.equal(group.reviewStatus.key,i===4?"attention":"proposed");
   }
   assert.equal(page.reviewGroups[4].defaultExpanded,true,
-    "metadata-like columns remain explicit Human exceptions");
+    "metadata-like source must remain explicit Human exception");
   assert.equal(page.reviewGroups[0].defaultExpanded,false);
   const html=renderToHtml(page);
-  assert.equal((html.match(/data-eidos-form-review-group="source-/g)??[]).length,5);
-  assert.equal((html.match(/data-eidos-review-group-primary/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-review-table-choice/g)??[]).length,5);
   assert.equal((html.match(/data-eidos-review-group-detail/g)??[]).length,5);
+  assert.match(html,/data-eidos-form-review-table-filter/);
+  assert.match(html,/data-eidos-form-task-overview/);
+  assert.match(html,/查看来源及候选字段用途/);
+  assert.match(html,/需要校对/);
+  assert.match(html,/待新增/);
   for(let i=0;i<5;i++){
     assert.equal((html.match(new RegExp('name="choice_'+i+'"','g'))??[]).length,1);
     assert.equal((html.match(new RegExp('name="label_'+i+'"','g'))??[]).length,1);
+    assert.equal((html.match(new RegExp('name="sample_'+i+'"','g'))??[]).length,1);
   }
-  assert.match(html,/数据概况/);
   assert.match(html,/来源样本/);
   assert.match(html,/data-eidos-exclusive-group="bex-batch-targets"/);
   assert.match(html,/data-eidos-action="create-extension-batch"/);
-  assert.deepEqual(job.source.rows,fixture().source.rows);
+  assert.deepEqual(job.source,original,"review presentation must not rewrite original XLSX data");
 });
 
 test("BEX V3 same-name purposes are visible only as exact trusted data within Eidos field groups",()=>{
@@ -284,11 +303,39 @@ test("BEX V3 same-name purposes are visible only as exact trusted data within Ei
   assert.equal(group.primaryFieldKey,"choice_5");
   assert.equal(group.defaultExpanded,true);
   assert.deepEqual(group.detailFieldKeys,
-    ["candidate_5","label_5","type_5","sample_5"]);
+    ["candidate_5","sample_5","label_5","type_5"]);
   const html=renderToHtml(page);
   assert.match(html,/客户收款账户/);
   assert.match(html,/供应商付款账户/);
   assert.match(html,/value="__REVIEW__" selected/);
   assert.match(html,/name="choice_5"/);
   assert.equal(validateUidl(page).ok,true);
+});
+
+test("BEX V3 batch filter honors previous exclusions without falsely showing an approval",()=>{
+  const job=fixture();
+  job.ignoredSourceColumns=["默认支付方式"];
+  const page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(page.reviewGroups[0].reviewStatus.key,"ignored");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="ignored").value,"1");
+  assert.equal(page.reviewTask.metrics.find(x=>x.id==="proposed").value,"3");
+  assert.equal(page.reviewTable.filter.options.find(x=>x.id==="needs").statusKeys
+    .includes("ignored"),false);
+  assert.equal(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys
+    .includes("ignored"),true);
+  assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__IGNORE__");
+  assert.equal(validateUidl(page).ok,true);
+});
+
+test("BEX V3 only shows batch constant when the authorized Job actually persisted it",()=>{
+  const job=fixture();
+  const absent=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  assert.equal(absent.fields.some(x=>x.semanticType==="object-extension-saved-batch-constant"),false);
+  job.mapping[1].transform={kind:"CONSTANT",value:"ORGANIZATION"};
+  const saved=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
+  const constant=saved.fields.find(x=>x.semanticType==="object-extension-saved-batch-constant");
+  assert.match(constant.label,/已保存批次固定值：主体类型/);
+  assert.equal(constant.initialValue,"ORGANIZATION");
+  assert.equal(constant.readOnly,true);
+  assert.equal(validateUidl(saved).ok,true);
 });
