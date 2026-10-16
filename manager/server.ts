@@ -789,6 +789,9 @@ import {
   itemPackage,
   warehousePackage,
   tradingReferencePackageV010,
+  ...(optionalPa05PurchaseAttentionHost
+    ? [optionalPa05PurchaseAttentionHost.purchaseAttentionPackageV010]
+    : []),
   dataImportPackage,
   enterpriseAgentPackage,
   enterpriseContextGovernanceAppPackage,
@@ -1045,6 +1048,19 @@ import {
   TEMPLATE_STORE_PAGE_SOURCE,
   TEMPLATE_STORE_PREVIEW_2D_COMMAND
 } from "../apps/template-store/package.js";
+
+// PA05 E01B: opt-in availability only, never automatic installation or
+// production WRITE. Reject unexpected config values rather than guessing.
+const pa05PurchaseAttentionMode =
+  process.env.APP_PLATFORM_PA05_E01_PURCHASE_ATTENTION_HOST?.trim() || "OFF";
+if (pa05PurchaseAttentionMode !== "OFF" &&
+    pa05PurchaseAttentionMode !== "OPT_IN") {
+  throw new Error("PA05_E01_HOST_MODE_INVALID");
+}
+const optionalPa05PurchaseAttentionHost =
+  pa05PurchaseAttentionMode === "OPT_IN"
+    ? await import("../apps/purchase-attention/host-optin.js")
+    : undefined;
 
 const tradingStagePreviewContribution = createTradingStagePreviewContributionV010();
 const catalog = createPackageCatalog([
@@ -4971,6 +4987,14 @@ const actionRouter = createAppActionRouter(
         });
       }
     }),
+    // E01B: compose through the existing Action Router and two independent
+    // active Feature + authorization checks; nothing is auto-installed.
+    ...(optionalPa05PurchaseAttentionHost ? [
+      optionalPa05PurchaseAttentionHost.createPurchaseAttentionHostActionHandlerV010({
+        resolveSourceRouter: () => actionRouter,
+        resolveAuthorizationProvider
+      })
+    ] : []),
     ...[
       WAREHOUSE_DIRECTORY_READ_COMMAND_V010,
       WAREHOUSE_MY_READ_COMMAND_V010
