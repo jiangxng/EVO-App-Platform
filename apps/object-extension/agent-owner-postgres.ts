@@ -203,6 +203,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
     hostPermitIssuer?:{issue:(request:{
       scopeKey:string;runId:string;effectId:string;inputDigest:string;
       contextId:string;enterpriseId:string;
+      approvedInputArguments:unknown;
       approvedResource:EnterpriseResourceV010;approvedEvidence:Evidence;
       approvedEvidenceDigest:string;approvedIdempotencyHash:string;
     })=>Promise<string>};
@@ -233,6 +234,7 @@ export function createPostgresObjectExtensionAtomicOwnerV010(input:{
           scopeKey:hostAgentDurabilityScopeKeyV020(r.scope),
           runId:r.runId,effectId:r.effectId,inputDigest:r.inputDigest,
           contextId:s.contextId,enterpriseId:s.enterpriseId,
+          approvedInputArguments:r.arguments,
           approvedResource:record,approvedEvidence:evidence,
           approvedEvidenceDigest:evidenceDigest,approvedIdempotencyHash:key
         }):undefined;
