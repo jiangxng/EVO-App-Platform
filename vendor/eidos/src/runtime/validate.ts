@@ -759,7 +759,8 @@ export function validateUidl(
         }
         extraKeys(group, new Set([
           "id", "title", "summary", "primaryFieldKey",
-          "detailFieldKeys", "detailsLabel", "defaultExpanded", "reviewStatus"
+          "detailFieldKeys", "detailsLabel", "defaultExpanded", "reviewStatus",
+          "statusByChoice"
         ]), path, out);
         if (!nonEmpty(group.id) || !group.id.trim()
           || !nonEmpty(group.title) || !group.title.trim()
@@ -798,6 +799,35 @@ export function validateUidl(
           extraKeys(group.reviewStatus, new Set(["key","label","tone"]),
             path + ".reviewStatus",out);
         }
+        let statusByChoice: import("./contracts.js").UidlFormReviewGroupV010["statusByChoice"];
+        if (group.statusByChoice !== undefined) {
+          const primary = fields.find(field => field.key === group.primaryFieldKey);
+          const choices = new Set((primary?.options ?? []).map(option => String(option.value)));
+          const entries = isPlainObject(group.statusByChoice)
+            ? Object.entries(group.statusByChoice) : [];
+          if (primary?.control !== "select" || entries.length < 1
+            || entries.length > 300 || entries.some(([value,status]) =>
+              !choices.has(value) || !isPlainObject(status)
+              || !nonEmpty(status.key)
+              || !/^[A-Za-z0-9._:-]{1,80}$/.test(status.key)
+              || !nonEmpty(status.label)
+              || status.tone !== undefined
+                && !["neutral","warning","positive"].includes(status.tone as string))) {
+            out.push(d("EIDOS_REVIEW_STATUS_BY_CHOICE_INVALID",
+              path + ".statusByChoice",
+              "Choice states require a select and bounded, real option values"));
+          } else {
+            for (const [value,status] of entries) {
+              extraKeys(status as Record<string,unknown>,new Set(["key","label","tone"]),
+                path + ".statusByChoice." + value,out);
+            }
+            statusByChoice=Object.fromEntries(entries.map(([value,raw]) => {
+              const status=raw as {key:string;label:string;tone?:"neutral"|"warning"|"positive"};
+              return [value,{key:status.key,label:status.label,
+                ...(status.tone ? {tone:status.tone} : {})}];
+            }));
+          }
+        }
         reviewGroups.push({
           id:group.id,title:group.title,
           ...(typeof group.summary === "string" ? {summary:group.summary} : {}),
@@ -813,7 +843,8 @@ export function validateUidl(
                 ...(typeof group.reviewStatus.tone === "string"
                   ? {tone:group.reviewStatus.tone as "neutral"|"warning"|"positive"}
                   : {})
-              }} : {})
+              }} : {}),
+          ...(statusByChoice ? {statusByChoice} : {})
         });
       });
     }
@@ -840,7 +871,10 @@ export function validateUidl(
       let filter: import("./contracts.js").UidlFormReviewTableV010["filter"];
       if (table.filter !== undefined) {
         const f = table.filter;
-        const keys = new Set(reviewGroups.map(g => g.reviewStatus!.key));
+        const keys = new Set(reviewGroups.flatMap(group => [
+          group.reviewStatus!.key,
+          ...Object.values(group.statusByChoice ?? {}).map(status => status.key)
+        ]));
         if (!isPlainObject(f) || !nonEmpty(f.label)
           || !nonEmpty(f.selectedId) || !nonEmpty(f.noMatchesMessage)
           || !Array.isArray(f.options) || f.options.length===0
