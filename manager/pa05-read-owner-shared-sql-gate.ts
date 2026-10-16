@@ -89,7 +89,7 @@ export async function createPa05SharedReadOwnerGateV010(input: {
           await tx.unsafe("INSERT INTO "+a+
             ".pa05_read_trusted_hosts(owner_package_id,host_id) VALUES($1,$2)",
             [owner,id]);
-      }else if(JSON.stringify(actual.map((x: {host_id: string})=>x.host_id)) !== JSON.stringify(declared)){
+      }else if(JSON.stringify(actual.map(x=>String(x.host_id))) !== JSON.stringify(declared)){
         throw Error("PA05_READ_SQL_HOST_INVENTORY_CHANGED");
       }
     });
@@ -107,7 +107,7 @@ export async function createPa05SharedReadOwnerGateV010(input: {
   const hosts = async (tx: any) => {
     const actual=await tx.unsafe("SELECT host_id FROM "+a+
       ".pa05_read_trusted_hosts WHERE owner_package_id=$1 ORDER BY host_id",[owner]);
-    if(JSON.stringify(actual.map((x: {host_id: string})=>x.host_id)) !== JSON.stringify(declared))
+    if(JSON.stringify(actual.map(x=>String(x.host_id))) !== JSON.stringify(declared))
       throw Error("PA05_READ_SQL_HOST_INVENTORY_CHANGED");
   };
   return {
@@ -153,7 +153,7 @@ export async function createPa05SharedReadOwnerGateV010(input: {
         return next;
       });
     },
-    async withReadAdmission({hostId,expectedEpoch: epoch,perform}){
+    async withReadAdmission<T>({hostId,expectedEpoch: epoch,perform}: {\n      hostId: string; expectedEpoch: number; perform(): Promise<T>\n    }): Promise<T> {
       expectedEpoch(epoch);
       if(!declared.includes(hostId) || typeof perform!=="function")
         throw Error("PA05_READ_SQL_HOST_NOT_TRUSTED");
