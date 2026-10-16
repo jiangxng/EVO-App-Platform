@@ -69,7 +69,7 @@ test("BEX batch page provides one screen, review gating, type suggestions, and A
   const job=fixture();
   const page=createObjectExtensionBatchImportPageV010({job,definitions:[],locale:"zh-CN"});
   assert.equal(page.id,"evo-object-extension.batch-import");
-  assert.match(page.title,/集中审核/);
+  assert.equal(page.title,"集中审核 5 个未匹配字段");
   assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="choice_4").initialValue,"__REVIEW__");
   assert.equal(page.fields.find(x=>x.key==="type_3").initialValue,"NUMBER");
