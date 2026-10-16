@@ -25,6 +25,60 @@ EXPECTED_BANK="ext_"+hashlib.sha256(
 ).hexdigest()[:16]
 FIELDS=["企业属性"+str(i) for i in range(1,18)]
 
+
+def capture_map_scroll_evidence(page, form, device):
+    """Capture scrollable Eidos shell at each review landmark, not only document height.
+
+    page.screenshot(full_page=True) alone stops at the *nested app scroller* and
+    previously cut away the file overview/footer. Screens are entirely synthetic
+    and MUST NOT be treated as customer/production visual sign-off.
+    """
+    viewport=page.viewport_size
+    assert viewport and viewport["width"] in (1280,390),viewport
+    landmarks=[
+      ("overview",form.locator('[data-eidos-form-task-overview]')),
+      ("first-row",form.locator('[data-eidos-form-review-table-row]').first),
+      ("last-row",form.locator('[data-eidos-form-review-table-row]').last),
+      ("submit",form.locator('button[type="submit"]').first)
+    ]
+    readings=[]
+    for name,element in landmarks:
+        expect(element).to_be_visible(timeout=15000)
+        element.scroll_into_view_if_needed(timeout=15000)
+        rect=element.bounding_box()
+        assert rect and rect["y"] < viewport["height"] and (
+          rect["y"]+rect["height"]>0), (device,name,rect)
+        page.screenshot(
+          path=str(OUT/("v3-e4-map-%s-%s.png"%(device,name))),
+          full_page=False)
+        scroll=element.evaluate("""(el) => {
+          const items=[]; let parent=el;
+          for(let n=0;parent&&n<25;n++,parent=parent.parentElement){
+            if(parent.scrollHeight > parent.clientHeight + 4) {
+              items.push({tag:parent.tagName,
+                scrollTop:Math.round(parent.scrollTop),
+                scrollHeight:parent.scrollHeight,
+                clientHeight:parent.clientHeight});
+            }
+          }
+          const root=document.scrollingElement;
+          if(root && !items.some(v=>v.tag===root.tagName &&
+            v.scrollHeight===root.scrollHeight)) {
+            items.push({tag:root.tagName,scrollTop:Math.round(root.scrollTop),
+              scrollHeight:root.scrollHeight,clientHeight:root.clientHeight});
+          }
+          return items;
+        }""")
+        readings.append({"landmark":name,"rectangle":{
+          key:round(rect[key]) for key in ("x","y","width","height")},
+          "scroll":scroll})
+    assert len(readings)==4
+    (OUT/("v3-e4-map-%s-scroll-manifest.json"%device)).write_text(
+      json.dumps({"evidence":"synthetic isolated Host, not production",
+        "device":device,"viewport":viewport,"screens":readings},
+        ensure_ascii=False,indent=2),encoding="utf8")
+    print("BEX01_E4_FULL_REVIEW_SCROLL_EVIDENCE_PASS:"+device,flush=True)
+
 with sync_playwright() as pw:
     api=pw.request.new_context(base_url=HOST,
       extra_http_headers={"x-evo-context-id":CTX,
@@ -146,6 +200,7 @@ with sync_playwright() as pw:
     entry=map_form.locator('[data-eidos-field-context-link]')
     expect(entry.first).to_be_visible()
     assert "B 方案" not in map_form.inner_text()
+    capture_map_scroll_evidence(page,map_form,"desktop")
     page.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-desktop.png"),full_page=True)
     print("BEX01_V3_E2_ACTUAL_MAP_22_TABLE_ROWS_PASS:DESKTOP",flush=True)
     batch=reviewed["navigateTo"]
@@ -181,6 +236,7 @@ with sync_playwright() as pw:
     expect(mobile_map.locator('[data-eidos-form-review-table-row]').first).to_be_visible()
     expect(mobile_map.locator('select[name="map_0"]')).to_have_value("code")
     assert small.evaluate("document.documentElement.scrollWidth <= innerWidth + 2")
+    capture_map_scroll_evidence(small,mobile_map,"phone")
     small.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-phone.png"),full_page=True)
     print("BEX01_V3_E2_ACTUAL_MAP_22_TABLE_ROWS_PASS:PHONE",flush=True)
     small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
