@@ -257,6 +257,8 @@ test("BEX V3 real Host batch route uses an Eidos four-column decision table with
   assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
   assert.equal(page.reviewTable.columnLabels.status,"状态");
   assert.equal(page.reviewTable.filter.selectedId,"needs");
+  assert.ok(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys
+    .includes("ignored"),"All must include statuses reachable by an unsaved choice");
   assert.equal(page.reviewTask.subject.title,"supplier.xlsx");
   assert.equal(page.reviewTask.metrics.find(x=>x.id==="proposed").value,"4");
   assert.equal(page.reviewTask.metrics.find(x=>x.id==="attention").value,"1");
@@ -269,6 +271,9 @@ test("BEX V3 real Host batch route uses an Eidos four-column decision table with
     assert.deepEqual(group.detailFieldKeys,["sample_"+i,"label_"+i,"type_"+i]);
     assert.ok(group.summary.length>0);
     assert.equal(group.reviewStatus.key,i===4?"attention":"proposed");
+    assert.equal(group.statusByChoice.__CREATE__.key,"proposed");
+    assert.equal(group.statusByChoice.__IGNORE__.key,"ignored");
+    assert.equal(group.statusByChoice.__REVIEW__.key,"attention");
   }
   assert.equal(page.reviewGroups[4].defaultExpanded,true,
     "metadata-like source must remain explicit Human exception");
