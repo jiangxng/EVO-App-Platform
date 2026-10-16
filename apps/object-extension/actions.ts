@@ -106,6 +106,17 @@ function failure(
   };
 }
 
+export interface ObjectExtensionImportServicesV010 {
+  /** Recheck lifecycle after asynchronous loading and before mutation. */
+  assertAvailable?(): void;
+  applyImportMapping?(input: {
+    contextId: string; importJobId: string; mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
+    actorSubjectId: string; recordedAt: string;
+  }): void;
+  getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
+}
+
 export function createObjectExtensionActionHandlersV010(input: {
   repository: ObjectExtensionRepositoryV010;
   canManageEnterpriseContext(
@@ -114,6 +125,8 @@ export function createObjectExtensionActionHandlersV010(input: {
   ): boolean;
   now?: () => Date;
   getImportJob?(contextId: string, jobId: string): DataImportJobV010 | undefined;
+  /** Resolve per authorized import request; never during ordinary definition CRUD. */
+  resolveImportServices?(job: DataImportJobV010): Promise<ObjectExtensionImportServicesV010>;
   applyImportMapping?(input: {
     contextId: string; importJobId: string; mapping: DataImportMappingV010[];
     ignoredSourceColumns?: string[];
@@ -238,12 +251,22 @@ export function createObjectExtensionActionHandlersV010(input: {
         const active = activeEnterpriseContext(context);
         ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const jobId = required(request.values.importJobId,"OBJECT_EXTENSION_IMPORT_JOB_REQUIRED");
-        const job = input.getImportJob?.(active.contextId,jobId);
+        let job = input.getImportJob?.(active.contextId,jobId);
+        if (!job || job.targetId !== "counterparty.subject") {
+          throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
+        }
+        const importServices: ObjectExtensionImportServicesV010 = input.resolveImportServices
+          ? await input.resolveImportServices(job)
+          : input;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        importServices.assertAvailable?.();
+        // Loading yields: never apply a stale job snapshot after another request changed it.
+        job = input.getImportJob?.(active.contextId,jobId);
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
         if (request.values.batchMode === "BATCH") {
-          if (!input.applyImportMapping) {
+          if (!importServices.applyImportMapping) {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
           const result = executeObjectExtensionBatchImportV010({
@@ -252,9 +275,9 @@ export function createObjectExtensionActionHandlersV010(input: {
             actorSubjectId: context.principal.subjectId,
             recordedAt: now().toISOString(),
             values: request.values,
-            importableTargets: input.getImportableTargets?.(active.contextId,job),
+            importableTargets: importServices.getImportableTargets?.(active.contextId,job),
             getCurrentJob: () => input.getImportJob?.(active.contextId,jobId),
-            applyMapping: input.applyImportMapping
+            applyMapping: importServices.applyImportMapping
           });
           return {
             ok: true, correlationId: context.correlationId, result
@@ -271,7 +294,7 @@ export function createObjectExtensionActionHandlersV010(input: {
         if (!["STRING","NUMBER","BOOLEAN","DATE"].includes(valueType)) {
           throw new Error("OBJECT_EXTENSION_TYPE_INVALID");
         }
-        if (!input.applyImportMapping || !input.getImportJob) {
+        if (!importServices.applyImportMapping || !input.getImportJob) {
           // A field cannot be advertised as created-and-mapped if the
           // authoritative import owner is unavailable.
           throw new Error("OBJECT_EXTENSION_IMPORT_MAPPING_SERVICE_REQUIRED");
@@ -280,6 +303,8 @@ export function createObjectExtensionActionHandlersV010(input: {
           throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
         }
         const { createHash } = await import("node:crypto");
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        importServices.assertAvailable?.();
         const fieldId = "ext_" + createHash("sha256")
           .update(job.targetId + "|" + column).digest("hex").slice(0,16);
         const mode = job.targetParameters?.relationshipMode;
@@ -347,7 +372,7 @@ export function createObjectExtensionActionHandlersV010(input: {
           || item.targetFieldId === fieldId)) {
           throw new Error("OBJECT_EXTENSION_SOURCE_OR_TARGET_ALREADY_MAPPED");
         }
-        input.applyImportMapping({
+        importServices.applyImportMapping({
           contextId:active.contextId,importJobId:jobId,
           mapping:[...latest.mapping,{sourceColumn:column,targetFieldId:fieldId}],
           ignoredSourceColumns:(latest.ignoredSourceColumns??[])

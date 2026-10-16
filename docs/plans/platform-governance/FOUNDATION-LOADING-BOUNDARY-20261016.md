@@ -1,7 +1,7 @@
 # A01 基础对象装载：消费者、存储归属与整改边界
 
 日期：2026-10-16。核对 main：`5d06b0a45f3cfcd6a1ae252e8e3db03217a65db7`（#954）。
-状态：代码审查与实施边界已记录；本批不修改运行代码，不代表基础对象已按需装载。
+状态：初批代码审查与实施边界已记录；随后实施增量见第 7 节。不代表基础对象已全部按需装载。
 入口：[固定任务状态表](CLOSEOUT-COUNTDOWN.md)。沿用 A01，不新增治理任务，不接管 BEX/Agent。
 
 ## 1. 结论和证据级别
@@ -104,3 +104,22 @@
 - 连续性核对：project.status 与 foundation-map 的当前里程碑/基础对象字段、生成 handoff 的当前里程碑及已闭环入口。它们仍含早期 TR 快照；本专项不覆盖其他 owner 的全局状态。
 - 未新增外部网络研究；资源容器文档引用的外部产品网址只是继承引用，本批没有访问原文，不算新研究证据。
 - 本文与 README/固定表一起保存。代码核对基线见页首；最终 PR、提交、CI 和过程分支清理状态由本 PR 记录。未部署。
+
+
+## 7. 实施增量：扩展管理与导入装配分离
+
+实施基线 main `fbe367794445fab8a9eff08de9913f9b1d68b5f9`（#956）；前六节保留首次审查证据与当时未执行事项。
+
+- `apps/object-extension/actions.ts` 增加可选 `resolveImportServices`，原同步 callback 输入继续兼容。普通 list/upsert/archive 不调用 resolver。import-create 先验证上下文、管理权限、jobId 和目标；随后每次请求解析依赖，等待后重新检查管理权限、可用性并重新读取 Job。单字段 crypto await 后再次检查，再沿用原字段创建和映射算法。
+- `manager/server.ts` 的 handler loader 不再直接创建导入服务/装配 targets；通过上述回调在合法导入请求内装配。回调在等待前后检查扩展 Feature 和目标是否有效，应用 mapping 前再检查。服务是请求级无连接编排对象，不缓存用户权限；已有 target factory Promise 继续共享，失败时移除对应 Promise，避免一次加载失败永久阻断后续调用。
+- 未改企业资源仓库、namespace、公开命令、UI、PA05 SQL owner、全局 action router 或写入授权流程；原批量回滚/单字段重试合同由原算法维持。
+
+### 验证与限制
+
+新增 `tests/protocol/object-extension-import-lazy.test.mjs` 8 项行为测试：普通 CRUD 零解析；停用/未授权/无上下文/无效 Job 零解析；单字段和批量成功；等待期间权限撤销/停用拒绝且可恢复；依赖失败可重试；等待期间 Job 已提交则零字段/映射写入。使用真实 action/router 与内存企业资源仓库，resolver 和生命周期状态为可控测试依赖，不冒充真实 Host HTTP 或生产数据验收。
+
+本地 build、43 项相关回归、静态轻量门禁、连续性检查通过。新增 8 项进入既有 Lightweight Host CI；静态依赖边仍为 288，没有通过扩基线换取通过。最终 CI/合并提交以本 PR 记录为准，未部署。
+
+本次没有把 Data Import service 从 Host 静态依赖图彻底移除，也没有迁移此前的基础对象仓库构造。有效 import-create 仍复用现有“解析所有有效目标”的合同；更细的目标按需解析及完整生命周期代际隔离未在本批声称完成。组件测试证明 resolver 失败重试；底层 factory 缓存失败清除同时有代码修正，未用故障注入覆盖所有真实模块加载错误。数据持久化和跨进程在途 WRITE 安全继续属于原 owner。
+
+下一步仍是第 4 节的业务 adapter 迁移：先 Counterparty 独有装配，复用共享存储并验证跨对象消费者；资源归档、记忆调度归属未关闭。A01 保持部分完成，固定 7 项仍为 4 闭环、3 部分完成。

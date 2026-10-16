@@ -2416,6 +2416,13 @@ Promise<FoundationObjectImportTargetV010[]> {
           "DATA_IMPORT_TARGET_FACTORY_NOT_REGISTERED: " + ref
         );
       }
+      const loading = pending;
+      pending = loading.catch(error => {
+        if (dataImportTargetPromises.get(ref) === pending) {
+          dataImportTargetPromises.delete(ref);
+        }
+        throw error;
+      });
       dataImportTargetPromises.set(ref, pending);
     }
     return pending.then(target => {
@@ -5045,29 +5052,42 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/object-extension/actions.js");
-          const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
-          const batchImportService = createDataImportServiceV010({
-            repository: dataImportRepository,
-            recipeRepository: dataImportRecipeRepository,
-            targets: batchImportTargets
-          });
           const handlers = module.createObjectExtensionActionHandlersV010({
             repository: objectExtensionRepository,
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
-            getImportableTargets: (contextId, job) => {
-              const target = batchImportTargets.find(x => x.targetId === job.targetId);
-              return (target?.describe({
-                contextId, parameters: job.targetParameters
-              }).fields ?? [])
-                .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
-                .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
-            },
-            // BEX-owned glue only: reuse the existing import service; no Host
-            // authorization, Agent, storage, or transaction changes.
-            applyImportMapping: values => {
-              batchImportService.updateMapping({
-                ...values, mappingOrigin: "HUMAN"
+            async resolveImportServices(job) {
+              const assertAvailable = () => {
+                if (!manager.getSnapshot().activeFeatures.some(feature =>
+                  feature.packageId === OBJECT_EXTENSION_PACKAGE_ID
+                  && feature.featureId === OBJECT_EXTENSION_FEATURE_ID
+                )) throw new Error("ACTION_FEATURE_NOT_ACTIVE");
+                if (!manager.listEffectiveDataImportTargets().some(target =>
+                  target.targetId === job.targetId
+                )) throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
+              };
+              assertAvailable();
+              const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
+              assertAvailable();
+              const batchImportService = createDataImportServiceV010({
+                repository: dataImportRepository,
+                recipeRepository: dataImportRecipeRepository,
+                targets: batchImportTargets
               });
+              return {
+                assertAvailable,
+                getImportableTargets: (contextId, currentJob) => {
+                  const target = batchImportTargets.find(x => x.targetId === currentJob.targetId);
+                  return (target?.describe({
+                    contextId, parameters: currentJob.targetParameters
+                  }).fields ?? [])
+                    .filter(x => x.readable && x.writable && x.surfaces.includes("IMPORT"))
+                    .map(x => ({fieldId:x.fieldId,label:x.resolvedLabel,valueType:x.valueType}));
+                },
+                applyImportMapping: values => {
+                  assertAvailable();
+                  batchImportService.updateMapping({ ...values, mappingOrigin: "HUMAN" });
+                }
+              };
             },
             canManageEnterpriseContext(principal, contextId) {
               return (
