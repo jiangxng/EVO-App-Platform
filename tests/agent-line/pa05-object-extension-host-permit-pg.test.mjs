@@ -157,6 +157,40 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(guarded.owner.invoke(real),
       /PA05_OBJECT_SQL_HOST_ADMISSION_REQUIRED/);
     await start(real);
+    // D14C6: GRANT after installation is not trusted just because the
+    // initial installer attested least privilege. This must fail inside
+    // the real Host PostgreSQL SECURITY DEFINER issuer, not just JS.
+    await db.unsafe('GRANT UPDATE ON '+w+
+      '.pa02b_writes TO "'+hostRole+'"');
+    await assert.rejects(guarded.owner.invoke(real),
+      /PA05_OBJECT_SQL_ROLE_DRIFT/);
+    await db.unsafe('REVOKE UPDATE ON '+w+
+      '.pa02b_writes FROM "'+hostRole+'"');
+
+    // Even non-inherited delegated grants and SET ROLE paths fail closed.
+    const driftRole="pa05c6delegate_"+suffix;
+    await db.unsafe('CREATE ROLE "'+driftRole+'" NOLOGIN');
+    await db.unsafe('GRANT UPDATE ON '+w+
+      '.pa02b_writes TO "'+driftRole+'"');
+    await db.unsafe('GRANT "'+driftRole+'" TO "'+
+      businessRole+'" WITH INHERIT FALSE');
+    await assert.rejects(guarded.owner.invoke(real),
+      /PA05_OBJECT_SQL_ROLE_DRIFT/);
+    await db.unsafe('REVOKE "'+driftRole+'" FROM "'+businessRole+'"');
+    await db.unsafe('REVOKE UPDATE ON '+w+
+      '.pa02b_writes FROM "'+driftRole+'"');
+    await db.unsafe('DROP ROLE "'+driftRole+'"');
+
+    // A PUBLIC EXECUTE drift would let the stolen Owner invoke the Host
+    // issuer unless the actual issuer independently revalidates its ACL.
+    const issueSignature=d+
+      '.pa05_object_issue_host_permit(text,text,text,text,text,text)';
+    await db.unsafe('GRANT EXECUTE ON FUNCTION '+issueSignature+' TO PUBLIC');
+    await assert.rejects(guarded.owner.invoke(real),
+      /PA05_OBJECT_SQL_ROLE_DRIFT/);
+    await db.unsafe('REVOKE EXECUTE ON FUNCTION '+
+      issueSignature+' FROM PUBLIC');
+
     // Real stolen business LOGIN can forge all D10 transaction GUC fields,
     // but cannot read permits, mint one, or switch to the trusted Host LOGIN.
     const stolen=postgres(u(urls[1],businessRole,password),{max:1});
@@ -200,7 +234,7 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       inputDigest:orphan.inputDigest,contextId:scope.contextId,
       enterpriseId:scope.enterpriseId
     });
-    await assert.rejects(stolen.begin(async tx=>{
+    const orphanWrite=()=>stolen.begin(async tx=>{
       for(const [key,value] of [["scope_key",scopeKey],
         ["run_id",orphan.runId],["effect_id",orphan.effectId],
         ["input_digest",orphan.inputDigest],["context_id",scope.contextId],
@@ -209,7 +243,15 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
       await tx.unsafe("INSERT INTO "+d+
         ".pa02_contexts(context_id,enterprise_id) VALUES($1,$2)",
         [scope.contextId,scope.enterpriseId]);
-    }),/PA05_OBJECT_SQL_RECEIPT_REQUIRED/);
+    });
+    // A permit already exists: granting its protected table to the
+    // business credential must not open a physical-write window.
+    await db.unsafe('GRANT SELECT ON '+d+
+      '.pa05_object_host_permits TO "'+businessRole+'"');
+    await assert.rejects(orphanWrite(),/PA05_OBJECT_SQL_ROLE_DRIFT/);
+    await db.unsafe('REVOKE SELECT ON '+d+
+      '.pa05_object_host_permits FROM "'+businessRole+'"');
+    await assert.rejects(orphanWrite(),/PA05_OBJECT_SQL_RECEIPT_REQUIRED/);
     assert.equal((await db.unsafe("SELECT count(*)::int AS n FROM "+d+
       ".pa02_contexts"))[0].n,0);
     // D14C3's raw original Owner bypass is also physically denied.
@@ -283,6 +325,16 @@ test("PA05-04D14C5 genuine Object Extension physical SQL fence on all 3 business
     await assert.rejects(privileged.owner.invoke(request("restored-guard")),
       /PA05_OBJECT_SQL_WRONG_LOGIN/);
     assert.equal((await authority.getState(OBJECT_EXTENSION_PACKAGE_ID)).pendingCount,3);
+    console.log("PA05_ACTUAL_OBJECT_SQL_ROLE_DRIFT_PG="+JSON.stringify({
+      physicalClusters:3,realPlugin:"evo-object-extension",
+      hostWorkerDmlGrantDeniedAtNewIssuance:true,
+      businessDelegatedNoinheritWriteGrantDenied:true,
+      publicHostIssuerExecuteDriftDenied:true,
+      businessPermitTableReadGrantDeniedAtPhysicalInsert:true,
+      revokedPrivilegesRestoreGenuineOwnerCommit:true,
+      privilegedDbAdministratorTamperStillPossible:true,
+      productionWriteEnabled:false
+    }));
     console.log("PA05_ACTUAL_OBJECT_HOST_PERMIT_PG="+JSON.stringify({
       realPlugin:"evo-object-extension",physicalClusters:3,
       stolenBusinessLoginCanForgeGuc:true,
