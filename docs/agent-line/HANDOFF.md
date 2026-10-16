@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-16 PA05-05/E01A current isolated readiness (NOT_SIGNED):** [real Host active Capability/Action-handler composition audit and missing Purchase Attention production registration](PA05-E01A-HOST-COMPOSITION-READINESS-20261016.md) → [baseline §44](PA05-CERTIFICATION-BASELINE-20261015.md) → [PA05-05 Issue #979](https://github.com/jiangxng/EVO-App-Platform/issues/979). Candidate branch `agent/pa05-e01a-host-readiness-preflight-20261016`; require actual CI before engineering signoff; E01 live Human/Provider/data still BLOCKED. **Previous D14C13 [PR #976](https://github.com/jiangxng/EVO-App-Platform/pull/976) is MERGED**, main merge `22d830dd34086c76c5dd0bdcdf0fb88aa7e0848e`, exact three-PG18 12/12 and 6/6 CI, engineering branch retired. Issue #913 OPEN, PA-05/W06 NOT_SIGNED, production WRITE OFF. Do not edit global project continuity or parallel BEX/CP03/Eidos/2D.
+
+
 > **2026-10-16 PA05-04D14C13 active candidate (NOT SIGNED):** [PG18 genuine CA CRL, existing TLS backend SQL cutover, renewed leaf and source/option/evidence ledger](PA05-D14C13-HOST-TLS-CERTIFICATE-REVOCATION-20261016.md) · [certification baseline §43](PA05-CERTIFICATION-BASELINE-20261015.md). Developed on independent `agent/pa05-d14c13-host-cert-revocation-20261016` branch from `main@8f2b86a77fae933c63bcbb8731729f92f12cd6a5`. Earlier D14C12 12/12 success is inherited regression evidence, **not D14C13 acceptance**; require new real PG18 marker and exact HEAD relevant CI. #913 OPEN; PA-05/W06 NOT_SIGNED; production WRITE OFF; no BEX/CP03/Eidos/2D or global continuity changes.
 
 
