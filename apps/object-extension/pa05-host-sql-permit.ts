@@ -1,5 +1,7 @@
 import postgres from "postgres";
 import {createHash} from "node:crypto";
+import {assertObjectExtensionDefinitionV010} from "../../contracts/foundation-object/extension.js";
+import type {ObjectExtensionDefinitionV010} from "../../contracts/foundation-object/extension.js";
 const canonical=(v:unknown):unknown=>Array.isArray(v)?v.map(canonical):
   v!==null&&typeof v==="object"?Object.fromEntries(
     Object.entries(v as Record<string,unknown>).sort(([a],[b])=>a.localeCompare(b))
@@ -29,6 +31,7 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
     async issue(request:{
       scopeKey:string;runId:string;effectId:string;inputDigest:string;
       contextId:string;enterpriseId:string;
+      approvedInputArguments:unknown;
       approvedResource:unknown;approvedEvidence:unknown;
       approvedEvidenceDigest:string;approvedIdempotencyHash:string;
     }):Promise<string>{
@@ -48,6 +51,12 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
         throw Error("PA05_OBJECT_SQL_APPROVAL_SNAPSHOT_REQUIRED");
       const a=resource as Record<string,unknown>;
       const e=evidence as Record<string,unknown>;
+      const args=request.approvedInputArguments;
+      if(!args||typeof args!=="object"||Array.isArray(args)||
+        !("definition" in args)||Object.keys(args).length!==1)
+        throw Error("PA05_OBJECT_SQL_APPROVAL_SOURCE_REQUIRED");
+      const normalized=assertObjectExtensionDefinitionV010(
+        structuredClone((args as {definition:ObjectExtensionDefinitionV010}).definition));
       if(e.inputDigest!==request.inputDigest||
         e.runId!==request.runId||e.effectId!==request.effectId||
         e.contextId!==request.contextId||
@@ -57,7 +66,8 @@ export function createPa05ObjectExtensionHostPermitIssuerV010(input:{
         a.ownerPackageId!==e.ownerPackageId||
         a.createdAt!==e.recordedAt||a.updatedAt!==e.recordedAt||
         json(a.payload)!==json(e.definition)||
-        hash(json({definition:e.definition}))!==request.inputDigest||
+        hash(json(args))!==request.inputDigest||
+        json(normalized)!==json(e.definition)||
         hash(json(e))!==request.approvedEvidenceDigest||
         hash(String(e.idempotencyKey))!==request.approvedIdempotencyHash||
         !/^[a-f0-9]{64}$/.test(request.approvedEvidenceDigest)||
