@@ -25,3 +25,6 @@ Extend **the existing three physically distinct PG18 test** without cloning infr
 ## Explicit remaining NOT_SIGNED blockers
 
 Production machine/workload attestation, Host and Business SQL credential custody/segregation and rotation, compromised original SQL session, hostile Host binding itself to an attacker backend, PostgreSQL superuser/table-owner changes to checking functions and triggers, in-flight privileged DDL races, remote ACTIVE with already staged D10 under network partition, and other actual plugins plus real Provider/Human/Agent PA05-05 full lifecycle. #913 remains OPEN and PA-05/W06 IN_PROGRESS/NOT_SIGNED. Production WRITE OFF. No BEX/CP03, Eidos/2D, global status, default routes or migration.
+
+
+**Second exact tested HEAD `22bb4f1f21dc3825ba61584b8f13861c76237f5e`:** [three physical PG18 Actions #38843159325](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38843159325) 12/12 PASS, 0 skipped, **including the additional fresh unbound-permit refusal**. All original D9–D14C9 security assertions stay present. Parallel BEX/Eidos main advanced separately without intersecting this Agent PR, so exact main-synced HEAD CI is still required before merge. No production WRITE or machine ID signoff.
