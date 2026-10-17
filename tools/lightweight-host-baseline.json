@@ -188,8 +188,6 @@
     "manager/server.ts -> apps/ledger-runtime-configurator/capability-action-handlers.ts [static]",
     "manager/server.ts -> apps/object-extension/authorization.ts [static]",
     "manager/server.ts -> apps/object-extension/constants.ts [static]",
-    "manager/server.ts -> apps/object-extension/repository.ts [static]",
-    "manager/server.ts -> apps/object-extension/values.ts [static]",
     "manager/server.ts -> apps/responsibility/constants.ts [static]",
     "manager/server.ts -> apps/template-store/package.ts [static]",
     "manager/server.ts -> apps/trading-lite/action-handler.ts [static]",

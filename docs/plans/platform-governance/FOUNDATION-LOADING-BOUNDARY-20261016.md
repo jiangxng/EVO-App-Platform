@@ -229,3 +229,37 @@ A01 仍部分完成，固定 7 项仍为 4 闭环、3 部分完成。下一步�
 已完整复核基础对象权威；资源容器权威沿用第6节既有完整读取记录，本批重点复核 §5–11；定向读取 server 全部扩展实例消费者、两个 import target、两个 projection service、扩展 repository/values/actions 与三个 package manifest。规则与装载权威复用此前完整读取；没有把搜索命中当作全仓阅读。未新增外部网页研究。未触及 #999 的 BEX 页面/草稿/Job 模型、Agent 状态或生产部署。
 
 下一批实施：管理入口按 active Feature/授权懒加载；消费者按自己的有效运行时取得只读定义或值访问接口，复用原资源容器；先验证加载失败、停用竞态、共享消费者独立停止和恢复，再去掉 Host 提前构造并添加冷启动禁入断言。当前静态债务仍为 277 条，不以本批合同整理减少数量。A01 仍部分完成，固定 7 项仍 4 闭环、3 部分完成。
+
+## 11. 实施增量：对象扩展管理与消费者分别按需装配
+
+日期：2026-10-17（香港）；基线 main `dff66ab2c12688b722f80f78fce638e82c67c46d`（#1001）。本批实现第10节确定的生命周期决定。
+
+### 所有权、触发与接口
+
+- `manager/object-extension-runtime.ts` 分别封装定义和值的按需访问，继续使用 `createLazyProviderRuntimeV010`；动态导入原工厂。定义访问不附带值仓库，值访问也不附带定义管理。
+- Host 启动只创建廉价 lease。定义有管理、Counterparty、Item 三个使用作用域；值有 Counterparty、Item、Warehouse 三个使用作用域。每个 scope 按对应 Feature 的实际使用创建 adapter。**六个 access lease 不等于六个存储实例或连接**：它们复用同一 EnterpriseResourceRepository，原 namespace/contextId/事务不变，不复制业务数据。
+- 管理 action 使用 `resolveRepository`，先验证上下文/管理资格及必要输入，再等待；等待后复核资格，旧直接注入 API 兼容。已有 import-create 在等候 import services 或 crypto 后继续原检查和算法；仓库每次方法调用还检查 scope 状态。
+- 管理页批量读取取得管理 scope 的 reader；Counterparty 页面/target 使用自己的 definition reader；详情在原对象授权成功且需要展示字段值时取得 value reader。Item/Warehouse projection 只拿 value reader；Counterparty/Item target 在原受管导入路径取得 value writer 和 definition reader。公开 reader **实际不含** save/archive/saveMany，不只是类型裁剪。
+- 只有对应合法运行路径会解析这些接口。reader/writer 仍是可信 Host 装配，不是新的远端授权 API 或恶意插件沙箱。原 Capability、企业关系、对象/字段授权仍由原 owner 执行；需要 schema/对象数据才能做 read authorization 的路径不声称“任何授权失败都零初始化”。
+
+### 并发、停止、恢复与限制
+
+同 scope 首次并发共享，加载失败清空 pending 可重试；工厂在 import 后再次检查有效/停止/代际，停用期间迟到工厂不创建 adapter。所有 list/get/save/saveMany/archive 仍同步执行，调用时检查代际；原同步 transaction 回调不引入 await。
+
+管理停用只停止管理 scope；对象停用停止自身定义/值 scope，不影响其他消费者。停止递增代际，旧引用在重新启用后也不能复活；重新解析附着原数据。Item/Warehouse 停用同步删除自身 import-target Promise 缓存，Counterparty 原缓存清理保留，避免恢复后拿到失效接口。各对象原 runtime 缓存仍按既有 owner 行为管理。
+
+adapter 无连接、任务、订阅和用户权限缓存；停止释放 lease 引用，不删除数据、不卸载 Node 模块。不声称它取消了跨进程事务/在途网络 WRITE；PA05 持久执行/冻结仍属于原 owner。Host shutdown 沿原错误处理路径调用 stop，若前序停止失败则原 shutdown 失败语义保留，不把局部正常退出测试冒充所有失败组合覆盖。
+
+### 证据与CI
+
+`tests/protocol/object-extension-runtime-lazy.test.mjs` 新增9项行为测试：定义/值未用零构造与并发共享；reader 实际无写方法；管理/多个消费者独立停止且共享数据；迟到构造拒绝、失败重试；文件重启与旧写引用永久失效；授权前零管理仓库构造、等待期间撤权零写入；CRUD 与 import-create/mapping 保持；import services 等待中停用拒绝旧接口写入。使用真实仓库/资源/router，状态及加载等待为受控依赖，不冒充真实 Host HTTP。与原消费者生命周期、跨对象导入/回滚/投影/权限等合计57项本地回归通过。
+
+静态启动边由277减至275，无新增/扩基线。`tools/plugin-loading-audit.mjs` 在原四组合审计增加 Object Extension repository/values 的冷启动禁止断言，原账本/Counterparty/职责断言保持。新9项加入既有 Lightweight Host CI。
+
+原始冷启动证据：[extension-lazy-audit-20261017.json](evidence/extension-lazy-audit-20261017.json)，含源码哈希与环境。四组合均为351个dist ESM模块、634个归档文件，捕获出站0、退出0，定时器仍为0/0/0/1；不是生产性能结论，也未证明整个安装组合成本已随包数变化。最终head、CI与合并状态由本PR记录，未部署。
+
+本批复用第6/10节已读架构与决定；定向完整核对扩展 action 与仓库，核对 server 的全部扩展实例、页面、导入目标、生命周期和正常 shutdown 消费点。开放 #999 的 BEX 页面/草稿/Job 数据模型与 Agent owner 未接管；shared server 只改装配点，合并前仍要复核主线。无新增外部网页研究。
+
+### 尚余事项
+
+A01仍部分完成，固定7项仍4闭环、3部分完成。此批完成扩展定义/值的提前构造迁移；Data Import Job/Recipe/service 的提前构造与目标过度解析、宿主全量资源归档、记忆调度归属仍保留。下一批仅核对 Data Import 的装配与调用资格，保持原 Job/Recipe/提交回执和其他窗口的草稿实现，不另建导入引擎。
