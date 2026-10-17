@@ -2382,7 +2382,7 @@ const dataImportTargetPromises = new Map<
   Promise<FoundationObjectImportTargetV010>
 >();
 
-async function resolveEffectiveDataImportTargetsV010():
+async function resolveEffectiveDataImportTargetsV010(targetId?: string):
 Promise<FoundationObjectImportTargetV010[]> {
   const contributions = manager.listEffectiveDataImportTargets();
   const activeRefs = new Set(
@@ -2392,7 +2392,9 @@ Promise<FoundationObjectImportTargetV010[]> {
     if (!activeRefs.has(ref)) dataImportTargetPromises.delete(ref);
   }
 
-  const targets = await Promise.all(contributions.map(contribution => {
+  const selected = targetId === undefined ? contributions
+    : contributions.filter(contribution => contribution.targetId === targetId);
+  const targets = await Promise.all(selected.map(contribution => {
     const ref = contribution.binding.ref;
     let pending = dataImportTargetPromises.get(ref);
     if (!pending) {
@@ -5212,8 +5214,9 @@ const actionRouter = createAppActionRouter(
           }
         },
         async load() {
-          const { assertDataImportManagementRequestV010 } = await import("../apps/data-import/management-access.js");
+          const { assertDataImportManagementRequestV010, activeEnterpriseContext } = await import("../apps/data-import/management-access.js");
           const module = await import("../apps/data-import/actions.js");
+          const { dataImportActionTargetV010 } = await import("../apps/data-import/action-target.js");
           // Cache module discovery, not lifecycle-bound target/service instances.
           return {
             packageId: DATA_IMPORT_PACKAGE_ID,
@@ -5223,8 +5226,14 @@ const actionRouter = createAppActionRouter(
               assertDataImportManagementRequestV010(context, canManageDataImport);
               const runtime = await dataImportRuntimeHost.resolve();
               const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
-              const dataImportTargets =
-                await resolveEffectiveDataImportTargetsV010();
+              const targetId = dataImportActionTargetV010({
+                commandCode, request, repository: runtime.repository,
+                contextId: activeEnterpriseContext(context).contextId
+              });
+              const dataImportTargets = targetId === undefined ? []
+                : await resolveEffectiveDataImportTargetsV010(targetId);
+              assertDataImportManagementRequestV010(context, canManageDataImport);
+              runtime.assertAvailable();
               const dataImportService = createDataImportServiceV010({
                 repository: runtime.repository,
                 recipeRepository: runtime.recipeRepository,
