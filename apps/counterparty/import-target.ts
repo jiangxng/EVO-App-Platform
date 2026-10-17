@@ -17,8 +17,8 @@ import {
   normalizeFoundationObjectImportCellV010
 } from "../../foundation/import-values.js";
 import type {
-  ObjectExtensionRepositoryV010
-} from "../object-extension/repository.js";
+  ObjectExtensionDefinitionReaderV010
+} from "../../contracts/foundation-object/extension.js";
 import type {
   ObjectExtensionValueRepositoryV010
 } from "../object-extension/values.js";
@@ -234,13 +234,13 @@ export function createCounterpartyImportTargetV010(input: {
   contactRepository?: CounterpartyContactRepositoryV010;
   addressRepository?: CounterpartyAddressRepositoryV010;
   profileRepository?: CounterpartyProfileRepositoryV010;
-  extensionRepository: ObjectExtensionRepositoryV010;
+  extensionRepository: ObjectExtensionDefinitionReaderV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
 }): FoundationObjectImportTargetV010 {
   const existingCodeCache = new Map<string, Set<string>>();
   const extensionDefinitionCache = new Map<
     string,
-    ReturnType<ObjectExtensionRepositoryV010["list"]>
+    ReturnType<ObjectExtensionDefinitionReaderV010["list"]>
   >();
 
   function describe(contextId: string, locale?: string, parameters?: FoundationObjectImportTargetParametersV010) {

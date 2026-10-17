@@ -7,8 +7,8 @@ import type {
   ObjectExtensionValueSetV010
 } from "../../contracts/foundation-object/extension-value.js";
 import type {
-  ObjectExtensionValueRepositoryV010
-} from "../object-extension/values.js";
+  ObjectExtensionValueReaderV010
+} from "../../contracts/foundation-object/extension-value.js";
 import type {
   ResponsibilityAssignmentV010,
   ResponsibilityRepositoryV010
@@ -69,7 +69,7 @@ export function itemProjectionRouteV010(
 export function createItemProjectionServiceV010(input: {
   repository: ItemRepositoryV010;
   responsibilityRepository: ResponsibilityRepositoryV010;
-  extensionValueRepository: ObjectExtensionValueRepositoryV010;
+  extensionValueRepository: ObjectExtensionValueReaderV010;
   resolveAuthorizationProvider(): AuthorizationProviderV010 | undefined;
   fieldIds(): readonly string[];
 }): ItemProjectionServiceV010 {
