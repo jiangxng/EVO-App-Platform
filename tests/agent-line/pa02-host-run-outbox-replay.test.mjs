@@ -29,6 +29,8 @@ const request=(code,values={},actionId)=>({
 test("PA02 R05/R06 real Host Outbox: duplicate delivery dedup, scoped cursor, sequence gap -> terminal snapshot",{
   skip:!url?"Requires isolated PostgreSQL18":false,timeout:90000
 },async()=>{
+  // Keep this live-worker replay fixture within the real 72h run deadline.
+  const fixtureStartedAt=Date.now();
   const schema="pa02_r05r06_"+randomUUID().replaceAll("-","").slice(0,12);
   const db=postgres(url,{max:2});
   const provider={providerId:"fixture",modelId:"demo",async infer(r) {
@@ -58,7 +60,7 @@ test("PA02 R05/R06 real Host Outbox: duplicate delivery dedup, scoped cursor, se
     resolveLlmProvider:()=>({installedProviderIds:[provider.providerId],provider}),
     resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
     resolveContext:()=>context,createToolCatalog:catalog,
-    runId:randomUUID,now:()=>new Date("2026-10-14T06:00:00.000Z")
+    runId:randomUUID,now:()=>new Date(fixtureStartedAt)
   }).map(handler=>[handler.commandCode,handler]));
   try {
     runtime=await createPostgresHostAsyncReadExecutionV030({

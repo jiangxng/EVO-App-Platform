@@ -39,6 +39,10 @@ async function sample(name, directory, profile, extra = {}) {
     const inventory = files(directory);
     const storedFiles = inventory.filter(file => !file.path.startsWith('web-assets/'));
     const archived = inventory.filter(file => file.path.startsWith('web-assets/'));
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'dist/web-asset-manifest.json'), 'utf8'));
+    const expectedArchive = ['.ready', manifest.shellCss.path, ...manifest.files.map(file => file.path)].sort();
+    const actualArchive = archived.map(file => file.path.split('/').slice(2).join('/')).sort();
+    if (JSON.stringify(actualArchive) !== JSON.stringify(expectedArchive)) throw new Error('WEB_ARCHIVE_MANIFEST_COVERAGE_MISMATCH');
     const archiveAreas = {};
     for (const file of archived) {
       const area = file.path.split('/')[2];
@@ -123,6 +127,8 @@ const report = {
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
   sourceState: 'working tree; file hashes identify measured source',
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
+    'manager/web-asset-archive.ts', 'tools/build-web-asset-manifest.mjs',
+    'dist/web-asset-manifest.json',
     'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
     'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
     'manager/data-import-runtime.ts', 'apps/data-import/runtime.ts',

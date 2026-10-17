@@ -1672,6 +1672,7 @@ const appHostAssetRevision = normalizeAssetRevisionV010(
 );
 const appHostShellHtml = createAppHostShellHtmlV010(appHostAssetRevision);
 const webAssetArchive = createWebAssetArchiveV010({
+  manifestPath: fileURLToPath(new URL("../web-asset-manifest.json", import.meta.url)),
   currentRevision: appHostAssetRevision,
   sourceRoot: fileURLToPath(new URL("../", import.meta.url)),
   archiveRoot:

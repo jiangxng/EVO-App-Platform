@@ -9,7 +9,7 @@
 用户目标：轻量宿主、按需安装卸载；安装能力少时降低装载与后台资源开销；个人Agent千人千面，企业具有跨部门整体分析与改进能力。
 
 - [项目级装载原则与开发准入（第 11 节）](../../architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md#11-项目根本约束新增能力不能默认增加常驻业务负担)
-- [浏览器资源归档边界与实施方案](WEB-ASSET-ARCHIVE-BOUNDARY-20261017.md)
+- [浏览器资源归档边界、清单实施与升级兼容证据](WEB-ASSET-ARCHIVE-BOUNDARY-20261017.md)
 - [基础对象装载消费者、存储归属与整改边界](FOUNDATION-LOADING-BOUNDARY-20261016.md)
 - [账本兼容服务按需创建与回归](LEDGER-COMPATIBILITY-LAZY-LOADING.md)
 - [未安装/停用插件装载审计与优先级](PLUGIN-LOADING-AUDIT-20261015.md)
