@@ -310,3 +310,36 @@ A01仍部分完成，固定7项仍4闭环、3部分完成。此批完成扩展�
 固定7项仍4闭环、3部分完成。此批关闭的是导入提前构造/静态服务依赖债务，不声称导入所有动作都只加载单一目标；当前有效targets仍按原合同一起解析，directory/page也未在本批重写。A01仍有目标过度解析、全量资源归档与记忆调度归属。后续先依据真实冷路径与调用证据选择最小修正，不另建导入框架或Provider试点。
 
 本批CI夹具修正：候选 `f56e9c7699b4bb07179eb5359bf21b40dfc41356` 的42项检查通过；PA02 Host Async READ run `39002529036` 中 `pa02c-host-owner-cancel-visible.test.mjs` 等待owner提交信号超时90秒。该测试直接装配Worker/SQL owner，不导入本批导入/Host glue；新Run时间写死为2026-10-14T04:00Z，而本次执行在2026-10-17T04:28Z，超过既有72小时寿命，Worker不会开始业务。仅改测试使用启动时间，并在start提前结束时立即报告Run结果，避免无限等owner信号。生产期限、取消、防重放、SQL与Agent实现不变；本地无PG不宣称PG通过，必须以新候选远程PG实际结果验收。
+
+
+## 13. 实施增量：导入命令按本次目标装配
+
+日期：2026-10-17（香港）。基线 main `63a968df8464c962c28e5db98038170f9119a57a`（#1003）。继续 A01；开放 BEX #999 的页面、草稿和 Job 模型不接管。
+
+### 事实、决定与范围
+
+实际追踪 `manager/server.ts` 的10个导入命令：资格检查后，每次先解析全部有效目标，再创建 service/handlers。于是仅查询历史回执也会载入 Counterparty、Item、Warehouse 的目标工厂；某个无关目标装配失败还可能阻断本次操作。原 `get` 仅读 Job；`errorRowsCsv` 仅读 Job 中已保存的错误，不需要当前业务 schema。
+
+采用插件内部 `apps/data-import/action-target.ts` 描述命令的最小目标需求：stage-file/stage-csv 使用请求 targetId；review/dry-run/commit/mapping.inspect/mapping.apply/row-correct 使用当前企业持久 Job 的 targetId，忽略请求伪造的目标覆盖；get/error-csv 不需要目标。未知命令明确拒绝，禁止未来命令自动回退“加载全部”。缺少 Job/id 时不开始目标解析。该函数只规划装载，不授予权限、不改提交算法。
+
+Host 原 resolver 增加可选 targetId，在启动目标工厂前筛选有效贡献；旧页面/扩展调用不传参，保持原行为。本批没有把所有消费点改造成另一套异步导入框架，也没有新增 Provider、持久层或用户状态缓存。阶段性保留旧全量解析入口是为避免同时改动 BEX 页面，不是允许新调用复制旧行为。
+
+### 权限、资源与恢复
+
+原 lazy guard 与执行前企业管理资格保持；等待目标解析后再次验证管理资格和 Data Import runtime 代际，再交给原 action 的检查。目标仍必须来自 manager 的有效贡献，缓存仍按 binding.ref 复用；失效引用剔除、加载失败清除、对象停用时缓存清理与 runtime 停止保持。不会因只选择一个目标而将其他有效缓存误删。
+
+归属仍为 `evo-data-import.default` 的请求编排与各对象自己的 target/runtime。新增选择函数没有资源和副作用；未用不执行，不创建连接、定时器或订阅。读取既有 Job 错误/回执不要求其业务对象插件仍活跃，但仍要求导入插件有效、企业上下文和原管理资格；涉及当前对象执行的命令仍受目标有效性约束。停止/恢复保留原 Job/Recipe，与上节相同，不声称提供跨进程 WRITE 撤销。
+
+### 已执行证据与 CI
+
+本地 build 与50项定向回归通过，覆盖目标生命周期、Counterparty/Item、Recipe、人类导入体验、runtime、选择规则和真实 Host。`tests/protocol/data-import-action-target.test.mjs` 4项验证所有10个命令的选择规则、企业范围读取、忽略请求目标覆盖、缺失Job/id与未知命令拒绝；加入既有 Lightweight Host CI。
+
+扩展现有 `tests/integration/object-extension-lazy-host.test.mjs`：同时安装 Counterparty/Item/Warehouse/导入/扩展，在真实 Host HTTP 调用后采集 dist ESM 模块清单。get/error-csv 对不存在Job返回原错误且三个目标模块都未加载；供应商完整导入成功后只出现 Counterparty target，Item/Warehouse target未加载。停用Counterparty后读取原COMMITTED回执完全相同、错误下载成功、dry-run拒绝，恢复后导入及Recipe复用继续成功。原三批对象/扩展值的文件重开验证保持。
+
+`tools/plugin-loading-audit-probe.mjs` 仅增加测试IPC快照消息，复用原loader消息队列；生产Host不导入它，没有新增生产诊断端点。隔离临时数据、开发身份、动态loopback端口及出站阻断保持。此证据证明真实Host请求装配行为，不等于生产部署/人工验收，不宣称测试了全部物料/仓库HTTP导入路径。静态门禁仍269条，无增量、无扩基线；本批不以冷启动模块数变化冒充请求路径改善。最终head、CI与清理状态以对应PR记录为准，未部署。
+
+### 阅读记录与下一步
+
+完整复核 `.clinerules/01-delivery.md`、`02-project-understanding.md` 与 `docs/architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md`；复用前批已完整读取的交付、资源容器、基础对象权威。定向阅读 server 的完整目标resolver与导入命令装配，全部10个action的业务依赖及service错误下载实现、导入页面相关分支；未声称重读全server/Agent。本批无外部网页研究。
+
+固定7项仍4闭环、3部分完成。下一步是核对页面/扩展编排的目标过度解析：目录能否使用轻量贡献、详情按Job目标、扩展编排按持久Job目标；保留各自权限/生命周期，协调BEX #999，不改变其草稿模型。全量资源归档与记忆调度归属仍在A01，A03/A05原剩余项不变。

@@ -24,9 +24,16 @@ test('real Host: cached import actions recover after object/import re-enable and
     const call=async(route,payload,contextId)=>{const response=await fetch(`http://127.0.0.1:${sample.port}${route}`,{method:'POST',signal:AbortSignal.timeout(10000),headers:{'content-type':'application/json',...(contextId?{'x-evo-context-id':contextId}:{})},body:JSON.stringify(payload)});return {status:response.status,body:await response.json()};};
     const execute=async(code,values,contextId)=>{const r=await call('/v1/actions',{contractVersion:'0.1.0',type:'command',command:{code,inputVersion:'0.1.0'},values,actionId:'extension-lazy-host',sourceInteractionId:'extension-lazy-host',requiresConfirmation:true},contextId);assert.equal(r.status,200,JSON.stringify(r));return r.body;};
     const created=await execute('enterprise.context.create',{displayName:'Isolated extension lifecycle',code:'EXTENSION_LAZY'});assert.equal(created.ok,true,JSON.stringify(created));const contextId=created.result.context?.contextId??created.result.contextId;assert.ok(contextId);
-    for(const packageId of ['evo-counterparty','evo-data-import','evo-object-extension'])assert.equal((await call('/v1/install',{packageId})).status,200);
+    for(const packageId of ['evo-counterparty','evo-item','evo-warehouse','evo-data-import','evo-object-extension'])assert.equal((await call('/v1/install',{packageId})).status,200);
     const definition={contractVersion:'0.1.0',extensionId:'enterprise.test.bank',targetObjectType:'counterparty.subject',targetSlot:'counterparty.identity',namespace:'enterprise.test',fieldId:'bank',semanticType:'bank',valueType:'STRING',label:{default:'Bank'},required:false,order:1,surfaces:['DETAIL','IMPORT'],importable:true,exportable:true,agentReadable:false,agentWritable:false};
     assert.equal((await execute(OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,{definition},contextId)).ok,true);
+    const snapshot=async()=>{const id=crypto.randomUUID();return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>{child.off('message',listener);reject(Error('MODULE_SNAPSHOT_TIMEOUT'));},5000);const listener=x=>{if(x.kind==='audit-module-snapshot'&&x.id===id){clearTimeout(timeout);child.off('message',listener);resolve(x.loadedModules);}};child.on('message',listener);child.send({kind:'audit-module-snapshot',id});});};
+    for(const command of ['data-import.get','data-import.error-csv']){
+      const missing=await execute(command,{importJobId:'missing'},contextId);
+      assert.equal(missing.error.code,'DATA_IMPORT_JOB_NOT_FOUND');
+    }
+    const before=await snapshot();
+    for(const name of ['counterparty','item','warehouse'])assert.ok(!before.includes(`dist/apps/${name}/import-target.js`),name);
     const committedJobs=[];
     async function importRow(code,bank){
       const bytes=Buffer.from(`code,displayName,subjectType,bank\n${code},Supplier ${code},ORGANIZATION,${bank}`);
@@ -36,9 +43,18 @@ test('real Host: cached import actions recover after object/import re-enable and
       const commit=await execute('data-import.commit',{importJobId},contextId);assert.equal(commit.ok,true,JSON.stringify(commit));assert.equal(commit.result.job.state,'COMMITTED');committedJobs.push(commit.result.job);
     }
     await importRow('FIRST','FirstBank'); // Warm each cached lazy action.
+    const after=await snapshot();
+    assert.ok(after.includes('dist/apps/counterparty/import-target.js'));
+    for(const name of ['item','warehouse'])assert.ok(!after.includes(`dist/apps/${name}/import-target.js`),name);
+
     assert.equal((await call('/v1/disable',{packageId:'evo-object-extension'})).status,200);
     assert.equal((await execute(OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,{definition},contextId)).ok,false);
     assert.equal((await call('/v1/disable',{packageId:'evo-counterparty'})).status,200);
+    const stoppedReceipt=await execute('data-import.get',{importJobId:committedJobs[0].importJobId},contextId);
+    assert.equal(stoppedReceipt.ok,true,JSON.stringify(stoppedReceipt));
+    assert.deepEqual(stoppedReceipt.result.job.receipt,committedJobs[0].receipt);
+    assert.equal((await execute('data-import.error-csv',{importJobId:committedJobs[0].importJobId},contextId)).ok,true);
+    assert.equal((await execute('data-import.dry-run',{importJobId:committedJobs[0].importJobId},contextId)).ok,false);
     assert.equal((await call('/v1/enable',{packageId:'evo-counterparty'})).status,200);
     await importRow('SECOND','SecondBank');
     assert.equal((await call('/v1/disable',{packageId:'evo-data-import'})).status,200);
