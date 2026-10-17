@@ -60,6 +60,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createDataImportRuntimeHostV010 } from "./data-import-runtime.js";
 import { createObjectExtensionDefinitionRuntimeHostV010, createObjectExtensionValueRuntimeHostV010 } from "./object-extension-runtime.js";
 import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
 import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
@@ -941,21 +942,9 @@ import {
 import {
   dataImportAuthorizationPolicyV010
 } from "../apps/data-import/authorization.js";
-import {
-  createDataImportRepositoryV010
-} from "../apps/data-import/repository.js";
-import {
-  createDataImportRecipeRepositoryV010
-} from "../apps/data-import/recipe.js";
-import {
-  createDataImportServiceV010
-} from "../apps/data-import/service.js";
 import type {
   FoundationObjectImportTargetV010
 } from "../contracts/foundation-object/import.js";
-import {
-  createHttpDataImportExperienceAdvisorV010
-} from "../apps/data-import/experience-advisor.js";
 import {
   OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
@@ -1132,18 +1121,27 @@ const itemExtensionValues = createObjectExtensionValueRuntimeHostV010(
   extensionScope(ITEM_PACKAGE_ID, ITEM_FEATURE_ID));
 const warehouseExtensionValues = createObjectExtensionValueRuntimeHostV010(
   extensionScope(WAREHOUSE_PACKAGE_ID, WAREHOUSE_FEATURE_ID));
-const dataImportRepository =
-  createDataImportRepositoryV010(enterpriseResourceRepository);
-const dataImportRecipeRepository =
-  createDataImportRecipeRepositoryV010(enterpriseResourceRepository);
 const experienceCompilerAdvisoryBaseUrl =
   process.env.APP_PLATFORM_EC_ADVISORY_BASE_URL?.trim();
-const dataImportExperienceAdvisor = experienceCompilerAdvisoryBaseUrl
-  ? createHttpDataImportExperienceAdvisorV010({
+const dataImportRuntimeHost = createDataImportRuntimeHostV010({
+  isActive: dataImportFeatureActiveV010,
+  dependencies: {
+    resources: enterpriseResourceRepository,
+    ...(experienceCompilerAdvisoryBaseUrl ? {advisor: {
       baseUrl: experienceCompilerAdvisoryBaseUrl,
       token: process.env.APP_PLATFORM_EC_ADVISORY_TOKEN?.trim()
-    })
-  : undefined;
+    }} : {})
+  }
+});
+function dataImportFeatureActiveV010(): boolean {
+  return store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === DATA_IMPORT_PACKAGE_ID && feature.featureId === DATA_IMPORT_FEATURE_ID);
+}
+function canManageDataImport(principal: PlatformPrincipalV010, contextId: string): boolean {
+  return (resolveEnterpriseContextRelationshipProvider()?.listForPrincipal(principal) ?? []).some(item =>
+    item.contextId === contextId && item.state === "ACTIVE"
+    && (item.kind === "OWNER" || item.kind === "ADMIN"));
+}
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -2250,6 +2248,9 @@ const manager = createAppManagerService(
       }
       if (event.packageId === RESPONSIBILITY_PACKAGE_ID) {
         void responsibilityRuntimeHost.stop().catch(error => console.error("Responsibility runtime stop failed", error));
+      }
+      if (event.packageId === DATA_IMPORT_PACKAGE_ID) {
+        void dataImportRuntimeHost.stop().catch(error => console.error("Data Import runtime stop failed", error));
       }
       if (event.packageId === OBJECT_EXTENSION_PACKAGE_ID) {
         void extensionManagement.stop().catch(error => console.error("Extension management stop failed", error));
@@ -5122,7 +5123,11 @@ const actionRouter = createAppActionRouter(
           const module = await import("../apps/object-extension/actions.js");
           const handlers = module.createObjectExtensionActionHandlersV010({
             resolveRepository: () => extensionManagement.resolveManage(),
-            getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
+            async resolveImportJobReader() {
+              if (!dataImportFeatureActiveV010()) throw new Error("DATA_IMPORT_FEATURE_NOT_ACTIVE");
+              const runtime = await dataImportRuntimeHost.resolve();
+              return (contextId, jobId) => runtime.repository.get(contextId, jobId);
+            },
             async resolveImportServices(job) {
               const assertAvailable = () => {
                 if (!manager.getSnapshot().activeFeatures.some(feature =>
@@ -5134,11 +5139,13 @@ const actionRouter = createAppActionRouter(
                 )) throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
               };
               assertAvailable();
+              const runtime = await dataImportRuntimeHost.resolve();
+              const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
               const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
               assertAvailable();
               const batchImportService = createDataImportServiceV010({
-                repository: dataImportRepository,
-                recipeRepository: dataImportRecipeRepository,
+                repository: runtime.repository,
+                recipeRepository: runtime.recipeRepository,
                 targets: batchImportTargets
               });
               return {
@@ -5194,7 +5201,18 @@ const actionRouter = createAppActionRouter(
         packageId: DATA_IMPORT_PACKAGE_ID,
         featureId: DATA_IMPORT_FEATURE_ID,
         commandCode,
+        async guard(_request, context) {
+          try {
+            const { assertDataImportManagementRequestV010 } = await import("../apps/data-import/management-access.js");
+            assertDataImportManagementRequestV010(context, canManageDataImport);
+          }
+          catch (error) {
+            const code = error instanceof Error ? error.message : "DATA_IMPORT_ACTION_FAILED";
+            return {ok: false, ...(context?.correlationId ? {correlationId: context.correlationId} : {}), error: {code, message: code}};
+          }
+        },
         async load() {
+          const { assertDataImportManagementRequestV010 } = await import("../apps/data-import/management-access.js");
           const module = await import("../apps/data-import/actions.js");
           // Cache module discovery, not lifecycle-bound target/service instances.
           return {
@@ -5202,30 +5220,24 @@ const actionRouter = createAppActionRouter(
             featureId: DATA_IMPORT_FEATURE_ID,
             commandCode,
             async execute(request, context) {
+              assertDataImportManagementRequestV010(context, canManageDataImport);
+              const runtime = await dataImportRuntimeHost.resolve();
+              const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
               const dataImportTargets =
                 await resolveEffectiveDataImportTargetsV010();
               const dataImportService = createDataImportServiceV010({
-                repository: dataImportRepository,
-                recipeRepository: dataImportRecipeRepository,
+                repository: runtime.repository,
+                recipeRepository: runtime.recipeRepository,
                 targets: dataImportTargets
               });
               const handlers = module.createDataImportActionHandlersV010({
                 service: dataImportService,
-                repository: dataImportRepository,
+                repository: runtime.repository,
                 targets: dataImportTargets,
-                ...(dataImportExperienceAdvisor
-                  ? { experienceAdvisor: dataImportExperienceAdvisor }
+                ...(runtime.experienceAdvisor
+                  ? { experienceAdvisor: runtime.experienceAdvisor }
                   : {}),
-                canManageEnterpriseContext(principal, contextId) {
-                  return (
-                    resolveEnterpriseContextRelationshipProvider()
-                      ?.listForPrincipal(principal) ?? []
-                  ).some(item =>
-                    item.contextId === contextId
-                    && item.state === "ACTIVE"
-                    && (item.kind === "OWNER" || item.kind === "ADMIN")
-                  );
-                },
+                canManageEnterpriseContext: canManageDataImport,
                 idFactory() {
                   return "import-" + randomUUID();
                 }
@@ -7648,7 +7660,9 @@ const server = createServer(async (request, response) => {
         const jobId=parseObjectExtensionImportRouteV010(
           url.searchParams.get("route")??undefined
         );
-        const job=jobId?dataImportRepository.get(active.contextId,jobId):undefined;
+        if (!dataImportFeatureActiveV010()) return json(response,409,{code:"DATA_IMPORT_FEATURE_NOT_ACTIVE"});
+        const importRuntime = await dataImportRuntimeHost.resolve();
+        const job=jobId?importRuntime.repository.get(active.contextId,jobId):undefined;
         if(!job||job.targetId!=="counterparty.subject") return json(response,404,{
           code:"OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND"
         });
@@ -7706,6 +7720,7 @@ const server = createServer(async (request, response) => {
             message: "Select an Enterprise Context first."
           });
         }
+        const importRuntime = await dataImportRuntimeHost.resolve();
         const module = await import("../apps/data-import/page.js");
         const dataImportTargets =
           await resolveEffectiveDataImportTargetsV010();
@@ -7718,7 +7733,7 @@ const server = createServer(async (request, response) => {
             200,
             module.createDataImportDirectoryPageV010({
               targets: dataImportTargets,
-              jobs: dataImportRepository.list(active.contextId),
+              jobs: importRuntime.repository.list(active.contextId),
               locale
             })
           );
@@ -7771,7 +7786,7 @@ const server = createServer(async (request, response) => {
             code: "DATA_IMPORT_CORRECTION_MANAGE_ROLE_REQUIRED"
           });
         }
-        const job = dataImportRepository.get(active.contextId, importJobId);
+        const job = importRuntime.repository.get(active.contextId, importJobId);
         if (!job) {
           return json(response, 404, {
             code: "DATA_IMPORT_JOB_NOT_FOUND"
@@ -9852,6 +9867,7 @@ async function shutdown(signal: string): Promise<void> {
     await bottleneckRuntime.stop();
     await counterpartyRuntimeHost.stop();
     await responsibilityRuntimeHost.stop();
+    await dataImportRuntimeHost.stop();
     await Promise.all([extensionManagement.stop(), counterpartyExtensionDefinitions.stop(),
       counterpartyExtensionValues.stop(), itemExtensionDefinitions.stop(),
       itemExtensionValues.stop(), warehouseExtensionValues.stop()]);

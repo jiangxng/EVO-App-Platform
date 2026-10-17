@@ -1,3 +1,4 @@
+import { activeEnterpriseContext, ensureManage } from "./management-access.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -70,37 +71,6 @@ function required(value: unknown, code: string): string {
   return normalized;
 }
 
-function activeEnterpriseContext(
-  context: PlatformRequestContextV010 | undefined
-): { contextId: string; enterpriseId: string } {
-  const active = context?.context?.activeContext;
-  if (
-    !context
-    || !active
-    || active.kind !== "ENTERPRISE"
-    || !active.contextId?.trim()
-    || !active.enterpriseId?.trim()
-  ) {
-    throw new Error("DATA_IMPORT_ENTERPRISE_CONTEXT_REQUIRED");
-  }
-  return {
-    contextId: active.contextId.trim(),
-    enterpriseId: active.enterpriseId.trim()
-  };
-}
-
-function ensureManage(
-  principal: PlatformPrincipalV010,
-  contextId: string,
-  canManageEnterpriseContext: (
-    principal: PlatformPrincipalV010,
-    contextId: string
-  ) => boolean
-): void {
-  if (!canManageEnterpriseContext(principal, contextId)) {
-    throw new Error("DATA_IMPORT_MANAGE_ROLE_REQUIRED");
-  }
-}
 
 function importCell(
   value: JsonValue | undefined,

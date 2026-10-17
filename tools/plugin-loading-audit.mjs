@@ -74,6 +74,11 @@ async function sample(name, directory, profile, extra = {}) {
         throw new Error('OBJECT_EXTENSION_RUNTIME_EAGER: ' + module);
       }
     }
+    for (const module of ['runtime', 'repository', 'recipe', 'service', 'experience-advisor']) {
+      if (report.loadedModules.includes(`dist/apps/data-import/${module}.js`)) {
+        throw new Error('DATA_IMPORT_RUNTIME_EAGER: ' + module);
+      }
+    }
     // Hook instrumentation makes these unsuitable for performance comparisons.
     const { port, readyMs, memoryBytes, idleCpuMicros, ...observations } = report;
     return { profile: name, ...observations, installedPackages: lifecycle.installedPackages.map(p => p.packageId).sort(),
@@ -120,6 +125,10 @@ const report = {
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
     'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
     'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
+    'manager/data-import-runtime.ts', 'apps/data-import/runtime.ts',
+    'apps/data-import/management-access.ts', 'apps/data-import/actions.ts',
+    'apps/data-import/repository.ts', 'apps/data-import/recipe.ts',
+    'apps/data-import/service.ts', 'apps/data-import/experience-advisor.ts',
     'manager/object-extension-runtime.ts', 'apps/object-extension/actions.ts',
     'apps/object-extension/repository.ts', 'apps/object-extension/values.ts',
     'manager/responsibility-runtime.ts', 'apps/responsibility/actions.ts',

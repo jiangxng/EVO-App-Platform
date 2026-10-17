@@ -269,3 +269,44 @@ adapter 无连接、任务、订阅和用户权限缓存；停止释放 lease �
 A01仍部分完成，固定7项仍4闭环、3部分完成。此批完成扩展定义/值的提前构造迁移；Data Import Job/Recipe/service 的提前构造与目标过度解析、宿主全量资源归档、记忆调度归属仍保留。下一批仅核对 Data Import 的装配与调用资格，保持原 Job/Recipe/提交回执和其他窗口的草稿实现，不另建导入引擎。
 
 本批 CI 兼容修正：最终候选首轮 PA02 Host Async READ run `38986601317` 的 `pa02-host-server-sandbox-object-owner.test.mjs:179` 预期 SUCCEEDED、实际 BLOCKED。该用例直接装配沙箱/Worker/Thread handlers，不导入本批 server glue；新Run的 createdAt/注入时间写死为2026-10-14，Worker使用真实时钟及既有72小时默认期限，2026-10-17已经跨期。只将此新Run测试夹具以测试启动时间为基准，增加失败时Run诊断；生产Worker、deadline、授权、SQL owner均未改。不通过放宽预算、跳过PG测试或重复重跑旧候选解决；新候选的实际PostgreSQL CI结果以本PR记录为准。
+
+## 12. 实施增量：Data Import Job/Recipe/服务按需装配
+
+日期：2026-10-17（香港）。基线 main `c33e76eafbdedf09554cc4e308b69c486bbc5417`（#1002）。继续A01，不改变独立导入应用的产品定位。
+
+### 核实与决定
+
+`manager/server.ts` 仍静态导入并构造 Job、Recipe 仓库和可选 HTTP EC advisor，服务实现也在启动链中。两个仓库构造只返回方法闭包，advisor 构造保存配置/fetch；不能说原启动已建立连接或已向EC发请求。它们仍是插件实现，故迁出冷路径。Object Extension 的 import-create/批量页面需要Job读和mapping更新，普通字段CRUD并不需要导入依赖。导入actions的全部10个命令均要求原企业上下文与管理资格。
+
+采用原EnterpriseResourceRepository上的进程级无用户状态adapter，共用原`evo.data-import`寻址和Job/Recipe算法。排除复制Job到扩展应用、每次启用建新存储、让字段管理CRUD强依赖导入，以及为了少模块数删除原审计/权限。导入工作流的跨应用执行依赖由真实使用检查，不把Object Extension全包改成Data Import强制依赖。
+
+### 已实现的归属与触发
+
+- `apps/data-import/runtime.ts` 组装原Job/Recipe及已配置的原advisor；`manager/data-import-runtime.ts` 用既有lazy lease按导入Feature与首次使用解析。启动、未安装/停用、启用未用均不创建业务runtime；首次并发共享，失败可重试。
+- Job/Recipe方法保持同步并检查Feature、停止状态和代际；旧仓库、旧service的读写在恢复后也不能复活。企业访问仍逐次传contextId，无用户权限缓存和新持久层。
+- 原Data Import上下文/管理资格函数原样提取到`management-access.ts`，actions继续用它。Host lazy guard按需加载这个轻量资格检查，在actions/runtime/targets前拒绝不合格管理请求，装配/动作执行时继续原检查；没有新增宽松授权或LLM判断。
+- 导入服务在导入动作及扩展mapping工作流内动态import、按请求创建，原目标factory缓存继续复用。不长期捕获旧Job/Recipe实例。导入页面使用同一runtime，原页面schema、Job状态和命令不变。
+- Object Extension增加可选`resolveImportJobReader`，在上下文/管理资格及jobId检查后解析，等待后复核资格；后续取当前Job仍同步、原直接callback兼容。它只向扩展动作交出get回调。导入Feature停用后from-import工作流拒绝，批量页面明确返回`DATA_IMPORT_FEATURE_NOT_ACTIVE`；普通扩展管理仍可独立使用。
+- Data Import停用/卸载/正常shutdown清理自己的lease；不停止对象的扩展访问，也不删除企业Job/Recipe。恢复/重启重新附着原数据。
+
+### 可选EC advisor的资源边界
+
+未配置则不创建；已配置则在首次导入runtime使用时创建原轻量adapter，只有recommend/recordSuccessful调用才发请求。两个异步方法通过原lease计入在途操作，停止拒绝新请求并有限等待已接受操作；旧advisor引用永久失效。原HTTP超时/协议/失败处理保持，不增加自动写重试。已接受外部请求不能因本地stop被推断未生效；这不是撤销外部记录或跨进程事务保证。将来加入长期连接/订阅仍需disposer证据。
+
+### 验证与防回归
+
+新增 `tests/protocol/data-import-runtime-lazy.test.mjs` 8项：未用零构造/并发共享；Job/Recipe同文件恢复和隔离、旧引用拒绝；迟到初始化/失败重试；原service提交回执与停止后旧service拒绝；原管理资格规则；扩展Job reader等待期间撤权零读取/写入；advisor零隐式请求、停止drain及恢复；普通扩展list不解析Job reader。重用真实仓库/service/handler，生命周期/工厂等待及HTTP fetch为可控依赖。
+
+扩展现有 `tests/integration/object-extension-lazy-host.test.mjs`：独立真实Host HTTP完成原对象停用恢复流程后，再停用导入，确认命令拒绝；恢复后读取原COMMITTED Job的相同receipt，再次上传自动得到`RECIPE`与原recipe标识并成功提交。正常退出后同文件中三批对象/值齐全。使用独立开发身份/权限、临时存储和出站阻断探针，未访问生产数据，不等于生产/人工验收。
+
+本地build、60项定向回归PASS，包含上述8项、1真实Host、Recipe/批量扩展/CP与Item导入回归。新测试和原Host测试继续进入既有Lightweight Host CI。静态边275→269，仅删6条无扩基线。四组合审计新增`runtime/repository/recipe/service/experience-advisor`明确冷启动禁止断言；原账本/对象/职责/扩展断言保持。
+
+[原始证据](evidence/data-import-lazy-audit-20261017.json)保留源码哈希和环境：四组合均347个dist ESM模块、637归档文件、捕获出站0、退出0，interval仍0/0/0/1。不能从不同提交总数推算生产性能；7/16包总模块数仍相同，不代表A01整体已关闭。最终head/CI/合并和清理状态见本PR，未部署。
+
+阅读范围：复用本专项第6/10/11节已完整读取的规则、装载/资源容器/基础对象权威；本批定向核对Job/Recipe构造和所有公开方法、advisor全文、服务创建及原10个动作资格检查、server所有导入消费者、扩展import-create完整路径。没有宣称重读全server或整个Agent。未新增外部网络来源。开放BEX #999的页面、Job模型与草稿设计未改，Agent/PA05实现未改；触及的共享server仅为本批装配点。
+
+### 剩余边界
+
+固定7项仍4闭环、3部分完成。此批关闭的是导入提前构造/静态服务依赖债务，不声称导入所有动作都只加载单一目标；当前有效targets仍按原合同一起解析，directory/page也未在本批重写。A01仍有目标过度解析、全量资源归档与记忆调度归属。后续先依据真实冷路径与调用证据选择最小修正，不另建导入框架或Provider试点。
+
+本批CI夹具修正：候选 `f56e9c7699b4bb07179eb5359bf21b40dfc41356` 的42项检查通过；PA02 Host Async READ run `39002529036` 中 `pa02c-host-owner-cancel-visible.test.mjs` 等待owner提交信号超时90秒。该测试直接装配Worker/SQL owner，不导入本批导入/Host glue；新Run时间写死为2026-10-14T04:00Z，而本次执行在2026-10-17T04:28Z，超过既有72小时寿命，Worker不会开始业务。仅改测试使用启动时间，并在start提前结束时立即报告Run结果，避免无限等owner信号。生产期限、取消、防重放、SQL与Agent实现不变；本地无PG不宣称PG通过，必须以新候选远程PG实际结果验收。
