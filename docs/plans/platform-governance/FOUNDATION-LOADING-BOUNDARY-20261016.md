@@ -267,3 +267,5 @@ adapter 无连接、任务、订阅和用户权限缓存；停止释放 lease �
 ### 尚余事项
 
 A01仍部分完成，固定7项仍4闭环、3部分完成。此批完成扩展定义/值的提前构造迁移；Data Import Job/Recipe/service 的提前构造与目标过度解析、宿主全量资源归档、记忆调度归属仍保留。下一批仅核对 Data Import 的装配与调用资格，保持原 Job/Recipe/提交回执和其他窗口的草稿实现，不另建导入引擎。
+
+本批 CI 兼容修正：最终候选首轮 PA02 Host Async READ run `38986601317` 的 `pa02-host-server-sandbox-object-owner.test.mjs:179` 预期 SUCCEEDED、实际 BLOCKED。该用例直接装配沙箱/Worker/Thread handlers，不导入本批 server glue；新Run的 createdAt/注入时间写死为2026-10-14，Worker使用真实时钟及既有72小时默认期限，2026-10-17已经跨期。只将此新Run测试夹具以测试启动时间为基准，增加失败时Run诊断；生产Worker、deadline、授权、SQL owner均未改。不通过放宽预算、跳过PG测试或重复重跑旧候选解决；新候选的实际PostgreSQL CI结果以本PR记录为准。
