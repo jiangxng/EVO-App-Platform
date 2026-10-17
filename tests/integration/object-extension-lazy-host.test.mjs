@@ -34,12 +34,34 @@ test('real Host: cached import actions recover after object/import re-enable and
     }
     const before=await snapshot();
     for(const name of ['counterparty','item','warehouse'])assert.ok(!before.includes(`dist/apps/${name}/import-target.js`),name);
+    const page=async(source,route)=>{
+      const query=new URLSearchParams({source,route});
+      const response=await fetch(`http://127.0.0.1:${sample.port}/v1/experience-pages?${query}`,{headers:{'x-evo-context-id':contextId},signal:AbortSignal.timeout(10000)});
+      return {status:response.status,body:await response.json()};
+    };
+    assert.equal((await page('app://evo-data-import/page/upload','/invalid')).status,404);
+    assert.equal((await page('app://evo-data-import/page/mapping','/data-import/jobs/missing/map')).status,404);
+    const invalid=await snapshot();
+    for(const name of ['counterparty','item','warehouse'])assert.ok(!invalid.includes(`dist/apps/${name}/import-target.js`),name);
+    assert.equal((await page('app://evo-data-import/page/upload','/data-import/new/counterparty.subject')).status,200);
     const committedJobs=[];
     async function importRow(code,bank){
       const bytes=Buffer.from(`code,displayName,subjectType,bank\n${code},Supplier ${code},ORGANIZATION,${bank}`);
       const stage=await execute('data-import.stage-file',{targetId:'counterparty.subject',file:{name:`${code}.csv`,mediaType:'text/csv',size:bytes.length,contentBase64:bytes.toString('base64')},parameter__relationshipMode:'SUPPLIER'},contextId);assert.equal(stage.ok,true,JSON.stringify(stage));const importJobId=stage.result.job.importJobId;
       if(code==='THIRD'){assert.equal(stage.result.mappingOrigin,'RECIPE');assert.ok(stage.result.appliedRecipeId);}
+      if(code==='FIRST'){
+        assert.equal((await page('app://evo-data-import/page/mapping',`/data-import/jobs/${importJobId}/map`)).status,200);
+        assert.equal((await page('evo-object-extension.from-import',`/object-extensions/from-import?job=${importJobId}&mode=batch`)).status,200);
+        // Even rejected business input must not assemble unrelated targets.
+        const invalidField=await execute('object-extension.definition.create-from-import',{importJobId,sourceColumn:'absent',label:'Absent',valueType:'STRING'},contextId);
+        assert.equal(invalidField.ok,false);
+        assert.equal(invalidField.error.code,'OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED');
+        const correction=await page('app://evo-data-import/page/row-correct',`/data-import/jobs/${importJobId}/fix/1/0`);
+        assert.equal(correction.status,409); // No field issue: original business gate still rejects correction.
+        assert.equal(correction.body.code,'DATA_IMPORT_CORRECTION_NOT_AVAILABLE');
+      }
       const review=await execute('data-import.review',{importJobId,map_0:'code',map_1:'displayName',map_2:'subjectType',map_3:'bank'},contextId);assert.equal(review.ok,true,JSON.stringify(review));assert.equal(review.result.job.state,'DRY_RUN_READY');
+      if(code==='FIRST')assert.equal((await page('app://evo-data-import/page/review',`/data-import/jobs/${importJobId}/review`)).status,200);
       const commit=await execute('data-import.commit',{importJobId},contextId);assert.equal(commit.ok,true,JSON.stringify(commit));assert.equal(commit.result.job.state,'COMMITTED');committedJobs.push(commit.result.job);
     }
     await importRow('FIRST','FirstBank'); // Warm each cached lazy action.

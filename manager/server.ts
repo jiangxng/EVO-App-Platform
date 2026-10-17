@@ -5143,7 +5143,7 @@ const actionRouter = createAppActionRouter(
               assertAvailable();
               const runtime = await dataImportRuntimeHost.resolve();
               const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
-              const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
+              const batchImportTargets = await resolveEffectiveDataImportTargetsV010(job.targetId);
               assertAvailable();
               const batchImportService = createDataImportServiceV010({
                 repository: runtime.repository,
@@ -7679,7 +7679,7 @@ const server = createServer(async (request, response) => {
         const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
         if (importRoute.searchParams.get("mode") === "batch") {
           const batch = await import("../apps/object-extension/batch-page.js");
-          const targets = await resolveEffectiveDataImportTargetsV010();
+          const targets = await resolveEffectiveDataImportTargetsV010(job.targetId);
           const target = targets.find(x => x.targetId === job.targetId);
           const importableTargets = (target?.describe({
             contextId: active.contextId, parameters: job.targetParameters,
@@ -7731,12 +7731,11 @@ const server = createServer(async (request, response) => {
         }
         const importRuntime = await dataImportRuntimeHost.resolve();
         const module = await import("../apps/data-import/page.js");
-        const dataImportTargets =
-          await resolveEffectiveDataImportTargetsV010();
         const locale = requestedLocale(url);
         const routeValue = url.searchParams.get("route")?.trim();
 
         if (source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE) {
+          const dataImportTargets = await resolveEffectiveDataImportTargetsV010();
           return json(
             response,
             200,
@@ -7752,6 +7751,9 @@ const server = createServer(async (request, response) => {
           const uploadIntent = parseDataImportUploadIntentV010(
             routeValue || undefined
           );
+          // An invalid route must not fall back to resolving every target.
+          const dataImportTargets = uploadIntent?.targetId
+            ? await resolveEffectiveDataImportTargetsV010(uploadIntent.targetId) : [];
           const target = dataImportTargets.find(item =>
             item.targetId === uploadIntent?.targetId
           );
@@ -7801,6 +7803,8 @@ const server = createServer(async (request, response) => {
             code: "DATA_IMPORT_JOB_NOT_FOUND"
           });
         }
+        const dataImportTargets = await resolveEffectiveDataImportTargetsV010(job.targetId);
+        importRuntime.assertAvailable();
         if (source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE) {
           const target = dataImportTargets.find(item => item.targetId === job.targetId);
           if (!target || !rowCorrection) return json(response, 404, {
