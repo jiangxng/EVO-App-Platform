@@ -126,3 +126,24 @@ test("English resume label is business-readable and requires no raw job ID", () 
   assert.equal(page.items[0].category, "To finish");
   assert.doesNotMatch(page.collectionDescription, /importJobId|STAGED|Schema/);
 });
+
+
+test("directory accepts manifest-only metadata and preserves runtime-target output", async () => {
+  const {counterpartyPackage} = await import('../../dist/apps/counterparty/package.js');
+  const contribution = counterpartyPackage.features.flatMap(x=>x.contributions ?? [])
+    .find(x=>x.kind==='platform.data-import-target').target;
+  const summary = Object.freeze({targetId:contribution.targetId,label:contribution.label});
+  const runtime = supplierTarget();
+  assert.deepEqual(summary,{targetId:runtime.targetId,label:runtime.label});
+  const guarded = new Proxy(summary,{get(target,key){
+    assert.ok(key==='targetId'||key==='label',`Directory accessed runtime property ${String(key)}`);
+    return target[key];
+  }});
+  for(const locale of ['zh-CN','en','fr']){
+    for(const jobs of [[],[job('pending','STAGED',12)],[job('done','COMMITTED',14)],
+      [job('pending','DRY_RUN_FAILED',12),job('done','COMMITTED_WITH_ERRORS',14)]]){
+      assert.deepEqual(createDataImportDirectoryPageV010({targets:[guarded],jobs,locale}),
+        createDataImportDirectoryPageV010({targets:[runtime],jobs,locale}));
+    }
+  }
+});

@@ -39,6 +39,16 @@ test('real Host: cached import actions recover after object/import re-enable and
       const response=await fetch(`http://127.0.0.1:${sample.port}/v1/experience-pages?${query}`,{headers:{'x-evo-context-id':contextId},signal:AbortSignal.timeout(10000)});
       return {status:response.status,body:await response.json()};
     };
+    const directorySource='app://evo-data-import/page/directory';
+    const initialDirectory=await page(directorySource,'/data-import');
+    assert.equal(initialDirectory.status,200);
+    assert.deepEqual(initialDirectory.body.actions.filter(x=>x.id.startsWith('import:')).map(x=>x.id),['import:counterparty.subject','import:item.subject','import:warehouse.location']);
+    assert.equal((await call('/v1/disable',{packageId:'evo-item'})).status,200);
+    const reducedDirectory=await page(directorySource,'/data-import');
+    assert.ok(!reducedDirectory.body.actions.some(x=>x.id==='import:item.subject'));
+    assert.equal((await call('/v1/enable',{packageId:'evo-item'})).status,200);
+    const restoredDirectory=await page(directorySource,'/data-import');
+    assert.deepEqual(restoredDirectory.body,initialDirectory.body);
     assert.equal((await page('app://evo-data-import/page/upload','/invalid')).status,404);
     assert.equal((await page('app://evo-data-import/page/mapping','/data-import/jobs/missing/map')).status,404);
     const invalid=await snapshot();
@@ -50,6 +60,8 @@ test('real Host: cached import actions recover after object/import re-enable and
       const stage=await execute('data-import.stage-file',{targetId:'counterparty.subject',file:{name:`${code}.csv`,mediaType:'text/csv',size:bytes.length,contentBase64:bytes.toString('base64')},parameter__relationshipMode:'SUPPLIER'},contextId);assert.equal(stage.ok,true,JSON.stringify(stage));const importJobId=stage.result.job.importJobId;
       if(code==='THIRD'){assert.equal(stage.result.mappingOrigin,'RECIPE');assert.ok(stage.result.appliedRecipeId);}
       if(code==='FIRST'){
+        const resume=await page(directorySource,'/data-import');
+        assert.equal(resume.body.actions.find(x=>x.id==='resume-import').route,`/data-import/jobs/${importJobId}/map`);
         assert.equal((await page('app://evo-data-import/page/mapping',`/data-import/jobs/${importJobId}/map`)).status,200);
         assert.equal((await page('evo-object-extension.from-import',`/object-extensions/from-import?job=${importJobId}&mode=batch`)).status,200);
         // Even rejected business input must not assemble unrelated targets.
@@ -72,6 +84,9 @@ test('real Host: cached import actions recover after object/import re-enable and
     assert.equal((await call('/v1/disable',{packageId:'evo-object-extension'})).status,200);
     assert.equal((await execute(OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,{definition},contextId)).ok,false);
     assert.equal((await call('/v1/disable',{packageId:'evo-counterparty'})).status,200);
+    const stoppedDirectory=await page(directorySource,'/data-import');
+    assert.ok(!stoppedDirectory.body.actions.some(x=>x.id==='import:counterparty.subject'));
+    assert.ok(stoppedDirectory.body.items.some(x=>x.id==='job:'+committedJobs[0].importJobId));
     const stoppedReceipt=await execute('data-import.get',{importJobId:committedJobs[0].importJobId},contextId);
     assert.equal(stoppedReceipt.ok,true,JSON.stringify(stoppedReceipt));
     assert.deepEqual(stoppedReceipt.result.job.receipt,committedJobs[0].receipt);
