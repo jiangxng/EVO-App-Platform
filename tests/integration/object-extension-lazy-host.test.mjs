@@ -10,7 +10,7 @@ import { createCounterpartyRepositoryV010 } from '../../dist/apps/counterparty/r
 import { createObjectExtensionValueRepositoryV010 } from '../../dist/apps/object-extension/values.js';
 import { OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010 } from '../../dist/apps/object-extension/constants.js';
 
-test('real Host: cached import actions recover after object re-enable while management remains disabled', {timeout:45000}, async()=>{
+test('real Host: cached import actions recover after object/import re-enable and preserve jobs/recipes', {timeout:45000}, async()=>{
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),'extension-lazy-host-'));
   const resourceFile=path.join(directory,'resources.json');
   const profile=createPersonalAgentExperienceProfileV010({PATH:process.env.PATH,PORT:'0',NODE_ENV:'test',APP_PLATFORM_STATE_FILE:path.join(directory,'state.json'),APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE:path.join(directory,'governance.json'),APP_PLATFORM_ENTERPRISE_RESOURCES_FILE:resourceFile,APP_PLATFORM_MANAGED_SESSION_ENABLED:'false',APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED:'false',APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED:'false'});
@@ -27,11 +27,13 @@ test('real Host: cached import actions recover after object re-enable while mana
     for(const packageId of ['evo-counterparty','evo-data-import','evo-object-extension'])assert.equal((await call('/v1/install',{packageId})).status,200);
     const definition={contractVersion:'0.1.0',extensionId:'enterprise.test.bank',targetObjectType:'counterparty.subject',targetSlot:'counterparty.identity',namespace:'enterprise.test',fieldId:'bank',semanticType:'bank',valueType:'STRING',label:{default:'Bank'},required:false,order:1,surfaces:['DETAIL','IMPORT'],importable:true,exportable:true,agentReadable:false,agentWritable:false};
     assert.equal((await execute(OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,{definition},contextId)).ok,true);
+    const committedJobs=[];
     async function importRow(code,bank){
       const bytes=Buffer.from(`code,displayName,subjectType,bank\n${code},Supplier ${code},ORGANIZATION,${bank}`);
       const stage=await execute('data-import.stage-file',{targetId:'counterparty.subject',file:{name:`${code}.csv`,mediaType:'text/csv',size:bytes.length,contentBase64:bytes.toString('base64')},parameter__relationshipMode:'SUPPLIER'},contextId);assert.equal(stage.ok,true,JSON.stringify(stage));const importJobId=stage.result.job.importJobId;
+      if(code==='THIRD'){assert.equal(stage.result.mappingOrigin,'RECIPE');assert.ok(stage.result.appliedRecipeId);}
       const review=await execute('data-import.review',{importJobId,map_0:'code',map_1:'displayName',map_2:'subjectType',map_3:'bank'},contextId);assert.equal(review.ok,true,JSON.stringify(review));assert.equal(review.result.job.state,'DRY_RUN_READY');
-      const commit=await execute('data-import.commit',{importJobId},contextId);assert.equal(commit.ok,true,JSON.stringify(commit));assert.equal(commit.result.job.state,'COMMITTED');
+      const commit=await execute('data-import.commit',{importJobId},contextId);assert.equal(commit.ok,true,JSON.stringify(commit));assert.equal(commit.result.job.state,'COMMITTED');committedJobs.push(commit.result.job);
     }
     await importRow('FIRST','FirstBank'); // Warm each cached lazy action.
     assert.equal((await call('/v1/disable',{packageId:'evo-object-extension'})).status,200);
@@ -39,9 +41,14 @@ test('real Host: cached import actions recover after object re-enable while mana
     assert.equal((await call('/v1/disable',{packageId:'evo-counterparty'})).status,200);
     assert.equal((await call('/v1/enable',{packageId:'evo-counterparty'})).status,200);
     await importRow('SECOND','SecondBank');
+    assert.equal((await call('/v1/disable',{packageId:'evo-data-import'})).status,200);
+    const disabled=await execute('data-import.get',{importJobId:committedJobs[0].importJobId},contextId);assert.equal(disabled.ok,false);
+    assert.equal((await call('/v1/enable',{packageId:'evo-data-import'})).status,200);
+    const restored=await execute('data-import.get',{importJobId:committedJobs[0].importJobId},contextId);assert.equal(restored.ok,true,JSON.stringify(restored));assert.deepEqual(restored.result.job.receipt,committedJobs[0].receipt);
+    await importRow('THIRD','ThirdBank');
     child.kill('SIGTERM');timer=setTimeout(()=>child.kill('SIGKILL'),7000);assert.equal(await exited,0);assert.equal(stderr,'');clearTimeout(timer);
-    const resources=createFileEnterpriseResourceRepositoryV010(resourceFile);const subjects=createCounterpartyRepositoryV010(resources).list(contextId);assert.equal(subjects.length,2);
+    const resources=createFileEnterpriseResourceRepositoryV010(resourceFile);const subjects=createCounterpartyRepositoryV010(resources).list(contextId);assert.equal(subjects.length,3);
     const values=createObjectExtensionValueRepositoryV010(resources);
-    for(const [code,bank] of [['FIRST','FirstBank'],['SECOND','SecondBank']]){const subject=subjects.find(x=>x.code===code);assert.ok(subject);assert.equal(values.listForObject({contextId,objectType:'counterparty.subject',objectId:subject.counterpartyId})[0].values.bank,bank);}
+    for(const [code,bank] of [['FIRST','FirstBank'],['SECOND','SecondBank'],['THIRD','ThirdBank']]){const subject=subjects.find(x=>x.code===code);assert.ok(subject);assert.equal(values.listForObject({contextId,objectType:'counterparty.subject',objectId:subject.counterpartyId})[0].values.bank,bank);}
   }finally{clearTimeout(timer);if(child.exitCode===null&&child.signalCode===null){child.kill('SIGKILL');await exited;}fs.rmSync(directory,{recursive:true,force:true});}
 });

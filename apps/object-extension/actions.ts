@@ -125,6 +125,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
     contextId: string
   ): boolean;
   now?: () => Date;
+  resolveImportJobReader?(): Promise<(contextId: string, jobId: string) => DataImportJobV010 | undefined>;
   getImportJob?(contextId: string, jobId: string): DataImportJobV010 | undefined;
   /** Resolve per authorized import request; never during ordinary definition CRUD. */
   resolveImportServices?(job: DataImportJobV010): Promise<ObjectExtensionImportServicesV010>;
@@ -258,7 +259,10 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         const active = activeEnterpriseContext(context);
         ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const jobId = required(request.values.importJobId,"OBJECT_EXTENSION_IMPORT_JOB_REQUIRED");
-        let job = input.getImportJob?.(active.contextId,jobId);
+        const getImportJob = input.resolveImportJobReader
+          ? await input.resolveImportJobReader() : input.getImportJob;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        let job = getImportJob?.(active.contextId,jobId);
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
@@ -270,7 +274,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         importServices.assertAvailable?.();
         // Loading yields: never apply a stale job snapshot after another request changed it.
-        job = input.getImportJob?.(active.contextId,jobId);
+        job = getImportJob?.(active.contextId,jobId);
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
@@ -285,7 +289,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
             recordedAt: now().toISOString(),
             values: request.values,
             importableTargets: importServices.getImportableTargets?.(active.contextId,job),
-            getCurrentJob: () => input.getImportJob?.(active.contextId,jobId),
+            getCurrentJob: () => getImportJob?.(active.contextId,jobId),
             applyMapping: importServices.applyImportMapping
           });
           return {
@@ -303,7 +307,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         if (!["STRING","NUMBER","BOOLEAN","DATE"].includes(valueType)) {
           throw new Error("OBJECT_EXTENSION_TYPE_INVALID");
         }
-        if (!importServices.applyImportMapping || !input.getImportJob) {
+        if (!importServices.applyImportMapping || !getImportJob) {
           // A field cannot be advertised as created-and-mapped if the
           // authoritative import owner is unavailable.
           throw new Error("OBJECT_EXTENSION_IMPORT_MAPPING_SERVICE_REQUIRED");
@@ -366,7 +370,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         }
         // Re-read the authoritative job after the definition write. A retry
         // must reuse the deterministic field rather than duplicating it.
-        const latest = input.getImportJob(active.contextId,jobId);
+        const latest = getImportJob(active.contextId,jobId);
         if (!latest || latest.targetId !== job.targetId
           || latest.source.headers.length !== job.source.headers.length
           || latest.source.headers.some((item,index) =>
