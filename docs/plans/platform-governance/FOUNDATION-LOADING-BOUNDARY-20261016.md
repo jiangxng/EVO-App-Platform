@@ -186,3 +186,46 @@ Object Extension 与之不同：定义管理入口和对象既有值的读取不
 阅读：本批完整复核整体理解规则、按需装载权威、本文；复用此前完整阅读的资源容器/基础对象权威和开发交付规则。定向读取 server 所有职责消费者、职责 repository/actions、三个真实对象 manifest 和 manager 依赖阻断实现；未声称重读整个 server 或 Agent 实现。无新增外部网络研究。
 
 A01 仍部分完成，固定 7 项仍为 4 闭环、3 部分完成。下一步核对 Object Extension 的管理与对象读取依赖，再推进其按需构造；Data Import、归档和记忆调度缺口保持原归属。
+
+## 10. 对象扩展：管理生命周期与业务数据访问合同
+
+日期：2026-10-17（香港）。基线 main `ee73be8d8d4e1beb8986d326bd2133d244670f41`（#1000）。本批完成边界核对、消费者接口收窄和可执行兼容回归；**未迁移扩展仓库启动构造，不申报装载/性能收益**。
+
+### 代码事实及架构判断
+
+1. 三个对象 manifest 要求 Responsibility，但不要求 Object Extension 管理 Feature。扩展管理停用或卸载并不会通过现有 dependency manager 停掉这些对象。
+2. `manager/server.ts` 仍提前创建定义和值两个 adapter。Counterparty 页面读取定义和值；Item/Warehouse 投影读取值；Counterparty/Item import target 读取定义并写入已有字段值。**不只是“只读共享数据”问题，也有已有 schema 下的业务值写入。**
+3. 当前 target 没有创建/归档定义的需要，却要求完整的 `ObjectExtensionRepositoryV010`；两个投影只读值，却要求含 save/saveMany/archive 的完整仓库。它们还从其他应用的实现文件导入类型。这是不必要的接口耦合，不等于已发生越权利用。
+4. 资源容器权威 §5/7/11 将语义 owner、授权访问和管理插件安装/卸载分开；基础对象权威 §8/9/19 要求扩展语义仍由 Object Extension 所有，跨应用按公共合同组合。由此决定：保留独立扩展管理应用，不强制所有对象依赖其管理入口，不把停用管理解释为清除数据或全面停止已有对象业务。**这是本项目的兼容决定，不是授权所有插件任意读写扩展 namespace。**
+
+### 操作和生命周期矩阵
+
+| 操作 | 当前入口/责任 | 后续装载与停止条件 |
+|---|---|---|
+| 创建、修改、归档字段定义 | Object Extension action；企业上下文及管理权限，Host Feature/Capability gate | 管理 Feature 有效且请求授权后创建管理 adapter；停用拒绝新管理操作 |
+| 业务 schema 读取既有定义 | Counterparty/Item target、对象详情 | 按有效消费者及其上下文/权限获取只读合同；不因管理入口停用隐藏已有字段 |
+| 读取已有扩展值 | Counterparty 页面、Item/Warehouse projection | 消费者有效、对象/字段授权仍有效；消费者停止不得影响其他消费者，保留数据 |
+| 导入写入已有定义的值 | 原 Data Import action + 有效对象 target + 原校验/事务 | 资格属于原导入/业务入口，不给它字段定义 save/archive；不因管理停用自动删除原 mapping 或改写 schema |
+| 卸载扩展管理 | lifecycle manager | 定义/值保留；重新安装继续附着原企业资源，删除必须另走显式数据治理 |
+| Agent PostgreSQL opt-in owner | Agent/PA05 原 owner | 独立权威冲突、授权和 SQL gate 不变；本批不替其认证 |
+
+表中“后续装载”是下一代码批次的验收要求，不代表所有入口已迁移或现场验证。对象自身停用、导入入口权限撤销及在途 WRITE 继续遵循原 owner 合同，不能用本批类型接口替代运行时权限检查。
+
+### 已实现的最小修正
+
+- 在已有公共合同 `contracts/foundation-object/extension.ts`、`extension-value.ts` 中增加 definition reader 和 value reader；不另建通用框架、Provider 或存储。
+- 原定义仓库和值仓库继承相应 reader，完整管理/写值 API 保持兼容，读方法签名单一来源。
+- Counterparty/Item import target 改为依赖公共 definition reader；Item/Warehouse projection 改为依赖公共 value reader。业务算法、事务、UI、Host 启动、namespace 均未改。
+- **接口收窄是编译期依赖约束，不是 JavaScript 沙箱或撤销原对象上的方法。** Host 当前仍可注入原完整仓库；下一批运行时装配应只交付所需接口。不得以此声称已经隔离恶意插件。
+
+### 选择与排除
+
+采用“定义管理、定义读取、业务值访问分别约束”的方案，因为当前已有真实跨对象消费者与稳定数据，无需另造产品。排除：直接复用职责的单一 Feature 关闭开关（会破坏已有字段读写）；给每个对象强制依赖管理插件（改变安装/停用语义）；各对象各建存储（破坏企业权威）；全量搬迁并顺手改 BEX 草稿（与开放 #999 重叠且扩大范围）。未来若需要禁止一切扩展业务，应另有明确的数据访问政策，不能借装载重构悄悄实现。
+
+### 验证、读取和接续
+
+新增 `tests/protocol/object-extension-consumer-boundary.test.mjs`，两个真实生命周期组合（停用、卸载）验证：Item 保持有效；管理 action 被真实 router 拒绝；target 只拿 list/get 的对象仍能描述 schema 并完成已有字段导入；定义资源完全不变；值按企业隔离；恢复管理后仍需管理权限，原值保持。复用真实 manager、仓库、target 和 Data Import service；只为通用资源/目录 provider 使用夹具。**这是组件组合回归，不是实际 Host HTTP、浏览器、生产权限或真实客户导入验收。** 测试进入既有 Lightweight Host CI，原跨对象导入/投影/权限测试继续执行。最终数量与 CI/提交见本 PR。
+
+已完整复核基础对象权威；资源容器权威沿用第6节既有完整读取记录，本批重点复核 §5–11；定向读取 server 全部扩展实例消费者、两个 import target、两个 projection service、扩展 repository/values/actions 与三个 package manifest。规则与装载权威复用此前完整读取；没有把搜索命中当作全仓阅读。未新增外部网页研究。未触及 #999 的 BEX 页面/草稿/Job 模型、Agent 状态或生产部署。
+
+下一批实施：管理入口按 active Feature/授权懒加载；消费者按自己的有效运行时取得只读定义或值访问接口，复用原资源容器；先验证加载失败、停用竞态、共享消费者独立停止和恢复，再去掉 Host 提前构造并添加冷启动禁入断言。当前静态债务仍为 277 条，不以本批合同整理减少数量。A01 仍部分完成，固定 7 项仍 4 闭环、3 部分完成。

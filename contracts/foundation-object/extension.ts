@@ -162,3 +162,9 @@ export function assertObjectExtensionDefinitionV010(
     agentWritable: Boolean(value.agentWritable)
   };
 }
+
+/** Consumer read contract; definition mutation belongs to the management capability. */
+export interface ObjectExtensionDefinitionReaderV010 {
+  list(contextId: string, targetObjectType?: string): ObjectExtensionDefinitionV010[];
+  get(contextId: string, extensionId: string): ObjectExtensionDefinitionV010 | undefined;
+}

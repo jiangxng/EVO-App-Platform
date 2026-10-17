@@ -84,3 +84,19 @@ export function assertObjectExtensionValueSetV010(
       : {})
   };
 }
+
+/** Read model input, not an authorization grant or a value writer. */
+export interface ObjectExtensionValueReaderV010 {
+  get(input: {
+    contextId: string;
+    objectType: string;
+    objectId: string;
+    slot: string;
+    namespace: string;
+  }): ObjectExtensionValueSetV010 | undefined;
+  listForObject(input: {
+    contextId: string;
+    objectType: string;
+    objectId: string;
+  }): ObjectExtensionValueSetV010[];
+}
