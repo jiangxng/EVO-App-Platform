@@ -2382,7 +2382,7 @@ const dataImportTargetPromises = new Map<
   Promise<FoundationObjectImportTargetV010>
 >();
 
-async function resolveEffectiveDataImportTargetsV010(targetId?: string):
+async function resolveEffectiveDataImportTargetsV010(targetId: string):
 Promise<FoundationObjectImportTargetV010[]> {
   const contributions = manager.listEffectiveDataImportTargets();
   const activeRefs = new Set(
@@ -2392,8 +2392,7 @@ Promise<FoundationObjectImportTargetV010[]> {
     if (!activeRefs.has(ref)) dataImportTargetPromises.delete(ref);
   }
 
-  const selected = targetId === undefined ? contributions
-    : contributions.filter(contribution => contribution.targetId === targetId);
+  const selected = contributions.filter(contribution => contribution.targetId === targetId);
   const targets = await Promise.all(selected.map(contribution => {
     const ref = contribution.binding.ref;
     let pending = dataImportTargetPromises.get(ref);
@@ -7735,7 +7734,7 @@ const server = createServer(async (request, response) => {
         const routeValue = url.searchParams.get("route")?.trim();
 
         if (source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE) {
-          const dataImportTargets = await resolveEffectiveDataImportTargetsV010();
+          const dataImportTargets = manager.listEffectiveDataImportTargets();
           return json(
             response,
             200,

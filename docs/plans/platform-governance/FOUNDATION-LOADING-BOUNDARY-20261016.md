@@ -379,3 +379,30 @@ Host 原 resolver 增加可选 targetId，在启动目标工厂前筛选有效�
 复用第13节已完整读取的装载架构、项目规则和前批资源权威；本批核对目标resolver、全部页面及扩展编排消费者、路由解析、原扩展action等待与Job重读逻辑、目录实际字段消费，并读取UI必检规则确认本批只改后台装配，无新增视觉方案。未新增外网研究，未声称重读整个Host或Agent。
 
 固定7项仍4闭环、3部分完成。目标过度解析现收敛到导入目录的轻量合同与贡献接入；A01全量资源归档、记忆调度归属仍未完成。下一批先解决目录，并以真实Host打开目录不加载业务target及显示/历史恢复等价为验收，保持BEX owner边界。
+
+
+## 15. 实施增量：导入目录使用轻量清单，结束全量目标解析
+
+日期：2026-10-17（香港）。基线main `bdaa36b62bcf26d6d6d0e43ac5c64aa15dcff770`（#1005）。本批完成第13–14节剩余的导入目录债务，A01整体仍部分完成。
+
+### 核实与决定
+
+目录只读取targetId/label，原完整target合同却迫使Host先创建全部对象工厂。现有 `manager.listEffectiveDataImportTargets()` 已有相同ID、名称/中文翻译、排序及有效性过滤。逐一核对Counterparty/Item/Warehouse清单与工厂名称相同，不发明Host别名表。
+
+在原公开import合同增加 `FoundationObjectImportTargetSummaryV010`（对原target的targetId/label做Pick），目录参数使用该摘要；旧完整target仍结构兼容。Host目录直接使用原有效贡献。目录渲染函数体不变，无假describe/commit方法，无第二套清单/加载器。
+
+原运行时resolver的targetId现在必填，删除undefined代表“加载全部”的分支。全部5个实际调用点都传入已经核实的请求/Job目标；编译能阻止未来无参调用。清单发现不是执行授权，原实际导入有效性、权限、缓存失败重试及生命周期保留。目录不再触发目标工厂，后续首次使用仍通过原runtime；原其他有效缓存不被误删，无新连接/任务/存储。
+
+### 验证、UI与资源边界
+
+本地build与22项定向测试PASS，静态启动边仍269、无新增无扩基线。
+
+- `tests/protocol/bex01-in-context-resume.test.mjs` 新增manifest-only摘要与真实Counterparty目标的完整目录等价测试：中文/英文/未知locale，空/待映射/失败/已提交/部分提交组合；Proxy拒绝访问targetId/label之外的运行时属性。旧未完成优先、二十条历史限制、不可用目标不安全恢复等回归保留。此文件加入既有Lightweight CI。
+- `tests/integration/object-extension-lazy-host.test.mjs` 真实隔离Host先打开三目标目录，停用Item后入口消失，启用后整个目录恢复一致；之后采集ESM清单仍无Counterparty/Item/Warehouse的import-target模块。暂存供应商Job后目录能继续映射，停用对象后历史仍在、入口消失；原三批导入/回执/Recipe/重开持久化测试保持。
+- UI审核：`docs/ui-design-reviews/governance-import-directory-metadata-20261017.md`。Eidos总纲、检查表、导航、交互、视觉与移动原文已完整读取，具体路径/blob/日期见该记录；无新增外部网站研究。只改page参数类型，保留原schema/交互/视觉，不接管BEX #999。
+
+不以请求路径改善宣称冷启动模块数下降，也不声称全部页面实现未装载：目录自身page与Job访问仍按需执行。真实Host测试使用临时文件、开发身份和出站阻断，未部署、未做人工生产验收。最终head/CI/合并及过程分支清理见本PR。
+
+### 闭环与下一步
+
+此处关闭的是“导入目标全量解析”子问题：命令、上传/作业页、扩展编排按单目标，目录只发现元数据。固定7项仍4闭环3部分完成；A01仍有全量资源归档和记忆调度归属。下一批先核对全量资源归档的触发、实际成本与旧版本页面兼容，确定最小整改；不为减少文件数破坏已打开页面，也不另起Provider试点。记忆调度涉及Host/Agent owner，仍须保留明确归属与协调边界。
