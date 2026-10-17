@@ -5196,41 +5196,49 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/data-import/actions.js");
-          const dataImportTargets =
-            await resolveEffectiveDataImportTargetsV010();
-          const dataImportService = createDataImportServiceV010({
-            repository: dataImportRepository,
-            recipeRepository: dataImportRecipeRepository,
-            targets: dataImportTargets
-          });
-          const handlers = module.createDataImportActionHandlersV010({
-            service: dataImportService,
-            repository: dataImportRepository,
-            targets: dataImportTargets,
-            ...(dataImportExperienceAdvisor
-              ? { experienceAdvisor: dataImportExperienceAdvisor }
-              : {}),
-            canManageEnterpriseContext(principal, contextId) {
-              return (
-                resolveEnterpriseContextRelationshipProvider()
-                  ?.listForPrincipal(principal) ?? []
-              ).some(item =>
-                item.contextId === contextId
-                && item.state === "ACTIVE"
-                && (item.kind === "OWNER" || item.kind === "ADMIN")
+          // Cache module discovery, not lifecycle-bound target/service instances.
+          return {
+            packageId: DATA_IMPORT_PACKAGE_ID,
+            featureId: DATA_IMPORT_FEATURE_ID,
+            commandCode,
+            async execute(request, context) {
+              const dataImportTargets =
+                await resolveEffectiveDataImportTargetsV010();
+              const dataImportService = createDataImportServiceV010({
+                repository: dataImportRepository,
+                recipeRepository: dataImportRecipeRepository,
+                targets: dataImportTargets
+              });
+              const handlers = module.createDataImportActionHandlersV010({
+                service: dataImportService,
+                repository: dataImportRepository,
+                targets: dataImportTargets,
+                ...(dataImportExperienceAdvisor
+                  ? { experienceAdvisor: dataImportExperienceAdvisor }
+                  : {}),
+                canManageEnterpriseContext(principal, contextId) {
+                  return (
+                    resolveEnterpriseContextRelationshipProvider()
+                      ?.listForPrincipal(principal) ?? []
+                  ).some(item =>
+                    item.contextId === contextId
+                    && item.state === "ACTIVE"
+                    && (item.kind === "OWNER" || item.kind === "ADMIN")
+                  );
+                },
+                idFactory() {
+                  return "import-" + randomUUID();
+                }
+              });
+              const handler = handlers.find(
+                candidate => candidate.commandCode === commandCode
               );
-            },
-            idFactory() {
-              return "import-" + randomUUID();
+              if (!handler) {
+                throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
+              }
+              return handler.execute(request, context);
             }
-          });
-          const handler = handlers.find(
-            candidate => candidate.commandCode === commandCode
-          );
-          if (!handler) {
-            throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
-          }
-          return handler;
+          };
         }
       })
     ),

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "measuredAt": "2026-10-17T00:25:59.443Z",
-  "sourceCommit": "dff66ab2c12688b722f80f78fce638e82c67c46d",
+  "measuredAt": "2026-10-17T00:28:42.237Z",
+  "sourceCommit": "126dfa25fa4a447f026677418adaead877ba368f",
   "sourceState": "working tree; file hashes identify measured source",
   "measuredFilesSha256": {
-    "manager/server.ts": "f46a33a680dcabfbf9cb3a7a169cbe7091dc6aac86816d4233f208593ecd93ef",
-    "dist/manager/server.js": "b2f39c1a4a376a48f2f62d6308ff7be439d4107c7d05766e1efcc8f97fccbc80",
+    "manager/server.ts": "f95681c39afee4bd94eb022c3432d4626f452508f6558f1453891b18ad582b7a",
+    "dist/manager/server.js": "66ed637945e6c178856c3fd9c634480a04cecc0e26a4971bdc5315d5fc6adf27",
     "tools/plugin-loading-audit.mjs": "7c3088bcfc076aa5e107d396cb94c836a76b81ac62dab8307cd99948f73bbd90",
     "tools/plugin-loading-audit-probe.mjs": "661bf79c21108d9fd446415627245b783c8f1af2277deb4ca71cdac174d3f599",
     "tools/plugin-loading-audit-loader.mjs": "813742f85b7ee9e6bb032bb41120aa8bd0501cb69737ba67f74f5646dd21b764",
@@ -392,7 +392,7 @@
     {
       "profile": "minimal-uninstalled",
       "kind": "host-baseline",
-      "idleWindowMs": 501.1536269999999,
+      "idleWindowMs": 501.1263409999999,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -452,7 +452,7 @@
       ],
       "archivedAssets": {
         "files": 634,
-        "bytes": 6670150,
+        "bytes": 6670720,
         "areas": {
           ".ready": {
             "files": 1,
@@ -488,7 +488,7 @@
           },
           "manager": {
             "files": 183,
-            "bytes": 1912816
+            "bytes": 1913386
           },
           "providers": {
             "files": 56,
@@ -510,7 +510,7 @@
     {
       "profile": "compatible-installed-unused",
       "kind": "host-baseline",
-      "idleWindowMs": 501.2943210000001,
+      "idleWindowMs": 500.13433799999996,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -627,7 +627,7 @@
       ],
       "archivedAssets": {
         "files": 634,
-        "bytes": 6670150,
+        "bytes": 6670720,
         "areas": {
           ".ready": {
             "files": 1,
@@ -663,7 +663,7 @@
           },
           "manager": {
             "files": 183,
-            "bytes": 1912816
+            "bytes": 1913386
           },
           "providers": {
             "files": 56,
@@ -685,7 +685,7 @@
     {
       "profile": "compatible-disabled-restart",
       "kind": "host-baseline",
-      "idleWindowMs": 500.52106399999997,
+      "idleWindowMs": 500.393271,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -766,7 +766,7 @@
       ],
       "archivedAssets": {
         "files": 634,
-        "bytes": 6670150,
+        "bytes": 6670720,
         "areas": {
           ".ready": {
             "files": 1,
@@ -802,7 +802,7 @@
           },
           "manager": {
             "files": 183,
-            "bytes": 1912816
+            "bytes": 1913386
           },
           "providers": {
             "files": 56,
@@ -833,7 +833,7 @@
     {
       "profile": "minimal-scheduler-configured",
       "kind": "host-baseline",
-      "idleWindowMs": 501.11331300000006,
+      "idleWindowMs": 501.206771,
       "activeResources": {
         "PipeWrap": 2,
         "TCPServerWrap": 1,
@@ -899,7 +899,7 @@
       ],
       "archivedAssets": {
         "files": 634,
-        "bytes": 6670150,
+        "bytes": 6670720,
         "areas": {
           ".ready": {
             "files": 1,
@@ -935,7 +935,7 @@
           },
           "manager": {
             "files": 183,
-            "bytes": 1912816
+            "bytes": 1913386
           },
           "providers": {
             "files": 56,

@@ -252,9 +252,13 @@ adapter 无连接、任务、订阅和用户权限缓存；停止释放 lease �
 
 ### 证据与CI
 
-`tests/protocol/object-extension-runtime-lazy.test.mjs` 新增9项行为测试：定义/值未用零构造与并发共享；reader 实际无写方法；管理/多个消费者独立停止且共享数据；迟到构造拒绝、失败重试；文件重启与旧写引用永久失效；授权前零管理仓库构造、等待期间撤权零写入；CRUD 与 import-create/mapping 保持；import services 等待中停用拒绝旧接口写入。使用真实仓库/资源/router，状态及加载等待为受控依赖，不冒充真实 Host HTTP。与原消费者生命周期、跨对象导入/回滚/投影/权限等合计57项本地回归通过。
+`tests/protocol/object-extension-runtime-lazy.test.mjs` 新增9项行为测试：定义/值未用零构造与并发共享；reader 实际无写方法；管理/多个消费者独立停止且共享数据；迟到构造拒绝、失败重试；文件重启与旧写引用永久失效；授权前零管理仓库构造、等待期间撤权零写入；CRUD 与 import-create/mapping 保持；import services 等待中停用拒绝旧接口写入。使用真实仓库/资源/router，状态及加载等待为受控依赖，不冒充真实 Host HTTP。与原消费者生命周期、跨对象导入/回滚/投影/权限等合计57项组件回归通过。另新增下述1项真实Host HTTP回归，本批合计58项。
 
-静态启动边由277减至275，无新增/扩基线。`tools/plugin-loading-audit.mjs` 在原四组合审计增加 Object Extension repository/values 的冷启动禁止断言，原账本/Counterparty/职责断言保持。新9项加入既有 Lightweight Host CI。
+静态启动边由277减至275，无新增/扩基线。`tools/plugin-loading-audit.mjs` 在原四组合审计增加 Object Extension repository/values 的冷启动禁止断言，原账本/Counterparty/职责断言保持。新9项及下述真实Host回归加入既有 Lightweight Host CI。
+
+兼容复核发现：Data Import 的 lazy handler 原先在首次装载时捕获 targets/service，scope 停止后这些旧接口会永久失效。现将轻量 service/handlers 的装配移到每次请求，模块发现仍缓存，target factory 仍复用既有按ref缓存；不新建导入引擎。对象恢复后重新取得当前目标，保留原 Job/Recipe 和提交算法。未用此修正宣称已解决“所有有效目标同时解析”的过度装配。
+
+`tests/integration/object-extension-lazy-host.test.mjs` 在独立临时文件、专用开发身份/授权配置、动态loopback端口和阻断出站探针下启动真实Host。通过HTTP创建企业上下文、字段、上传/审核/提交首批数据，关闭字段管理，再停用/恢复Counterparty，以同一组已缓存action上传/审核/提交第二批。验证管理命令拒绝、恢复后导入成功、正常退出后原文件中两批对象/扩展值齐全。没有使用生产账号/数据或放宽生产策略；这项HTTP证明不等于生产部署/人工验收或所有Item/Warehouse路径已实测。
 
 原始冷启动证据：[extension-lazy-audit-20261017.json](evidence/extension-lazy-audit-20261017.json)，含源码哈希与环境。四组合均为351个dist ESM模块、634个归档文件，捕获出站0、退出0，定时器仍为0/0/0/1；不是生产性能结论，也未证明整个安装组合成本已随包数变化。最终head、CI与合并状态由本PR记录，未部署。
 
