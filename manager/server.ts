@@ -9874,8 +9874,13 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`EVO App Manager shutting down (${signal})`);
   evoRuntimeRevisionBridge?.dispose();
   if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
-  contextMemorySchedulerLease.release();
   let shutdownFailed = false;
+  try {
+    await contextMemoryScheduler.stop();
+  } catch (error) {
+    shutdownFailed = true;
+    console.error("Context Memory scheduler shutdown incomplete", error);
+  }
   try {
     await bottleneckRuntime.stop();
     await counterpartyRuntimeHost.stop();

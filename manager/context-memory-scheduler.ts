@@ -145,14 +145,15 @@ export function createContextMemorySchedulerV010(
   const now = dependencies.now ?? (() => new Date());
   const id = dependencies.id ?? randomUUID;
   let running = false;
+  let stopped = false;
+  let pending: Promise<{ acquired: boolean; governanceRuns: number; intakeRuns: number }> | undefined;
 
-  return {
-    async tick(): Promise<{
+  async function tick(): Promise<{
       acquired: boolean;
       governanceRuns: number;
       intakeRuns: number;
     }> {
-      if (running) {
+      if (running || stopped) {
         return { acquired: false, governanceRuns: 0, intakeRuns: 0 };
       }
       const acquiredAt = now();
@@ -164,13 +165,15 @@ export function createContextMemorySchedulerV010(
       let intakeRuns = 0;
       try {
         for (const context of uniqueContexts(dependencies.listGovernanceContexts())) {
+          if (stopped) break;
           dependencies.operations.runRetention(context);
           await dependencies.operations.runDlp(context);
           governanceRuns++;
         }
 
-        if (dependencies.runSourceIntake) {
+        if (!stopped && dependencies.runSourceIntake) {
           for (const context of uniqueContexts(dependencies.listIntakeContexts?.() ?? [])) {
+            if (stopped) break;
             const started = now();
             const operationId = `memory-operation:intake:${id()}`;
             try {
@@ -211,6 +214,34 @@ export function createContextMemorySchedulerV010(
       } finally {
         running = false;
         dependencies.lease.release();
+      }
+  }
+  return {
+    tick() {
+      if (stopped || pending) {
+        return Promise.resolve({ acquired: false, governanceRuns: 0, intakeRuns: 0 });
+      }
+      pending = tick().finally(() => { pending = undefined; });
+      return pending;
+    },
+    /** Stop admission, drain the current operation, and keep its lease until it settles. */
+    async stop(timeoutMs = 5000): Promise<void> {
+      if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+        throw new Error("CONTEXT_MEMORY_SCHEDULER_STOP_TIMEOUT_INVALID");
+      }
+      stopped = true;
+      const active = pending;
+      if (!active) return;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          active,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error("CONTEXT_MEMORY_SCHEDULER_STOP_TIMEOUT")), timeoutMs);
+          })
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
       }
     }
   };
