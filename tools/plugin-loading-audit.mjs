@@ -69,6 +69,11 @@ async function sample(name, directory, profile, extra = {}) {
     if (report.loadedModules.includes('dist/apps/responsibility/repository.js')) {
       throw new Error('RESPONSIBILITY_RUNTIME_EAGER');
     }
+    for (const module of ['repository', 'values']) {
+      if (report.loadedModules.includes(`dist/apps/object-extension/${module}.js`)) {
+        throw new Error('OBJECT_EXTENSION_RUNTIME_EAGER: ' + module);
+      }
+    }
     // Hook instrumentation makes these unsuitable for performance comparisons.
     const { port, readyMs, memoryBytes, idleCpuMicros, ...observations } = report;
     return { profile: name, ...observations, installedPackages: lifecycle.installedPackages.map(p => p.packageId).sort(),
@@ -115,6 +120,8 @@ const report = {
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
     'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
     'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
+    'manager/object-extension-runtime.ts', 'apps/object-extension/actions.ts',
+    'apps/object-extension/repository.ts', 'apps/object-extension/values.ts',
     'manager/responsibility-runtime.ts', 'apps/responsibility/actions.ts',
     'apps/responsibility/repository.ts',
     'manager/counterparty-runtime.ts', 'apps/counterparty/runtime.ts',

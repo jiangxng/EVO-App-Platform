@@ -117,8 +117,9 @@ export interface ObjectExtensionImportServicesV010 {
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
 }
 
-export function createObjectExtensionActionHandlersV010(input: {
-  repository: ObjectExtensionRepositoryV010;
+export function createObjectExtensionActionHandlersV010(input: ({ repository: ObjectExtensionRepositoryV010 } | {
+  resolveRepository(): Promise<ObjectExtensionRepositoryV010>;
+}) & {
   canManageEnterpriseContext(
     principal: PlatformPrincipalV010,
     contextId: string
@@ -149,8 +150,10 @@ export function createObjectExtensionActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const targetObjectType = text(request.values.targetObjectType);
-        const definitions = input.repository.list(
+        const definitions = repository.list(
           active.contextId,
           targetObjectType
         );
@@ -182,7 +185,9 @@ export function createObjectExtensionActionHandlersV010(input: {
           input.canManageEnterpriseContext
         );
         const definition = definitionFromJson(request.values.definition);
-        const saved = input.repository.save({
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        const saved = repository.save({
           contextId: active.contextId,
           definition,
           actorSubjectId: context.principal.subjectId,
@@ -219,7 +224,9 @@ export function createObjectExtensionActionHandlersV010(input: {
           request.values.extensionId,
           "OBJECT_EXTENSION_ID_REQUIRED"
         );
-        input.repository.archive({
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        repository.archive({
           contextId: active.contextId,
           extensionId,
           actorSubjectId: context.principal.subjectId,
@@ -255,6 +262,8 @@ export function createObjectExtensionActionHandlersV010(input: {
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const importServices: ObjectExtensionImportServicesV010 = input.resolveImportServices
           ? await input.resolveImportServices(job)
           : input;
@@ -270,7 +279,7 @@ export function createObjectExtensionActionHandlersV010(input: {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
           const result = executeObjectExtensionBatchImportV010({
-            repository: input.repository, job,
+            repository, job,
             contextId: active.contextId,
             actorSubjectId: context.principal.subjectId,
             recordedAt: now().toISOString(),
@@ -315,7 +324,7 @@ export function createObjectExtensionActionHandlersV010(input: {
           : "counterparty.identity";
         const normalize = (value: string) => value.normalize("NFKC")
           .replace(/\\s+/gu, "").toLocaleLowerCase();
-        const definitions = input.repository.list(active.contextId, job.targetId);
+        const definitions = repository.list(active.contextId, job.targetId);
         const prior = definitions.find(item => item.fieldId === fieldId);
         const sameName = definitions.filter(item =>
           item.fieldId !== fieldId && item.targetSlot === slot
@@ -350,7 +359,7 @@ export function createObjectExtensionActionHandlersV010(input: {
             importable:true,exportable:true,
             agentReadable:false,agentWritable:false
           });
-          saved = input.repository.save({
+          saved = repository.save({
             contextId:active.contextId,definition,
             actorSubjectId:context.principal.subjectId,recordedAt
           });

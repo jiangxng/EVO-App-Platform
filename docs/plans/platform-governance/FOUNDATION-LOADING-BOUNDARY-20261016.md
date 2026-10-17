@@ -229,3 +229,43 @@ A01 仍部分完成，固定 7 项仍为 4 闭环、3 部分完成。下一步�
 已完整复核基础对象权威；资源容器权威沿用第6节既有完整读取记录，本批重点复核 §5–11；定向读取 server 全部扩展实例消费者、两个 import target、两个 projection service、扩展 repository/values/actions 与三个 package manifest。规则与装载权威复用此前完整读取；没有把搜索命中当作全仓阅读。未新增外部网页研究。未触及 #999 的 BEX 页面/草稿/Job 模型、Agent 状态或生产部署。
 
 下一批实施：管理入口按 active Feature/授权懒加载；消费者按自己的有效运行时取得只读定义或值访问接口，复用原资源容器；先验证加载失败、停用竞态、共享消费者独立停止和恢复，再去掉 Host 提前构造并添加冷启动禁入断言。当前静态债务仍为 277 条，不以本批合同整理减少数量。A01 仍部分完成，固定 7 项仍 4 闭环、3 部分完成。
+
+## 11. 实施增量：对象扩展管理与消费者分别按需装配
+
+日期：2026-10-17（香港）；基线 main `dff66ab2c12688b722f80f78fce638e82c67c46d`（#1001）。本批实现第10节确定的生命周期决定。
+
+### 所有权、触发与接口
+
+- `manager/object-extension-runtime.ts` 分别封装定义和值的按需访问，继续使用 `createLazyProviderRuntimeV010`；动态导入原工厂。定义访问不附带值仓库，值访问也不附带定义管理。
+- Host 启动只创建廉价 lease。定义有管理、Counterparty、Item 三个使用作用域；值有 Counterparty、Item、Warehouse 三个使用作用域。每个 scope 按对应 Feature 的实际使用创建 adapter。**六个 access lease 不等于六个存储实例或连接**：它们复用同一 EnterpriseResourceRepository，原 namespace/contextId/事务不变，不复制业务数据。
+- 管理 action 使用 `resolveRepository`，先验证上下文/管理资格及必要输入，再等待；等待后复核资格，旧直接注入 API 兼容。已有 import-create 在等候 import services 或 crypto 后继续原检查和算法；仓库每次方法调用还检查 scope 状态。
+- 管理页批量读取取得管理 scope 的 reader；Counterparty 页面/target 使用自己的 definition reader；详情在原对象授权成功且需要展示字段值时取得 value reader。Item/Warehouse projection 只拿 value reader；Counterparty/Item target 在原受管导入路径取得 value writer 和 definition reader。公开 reader **实际不含** save/archive/saveMany，不只是类型裁剪。
+- 只有对应合法运行路径会解析这些接口。reader/writer 仍是可信 Host 装配，不是新的远端授权 API 或恶意插件沙箱。原 Capability、企业关系、对象/字段授权仍由原 owner 执行；需要 schema/对象数据才能做 read authorization 的路径不声称“任何授权失败都零初始化”。
+
+### 并发、停止、恢复与限制
+
+同 scope 首次并发共享，加载失败清空 pending 可重试；工厂在 import 后再次检查有效/停止/代际，停用期间迟到工厂不创建 adapter。所有 list/get/save/saveMany/archive 仍同步执行，调用时检查代际；原同步 transaction 回调不引入 await。
+
+管理停用只停止管理 scope；对象停用停止自身定义/值 scope，不影响其他消费者。停止递增代际，旧引用在重新启用后也不能复活；重新解析附着原数据。Item/Warehouse 停用同步删除自身 import-target Promise 缓存，Counterparty 原缓存清理保留，避免恢复后拿到失效接口。各对象原 runtime 缓存仍按既有 owner 行为管理。
+
+adapter 无连接、任务、订阅和用户权限缓存；停止释放 lease 引用，不删除数据、不卸载 Node 模块。不声称它取消了跨进程事务/在途网络 WRITE；PA05 持久执行/冻结仍属于原 owner。Host shutdown 沿原错误处理路径调用 stop，若前序停止失败则原 shutdown 失败语义保留，不把局部正常退出测试冒充所有失败组合覆盖。
+
+### 证据与CI
+
+`tests/protocol/object-extension-runtime-lazy.test.mjs` 新增9项行为测试：定义/值未用零构造与并发共享；reader 实际无写方法；管理/多个消费者独立停止且共享数据；迟到构造拒绝、失败重试；文件重启与旧写引用永久失效；授权前零管理仓库构造、等待期间撤权零写入；CRUD 与 import-create/mapping 保持；import services 等待中停用拒绝旧接口写入。使用真实仓库/资源/router，状态及加载等待为受控依赖，不冒充真实 Host HTTP。与原消费者生命周期、跨对象导入/回滚/投影/权限等合计57项组件回归通过。另新增下述1项真实Host HTTP回归，本批合计58项。
+
+静态启动边由277减至275，无新增/扩基线。`tools/plugin-loading-audit.mjs` 在原四组合审计增加 Object Extension repository/values 的冷启动禁止断言，原账本/Counterparty/职责断言保持。新9项及下述真实Host回归加入既有 Lightweight Host CI。
+
+兼容复核发现：Data Import 的 lazy handler 原先在首次装载时捕获 targets/service，scope 停止后这些旧接口会永久失效。现将轻量 service/handlers 的装配移到每次请求，模块发现仍缓存，target factory 仍复用既有按ref缓存；不新建导入引擎。对象恢复后重新取得当前目标，保留原 Job/Recipe 和提交算法。未用此修正宣称已解决“所有有效目标同时解析”的过度装配。
+
+`tests/integration/object-extension-lazy-host.test.mjs` 在独立临时文件、专用开发身份/授权配置、动态loopback端口和阻断出站探针下启动真实Host。通过HTTP创建企业上下文、字段、上传/审核/提交首批数据，关闭字段管理，再停用/恢复Counterparty，以同一组已缓存action上传/审核/提交第二批。验证管理命令拒绝、恢复后导入成功、正常退出后原文件中两批对象/扩展值齐全。没有使用生产账号/数据或放宽生产策略；这项HTTP证明不等于生产部署/人工验收或所有Item/Warehouse路径已实测。
+
+原始冷启动证据：[extension-lazy-audit-20261017.json](evidence/extension-lazy-audit-20261017.json)，含源码哈希与环境。四组合均为351个dist ESM模块、634个归档文件，捕获出站0、退出0，定时器仍为0/0/0/1；不是生产性能结论，也未证明整个安装组合成本已随包数变化。最终head、CI与合并状态由本PR记录，未部署。
+
+本批复用第6/10节已读架构与决定；定向完整核对扩展 action 与仓库，核对 server 的全部扩展实例、页面、导入目标、生命周期和正常 shutdown 消费点。开放 #999 的 BEX 页面/草稿/Job 数据模型与 Agent owner 未接管；shared server 只改装配点，合并前仍要复核主线。无新增外部网页研究。
+
+### 尚余事项
+
+A01仍部分完成，固定7项仍4闭环、3部分完成。此批完成扩展定义/值的提前构造迁移；Data Import Job/Recipe/service 的提前构造与目标过度解析、宿主全量资源归档、记忆调度归属仍保留。下一批仅核对 Data Import 的装配与调用资格，保持原 Job/Recipe/提交回执和其他窗口的草稿实现，不另建导入引擎。
+
+本批 CI 兼容修正：最终候选首轮 PA02 Host Async READ run `38986601317` 的 `pa02-host-server-sandbox-object-owner.test.mjs:179` 预期 SUCCEEDED、实际 BLOCKED。该用例直接装配沙箱/Worker/Thread handlers，不导入本批 server glue；新Run的 createdAt/注入时间写死为2026-10-14，Worker使用真实时钟及既有72小时默认期限，2026-10-17已经跨期。只将此新Run测试夹具以测试启动时间为基准，增加失败时Run诊断；生产Worker、deadline、授权、SQL owner均未改。不通过放宽预算、跳过PG测试或重复重跑旧候选解决；新候选的实际PostgreSQL CI结果以本PR记录为准。

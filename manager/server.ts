@@ -60,6 +60,7 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createObjectExtensionDefinitionRuntimeHostV010, createObjectExtensionValueRuntimeHostV010 } from "./object-extension-runtime.js";
 import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
 import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
@@ -969,12 +970,6 @@ import {
   objectExtensionAuthorizationPolicyV010
 } from "../apps/object-extension/authorization.js";
 import {
-  createObjectExtensionRepositoryV010
-} from "../apps/object-extension/repository.js";
-import {
-  createObjectExtensionValueRepositoryV010
-} from "../apps/object-extension/values.js";
-import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
   LEDGER_MANAGER_FEATURE_ID,
@@ -1120,10 +1115,23 @@ const counterpartyRuntimeHost = createCounterpartyRuntimeHostV010({
     resolveAuthorizationProvider
   })
 });
-const objectExtensionRepository =
-  createObjectExtensionRepositoryV010(enterpriseResourceRepository);
-const objectExtensionValueRepository =
-  createObjectExtensionValueRepositoryV010(enterpriseResourceRepository);
+const extensionScope = (packageId: string, featureId: string) => ({
+  resources: enterpriseResourceRepository,
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === packageId && feature.featureId === featureId)
+});
+const extensionManagement = createObjectExtensionDefinitionRuntimeHostV010(
+  extensionScope(OBJECT_EXTENSION_PACKAGE_ID, OBJECT_EXTENSION_FEATURE_ID));
+const counterpartyExtensionDefinitions = createObjectExtensionDefinitionRuntimeHostV010(
+  extensionScope(COUNTERPARTY_PACKAGE_ID, COUNTERPARTY_FEATURE_ID));
+const counterpartyExtensionValues = createObjectExtensionValueRuntimeHostV010(
+  extensionScope(COUNTERPARTY_PACKAGE_ID, COUNTERPARTY_FEATURE_ID));
+const itemExtensionDefinitions = createObjectExtensionDefinitionRuntimeHostV010(
+  extensionScope(ITEM_PACKAGE_ID, ITEM_FEATURE_ID));
+const itemExtensionValues = createObjectExtensionValueRuntimeHostV010(
+  extensionScope(ITEM_PACKAGE_ID, ITEM_FEATURE_ID));
+const warehouseExtensionValues = createObjectExtensionValueRuntimeHostV010(
+  extensionScope(WAREHOUSE_PACKAGE_ID, WAREHOUSE_FEATURE_ID));
 const dataImportRepository =
   createDataImportRepositoryV010(enterpriseResourceRepository);
 const dataImportRecipeRepository =
@@ -2243,14 +2251,24 @@ const manager = createAppManagerService(
       if (event.packageId === RESPONSIBILITY_PACKAGE_ID) {
         void responsibilityRuntimeHost.stop().catch(error => console.error("Responsibility runtime stop failed", error));
       }
+      if (event.packageId === OBJECT_EXTENSION_PACKAGE_ID) {
+        void extensionManagement.stop().catch(error => console.error("Extension management stop failed", error));
+      }
       if (event.packageId === COUNTERPARTY_PACKAGE_ID) {
+        void Promise.all([counterpartyExtensionDefinitions.stop(), counterpartyExtensionValues.stop()])
+          .catch(error => console.error("Counterparty extension access stop failed", error));
         dataImportTargetPromises.delete("evo-counterparty.import-target.v0.1");
         void counterpartyRuntimeHost.stop().catch(error => console.error("Counterparty runtime stop failed", error));
       }
       if (event.packageId === ITEM_PACKAGE_ID) {
+        dataImportTargetPromises.delete("evo-item.import-target.v0.1");
+        void Promise.all([itemExtensionDefinitions.stop(), itemExtensionValues.stop()])
+          .catch(error => console.error("Item extension access stop failed", error));
         itemRuntimePromise = undefined;
       }
       if (event.packageId === WAREHOUSE_PACKAGE_ID) {
+        dataImportTargetPromises.delete("evo-warehouse.location-import-target.v0.1");
+        void warehouseExtensionValues.stop().catch(error => console.error("Warehouse extension access stop failed", error));
         warehouseRuntimePromise = undefined;
       }
     }
@@ -2279,6 +2297,7 @@ async function resolveItemRuntimeV010() {
     throw new Error("ITEM_FEATURE_NOT_ACTIVE");
   }
   const responsibilityRepository = await responsibilityRuntimeHost.resolve();
+  const extensionValueRepository = await itemExtensionValues.resolveRead();
   if (!itemFeatureActiveV010()) throw new Error("ITEM_FEATURE_NOT_ACTIVE");
   itemRuntimePromise ??= Promise.all([
     import("../apps/item/repository.js"),
@@ -2293,7 +2312,7 @@ async function resolveItemRuntimeV010() {
       projectionService: projectionModule.createItemProjectionServiceV010({
         repository,
         responsibilityRepository,
-        extensionValueRepository: objectExtensionValueRepository,
+        extensionValueRepository,
         resolveAuthorizationProvider,
         fieldIds: () =>
           foundationModule.itemCoreSchemaV010.fields.map(
@@ -2317,6 +2336,7 @@ async function resolveWarehouseRuntimeV010() {
     throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
   }
   const responsibilityRepository = await responsibilityRuntimeHost.resolve();
+  const extensionValueRepository = await warehouseExtensionValues.resolveRead();
   if (!warehouseFeatureActiveV010()) throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
   warehouseRuntimePromise ??= Promise.all([
     import("../apps/warehouse/repository.js"),
@@ -2344,7 +2364,7 @@ async function resolveWarehouseRuntimeV010() {
           repository,
           locationRepository,
           responsibilityRepository,
-          extensionValueRepository: objectExtensionValueRepository,
+          extensionValueRepository,
           resolveAuthorizationProvider,
           fieldIds: () =>
             foundationModule.warehouseCoreSchemaV010.fields.map(
@@ -2377,27 +2397,28 @@ Promise<FoundationObjectImportTargetV010[]> {
     if (!pending) {
       if (ref === "evo-counterparty.import-target.v0.1") {
         pending = Promise.all([
-          import("../apps/counterparty/import-target.js"), counterpartyRuntimeHost.resolve()
-        ]).then(([module, runtime]) => module.createCounterpartyImportTargetV010({
+          import("../apps/counterparty/import-target.js"), counterpartyRuntimeHost.resolve(),
+          counterpartyExtensionDefinitions.resolveRead(), counterpartyExtensionValues.resolveWrite()
+        ]).then(([module, runtime, extensionRepository, extensionValueRepository]) => module.createCounterpartyImportTargetV010({
             resources: enterpriseResourceRepository,
             repository: runtime.repository,
             roleRepository: runtime.roleRepository,
             contactRepository: runtime.contactRepository,
             addressRepository: runtime.addressRepository,
             profileRepository: runtime.profileRepository,
-            extensionRepository: objectExtensionRepository,
-            extensionValueRepository: objectExtensionValueRepository
+            extensionRepository,
+            extensionValueRepository
           }));
       } else if (ref === "evo-item.import-target.v0.1") {
         pending = Promise.all([
           import("../apps/item/import-target.js"),
-          resolveItemRuntimeV010()
-        ]).then(([module, runtime]) =>
+          resolveItemRuntimeV010(), itemExtensionDefinitions.resolveRead(), itemExtensionValues.resolveWrite()
+        ]).then(([module, runtime, extensionRepository, extensionValueRepository]) =>
           module.createItemImportTargetV010({
             resources: enterpriseResourceRepository,
             repository: runtime.repository,
-            extensionRepository: objectExtensionRepository,
-            extensionValueRepository: objectExtensionValueRepository
+            extensionRepository,
+            extensionValueRepository
           })
         );
       } else if (
@@ -5100,7 +5121,7 @@ const actionRouter = createAppActionRouter(
         async load() {
           const module = await import("../apps/object-extension/actions.js");
           const handlers = module.createObjectExtensionActionHandlersV010({
-            repository: objectExtensionRepository,
+            resolveRepository: () => extensionManagement.resolveManage(),
             getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
             async resolveImportServices(job) {
               const assertAvailable = () => {
@@ -5175,41 +5196,49 @@ const actionRouter = createAppActionRouter(
         commandCode,
         async load() {
           const module = await import("../apps/data-import/actions.js");
-          const dataImportTargets =
-            await resolveEffectiveDataImportTargetsV010();
-          const dataImportService = createDataImportServiceV010({
-            repository: dataImportRepository,
-            recipeRepository: dataImportRecipeRepository,
-            targets: dataImportTargets
-          });
-          const handlers = module.createDataImportActionHandlersV010({
-            service: dataImportService,
-            repository: dataImportRepository,
-            targets: dataImportTargets,
-            ...(dataImportExperienceAdvisor
-              ? { experienceAdvisor: dataImportExperienceAdvisor }
-              : {}),
-            canManageEnterpriseContext(principal, contextId) {
-              return (
-                resolveEnterpriseContextRelationshipProvider()
-                  ?.listForPrincipal(principal) ?? []
-              ).some(item =>
-                item.contextId === contextId
-                && item.state === "ACTIVE"
-                && (item.kind === "OWNER" || item.kind === "ADMIN")
+          // Cache module discovery, not lifecycle-bound target/service instances.
+          return {
+            packageId: DATA_IMPORT_PACKAGE_ID,
+            featureId: DATA_IMPORT_FEATURE_ID,
+            commandCode,
+            async execute(request, context) {
+              const dataImportTargets =
+                await resolveEffectiveDataImportTargetsV010();
+              const dataImportService = createDataImportServiceV010({
+                repository: dataImportRepository,
+                recipeRepository: dataImportRecipeRepository,
+                targets: dataImportTargets
+              });
+              const handlers = module.createDataImportActionHandlersV010({
+                service: dataImportService,
+                repository: dataImportRepository,
+                targets: dataImportTargets,
+                ...(dataImportExperienceAdvisor
+                  ? { experienceAdvisor: dataImportExperienceAdvisor }
+                  : {}),
+                canManageEnterpriseContext(principal, contextId) {
+                  return (
+                    resolveEnterpriseContextRelationshipProvider()
+                      ?.listForPrincipal(principal) ?? []
+                  ).some(item =>
+                    item.contextId === contextId
+                    && item.state === "ACTIVE"
+                    && (item.kind === "OWNER" || item.kind === "ADMIN")
+                  );
+                },
+                idFactory() {
+                  return "import-" + randomUUID();
+                }
+              });
+              const handler = handlers.find(
+                candidate => candidate.commandCode === commandCode
               );
-            },
-            idFactory() {
-              return "import-" + randomUUID();
+              if (!handler) {
+                throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
+              }
+              return handler.execute(request, context);
             }
-          });
-          const handler = handlers.find(
-            candidate => candidate.commandCode === commandCode
-          );
-          if (!handler) {
-            throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
-          }
-          return handler;
+          };
         }
       })
     ),
@@ -7087,7 +7116,8 @@ const server = createServer(async (request, response) => {
           active.contextId,
           { objectType: "counterparty.subject" }
         );
-        const extensionDefinitions = objectExtensionRepository.list(
+        const extensionDefinitionReader = await counterpartyExtensionDefinitions.resolveRead();
+        const extensionDefinitions = extensionDefinitionReader.list(
           active.contextId,"counterparty.subject"
         );
         const access = await resolveCounterpartyReadAccessV010({
@@ -7200,7 +7230,7 @@ const server = createServer(async (request, response) => {
                   active.contextId,
                   counterpartyId
                 ),
-                extensionFields: objectExtensionValueRepository.listForObject({
+                extensionFields: (await counterpartyExtensionValues.resolveRead()).listForObject({
                   contextId:active.contextId,
                   objectType:"counterparty.subject",
                   objectId:counterpartyId
@@ -7641,7 +7671,7 @@ const server = createServer(async (request, response) => {
             }));
           return json(response,200,batch.createObjectExtensionBatchImportPageV010({
             job,locale:requestedLocale(url),importableTargets,
-            definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
+            definitions:(await extensionManagement.resolveRead()).list(active.contextId,"counterparty.subject")
           }));
         }
         const requestedColumn = importRoute.searchParams.get("column") ?? undefined;
@@ -9822,6 +9852,9 @@ async function shutdown(signal: string): Promise<void> {
     await bottleneckRuntime.stop();
     await counterpartyRuntimeHost.stop();
     await responsibilityRuntimeHost.stop();
+    await Promise.all([extensionManagement.stop(), counterpartyExtensionDefinitions.stop(),
+      counterpartyExtensionValues.stop(), itemExtensionDefinitions.stop(),
+      itemExtensionValues.stop(), warehouseExtensionValues.stop()]);
   } catch (error) {
     shutdownFailed = true;
     console.error("Managed runtime shutdown incomplete", error);
