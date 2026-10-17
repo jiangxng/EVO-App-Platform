@@ -1,0 +1,63 @@
+name: BEX-01 V2 Prototype Chromium Review
+
+on:
+  pull_request:
+    paths:
+      - "docs/plans/foundation-list-experience/BEX-01-IMPORT-V2-HUMAN-REVIEW-PROTOTYPE-20261015.html"
+      - "tests/bex01/v2-prototype-chromium.mjs"
+      - "tests/bex01/v3-in-context-import-chromium.mjs"
+      - "docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html"
+      - ".github/workflows/bex01-v2-prototype-chromium-review.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bex-v2-prototype-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-v2-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Playwright controller only
+        run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Install Chinese UI fonts for visual review
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y fonts-noto-cjk >/dev/null
+          fc-cache -f >/dev/null
+          fc-list :lang=zh family | grep -q "Noto Sans CJK SC"
+      - name: Verify actual local Chromium and synthetic V2 prototype
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then echo "Chromium/Chrome executable is unavailable" >&2; exit 1; fi
+          export CHROME
+          node tests/bex01/v2-prototype-chromium.mjs
+          node tests/bex01/v3-in-context-import-chromium.mjs
+      - name: Keep only synthetic, noncustomer browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bex-v2-synthetic-prototype-chromium-evidence
+          path: artifacts/bex-v2-prototype-browser/
+          if-no-files-found: warn
+
+      - name: Publish standalone V3 import experience and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bex-v3-in-context-import-open-in-browser
+          path: |
+            docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html
+            artifacts/bex-v3-import-browser/
+          if-no-files-found: warn
