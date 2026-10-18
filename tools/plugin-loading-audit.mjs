@@ -66,6 +66,9 @@ async function sample(name, directory, profile, extra = {}) {
       if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
     }
     if (report.loadedModules.includes('dist/apps/eog-3d/workspace-page.js')) throw new Error('EOG_3D_VIEWER_PAGE_EAGER');
+    for (const surface of ['desktop-page', 'mobile-read-page']) {
+      if (report.loadedModules.includes(`dist/apps/enterprise-observatory/${surface}.js`)) throw new Error('EOG_OBSERVATORY_SURFACE_EAGER:' + surface);
+    }
     if (report.loadedModules.includes('dist/apps/enterprise-observatory/spatial-page.js')) throw new Error('EOG_SPATIAL_OBSERVATORY_PAGE_EAGER');
     // Retired startup debt: fail CI if the compatibility runtime returns to
     // these unused/disabled startup paths. Counts remain observations only.
