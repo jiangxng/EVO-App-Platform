@@ -78,3 +78,39 @@ Host清除interval后等待stop；失败记录`Context Memory scheduler shutdown
 事件唤醒覆盖本进程的Host受管写入口；直接外部修改共享文件或另一进程写入不触发本进程回调，需重启或后续一致性通知合同。Provider运行时健康变化若没有生命周期/绑定/配置事件，也不是完整事件订阅；不宣称多实例热同步。本批保留原DLP治理规则，尚未为每种远程调用提供资源冻结/代际写入屏障。文件TTL租约没有续租/fence的问题仍在。
 
 下一步：优先补真实管理员HTTP的安装/停用/重新启用、binding切换与在途采集联合验收；结合暴露的问题收口资源停止语义。然后明确文件租约单实例适用边界或使用既有权威合同迁移。上述工作仍属于原A01，不增加新专项，不重做已完成的资源归档和停止修复。整体仍7项、4闭环、3部分。
+
+
+## 2026-10-18 联合验收增量：真实Host HTTP生命周期与绑定
+
+基线 main `cdf60f6def3a22aef0f792c9ba9461e5ef1d14df`（#1010）。沿用前两批生产实现；本批只增加真实Host回归与CI，不重复修改调度算法、Provider合同或授权规则。
+
+### 可复现入口
+
+`npm run build` 后运行：
+
+`node --test tests/integration/context-memory-scheduler-http.test.mjs`
+
+测试以独立临时文件启动真实`dist/manager/server.js`和本地HTTP Experience Compiler来源。通过真实`/v1/disable`、`/v1/enable`、`/v1/uninstall`、`/v1/install`及`/v1/actions`绑定命令操作；没有直接改生命周期状态来模拟这些动作。初始绑定文件为显式fixture；自动配置安装的现有行为保持。
+
+测试专用preload记录实际scheduler interval，并通过IPC触发其真实callback，以避免每页等待60秒；不把生产周期改小、不替换业务scheduler、不绕过HTTP生命周期或绑定授权。HTTP来源请求真实经过fetch，来源仅允许127.0.0.1。测试源返回合成空页和nextCursor，**不证明含真实记录的Proposal业务审批或外部服务兼容**。生产不加载该preload，无生产测试开关。
+
+### 本批验证结果
+
+| 场景 | 断言 |
+|---|---|
+| 初始匹配来源/证据及显式Context | 只有一个60000ms timer；真实请求limit=100，首个Context为a |
+| 错误绑定管理凭据 | HTTP403，timer保持；不把无关包的历史生命周期鉴权声称为本批修复 |
+| 一页HTTP仍挂起时停用来源包 | disable返回后timer为0；页返回后只保存一个成功操作及page:2游标，不发起Context b |
+| 停用状态下重启 | timer仍0，page:2游标仍在；配置未强制重新激活已安装但停用的包 |
+| 重新启用并触发下一轮 | timer恢复1；Context a携带page:2，随后才请求b；来源结束后游标重置 |
+| source切到本地而evidence仍指向EC | timer为0；两者匹配本地后恢复1，采集不再访问HTTP源 |
+| 本地来源停用/启用、卸载/重新安装 | timer依次0/1、0/1；不删除既有游标 |
+| 完成与退出 | 5条操作均成功，4条按source/Context隔离的游标记录保留；lease文件释放，无durable Memory新增，正常退出 |
+
+该测试并入已有Lightweight Host CI。观察的是两个真实Host进程先后重启，**不是两个并发Host的跨进程排他证明**。失效绑定触发的既有明确诊断是预期行为，不放宽绑定校验或以静默回退另一个来源来通过测试。
+
+上节“尚未用真实管理员HTTP联合验收”的缺口已由以上场景补齐。存量保留/Legal Hold/DLP行为继续由既有P1.3回归覆盖；本批无LLM调用、无UI或部署变化。本地25项定向测试全部通过；[原始输出与测试hash](evidence/memory-scheduler-http-20261018.json)已保存。最终CI与合并标识见本批PR。
+
+### A01下一项
+
+现在转向已经登记的文件租约限制：先将现有实现的单实例适用条件与跨进程风险写成可执行验收，验证超TTL接管及旧持有者迟到；在已有权威合同基础上决定限制部署模式还是迁移。不得把本批正常退出和游标恢复算作多实例安全。整体仍7项、4闭环、3部分；A01收口前还需对照原始范围复核，不能由本批一个回归自动关闭整项。
