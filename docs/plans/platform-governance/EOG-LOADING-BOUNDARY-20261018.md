@@ -106,3 +106,15 @@ Host不再静态导入3D workspace实现。读取命令使用现有`createLazyAp
 下一步聚焦同级移动/桌面/空间观测页面与命令的静态装配，按实际依赖选择有界入口；3D Viewer本入口已迁移，不重复改造。R1其他model/page/action依赖未全部关闭，R2/R3/R4保持原清单。固定7项、4闭环、3部分。
 
 本批完整读取3D workspace、package/兼容导出及既有lazy-handler；定向读取Host两处入口、依赖关系和原测试。复用已读装载/交付权威。因涉及页面源码的常量出口调整，完整读取Eidos设计总纲与检查清单；原始URL/blob hash记录于界面评审。没有新增外部研究或视觉方案。
+
+## 8. 2026-10-19增量：空间运营观测页面与读取命令按需加载
+
+基线main `65f8776b7e1cc5b8cbcbde8c4c93687fa27efc65`（#1016）。本批迁移同级`apps/enterprise-observatory/spatial-page.ts`，保持空间观测与中性3D查看器各自的Feature和入口。Host注册原读取命令时使用既有lazy handler，页面进入原有效性/会话/Context分支后才动态导入；两处均在await后复查观测3D Feature。原事实Provider选择、时间范围解析、分析叠加、企业校验、图不存在错误及view store保持原实现。
+
+常量归入现有轻量package，原spatial-page和manager兼容出口继续有效；不是新建插件或复制业务实现。读取handler无新独立后台资源。已加载ESM允许缓存，停用拒绝新调用并保留视图数据；没有承诺卸载模块缓存、撤销已经发出的外部请求或跨进程冻结。
+
+本地构建及12项定向测试通过。新增真实隔离Host测试覆盖：冷启动与安装未用不加载；停用页面404/命令拒绝且不加载；启用页面与原factory在相同时刻的中文JSON等价；时间预设保留；不存在图仍报原错误；已有合成图并发读取一致；停用保留view文件，恢复后结果一致。其余回归覆盖lazy handler、3D/观测独立生命周期、物理归属和原空间投影。测试使用loopback、临时企业和出站阻断；没有真实事实服务、浏览器视觉或精确await停用竞态的故障注入验收。
+
+静态边264→262，仅删除退休实现路径的两条边。四组合冷启动实测均345→342模块、0注册interval、96归档文件、0阻断出站、正常退出；新增空间观测实现冷启动禁入断言，新Host测试接入Lightweight Host CI。归档文件不等于浏览器下载量，模块减少不代表整个观测依赖已移出冷路径。详见[eog-spatial-lazy-audit](evidence/eog-spatial-lazy-audit-20261019.json)、[验证记录](evidence/eog-spatial-lazy-validation-20261019.json)及[界面兼容检查](../../ui-design-reviews/eog-spatial-lazy-20261019.md)。最终CI/合并以对应PR为准，未部署。
+
+本批完整读取空间观测实现及新增测试，定向核对Host装配/页面分支；复用前批已读项目规则与Eidos设计权威，无新增外部研究。下一步限定在桌面/移动观测的现有静态页与命令装配，先核对消费者再选择迁移；共享模型及R2/R3/R4尚未闭环。固定7项、4闭环、3部分，不增加产品功能或Provider试点。
