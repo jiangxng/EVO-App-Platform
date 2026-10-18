@@ -8,6 +8,7 @@
 
 用户目标：轻量宿主、按需安装卸载；安装能力少时降低装载与后台资源开销；个人Agent千人千面，企业具有跨部门整体分析与改进能力。
 
+- [A01收口复核与剩余责任清单](A01-CLOSURE-REVIEW-20261018.md)
 - [项目级装载原则与开发准入（第 11 节）](../../architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md#11-项目根本约束新增能力不能默认增加常驻业务负担)
 - [记忆调度器归属、停止整改与剩余边界](MEMORY-SCHEDULER-BOUNDARY-20261018.md)
 - [浏览器资源归档边界、清单实施与升级兼容证据](WEB-ASSET-ARCHIVE-BOUNDARY-20261017.md)
