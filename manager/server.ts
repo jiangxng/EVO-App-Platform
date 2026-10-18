@@ -113,16 +113,10 @@ import {
 import {
   createEnterpriseDefinitionProjectionArtifactSourceV010
 } from "../providers/enterprise-context/definition-projection.js";
-import {
-  migrateLegacyEnterpriseOperatingGraphsV010
-} from "../apps/eog-2d-designer/legacy-definition-migration.js";
+import { migrateExistingEogGraphsV010, migrateExistingEogSopsV010, applyConfiguredEogPreviewSeedV010 } from "./eog-startup-compatibility.js";
 import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
-import {
-  applyEogPreviewSeedV010,
-  parseEogPreviewSeedV010
-} from "./eog-preview-seed.js";
 import {
   createFileEogViewStateStoreV010,
   createMemoryEogViewStateStoreV010
@@ -362,9 +356,6 @@ import {
 import {
   createEnterpriseTemplateTransferProviderV010
 } from "../providers/enterprise-context/template-transfer.js";
-import {
-  migrateLegacyEogSopsV010
-} from "../providers/enterprise-context/eog-sop-migration.js";
 import {
   HOST_STATIC_SESSION_PACKAGE_ID,
   HOST_STATIC_SESSION_PROVIDER_ID,
@@ -1332,7 +1323,7 @@ const enterpriseDefinitionProjectionStore =
       )
     : createMemoryDefinitionProjectionStoreV010();
 
-const legacyGraphMigration = migrateLegacyEnterpriseOperatingGraphsV010({
+const legacyGraphMigration = await migrateExistingEogGraphsV010({
   path: legacyEnterpriseOperatingGraphStateFile,
   repository: enterpriseBusinessDefinitionRepository
 });
@@ -1351,12 +1342,9 @@ const enterpriseOperatingGraphService =
     id: randomUUID
   });
 
-const eogPreviewSeed = parseEogPreviewSeedV010(
-  process.env.APP_PLATFORM_EOG_PREVIEW_SEED_JSON
-);
-const eogPreviewSeedResult = applyEogPreviewSeedV010({
+const eogPreviewSeedResult = await applyConfiguredEogPreviewSeedV010({
   service: enterpriseOperatingGraphService,
-  seed: eogPreviewSeed
+  raw: process.env.APP_PLATFORM_EOG_PREVIEW_SEED_JSON
 });
 if (eogPreviewSeedResult.seeded) {
   console.log(
@@ -1395,7 +1383,7 @@ const applicationRuntimeBindingProvider =
     store: applicationRuntimeBindingStore
   });
 
-const legacySopMigration = migrateLegacyEogSopsV010({
+const legacySopMigration = await migrateExistingEogSopsV010({
   path: legacyEogExpectedSopStateFile,
   repository: enterpriseBusinessDefinitionRepository
 });
