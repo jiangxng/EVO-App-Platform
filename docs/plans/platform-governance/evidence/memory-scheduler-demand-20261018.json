@@ -1,0 +1,137 @@
+{
+  "measuredAt": "2026-10-18T06:04:59.310Z",
+  "sourceCommit": "f97b57ceb94719aebaab80b4638ff3bf87678824",
+  "sourceState": "working tree identified by hashes",
+  "scope": "Four isolated empty-state real Host startup/shutdown profiles. No production, remote intake, long-running tick or multi-process proof.",
+  "measuredFilesSha256": {
+    "manager/context-memory-scheduler.ts": "eb726236ff46bb680a43e6bca89f10470e19b19e8205372ef3d083a324cd22c5",
+    "manager/server.ts": "6ec44cb0b0d707b01367a4df3082b3a14dd5bd8b6ce09945a56d2424c9c1787c",
+    "tools/plugin-loading-audit.mjs": "aa089ae295a8e508b99baf6fbaa0b82b821fbc1dcc0abca0425de45a56ea1e99",
+    "tests/protocol/context-memory-scheduler-demand.test.mjs": "d0caeb5e9f055b213148051a1883ab4b71a38180c791b4e42042f30a85830938",
+    "tests/integration/context-memory-scheduler-demand-host.test.mjs": "c4d5bc301e56d2243feeaa107dee7b88eeb6aa96a3da750eb966e7b56d2d9b82"
+  },
+  "tests": {
+    "passed": 24,
+    "failed": 0,
+    "files": [
+      "tests/protocol/context-memory-scheduler-demand.test.mjs",
+      "tests/protocol/context-memory-scheduler-stop.test.mjs",
+      "tests/protocol/context-memory-p1-3-operations.test.mjs",
+      "tests/integration/context-memory-scheduler-demand-host.test.mjs"
+    ]
+  },
+  "samples": [
+    {
+      "profile": "minimal-uninstalled",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  ]
+}

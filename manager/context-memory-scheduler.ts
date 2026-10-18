@@ -111,6 +111,7 @@ export interface ContextMemorySchedulerDependenciesV010 {
   operationLog: ContextMemoryOperationLogV010;
   listGovernanceContexts(): ActiveContextRefV010[];
   listIntakeContexts?(): ActiveContextRefV010[];
+  canRunSourceIntake?: () => boolean;
   runSourceIntake?: (context: ActiveContextRefV010) => Promise<{
     examined: number;
     changed: number;
@@ -173,7 +174,7 @@ export function createContextMemorySchedulerV010(
 
         if (!stopped && dependencies.runSourceIntake) {
           for (const context of uniqueContexts(dependencies.listIntakeContexts?.() ?? [])) {
-            if (stopped) break;
+            if (stopped || dependencies.canRunSourceIntake?.() === false) break;
             const started = now();
             const operationId = `memory-operation:intake:${id()}`;
             try {
@@ -285,4 +286,47 @@ export function parseContextMemoryScheduleContextsV010(
       contextId: item.contextId.trim()
     };
   });
+}
+
+/** Event-driven timer admission; no idle polling timer is used to discover work. */
+export function createContextMemoryScheduleDriverV010(options: {
+  intervalMs: number;
+  hasWork(): boolean;
+  tick(): Promise<unknown>;
+  onError(error: unknown): void;
+}) {
+  if (!Number.isFinite(options.intervalMs) || options.intervalMs < 0
+    || (options.intervalMs > 0 && options.intervalMs < 60_000)) {
+    throw new Error("CONTEXT_MEMORY_SCHEDULE_INTERVAL_INVALID");
+  }
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let disposed = false;
+  const clear = () => {
+    if (timer) clearInterval(timer);
+    timer = undefined;
+  };
+  const refresh = () => {
+    try {
+      if (disposed || options.intervalMs === 0 || !options.hasWork()) {
+        clear();
+        return;
+      }
+      if (!timer) {
+        timer = setInterval(() => {
+          refresh();
+          if (!timer) return;
+          void options.tick().catch(options.onError);
+        }, options.intervalMs);
+        timer.unref();
+      }
+    } catch (error) {
+      clear();
+      options.onError(error);
+    }
+  };
+  return {
+    refresh,
+    dispose() { disposed = true; clear(); },
+    isScheduled() { return timer !== undefined; }
+  };
 }

@@ -35,6 +35,9 @@ async function sample(name, directory, profile, extra = {}) {
       child.on('message', message => { if (message.kind === 'host-baseline') resolve(message); });
     });
     clearTimeout(timer);
+    if (name === "minimal-scheduler-configured" && report.registeredIntervals.length !== 0) {
+      throw new Error("EMPTY_MINIMAL_HOST_BACKGROUND_TIMER");
+    }
     const lifecycle = JSON.parse(fs.readFileSync(state, 'utf8'));
     const inventory = files(directory);
     const storedFiles = inventory.filter(file => !file.path.startsWith('web-assets/'));
