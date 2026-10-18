@@ -61,6 +61,10 @@ async function sample(name, directory, profile, extra = {}) {
       || !report.loadedModules.includes('dist/manager/server.js')) {
       throw new Error('AUDIT_INVALID: ' + JSON.stringify({ shutdown, stderr, blockedOutbound: report.blockedOutbound }));
     }
+    for (const module of ['dist/apps/eog-2d-designer/legacy-definition-migration.js',
+      'dist/providers/enterprise-context/eog-sop-migration.js', 'dist/manager/eog-preview-seed.js']) {
+      if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
+    }
     // Retired startup debt: fail CI if the compatibility runtime returns to
     // these unused/disabled startup paths. Counts remain observations only.
     for (const module of ['service', 'default-library', 'expression-compiler']) {
