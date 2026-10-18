@@ -31,6 +31,9 @@ export const ENTERPRISE_OBSERVATORY_2D_ROUTE =
 export const ENTERPRISE_OBSERVATORY_MOBILE_ROUTE =
   "/m/operating-graph/observe";
 
+export const EOG_OBSERVE_ACTION = "enterprise-operating-graph.observatory.observe";
+export const EOG_ANALYZE_ACTION = "enterprise-operating-graph.observatory.analyze";
+
 export const EOG_MOBILE_READ_GET_ACTION =
   "enterprise-operating-graph.observatory.mobile-read.get";
 export const EOG_OBSERVATORY_VIEW_GET_ACTION =
