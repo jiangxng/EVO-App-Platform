@@ -551,6 +551,7 @@ import {
 } from "./context-memory-operations.js";
 import {
   createContextMemorySchedulerV010,
+  createContextMemoryScheduleDriverV010,
   createFileContextMemorySchedulerLeaseV010,
   createMemoryContextMemorySchedulerLeaseV010,
   parseContextMemoryScheduleContextsV010
@@ -1286,9 +1287,17 @@ const enterpriseGovernanceStore = enterpriseGovernanceStateFile
   : createMemoryEnterpriseContextGovernanceStoreV010();
 const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory.json") : undefined);
-const contextMemoryStore = contextMemoryStateFile
+let refreshContextMemorySchedule: () => void = () => {};
+const baseContextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
+const contextMemoryStore: typeof baseContextMemoryStore = {
+  snapshot: () => baseContextMemoryStore.snapshot(),
+  save(snapshot) {
+    baseContextMemoryStore.save(snapshot);
+    refreshContextMemorySchedule();
+  }
+};
 const legacyEnterpriseOperatingGraphStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_FILE?.trim()
   || (lifecycleStateFile
@@ -2048,9 +2057,17 @@ providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
 });
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
-const providerBindings = providerBindingsFile
+const baseProviderBindings = providerBindingsFile
   ? createFileProviderBindingStoreV010(providerBindingsFile)
   : createMemoryProviderBindingStoreV010();
+const providerBindings: typeof baseProviderBindings = {
+  list: capability => baseProviderBindings.list(capability),
+  save(binding) { baseProviderBindings.save(binding); refreshContextMemorySchedule(); },
+  delete(capability, scope, scopeId) {
+    baseProviderBindings.delete(capability, scope, scopeId);
+    refreshContextMemorySchedule();
+  }
+};
 const bootstrapAdminToken = process.env.APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN?.trim()
   || process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
 // PA05-05/E01D: host administration feature is unavailable in default builds.
@@ -2221,6 +2238,7 @@ const manager = createAppManagerService(
   () => new Date(),
   new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),
   event => {
+    refreshContextMemorySchedule();
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
     if (lifecycleEventLog.length > 100) lifecycleEventLog.shift();
@@ -3887,6 +3905,7 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
     providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID);
     providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID);
   }
+  refreshContextMemorySchedule();
 }
 
 await refreshP12MemoryProviderRuntimes();
@@ -3997,6 +4016,12 @@ const contextMemorySchedulerLease = contextMemorySchedulerLeaseFile
       Math.max(contextMemoryScheduleMs > 0 ? contextMemoryScheduleMs * 2 : 120_000, 120_000)
     )
   : createMemoryContextMemorySchedulerLeaseV010();
+function canScheduleContextMemoryIntake(): boolean {
+  if (contextMemoryScheduleContexts.length === 0) return false;
+  const source = resolveContextMemoryIntakeSource();
+  const evidence = resolveContextMemoryEvidenceSourceProvider();
+  return Boolean(source && evidence?.describe(source.sourceId)?.sourceId === source.sourceId);
+}
 const contextMemoryScheduler = createContextMemorySchedulerV010({
   operations: contextMemoryScheduledOperations,
   operationLog: contextMemoryOperationLog,
@@ -4005,8 +4030,9 @@ const contextMemoryScheduler = createContextMemorySchedulerV010({
     return contextMemoryStore.snapshot().items.map(item => item.context);
   },
   listIntakeContexts() {
-    return contextMemoryScheduleContexts;
+    return canScheduleContextMemoryIntake() ? contextMemoryScheduleContexts : [];
   },
+  canRunSourceIntake: canScheduleContextMemoryIntake,
   async runSourceIntake(context) {
     const adapter = resolveContextMemoryIntakeSource();
     if (!adapter) throw new Error("CONTEXT_MEMORY_INTAKE_SOURCE_REQUIRED");
@@ -4039,15 +4065,14 @@ const contextMemoryScheduler = createContextMemorySchedulerV010({
     };
   }
 });
-let contextMemoryScheduleTimer: NodeJS.Timeout | undefined;
-if (contextMemoryScheduleMs > 0) {
-  contextMemoryScheduleTimer = setInterval(() => {
-    void contextMemoryScheduler.tick().catch(error => {
-      console.error("Scheduled Context Memory operation failed.", error);
-    });
-  }, contextMemoryScheduleMs);
-  contextMemoryScheduleTimer.unref();
-}
+const contextMemoryScheduleDriver = createContextMemoryScheduleDriverV010({
+  intervalMs: contextMemoryScheduleMs,
+  hasWork: () => contextMemoryStore.snapshot().items.length > 0 || canScheduleContextMemoryIntake(),
+  tick: () => contextMemoryScheduler.tick(),
+  onError: error => console.error("Scheduled Context Memory operation failed.", error)
+});
+refreshContextMemorySchedule = () => contextMemoryScheduleDriver.refresh();
+refreshContextMemorySchedule();
 
 function current2dEditorSessionKeysV010(
   principal: PlatformPrincipalV010
@@ -9873,7 +9898,7 @@ async function shutdown(signal: string): Promise<void> {
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
   evoRuntimeRevisionBridge?.dispose();
-  if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
+  contextMemoryScheduleDriver.dispose();
   let shutdownFailed = false;
   try {
     await contextMemoryScheduler.stop();
