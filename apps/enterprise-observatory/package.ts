@@ -41,6 +41,7 @@ export const ENTERPRISE_OBSERVATORY_3D_PAGE_ID =
   "evo-enterprise-operating-graph.observatory-spatial";
 export const ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/observatory-spatial";
+export const EOG_SPATIAL_OBSERVATORY_GET_ACTION = "enterprise-operating-graph.observatory.spatial.get";
 export const ENTERPRISE_OBSERVATORY_3D_ROUTE =
   "/operating-graph/observe/3d";
 

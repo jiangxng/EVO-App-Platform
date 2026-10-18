@@ -176,11 +176,6 @@ import {
   createEnterpriseOperatingGraphMobileReadPageV010,
   EOG_MOBILE_READ_PAGE_SOURCE
 } from "./enterprise-operating-graph-mobile-read-page.js";
-import {
-  createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020,
-  createEnterpriseOperatingGraphSpatialObservatoryPageV020,
-  EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE
-} from "./enterprise-operating-graph-spatial-observatory-page.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -989,6 +984,8 @@ import {
 import {
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE as EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE,
+  EOG_SPATIAL_OBSERVATORY_GET_ACTION,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "../apps/enterprise-observatory/package.js";
 import type {
@@ -4750,10 +4747,27 @@ const actionRouter = createAppActionRouter(
         };
       }
     }),
-    createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      providers: enterpriseOperatingGraphObservatoryProviders
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+      commandCode: EOG_SPATIAL_OBSERVATORY_GET_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/spatial-page.js");
+        const handler = module.createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService,
+          providers: enterpriseOperatingGraphObservatoryProviders
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Spatial Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
+      }
     }),
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
@@ -8521,10 +8535,14 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const spatialModule = await import("../apps/enterprise-observatory/spatial-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphSpatialObservatoryPageV020({
+          spatialModule.createEnterpriseOperatingGraphSpatialObservatoryPageV020({
             activeContext,
             locale: requestedLocale(url)
           })
