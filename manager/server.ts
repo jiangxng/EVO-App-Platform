@@ -164,18 +164,6 @@ import {
 import {
   createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020
 } from "./enterprise-operating-graph-observatory-agent-tools.js";
-import {
-  createEnterpriseOperatingGraphObservatoryExperienceManifestV020,
-  createEnterpriseOperatingGraphObservatoryPageV020,
-  createEnterpriseOperatingGraphObservatoryViewActionHandlerV020,
-  createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020,
-  EOG_OBSERVATORY_PAGE_SOURCE
-} from "./enterprise-operating-graph-observatory-page.js";
-import {
-  createEnterpriseOperatingGraphMobileReadActionHandlerV010,
-  createEnterpriseOperatingGraphMobileReadPageV010,
-  EOG_MOBILE_READ_PAGE_SOURCE
-} from "./enterprise-operating-graph-mobile-read-page.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -982,6 +970,11 @@ import {
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
 import {
+  ENTERPRISE_OBSERVATORY_2D_PAGE_SOURCE as EOG_OBSERVATORY_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE,
+  EOG_OBSERVATORY_VIEW_GET_ACTION,
+  EOG_OBSERVATORY_VIEW_OPERATION_ACTION,
+  EOG_MOBILE_READ_GET_ACTION,
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE as EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE,
@@ -4573,15 +4566,49 @@ const actionRouter = createAppActionRouter(
       graphService: enterpriseOperatingGraphService,
       providers: enterpriseOperatingGraphObservatoryProviders
     }),
-    createEnterpriseOperatingGraphObservatoryViewActionHandlerV020({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      providers: enterpriseOperatingGraphObservatoryProviders,
-      locale(context) {
-        return context.locale;
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+      commandCode: EOG_OBSERVATORY_VIEW_GET_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/desktop-page.js");
+        const handler = module.createEnterpriseOperatingGraphObservatoryViewActionHandlerV020({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService,
+          providers: enterpriseOperatingGraphObservatoryProviders,
+          locale(context) {
+            return context.locale;
+          }
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
       }
     }),
-    createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+      commandCode: EOG_OBSERVATORY_VIEW_OPERATION_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/desktop-page.js");
+        const handler = module.createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020();
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
+      }
+    }),
     createLazyAppActionHandlerV010({
       packageId: EOG_2D_VIEWER_PACKAGE_ID,
       featureId: EOG_2D_VIEWER_FEATURE_ID,
@@ -4719,11 +4746,28 @@ const actionRouter = createAppActionRouter(
         });
       }
     }),
-    createEnterpriseOperatingGraphMobileReadActionHandlerV010({
-      graphService: enterpriseOperatingGraphService,
-      providers: enterpriseOperatingGraphObservatoryProviders,
-      locale(context) {
-        return context.locale;
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+      commandCode: EOG_MOBILE_READ_GET_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/mobile-read-page.js");
+        const handler = module.createEnterpriseOperatingGraphMobileReadActionHandlerV010({
+          graphService: enterpriseOperatingGraphService,
+          providers: enterpriseOperatingGraphObservatoryProviders,
+          locale(context) {
+            return context.locale;
+          }
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
       }
     }),
     createLazyAppActionHandlerV010({
@@ -8473,18 +8517,21 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
-        return json(
-          response,
-          200,
-          source === EOG_MOBILE_READ_PAGE_SOURCE
-            ? createEnterpriseOperatingGraphMobileReadPageV010({
-                activeContext
-              })
-            : createEnterpriseOperatingGraphObservatoryPageV020({
-                activeContext,
-                locale: requestedLocale(url)
-              })
-        );
+        if (source === EOG_MOBILE_READ_PAGE_SOURCE) {
+          const module = await import("../apps/enterprise-observatory/mobile-read-page.js");
+          if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+            return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+          }
+          return json(response, 200, module.createEnterpriseOperatingGraphMobileReadPageV010({ activeContext }));
+        }
+        const module = await import("../apps/enterprise-observatory/desktop-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        return json(response, 200, module.createEnterpriseOperatingGraphObservatoryPageV020({
+          activeContext,
+          locale: requestedLocale(url)
+        }));
       }
       if (source === EOG_3D_VIEWER_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(

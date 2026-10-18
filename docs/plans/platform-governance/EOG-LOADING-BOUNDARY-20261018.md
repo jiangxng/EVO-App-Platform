@@ -118,3 +118,15 @@ Host不再静态导入3D workspace实现。读取命令使用现有`createLazyAp
 静态边264→262，仅删除退休实现路径的两条边。四组合冷启动实测均345→342模块、0注册interval、96归档文件、0阻断出站、正常退出；新增空间观测实现冷启动禁入断言，新Host测试接入Lightweight Host CI。归档文件不等于浏览器下载量，模块减少不代表整个观测依赖已移出冷路径。详见[eog-spatial-lazy-audit](evidence/eog-spatial-lazy-audit-20261019.json)、[验证记录](evidence/eog-spatial-lazy-validation-20261019.json)及[界面兼容检查](../../ui-design-reviews/eog-spatial-lazy-20261019.md)。最终CI/合并以对应PR为准，未部署。
 
 本批完整读取空间观测实现及新增测试，定向核对Host装配/页面分支；复用前批已读项目规则与Eidos设计权威，无新增外部研究。下一步限定在桌面/移动观测的现有静态页与命令装配，先核对消费者再选择迁移；共享模型及R2/R3/R4尚未闭环。固定7项、4闭环、3部分，不增加产品功能或Provider试点。
+
+## 9. 2026-10-19增量：桌面与移动观测入口独立按需加载
+
+基线main `eeb88493ace53cbe67c4971c49c99a0b158d77da`（#1017）。本批核实桌面页通过移动路由常量静态导入了完整mobile-read实现；两端页面与三个页面命令又在Host启动链装配。采用既有package metadata和lazy handler，排除继续通过业务实现查路由、一次加载两端、另建注册框架。桌面路由现在只引用package常量，旧页面/manager/eog-2d-viewer兼容出口仍保留。
+
+Host分别延迟装配桌面read、桌面operation与移动read handler；原operation继续返回`EOG_2D_VIEWER_READ_ONLY`。页面按source只import对应实现，两处页面及三个命令在await后再次核对原2D Feature。原Human/企业检查、Provider选择、时间范围解析、事实/分析展示、空图成功返回及view store不变；停用拒绝新调用、恢复保留原数据。不承诺ESM缓存卸载或撤销已发外部请求。
+
+本地构建、17项定向测试通过。新增两个真实Host案例分别以桌面/移动为首个入口，验证冷启动/安装未用/停用拒绝不加载、打开与读取本端不加载另一端、相同时刻页面JSON与原factory等价、空图原输出、并发读取、桌面只读拒绝、停用恢复。原移动fallback、只读合同及合成事实投影测试同时通过。首次运行发现旧2D切换fixture缺少现有3D依赖，补入eog3dPackage，未改生产依赖或弱化原断言。新Host测试进入Lightweight Host CI。
+
+静态边262→257，删除5条旧依赖；四组合均342→338模块、0注册interval、96归档文件、0阻断出站、正常退出。新增desktop-page/mobile-read-page冷启动禁入断言。报告见[eog-observatory-surfaces-lazy-audit](evidence/eog-observatory-surfaces-lazy-audit-20261019.json)、[验证记录](evidence/eog-observatory-surfaces-lazy-validation-20261019.json)、[界面兼容检查](../../ui-design-reviews/eog-observatory-surfaces-lazy-20261019.md)。测试不是浏览器视觉验收、真实外部事实Provider集成或精确在途停用故障注入；未部署，最终CI以PR为准。
+
+本批完整读取移动实现、定向读取桌面metadata/page/handler与Host装配及相关原测试；复用前批已读设计/装载权威，没有新增外网研究，不声称通读全部桌面投影算法。下一步检查剩余通用observe/analyze命令与共享运行图模型、Provider装配链，先辨别必要共享依赖与业务实现，避免把本批三个页面入口关闭等同R1全关闭。R2/R3/R4不变；固定7项、4闭环、3部分。
