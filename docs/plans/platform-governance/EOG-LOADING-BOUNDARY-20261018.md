@@ -130,3 +130,19 @@ Host分别延迟装配桌面read、桌面operation与移动read handler；原ope
 静态边262→257，删除5条旧依赖；四组合均342→338模块、0注册interval、96归档文件、0阻断出站、正常退出。新增desktop-page/mobile-read-page冷启动禁入断言。报告见[eog-observatory-surfaces-lazy-audit](evidence/eog-observatory-surfaces-lazy-audit-20261019.json)、[验证记录](evidence/eog-observatory-surfaces-lazy-validation-20261019.json)、[界面兼容检查](../../ui-design-reviews/eog-observatory-surfaces-lazy-20261019.md)。测试不是浏览器视觉验收、真实外部事实Provider集成或精确在途停用故障注入；未部署，最终CI以PR为准。
 
 本批完整读取移动实现、定向读取桌面metadata/page/handler与Host装配及相关原测试；复用前批已读设计/装载权威，没有新增外网研究，不声称通读全部桌面投影算法。下一步检查剩余通用observe/analyze命令与共享运行图模型、Provider装配链，先辨别必要共享依赖与业务实现，避免把本批三个页面入口关闭等同R1全关闭。R2/R3/R4不变；固定7项、4闭环、3部分。
+
+## 10. 2026-10-19增量：通用观测与分析命令按需装配
+
+基线main `27266ba2e9f1672b66465b8a116b5dc8d6960efb`（#1018）。Host的两个Human命令observe/analyze仍静态导入并创建handler；本批使用现有lazy handler，命令标识迁入既有package，旧actions/manager/eog-2d-viewer出口保持。按固定两个commandCode选择原工厂handler，身份由已有lazy机制验证；await后复查原2D Feature。没有新通用框架或业务算法复制。
+
+原Human/企业检查、输入解析、事实/分析服务解析和失败返回保持。未配置Runtime Provider继续报`EOG_RUNTIME_PROVIDER_REQUIRED`，不把“安装有效”当“有数据”。两个命令各自首次使用创建无外部资源的handler；ESM共用缓存，停用拒绝新调用，恢复可重用原handler。没有增加连接、定时器、订阅或后台任务，也不承诺在途调用撤销或模块卸载。
+
+本地构建和24项回归通过：新增真实Host验证冷启动/安装未用/停用拒绝不加载、两个命令并发首次调用、缺Provider明确拒绝、无graphId/无时间范围原错误、停用再恢复保持结果；既有Provider组件验证真实resolver配合合成事实的成功返回、合同不匹配与缺失拒绝，原观测服务/共享输入及双端Host回归保留。没有新增第二个真实Provider试点。真实Host案例为隔离、无外部事实服务，不冒充真实远端成功集成或精确await停用竞态故障注入。
+
+静态边257→255，仅移除两条退休依赖；四组合均338→336项目模块、0注册interval、96归档文件、0阻断出站、正常退出。新增observatory-actions冷启动禁入断言，新Host测试进入Lightweight Host CI。见[四组合报告](evidence/eog-observatory-actions-lazy-audit-20261019.json)、[验证记录](evidence/eog-observatory-actions-lazy-validation-20261019.json)。未改页面/交互，未部署；最终CI与提交见对应PR。
+
+### 剩余边界与下一步
+
+本批完整读取observatory-actions、Agent tools、共享输入和Provider resolver；定向核对Host引用/装配及原测试，无新增外网来源。代码事实：Provider resolver构造只建立方法闭包；实际Runtime/Analysis解析与service构造在createService(request)调用时发生。Agent tools直接使用同一公开resolver，未依赖Human actions；本批不改Agent工具合同或权限。这个事实只解释本resolver，不能推导所有Provider注册无副作用，也不等于R3已完成。
+
+下一步优先核对`manager/server.ts`中启动创建的`enterpriseOperatingGraphViewStore/ViewService`、对应文件存储实现和实际消费者：区分构造是否读文件、首次方法使用、副作用与共享持久性，再决定是否需要按需装配。共享图模型、编辑命令、Agent工具仍有静态依赖；不为了删除边而强改同步公开合同。R1未整体关闭，R2 Agent SQL/R3 Provider分类/R4跨层验收保持原清单。固定7项、4闭环、3部分。

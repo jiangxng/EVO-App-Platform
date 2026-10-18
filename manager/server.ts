@@ -159,9 +159,6 @@ import {
   createEnterpriseOperatingGraphInspectorPropertyResolverV010
 } from "./enterprise-operating-graph-inspector-provider.js";
 import {
-  createEnterpriseOperatingGraphObservatoryActionHandlersV020
-} from "./enterprise-operating-graph-observatory-actions.js";
-import {
   createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020
 } from "./enterprise-operating-graph-observatory-agent-tools.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
@@ -972,6 +969,8 @@ import {
 import {
   ENTERPRISE_OBSERVATORY_2D_PAGE_SOURCE as EOG_OBSERVATORY_PAGE_SOURCE,
   ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE,
+  EOG_OBSERVE_ACTION,
+  EOG_ANALYZE_ACTION,
   EOG_OBSERVATORY_VIEW_GET_ACTION,
   EOG_OBSERVATORY_VIEW_OPERATION_ACTION,
   EOG_MOBILE_READ_GET_ACTION,
@@ -4562,10 +4561,30 @@ const actionRouter = createAppActionRouter(
         }
       }
     }),
-    ...createEnterpriseOperatingGraphObservatoryActionHandlersV020({
-      graphService: enterpriseOperatingGraphService,
-      providers: enterpriseOperatingGraphObservatoryProviders
-    }),
+    ...[EOG_OBSERVE_ACTION, EOG_ANALYZE_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+        featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/enterprise-observatory/observatory-actions.js");
+          const handler = module.createEnterpriseOperatingGraphObservatoryActionHandlersV020({
+            graphService: enterpriseOperatingGraphService,
+            providers: enterpriseOperatingGraphObservatoryProviders
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_OBSERVATORY_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+                return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
+        }
+      })
+    ),
     createLazyAppActionHandlerV010({
       packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
       featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
