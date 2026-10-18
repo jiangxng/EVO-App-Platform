@@ -28,6 +28,7 @@ import {
 } from "../../eog/spatial-projection.js";
 import {
   EOG_3D_PACKAGE_ID,
+  EOG_3D_VIEWER_GET_ACTION,
   EOG_3D_VIEWER_FEATURE_ID,
   EOG_3D_VIEWER_PAGE_ID,
   EOG_3D_VIEWER_PAGE_SOURCE,
@@ -39,8 +40,7 @@ export {
   EOG_3D_VIEWER_ROUTE
 } from "./package.js";
 
-export const EOG_3D_VIEWER_GET_ACTION =
-  "enterprise-operating-graph.viewer.spatial.get";
+export { EOG_3D_VIEWER_GET_ACTION } from "./package.js";
 
 function text(locale: string | undefined) {
   const normalized = locale?.toLowerCase() ?? "en";

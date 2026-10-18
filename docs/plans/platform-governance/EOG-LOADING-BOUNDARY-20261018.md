@@ -85,3 +85,24 @@ R1本批只完成兼容路径隔离及消费者边界。下一步处理**共享�
 ### 明确下一步
 
 R1的“实例提前创建”已按上述同步合同处理；运行图model/page/action实现仍在启动依赖链，R1整体不关闭。下一步只选择当前静态页/命令装配入口，核对实际消费后将可独立的实现放入现有lazy handler；保持本层同步公共接口和所有既有授权。不能为了减少模块数新造通用框架、移除必要安全机制或重写2D交互。R2/R3/R4维持收口清单原状态。
+
+
+## 7. 2026-10-19增量：3D查看器页面与读取命令按需加载
+
+基线main `83a168338926b87e8295c2a3a54bca4b9082180e`（#1015）。本批只迁移中性3D Viewer的`apps/eog-3d/workspace-page.ts`，不重写2D编辑、观测叠加或共享图模型。
+
+Host不再静态导入3D workspace实现。读取命令使用现有`createLazyAppActionHandlerV010`：合法路由调用后装配原handler，加载Promise共用及失败重试沿用原机制；加载完成及每次执行前再次检查3D Feature。页面保留原有效性/会话/Context解析，进入对应页面分支才import，await后再检查有效性。未修改原读方法中的Human/企业/graphId检查，未将metadata发现当授权。
+
+命令常量迁入已有轻量package清单；旧workspace出口继续重导出同一值，旧package别名也保留。没有复制命令字串或另造注册框架。页面对象、中文/英文文案、route、source、readCommand与空间投影算法不变。详情见[界面兼容评审](../../ui-design-reviews/eog-3d-lazy-20261019.md)。
+
+读取handler无独立后台资源；原graph/SOP首次使用装配与共享view store保持。停用后命令/页面拒绝，已写view数据不删；重新启用可复用原handler和数据，不承诺ESM缓存卸载。安装但未使用不加载workspace。其他空间投影消费者仍可加载共享spatial-projection，不能据此说整个3D渲染链都已退出Host。
+
+本地构建及11项定向测试通过，其中新增真实Host联合测试验证：启动和安装未用不加载；先停用依赖它的观测包，再停用查看器，页面404/命令ACTION_FEATURE_NOT_ACTIVE且模块不加载；启用后真实页面等于原factory中文输出；空图返回原空态；已有图并发读结果一致；停用拒绝且view文件字节保留；再启用页面与结果相同。测试为临时企业、合成图、loopback与出站阻断；没有真实用户/browser视觉验收。
+
+首次本地编译发现handler execute必须返回Promise，已修正为async；首次生命周期测试揭示实际依赖阻断，按真实依赖先停用观测，不改生产规则。旧`eog-3d-observatory-convergence`的fixture未包含观测已要求的2D viewer，补入原eog2dPackage；原断言不放宽。最终11项结果见[验证输出](evidence/eog-3d-lazy-validation-20261019.json)。页面/命令在途停用的精确时间窗未通过故障注入验收，不以顺序HTTP测试冒充竞态证明。
+
+静态边266→264，只删除两条退休边；四组合审计新增workspace禁入断言，报告见[eog-3d-lazy-audit](evidence/eog-3d-lazy-audit-20261019.json)。新Host测试接入Lightweight CI。没有生产部署/业务数据操作；最终CI/提交以PR记录为准。
+
+下一步聚焦同级移动/桌面/空间观测页面与命令的静态装配，按实际依赖选择有界入口；3D Viewer本入口已迁移，不重复改造。R1其他model/page/action依赖未全部关闭，R2/R3/R4保持原清单。固定7项、4闭环、3部分。
+
+本批完整读取3D workspace、package/兼容导出及既有lazy-handler；定向读取Host两处入口、依赖关系和原测试。复用已读装载/交付权威。因涉及页面源码的常量出口调整，完整读取Eidos设计总纲与检查清单；原始URL/blob hash记录于界面评审。没有新增外部研究或视觉方案。

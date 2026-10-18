@@ -65,6 +65,7 @@ async function sample(name, directory, profile, extra = {}) {
       'dist/providers/enterprise-context/eog-sop-migration.js', 'dist/manager/eog-preview-seed.js']) {
       if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
     }
+    if (report.loadedModules.includes('dist/apps/eog-3d/workspace-page.js')) throw new Error('EOG_3D_VIEWER_PAGE_EAGER');
     // Retired startup debt: fail CI if the compatibility runtime returns to
     // these unused/disabled startup paths. Counts remain observations only.
     for (const module of ['service', 'default-library', 'expression-compiler']) {
