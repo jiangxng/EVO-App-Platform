@@ -982,13 +982,10 @@ import {
 } from "../apps/eog-2d-viewer/package.js";
 import {
   EOG_3D_VIEWER_FEATURE_ID,
+  EOG_3D_VIEWER_GET_ACTION,
+  EOG_3D_VIEWER_PAGE_SOURCE,
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
-import {
-  createEnterpriseOperatingGraph3dViewerPageV010,
-  createEnterpriseOperatingGraph3dViewerReadActionV010,
-  EOG_3D_VIEWER_PAGE_SOURCE
-} from "../apps/eog-3d/workspace-page.js";
 import {
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
@@ -4732,9 +4729,26 @@ const actionRouter = createAppActionRouter(
         return context.locale;
       }
     }),
-    createEnterpriseOperatingGraph3dViewerReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService
+    createLazyAppActionHandlerV010({
+      packageId: EOG_3D_VIEWER_PACKAGE_ID,
+      featureId: EOG_3D_VIEWER_FEATURE_ID,
+      commandCode: EOG_3D_VIEWER_GET_ACTION,
+      async load() {
+        const module = await import("../apps/eog-3d/workspace-page.js");
+        const handler = module.createEnterpriseOperatingGraph3dViewerReadActionV010({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "3D Viewer is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
+      }
     }),
     createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
       graphService: enterpriseOperatingGraphService,
@@ -8476,10 +8490,14 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const viewerModule = await import("../apps/eog-3d/workspace-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
         return json(
           response,
           200,
-          createEnterpriseOperatingGraph3dViewerPageV010({
+          viewerModule.createEnterpriseOperatingGraph3dViewerPageV010({
             activeContext,
             locale: requestedLocale(url)
           })

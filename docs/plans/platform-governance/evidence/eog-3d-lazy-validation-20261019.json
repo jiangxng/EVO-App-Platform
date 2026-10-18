@@ -1,0 +1,74 @@
+{
+  "baseline": "83a168338926b87e8295c2a3a54bca4b9082180e",
+  "date": "2026-10-19",
+  "sourceSha256": {
+    "manager/server.ts": "5061d44dffa112ed2052fb0a0426be46f4ff43788e033ab8fd042389f2e85f32",
+    "apps/eog-3d/workspace-page.ts": "780210e5c439b0149de49534ebacb12f0f212de473fb9eeaafc3f783c8936fdb",
+    "apps/eog-3d/package.ts": "36261681024e5393be49983b36dc03eac90637561b1e5063505f2fe0b0b5976b",
+    "apps/eog-3d-viewer/package.ts": "66e821bb03bde0cf17f5c8827aecc9f5acd14e8aaa4e1f75356c5eaf84280171",
+    "tests/integration/eog-3d-lazy-host.test.mjs": "1e19baa61270a8ac6e364b0f9389c3b34fd8e30625e4e8f243eaf93cc7ea0d59",
+    "tests/integration/eog-3d-observatory-convergence.test.mjs": "0014bb7bbebb87111398a9255f0fb647e2570a01686424fe30383a76b4cc3652"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\n",
+  "tests": "✔ inactive plugin action does not load its implementation (1.565223ms)\n✔ lazy handler guard blocks dependent plugin loading (0.477177ms)\n✔ concurrent first calls share loading and a failed load can retry (0.490518ms)\n✔ real Host 3D page/action stay unloaded until used and recover after disable (1317.8242ms)\n✔ EOG 3D Viewer and Enterprise Observatory 3D are independent lifecycle features (11.479171ms)\n✔ 3D Viewer owns neutral spatial read while Observatory owns runtime overlays (0.20585ms)\n✔ EOG 3D Viewer installs as a neutral spatial Workspace (10.574801ms)\n✔ 3D Viewer read handler is owned by EOG 3D, not Observatory (0.220732ms)\n✔ legacy 3D package identity is a compatibility alias (0.108133ms)\n✔ 3D Viewer owns a neutral Spatial Workspace implementation (3.612382ms)\n✔ Spatial Observatory is physically peer-owned with compatibility wrappers (1.987308ms)\nℹ tests 11\nℹ suites 0\nℹ pass 11\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1407.802432\n",
+  "audit": [
+    {
+      "profile": "minimal-uninstalled",
+      "installed": 7,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "installed": 16,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "installed": 16,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "installed": 7,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    }
+  ],
+  "staticGate": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 348,
+    "legacyEagerEdges": 264,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "limits": [
+    "Synthetic real Host HTTP test, not browser/Human visual acceptance.",
+    "Exact in-flight module-load/disable race not fault-injected; sequential lifecycle and cached handler recovery verified.",
+    "Other EOG/observatory implementations remain in cold path. No deployment."
+  ],
+  "initialIssues": [
+    "Fixed async execute return type required by AppActionHandler.",
+    "Preserved actual observatory dependency: disable dependent before viewer.",
+    "Existing convergence fixture lacked required 2D viewer catalog entry; added original package without relaxing assertions."
+  ]
+}
