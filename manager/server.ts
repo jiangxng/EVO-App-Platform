@@ -1,3 +1,4 @@
+import { createOnUseEogServicesV010 } from "./eog-service-runtime.js";
 import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
@@ -1332,15 +1333,19 @@ if (legacyGraphMigration.sourcePresent && legacyGraphMigration.imported > 0) {
     `Migrated ${legacyGraphMigration.imported} legacy EOG graph definition(s) into Enterprise Context.`
   );
 }
-const enterpriseOperatingGraphDefinitionPersistence =
-  createEnterpriseOperatingGraphDefinitionPersistenceV010(
-    enterpriseBusinessDefinitionRepository
-  );
-const enterpriseOperatingGraphService =
-  createEnterpriseOperatingGraphHostServiceV010({
-    persistence: enterpriseOperatingGraphDefinitionPersistence,
+const onUseEogServices = createOnUseEogServicesV010({
+  createGraph: () => createEnterpriseOperatingGraphHostServiceV010({
+    persistence: createEnterpriseOperatingGraphDefinitionPersistenceV010(
+      enterpriseBusinessDefinitionRepository
+    ),
     id: randomUUID
-  });
+  }),
+  createSop: graphService => createEogExpectedSopServiceV010({
+    repository: enterpriseBusinessDefinitionRepository,
+    graphService
+  })
+});
+const enterpriseOperatingGraphService = onUseEogServices.graph;
 
 const eogPreviewSeedResult = await applyConfiguredEogPreviewSeedV010({
   service: enterpriseOperatingGraphService,
@@ -1392,11 +1397,7 @@ if (legacySopMigration.sourcePresent && legacySopMigration.imported > 0) {
     `Migrated ${legacySopMigration.imported} legacy EOG SOP definition(s) into Enterprise Context.`
   );
 }
-const eogExpectedSopService =
-  createEogExpectedSopServiceV010({
-    repository: enterpriseBusinessDefinitionRepository,
-    graphService: enterpriseOperatingGraphService
-  });
+const eogExpectedSopService = onUseEogServices.sop;
 const contextMemoryGovernanceStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
   || (lifecycleStateFile
