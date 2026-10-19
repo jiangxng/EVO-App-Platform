@@ -142,3 +142,12 @@
 - **实际权限泄漏发现与修复（R，源码）：** #999 原审核页按 `session.principal.subjectId` 过滤草稿，但通用 `data-import.get` 经 `jobResult(job)` 直接序列化了同一 Job 的所有 `batchReviewDrafts`；`data-import.mapping.inspect` 同样携带完整 Job；若两名拥有企业管理权限的 Human 访问相同导入 Job，会跨操作者获取彼此未批准的字段选择。**采用方案：在通用 Host Action 输出处投影**，只保留当前 `principal.subjectId` 的草稿，不改变内部 Job、原始行、已有映射与 dry-run。覆盖 `get`、`inspectMapping`、预检查/导航返回携带 Job 的动作，提交 `fd883d7613615e667fce0c5d7bebb2322b3fdeb2`；新增 `tests/protocol/bex01-batch-extension-import.test.mjs` 对 `owner`、`other-owner`、无草稿操作者的读和检查做数据隔离回归（提交 `55da7430f69bd0b6899c21e337fa35c6deeaa8e7`）。**来源事实为读到的代码路径；合规性仍需 CI/真实会话实测，不以静态代码充当签收。**
 - **方案取舍（产品/安全判断）：** 采用 Host Action 返回投影而非前端隐藏字段，因为仅隐藏 Eidos UI 不能阻止经 `data-import.get` 读取别人的草稿。保持权威 Job 中最多 16 份按人隔离草稿，避免以 localStorage 替代 Host 存储；拒绝把草稿保存解释为已批准 Schema、已运行 dry-run 或已提交供应商数据。
 - **未决 / 验收路线：** ① 刷新 #999 最终 HEAD 的 Platform、BEX 真实隔离 Host Chromium、Human UI、轻量宿主和所有被触发的 CI，严格修复失败后再考虑合并；② actor / enterprise 权限、关闭导入、映射变更失效、失效候选、未保存变动、重新登录、失败重试、dry-run 保真与 Schema/Commit 独立边界继续按证据核对；③ 客户原 Excel 两个同名开户银行字段 ID、三条真实主体类型、Recipe 与预检查失效/重新执行、Railway 登录后 1280/390 长页、Human 视觉签收仍属**D 未取得**，不能用此 PR 的模拟测试代替。
+
+## 11. 2026-10-19 接续增量：真实 Host 草稿读取与过期字段的失效安全性（R）
+
+**R：直接取得并比对项目代码（而非竞品检索或模拟网页推测），精确证据为 #999 同分支提交。** 与 §10 的交接研究索引及此前四图产品决策一致。
+
+1. **真实 Host 读 Job 闭环缺口：** 最新 `manager/server.ts` 向对象扩展动作提供异步 `resolveImportJobReader()`，不再提供静态 `getImportJob`；原 #999 `object-extension.batch-review.save-draft` 仍直接读 `input.getImportJob`。按运行时代码对照，这会将真实已存在 Job 误判为不存在。现和已有的 `create-from-import` 命令对齐：先异步解析合法数据导入资源、复核企业 Owner/Admin 权限，再读 Job；加载可能 yield 后重读权威 Job，避免过期快照写入。代码提交 `ceaec04592c1d08da4ebe953a87013dc71a7e446`；协议测试特意改为只提供懒加载 reader 并断言被调用，提交 `c746f5f90918a9b48bffb6289a59011f286495e5`。此发现独立于此前 TypeScript 编译错误修复。
+2. **草稿已选字段被删除/撤权后不允许自动改选：** 原 `batch-page.ts` 当已保存选择不在当前 `fieldOptions` 内，静默回退到自动推荐（可能是 `__CREATE__`），但界面仍提示“草稿已恢复”。这违反 Human 明确决定和受控 Schema 变更的边界。采用方案：当草稿原 field ID 不再可选时回到 `__REVIEW__`，纳入“需要校对”的任务/列表、就地展开来源证据，并提示“草稿中 N 列原目标已失效，需重新核对”；禁止靠标签相同或重新推断值自动批准。代码提交 `12da67edb10b209de42dc79eb25082630f13eccc`、对应协议回归 `d8e9e437cd949a17605408a8f51b515a6511b032`。
+3. **方案比较与限制：** 优先于自动新建 Schema 的是“已保存意图失效 → 让人重新确认”；优先于缓存整个企业加载系统的是复用现有按需 Host Reader。真实客户的“开户银行”两项字段依然需要通过企业字段 ID 和用途核验，不能从设计原型的 `BANK_SETTLEMENT/BANK_ARCHIVE` 合成标识推断真实取值。草稿与 Schema 正式批准、dry-run 和最终 Supplier commit 仍是四个不同边界。
+4. **验收状态：** 这些源代码/新协议测试已写入 #999 原分支，**最终 exact-HEAD 全部 CI、Railway 已登录真实客户 Job 和 Human 视觉签收仍需分别核验**；任何绿色 CI 都不能替代未获得的原始 Excel、用户四图二进制和两个银行 field ID 的确认。
