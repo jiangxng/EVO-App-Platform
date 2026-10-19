@@ -372,6 +372,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
     key === "attention" || key === "proposed" || key === "suggested");
   const handledKeys = statusKeys.filter(key => key === "ignored");
   const reviewTable = {
+    // V3 compact four-column density uses upstream Eidos #200 semantics.
+    presentation: "compact" as const,
     columnLabels: {
       subject: zh ? "来源列名" : "Source column",
       evidence: zh ? "示例值" : "Example",
