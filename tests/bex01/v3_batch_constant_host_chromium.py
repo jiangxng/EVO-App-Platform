@@ -72,7 +72,20 @@ with sync_playwright() as p:
     page.screenshot(path=str(OUT/"v3-batch-constant-before-confirm-desktop.png"),full_page=True)
     # Choose the governed schema-approval action explicitly: Eidos may also\n    # render an independent save-review-draft submit action.\n    approval=form.locator('button[data-eidos-action="create-extension-batch"]')\n    expect(approval).to_have_count(1)\n    approval.click()
     mapping=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
-    expect(mapping).to_be_visible(timeout=30000)
+    try:
+        expect(mapping).to_be_visible(timeout=30000)
+    except AssertionError:
+        # Isolated synthetic diagnostics: do not conceal a Host rejection
+        # or weaken the required approval -> mapping transition assertion.
+        action_status=page.locator("[data-eidos-action-status]").all_text_contents()
+        latest_job=command("data-import.get",{"importJobId":job_id})["job"]
+        print("BEX01_V3_APPROVAL_DIAGNOSTIC="+json.dumps({
+            "url":page.url,"actionStatus":action_status,
+            "jobState":latest_job["state"],
+            "mapping":latest_job["mapping"],
+            "visiblePageTail":page.locator("body").inner_text()[-1400:]
+        },ensure_ascii=False),flush=True)
+        raise
     saved=command("data-import.get",{"importJobId":job_id})["job"]
     constant=[x for x in saved["mapping"] if x["targetFieldId"]=="subjectType"]
     assert constant==[{"targetFieldId":"subjectType",
