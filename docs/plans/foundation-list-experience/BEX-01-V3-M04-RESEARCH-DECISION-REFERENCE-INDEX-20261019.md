@@ -123,3 +123,36 @@
 - 本交接**新写的两份 Markdown 文档**及其分支/PR/commit 属于已保存成果；文档以外没有创建新的本地二进制包或完整 Excel 副本。
 
 研究信息已压缩为可验证出处+方案及限制；接续时优先**客户受权证据**而不是从头搜竞品或重建合成测试。
+## 9. 2026-10-19 接续窗口：M04 客户真实验收门禁核验（R / D）
+
+> 本节追加新窗口的**直接核验事实**，不覆盖前面历史快照、不重做外站/UI 研究。R = 本次直接读取 GitHub、Railway、文件元数据；H = 旧索引中已验证的历史事实；D = 客户受权业务证据仍不可取得。当前既未阅读客户原始 Excel，也未进入有授权的生产 Import Job。
+
+### 9.1 新增事实及原始索引
+
+| 已读来源（2026-10-19） | 直接读得的 R 级事实 | 适用边界 |
+| --- | --- | --- |
+| [main 分支](https://github.com/jiangxng/EVO-App-Platform/tree/main)、[PR #1048](https://github.com/jiangxng/EVO-App-Platform/pull/1048) | main HEAD = c2bfc43c6bf0ec2d11ce6697fd83294686190c4d；#1048 已合并且 merge SHA 同值。 | 仅为本次核验时点，不能当作永远最新。 |
+| [#1048 精确 HEAD 检查](https://github.com/jiangxng/EVO-App-Platform/commit/5c5e540fadd7194d350e1c70443beb3251c6d673/checks)、[main Continuity CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39261153142)、[main Lightweight Host CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39260202463) | PR HEAD 的 Human UI、Continuity、Lightweight Host、Branch Hygiene 成功；条件性分支清理检查 skipped。main 的两次 Continuity push run（39261153142、39260202121）及 Lightweight run 39260202463 都 completed/success。 | skipped 不是失败，CI PASS 不是客户验收。 |
+| [Railway EVO Ledger Runtime MVP](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) / production / Ledger Configurator | Railway 连接器返回当前部署 381ed045-79d7-4c27-a597-817f9f5bf21c SUCCESS；commitHash = c2bfc43c6bf0ec2d11ce6697fd83294686190c4d；服务 live source repo 为 jiangxng/EVO-App-Platform、branch 为 main；无 staged config 变更。 | 未读取服务持久化客户记录；部署成功不证明客户 Job、Schema、视觉签收。 |
+| 当前会话与 Library 的文件清单、标题和内容检索 | 会话无附件；Library 递归 Excel/CSV 清单仅返回“香港一件代发.xlsx”；精确名称与简化名称均未命中“往来账户2026_10_08_10_15_23.xlsx”；检索结果另见合成 V3 HTML 原型。 | 结论仅是**当前可访问文件未找到**；不等于文件在所有外部存储均不存在。HTML 不是原客户数据。 |
+| [#909](https://github.com/jiangxng/EVO-App-Platform/pull/909)、[#1033](https://github.com/jiangxng/EVO-App-Platform/pull/1033)、[#1035](https://github.com/jiangxng/EVO-App-Platform/pull/1035)、[#1037](https://github.com/jiangxng/EVO-App-Platform/pull/1037)、[#1039](https://github.com/jiangxng/EVO-App-Platform/pull/1039) | 直接复核：#909 OPEN + Draft，M04 四个工程 PR 均 merged，merge SHA 与本文件 §2 一致。 | 原型未被视为生产实现；合成 165/169/172 不能当客户真实行号。 |
+
+### 9.2 M04 接下来唯一有效的客户门禁（D，不能推断）
+
+1. **客户工作簿与 Import Job：** 原 XLSX 未取得；历史 import-79ce7d97-bbea-442a-b656-0661273b52f8、import-33ff3446-80c5-4992-b5c6-710f415535b3 仅为旧索引中的标识，不是本次已读的 Job，也不能认定二者为同一批次。
+2. **两个开户银行：** 未有当前企业两个字段的真实 fieldId、resolvedDescription、业务用途、源样本、归属和有权 Human 的映射决定。原型 BANK_SETTLEMENT/BANK_ARCHIVE 和测试 test.bank.* 均不得伪装为客户字段。
+3. **三条主体类型：** 未取得三条客户真实缺失行、来源主体身份材料或授权 rowCorrection；不得由 SUPPLIER 角色自动补 ORGANIZATION，也不得使用合成 165/169/172 行号。
+4. **执行边界：** 因无新的可复现工程缺口，保持 M04 OPEN；不新增功能修复 PR、不修改客户字段、不尝试生产 Schema 创建或 supplier commit。授权证据齐备后，先只读核对真实 Excel、Job、Schema，再经 Human 确认逐项修正。M05/M06 未越级放行。
+
+### 9.3 固定六行里程碑进度（核验于 2026-10-19）
+
+| 里程碑 | PR / CI / 部署证据 | 状态 | 未闭合的既定门禁 |
+| --- | --- | --- | --- |
+| M01 四列审核、异常优先、响应式 | #973/#978/#981/#984/#989 已合并；隔离 Chromium 回归历史 PASS | **工程已完成** | 登录后真实画面对照归 M06 |
+| M02 批次主体类型、字段方案预览 | #991/#993/#996 已合并；历史工程测试 PASS | **工程已完成** | 客户真实身份属 M04 |
+| M03 草稿/重入/权限/失效 | #1028→#999 已合并 main bdd5ee3b…；历史适用 CI PASS；当前 main 与 production c2bfc43c… SUCCESS | **工程和部署已完成** | 真实账号/Job 重入现场业务核对仍需授权 |
+| M04 两银行字段与三条主体类型 | #1033/#1035/#1037/#1039 合并、合成 Host/Recipe CI PASS，main 与 Railway 同 SHA | **工程安全子项完成；真实客户验收 OPEN** | 原 XLSX、授权 Job、两真实 ID/用途/Human 决策、三条身份逐行纠正 |
+| M05 Recipe/Schema/预检/最终明确提交 | 历史隔离 Host/Recipe 测试 PASS；没有客户真实 receipt | **客户业务验收 OPEN** | 权限、Schema 漂移失效、重新预检、幂等、显式 commit、审计 |
+| M06 1280px / 390px Human 视觉 | #909 仍 Draft；仅历史原型及合成 Chromium 证据 | **Human 签收 OPEN** | Railway 已登录真实客户长页与 S01–S04 对照，经用户签收 |
+
+**总工程进度：3/6。** 来源事实仅限本次 R 与继承 H；对缺失证据作 OPEN 判断是遵守既定 EVO 门禁，不是声称客户真实数据出现了新故障。本次仅文档追加，未触碰 PA05、Eidos、治理、业务 Host、Railway 配置、project.status.json，也未实施任何客户数据读写。
