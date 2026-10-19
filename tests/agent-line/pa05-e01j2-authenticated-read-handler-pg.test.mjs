@@ -319,7 +319,7 @@ $pa05_fn$`);
             explicitRecertificationAllowsOnlyNewEpoch:true,
             survivingWorkerMustRecheckEpoch:true,
             isolatedWorkerCrashedOnTcpFault:workerExitAfterCut,
-            originalWorkerGracefulTransportRecoveryCertified:!workerExitAfterCut,
+            originalWorkerGracefulTransportRecoveryCertified:false,
             supervisedFreshWorkerRecovered:true,
             silentPacketBlackholeCertified:false,
             automaticAppManagerCrossStoreAtomicity:false,
