@@ -498,9 +498,13 @@ test("V3 saved batch review choices are actor-scoped and never create enterprise
   assert.equal(draftRequest.command.code,OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
   assert.equal(draftRequest.requiresConfirmation,false);
   let saves=0,job=current;
+  let lazyReaderResolutions=0;
   const handlers=createObjectExtensionActionHandlersV010({
     repository:x.repo,canManageEnterpriseContext:()=>true,
-    getImportJob:(_,id)=>id===job.importJobId?job:undefined,
+    resolveImportJobReader:async()=>{
+      lazyReaderResolutions++;
+      return (_,id)=>id===job.importJobId?job:undefined;
+    },
     getImportableTargets:()=>[],
     saveBatchReviewDraft:input=>{
       saves++;job=assertDataImportJobV010({...job,
@@ -513,6 +517,7 @@ test("V3 saved batch review choices are actor-scoped and never create enterprise
   const result=await save.execute(draftRequest,ctx());
   assert.equal(result.ok,true,JSON.stringify(result));
   assert.equal(result.result.state,"DRAFT_SAVED");
+  assert.equal(lazyReaderResolutions,1,"draft save must use lazy-resolved authoritative import reader");
   assert.equal(saves,1);
   assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
   assert.deepEqual(job.mapping,originalMappings);
