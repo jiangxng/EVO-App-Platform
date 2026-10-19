@@ -207,3 +207,15 @@
 | M06 原 V3 桌面/手机视觉与业务 Human 签收 | 原型与合成 Chromium 证据存在；未取得登录后 1280/390 完整客户页 | **待人工签收** | 对照四图/完整滚动并由用户确认 |
 
 **禁止改变的决策**：仍执行“异常优先、证据就地、批次共同决定、建议与人工批准分离、受控 Schema 创建、操作连续/系统记忆”；Eidos 通用交互、Platform 业务 Host 各自负责；不由 Agent 自动推断同名银行，不自动覆盖主体类型，不用模拟客户资料取代受权验证；不切 Railway 到 release、不写 `project.status.json`。
+
+## 14. 2026-10-19 M04：同名银行自动建议的真实代码安全缺口（R）
+
+> 本节遵循原 M01–M06 里程碑约束，属于 **M04 的同名候选 ID 审核安全性**；不是要求新增模型、页面或企业字段。R = 直接取得 GitHub 实现源码、独立协议 CI 日志；D = 客户原 Excel、实际 Job 和企业内真实同名 bank field ID 尚未取得。无新外站研究。
+
+- **来源核实**：用户文件库 XLSX 元数据清单中仅有与本项目无关的 `香港一件代发.xlsx`；针对原 `往来账户2026_10_08_10_15_23.xlsx` 的文件检索，以及此仓库 GitHub 文件检索，均未找到可读取的客户原文件。因此不能把合成行 `165/169/172` 当真实客户问题行，也不能把示例字段 ID `test.bank.receiving/test.bank.settlement` 当真实银行字段 ID。Railway 对 main 的服务状态 Online/SUCCESS 仅证明部署健康，不能读取受权客户 Job 内容。
+- **已确认的正向能力**：真实审核页 `manager/server.ts` 的 `OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010` 批次页入口**已经**把 `x.resolvedDescription` 传为 candidate `description`；`apps/data-import/page.ts` 对重复候选使用真实 `fieldId`、`resolvedDescription` 和“需要核对”提示；`apps/object-extension/batch-page.ts` 对同名列使用 `__REVIEW__` 并列候选 ID，不直接批准。另一路 Host 草稿校验 helper 不传 `description`，但只用于合法 ID 检查，**不影响批次页真实展示**。此前可能误以为整页丢用途说明，经完整入口复核已排除，不做无谓改动。
+- **发现的实际缺口**：`apps/data-import/service.ts::suggestDataImportMappingV010` 初始确定性建议将 `resolvedLabel` 等本地化别名映射到数组，后用 `matches.find(item => !usedTargets.has(item))` 在同名候选间选第一个可用 field ID。这与原 V3 对两个“开户银行”必须经 Human 按实际 ID 与用途确认的决策冲突，并且可能在进入审核页前就形成错误初始映射。
+- **可重复的失败**：[独立 PR #1033](https://github.com/jiangxng/EVO-App-Platform/pull/1033) 新增 `tests/protocol/bex01-v3-m04-ambiguous-bank-targets.test.mjs` 使用**合成**两个同名企业字段（不同 ID/用途），只测试首轮服务建议。不传实际客户数据。[原始 Platform CI run 39211226617](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39211226617) 的两条 M04 测试均 RED：同名自动选择第一个候选，或在显式占用其一后自动选择剩余候选。1018 其他测试 PASS、1 SKIP；是实际服务函数回归，不是已发生的生产误导入证明。
+- **最小修复的采用与排除**：只在初始建议选择中允许 (1) 唯一别名对应真实 field ID；或 (2) 来源列明确等于唯一技术 `fieldId`。有重复业务别名而没有精确 ID 时返回未匹配，走**既有**四列人工审核和保留来源样本。不能因两个同名字段已有一个被占用而推断剩余字段；不自动改任何已保存 Human 映射/既有 Recipe，不改 Eidos、草稿、原 Excel、主体类型、schema 建立/权限、dry-run 或 supplier commit。修复提交 `8b720c5cdd20b9b3bac4c0eecd83fbd1015009fc`；最终通过与合并状态以最新 HEAD/CI 为准，不能预先宣称完成。
+- **三条主体类型验收边界**：现有 `tests/bex01/v3_synthetic_xlsx_172_chromium.py` 真实隔离 Host 验证 172×22 合成 XLSX 和 *synthetic* 的 165、169、172 三行空白，明确通过人工逐行更正、重开恢复、最后才独立 commit；测试都填 `ORGANIZATION` 不代表真实三行属于机构。真实客户仍需原始身份事实逐一确定，可为 `PERSON`，不能由供应商角色推断。
+- **下一门禁**：#1033 最终 HEAD Platform CI、Real Host Chromium、Human UI、连续性、轻量宿主全绿后方能考虑合并 main；**M04 只可标注“同名自动建议防误选完成”子项**。整个 M04 仍为“待真实客户数据核验”：需原 Excel、受权 Job 和两个实际字段 ID/描述/用途、三条实际身份结果。M05、M06 既定范围与签收门槛不动。
