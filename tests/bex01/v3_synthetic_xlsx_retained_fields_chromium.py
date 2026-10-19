@@ -209,6 +209,19 @@ with sync_playwright() as pw:
     expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
     focus_toggle.click()
     expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    # Existing workbench keyboard shortcut must also reveal/refocus, without
+    # clobbering the sidebar preference that other applications use.
+    page.keyboard.press("Control+b")
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    page.keyboard.press("Control+b")
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    # Existing activity-strip navigation must remain usable in focused mode.
+    page.locator('[data-eidos-activity-bar] button[data-activity-id="apps"]').click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    focus_toggle.click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
     assert page.evaluate("""() => {
       const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
       return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
