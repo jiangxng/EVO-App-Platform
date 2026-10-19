@@ -729,8 +729,8 @@ E01J4E §60 accepted function-only Host SQL operator without raw central table a
 
 ## 66. PA05-05/E01J4J — Host 协作本地停机排他边界（2026-10-19）
 
-**候选工程 PR [#1057](https://github.com/jiangxng/EVO-App-Platform/pull/1057)，尚未通过最终 HEAD CI 则不得记 PASS**。承接 J4I 实际缺口：one-shot 文件锁仅防多个维修进程，普通 Host 仍可能写同一 JSON state。本次仅为自愿启用的正常 Host 增加默认 OFF `APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK=OPT_IN`，在读取原 State 前持有**与 J4I 同一路径、同一个 inode 语义**的 O_EXCL 文件锁；仅允许 0700/0600、进程 umask 077、同目录可信 state，安全正常退出释放，SIGKILL 留下不确定状态、拒绝自动偷锁。完整源码与限制见 [J4J 决策、来源及验证](PA05-E01J4J-COOPERATIVE-HOST-EXCLUSION-20261019.md)。
+**候选工程 PR [#1057](https://github.com/jiangxng/EVO-App-Platform/pull/1057)，尚未通过最终 HEAD CI 则不得记 PASS**。承接 J4I 实际缺口：one-shot 文件锁仅防多个维修进程，普通 Host 仍可能写同一 JSON state。本次仅为自愿启用的正常 Host 增加默认 OFF `APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK=OPT_IN`，在读取原 State 前持有**与 J4I 同一路径、同一个 inode 语义**的 O_EXCL 文件锁；仅允许 0700/0600、进程 umask 077、同目录可信 state，仅退出码 0 的安全正常退出释放，非零退出或 SIGKILL 留下不确定状态、拒绝自动偷锁。完整源码与限制见 [J4J 决策、来源及验证](PA05-E01J4J-COOPERATIVE-HOST-EXCLUSION-20261019.md)。
 
-**验收计划**：真实独立 Node Host 进程在 HTTP ready 时保持锁，J4I 因锁拒绝且未碰 Secrets、正常 SIGTERM 后维护可以进入原 HUMAN 拒绝、SIGKILL 后 Host 和维修都不能擅自重启；三物理 PG18 回归目标 **28/28、0 skipped**；因 Host server 改动准确 HEAD 的全部相关 CI 必须通过。此前 J2–I **27/27 PASS** 历史证据保留、不重新实现。
+**验收计划**：真实独立 Node Host 进程在 HTTP ready 时保持锁，J4I 因锁拒绝且未碰 Secrets、正常 SIGTERM 后维护可以进入原 HUMAN 拒绝、非零退出或 SIGKILL 后 Host 和维修都不能擅自重启；三物理 PG18 回归目标 **28/28、0 skipped**；因 Host server 改动准确 HEAD 的全部相关 CI 必须通过。此前 J2–I **27/27 PASS** 历史证据保留、不重新实现。
 
 **独立负门禁**：该锁仅限**同一文件系统命名空间里自愿配合的进程**；不能证明多机 Worker/副本都已停机，尤其无法阻止未 opt-in 的 Host。真实生产 Human 身份签发/撤销、DBA 登录权限及凭据轮换、运维 CLI/Runbook、集中审计、PG/JSON 跨存储 ACID、postgres.js 3.4.9 TCP 崩溃保持 OPEN，PA05-05 E01–E05、完整 E01J4 和 W06 NOT_SIGNED；#988/#979/#913 OPEN，material WRITE OFF，**不手动部署 Railway 或改并行工程/全局状态**。
