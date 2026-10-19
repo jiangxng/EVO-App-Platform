@@ -5,7 +5,7 @@ import {randomUUID} from "node:crypto";
 import {createServer} from "node:net";
 import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
-import {join} from "node:path";
+import {dirname,join} from "node:path";
 import postgres from "postgres";
 import {createPackageCatalog} from "../../dist/catalog/catalog.js";
 import {createAppManagerService} from "../../dist/manager/service.js";
@@ -32,7 +32,7 @@ async function childResult(file,env={},isServer=false){
   const p=spawn(process.execPath,args,{
     cwd:process.cwd(),
     env:{
-      PATH:process.env.PATH??"",HOME:process.env.HOME??"/tmp",
+      PATH:process.env.PATH??"",HOME:dirname(file),
       NODE_ENV:"test",PORT:String(n),
       ...(isServer?{
         APP_PLATFORM_STATE_FILE:file,
@@ -57,11 +57,13 @@ async function childResult(file,env={},isServer=false){
       await new Promise(resolve=>setTimeout(resolve,120));
     }
     if(served)p.kill("SIGTERM");
-    await Promise.race([
-      new Promise(resolve=>p.once("exit",resolve)),
-      new Promise((_,reject)=>setTimeout(()=>
-        reject(Error("PA05_J4F_HOST_TIMEOUT:"+output)),17000))
-    ]);
+    if(p.exitCode===null && p.signalCode===null){
+      await Promise.race([
+        new Promise(resolve=>p.once("exit",resolve)),
+        new Promise((_,reject)=>setTimeout(()=>
+          reject(Error("PA05_J4F_HOST_TIMEOUT:"+output)),17000))
+      ]);
+    }
     return {code:p.exitCode,signal:p.signalCode,output,served};
   }
   await Promise.race([
