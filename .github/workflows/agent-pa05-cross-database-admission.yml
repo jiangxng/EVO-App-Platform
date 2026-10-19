@@ -8,6 +8,7 @@ on:
       - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
       - "tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs"
       - "tests/agent-line/fixtures/pa05-e01j3-tcp-link.mjs"
+      - "docs/agent-line/PA05-E01J4-PERSISTED-MULTIWORKER-REATTEST-20261019.md"
       - "docs/agent-line/PA05-E01J3-INFLIGHT-TCP-READ-20261019.md"
       - "docs/agent-line/PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md"
       - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
@@ -48,6 +49,7 @@ on:
       - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
       - "tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs"
       - "tests/agent-line/fixtures/pa05-e01j3-tcp-link.mjs"
+      - "docs/agent-line/PA05-E01J4-PERSISTED-MULTIWORKER-REATTEST-20261019.md"
       - "docs/agent-line/PA05-E01J3-INFLIGHT-TCP-READ-20261019.md"
       - "docs/agent-line/PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md"
       - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
@@ -123,6 +125,12 @@ jobs:
           grep -Fq 'PA05_E01J2_AUTHENTICATED_HANDLER_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J2_AUTHORITY_UNAVAILABLE=' pa05-xdb.log
           grep -Fq 'PA05_E01J3_INFLIGHT_TCP_PARTITION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4_PERSISTED_MULTIWORKER_REATTEST_PG=' pa05-xdb.log
+          grep -Fq '"crashedWorkerRestoredLocallyActive":true' pa05-xdb.log
+          grep -Fq '"globalRecertificationDoesNotAutoApproveWorkers":true' pa05-xdb.log
+          grep -Fq '"workerCannotForgeHostReattestation":true' pa05-xdb.log
+          grep -Fq '"reattestedHostReadPasses":true' pa05-xdb.log
+          grep -Fq '"localJsonPostgresAtomicityCertified":false' pa05-xdb.log
           grep -Fq '"cutOccurredDuringOriginalBusinessRead":true' pa05-xdb.log
           grep -Fq '"originalBusinessResultNeverEscapedCut":true' pa05-xdb.log
           grep -Fq '"staleEpochDeniedAfterTcpRecovery":true' pa05-xdb.log
@@ -200,8 +208,8 @@ jobs:
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           # Node 24 test reporter uses the unicode summary rather than TAP '# skipped'.
           # Pin actual case count so a conditional PG skip cannot look like success.
-          grep -Fq 'ℹ tests 18' pa05-xdb.log
-          grep -Fq 'ℹ pass 18' pa05-xdb.log
+          grep -Fq 'ℹ tests 19' pa05-xdb.log
+          grep -Fq 'ℹ pass 19' pa05-xdb.log
           grep -Fq 'ℹ fail 0' pa05-xdb.log
           grep -Fq 'ℹ skipped 0' pa05-xdb.log
           if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi

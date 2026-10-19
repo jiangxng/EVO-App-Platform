@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {fork} from "node:child_process";
 import {randomUUID} from "node:crypto";
+import {mkdtempSync,readFileSync,rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
 import {fileURLToPath} from "node:url";
 import postgres from "postgres";
 import {createPa05TcpCutLinkV010} from "./fixtures/pa05-e01j3-tcp-link.mjs";
@@ -27,23 +30,27 @@ function connectionForRole(url,role,password){
   parsed.username=role;parsed.password=password;
   return parsed.toString();
 }
-function start(roleUrl,schema){
+function start(roleUrl,schema,stateFile){
   const child=fork(workerScript,[],{
     stdio:["ignore","pipe","pipe","ipc"],cwd:process.cwd(),
     env:{PATH:process.env.PATH??"",HOME:process.env.RUNNER_TEMP??"/tmp",
-      PA05_E01J2_HOST_SQL_URL:roleUrl,PA05_E01J2_SCHEMA:schema}
+      PA05_E01J2_HOST_SQL_URL:roleUrl,PA05_E01J2_SCHEMA:schema,
+      ...(stateFile?{PA05_E01J4_STATE_FILE:stateFile}:{})}
   });
   child.stderr.on("data",b=>{child.lastError=(child.lastError??"")+String(b);});
   return child;
 }
 async function stop(child){
-  if(!child||child.exitCode!==null)return;
-  const done=reply(child,"closed",1500).catch(()=>null);
-  child.send({type:"close"});await done;
-  if(child.exitCode===null){
+  if(!child||child.exitCode!==null||child.signalCode!==null)return;
+  if(child.connected){
+    const done=reply(child,"closed",1500).catch(()=>null);
+    try{child.send({type:"close"});}catch{/* OS child already dead */}
+    await done;
+  }
+  if(child.exitCode===null&&child.signalCode===null){
     child.kill("SIGTERM");
     await Promise.race([new Promise(resolve=>child.once("exit",resolve)),delay(800)]);
-    if(child.exitCode===null)child.kill("SIGKILL");
+    if(child.exitCode===null&&child.signalCode===null)child.kill("SIGKILL");
   }
 }
 function assertBusiness(result,host){
@@ -331,6 +338,174 @@ $pa05_fn$`);
           if(partitionHost)partitionHost.off("message",observe);
           await Promise.allSettled([stop(partitionHost),stop(offlineHost)]);
           await proxy.close();
+        }
+      });
+
+      await t.test("E01J4 isolate two persisted AppManagers against central Host reattestation",{
+        timeout:55000
+      },async()=>{
+        const storage=mkdtempSync(join(tmpdir(),"pa05-e01j4-"));
+        const fileA=join(storage,"host-a.json");
+        const fileB=join(storage,"host-b.json");
+        let durableA,durableB,restartedB;
+        try{
+          // The real DBA owns this opt-in authority; no Worker receives DDL
+          // or permission to write approvals. E01J3 ended ACTIVE at epoch 6.
+          assert.deepEqual(await admin.getEpoch(),{epoch:6,state:"ACTIVE"});
+          await root.unsafe('CREATE TABLE "'+schema+
+            '".pa05_read_host_activation_epoch ('+
+            'owner_package_id text NOT NULL, host_id text NOT NULL, '+
+            'approved_epoch bigint NOT NULL CHECK(approved_epoch>=1), '+
+            'PRIMARY KEY(owner_package_id,host_id))');
+          await root.unsafe('INSERT INTO "'+schema+
+            '".pa05_read_host_activation_epoch VALUES '+
+            '($1,$2,$3),($1,$4,$3)',[
+              "evo-purchase-attention","read-host-a",6,"read-host-b"
+            ]);
+          // The original function permissions remain role-scoped; the extra
+          // approval check is inside the same SQL transaction as the READ.
+          await root.unsafe(`CREATE OR REPLACE FUNCTION "${schema}".
+pa05_assert_authenticated_host_read(p_epoch bigint)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,pg_temp
+AS $pa05_j4$
+DECLARE
+  v_host text;
+  v_epoch bigint;
+  v_state text;
+  v_approved bigint;
+BEGIN
+  SELECT p.host_id INTO v_host
+  FROM "${schema}".pa05_read_host_principals AS p
+  JOIN "${schema}".pa05_read_trusted_hosts AS h
+    ON h.owner_package_id=p.owner_package_id AND h.host_id=p.host_id
+  WHERE p.owner_package_id='evo-purchase-attention'
+    AND p.login_role=session_user
+  FOR SHARE OF p,h;
+  IF v_host IS NULL THEN
+    RAISE EXCEPTION 'PA05_READ_SQL_HOST_NOT_TRUSTED' USING ERRCODE='42501';
+  END IF;
+  SELECT epoch,state INTO v_epoch,v_state
+  FROM "${schema}".pa05_read_owner_epoch
+  WHERE owner_package_id='evo-purchase-attention' FOR SHARE;
+  IF v_state IS DISTINCT FROM 'ACTIVE' OR v_epoch IS DISTINCT FROM p_epoch THEN
+    RAISE EXCEPTION 'PA05_READ_SQL_ADMISSION_DENIED' USING ERRCODE='42501';
+  END IF;
+  SELECT approved_epoch INTO v_approved
+  FROM "${schema}".pa05_read_host_activation_epoch
+  WHERE owner_package_id='evo-purchase-attention' AND host_id=v_host FOR SHARE;
+  IF v_approved IS DISTINCT FROM v_epoch THEN
+    RAISE EXCEPTION 'PA05_READ_SQL_HOST_REATTEST_REQUIRED' USING ERRCODE='42501';
+  END IF;
+  RETURN v_host;
+END
+$pa05_j4$`);
+          await root.unsafe('GRANT EXECUTE ON FUNCTION "'+schema+
+            '".pa05_assert_authenticated_host_read(bigint) TO "'+roleA+'"');
+          await assert.rejects(sqlB.unsafe('UPDATE "'+schema+
+            '".pa05_read_host_activation_epoch SET approved_epoch=999'),
+            /permission denied/);
+
+          durableA=start(urlA,schema,fileA);
+          durableB=start(urlB,schema,fileB);
+          await Promise.all([reply(durableA,"ready"),reply(durableB,"ready")]);
+          assert.notEqual(durableA.pid,durableB.pid);
+          const positiveA=reply(durableA,"readResult");
+          durableA.send({type:"read",epoch:6});
+          assertBusiness(await positiveA,"read-host-a");
+          const positiveB=reply(durableB,"readResult");
+          durableB.send({type:"read",epoch:6});
+          assertBusiness(await positiveB,"read-host-b");
+          const stateA=reply(durableA,"localState");
+          durableA.send({type:"snapshot"});
+          assert.equal((await stateA).active,true);
+          const stateB=reply(durableB,"localState");
+          durableB.send({type:"snapshot"});
+          assert.equal((await stateB).active,true);
+
+          // Freeze central authority BEFORE changing only local A. B is
+          // left ACTIVE in a different persisted JSON file, then crashes.
+          assert.equal(await admin.revoke(6),7);
+          const localDisable=reply(durableA,"disabled");
+          durableA.send({type:"disable"});
+          await localDisable;
+          const disabledState=reply(durableA,"localState");
+          durableA.send({type:"snapshot"});
+          assert.equal((await disabledState).active,false);
+          assert.equal(JSON.parse(readFileSync(fileB,"utf8")).activeFeatures
+            .some(f=>f.featureId==="evo-purchase-attention.default"),true);
+          const dead=new Promise(resolve=>durableB.once("exit",resolve));
+          durableB.kill("SIGKILL");
+          await dead;
+          restartedB=start(urlB,schema,fileB);
+          await reply(restartedB,"ready");
+          const restored=reply(restartedB,"localState");
+          restartedB.send({type:"snapshot"});
+          assert.deepEqual(
+            {installed:(await restored).installed},
+            {installed:true}
+          );
+          const stillActive=reply(restartedB,"localState");
+          restartedB.send({type:"snapshot"});
+          assert.equal((await stillActive).active,true);
+          const deniedOld=reply(restartedB,"readDenied");
+          restartedB.send({type:"read",epoch:6});
+          assert.match((await deniedOld).message,/PA05_READ_SQL_ADMISSION_DENIED/);
+          const deniedFrozen=reply(restartedB,"readDenied");
+          restartedB.send({type:"read",epoch:7});
+          assert.match((await deniedFrozen).message,/PA05_READ_SQL_ADMISSION_DENIED/);
+
+          // Global recertification does NOT automatically trust each
+          // persisted local AppManager installation from the previous epoch.
+          assert.equal(await admin.certify({
+            expectedEpoch:7,async trustedOperatorApproved(){return true;}
+          }),8);
+          const pendingB=reply(restartedB,"readDenied");
+          restartedB.send({type:"read",epoch:8});
+          assert.match((await pendingB).message,
+            /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+          const pendingA=reply(durableA,"readDenied");
+          durableA.send({type:"read",epoch:8});
+          assert.match((await pendingA).message,
+            /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+          // Only the isolated DBA may mark A re-attested, after explicitly
+          // checking its local inactive state and re-enabling via AppManager.
+          const checkedA=reply(durableA,"localState");
+          durableA.send({type:"snapshot"});
+          assert.equal((await checkedA).active,false);
+          const reenabled=reply(durableA,"enabled");
+          durableA.send({type:"enable"});
+          await reenabled;
+          await root.unsafe('UPDATE "'+schema+
+            '".pa05_read_host_activation_epoch SET approved_epoch=8 '+
+            'WHERE owner_package_id=$1 AND host_id=$2',[
+              "evo-purchase-attention","read-host-a"
+            ]);
+          const newlyAllowed=reply(durableA,"readResult");
+          durableA.send({type:"read",epoch:8});
+          assertBusiness(await newlyAllowed,"read-host-a");
+          const stillUnapproved=reply(restartedB,"readDenied");
+          restartedB.send({type:"read",epoch:8});
+          assert.match((await stillUnapproved).message,
+            /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+          console.log("PA05_E01J4_PERSISTED_MULTIWORKER_REATTEST_PG="+JSON.stringify({
+            actualPostgresql18:true,distinctWorkerProcessAndStateFiles:2,
+            originalAppManagerAndPurchaseRead:true,
+            centralRevocationBeforeLocalDisable:true,
+            crashedWorkerRestoredLocallyActive:true,
+            oldEpochAndFrozenReadDenied:true,
+            globalRecertificationDoesNotAutoApproveWorkers:true,
+            workerCannotForgeHostReattestation:true,
+            reattestedHostReadPasses:true,
+            unapprovedSurvivingWorkerDenied:true,
+            localJsonPostgresAtomicityCertified:false,
+            productionOperatorAttestationCertified:false,
+            productionHostLifecycleWired:false,
+            productionWriteEnabled:false,pa05Signed:false
+          }));
+        }finally{
+          await Promise.allSettled([stop(durableA),stop(durableB),stop(restartedB)]);
+          rmSync(storage,{recursive:true,force:true});
         }
       });
       console.log("PA05_E01J2_AUTHENTICATED_HANDLER_PG="+JSON.stringify({
