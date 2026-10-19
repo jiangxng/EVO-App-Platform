@@ -146,3 +146,23 @@ Host分别延迟装配桌面read、桌面operation与移动read handler；原ope
 本批完整读取observatory-actions、Agent tools、共享输入和Provider resolver；定向核对Host引用/装配及原测试，无新增外网来源。代码事实：Provider resolver构造只建立方法闭包；实际Runtime/Analysis解析与service构造在createService(request)调用时发生。Agent tools直接使用同一公开resolver，未依赖Human actions；本批不改Agent工具合同或权限。这个事实只解释本resolver，不能推导所有Provider注册无副作用，也不等于R3已完成。
 
 下一步优先核对`manager/server.ts`中启动创建的`enterpriseOperatingGraphViewStore/ViewService`、对应文件存储实现和实际消费者：区分构造是否读文件、首次方法使用、副作用与共享持久性，再决定是否需要按需装配。共享图模型、编辑命令、Agent工具仍有静态依赖；不为了删除边而强改同步公开合同。R1未整体关闭，R2 Agent SQL/R3 Provider分类/R4跨层验收保持原清单。固定7项、4闭环、3部分。
+
+## 11. 2026-10-19增量：共享View State构造边界核实与保留决定
+
+基线main `6c5bf0a2901fd2e12f4e2be6409ed994012dd6e6`（#1019）。本批完整读取`providers/eog-view-state/store.ts`、`runtime.ts`及公开合同，核对Host装配和下表消费者调用位置。结论：**文件store构造只封装read/write方法，provider构造只封装ensure/get/list/apply；没有构造期文件读取、目录创建、写入、连接或定时器。** 文件不存在时list返回空且不创建文件；实际调用才读，每次读都校验快照。内存store构造复制验证空种子，属于无外部资源的轻量工作。
+
+| 消费者 | 使用位置与行为 | 当前边界判断 |
+|---|---|---|
+| 2D设计页 | `enterprise-operating-graph-page.ts`的diagramView/操作处理，ensure/apply | 请求时读或写共享视图，非工厂创建即执行 |
+| 中性2D/3D查看器 | 各workspace-page读取handler，ensure | 无视图时会创建默认视图；已有行为，本批不改为纯无写入读取 |
+| 桌面/空间观测 | desktop-page/spatial-page读取handler，ensure | 原消费者资格有效后实际读取时使用 |
+| 2D/3D Agent工具 | 各agent-tools execute中的list、ensure/apply | 读取可返回未持久化默认视图；变更才ensure/apply；未修改工具合同 |
+| 移动观测 | mobile-read-page不注入view service | 不需要桌面/空间布局存储 |
+
+采用：保留Host共享、同步、按方法访问的现有服务与文件路径，以行为门禁保护。排除：为了减少工厂数量再套一层懒代理、把共享数据绑定某一个UI插件生命周期、随停用销毁布局文件、为降低静态模块数改造全部同步公开合同。原因是此处已没有需要延期的外部资源动作；多消费者共享是合理的。这个保留决定只针对构造/共享归属，不证明所有入口授权、所有文件IO或全平台按需装载都已闭环。
+
+新增`tests/protocol/eog-view-state-loading.test.mjs`两项：隔离子进程在模块导入后拦截已用同步fs入口，构造时任何文件操作即失败（模块加载器本身IO不计入）；真实临时文件验证缺文件只读无创建、坏JSON使ensure失败且字节不变、人工修复fixture后同实例可读、2D/3D独立视图持久化与重新打开、跨企业get拒绝、旧revision写拒绝且原数据不变。结合原provider边界和四个真实Host查看/观测生命周期案例，本地共9项通过。新测试纳入Lightweight Host CI。
+
+未修改生产实现，因此没有新增构建或模块/RSS收益主张；使用当前main已构建产物（hash保存在[验证记录](evidence/eog-view-store-boundary-20261019.json)），CI负责重新构建运行。此前#1019的336模块/255静态边是历史最近实测，本批不冒充重新测量。没有多进程并发写测试、数据库事务/跨Host锁承诺、真实浏览器验收或生产部署；现有文件存储并发模型保持。
+
+本小项核实结束：共享View State不属于“启动提前读取文件”缺陷。R1的共享模型/编辑命令/Agent工具静态依赖仍需按消费路径收口；下一批先汇总这些剩余根边及其实际副作用，区分必要同步共享边界和可迁移业务实现，再定整改，避免无依据逐模块拆分。R2/R3/R4不变，固定7项、4闭环、3部分。无新增外网研究；源码事实与本节保留判断分开记录。
