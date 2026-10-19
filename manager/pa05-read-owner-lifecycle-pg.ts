@@ -32,7 +32,7 @@ export function createPa05ReadLifecyclePgAuthorityV010(input: {
   async function authorized(tx:typeof db) {
     const rows=await tx.unsafe(
       'SELECT host_id FROM '+schema+'.pa05_read_lifecycle_operators '+
-      'WHERE login_role=session_user AND host_id=$1 AND enabled=true FOR SHARE',
+      'WHERE login_role=session_user AND host_id=$1 AND enabled=true',
       [input.hostId]);
     if(rows.length!==1)throw Error("PA05_READ_LIFECYCLE_SQL_OPERATOR_NOT_TRUSTED");
   }
@@ -58,10 +58,10 @@ export function createPa05ReadLifecyclePgAuthorityV010(input: {
     async fence(ctx) {
       checkArgs(ctx);
       await db.begin(async tx=>{
-        await authorized(tx as typeof db);
+        await authorized(tx as unknown as typeof db);
         const epochRows=await tx.unsafe(
           'SELECT epoch FROM '+schema+'.pa05_read_owner_epoch '+
-          'WHERE owner_package_id=$1 FOR SHARE',[owner]);
+          'WHERE owner_package_id=$1',[owner]);
         if(epochRows.length!==1)throw Error("PA05_READ_LIFECYCLE_SQL_NO_OWNER");
         const approval=await tx.unsafe(
           'SELECT approved_epoch FROM '+schema+'.pa05_read_host_activation_epoch '+
@@ -84,15 +84,15 @@ export function createPa05ReadLifecyclePgAuthorityV010(input: {
     async assertFenced(ctx) {
       checkArgs(ctx);
       await db.begin(async tx=>{
-        await authorized(tx as typeof db);
-        await getIntent(tx as typeof db,ctx);
+        await authorized(tx as unknown as typeof db);
+        await getIntent(tx as unknown as typeof db,ctx);
       });
     },
     async complete(ctx) {
       checkArgs(ctx);
       await db.begin(async tx=>{
-        await authorized(tx as typeof db);
-        const state=await getIntent(tx as typeof db,ctx);
+        await authorized(tx as unknown as typeof db);
+        const state=await getIntent(tx as unknown as typeof db,ctx);
         if(state==="COMPLETE")return;
         const rows=await tx.unsafe(
           'UPDATE '+schema+'.pa05_read_lifecycle_intents SET state=$1 '+
