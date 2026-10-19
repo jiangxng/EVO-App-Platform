@@ -190,6 +190,21 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(map_form).to_be_visible(timeout=30000)
+    # Exact V3 routes are now wide without changing the saved navigation state.
+    shell=page.locator('[data-eidos-app-host-layout="workbench"]')
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    assert page.locator('[data-eidos-side-panel]').evaluate(
+      "(node) => getComputedStyle(node).display")=="none"
+    wide_width=map_form.evaluate("(node) => Math.round(node.getBoundingClientRect().width)")
+    assert 1000 <= wide_width <= 1220,("v3-wide-review-width",wide_width)
+    focus_toggle=page.locator('[data-eidos-workspace-focus-toggle]')
+    expect(focus_toggle).to_be_visible()
+    expect(focus_toggle).to_have_attribute("aria-pressed","true")
+    focus_toggle.click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    focus_toggle.click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
     expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
         'data-eidos-review-table-presentation','compact')
     # Match the full #909 workflow hierarchy: source and actionable issues
@@ -275,6 +290,8 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
+    expect(page.locator('[data-eidos-app-host-layout="workbench"]')).to_have_attribute(
+      "data-eidos-workspace-focused","true")
     expect(form.locator('[data-eidos-task-presentation="workbench"]')).to_be_visible()
     expect(form.locator('[data-eidos-form-task-context]')).to_be_visible()
     expect(form.locator('[data-eidos-form-task-metrics]')).to_be_visible()
