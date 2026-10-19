@@ -29,3 +29,10 @@ Post-merge J4G `main@9a3edf8d` [Actions #39271124305](https://github.com/jiangxn
 Reuse existing J4G Provider admission and J4F SQL intent. Do not implement a CLI that accepts local env `AUTHORIZED=true` or unverified bearer-to-principal mapping. When real trusted production IdP/DBA credential issuer and audit retention policy are provisioned, install a narrowly scoped one-shot operator entry and prove the actual authorized invocation and revocation (including recovering from a compromised/stale Human session), before E01J4 or W06 signoff. Local journal success alone does not establish those external trust decisions.
 
 **Evidence grading:** repository source and CI logs described above directly read 2026-10-19; no new upstream database document was consulted. Subsequent PR CI result, final PR head and main deployment must be verified independently before changing this record's implementation status.
+
+
+## 6. Genuine first clean J4H CI observation (2026-10-19)
+
+At prior engineering/documentation HEAD `eccb8f117638215a6d744fa121ea2b2b7c729452`, [real three-PostgreSQL18 CI #39272963229](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39272963229), job `118129805194`, inspected raw logs showing **26/26 PASS, 0 failed, 0 skipped**. All legacy markers and `PA05_E01J4G_TRUSTED_SQL_RECOVERY_PG`, `PA05_E01J4G_PROVIDER_DENIAL`, and `PA05_E01J4H_DURABLE_AUDIT` appeared in actual output; J4H proves real OS SIGKILL persisted the audit but did not invent completion, then append after a fresh process, 0600/0700/symlink/Host rejection and no token/DB URL output. The same accurate HEAD returned **8/8 SUCCESS** including lightweight Host and independent READ, WRITE, Platform, UI and Continuity.
+
+**Engineering conclusion:** J4H local durable audit is an isolated bounded PASS on that inspected SHA; the complete PA05-05 E01–E05/W06, production IdP/DBA/secrets custody, external maintenance command and signed central audit are **NOT_SIGNED**. Document-only follow-up commits require fresh exact final HEAD validation before merge and must not inherit this earlier check blindly.
