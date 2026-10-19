@@ -25,13 +25,14 @@ Rejected: client-declared Host ID or GUC identity; copying E01J1's privileged co
 
 **Explicitly not certified:** production credential custody, mTLS/PKI or hardware workload attestation; unauthorized possession of genuine Host SQL secrets; actual production Host route; live enterprise/EVO source READ; real Human + Agent credentials, Provider/model/browser; real central **network** partition during an in-flight READ (forced backend termination is only an isolated failure mode); unbounded asynchronous data leakage outside the callback; physically atomic AppManager install/activate/uninstall across local JSON and PostgreSQL; PA05-05 E01–E05 or W06 signature. No production material WRITE or Railway deployment.
 
-## Verification record (pending accurate-HEAD CI)
+## Verification record (initial exact-code-HEAD PASS; final PR HEAD pending)
 
 - New file: `manager/pa05-read-owner-authenticated-host.ts`.
 - Original, opt-in business route in the child fixture: `tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs`.
 - Physical PG18 test: `tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs`.
 - Existing three-PG18 workflow now asserts `PA05_E01J2_AUTHENTICATED_HANDLER_PG`, zero skipped and all previous E01J1/D14C13 markers.
-- Until accurate final PR HEAD evidence is available, do **not** write PASS; record run ID, number of physical PG18 clusters, actual case count, raw markers, failures/fixes, merge SHA and post-merge branch disposition here.
+- **First exact code HEAD:** `7316e5e2eb32bd4b83e09fcbbea67986b25b08a3`. [GitHub Actions #39202176977](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39202176977) job 117897290783 original log inspected: **three actual PostgreSQL18 instances**, **16/16 tests PASS, 0 failed, 0 skipped** (12 inherited physical WRITE + 3 E01J1 + 1 E01J2). E01J2 original log marker includes roleBoundSessionUser=true, workerCannotExecuteReadFunction=true, hostsCannotMutateEpochOrInventory=true, actualNodeHostProcesses=2, originalPurchaseAttentionHandlerAndSourceRouter=true, readHeldBlocksRevoke=true, oldEpochDeniedBothHosts=true, oldSqlBackendPrivilegeRevoked=true, activeBackendTerminationFailClosed=true, and productionHostWired=false/crossStorageAtomicInstallCertified=false/pa05Signed=false. At this same code HEAD, Project Continuity, Platform, Lightweight Host and Human UI Design Review workflows all SUCCESS. No inference of production signoff.
+- **Subsequent tightening:** add separate invalid-central-URL fail-closed assertion `PA05_E01J2_AUTHORITY_UNAVAILABLE` for no callback/no local fallback. Final precise PR HEAD rerun of related CI, commit/merge verification and cleanup remain required before marking engineering complete.
 
 ## Remaining follow-on gate
 
