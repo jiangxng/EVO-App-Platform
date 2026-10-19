@@ -11,7 +11,8 @@ import type {
  * LOGIN session_user, pins the Host and Package, serializes the READ approval
  * cut with the original READ lock, and records the intent atomically.
  *
- * This runtime only has schema USAGE and EXECUTE on explicitly trusted\n * transition/pending functions; the pending function is E01J4F opt-in. It has
+ * This runtime only has schema USAGE and EXECUTE on explicitly trusted
+ * transition/pending functions; the pending function is E01J4F opt-in. It has
  * no SELECT/INSERT/UPDATE/DELETE on central authority tables and no DDL.
  * The PostgreSQL functions and role grants MUST be provisioned separately.
  * An old E01J4D table-grant database without this function fails CLOSED.
