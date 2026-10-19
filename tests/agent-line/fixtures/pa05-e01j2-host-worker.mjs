@@ -30,7 +30,7 @@ const manager=createAppManagerService(createPackageCatalog([
 manager.install("evo-purchase-attention");
 const auth={providerId:"pa05.e01j2.disposable-policy",async check(input){
   const allowed=input.scope.enterpriseId==="host-e01j2"
-    && input.resource.id===ids.orderNo
+    && (input.resource.id===undefined || input.resource.id===ids.orderNo)
     && ["purchase.attention.read","trading-reference.purchase-operations.read"]
       .includes(input.action);
   return {contractVersion:"0.1.0",policyProviderId:this.providerId,
