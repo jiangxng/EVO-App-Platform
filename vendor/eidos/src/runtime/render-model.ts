@@ -43,6 +43,10 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
       label: submit.label,
       requiresConfirmation: submit.requiresConfirmation ?? false
     },
+    submitActions: doc.actions.filter(action => action.type === "submit").map(action => ({
+      id: action.id, label: action.label, command: action.command ?? doc.command.code,
+      requiresConfirmation: action.requiresConfirmation ?? false
+    })),
     cancelActions: doc.actions
       .filter(action => action.type === "cancel")
       .map(action => ({ id: action.id, label: action.label })),

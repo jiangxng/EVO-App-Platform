@@ -11,9 +11,11 @@ export interface AppHostActionExecutionV010 {
 export async function executeAppHostPageAction(
   page: AppHostLoadedPageV010,
   values: Record<string, JsonValue>,
-  host: ActionHost
+  host: ActionHost,
+  actionId?: string
 ): Promise<AppHostActionExecutionV010> {
-  const request = createActionRequest(page.definition, values);
+  const request = createActionRequest(page.definition, values,
+    actionId ? {actionId} : {});
   const result = await host.execute(request);
   return { request, result };
 }

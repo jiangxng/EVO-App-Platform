@@ -132,3 +132,53 @@
 - **采用/排除判断：** 独立测试分支 `test/bex01-v3-explicit-approval-action-20261019` 只让批次主体常量回归**明确选择已存在的受控批准动作** `button[data-eidos-action="create-extension-batch"]` 并断言动作唯一；不采用 `.first()`、取消保存草稿按钮或合并两个 Host 命令，因为它们会掩盖业务分界或把草稿保存误作字段创建。主代码中的该动作标识亦见 `apps/object-extension/batch-page.ts`，PR #999 日志进一步验证两动作渲染。
 - **并行边界：** #999 修改 `apps/data-import/{service,types}.ts`、`apps/object-extension/{actions,batch-draft,batch-page,constants}.ts`、`manager/server.ts`、两项其他测试和 7 个 Eidos 桥接文件；本次单独修正的 `tests/bex01/v3_batch_constant_host_chromium.py` **不在 #999 改动文件集**。完成后 #999 Owner 仍需与最新 main 对齐并在本分支测试改动合入后重新跑自己的 exact-HEAD 全量 CI。
 - **下一真实验收门禁不变：** 验证草稿 actor scope、失效、重入、权限、并发/重试和提交分离；真实客户 `往来账户2026_10_08_10_15_23.xlsx` 与授权 Job、两个开户银行真实 field ID、三行 `subjectType`，以及 Railway 已登录 1280/390px 长页与用户 Human signoff **仍未取得**。合成数据和本次单项测试修复均不改变这些状态。
+
+## 10. 2026-10-19 接续增量：#999 回归最新 main、草稿权限出口与 CI（R）
+
+> 此段记录本轮**直接读取** GitHub PR/#999 精确分支、主线源码与 GitHub Actions 日志所得的新证据。继承 §3 竞品与认知研究，不将旧外站网页标记为当日重读；V3 人工签收及原 Excel 均仍缺失。
+
+- **主线重对齐（R，GitHub commits）：** [#1023](https://github.com/jiangxng/EVO-App-Platform/pull/1023) 合入后，Platform main 为 `c9e8ea8d725da6003a620e59de153394c0621206`、Railway production 对应 SHA SUCCESS；在原 [#999](https://github.com/jiangxng/EVO-App-Platform/pull/999) 分支上创建双亲合并提交 `141da19ecde9753765b3e919fd2d8f66318fe328`。比较证明 #999 原 18 个文件只有 `apps/object-extension/actions.ts` 与 `manager/server.ts` 在最新主线发生并行改动：仅对两文件人工上下文合并，其余原有草稿文件保留；合并后的 PR 比较结果 `behind_by=0`，`mergeable=true`，未覆写 PA05 / 治理线。
+- **实际 TypeScript 阻断与修复（R，Actions 日志）：** 合并 HEAD 的 [Platform CI run 39202533214](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39202533214) 报 `TS2304 Cannot find name 'dataImportRepository'`，原因是并行治理将导入资源改为 lazy `dataImportRuntimeHost.resolve()`，原 #999 草稿保存闭包依旧引用旧仓库变量。已在**同一 #999 分支**改用现有 `runtime.repository.get/save`（提交 `e49de79a5697260319e99126f59e4308db33987d`），无额外常驻模块加载、无切换 Railway 分支。
+- **实际权限泄漏发现与修复（R，源码）：** #999 原审核页按 `session.principal.subjectId` 过滤草稿，但通用 `data-import.get` 经 `jobResult(job)` 直接序列化了同一 Job 的所有 `batchReviewDrafts`；`data-import.mapping.inspect` 同样携带完整 Job；若两名拥有企业管理权限的 Human 访问相同导入 Job，会跨操作者获取彼此未批准的字段选择。**采用方案：在通用 Host Action 输出处投影**，只保留当前 `principal.subjectId` 的草稿，不改变内部 Job、原始行、已有映射与 dry-run。覆盖 `get`、`inspectMapping`、预检查/导航返回携带 Job 的动作，提交 `fd883d7613615e667fce0c5d7bebb2322b3fdeb2`；新增 `tests/protocol/bex01-batch-extension-import.test.mjs` 对 `owner`、`other-owner`、无草稿操作者的读和检查做数据隔离回归（提交 `55da7430f69bd0b6899c21e337fa35c6deeaa8e7`）。**来源事实为读到的代码路径；合规性仍需 CI/真实会话实测，不以静态代码充当签收。**
+- **方案取舍（产品/安全判断）：** 采用 Host Action 返回投影而非前端隐藏字段，因为仅隐藏 Eidos UI 不能阻止经 `data-import.get` 读取别人的草稿。保持权威 Job 中最多 16 份按人隔离草稿，避免以 localStorage 替代 Host 存储；拒绝把草稿保存解释为已批准 Schema、已运行 dry-run 或已提交供应商数据。
+- **未决 / 验收路线：** ① 刷新 #999 最终 HEAD 的 Platform、BEX 真实隔离 Host Chromium、Human UI、轻量宿主和所有被触发的 CI，严格修复失败后再考虑合并；② actor / enterprise 权限、关闭导入、映射变更失效、失效候选、未保存变动、重新登录、失败重试、dry-run 保真与 Schema/Commit 独立边界继续按证据核对；③ 客户原 Excel 两个同名开户银行字段 ID、三条真实主体类型、Recipe 与预检查失效/重新执行、Railway 登录后 1280/390 长页、Human 视觉签收仍属**D 未取得**，不能用此 PR 的模拟测试代替。
+
+## 11. 2026-10-19 接续增量：真实 Host 草稿读取与过期字段的失效安全性（R）
+
+**R：直接取得并比对项目代码（而非竞品检索或模拟网页推测），精确证据为 #999 同分支提交。** 与 §10 的交接研究索引及此前四图产品决策一致。
+
+1. **真实 Host 读 Job 闭环缺口：** 最新 `manager/server.ts` 向对象扩展动作提供异步 `resolveImportJobReader()`，不再提供静态 `getImportJob`；原 #999 `object-extension.batch-review.save-draft` 仍直接读 `input.getImportJob`。按运行时代码对照，这会将真实已存在 Job 误判为不存在。现和已有的 `create-from-import` 命令对齐：先异步解析合法数据导入资源、复核企业 Owner/Admin 权限，再读 Job；加载可能 yield 后重读权威 Job，避免过期快照写入。代码提交 `ceaec04592c1d08da4ebe953a87013dc71a7e446`；协议测试特意改为只提供懒加载 reader 并断言被调用，提交 `c746f5f90918a9b48bffb6289a59011f286495e5`。此发现独立于此前 TypeScript 编译错误修复。
+2. **草稿已选字段被删除/撤权后不允许自动改选：** 原 `batch-page.ts` 当已保存选择不在当前 `fieldOptions` 内，静默回退到自动推荐（可能是 `__CREATE__`），但界面仍提示“草稿已恢复”。这违反 Human 明确决定和受控 Schema 变更的边界。采用方案：当草稿原 field ID 不再可选时回到 `__REVIEW__`，纳入“需要校对”的任务/列表、就地展开来源证据，并提示“草稿中 N 列原目标已失效，需重新核对”；禁止靠标签相同或重新推断值自动批准。代码提交 `12da67edb10b209de42dc79eb25082630f13eccc`、对应协议回归 `d8e9e437cd949a17605408a8f51b515a6511b032`。
+3. **方案比较与限制：** 优先于自动新建 Schema 的是“已保存意图失效 → 让人重新确认”；优先于缓存整个企业加载系统的是复用现有按需 Host Reader。真实客户的“开户银行”两项字段依然需要通过企业字段 ID 和用途核验，不能从设计原型的 `BANK_SETTLEMENT/BANK_ARCHIVE` 合成标识推断真实取值。草稿与 Schema 正式批准、dry-run 和最终 Supplier commit 仍是四个不同边界。
+4. **验收状态：** 这些源代码/新协议测试已写入 #999 原分支，**最终 exact-HEAD 全部 CI、Railway 已登录真实客户 Job 和 Human 视觉签收仍需分别核验**；任何绿色 CI 都不能替代未获得的原始 Excel、用户四图二进制和两个银行 field ID 的确认。
+
+## 12. 2026-10-19 E7 草稿重入的真实 Host / 浏览器证据分层（R）
+
+本节是直接阅读 [#999 的隔离 Host Chromium 工作流](https://github.com/jiangxng/EVO-App-Platform/pull/999) 运行日志和当前代码的新增证据，**全部是合成隔离 Job，绝非 Railway 已登录客户验收**。
+
+- 原 E7 场景中“保存草稿”动作返回成功，但 `page.goto` 再次指向**相同完整 URL（含 hash）**，Playwright/SPA 可以保留已装载页面，不构成真正的重开证据。因此随后看到“原始 Excel 已保留”不能直接断言 Host 丢失草稿。
+- [Actions run 39204327750](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39204327750) 的两组直接证据：`data-import.get` 对授权操作者返回 `STAGED` Job，包含仅属于 `bex01-isolated-operator` 的 18 列草稿和人工编辑后的名称；独立请求 `GET /v1/experience-pages` 得 `200`、`Your unapproved review draft restored`、原人工字段名称。由此**权威存储和 Host 新页面重建成功**；先前浏览器断言失败属于重入方式未真正刷新所致。
+- 采用方案：测试改用完整的 `page.reload(wait_until="domcontentloaded")` 以保证真正重新加载，同步保留权威 Job/最新 Host 页面状态的断言；**不**采用删除重开断言、sleep 或以客户端 localStorage 冒充企业持久化。修改提交 `34b0c57111f1eea6f03b2f954fb87afc01c7596e`。
+- 判定级别：以上属于 **R：直接读到的隔离 Host 原始 Actions 日志**。草稿 actor/权限隔离、过期字段回退和 Schema/最终供应商数据独立仍分别需要 exact-head 回归通过；用户真实 Excel、两个银行实际 ID、三行纠错、生产会话截图和 Human 签收仍保持未取得。
+
+## 12. 2026-10-19 M03：旧审核页来源列偏移的实证与防护（R）
+
+> **性质：** 本次直接阅读 #999 分支的 `batch-page.ts`、`batch-draft.ts`、`actions.ts`、`manager/server.ts` 和原始 GitHub Actions 失败日志，属于 R 级源代码 / CI 证据；不涉及新增外站研究、客户数据或已登录 Railway 页面。本项严格属于原 M03“草稿保存、恢复和权限隔离”的并发失效测试，不新增设计功能或里程碑。
+
+- **可复现的缺口：** 独立 Draft [#1028](https://github.com/jiangxng/EVO-App-Platform/pull/1028) 起初仅增加 `tests/protocol/bex01-v3-stale-review-source-identity.test.mjs`，目标直接指向 #999 分支，而非生产 main。其 [Platform CI run 39207709249](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39207709249) 为 1017 通过／1 失败／1 跳过，唯一失败为旧页面 `choice_0` 在来源列甲已被另一操作映射之后，依当前未映射列位置被重新解释为乙且返回 `ok:true`。有效旧页面操作本身通过验证，排除了单纯构造无效测试数据；这证明隔离 Host Action 模型的**确定性回归缺口**，不是线上真实客户生产事故。
+- **原因分层：** (a) V3 页面旧表单以 `choice_N` 表达相对于当时未映射列表的位置，未随提交传递源列身份；(b) draft Host action 重读权威 Job，但按**最新**未映射数组解释旧 `choice_N`；(c) 写入闭包虽然再次取最新 Job，却没有再次对照提交时的来源状态。现有映射变更清空草稿，不等于阻止稍后到达的旧草稿重新写入。
+- **采纳的 M03 修复：** 在**已有**“审核方式”单选项的不可见值中附加由当前 Job / headers / mapping / ignored 列组成的 SHA-256 摘要，Human 看见的标签和 V3 四列体验保持不变。草稿动作收到旧值时拒绝，最终同步持久化回调再次比对版本、来源列完整顺序和当前可选目标 ID／排他。摘要不是授权令牌；企业 Owner/Admin 权限和 Host 校验保持不变。字段批准动作支持页面新的版本值，原直接调用的 `BATCH` 兼容契约保留。
+- **明确排除：** 不新增页面、按钮、人工审批步骤；不把 indexed 决策自动重新分配至另一源列；不因保存/拒绝草稿修改原 Excel、正式 mapping、Schema、dry-run、receipt 或供应商数据；不将该摘要误称跨进程分布式锁；不因本次失败去改 Eidos 公共组件／PA05／治理线／Railway 分支。
+- **改动/核证位置：** 子 PR #1028 的 `apps/object-extension/batch-page.ts`、`batch-draft.ts`、`actions.ts`、`manager/server.ts`、`tests/protocol/bex01-v3-stale-review-source-identity.test.mjs`、`bex01-batch-extension-import.test.mjs` 和 [八领域设计审查](../../ui-design-reviews/bex01-v3-m03-stale-review-source-rejection-20261019.md)。原 #999 已合并的多动作、草稿保留策略继续为唯一上游；#1028 未合并之前，不能称修复已进入 main。
+- **验收区分：** 本修复的 exact-HEAD Platform CI、真实隔离 Host Chromium、Human UI Gate、Project Continuity 和轻量宿主须**全部绿灯**；并须并入 #999 后与最新 main 对齐重验。真实客户 Excel、两个同名开户银行真实 fieldId、三行主体类型、Recipe/最终导入、Railway 登录后 1280/390px 截图和用户 Human 签收仍为 D；不改变 M04–M06。后续状态需从精确 SHA/CI 读取更新，而非把本节描述当永久完成事实。
+
+### 固定里程碑状态基线（不可用测试数量替代签收）
+
+| 编号 | 确认范围 | 本轮状态 | 不得越过的剩余门禁 |
+| --- | --- | --- | --- |
+| M01 | 真实四列审核及状态、精简和移动端已合并 | 合并完成 | 最终已登录 V3 视觉核对属 M06 |
+| M02 | 批次主体类型、集中新增字段方案预览已合并 | 合并完成 | 客户实际类型判断属 M04 |
+| M03 | 草稿保存、恢复、权限和失效 | #999 OPEN；#1028 修复子 PR | 旧页面拒绝／真实 Host 回归／最新 main／权限与竞态联合核验 |
+| M04 | 原客户 Excel 与真实列决策 | 待真实证据 | 两条银行字段 ID、三条主体类型逐行确认 |
+| M05 | Schema/Recipe/预检查/最终独立提交 | 待完整真实流程核验 | 幂等、失效与重新预检查、受权提交 |
+| M06 | 高保真桌面/手机 Human 签收 | 待人工签收 | Railway 已登录完整截图与 V3 对照 |
