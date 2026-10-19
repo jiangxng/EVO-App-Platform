@@ -424,6 +424,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
     group.reviewStatus.key === "attention"
       || group.reviewStatus.key === "suggested");
   const reviewTask = {
+    // Eidos #196: foreground Human choices; retain provenance on expansion.
+    presentation: "decision-first" as const,
     subject: {
       title: job.source.name ?? (zh ? "未完成的导入任务" : "Saved import task"),
       subtitle: (zh ? "集中审核 · " : "Batch review · ") +
