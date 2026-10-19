@@ -31,9 +31,14 @@ Test then SIGKILLs the actual Node Host (1) **before local DISABLE**, (2) **afte
 
 **Critical implementation distinction:** the `pa05_read_lifecycle_intents` and approval rows are only in **disposable DBA-owned PG18 test schema**. The original JSON file save and PostgreSQL transaction remain **two stores with no distributed ACID commit**. Crash safety is achieved for observed READ *authorization* because central admission fails closed. No automatic repair daemon, real operator authority, consensus of install state, production Host integration, migration or arbitrary side-effect cancellation is asserted. The original Host startup quarantine and production READ OFF posture remain unchanged. No material WRITE.
 
-## Primary CI and decision evidence (pending)
+## Primary CI and decision evidence (first exact-code HEAD PASS, final PR HEAD pending)
 
-- [Single engineering PR (assigned at creation)](https://github.com/jiangxng/EVO-App-Platform/pulls), branch `agent/pa05-e01j4b-crash-safe-read-lifecycle-20261019`, from main `6648204d8ef8e373f611831acbbc2c335f27b602`.
+**First real CI failure and correction:** initial engineering HEAD `eb7b2acc461f19185ccc3ee9e50266a286ed43a7`, [PG18 workflow #39210347370](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39210347370) failed by incorrectly invoking E01J4B on its grandparent `node:test` context, deadlocking nested scheduling until E01J4A timed out at 55 seconds; no SQL authorization bypass was observed. Fixed nested context in same PR with `j4.test(...)`, retained 20 actual cases and every original gate.
+
+**First exact-code-HEAD PG18 PASS (not yet final PR HEAD):** `2af4bf518910cdade86d02b28e89ceeccf74a88a`, [Actions #39210593533](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39210593533), physical PG18 job 117922859200, original raw log read: **20/20 PASS, 0 fail, 0 skipped**, including `PA05_E01J4B_CRASH_RECOVER_LIFECYCLE_PG`. Proof marker confirms original AppManager+Handler, SQL cut serialized after original READ, durable central intent with approval CAS in same transaction, stale ACTIVE/disabled/uninstalled restart denial and no auto-reinstall, three real OS Worker crashes, one-time repair, restricted SQL Worker role, per-Host reattest for new local install, unapproved second Host denied. Marker explicitly reports `productionCrossStoreAtomicityCertified:false`, `operatorConsentAndSecretsCertified:false`, `productionHostWired:false`, `pa05Signed:false`.
+
+
+- [Engineering PR #1031](https://github.com/jiangxng/EVO-App-Platform/pull/1031), branch `agent/pa05-e01j4b-crash-safe-read-lifecycle-20261019`, from main `6648204d8ef8e373f611831acbbc2c335f27b602`.
 - Actual 3 PostgreSQL18 CI requires the inherited markers + `PA05_E01J4B_CRASH_RECOVER_LIFECYCLE_PG` and **20/20 PASS, 0 failed, 0 skipped**; five other relevant workflows retained. Failed attempts must be recorded with original logs and corrected in the same PR.
 - Sign only **E01J4B ENGINEERING_BOUNDED_PASS** after accurate final HEAD, original job log, merge commit and source branch status are independently verified. Leave full E01J4, W06 and PA05-05 NOT_SIGNED, #988/#979/#913 OPEN, Production WRITE OFF.
 
