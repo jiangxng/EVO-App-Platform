@@ -200,11 +200,14 @@ with sync_playwright() as pw:
     focus_toggle=page.locator('[data-eidos-workspace-focus-toggle]')
     expect(focus_toggle).to_be_visible()
     expect(focus_toggle).to_have_attribute("aria-pressed","true")
+    saved_layout=page.evaluate('localStorage.getItem("eidos.workbench.layout")')
     focus_toggle.click()
     expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
     expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
     focus_toggle.click()
     expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    assert page.evaluate('localStorage.getItem("eidos.workbench.layout")')==saved_layout, (
+        "route-focus must not overwrite persisted sidebar preference")
     expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
         'data-eidos-review-table-presentation','compact')
     # Match the full #909 workflow hierarchy: source and actionable issues
@@ -286,6 +289,14 @@ with sync_playwright() as pw:
     capture_map_scroll_evidence(page,map_form,"desktop")
     page.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-desktop.png"),full_page=True)
     print("BEX01_V3_E2_ACTUAL_MAP_22_TABLE_ROWS_PASS:DESKTOP",flush=True)
+    # Exiting a focused review route restores the user's regular navigation
+    # without altering persisted layout; a second eligible route re-enters focus.
+    page.goto(HOST+"/?surface=desktop#/workspace",wait_until="domcontentloaded")
+    expect(page.locator('[data-eidos-app-host-layout="workbench"]')).to_have_attribute(
+      "data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    assert page.evaluate('localStorage.getItem("eidos.workbench.layout")')==saved_layout, (
+      "route exit must not persist a new panel preference")
     batch=reviewed["navigateTo"]
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
