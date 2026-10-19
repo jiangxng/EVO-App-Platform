@@ -981,7 +981,12 @@ export async function mountWorkbenchShell(
       return;
     }
 
-    if (state.activeActivityId === activity.id && state.sidePanelVisible) {
+    // Keep navigation activities reachable while a Host route is focused.
+    if (focusedRouteIdentity && state.sidePanelVisible) {
+      expandedForFocusedRoute = true;
+    }
+    if (state.activeActivityId === activity.id && state.sidePanelVisible
+      && !focusedRouteIdentity) {
       state.sidePanelVisible = false;
     } else {
       state.activeActivityId = activity.id;
@@ -996,6 +1001,13 @@ export async function mountWorkbenchShell(
   }
 
   async function toggleSidePanel(): Promise<void> {
+    // Keep Cmd/Ctrl+B and the existing sidebar toggle temporary on this route.
+    if (focusedRouteIdentity && state.sidePanelVisible) {
+      expandedForFocusedRoute = !expandedForFocusedRoute;
+      updateFocusedRoutePresentation();
+      if (expandedForFocusedRoute) await renderSidePanel();
+      return;
+    }
     state.sidePanelVisible = !state.sidePanelVisible;
     persist();
     updateLayoutAttributes();
