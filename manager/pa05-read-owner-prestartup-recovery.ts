@@ -34,7 +34,9 @@ export async function recoverPa05ReadOwnerPrestartupUninstallV010(input:{
   const installed=snapshot.installedPackages.some(p=>p.packageId===owner);
   const activated=snapshot.activeFeatures.some(f=>
     f.packageId===owner || f.featureId==="evo-purchase-attention.default");
-  if(!installed || (activated && !installed))
+  // Recovery also finishes a previously local-committed uninstall whose
+  // process died before central COMPLETE. An orphan active Feature is unsafe.
+  if(activated && !installed)
     throw Error("PA05_READ_PRESTART_RECOVERY_STATE_INVALID");
   const pending=await input.authority.pending();
   if(!pending)
