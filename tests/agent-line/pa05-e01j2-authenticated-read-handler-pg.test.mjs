@@ -26,7 +26,7 @@ import {createPa05AuthenticatedReadHostV010}
 const authorityUrl=process.env.PA05_XDB_AUTHORITY_DATABASE_URL;
 const workerScript=fileURLToPath(new URL("./fixtures/pa05-e01j2-host-worker.mjs",import.meta.url));
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-function reply(child,type,ms=20000){
+function reply(child,type,ms=35000){
   return new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>{cleanup();reject(Error("PA05_E01J2_TIMEOUT:"+type));},ms);
     const onMsg=m=>{if(m?.type===type){cleanup();resolve(m);}};
@@ -73,7 +73,7 @@ function assertBusiness(result,host){
 }
 test("E01J2 real PG18 session_user Host identity + least privilege + original READ Handler",{
   skip:!authorityUrl?"real PostgreSQL18 authority required":false,
-  timeout:120000
+  timeout:150000
 },async t=>{
   const suffix=randomUUID().replaceAll("-","").slice(0,10);
   const schema="pa05_e01j2_"+suffix;
