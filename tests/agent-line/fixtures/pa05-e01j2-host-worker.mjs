@@ -1,3 +1,4 @@
+import {existsSync} from "node:fs";
 import {createPa05AuthenticatedReadHostV010}
   from "../../../dist/manager/pa05-read-owner-authenticated-host.js";
 import {createAppActionRouter} from "../../../dist/actions/router.js";
@@ -24,12 +25,14 @@ const ids={orderNo:"PO-E01J2",supplierCounterpartyId:"supplier-j2",
   itemId:"item-j2",warehouseId:"warehouse-j2"};
 const dims={order_no:ids.orderNo,supplier:ids.supplierCounterpartyId,
   product_id:ids.itemId,warehouse:ids.warehouseId};
+const stateFile=process.env.PA05_E01J4_STATE_FILE;
+const preexistingStateFile=!!stateFile&&existsSync(stateFile);
 const manager=createAppManagerService(createPackageCatalog([
   tradingReferencePackageV010,purchaseAttentionPackageV010
-]),process.env.PA05_E01J4_STATE_FILE
-  ? createFileLifecycleStore(process.env.PA05_E01J4_STATE_FILE)
+ ]),stateFile
+  ? createFileLifecycleStore(stateFile)
   : createMemoryLifecycleStore());
-if(!manager.getSnapshot().installedPackages.some(p=>p.packageId==="evo-purchase-attention")){
+if(!preexistingStateFile && !manager.getSnapshot().installedPackages.some(p=>p.packageId==="evo-purchase-attention")){
   // A disposable first launch only, never proof of production install consent.
   manager.install("evo-purchase-attention");
 }
@@ -121,6 +124,16 @@ process.on("message",async msg=>{
       send("localState",{installed:snapshot.installedPackages.some(p=>
         p.packageId==="evo-purchase-attention"),active:snapshot.activeFeatures.some(f=>
         f.featureId==="evo-purchase-attention.default")});
+      return;
+    }
+    if(msg.type==="uninstall"){
+      manager.uninstall("evo-purchase-attention");
+      send("uninstalled");
+      return;
+    }
+    if(msg.type==="install"){
+      manager.install("evo-purchase-attention");
+      send("installed");
       return;
     }
     if(msg.type==="enable"){
