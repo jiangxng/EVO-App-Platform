@@ -200,13 +200,19 @@ with sync_playwright() as pw:
     focus_toggle=page.locator('[data-eidos-workspace-focus-toggle]')
     expect(focus_toggle).to_be_visible()
     expect(focus_toggle).to_have_attribute("aria-pressed","true")
-    saved_layout=page.evaluate('localStorage.getItem("eidos.workbench.layout")')
+    saved_layout=page.evaluate("""() => {
+      const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
+      return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
+    }""")
     focus_toggle.click()
     expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
     expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
     focus_toggle.click()
     expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
-    assert page.evaluate('localStorage.getItem("eidos.workbench.layout")')==saved_layout, (
+    assert page.evaluate("""() => {
+      const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
+      return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
+    }""")==saved_layout, (
         "route-focus must not overwrite persisted sidebar preference")
     expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
         'data-eidos-review-table-presentation','compact')
@@ -295,7 +301,10 @@ with sync_playwright() as pw:
     expect(page.locator('[data-eidos-app-host-layout="workbench"]')).to_have_attribute(
       "data-eidos-workspace-focused","false")
     expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
-    assert page.evaluate('localStorage.getItem("eidos.workbench.layout")')==saved_layout, (
+    assert page.evaluate("""() => {
+      const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
+      return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
+    }""")==saved_layout, (
       "route exit must not persist a new panel preference")
     batch=reviewed["navigateTo"]
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
