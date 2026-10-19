@@ -151,3 +151,12 @@
 2. **草稿已选字段被删除/撤权后不允许自动改选：** 原 `batch-page.ts` 当已保存选择不在当前 `fieldOptions` 内，静默回退到自动推荐（可能是 `__CREATE__`），但界面仍提示“草稿已恢复”。这违反 Human 明确决定和受控 Schema 变更的边界。采用方案：当草稿原 field ID 不再可选时回到 `__REVIEW__`，纳入“需要校对”的任务/列表、就地展开来源证据，并提示“草稿中 N 列原目标已失效，需重新核对”；禁止靠标签相同或重新推断值自动批准。代码提交 `12da67edb10b209de42dc79eb25082630f13eccc`、对应协议回归 `d8e9e437cd949a17605408a8f51b515a6511b032`。
 3. **方案比较与限制：** 优先于自动新建 Schema 的是“已保存意图失效 → 让人重新确认”；优先于缓存整个企业加载系统的是复用现有按需 Host Reader。真实客户的“开户银行”两项字段依然需要通过企业字段 ID 和用途核验，不能从设计原型的 `BANK_SETTLEMENT/BANK_ARCHIVE` 合成标识推断真实取值。草稿与 Schema 正式批准、dry-run 和最终 Supplier commit 仍是四个不同边界。
 4. **验收状态：** 这些源代码/新协议测试已写入 #999 原分支，**最终 exact-HEAD 全部 CI、Railway 已登录真实客户 Job 和 Human 视觉签收仍需分别核验**；任何绿色 CI 都不能替代未获得的原始 Excel、用户四图二进制和两个银行 field ID 的确认。
+
+## 12. 2026-10-19 E7 草稿重入的真实 Host / 浏览器证据分层（R）
+
+本节是直接阅读 [#999 的隔离 Host Chromium 工作流](https://github.com/jiangxng/EVO-App-Platform/pull/999) 运行日志和当前代码的新增证据，**全部是合成隔离 Job，绝非 Railway 已登录客户验收**。
+
+- 原 E7 场景中“保存草稿”动作返回成功，但 `page.goto` 再次指向**相同完整 URL（含 hash）**，Playwright/SPA 可以保留已装载页面，不构成真正的重开证据。因此随后看到“原始 Excel 已保留”不能直接断言 Host 丢失草稿。
+- [Actions run 39204327750](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39204327750) 的两组直接证据：`data-import.get` 对授权操作者返回 `STAGED` Job，包含仅属于 `bex01-isolated-operator` 的 18 列草稿和人工编辑后的名称；独立请求 `GET /v1/experience-pages` 得 `200`、`Your unapproved review draft restored`、原人工字段名称。由此**权威存储和 Host 新页面重建成功**；先前浏览器断言失败属于重入方式未真正刷新所致。
+- 采用方案：测试改用完整的 `page.reload(wait_until="domcontentloaded")` 以保证真正重新加载，同步保留权威 Job/最新 Host 页面状态的断言；**不**采用删除重开断言、sleep 或以客户端 localStorage 冒充企业持久化。修改提交 `34b0c57111f1eea6f03b2f954fb87afc01c7596e`。
+- 判定级别：以上属于 **R：直接读到的隔离 Host 原始 Actions 日志**。草稿 actor/权限隔离、过期字段回退和 Schema/最终供应商数据独立仍分别需要 exact-head 回归通过；用户真实 Excel、两个银行实际 ID、三行纠错、生产会话截图和 Human 签收仍保持未取得。
