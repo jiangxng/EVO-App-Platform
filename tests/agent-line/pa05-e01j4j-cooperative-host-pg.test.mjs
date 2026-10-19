@@ -151,7 +151,8 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
     // automatic production stale-lock takeover.
     unlinkSync(lock);
     console.log("PA05_E01J4J_COOPERATING_HOST="+JSON.stringify({
-      actualSeparateNodeServer:true,hostHoldsSameStateLock:true,\n      secondCooperatingHostDenied:true,
+      actualSeparateNodeServer:true,hostHoldsSameStateLock:true,
+      secondCooperatingHostDenied:true,
       onlineHostExcludesMaintenanceBeforeIdentity:true,
       cooperativeGracefulExitReleases:true,
       operatorDenialAfterHostStop:true,
