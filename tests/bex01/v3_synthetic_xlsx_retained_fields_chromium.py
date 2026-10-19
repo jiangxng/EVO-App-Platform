@@ -188,6 +188,8 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(map_form).to_be_visible(timeout=30000)
+    expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
+        'data-eidos-review-table-presentation','compact')
     # V3 desktop reference: the primary visible decision row belongs in the
     # first screen, not below a full page of task stats and history.
     map_top=page.evaluate("""() => {
@@ -249,6 +251,12 @@ with sync_playwright() as pw:
         'input[name="sourceEvidence_0"]').input_value()
     map_rows.nth(4).locator('[data-eidos-review-group-detail] summary').click()
     expect(map_rows.nth(4).locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    # The direct single-field create action still exists but is no longer a
+    # repetitive long line below every visible select in compact V3 rows.
+    expect(map_rows.nth(4).locator(
+      '[data-eidos-review-table-evidence] [data-eidos-field-context-link]')).to_be_visible()
+    expect(map_rows.nth(4).locator(
+      '[data-eidos-review-table-choice] [data-eidos-field-context-link]')).to_have_count(0)
     assert "synthetic-4-0002" in map_rows.nth(4).locator(
         'input[name="sourceEvidence_4"]').input_value()
     expect(map_rows.nth(21).locator('select[name="map_21"]')).to_have_value("__IGNORE__")
@@ -279,6 +287,8 @@ with sync_playwright() as pw:
       "V3 batch first decision row must remain in the 1280px first viewport",batch_top)
     page.screenshot(path=str(OUT/"v3-fidelity-first-viewport-batch-1280.png"),
       full_page=False)
+    expect(form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
+        'data-eidos-review-table-presentation','compact')
     expect(form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     # V3: this authorized Job maps subjectType from an Excel source column.
