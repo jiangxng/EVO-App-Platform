@@ -177,6 +177,11 @@ with sync_playwright() as p:
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
      "/object-extensions/from-import?job="+job+"&column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C")
+   # In generic Eidos compact ReviewTable, source-bound actions are available
+   # in that same source row's accessible evidence disclosure.
+   bank_row=mapping_form.locator('[data-eidos-form-review-table-row="map-source-3"]')
+   bank_row.locator('[data-eidos-review-group-detail] summary').click()
+   expect(inline.first).to_be_visible()
    inline.first.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
