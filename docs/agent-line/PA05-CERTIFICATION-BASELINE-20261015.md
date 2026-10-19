@@ -716,3 +716,10 @@ E01J4E §60 accepted function-only Host SQL operator without raw central table a
 **须保留失败事实：** 已合并的 E01J4G `main@9a3edf8d` 自动 CI [#39271124305](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39271124305) 在已有 E01J2 `postgres.js 3.4.9` 断链空引用竞态实际崩溃，三 PG18 任务 **FAILURE**（reporter 21/20/1/0），与原 PR HEAD #39270689657 25/25 成功并存。J4H 不修复也不抹除此风险。此审核只能认定 Host 本地 fsynced audit 的隔离工程证据，**绝不等于**生产可信 Human/IdP、DBA 凭据签发/轮换、真实单次维护 CLI、签名审计、跨 Worker、跨存储 ACID 或 PA05-05 E01–E05/W06 签收。#988/#979/#913 OPEN；生产 material WRITE OFF；不修改 Railway、BEX/CP03/Eidos/2D/全局状态文件。
 
 **§64 真正工程隔离正证据（2026-10-19）：** [三 PG18 #39272963229](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39272963229) job `118129805194` 原始 log 已核，HEAD `eccb8f117638215a6d744fa121ea2b2b7c729452` **26/26 PASS / 0 failed / 0 skipped**；J4H SIGKILL 持久审计和原 J4G SQL/Provider markers 完整输出，准确 HEAD 全部相关 **8/8 SUCCESS**。这是 **E01J4H ENGINEERING_BOUNDED_PASS only**；此后追加记录造成 HEAD 前进仍须在最后准确 HEAD 重新过 CI。已知 `postgres.js` 的合并 main 竞态失败保持 OPEN，不借重跑掩盖；生产 IdP/DBA/CLI、跨 Worker/ACID 和 PA05-05/W06 仍 NOT_SIGNED。
+
+
+## 65. PA05-05/E01J4I — 一次性持久 Host 启动前恢复工程（2026-10-19）
+
+**工程候选 [PR #1056](https://github.com/jiangxng/EVO-App-Platform/pull/1056)，完整 E01J4/PA05-05 E01–E05/W06 均 NOT_SIGNED。** 承接已合并 J4G/J4H，补上「可信操作员启动前真实状态的一次性内部组合」：独立 [J4I 实施与决策记录](PA05-E01J4I-ONE-SHOT-HOST-RECOVERY-20261019.md)。显式 `OPT_IN`、受信 Catalog/Identity Session/Authorization/Secrets Provider 注入、Host 原持久文件目录/owner/0600 约束、进程 `umask 077`、非共享的 one-shot 进程锁、状态 inode 防替换、J4H fsynced 不泄密审计、J4F/J4E 实际 SQL FENCED UNINSTALL；缺文件不能假装空状态、身份拒绝不能碰 Secrets/SQL。
+
+**证据上限及负面事实：** 文件锁**只串行 J4I 维护进程**，不证明已停止普通 Host/Worker；真实运行要求外部受信主管确认所有 Host 写入者离线。此处没有生产 IdP/DBA/credentials、独立 CLI、跨 Worker 原子性、跨存储 ACID、签名集中审计或业务真实 Human E01–E05 验收。J4G 合并 main PG18 的历史 TCP socket-null 崩溃 [#39271124305](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39271124305) 继续 OPEN；J4H 主线通过不代表修复。J4I 测试门禁：原三物理 PostgreSQL18 + 新负面 suite **目标 27/27、0 skipped**，**最终 HEAD CI 前不得标记工程 PASS**。#988/#979/#913 OPEN，Production material WRITE OFF；不更改 Railway 或并行项目/全局状态。
