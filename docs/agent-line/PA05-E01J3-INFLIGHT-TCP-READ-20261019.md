@@ -1,6 +1,6 @@
 # PA05-05/E01J3 — original Purchase Attention READ under severed central PostgreSQL TCP transport
 
-**Date:** 2026-10-19. **Class:** DECISION_RECORD / engineering candidate; do not treat candidate tests as PASS before accurate-HEAD CI.
+**Date:** 2026-10-19. **Class:** DECISION_RECORD; bounded transport-cut proof, final PR HEAD pending. No PA05/W06 or production signoff.
 **Inherited accepted proof:** [E01J2 decision and final evidence](PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md), [PR #1024](https://github.com/jiangxng/EVO-App-Platform/pull/1024), main `3d8320069ab3f424f4a2e47a2d2841df5c429c85`, 17/17 real three-PG18 CI, plus docs [PR #1025](https://github.com/jiangxng/EVO-App-Platform/pull/1025).
 **Overall stage:** PA05-05 E01–E05 NOT_SIGNED; PA-05/W06 IN_PROGRESS / NOT_SIGNED; issues #988, #979, #913 OPEN; material production WRITE OFF.
 
@@ -30,6 +30,10 @@ The old E01J2 execution/role/authorization cases remain intact. CI adds `PA05_E0
 
 ## Verification and follow-on
 
-At initial authoring: **CANDIDATE / CI PENDING**. Record final precise PR HEAD, actual workflow/job log, count/marker, failures and recovered behavior, merge SHA and branch-retirement result here. If a network case fails, correct it in the same PR and rerun; do not loosen legacy 17 test evidence or inherited security checks.
+**First genuine negative CI:** `197fa300ae0920ed4c7d3a142cd8e494ad67906c`, [Actions #39204498694](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39204498694), job 117904276898, **FAILED**: subprocess terminated from postgres.js closed-socket null-write. The test was corrected **without altering runtime/driver, SQL locks, policy or suppressing source failures**; a child process crash is counted as fail-closed but cannot count as graceful/available.
+
+**First successful follow-on CI:** code HEAD `6f9d9d9514b14d2dffb455216020db86e611eb69`, [actual three-PG18 Actions #39204814646](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39204814646) job 117905241156 original log read: **18/18 PASS, 0 failed, 0 skipped**. `PA05_E01J3_INFLIGHT_TCP_PARTITION_PG` reports verified Host SQL session across real TCP, cut while the genuine first-party Action Handler was held, no business result leaked, DBA central revoke succeeded, no local fallback, stale/frozen epochs rejected after restore, explicit newer epoch required, and independent Worker stale epoch rejected. That run reported `isolatedWorkerCrashedOnTcpFault:false`: in that schedule it returned a normal SQL error. The previous fatal schedule remains real negative evidence, so **stable original-process recovery is not signed**. A newly forked supervised Host completed an authorized READ after explicit recertification.
+
+**Final PR HEAD audit pending:** after final docs and assertion tightening, rerun exact HEAD CI; record final run, merge SHA and source branch retirement before engineering closure. If a network case fails, correct it in the same PR and rerun; do not loosen legacy 17 test evidence or inherited security checks.
 
 After this narrow cut proof, next distinct gate is durable, actual multi-Worker AppManager lifecycle admission tied to the shared SQL Owner and real Host registration: startup quarantine, activate/disable impact and repair after frozen epoch, crash and distributed uncertainty. It must not be claimed by a single callback's SQL transaction.
