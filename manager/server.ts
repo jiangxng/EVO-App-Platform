@@ -5275,7 +5275,7 @@ const actionRouter = createAppActionRouter(
                   assertAvailable();
                   if (values.actorSubjectId!==values.draft.actorSubjectId)
                     throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_ACTOR_MISMATCH");
-                  const latest=dataImportRepository.get(values.contextId,values.importJobId);
+                  const latest=runtime.repository.get(values.contextId,values.importJobId);
                   if (!latest || latest.targetId!=="counterparty.subject" ||
                     latest.state==="COMMITTED" || latest.state==="COMMITTED_WITH_ERRORS") {
                     throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_JOB_UNAVAILABLE");
@@ -5284,7 +5284,7 @@ const actionRouter = createAppActionRouter(
                     item.actorSubjectId!==values.actorSubjectId);
                   // One active draft per Human and Import Job, with a bounded
                   // retention cap; never touch mapping, dry-run or raw source.
-                  dataImportRepository.save({
+                  runtime.repository.save({
                     contextId:values.contextId,
                     job:{...latest,batchReviewDrafts:[...drafts,values.draft].slice(-16)},
                     actorSubjectId:values.actorSubjectId,
