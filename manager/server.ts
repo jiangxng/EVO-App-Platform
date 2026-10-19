@@ -2053,6 +2053,15 @@ const pa05E01dAdminMode =
 if (pa05E01dAdminMode !== "OFF" && pa05E01dAdminMode !== "OPT_IN") {
   throw new Error("PA05_E01D_ADMIN_MODE_INVALID");
 }
+ // PA05-05/E01J4D: explicit separate READ revocation mode only.
+ // No dedicated authority credential, schema or Host identity is configured
+ // by this file. In OPT_IN, missing values fail closed rather than falling
+ // back to unguarded local AppManager mutations.
+const pa05E01j4dLifecycleMode =
+  process.env.APP_PLATFORM_PA05_E01J4D_READ_LIFECYCLE?.trim() || "OFF";
+if (!["OFF","OPT_IN"].includes(pa05E01j4dLifecycleMode)) {
+  throw new Error("PA05_E01J4D_LIFECYCLE_MODE_INVALID");
+}
 
 const providerAuditFile = process.env.APP_PLATFORM_PROVIDER_AUDIT_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-governance-audit.jsonl") : undefined);
@@ -3279,6 +3288,64 @@ async function authorizePa05E01fLifecycle(
       }
     )).allowed === true
   });
+}
+
+/** Trusted Host-only route to the E01J4C revoke-first adapter.
+ * This replaces, rather than adds to, the original HTTP and Action route.
+ * The dedicated PostgreSQL authority must be provisioned outside this Host.
+ */
+async function applyPa05ReadLifecycleMutation(
+  request: IncomingMessage,
+  operation: "DISABLE" | "UNINSTALL",
+  packageId: string
+) {
+  if (packageId !== pa05E01fProtectedPackageId
+      || pa05E01j4dLifecycleMode !== "OPT_IN") {
+    return pa05WriteLifecycleHost.apply(operation, packageId);
+  }
+  const connectionString=process.env.APP_PLATFORM_PA05_E01J4D_DATABASE_URL?.trim();
+  const schema=process.env.APP_PLATFORM_PA05_E01J4D_SCHEMA?.trim();
+  const hostId=process.env.APP_PLATFORM_PA05_E01J4D_HOST_ID?.trim();
+  if (!connectionString || !schema || !hostId) {
+    throw new Pa05HostLifecycleDeniedV010(
+      "PA05_READ_LIFECYCLE_AUTHORITY_NOT_CONFIGURED");
+  }
+  // No business modules or SQL connections from Host default startup.
+  const {createPa05ReadLifecyclePgAuthorityV010} =
+    await import("./pa05-read-owner-lifecycle-pg.js");
+  const {createPa05HostReadLifecycleV010} =
+    await import("./pa05-read-owner-host-lifecycle.js");
+  let authority: ReturnType<typeof createPa05ReadLifecyclePgAuthorityV010>;
+  try {
+    authority=createPa05ReadLifecyclePgAuthorityV010({
+      connectionString,schema,hostId
+    });
+  } catch {
+    throw new Pa05HostLifecycleDeniedV010(
+      "PA05_READ_LIFECYCLE_AUTHORITY_CONFIGURATION_INVALID");
+  }
+  try {
+    const lifecycle=createPa05HostReadLifecycleV010({
+      manager,
+      protectedPackageId:pa05E01fProtectedPackageId,
+      authorizeHostOperator:async action =>
+        await authorizePa05E01fLifecycle(request,packageId,action),
+      authority
+    });
+    // Generated only by trusted Host, never from HTTP body/Agent Action.
+    return await lifecycle.apply(operation,"pa05_"+randomUUID());
+  } catch (error) {
+    if (error instanceof Error
+        && error.message.startsWith("PA05_READ_HOST_LIFECYCLE_")) {
+      throw new Pa05HostLifecycleDeniedV010(error.message);
+    }
+    // An unavailable/denying central SQL authority must never degrade to
+    // a local disable/uninstall, including after uncertain COMMIT.
+    throw new Pa05HostLifecycleDeniedV010(
+      "PA05_READ_LIFECYCLE_CENTRAL_UNAVAILABLE");
+  } finally {
+    await authority.close().catch(()=>{});
+  }
 }
 
 const providerLifecycleAdministration = createProviderLifecycleAdministrationV010({
@@ -9690,7 +9757,7 @@ const server = createServer(async (request, response) => {
             error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) }
           });
         }
-        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
+        const snapshot = await applyPa05ReadLifecycleMutation(request,"DISABLE",itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9715,7 +9782,7 @@ const server = createServer(async (request, response) => {
             error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) }
           });
         }
-        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
+        const snapshot = await applyPa05ReadLifecycleMutation(request,"UNINSTALL",itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9798,7 +9865,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
+        const snapshot = await applyPa05ReadLifecycleMutation(request,"DISABLE",itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9820,7 +9887,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
+        const snapshot = await applyPa05ReadLifecycleMutation(request,"UNINSTALL",itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9966,7 +10033,7 @@ const server = createServer(async (request, response) => {
       if (plan.blockers.length > 0) return json(response, 409, { code: "DISABLE_BLOCKED", plan });
       return json(response, 200, {
         plan,
-        snapshot: await pa05WriteLifecycleHost.apply("DISABLE", body.packageId),
+        snapshot: await applyPa05ReadLifecycleMutation(request,"DISABLE",body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }
@@ -9987,7 +10054,7 @@ const server = createServer(async (request, response) => {
       if (plan.blockers.length > 0) return json(response, 409, { code: "UNINSTALL_BLOCKED", plan });
       return json(response, 200, {
         plan,
-        snapshot: await pa05WriteLifecycleHost.apply("UNINSTALL", body.packageId),
+        snapshot: await applyPa05ReadLifecycleMutation(request,"UNINSTALL",body.packageId),
         effectiveExperiences: manager.listEffectiveExperiences()
       });
     }
