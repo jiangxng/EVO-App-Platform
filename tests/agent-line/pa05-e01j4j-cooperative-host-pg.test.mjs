@@ -30,7 +30,7 @@ function launched(file,p,cooperativeMode="OPT_IN"){
     APP_PLATFORM_STATE_FILE:file,
     APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION:"OFF",
     APP_PLATFORM_PA05_E01J4D_READ_LIFECYCLE:"OFF",
-    APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK:cooperativeMode
+    ...(cooperativeMode===null?{}:{APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK:cooperativeMode})
   },stdio:["ignore","pipe","pipe"]});
   let output="";
   proc.stdout.on("data",b=>{output=(output+String(b)).slice(-12000);});
@@ -98,7 +98,7 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
     // Real default-OFF control process, not a hardcoded marker.
     // It must still boot normally without creating a J4J/J4I lock.
     const defaultPort=await port();
-    defaultHost=launched(file,defaultPort,"OFF");
+    defaultHost=launched(file,defaultPort,null);
     assert.equal(await waitBoot(defaultPort,defaultHost),true,defaultHost.output());
     assert.equal(existsSync(lock),false);
     await ended(defaultHost,"SIGTERM");
