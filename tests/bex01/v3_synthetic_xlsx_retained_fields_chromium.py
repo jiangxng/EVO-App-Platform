@@ -192,17 +192,13 @@ with sync_playwright() as pw:
     expect(map_form).to_be_visible(timeout=30000)
     expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
         'data-eidos-review-table-presentation','compact')
-    # V3 desktop reference: the primary visible decision row belongs in the
-    # first screen, not below a full page of task stats and history.
-    map_top=page.evaluate("""() => {
-      const form=document.querySelector('[data-eidos-id="evo-data-import.mapping"]');
-      const row=[...form.querySelectorAll('[data-eidos-form-review-table-row]')]
-        .find(element=>!element.hidden);
-      return row?.getBoundingClientRect().top ?? null;
-    }""")
-    assert map_top is not None and 0 <= map_top < 844, (
-      "V3 /map first decision row must remain in the 1280px first viewport",map_top)
-    page.screenshot(path=str(OUT/"v3-fidelity-first-viewport-map-1280.png"),
+    # Match the full #909 workflow hierarchy: source and actionable issues
+    # precede decisions; do not force choices ahead of actual business issues.
+    expect(map_form.locator('[data-eidos-task-presentation="workbench"]')).to_be_visible()
+    expect(map_form.locator('[data-eidos-form-task-context]')).to_be_visible()
+    expect(map_form.locator('[data-eidos-form-task-metrics]')).to_be_visible()
+    expect(map_form.locator('[data-eidos-form-task-details]')).to_have_count(0)
+    page.screenshot(path=str(OUT/"v3-fidelity-workbench-map-1280.png"),
       full_page=False)
     expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
     expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
@@ -279,15 +275,11 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
-    batch_top=page.evaluate("""() => {
-      const form=document.querySelector('[data-eidos-id="evo-object-extension.batch-import"]');
-      const row=[...form.querySelectorAll('[data-eidos-form-review-table-row]')]
-        .find(element=>!element.hidden);
-      return row?.getBoundingClientRect().top ?? null;
-    }""")
-    assert batch_top is not None and 0 <= batch_top < 844, (
-      "V3 batch first decision row must remain in the 1280px first viewport",batch_top)
-    page.screenshot(path=str(OUT/"v3-fidelity-first-viewport-batch-1280.png"),
+    expect(form.locator('[data-eidos-task-presentation="workbench"]')).to_be_visible()
+    expect(form.locator('[data-eidos-form-task-context]')).to_be_visible()
+    expect(form.locator('[data-eidos-form-task-metrics]')).to_be_visible()
+    expect(form.locator('[data-eidos-form-task-details]')).to_have_count(0)
+    page.screenshot(path=str(OUT/"v3-fidelity-workbench-batch-1280.png"),
       full_page=False)
     expect(form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
         'data-eidos-review-table-presentation','compact')
@@ -311,13 +303,7 @@ with sync_playwright() as pw:
     first_batch_row=form.locator('[data-eidos-form-review-table-row]').first
     first_choice=first_batch_row.locator('select[name="choice_0"]')
     expect(first_choice).to_have_value("__CREATE__")
-    # Eidos #196: keep Human decisions in the first viewport, but the
-    # entire original task context and live counters remain operable.
-    task_details=form.locator('[data-eidos-form-task-details]')
-    expect(task_details).to_have_count(1)
-    assert task_details.get_attribute("open") is None
-    task_details.locator("summary").click()
-    expect(task_details).to_have_attribute("open","")
+    # Eidos #201: live task counters remain visible while Human choices change.
     proposed_count=form.locator('[data-eidos-form-task-metric-id="proposed"] strong')
     ignored_count=form.locator('[data-eidos-form-task-metric-id="ignored"] strong')
     expect(proposed_count).to_be_visible()
