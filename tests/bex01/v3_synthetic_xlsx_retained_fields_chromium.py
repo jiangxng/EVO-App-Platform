@@ -472,7 +472,9 @@ with sync_playwright() as pw:
       re.compile(r"synthetic-20-0001"))
     page.screenshot(path=str(OUT/"v3-retained-xlsx-batch-17-fields.png"),
                     full_page=True)
-    form.locator('button[type="submit"]').click()
+    approval=form.locator('button[data-eidos-action="create-extension-batch"]')
+    expect(approval).to_have_count(1)
+    approval.click()
     mapping=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(mapping).to_be_visible(timeout=45000)
     for index,label in enumerate(FIELDS):
