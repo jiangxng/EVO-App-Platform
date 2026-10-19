@@ -1,6 +1,6 @@
 # PA05-05/E01J4D — existing Host HTTP and Action lifecycle routes with opt-in PostgreSQL READ fence
 
-**2026-10-19 · ENGINEERING_CANDIDATE, first physical PG18 PASS; final CI pending.** No Railway, production credentials, automatic install, or W06 signoff.
+**2026-10-19 · ENGINEERING_BOUNDED_PASS / MERGED #1040. Full E01J4, PA05-05 E01–E05 and W06 NOT_SIGNED.** No Railway, production credentials, automatic install, or W06 signoff.
 
 ## Fixed PA-05 milestone status
 
@@ -12,7 +12,7 @@
 | E01J4A | BOUNDED_PASS 19/19 | Separate persistent Workers and per-Host reattestation |
 | E01J4B | BOUNDED_PASS 20/20 | SQL-first durable intent and multiple crash repair |
 | E01J4C | BOUNDED_PASS 21/21, merged #1036 | Default-unwired, internal Host composition |
-| **E01J4D** | **IN_PROGRESS / NOT_SIGNED** | Existing HTTP/Action routes opt-in to real SQL-first fence with dedicated role, 22/22 real PG18 expected |
+| **E01J4D** | **ENGINEERING_BOUNDED_PASS / merged #1040** | Existing HTTP/Action routes opt-in to real SQL-first fence with dedicated role, 22/22 real PG18 expected |
 | E01J4 full production lifecycle | OPEN / NOT_SIGNED | Human/operator identity, durable credential provision, recovery route, multi-Worker ACID remain |
 | PA05-05 E01–E05 | NOT_SIGNED | Real Human/Agent/Provider/browser/Enterprise Context acceptance |
 | PA-05/W06 | IN_PROGRESS / NOT_SIGNED | #988/#979/#913 OPEN |
@@ -38,6 +38,13 @@ Only when `APP_PLATFORM_PA05_E01J4D_READ_LIFECYCLE=OPT_IN` **and** the protected
 No real production administrator token/provider identity or credential provisioning; no end-to-end production tenant/Enterprise/Agent/Provider/browser acceptance; no actual production Host read execution gate; no recovery HTTP route or automatic repair daemon; no SQL schema migration in actual deployments; no distributed ACID JSON+PG transaction; no convergence of Worker install/upgrade/disable/rollback; no packet-blackhole or stable original Node process recovery from the still-open upstream postgres.js crash. The test operator role receives narrowly scoped table rights but is **not independently certified as PKI/mTLS workload attestation**, and future production privilege review must constrain raw central table mutation. No Railway or production WRITE enablement.
 
 ## Verification log
+
+**Final exact-head verified engineering and merge (2026-10-19):** after isolating physical PostgreSQL18 **test file** processes with `node --test --test-concurrency=1`, the previously failing E01J2 inherited IPC returned on the original strict 20-second timeout; no SQL/business assertion, skip or parent timeout was relaxed. Exact final HEAD `7d23a27d83049a079d7a3e8da7dcd4788a89fcc0`, [physical 3-PG18 CI #39216506019](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216506019), raw job `117941496304` inspected, **22/22 PASS, 0 failed, 0 skipped**. `PA05_E01J4D_ACTUAL_HTTP_LIFECYCLE_PG` confirms actually spawned Host HTTP+Action, E01D/E01F admin controls, separate PostgreSQL operator `session_user` mapping, Host-owned operation ID, original AppManager mutation, SQL-first approval cut/intent, absent-central fail-closed, Worker unable to UPDATE SQL approval; `productionDeployment:false`, `productionOperatorSecretCustodyCertified:false`, `automaticCrashRepairRouteCertified:false`, `fullDistributedCrossStoreAtomicity:false`, `pa05Signed:false`.
+
+**All 44/44 exact-head GitHub workflows SUCCESS** at `7d23a27d...` (server.ts changes triggered broad impact checks); includes [Governed WRITE #39216505998](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216505998), [READ #39216505944](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216505944), [Platform #39216506120](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216506120), [Lightweight Host #39216505927](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216505927), [Project Continuity #39216506102](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216506102) and [Human UI #39216505999](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39216505999). The final branch already included concurrent main `3168a7e39f21fe1de30273fce5a4bfd04116c6ff`, no overlap with parallel BEX; final eight changed paths exclusively PA05 Host, SQL, test, workflow and Agent documentation.
+
+[Engineering PR #1040](https://github.com/jiangxng/EVO-App-Platform/pull/1040) **MERGED**, main merge SHA `bbd89483ac5c5edec463b8e2bb8d266624574b40`. Immediately after merge, source branch `agent/pa05-e01j4d-existing-host-route-fence-20261019` **was independently verified deleted (GitHub 404)** after the merged PR's branch cleanup. Issues #988/#979/#913 remain OPEN; no production deploy or material WRITE. **E01J4D engineering bounded PASS is not full E01J4/PA05-05/W06 signoff**.
+
 
 **First primary PG18 proof:** engineering HEAD `d18f3402bae80432b433e05e388903a69f37581c`, [real PG18 CI #39214959937](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39214959937), original job `117936544924` **22/22 PASS, 0 failed/skipped**. Real Host HTTP+Action and central DBA inspected. **Concurrent separate WRITE CI FAILED:** [#39214960038](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39214960038), job 117936545290, test `pa05-host-write-lifecycle.test.mjs` expected two original Action branches but one branch had been missed by the first J4D routing change. This failure revealed a security-relevant duplicate Action path, not a failed SQL gate. Same PR now rewires BOTH duplicate Action disable/uninstall handlers and direct HTTP (six call sites total), updates source-gate assertions to require all six routing calls and zero direct legacy calls. No security test dropped or relaxed.
 
