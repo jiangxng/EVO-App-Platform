@@ -116,7 +116,9 @@ def capture_map_scroll_evidence(page, form, device):
         sweep.append({"frame":index,"scrollTop":actual})
     assert all(sweep[i]["scrollTop"]<=sweep[i+1]["scrollTop"]
       for i in range(len(sweep)-1))
-    assert len(sweep)>=5 and len(sweep)<=25,(device,len(sweep))
+    # Compact V3 shortens rows; retain full scroll-range coverage instead of
+    # requiring the legacy page's minimum frame count.
+    assert 2<=len(sweep)<=25,(device,len(sweep))
     assert all(sweep[i+1]["scrollTop"]-sweep[i]["scrollTop"]<=
       container["viewport"] for i in range(len(sweep)-1))
     sweep_data={"scrollContainer":container,"lastScrollTop":maximum,
