@@ -440,19 +440,20 @@ export async function mountWorkbenchShell(
   }
 
   function updateFocusedRoutePresentation(): void {
-    // A user who already hides the panel is already full-width. Do not
-    // offer a misleading "show navigation" override to an absent panel.
-    const eligible = workspaceMode === "app" && state.sidePanelVisible
+    // A previously hidden side panel still gets the wider review surface;
+    // the route focus cannot silently overwrite the user's saved preference.
+    const eligible = workspaceMode === "app"
       && options.shouldFocusWorkspaceRoute?.(state.workspaceTarget) === true;
     if (!eligible || focusedRouteIdentity !== state.workspaceTarget) {
       expandedForFocusedRoute = false;
     }
     focusedRouteIdentity = eligible ? state.workspaceTarget : undefined;
-    const focused = eligible && !expandedForFocusedRoute;
-    root.setAttribute("data-eidos-workspace-focus-eligible",eligible ? "true" : "false");
+    const focused = eligible && (!state.sidePanelVisible || !expandedForFocusedRoute);
+    const canToggle = eligible && state.sidePanelVisible;
+    root.setAttribute("data-eidos-workspace-focus-eligible",canToggle ? "true" : "false");
     root.setAttribute("data-eidos-workspace-focused",focused ? "true" : "false");
-    focusToggle.hidden = !eligible;
-    if (eligible) {
+    focusToggle.hidden = !canToggle;
+    if (canToggle) {
       const label = focused
         ? hostText("workbench.showSidePanel","Show side panel")
         : hostText("workbench.hideSidePanel","Hide side panel");
@@ -981,7 +982,8 @@ export async function mountWorkbenchShell(
       return;
     }
 
-    // Keep navigation activities reachable while a Host route is focused.
+    // Navigation activities must also be accessible from a saved hidden panel.
+    preserveExplicitNavigationReveal();
     if (focusedRouteIdentity && state.sidePanelVisible) {
       expandedForFocusedRoute = true;
     }
@@ -1000,6 +1002,15 @@ export async function mountWorkbenchShell(
     root.setAttribute("data-mobile-surface", "panel");
   }
 
+  // An explicit request to open a previously hidden side panel must win
+  // over default route focus; the user can then use their usual navigation.
+  function preserveExplicitNavigationReveal(): void {
+    if (state.sidePanelVisible || workspaceMode !== "app"
+      || options.shouldFocusWorkspaceRoute?.(state.workspaceTarget) !== true) return;
+    focusedRouteIdentity = state.workspaceTarget;
+    expandedForFocusedRoute = true;
+  }
+
   async function toggleSidePanel(): Promise<void> {
     // Keep Cmd/Ctrl+B and the existing sidebar toggle temporary on this route.
     if (focusedRouteIdentity && state.sidePanelVisible) {
@@ -1008,6 +1019,7 @@ export async function mountWorkbenchShell(
       if (expandedForFocusedRoute) await renderSidePanel();
       return;
     }
+    preserveExplicitNavigationReveal();
     state.sidePanelVisible = !state.sidePanelVisible;
     persist();
     updateLayoutAttributes();
