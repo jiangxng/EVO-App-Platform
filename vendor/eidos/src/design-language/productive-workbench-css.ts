@@ -3067,6 +3067,65 @@ form[data-eidos-id] button:hover,
    [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
 }
 
+/* Opt-in Human review workbench: show the original source, the actual counts,
+   and every actionable blocker before choices; never conceal business facts. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+  gap:var(--eidos-space-md);
+  margin-block:var(--eidos-space-section);
+  min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+  justify-content:flex-end;gap:var(--eidos-space-md);min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-identity] strong{
+  font-size:var(--eidos-font-section)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+  grid-template-columns:repeat(4,minmax(0,1fr))
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+  padding:var(--eidos-space-md) var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header h2{
+  color:var(--eidos-fg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>ol{
+  background:var(--eidos-bg-subtle)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-help]{
+  color:var(--eidos-fg-muted)
+}
+@media(max-width:850px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+   justify-content:flex-start;flex-wrap:wrap
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:520px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   gap:var(--eidos-space-sm)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+   padding:var(--eidos-space-sm)
+ }
+}
+
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
 [data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
 /* Eidos: optional Human decision-first task summary. All evidence, issue
