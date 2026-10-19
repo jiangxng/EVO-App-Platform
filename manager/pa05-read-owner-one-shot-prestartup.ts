@@ -36,6 +36,7 @@ export async function recoverPa05OneShotHostPrestartupV010(
       dirname(input.stateFile) !== dirname(input.auditFile) ||
       input.stateFile.endsWith("/") ||
       input.auditFile.endsWith("/") ||
+      (process.umask() & 0o077) !== 0o077 ||
       !/^[a-z0-9][a-z0-9_-]{2,79}$/.test(input.hostId ?? "")) {
     throw Error("PA05_J4I_PRESTART_CONFIGURATION_INVALID");
   }
