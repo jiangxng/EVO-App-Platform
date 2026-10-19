@@ -112,10 +112,14 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
 
 export function renderToHtml(document: unknown): string {
   const model = toRenderModel(document);
-  const renderField = (field: RenderFieldV010) =>
-    `<div data-eidos-form-field><label>${esc(field.label)}${input(field)}</label>${field.contextLink
-      ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>`
-      : ""}</div>`;
+  const renderContextLink = (field: RenderFieldV010) => field.contextLink
+    ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>` : "";
+  const renderField = (field: RenderFieldV010, compactLabel = false,
+    includeContextLink = true) =>
+    `<div data-eidos-form-field><label>${compactLabel
+      ? `<span data-eidos-review-table-choice-label>${esc(field.label)}</span>`
+      : esc(field.label)}${input(field)}</label>${includeContextLink
+      ? renderContextLink(field) : ""}</div>`;
   const byKey = new Map(model.fields.map(field => [field.key, field]));
   const used = new Set<string>();
   const groups = (model.reviewGroups ?? []).map(group => {
@@ -138,7 +142,7 @@ export function renderToHtml(document: unknown): string {
     </section>`;
   }).join("");
   const standalone = model.fields.filter(field => !used.has(field.key))
-    .map(renderField).join("");
+    .map(field => renderField(field)).join("");
   // Table is a second, optional presentation of the SAME Form group keys.
   // It does not create a new command, synthetic field or separate save path.
   const reviewTable = model.reviewTable ? (() => {
@@ -148,10 +152,14 @@ export function renderToHtml(document: unknown): string {
     const allowed = selected?.statusKeys;
     const tableRows = (model.reviewGroups ?? []).map(group => {
       const status = group.reviewStatus!;
-      const primary = renderField(byKey.get(group.primaryFieldKey)!);
+      const primaryField = byKey.get(group.primaryFieldKey)!;
+      const compact = model.reviewTable?.presentation === "compact";
+      const deferLink = compact && Boolean(primaryField.contextLink)
+        && group.detailFieldKeys.length > 0;
+      const primary = renderField(primaryField,compact,!deferLink);
       const details = group.detailFieldKeys.map(key =>
         renderField(byKey.get(key)!)
-      ).join("");
+      ).join("") + (deferLink ? renderContextLink(primaryField) : "");
       const visible = !allowed || allowed.includes(status.key);
       const planFields=model.reviewPlan?.proposedFields?.find(item=>item.groupId===group.id);
       const planAttrs=planFields
@@ -185,7 +193,7 @@ export function renderToHtml(document: unknown): string {
           ).join("")}</select></label>
           <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span></div>`
       : "";
-    return `<section data-eidos-form-review-table-wrap>
+    return `<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>
         <table data-eidos-form-review-table aria-label="${esc(model.title)}">
