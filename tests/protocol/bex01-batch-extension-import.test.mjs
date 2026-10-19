@@ -575,3 +575,27 @@ test("V3 generic import Job and mapping-inspection responses expose only the cal
   }
   assert.deepEqual(job,before,"read projection must not rewrite authoritative drafts or source rows");
 });
+
+test("V3 expired saved target does not silently become a new Schema field",()=>{
+  const job=fixture();
+  job.batchReviewDrafts=[{
+    actorSubjectId:"owner",recordedAt:"2026-10-19T00:00:00.000Z",
+    columns:[{
+      sourceColumn:columns[0],choice:"ext_deleted_supplier_field",
+      label:"默认支付方式",valueType:"STRING"
+    }]
+  }];
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"owner",locale:"zh-CN"
+  });
+  assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__REVIEW__",
+    "an unavailable saved target must require a new Human decision");
+  assert.match(page.reviewTask.subject.statusLabel,/已失效/);
+  assert.ok(page.reviewTask.issues.some(x=>x.title===columns[0]),
+    "the invalidated row remains in the task's actionable issues");
+  assert.equal(page.reviewGroups.find(x=>x.id==="source-0").defaultExpanded,true);
+  const other=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"another-owner",locale:"zh-CN"
+  });
+  assert.doesNotMatch(other.reviewTask.subject.statusLabel,/失效|草稿/);
+});
