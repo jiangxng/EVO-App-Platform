@@ -1,6 +1,6 @@
 # PA05-05/E01J4E — least-privileged authenticated PostgreSQL lifecycle operator
 
-**Date:** 2026-10-19. **Class:** DECISION_RECORD / initial engineering candidate. Full E01J4, PA05-05 E01–E05 and W06 NOT_SIGNED. Production material WRITE OFF.
+**Date:** 2026-10-19. **Class:** DECISION_RECORD. **State:** first physical PG18 code-head 23/23 PASS, final PR HEAD pending. Full E01J4, PA05-05 E01–E05 and W06 NOT_SIGNED. Production material WRITE OFF.
 
 ## Fixed milestones
 
@@ -13,7 +13,7 @@
 | E01J4B | BOUNDED_PASS 20/20 | Three OS crashes and SQL-first durable repair |
 | E01J4C | BOUNDED_PASS 21/21 | Default-off Host lifecycle adapter |
 | E01J4D | BOUNDED_PASS 22/22, [#1040](https://github.com/jiangxng/EVO-App-Platform/pull/1040) | Existing live Host HTTP+Action pathways, dedicated SQL LOGIN |
-| **E01J4E** | **CANDIDATE / CI pending** | Eliminate direct privileged-table DML from actual Host SQL operator, DBA-owned function with session_user and Host scoping; target 23/23 physical PG18 |
+| **E01J4E** | **FIRST_CODE_HEAD_PG18_PASS / final PR HEAD pending** | Eliminate direct privileged-table DML from actual Host SQL operator, DBA-owned function with session_user and Host scoping; target 23/23 physical PG18 |
 | Full E01J4 | **OPEN / NOT_SIGNED** | Real production credentials, provisioned schema, recovery and cross-store consistency |
 | PA05-05 E01–E05 | **NOT_SIGNED** | Original environment/provider/browser checks |
 | PA-05/W06 | **IN_PROGRESS / NOT_SIGNED** | #988 / #979 / #913 OPEN |
@@ -30,6 +30,13 @@ Direct repository code read 2026-10-19: `manager/pa05-read-owner-lifecycle-pg.ts
 The **existing actual Host SQL authority** now submits one authenticated command per call to `pa05_read_lifecycle_operator_transition(phase,operationId,operation,hostId)`, replacing direct SELECT/UPDATE/INSERT on central tables. DBA preprovisions the function as `SECURITY DEFINER` with `SET search_path=pg_catalog,pg_temp`, every authority table fully schema-qualified, role mapped against PostgreSQL `session_user`, exact pinned Host ID, exact owner package, valid DISABLE/UNINSTALL and exact intent operation types. A `FENCE` transition reads owner epoch, locks current Host approval `FOR UPDATE`, and atomically records durable intent and sets approved_epoch=0; ASSERT/COMPLETE verify same Host/operation and approval still fenced. No transaction coordinates JSON and SQL; the original J4C adapter mutates the original AppManager **only after successful SQL function commit**. The Host cannot create the function or grant permissions. DBA revokes PostgreSQL's default PUBLIC EXECUTE, granting to only the dedicated Host lifecycle LOGIN role; it gets schema USAGE + function EXECUTE and **zero central-table SELECT/INSERT/UPDATE/DELETE grants**. Ordinary READ Worker gets no execute. The test-only DBA DDL sample lives in `tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql`; it is not a production migration or an executable startup hook.
 
 Existing HTTP/Action entrypoints and current E01D/E01F authorization rules are unchanged. In opt-in environments previously provisioned with old broad grants but missing the new function, the lifecycle **fails closed**, not silently falls back to raw table writes. Default J4D mode remains OFF with no eager PG import and no Railway/prod secrets.
+
+## Verification record — first real physical PostgreSQL18 proof
+
+- **Initial code HEAD:** `26d8907f773ad55b153c30ba231cecc428bb6426`. [Actual three-PG18 Actions #39219150421](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219150421), raw job `117950079153` examined: **23/23 PASS, 0 failed, 0 skipped** including one E01J4E nested SQL-role/permission negative case and the original E01J4D real HTTP/Action routes.
+- Required marker `PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG` reports real `session_user` operator, no table SELECT or DML, Worker denied function, spoofed GUC and Host ID denied, mismatched operation intent denied, unchanged actual Host business lifecycle, and `productionDatabaseProvisioned:false`, `operatorSecretCustodyCertified:false`, `crossStoreAtomicityCertified:false`, `pa05Signed:false`.
+- Initial HEAD Platform, Lightweight Host, Project Continuity and Human UI Design workflows SUCCESS. No failures hidden, no test skips, original markers preserved.
+- **Final PR HEAD after documentation changes:** PENDING exact-head CI, PR merge SHA and branch retirement; do not mark merged before verification.
 
 ## Verified only after fresh real CI
 
