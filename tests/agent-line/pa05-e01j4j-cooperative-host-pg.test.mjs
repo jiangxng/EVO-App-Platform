@@ -23,7 +23,7 @@ async function port(){
 }
 function launched(file,p,cooperativeMode="OPT_IN"){
   const proc=spawn(process.execPath,["--input-type=module","-e",
-    "process.umask(0o077); await import('./dist/manager/server.js');"
+    "process.on('SIGUSR2', () => process.exit(1)); process.umask(0o077); await import('./dist/manager/server.js');"
   ],{cwd:process.cwd(),env:{
     PATH:process.env.PATH??"",HOME:dirname(file),
     NODE_ENV:"test",PORT:String(p),
@@ -150,6 +150,25 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
     // Removal here is strictly a disposable test fixture cleanup, NEVER
     // automatic production stale-lock takeover.
     unlinkSync(lock);
+    // A nonzero process.exit after successful actual Host boot is another
+    // abnormal-exit path. It MUST retain the lock (unlike exit code zero).
+    const errorPort=await port();
+    const errorHost=launched(file,errorPort);
+    try{
+      assert.equal(await waitBoot(errorPort,errorHost),true,errorHost.output());
+      assert.equal(existsSync(lock),true);
+      await ended(errorHost,"SIGUSR2");
+      assert.equal(errorHost.proc.exitCode,1,errorHost.output());
+      assert.equal(existsSync(lock),true,
+        "nonzero Host exit must preserve uncertain state lock");
+      await assert.rejects(recoverPa05OneShotHostPrestartupV010(params),
+        /PA05_J4I_PRESTART_DENIED_OR_UNKNOWN/);
+      assert.equal(identityCalls,1);
+      assert.equal(secretCalls,0);
+    }finally{
+      await ended(errorHost,"SIGKILL");
+      if(existsSync(lock))unlinkSync(lock);
+    }
     console.log("PA05_E01J4J_COOPERATING_HOST="+JSON.stringify({
       actualSeparateNodeServer:true,hostHoldsSameStateLock:true,
       secondCooperatingHostDenied:true,
@@ -157,6 +176,7 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
       cooperativeGracefulExitReleases:true,
       operatorDenialAfterHostStop:true,
       crashLeavesAmbiguousLock:true,staleLockBlocksRestart:true,
+      nonzeroHostExitLeavesLock:true,
       noSecretsTouched:true,defaultHostModeStillOff:true,
       multiWorkerGlobalStopCertified:false,
       actualProductionOperatorIdpCertified:false,
