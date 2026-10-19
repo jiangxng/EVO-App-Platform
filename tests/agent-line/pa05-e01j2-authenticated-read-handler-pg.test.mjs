@@ -557,10 +557,9 @@ $pa05_j4$`);
               await reply(recoveredA,"ready");
               const afterDisable=reply(recoveredA,"localState");
               recoveredA.send({type:"snapshot"});
-              assert.deepEqual(
-                {installed:(await afterDisable).installed,active:false},
-                {installed:true,active:false}
-              );
+              const pausedSnapshot=await afterDisable;
+              assert.equal(pausedSnapshot.installed,true);
+              assert.equal(pausedSnapshot.active,false);
               const disableAgain=reply(recoveredA,"disabled");
               recoveredA.send({type:"disable"});
               await disableAgain;
