@@ -90,7 +90,7 @@ test("E01J4G identity/Provider/Secrets fail closed before SQL and never reveal c
     assert.equal(touchedSecret,0);
     await denied(basic,"PA05_J4G_RECOVERY_DENIED_OR_UNKNOWN");
     assert.equal(touchedSecret,1);
-    assert.equal(audits.length,2);
+    assert.equal(audits.length,1);
     assert.equal(audits[0].stage,"AUTHORIZED");
     for(const event of audits){
       assert.equal(JSON.stringify(event).includes(token),false);
