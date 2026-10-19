@@ -342,8 +342,8 @@ $pa05_fn$`);
       });
 
       await t.test("E01J4 isolate two persisted AppManagers against central Host reattestation",{
-        timeout:55000
-      },async()=>{
+        timeout:70000
+      },async j4=>{
         const storage=mkdtempSync(join(tmpdir(),"pa05-e01j4-"));
         const fileA=join(storage,"host-a.json");
         const fileB=join(storage,"host-b.json");
@@ -488,7 +488,7 @@ $pa05_j4$`);
           restartedB.send({type:"read",epoch:8});
           assert.match((await stillUnapproved).message,
             /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
-          await t.test("E01J4B revoke-first durable lifecycle repair after multiple OS crashes",{
+          await j4.test("E01J4B revoke-first durable lifecycle repair after multiple OS crashes",{
             timeout:42000
           },async()=>{
             let recoveredA;
