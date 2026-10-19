@@ -10,11 +10,11 @@ J4I `manager/pa05-read-owner-one-shot-prestartup.ts` 使用 `stateFile+".pa05-on
 
 此切片作为 **Host 内部 PA05 安全接线**；通用 `createFileLifecycleStore`/跨项目 Core 全局锁协议**不改**。新增 `manager/pa05-read-owner-cooperative-host-lock.ts`，正常 Host 在 `manager/server.ts` 读取状态**之前**、仅当环境 `APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK=OPT_IN` 时对与 J4I 相同状态路径取得 O_CREAT|O_EXCL|O_NOFOLLOW 锁，要求原 state 已存在且安全、目录由 OS 用户拥有且 0700、state 0600、进程 umask 077；其余情况 fail closed。默认 `OFF`，不改变当前生产 Host 行为，不新增 API/Agent action，不启用 READ Owner/WRITE。
 
-Host 通过 `process.once("exit")` 在正常关闭、受控 SIGTERM/SIGINT 以及 E01I 异常退出时，仅对确切持有 inode 解除锁；真实 SIGKILL 意味着锁保持不确定，**严禁按 PID 自动窃取锁**。如无法确定是否仍有在线 Host，手动移锁只能在另一个真实授权和全体进程确认流程中进行，**本工程不提供清理命令**。J4I 保持原文件排他功能及 fail-closed 策略。
+Host 通过 `process.once("exit")` **仅在 exit code 0 的正常关闭（包括成功 SIGTERM/SIGINT）** 时对确切持有 inode 解除锁；E01I 异常、非零退出及真实 SIGKILL 意味着锁保持不确定，**严禁按 PID 自动窃取锁**。如无法确定是否仍有在线 Host，手动移锁只能在另一个真实授权和全体进程确认流程中进行，**本工程不提供清理命令**。J4I 保持原文件排他功能及 fail-closed 策略。
 
 ## 3. 真实验证计划与证据来源
 
-- 新 `tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs` 通过**真正独立 Node 子进程启动当前 manager/server.js**、HTTP /v1/catalog ready 判据验证 Host 已在线，在同一共享路径运行 J4I 失败于锁，身份 Provider 和 Secrets 均未访问；正常 SIGTERM 后锁删除，J4I 可进入身份拒绝；另一个 Host 真 SIGKILL 后锁仍存在，阻止再启动及维修，测试只在临时目录内主动清理。
+- 新 `tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs` 通过**真正独立 Node 子进程启动当前 manager/server.js**、HTTP /v1/catalog ready 判据验证 Host 已在线，在同一共享路径运行 J4I 失败于锁，身份 Provider 和 Secrets 均未访问；正常 SIGTERM 后锁删除，J4I 可进入身份拒绝；另一个 Host 真 SIGKILL 及真实进程非零退出后锁均仍存在，阻止再启动及维修，测试只在临时目录内主动清理。
 - 严格复用已有三独立 PostgreSQL18 J2–I 测试，新增一项，CI 目标 **28/28 PASS，0 failed、0 skipped**，新的 `PA05_E01J4J_COOPERATING_HOST` marker 必须出现。因 `manager/server.ts` 改动触发全 Host/浏览器相关 CI，应以**真实的准确 HEAD CI 全部成功**为合并条件，而不只检查 PA05。
 - 本轮研究来源等级：直接阅读 GitHub `manager/server.ts`、`manager/pa05-read-owner-one-shot-prestartup.ts`、测试、`docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md` §§64–65；没有重新浏览历史 PostgreSQL 官网或把旧网址清单谎称本轮阅读。
 
