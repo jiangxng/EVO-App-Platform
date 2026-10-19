@@ -77,6 +77,8 @@ export interface UidlFormReviewPlanV010 {
 }
 /** Reusable task context; all facts and issue semantics are Host/app supplied. */
 export interface UidlFormReviewTaskV010 {
+  /** Opt-in native disclosure retaining the complete task evidence. */
+  presentation?: "full" | "decision-first";
   subject: {
     title: string;
     subtitle?: string;
