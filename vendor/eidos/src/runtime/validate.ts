@@ -1025,7 +1025,7 @@ export function validateUidl(
         "issuesDescription","issues","helpText","presentation"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
-          || !["full","decision-first"].includes(task.presentation))) {
+          || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
       }
       extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
