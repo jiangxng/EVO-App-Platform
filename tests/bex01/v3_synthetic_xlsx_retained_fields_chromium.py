@@ -325,6 +325,15 @@ with sync_playwright() as pw:
         "hasEditedLabel":any(e.get("label")=="人工审核后的名称" for e in d.get("columns",[]))
       } for d in saved_for_actor.get("batchReviewDrafts",[])]
     },ensure_ascii=False),flush=True)
+    fresh_page=api.get("/v1/experience-pages",params={
+      "source":"evo-object-extension.from-import","route":batch})
+    fresh_page_json=fresh_page.json()
+    print("BEX01_V3_E7_PAGE_READ_DIAGNOSTIC="+json.dumps({
+      "status":fresh_page.status,
+      "taskStatus":fresh_page_json.get("reviewTask",{}).get("subject",{}).get("statusLabel"),
+      "restoredLabel":next((f.get("initialValue") for f in fresh_page_json.get("fields",[])
+        if f.get("key")=="label_0"),None)
+    },ensure_ascii=False),flush=True)
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
