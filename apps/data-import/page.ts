@@ -718,6 +718,8 @@ export function createDataImportMappingPageV010(input: {
     }] : [])
   ];
   const reviewTable = {
+    // V3 compact four-column density uses upstream Eidos #200 semantics.
+    presentation: "compact" as const,
     columnLabels: {
       subject: zh(input.locale) ? "来源列名" : "Source column",
       evidence: zh(input.locale) ? "示例值" : "Examples",
