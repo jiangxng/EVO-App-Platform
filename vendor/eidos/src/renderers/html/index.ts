@@ -107,6 +107,13 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
       </details>
     </div>`;
   }
+  if(task.presentation === "workbench") {
+    // Keep actual source, status, metrics, and actionable issues visible in
+    // their workflow order before Human review choices (Eidos #201).
+    return `<div data-eidos-form-task-overview data-eidos-task-presentation="workbench">
+      ${steps}${context}${metrics}${issues}${help}
+    </div>`;
+  }
   return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}${help}</div>`;
 }
 
