@@ -4,7 +4,7 @@ import { createMemoryEnterpriseResourceRepositoryV010 } from "../../dist/provide
 import { createObjectExtensionRepositoryV010 } from "../../dist/apps/object-extension/repository.js";
 import { createObjectExtensionActionHandlersV010 } from "../../dist/apps/object-extension/actions.js";
 import { OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
-import { batchUnmappedColumnsV010 } from "../../dist/apps/object-extension/batch-page.js";
+import { batchUnmappedColumnsV010, batchReviewSourceRevisionV010 } from "../../dist/apps/object-extension/batch-page.js";
 
 const contextId="enterprise-context:bex-v3-stale-draft";
 function importJob() {
@@ -42,7 +42,7 @@ function requestCreatedFromOldPage() {
     actionId:"save-review-draft",sourceInteractionId:"stale-form-test",
     requiresConfirmation:false,
     values:{
-      importJobId:"bex-v3-stale-form",batchMode:"BATCH",
+      importJobId:"bex-v3-stale-form",batchMode:batchReviewSourceRevisionV010(importJob()),
       batchSubjectType:"__KEEP__",
       choice_0:"__IGNORE__",label_0:"人工决定甲",type_0:"STRING",
       choice_1:"__CREATE__",label_1:"人工决定乙",type_1:"STRING"
