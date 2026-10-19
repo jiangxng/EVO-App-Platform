@@ -488,6 +488,170 @@ $pa05_j4$`);
           restartedB.send({type:"read",epoch:8});
           assert.match((await stillUnapproved).message,
             /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+          await t.test("E01J4B revoke-first durable lifecycle repair after multiple OS crashes",{
+            timeout:42000
+          },async()=>{
+            let recoveredA;
+            try{
+              // A is authorized at epoch 8 and B is still locally ACTIVE
+              // but unapproved. Durable intent and approval cut happen in
+              // the SAME central SQL transaction, never after local mutation.
+              await root.unsafe('CREATE TABLE "'+schema+
+                '".pa05_read_lifecycle_intents('+
+                'operation_id text PRIMARY KEY, host_id text NOT NULL, '+
+                'owner_package_id text NOT NULL, expected_epoch bigint NOT NULL, '+
+                "state text NOT NULL CHECK(state IN ('FENCED','COMPLETE')))");
+              const held=reply(durableA,"held");
+              durableA.send({type:"hold",epoch:8});
+              await held;
+              const oldBusiness=reply(durableA,"readResult");
+              let prepared=false;
+              const prepare=root.begin(async tx=>{
+                await tx.unsafe('INSERT INTO "'+schema+
+                  '".pa05_read_lifecycle_intents VALUES($1,$2,$3,$4,$5)',[
+                  "e01j4b-disable-uninstall","read-host-a",
+                  "evo-purchase-attention",8,"FENCED"
+                ]);
+                const updated=await tx.unsafe('UPDATE "'+schema+
+                  '".pa05_read_host_activation_epoch '+
+                  'SET approved_epoch=7 WHERE owner_package_id=$1 '+
+                  'AND host_id=$2 AND approved_epoch=8 RETURNING host_id',[
+                  "evo-purchase-attention","read-host-a"
+                ]);
+                assert.equal(updated.length,1);
+                prepared=true;
+              });
+              await delay(220);
+              assert.equal(prepared,false,
+                "revocation must wait for the actual in-flight READ SQL lock");
+              durableA.send({type:"release"});
+              assertBusiness(await oldBusiness,"read-host-a");
+              await prepare;
+              const persisted=await root.unsafe('SELECT state FROM "'+schema+
+                '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
+                "e01j4b-disable-uninstall"
+              ]);
+              assert.equal(persisted[0].state,"FENCED");
+              // Simulate fatal exit after central cut but BEFORE the local
+              // AppManager receives DISABLE. Stale ACTIVE must not bypass.
+              const firstDeath=new Promise(resolve=>durableA.once("exit",resolve));
+              durableA.kill("SIGKILL");
+              await firstDeath;
+              recoveredA=start(urlA,schema,fileA);
+              await reply(recoveredA,"ready");
+              const staleLocal=reply(recoveredA,"localState");
+              recoveredA.send({type:"snapshot"});
+              assert.equal((await staleLocal).active,true);
+              const centrallyDenied=reply(recoveredA,"readDenied");
+              recoveredA.send({type:"read",epoch:8});
+              assert.match((await centrallyDenied).message,
+                /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+              // Original AppManager must apply DISABLE to the correct file.
+              const disabled=reply(recoveredA,"disabled");
+              recoveredA.send({type:"disable"});
+              await disabled;
+              const secondDeath=new Promise(resolve=>recoveredA.once("exit",resolve));
+              recoveredA.kill("SIGKILL");
+              await secondDeath;
+              recoveredA=start(urlA,schema,fileA);
+              await reply(recoveredA,"ready");
+              const afterDisable=reply(recoveredA,"localState");
+              recoveredA.send({type:"snapshot"});
+              assert.deepEqual(
+                {installed:(await afterDisable).installed,active:false},
+                {installed:true,active:false}
+              );
+              const disableAgain=reply(recoveredA,"disabled");
+              recoveredA.send({type:"disable"});
+              await disableAgain;
+              const remove=reply(recoveredA,"uninstalled");
+              recoveredA.send({type:"uninstall"});
+              await remove;
+              const thirdDeath=new Promise(resolve=>recoveredA.once("exit",resolve));
+              recoveredA.kill("SIGKILL");
+              await thirdDeath;
+              recoveredA=start(urlA,schema,fileA);
+              await reply(recoveredA,"ready");
+              const afterUninstall=reply(recoveredA,"localState");
+              recoveredA.send({type:"snapshot"});
+              const absent=await afterUninstall;
+              assert.equal(absent.installed,false,
+                "restarted Worker auto-installed an explicitly removed plugin");
+              assert.equal(absent.active,false);
+              const noBusiness=reply(recoveredA,"readDenied");
+              recoveredA.send({type:"read",epoch:8});
+              assert.match((await noBusiness).message,
+                /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+              // Confirm the lifecycle intent survived every Worker crash.
+              assert.equal((await root.unsafe('SELECT state FROM "'+schema+
+                '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
+                "e01j4b-disable-uninstall"
+              ]))[0].state,"FENCED");
+              await assert.rejects(sqlA.unsafe('UPDATE "'+schema+
+                '".pa05_read_lifecycle_intents SET state=$1',[
+                "COMPLETE"
+              ]),/permission denied/);
+              const completed=await root.unsafe('UPDATE "'+schema+
+                '".pa05_read_lifecycle_intents SET state=$1 '+
+                'WHERE operation_id=$2 AND state=$3 RETURNING operation_id',[
+                "COMPLETE","e01j4b-disable-uninstall","FENCED"
+              ]);
+              assert.equal(completed.length,1);
+              const replay=await root.unsafe('UPDATE "'+schema+
+                '".pa05_read_lifecycle_intents SET state=$1 '+
+                'WHERE operation_id=$2 AND state=$3 RETURNING operation_id',[
+                "COMPLETE","e01j4b-disable-uninstall","FENCED"
+              ]);
+              assert.equal(replay.length,0,"duplicate repair must not create a new completion");
+              const explicitInstall=reply(recoveredA,"installed");
+              recoveredA.send({type:"install"});
+              await explicitInstall;
+              const stillDenied=reply(recoveredA,"readDenied");
+              recoveredA.send({type:"read",epoch:8});
+              assert.match((await stillDenied).message,
+                /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+              // DBA checked the newly installed local state, then *explicitly*
+              // reattests A. No automatic re-approval on uninstall or restart.
+              const checked=reply(recoveredA,"localState");
+              recoveredA.send({type:"snapshot"});
+              assert.equal((await checked).active,true);
+              const attested=await root.unsafe('UPDATE "'+schema+
+                '".pa05_read_host_activation_epoch SET approved_epoch=8 '+
+                'WHERE owner_package_id=$1 AND host_id=$2 '+
+                'AND approved_epoch=7 RETURNING host_id',[
+                "evo-purchase-attention","read-host-a"
+              ]);
+              assert.equal(attested.length,1);
+              const legitimate=reply(recoveredA,"readResult");
+              recoveredA.send({type:"read",epoch:8});
+              assertBusiness(await legitimate,"read-host-a");
+              const deniedB=reply(restartedB,"readDenied");
+              restartedB.send({type:"read",epoch:8});
+              assert.match((await deniedB).message,
+                /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+              console.log("PA05_E01J4B_CRASH_RECOVER_LIFECYCLE_PG="+JSON.stringify({
+                realPostgresql18:true,
+                originalAppManagerAndBusinessHandler:true,
+                revokeWaitedForInFlightRead:true,
+                centralCutAndIntentSameSqlTransaction:true,
+                crashedWhileLocallyActiveDenied:true,
+                crashedAfterDisableRemainedDisabled:true,
+                uninstalledPackageNotAutoRestored:true,
+                repairDurableAcrossThreeWorkerCrashes:true,
+                duplicateRepairIdempotent:true,
+                ordinaryWorkerCannotCompleteCentralIntent:true,
+                reinstallWithoutReattestationDenied:true,
+                explicitAttestationRestoresOnlyOneHost:true,
+                alternateWorkerStillDenied:true,
+                productionCrossStoreAtomicityCertified:false,
+                operatorConsentAndSecretsCertified:false,
+                productionHostWired:false,
+                productionWriteEnabled:false,pa05Signed:false
+              }));
+            }finally{
+              await stop(recoveredA);
+            }
+          });
           console.log("PA05_E01J4_PERSISTED_MULTIWORKER_REATTEST_PG="+JSON.stringify({
             actualPostgresql18:true,distinctWorkerProcessAndStateFiles:2,
             originalAppManagerAndPurchaseRead:true,
