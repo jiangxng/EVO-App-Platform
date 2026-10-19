@@ -407,7 +407,7 @@ export function createDataImportActionHandlersV010(input: {
         // was explicitly used as the source heading).
         const normalizedBusinessAlias = (value: string) => value
           .normalize("NFKC").trim().toLocaleLowerCase()
-          .replace(/[\\s_\\-\\/()[\\]{}.:：]+/gu, "");
+          .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
         const businessAliases = new Map<string, Set<string>>();
         for (const field of fieldsForSurfaceV010(schema, "IMPORT")
           .filter(item => item.writable)) {
