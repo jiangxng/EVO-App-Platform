@@ -258,8 +258,16 @@ export function suggestDataImportMappingV010(input: {
   const mapping: DataImportMappingV010[] = [];
   for (const sourceColumn of input.source.headers) {
     const matches = byAlias.get(normalizedHeader(sourceColumn)) ?? [];
-    const targetFieldId = matches.find(item => !usedTargets.has(item));
-    if (!targetFieldId) continue;
+    // A business label may name several distinct enterprise fields (e.g.
+    // two 开户银行 targets). Availability does not resolve semantic ambiguity.
+    // The only safe machine choice for an ambiguous alias is an explicit
+    // technical field ID; otherwise the Human must select the real target.
+    const explicitIds = matches.filter(item =>
+      normalizedHeader(item) === normalizedHeader(sourceColumn));
+    const uniqueId = matches.length === 1 ? matches[0]
+      : explicitIds.length === 1 ? explicitIds[0] : undefined;
+    if (!uniqueId || usedTargets.has(uniqueId)) continue;
+    const targetFieldId = uniqueId;
     usedTargets.add(targetFieldId);
     mapping.push({ sourceColumn, targetFieldId });
   }
