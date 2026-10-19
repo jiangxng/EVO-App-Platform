@@ -154,10 +154,18 @@ test("PA05 Host HTTP Action and /v1 routes all use the single guarded lifecycle 
   const count = needle => source.split(needle).length - 1;
   assert.equal(count('pa05WriteLifecycleHost.apply("UPGRADE", itemId'), 1);
   assert.equal(count('pa05WriteLifecycleHost.apply("UPGRADE", body.packageId'), 1);
-  assert.equal(count('pa05WriteLifecycleHost.apply("DISABLE", itemId'), 2);
-  assert.equal(count('pa05WriteLifecycleHost.apply("UNINSTALL", itemId'), 2);
-  assert.equal(count('pa05WriteLifecycleHost.apply("DISABLE", body.packageId'), 1);
-  assert.equal(count('pa05WriteLifecycleHost.apply("UNINSTALL", body.packageId'), 1);
+  // E01J4D routes *every* legacy Action and direct HTTP removal through a
+  // single READ+WRITE-compatible guarded Host composition. Nothing may
+  // quietly fall back to raw AppManager or the WRITE-only route for READ.
+  assert.equal(count('applyPa05ReadLifecycleMutation(request,"DISABLE",itemId)'), 2);
+  assert.equal(count('applyPa05ReadLifecycleMutation(request,"UNINSTALL",itemId)'), 2);
+  assert.equal(count('applyPa05ReadLifecycleMutation(request,"DISABLE",body.packageId)'), 1);
+  assert.equal(count('applyPa05ReadLifecycleMutation(request,"UNINSTALL",body.packageId)'), 1);
+  assert.equal(count('return pa05WriteLifecycleHost.apply(operation, packageId)'), 1);
+  assert.equal(count('pa05WriteLifecycleHost.apply("DISABLE", itemId'), 0);
+  assert.equal(count('pa05WriteLifecycleHost.apply("UNINSTALL", itemId'), 0);
+  assert.equal(count('pa05WriteLifecycleHost.apply("DISABLE", body.packageId'), 0);
+  assert.equal(count('pa05WriteLifecycleHost.apply("UNINSTALL", body.packageId'), 0);
   for (const forbidden of [
     "manager.disable(itemId)", "manager.uninstall(itemId)",
     "manager.upgrade(itemId,", "manager.disable(body.packageId)",
