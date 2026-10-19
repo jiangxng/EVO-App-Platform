@@ -88,3 +88,9 @@ V3 Human 工作台首先让用户核对当前来源列、原始样本、字段�
 - **Platform 业务归属（Draft 暂存）：** 仅真实 `/data-import/jobs/:id/map` 及有 Job 参数的 `/object-extensions/from-import?mode=batch` 适用；供应商列表、最终预检、普通扩展字段、其他工作台、Agent 和外部 URL 均拒绝进入该聚焦模式。Platform 仅将通用 owner 改动临时同步进 #1054 Draft，与已合并 upstream 保持严格分离，待 #202 通过且合并才可正式认定版本依赖。
 - **验证用例（待最新 CI）：** `tests/protocol/bex01-v3-wide-route-focus.test.mjs` 逐个校验允许/拒绝路由；真实 Host Chromium 测试检查 1280px 的映射表实际宽度 1000–1220px、焦点模式开启、侧栏真正隐藏以及工具栏按钮先恢复后重新聚焦。任何绿色结论必须对应**最新精确 HEAD**，不能引用旧 run 39277312473 已通过来替代新代码的验证。
 - **后续：** Eidos #202 CI → 合并 → Platform #1054 精确 CI、真实截图 → 对照 #909 剩余标题、文件统计卡片、状态、底部操作区/跨路由流程 → Human 签收。真实客户 Excel、两个银行字段与三条缺失身份仍无新授权证据。**M01–M03 工程完成，M04/M05/M06 OPEN，工程总进度 3/6。** #1054 保持 Draft，不切 Railway release、不写真实客户数据、不覆盖 PA05/Eidos 其他工作。
+
+### 续跑 #04 补充：既有活动栏与快捷键也必须可逆
+
+直接核对 Eidos Workbench 原代码发现单纯覆盖 CSS 的聚焦模式会造成导航可达性冲突：如果用户通过左侧活动栏重新选择 navigation activity，或使用既有 `Ctrl/Cmd+B` 折叠/展开，布局不能仍把侧栏隐藏，更不能因为 V3 临时聚焦而永久写掉原 `sidePanelVisible` / `sidePanelWidth` 偏好。故本轮在 Eidos owner PR [#202](https://github.com/jiangxng/eidos/pull/202) 追加通用行为：导航活动主动展开临时侧栏；快捷键和原 sidebar toggle 共用临时切换，只有用户在普通页面执行正常操作时才沿用旧持久化规则。Platform #1054 Draft 选择性同步这部分变更，并扩展隔离 Host Chromium 覆盖 1280px 聚焦、顶部按钮、`Control+B`、活动栏、离开导入页后的侧栏恢复，以及偏好字段逐项不变（`workspaceTarget` 本身按真实导航仍允许更新）。
+
+**CI 证据级别仍为待验证：** 新增 Eidos PR #202 HEAD 和 Platform #1054 HEAD 关联的 GitHub Actions 均显示 queued，未取到任何该批代码的成功 Chromium 截图。此改动不能升级为已完成工程或 V3 Human 签收。后续先检查 CI/日志，修复后再比对 1280px/390px 完整画面；M01–M03 依历史工程证据完成，M04/M05/M06 OPEN，仍 3/6。
