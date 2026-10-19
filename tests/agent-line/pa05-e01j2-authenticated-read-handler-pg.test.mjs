@@ -4,6 +4,7 @@ import {fork} from "node:child_process";
 import {randomUUID} from "node:crypto";
 import {fileURLToPath} from "node:url";
 import postgres from "postgres";
+import {createPa05TcpCutLinkV010} from "./fixtures/pa05-e01j3-tcp-link.mjs";
 import {createPa05SharedReadOwnerGateV010}
   from "../../dist/manager/pa05-read-owner-shared-sql-gate.js";
 import {createPa05AuthenticatedReadHostV010}
@@ -56,7 +57,7 @@ function assertBusiness(result,host){
 test("E01J2 real PG18 session_user Host identity + least privilege + original READ Handler",{
   skip:!authorityUrl?"real PostgreSQL18 authority required":false,
   timeout:120000
-},async()=>{
+},async t=>{
   const suffix=randomUUID().replaceAll("-","").slice(0,10);
   const schema="pa05_e01j2_"+suffix;
   const roleA="pa05_j2_a_"+suffix, roleB="pa05_j2_b_"+suffix;
@@ -211,6 +212,90 @@ $pa05_fn$`);
       const deniedByAppManager=reply(hostB,"readDenied");
       hostB.send({type:"read",epoch:4});
       assert.match((await deniedByAppManager).message,/ACTION_FEATURE_NOT_ACTIVE/);
+      await t.test("E01J3 physical TCP cut during original Purchase Attention READ, revoke and recover",{
+        timeout:48000
+      },async()=>{
+        const proxy=await createPa05TcpCutLinkV010(authorityUrl);
+        const proxied=new URL(urlB);
+        proxied.hostname="127.0.0.1";
+        proxied.port=String(proxy.port);
+        let partitionHost;
+        let resultLeaked=false;
+        const observe=m=>{if(m?.type==="readResult")resultLeaked=true;};
+        try{
+          partitionHost=start(proxied.toString(),schema);
+          partitionHost.on("message",observe);
+          await reply(partitionHost,"ready");
+          const held=reply(partitionHost,"held");
+          partitionHost.send({type:"hold",epoch:4});
+          const {backendPid,pid}=await held;
+          assert.equal(pid,partitionHost.pid);
+          const active=await root.unsafe(
+            "SELECT usename FROM pg_stat_activity WHERE pid=$1::integer",
+            [backendPid]
+          );
+          assert.equal(active.length,1);
+          assert.equal(active[0].usename,roleB);
+          assert.ok(proxy.accepted>=1);
+          const denied=reply(partitionHost,"readDenied");
+          // This closes ACTUAL Host->PostgreSQL TCP sockets, not an in-process
+          // fake callback or DBA pg_terminate_backend. Other Host/DBA
+          // connections stay healthy throughout the interrupted READ.
+          const severed=proxy.cut();
+          assert.ok(severed>=1,"no authenticated PG transport severed");
+          // The SQL transaction loses its remote session, releasing its lock.
+          // DBA revoke may then freeze the epoch while JS source READ is held.
+          assert.equal(await admin.revoke(4),5);
+          assert.deepEqual(await admin.getEpoch(),{epoch:5,state:"FROZEN"});
+          partitionHost.send({type:"release"});
+          assert.match((await denied).message,
+            /connection|closed|CONNECTION|terminat|socket|network|transaction|write|read/i);
+          assert.equal(resultLeaked,false,"business result escaped a severed SQL transaction");
+          const down=reply(partitionHost,"readDenied");
+          partitionHost.send({type:"read",epoch:5});
+          await down;
+          assert.equal(resultLeaked,false,"offline central SQL yielded a business result");
+
+          proxy.restore();
+          const stale=reply(partitionHost,"readDenied");
+          partitionHost.send({type:"read",epoch:4});
+          assert.match((await stale).message,/PA05_READ_SQL_ADMISSION_DENIED/);
+          const frozen=reply(partitionHost,"readDenied");
+          partitionHost.send({type:"read",epoch:5});
+          assert.match((await frozen).message,/PA05_READ_SQL_ADMISSION_DENIED/);
+          assert.equal(await admin.certify({
+            expectedEpoch:5,async trustedOperatorApproved(){return true;}
+          }),6);
+          const recovered=reply(partitionHost,"readResult");
+          partitionHost.send({type:"read",epoch:6});
+          assertBusiness(await recovered,"read-host-b");
+          // A surviving independent Host must independently reacquire epoch 6.
+          const oldOther=reply(hostB,"readDenied");
+          hostB.send({type:"read",epoch:4});
+          assert.match((await oldOther).message,/PA05_READ_SQL_ADMISSION_DENIED/);
+          console.log("PA05_E01J3_INFLIGHT_TCP_PARTITION_PG="+JSON.stringify({
+            actualPostgresql18:true,
+            authenticatedHostSqlSessionThroughRealTcp:true,
+            cutOccurredDuringOriginalBusinessRead:true,
+            originalBusinessResultNeverEscapedCut:true,
+            independentCentralDbaRevocationCommitted:true,
+            localFallbackDuringCut:false,
+            staleEpochDeniedAfterTcpRecovery:true,
+            frozenEpochDeniedAfterTcpRecovery:true,
+            explicitRecertificationAllowsOnlyNewEpoch:true,
+            survivingWorkerMustRecheckEpoch:true,
+            silentPacketBlackholeCertified:false,
+            automaticAppManagerCrossStoreAtomicity:false,
+            liveProductionTransportCertified:false,
+            productionWriteEnabled:false,
+            pa05Signed:false
+          }));
+        }finally{
+          if(partitionHost)partitionHost.off("message",observe);
+          await stop(partitionHost);
+          await proxy.close();
+        }
+      });
       console.log("PA05_E01J2_AUTHENTICATED_HANDLER_PG="+JSON.stringify({
         actualPostgresql18:true,
         roleBoundSessionUser:true,
