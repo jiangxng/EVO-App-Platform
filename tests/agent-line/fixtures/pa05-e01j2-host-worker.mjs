@@ -26,8 +26,13 @@ const dims={order_no:ids.orderNo,supplier:ids.supplierCounterpartyId,
   product_id:ids.itemId,warehouse:ids.warehouseId};
 const manager=createAppManagerService(createPackageCatalog([
   tradingReferencePackageV010,purchaseAttentionPackageV010
-]),createMemoryLifecycleStore());
-manager.install("evo-purchase-attention");
+]),process.env.PA05_E01J4_STATE_FILE
+  ? createFileLifecycleStore(process.env.PA05_E01J4_STATE_FILE)
+  : createMemoryLifecycleStore());
+if(!manager.snapshot().installedPackages.some(p=>p.packageId==="evo-purchase-attention")){
+  // A disposable first launch only, never proof of production install consent.
+  manager.install("evo-purchase-attention");
+}
 const auth={providerId:"pa05.e01j2.disposable-policy",async check(input){
   const allowed=input.scope.enterpriseId==="host-e01j2"
     && (input.resource.id===undefined || input.resource.id===ids.orderNo)
@@ -110,6 +115,18 @@ process.on("message",async msg=>{
       await gate.close();
       send("closed");
       process.exit(0);
+    }
+    if(msg.type==="snapshot"){
+      const snapshot=manager.snapshot();
+      send("localState",{installed:snapshot.installedPackages.some(p=>
+        p.packageId==="evo-purchase-attention"),active:snapshot.activeFeatures.some(f=>
+        f.featureId==="evo-purchase-attention.default")});
+      return;
+    }
+    if(msg.type==="enable"){
+      manager.enable("evo-purchase-attention");
+      send("enabled");
+      return;
     }
     if(msg.type==="disable") {
       manager.disable("evo-purchase-attention");
