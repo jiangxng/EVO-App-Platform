@@ -740,6 +740,9 @@ export function createDataImportMappingPageV010(input: {
     group.reviewStatus.key === "attention"
       || group.reviewStatus.key === "suggested");
   const reviewTask = {
+    // Eidos #196: keep all task context behind an accessible disclosure
+    // so real source-row decisions lead the first viewport.
+    presentation: "decision-first" as const,
     subject: {
       title: input.job.source.name ?? input.job.importJobId,
       subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
