@@ -1,0 +1,33 @@
+# PA05-05/E01J3 — original Purchase Attention READ under severed central PostgreSQL TCP transport
+
+**Date:** 2026-10-19. **Class:** DECISION_RECORD / engineering candidate; do not treat candidate tests as PASS before accurate-HEAD CI.
+**Inherited accepted proof:** [E01J2 decision and final evidence](PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md), [PR #1024](https://github.com/jiangxng/EVO-App-Platform/pull/1024), main `3d8320069ab3f424f4a2e47a2d2841df5c429c85`, 17/17 real three-PG18 CI, plus docs [PR #1025](https://github.com/jiangxng/EVO-App-Platform/pull/1025).
+**Overall stage:** PA05-05 E01–E05 NOT_SIGNED; PA-05/W06 IN_PROGRESS / NOT_SIGNED; issues #988, #979, #913 OPEN; material production WRITE OFF.
+
+## Why E01J3 and what was already read
+
+The original [E01J1 SQL gate](PA05-E01J-SHARED-READ-OWNER-EPOCH-PG-20261016.md) pinned one central PostgreSQL epoch; [E01J2](PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md) added server-authenticated `session_user` roles and exercised the actual plugin Action Handler, but tested only DBA backend termination *mid-READ* and unreachable startup SQL. Neither was evidence of a Host↔database **TCP transport cut during an already active business READ**.
+
+Reuse the historical [official PostgreSQL18 research/source-grade index](PA05-E01J-WINDOW-RESEARCH-REFERENCE-INDEX-20261019.md): privileges, row locking, TLS/identity and transaction behavior were recorded as visited 2026-10-16. This round does not claim those pages were newly opened, nor infer production network behavior from official documentation. Source code inspected on 2026-10-19: `manager/pa05-read-owner-authenticated-host.ts`, `tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs`, the actual `pa05-e01j2-host-worker.mjs` child and three-PG18 workflow. Existing 17 successful cases remain regression assets.
+
+## Smallest isolated real transport boundary
+
+A disposable local TCP forwarder `tests/agent-line/fixtures/pa05-e01j3-tcp-link.mjs` forwards **real PostgreSQL wire traffic** between the separately forked, authenticated Host B child and actual central PostgreSQL18. This is a third real Node Host process in the combined proof, not a substitute JS fake business callback. The forwarder can destroy both TCP sockets and reject new connections while the PostgreSQL server/DBA and unaffected Host connections stay online; later it permits new TCP connections.
+
+In a real, installed Purchase Attention + Trading Reference Action Router callback, the business Reader is deliberately held after the authenticated SQL gate acquired `FOR SHARE`. The test confirms the real `pg_stat_activity` SQL backend is logged in under Host B's restricted LOGIN role. It then cuts the actual TCP transport during that READ. DBA revokes the same epoch after the severed transaction's database lock is released. When the held JavaScript callback resumes, its business result must **never escape a failed SQL transaction**. While the cut remains, no new business READ may succeed. Once TCP forwarding resumes, the old and FROZEN epochs must still be denied and an explicit DBA recertification must be required for new successful business READ. A surviving different Worker must independently recheck the central epoch.
+
+The old E01J2 execution/role/authorization cases remain intact. CI adds `PA05_E01J3_INFLIGHT_TCP_PARTITION_PG` and changes the exact three-PostgreSQL18 node-test totals from 17 to **18 PASS / 0 failed / 0 skipped**, with all inherited WRITE/PKI markers retained.
+
+## Boundary, risks and solution choices
+
+**Adopted:** a real TCP cut under actual nested business Handler work; server-side PostgreSQL authentication and locks; DBA revocation and explicit recovery; mandatory fail-closed result publication only after SQL transaction COMMIT. This is an isolated, failure-injection proof and is not a production network configuration.
+
+**Not chosen:** treating `pg_terminate_backend` or constructor offline as equivalent to a Host network partition; local in-process flags as transport evidence; production `manager/server.ts` startup import; JSON AppManager state as part of PostgreSQL rollback; marking connection credentials as durable workload attestation; closing W06 from READ evidence.
+
+**Critical limitations that remain UNPROVEN even on success:** this controlled **TCP connection severance** is not a silent ongoing packet blackhole, asymmetric one-way partition, long idle transaction timeout, or Host/process crash recovery across two independent AppManager stores. Source code may keep computing after SQL disconnection; its result is suppressed by the non-committed gate, but arbitrary external side effects/streaming must still be separately prohibited. A successful test does not prove a distributed install/activate/disable transaction, enterprise data, live provider/identity, production secrets, Railway deployment or material WRITE safety. The new `liveProductionTransportCertified:false` and `pa05Signed:false` marker fields make this ceiling machine-visible.
+
+## Verification and follow-on
+
+At initial authoring: **CANDIDATE / CI PENDING**. Record final precise PR HEAD, actual workflow/job log, count/marker, failures and recovered behavior, merge SHA and branch-retirement result here. If a network case fails, correct it in the same PR and rerun; do not loosen legacy 17 test evidence or inherited security checks.
+
+After this narrow cut proof, next distinct gate is durable, actual multi-Worker AppManager lifecycle admission tied to the shared SQL Owner and real Host registration: startup quarantine, activate/disable impact and repair after frozen epoch, crash and distributed uncertainty. It must not be claimed by a single callback's SQL transaction.
