@@ -277,8 +277,17 @@ with sync_playwright() as pw:
     first_batch_row=form.locator('[data-eidos-form-review-table-row]').first
     first_choice=first_batch_row.locator('select[name="choice_0"]')
     expect(first_choice).to_have_value("__CREATE__")
+    # Eidos #196: keep Human decisions in the first viewport, but the
+    # entire original task context and live counters remain operable.
+    task_details=form.locator('[data-eidos-form-task-details]')
+    expect(task_details).to_have_count(1)
+    assert task_details.get_attribute("open") is None
+    task_details.locator("summary").click()
+    expect(task_details).to_have_attribute("open","")
     proposed_count=form.locator('[data-eidos-form-task-metric-id="proposed"] strong')
     ignored_count=form.locator('[data-eidos-form-task-metric-id="ignored"] strong')
+    expect(proposed_count).to_be_visible()
+    expect(ignored_count).to_be_visible()
     before_proposed=int(proposed_count.inner_text())
     before_ignored=int(ignored_count.inner_text())
     first_choice.select_option("__IGNORE__")
