@@ -21,8 +21,12 @@ const authority=createPa05ReadLifecyclePgAuthorityV010({
   connectionString:dbUrl,schema,hostId
 });
 try{
+  const recoveryAuthority=process.env.PA05_J4F_TEST_CRASH_BEFORE_COMPLETE
+    ? {...authority,async complete(){
+        process.kill(process.pid,"SIGKILL");
+      }} : authority;
   const restored=await recoverPa05ReadOwnerPrestartupUninstallV010({
-    manager,authority,
+    manager,authority:recoveryAuthority,
     async authorizeHostOperator(){
       return process.env.PA05_J4F_TEST_AUTHORIZED==="explicit-test-only-yes";
     }
