@@ -26,3 +26,9 @@
 - 本工程只证明接口组合与隔离 Host/PG18。生产操作员的真正 OIDC/工作负载可信来源、DBA role/证书/密钥托管与轮换、值班维护 CLI/运行手册、审计持久落盘签名、临时操作员离职撤销等仍需要实际生产证据。
 - `postgres.js 3.4.9` TCP 断链原进程崩溃、静默黑洞、跨 Worker 全局状态与 PostgreSQL+JSON 非原子、PA05-05 E01–E05/W06 **仍 OPEN/NOT_SIGNED**。
 - 不部署 Railway，不启用 production material WRITE，不变更 BEX/CP03/Eidos/2D 或全局项目状态文件。原研究资料、J2–F 决策、17→24/24 原始测试不重写。
+
+## 4. 首轮完整 GitHub CI 修复后原始 PASS（最终 HEAD 仍以 PR 核验）
+
+**2026-10-19：** 原 PR #1053 内工作流旧 24 项计数修正及强制 J4G markers 后，代码/文档审查 HEAD `b00faf208cfc0d8b77471e6adbe21935485fb174` 的 [三 PostgreSQL18 Actions #39270223784](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39270223784)，job `118120255282` **原始日志已读**：`ℹ tests 25`、`ℹ pass 25`、`ℹ fail 0`、`ℹ skipped 0`，两条 `PA05_E01J4G_PROVIDER_DENIAL`、`PA05_E01J4G_TRUSTED_SQL_RECOVERY_PG` 均真实输出，job SUCCESS。同 HEAD 的 Platform/protocol-and-core、WRITE、READ、Lightweight Host、Human UI、Continuity 已核对 **8/8 SUCCESS**。历史首次 #39269428201 的 25/25 测试成功但脚本失败保留，不将旧 FAIL 擦除。
+
+这只能签 **E01J4G 工程可复用信任组合的隔离验证**；真实生产身份源/凭据/CLI/DBA、全局 E01J4、PA05-05 E01–E05 与 W06 均未签收。最终 PR HEAD 若因文档补充再前进，需在新 HEAD 重跑 CI 才能合并。
