@@ -183,6 +183,7 @@ jobs:
           grep -Fq 'PA05_E01J4I_ONE_SHOT_DENIAL=' pa05-xdb.log
           grep -Fq 'PA05_E01J4J_COOPERATING_HOST=' pa05-xdb.log
           grep -Fq '"secondCooperatingHostDenied":true' pa05-xdb.log
+          grep -Fq '"nonzeroHostExitLeavesLock":true' pa05-xdb.log
           grep -Fq '"defaultHostModeStillOff":true' pa05-xdb.log
           grep -Fq '"onlineHostExcludesMaintenanceBeforeIdentity":true' pa05-xdb.log
           grep -Fq '"multiWorkerGlobalStopCertified":false' pa05-xdb.log
