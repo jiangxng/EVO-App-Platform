@@ -1,5 +1,6 @@
 import {constants, closeSync, fstatSync, lstatSync, openSync, unlinkSync} from "node:fs";
 import {dirname} from "node:path";
+import type {Stats} from "node:fs";
 import type {PackageCatalog} from "../catalog/catalog.js";
 import type {PlatformSnapshotV010} from "../contracts/package.js";
 import {createAppManagerService} from "./service.js";
@@ -45,10 +46,10 @@ export async function recoverPa05OneShotHostPrestartupV010(
   const parent = dirname(input.stateFile);
   const lockPath = input.stateFile + ".pa05-one-shot.lock";
   const uid = process.getuid?.();
-  const trustedStat = (stat: ReturnType<typeof lstatSync>) =>
+  const trustedStat = (stat: Stats) =>
     (stat.mode & 0o077) === 0 &&
     (uid === undefined || stat.uid === uid);
-  const isRegular = (stat: ReturnType<typeof lstatSync>) =>
+  const isRegular = (stat: Stats) =>
     stat.isFile() && stat.nlink === 1 && trustedStat(stat);
   let lockFd: number | undefined;
   try {
