@@ -9,6 +9,8 @@ on:
       - "manager/pa05-read-owner-lifecycle-pg.ts"
       - "manager/server.ts"
       - "tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql"
+      - "docs/agent-line/PA05-E01J4E-LEAST-PRIVILEGED-SQL-OPERATOR-20261019.md"
       - "docs/agent-line/PA05-E01J4D-ACTUAL-HOST-ROUTE-20261019.md"
       - "docs/agent-line/PA05-E01J4C-HOST-LIFECYCLE-COMPOSITION-20261019.md"
       - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
@@ -56,6 +58,8 @@ on:
       - "manager/pa05-read-owner-lifecycle-pg.ts"
       - "manager/server.ts"
       - "tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql"
+      - "docs/agent-line/PA05-E01J4E-LEAST-PRIVILEGED-SQL-OPERATOR-20261019.md"
       - "docs/agent-line/PA05-E01J4D-ACTUAL-HOST-ROUTE-20261019.md"
       - "docs/agent-line/PA05-E01J4C-HOST-LIFECYCLE-COMPOSITION-20261019.md"
       - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
@@ -144,6 +148,11 @@ jobs:
           grep -Fq 'PA05_E01J4B_CRASH_RECOVER_LIFECYCLE_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J4D_ACTUAL_HTTP_LIFECYCLE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG=' pa05-xdb.log
+          grep -Fq '"sqlHostRoleNoRawUpdate":true' pa05-xdb.log
+          grep -Fq '"ordinaryWorkerFunctionDenied":true' pa05-xdb.log
+          grep -Fq '"forgedHostIdentityAndGucDenied":true' pa05-xdb.log
+          grep -Fq '"productionDatabaseProvisioned":false' pa05-xdb.log
           grep -Fq '"actualNodeHostHttpAndAction":true' pa05-xdb.log
           grep -Fq '"directDisableSqlFirst":true' pa05-xdb.log
           grep -Fq '"actionUninstallSqlFirst":true' pa05-xdb.log
@@ -243,8 +252,8 @@ jobs:
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           # Node 24 test reporter uses the unicode summary rather than TAP '# skipped'.
           # Pin actual case count so a conditional PG skip cannot look like success.
-          grep -Fq 'ℹ tests 22' pa05-xdb.log
-          grep -Fq 'ℹ pass 22' pa05-xdb.log
+          grep -Fq 'ℹ tests 23' pa05-xdb.log
+          grep -Fq 'ℹ pass 23' pa05-xdb.log
           grep -Fq 'ℹ fail 0' pa05-xdb.log
           grep -Fq 'ℹ skipped 0' pa05-xdb.log
           if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
