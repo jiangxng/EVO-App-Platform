@@ -88,6 +88,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
     ? job.batchReviewDrafts?.find(d=>d.actorSubjectId===input.actorSubjectId)
     : undefined;
   const draftChoices=new Map(draft?.columns.map(d=>[d.sourceColumn,d] as const) ?? []);
+  const unavailableDraftSources=new Set<string>();
   const available = batchApplicableDefinitionsV010(job, input.definitions);
   const usedTargets = new Set(job.mapping.map(x => x.targetFieldId));
   const all: BexImportTargetField[] = input.importableTargets ?? available.map(x => ({
@@ -159,8 +160,12 @@ export function createObjectExtensionBatchImportPageV010(input: {
       const savedDecision=draftChoices.get(column);
       const originalOptions=new Set([BEX_BATCH_CREATE,BEX_BATCH_IGNORE,
         BEX_BATCH_REVIEW,...fieldOptions.map(o=>o.value)]);
-      const selectedAction=savedDecision && originalOptions.has(savedDecision.choice)
-        ? savedDecision.choice : action;
+      const staleDraftChoice=Boolean(savedDecision && !originalOptions.has(savedDecision.choice));
+      if (staleDraftChoice) unavailableDraftSources.add(column);
+      // Never silently turn a previously selected target into CREATE or
+      // reuse a different field when the saved target becomes unavailable.
+      const selectedAction=staleDraftChoice ? BEX_BATCH_REVIEW
+        : savedDecision ? savedDecision.choice : action;
       const count = job.source.rows.filter(row =>
         row[column] !== null && row[column] !== undefined && String(row[column]).trim() !== ""
       ).length;
@@ -317,7 +322,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
     );
     const ambiguous = same.length > 1
       || (same.length === 1 && usedTargets.has(same[0].fieldId));
-    const requiresReview = ambiguous || metadataLike.test(column);
+    const requiresReview = ambiguous || metadataLike.test(column)
+      || unavailableDraftSources.has(column);
     return {
       id: "source-" + index,
       title: column,
@@ -404,7 +410,10 @@ export function createObjectExtensionBatchImportPageV010(input: {
       subtitle: (zh ? "集中审核 · " : "Batch review · ") +
         job.source.rows.length + (zh ? " 条记录 · " : " rows · ") +
         columns.length + (zh ? " 列待处理" : " pending columns"),
-      statusLabel: draft
+      statusLabel: unavailableDraftSources.size
+        ? (zh ? "草稿中 " + unavailableDraftSources.size + " 列原目标已失效，需重新核对"
+          : unavailableDraftSources.size + " saved targets unavailable; review required")
+        : draft
         ? (zh ? "当前审核人的未批准草稿已恢复" : "Your unapproved review draft restored")
         : (zh ? "原始 Excel 已保留" : "Original Excel retained"),
       facts: [
