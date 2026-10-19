@@ -3,7 +3,7 @@ import {createPa05AuthenticatedReadHostV010}
 import {createAppActionRouter} from "../../../dist/actions/router.js";
 import {createPackageCatalog} from "../../../dist/catalog/catalog.js";
 import {createAppManagerService} from "../../../dist/manager/service.js";
-import {createMemoryLifecycleStore} from "../../../dist/manager/store.js";
+import {createFileLifecycleStore,createMemoryLifecycleStore} from "../../../dist/manager/store.js";
 import {createCapabilityOperationActionPreExecuteV010}
   from "../../../dist/manager/capability-operation-access.js";
 import {tradingReferencePackageV010}
