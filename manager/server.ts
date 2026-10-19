@@ -9865,7 +9865,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "DISABLE_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = await pa05WriteLifecycleHost.apply("DISABLE", itemId);
+        const snapshot = await applyPa05ReadLifecycleMutation(request,"DISABLE",itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
@@ -9887,7 +9887,7 @@ const server = createServer(async (request, response) => {
         if (plan.blockers.length > 0) {
           return json(response, 409, { ok: false, error: { code: "UNINSTALL_BLOCKED", message: JSON.stringify(plan.blockers) } });
         }
-        const snapshot = await pa05WriteLifecycleHost.apply("UNINSTALL", itemId);
+        const snapshot = await applyPa05ReadLifecycleMutation(request,"UNINSTALL",itemId);
         return json(response, 200, {
           ok: true,
           correlationId: action.sourceInteractionId,
