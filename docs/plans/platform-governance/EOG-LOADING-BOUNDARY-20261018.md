@@ -223,3 +223,56 @@ R1 整体未关闭；R2 Agent配置触发SQL需原owner的职责/资格及验收
 
 阅读记录：完整读取根 AGENTS、AI-BOOTSTRAP、LLM、两份适用clinerules、交付规范、文档分类规则、本专项五份指定材料及装载规范；全局 `project.status`/生成handoff仅定向核对当前里程碑/最新闭环/live gate/部署声明，未改写，不能据其较旧全局快照覆盖本专项或其他owner最新记录。源码完整读取 graph model/service/persistence、SOP actions、observatory tools/resolver、projection store/source、inspector resolver；工具组逐个核对 import、工厂、available/execute，page/view handler与大 projection editor仅定向读取导入、构造及实际业务调用，不声称审计全部2D算法、Eidos实现或整个Host。无新增外网研究，复用现有合同与历史证据。
 
+## 13. 2026-10-19增量：当前编辑器仅在定义投影裁剪时加载完整编辑器
+
+基线 main `9b80babdc31fafbcb98f043fde01a6f388c7ce03`（#1046），已核对当前开放PR，没有本批路径的并行实现。本批推进A01/R1，不新增Agent或2D产品功能。
+
+### 问题、选择与实现
+
+第12节的候选已追踪到明确根边：`manager/server.ts`静态导入当前编辑器工具，工具又为一个裁剪函数静态导入`definition-projection-editor.ts`，后者带入Eidos 2D聚合出口。Host原有定义投影页面、GET/selection/SAVE命令已经通过原页面分支/lazy handler动态导入该编辑器；局部核对server全部该路径引用，未发现需要把这些消费者再次改造的理由。
+
+因此只修改`apps/eog-2d-designer/current-2d-editor-agent-tools.ts`：移除裁剪函数的静态import，WRITE execute在参数格式、当前目标、有效Feature、企业访问和管理角色检查之后，**仅对`DEFINITION_PROJECTION`目标await原模块**。目录构造/发现、两种目标的READ，以及`OPERATING_GRAPH`目标的裁剪均不加载此编辑器。没有复制裁剪/缩略图/合并算法，也没有新增懒代理、加载框架或修改同步公共service/model合同；既有工具execute合同允许Promise，裁剪实现现返回Promise，READ保持原同步返回。
+
+新增等待点后再次检查Feature、访问、管理角色和捕获的完整当前编辑目标快照（包含selectedAt）；切换或重新选择目标返回原`CURRENT_2D_EDITOR_WRITE_CONFLICT`，不把旧请求绑定到新资源。之后才调用原read和集合校验，保留原expectedWriteToken检查、`putIfVersion`及onEditorUpdated。等待期间其他写入已推进版本时，本请求按原CAS拒绝，不重放WRITE。Host目录的授权/回执、Personal会话与当前编辑器企业范围、Shared View State、企业定义权威均保持。
+
+### 生命周期、资源与恢复
+
+| 场景 | 本批明确行为 / 验收 |
+|---|---|
+| 未安装/停用、启动及合法目录发现 | 原入口资格保持；完整投影编辑器新增四组合冷启动禁入断言。调用预检拒绝时不加载实现、不读业务数据 |
+| 已启用未使用、READ、运行图裁剪 | 工具登记与发现保留轻量闭包；模块加载探针证明这三类调用不加载定义投影编辑器 |
+| 首次定义投影裁剪 / 并发 | 原生ESM共用模块缓存；两个相同token并发请求只加载一次、一笔提交、一笔CAS冲突；输出继续使用原函数 |
+| 加载期间停用/访问撤销/角色撤销/目标变化 | 真实ESM load hook中改变测试权威/选择；await后拒绝，业务读取/本请求写入/失效通知计数均0 |
+| 等待期间其他编辑者提交 | load hook通过另一真实文件store实例推进版本；本请求保留冲突，不覆盖其数据；重新读取正确token可继续 |
+| 恢复资格/目标 | 同一工具实例和成功加载模块可复用；每次仍检查当下资格与token，不把ESM缓存当作权限 |
+| 模块装载失败 | 错误原样上抛，本请求零业务读写。未新建自有失败缓存；不承诺绕过Node原生ESM失败缓存。交付/模块故障修复后重启Host恢复，新进程正常裁剪测试与故障进程分开 |
+
+此处没有新建连接、任务、订阅或后台资源；没有需在停用时dispose的新实例。ESM可保留缓存，工具闭包仍随请求目录持有Principal/Context；不创建跨用户全局单例。停止只阻止新调用及本批新增等待点后的动作，不宣称撤销已提交WRITE、跨进程事务冻结或完成全平台停止合同。
+
+### 验证、证据与限制
+
+本地18项定向回归通过：新增`tests/protocol/eog-current-editor-crop-lazy.test.mjs`9项、原`personal-agent-current-projection.test.mjs`6项及第12节登记边界3项。两个test-only fixture在独立进程注册真实ESM loader，记录模块装载；竞态在完整编辑器load hook中改变测试资格/当前目标，或经另一真实文件store实例写入。没有修改模块源码或在生产增加测试注入参数。验证Personal会话继续操作Host选择的企业素材、两种编辑器裁剪保持、语义graph/definition未变；输出/缩略图与原算法兼容。
+
+最初基于MessagePort的测试同步出现通知排队/超时，已改为loader直接写测试专用信号和实际文件store。最终回归无定时轮询、无生产诊断端点；只保留最终可执行fixture，不把初次失败算通过证据。
+
+本地仍受第12节环境限制：固定SHA源码快照、Node24临时类型擦除转译及`--test-isolation=none`，不是正式TypeScript全仓构建。正式npm ci/build、默认Node22 runner及真实Host四组合禁入由本PR CI执行，结果见PR。静态基线只删除当前工具→完整编辑器、完整编辑器→package的两条退休边（原基线255条，待CI严格核实），不扩允许集合。**本地没有新四组合测量，不把#1019的336模块或#1046的历史CI当作本轮模块实测。** CI新报告如有数字以本PR实际日志/产物为准，不推算RSS或生产收益。
+
+完整证据：[eog-current-editor-crop-lazy-20261019.json](evidence/eog-current-editor-crop-lazy-20261019.json)；[兼容评审](../../ui-design-reviews/eog-current-editor-crop-lazy-20261019.md)。未部署，无真实模型/用户任务、浏览器视觉、生产权限变动或跨Host冻结验收。源码事实来自完整当前编辑器工具与原当前投影测试、局部editor裁剪/merge/thumbnail链及Host对应消费者；没有通读整个Host或全部Eidos算法。复用已读装载/交付规范及第12节根边研究，完整读取工具系统规范、UI检查规则/设计总纲/清单，不重复外部研究。
+
+### 接续与固定进度
+
+本入口整改完成后停止追加拆分。R1原运行图page/view handler、semantic/SOP命令模块及其他静态实现仍需按第12节分类继续选择，保留纯模型/同步共享合同；不能据此称整个Eidos 2D链或全部编辑器都退出Host。下一批优先原graph page/view handler与semantic actions的共同装配，复用既有lazy handler并保持当前编辑器选择回调；不重做定义投影页面或本批裁剪入口。R2 Agent配置触发SQL、R3 Provider分类、R4最终跨层验收仍未关闭。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；本批裁剪装配与竞态回归 | R1剩余page/action装配，继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、原Agent专项实施 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
