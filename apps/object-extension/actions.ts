@@ -1,6 +1,7 @@
 import { executeObjectExtensionBatchImportV010 } from "./batch-action.js";
-import type { BexImportTargetField } from "./batch-page.js";
-import type { DataImportJobV010, DataImportMappingV010 } from "../data-import/types.js";
+import { createObjectExtensionBatchReviewDraftV010 } from "./batch-draft.js";
+import { batchReviewSourceRevisionV010, type BexImportTargetField } from "./batch-page.js";
+import type { DataImportJobV010, DataImportMappingV010, DataImportBatchReviewDraftV010 } from "../data-import/types.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -24,7 +25,8 @@ import {
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
   OBJECT_EXTENSION_FEATURE_ID,
   OBJECT_EXTENSION_PACKAGE_ID,
-  OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010
+  OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
+  OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010
 } from "./constants.js";
 
 function text(value: unknown): string | undefined {
@@ -115,6 +117,12 @@ export interface ObjectExtensionImportServicesV010 {
     actorSubjectId: string; recordedAt: string;
   }): void;
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
+  saveBatchReviewDraft?(input:{
+    contextId:string; importJobId:string;
+    draft:DataImportBatchReviewDraftV010;
+    sourceRevision:string;
+    actorSubjectId:string; recordedAt:string;
+  }):void;
 }
 
 export function createObjectExtensionActionHandlersV010(input: ({ repository: ObjectExtensionRepositoryV010 } | {
@@ -135,6 +143,12 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
     actorSubjectId: string; recordedAt: string;
   }): void;
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
+  saveBatchReviewDraft?(input:{
+    contextId:string; importJobId:string;
+    draft:DataImportBatchReviewDraftV010;
+    sourceRevision:string;
+    actorSubjectId:string; recordedAt:string;
+  }):void;
 }): AppActionHandler[] {
   const now = input.now ?? (() => new Date());
 
@@ -278,7 +292,15 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
-        if (request.values.batchMode === "BATCH") {
+        const submittedMode=request.values.batchMode;
+        if (submittedMode === "BATCH" ||
+          typeof submittedMode==="string" && submittedMode.startsWith("BATCH:")) {
+          // New mounted pages bind indexed choices to a source revision.
+          // Legacy direct Host callers retain their existing BATCH contract.
+          if (submittedMode!=="BATCH" &&
+            submittedMode!==batchReviewSourceRevisionV010(job)) {
+            throw new Error("OBJECT_EXTENSION_BATCH_REVIEW_STALE");
+          }
           if (!importServices.applyImportMapping) {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
@@ -407,5 +429,52 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
     }
   };
 
-  return [list, upsert, archive, createFromImport];
+  const saveBatchDraft: AppActionHandler = {
+    packageId: OBJECT_EXTENSION_PACKAGE_ID,
+    featureId: OBJECT_EXTENSION_FEATURE_ID,
+    commandCode: OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010,
+    async execute(request,context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        const active=activeEnterpriseContext(context);
+        ensureManage(context.principal,active.contextId,input.canManageEnterpriseContext);
+        const importJobId=required(request.values.importJobId,
+          "OBJECT_EXTENSION_IMPORT_JOB_REQUIRED");
+        const getImportJob=input.resolveImportJobReader
+          ? await input.resolveImportJobReader() : input.getImportJob;
+        ensureManage(context.principal,active.contextId,input.canManageEnterpriseContext);
+        let job=getImportJob?.(active.contextId,importJobId);
+        if (!job || job.targetId!=="counterparty.subject")
+          throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
+        const services: ObjectExtensionImportServicesV010=input.resolveImportServices
+          ? await input.resolveImportServices(job) : input;
+        ensureManage(context.principal,active.contextId,input.canManageEnterpriseContext);
+        services.assertAvailable?.();
+        // Re-read the authoritative Job after potentially asynchronous
+        // target/permission loading; no stale snapshot may be written.
+        job=getImportJob?.(active.contextId,importJobId);
+        if (!job || job.targetId!=="counterparty.subject")
+          throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
+        if (!services.saveBatchReviewDraft || !services.getImportableTargets)
+          throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_SERVICE_REQUIRED");
+        const recordedAt=now().toISOString();
+        const draft=createObjectExtensionBatchReviewDraftV010({
+          job,actorSubjectId:context.principal.subjectId,recordedAt,
+          values:request.values,
+          importableTargets:services.getImportableTargets(active.contextId,job)
+        });
+        services.saveBatchReviewDraft({
+          contextId:active.contextId,importJobId,
+          draft,sourceRevision:String(request.values.batchMode),
+          actorSubjectId:context.principal.subjectId,recordedAt
+        });
+        return {ok:true,correlationId:context.correlationId,
+          result:{contractVersion:"0.1.0",state:"DRAFT_SAVED",
+            message:"Your review choices were saved to this Import Job as an unapproved draft. No schema fields or suppliers were created.",
+            savedColumns:draft.columns.length,recordedAt}};
+      } catch(error) {return failure(error,context);}
+    }
+  };
+
+  return [list, upsert, archive, createFromImport, saveBatchDraft];
 }

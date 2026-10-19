@@ -297,7 +297,7 @@ with sync_playwright() as p:
    form.locator('select[name="choice_4"]').select_option("__IGNORE__")
    page.screenshot(path=str(OUT/"extension-batch-review-before-confirm.png"),full_page=True)
    page.on("dialog",lambda dialog: dialog.accept())
-   form.locator('button[type="submit"]').click()
+   form.locator('button[data-eidos-action="create-extension-batch"]').click()
    mapped=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapped).to_be_visible(timeout=30000)
    for i,name in enumerate(names):

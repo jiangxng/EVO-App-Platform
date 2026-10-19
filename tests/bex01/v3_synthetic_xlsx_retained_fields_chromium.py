@@ -309,10 +309,61 @@ with sync_playwright() as pw:
     page.evaluate("""async () => {await new Promise(done =>
       requestAnimationFrame(()=>requestAnimationFrame(done)));}""")
     page.screenshot(path=str(OUT/"v3-e6-plan-preview-desktop.png"),full_page=False)
+    # E7: save the modified proposal without approving a schema field, then
+    # navigate away and restore the exact authorized per-Human draft.
+    save_draft=form.locator('button[data-eidos-action="save-review-draft"]')
+    expect(save_draft).to_be_visible()
+    save_draft.click()
+    expect(page.locator('[data-eidos-action-status]').last).to_contain_text(
+      "unapproved draft",timeout=30000)
+    saved_for_actor=command("data-import.get",{"importJobId":jobid})["job"]
+    assert len(saved_for_actor.get("batchReviewDrafts",[]))==1, "authorized actor draft missing from stored Job"
+    assert any(entry.get("label")=="人工审核后的名称" for entry in saved_for_actor["batchReviewDrafts"][0]["columns"])
+    print("BEX01_V3_E7_DRAFT_READ_DIAGNOSTIC="+json.dumps({
+      "jobState":saved_for_actor["state"],
+      "draftsVisibleToActionActor":[{
+        "actor":d.get("actorSubjectId"),
+        "columns":len(d.get("columns",[])),
+        "hasEditedLabel":any(e.get("label")=="人工审核后的名称" for e in d.get("columns",[]))
+      } for d in saved_for_actor.get("batchReviewDrafts",[])]
+    },ensure_ascii=False),flush=True)
+    fresh_page=api.get("/v1/experience-pages",params={
+      "source":"evo-object-extension.from-import","route":batch})
+    fresh_page_json=fresh_page.json()
+    assert fresh_page.status==200
+    assert "draft restored" in fresh_page_json["reviewTask"]["subject"]["statusLabel"]
+    print("BEX01_V3_E7_PAGE_READ_DIAGNOSTIC="+json.dumps({
+      "status":fresh_page.status,
+      "taskStatus":fresh_page_json.get("reviewTask",{}).get("subject",{}).get("statusLabel"),
+      "restoredLabel":next((f.get("initialValue") for f in fresh_page_json.get("fields",[])
+        if f.get("key")=="label_0"),None)
+    },ensure_ascii=False),flush=True)
+    # Same-URL hash navigation can leave the mounted SPA page untouched.
+    # Force real re-entry through a full document reload before asserting restore.
+    page.reload(wait_until="domcontentloaded")
+    form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
+    expect(form).to_be_visible(timeout=30000)
+    expect(form.locator('[data-eidos-form-task-source-status]')).to_contain_text(
+      "草稿已恢复")
+    first_batch_row=form.locator('[data-eidos-form-review-table-row]').first
+    batch_filter=form.locator('[data-eidos-form-review-table-filter]')
+    batch_filter.select_option("all")
+    first_choice=first_batch_row.locator('select[name="choice_0"]')
+    expect(first_choice).to_have_value("__CREATE__")
+    first_batch_row.locator('[data-eidos-review-group-detail] summary').click()
+    name_field=first_batch_row.locator('input[name="label_0"]')
+    expect(name_field).to_have_value("人工审核后的名称")
+    name_field.scroll_into_view_if_needed()
+    page.screenshot(path=str(OUT/"v3-e7-owner-draft-restored-desktop.png"),
+      full_page=False)
     # This scenario later verifies original business fields were preserved.
     # Restore the intentionally edited *unsaved* test input before approval.
     name_field.fill(original_name)
+    plan=form.locator('[data-eidos-form-review-plan]')
     expect(plan.locator('[data-eidos-review-plan-items] li').first).to_contain_text(original_name)
+    form.locator('button[data-eidos-action="save-review-draft"]').click()
+    expect(page.locator('[data-eidos-action-status]').last).to_contain_text(
+      "unapproved draft",timeout=30000)
     batch_filter.select_option("needs")
     expect(first_batch_row).to_be_visible()
     print("BEX01_V3_LIVE_CHOICE_STATUS_NO_HOST_WRITE_PASS",flush=True)
@@ -421,7 +472,9 @@ with sync_playwright() as pw:
       re.compile(r"synthetic-20-0001"))
     page.screenshot(path=str(OUT/"v3-retained-xlsx-batch-17-fields.png"),
                     full_page=True)
-    form.locator('button[type="submit"]').click()
+    approval=form.locator('button[data-eidos-action="create-extension-batch"]')
+    expect(approval).to_have_count(1)
+    approval.click()
     mapping=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(mapping).to_be_visible(timeout=45000)
     for index,label in enumerate(FIELDS):

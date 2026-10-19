@@ -2630,13 +2630,16 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           return;
         }
 
-        const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-        if (submit) submit.disabled = true;
+        const submitter = event.submitter;
+        const declaredActionId = submitter instanceof HTMLButtonElement
+          && form.contains(submitter) ? submitter.dataset.eidosAction : undefined;
+        const submitButtons=Array.from(form.querySelectorAll<HTMLButtonElement>('button[type="submit"]'));
+        submitButtons.forEach(button=>{button.disabled=true;});
         actionStatus.textContent = hostText("shell.executing", "Executing…");
 
         try {
           const values = await collectFormValues(form, page.definition);
-          const execution = await executeAppHostPageAction(page, values, options.actionHost);
+          const execution = await executeAppHostPageAction(page, values, options.actionHost, declaredActionId);
           actionStatus.textContent = execution.result.ok
             ? formatAppHostActionResultV010(execution.result.result)
             : hostText(
@@ -2670,7 +2673,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             { message: error instanceof Error ? error.message : String(error) }
           );
         } finally {
-          if (submit) submit.disabled = false;
+          submitButtons.forEach(button=>{button.disabled=false;});
         }
       })();
     };

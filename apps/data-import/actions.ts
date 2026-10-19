@@ -40,6 +40,7 @@ import {
 import type {
   DataImportMappingV010,
   DataImportMappingOriginV010,
+  DataImportJobV010,
   DataImportValueMapEntryV010
 } from "./types.js";
 import {
@@ -317,10 +318,23 @@ function failure(
   };
 }
 
-function jobResult(job: unknown): JsonValue {
+/** Only the active Human may read their unapproved draft through Job APIs. */
+function actorVisibleJobV010(
+  job: DataImportJobV010, actorSubjectId: string
+): DataImportJobV010 {
+  const { batchReviewDrafts, ...visible } = job;
+  const own = batchReviewDrafts?.find(draft =>
+    draft.actorSubjectId === actorSubjectId
+  );
+  return own
+    ? { ...visible, batchReviewDrafts: [structuredClone(own)] }
+    : visible;
+}
+
+function jobResult(job: DataImportJobV010, actorSubjectId: string): JsonValue {
   return JSON.parse(JSON.stringify({
     contractVersion: "0.1.0",
-    job
+    job: actorVisibleJobV010(job,actorSubjectId)
   })) as JsonValue;
 }
 
@@ -596,7 +610,7 @@ export function createDataImportActionHandlersV010(input: {
               contractVersion: "0.1.0",
               message: "Existing selections saved. Review proposed enterprise fields together; source rows remain preserved. No supplier data imported.",
               navigateTo: objectExtensionImportRouteV010(importJobId) + "&mode=batch",
-              job: staged
+              job: actorVisibleJobV010(staged,context.principal.subjectId)
             })) as JsonValue
           };
         }
@@ -615,7 +629,7 @@ export function createDataImportActionHandlersV010(input: {
               ? "Validation passed. Review the result and confirm import."
               : "Validation found issues. Review errors before importing.",
             navigateTo: dataImportReviewRouteV010(importJobId),
-            job
+            job: actorVisibleJobV010(job,context.principal.subjectId)
           })) as JsonValue
         };
       } catch (error) {
@@ -664,7 +678,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -700,7 +714,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -797,7 +811,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -827,7 +841,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -864,7 +878,10 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: JSON.parse(JSON.stringify(inspection)) as JsonValue
+          result: JSON.parse(JSON.stringify({
+            ...inspection,
+            job: actorVisibleJobV010(inspection.job,context.principal.subjectId)
+          })) as JsonValue
         };
       } catch (error) {
         return failure(error, context);
@@ -982,7 +999,7 @@ export function createDataImportActionHandlersV010(input: {
               ? "Correction saved. Validation passed; final import still requires confirmation."
               : "Correction saved. Review remaining validation issues.",
             navigateTo: dataImportReviewRouteV010(importJobId),
-            job
+            job: actorVisibleJobV010(job,context.principal.subjectId)
           })) as JsonValue
         };
       } catch (error) {

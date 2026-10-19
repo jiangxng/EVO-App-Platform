@@ -4,7 +4,11 @@ import { createMemoryEnterpriseResourceRepositoryV010 } from "../../dist/provide
 import { createObjectExtensionRepositoryV010 } from "../../dist/apps/object-extension/repository.js";
 import { createObjectExtensionActionHandlersV010 } from "../../dist/apps/object-extension/actions.js";
 import { createObjectExtensionBatchImportPageV010 } from "../../dist/apps/object-extension/batch-page.js";
-import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
+import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
+import {assertDataImportJobV010} from "../../dist/apps/data-import/types.js";
+import {createActionRequest} from "../../dist/vendor/eidos/src/runtime/action.js";
+import {createDataImportActionHandlersV010} from "../../dist/apps/data-import/actions.js";
+import {DATA_IMPORT_GET_COMMAND_V010,DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010} from "../../dist/apps/data-import/constants.js";
 import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
 import { renderToHtml } from "../../dist/vendor/eidos/src/renderers/html/index.js";
 
@@ -471,4 +475,129 @@ test("V3 batch approval plan is derived from every real option, not a static pro
   assert.match(html,/仅预览当前未保存的选择/);
   assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5,
     "same Host source rows and original choice_N are used by preview and submit");
+});
+
+
+test("V3 saved batch review choices are actor-scoped and never create enterprise fields",async()=>{
+  const x=setup();
+  const current=x.getJob();
+  const untouched=structuredClone(current.source);
+  const originalMappings=structuredClone(current.mapping);
+  const before=createObjectExtensionBatchImportPageV010({
+    job:current,definitions:[],actorSubjectId:"owner",locale:"zh-CN"
+  });
+  assert.equal(before.actions.length,2);
+  assert.equal(before.actions[0].requiresConfirmation,true);
+  assert.equal(before.actions[1].requiresConfirmation,false);
+  assert.equal(before.actions[1].command,OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
+  assert.equal(validateUidl(before).ok,true,JSON.stringify(validateUidl(before).diagnostics));
+  assert.match(renderToHtml(before),/data-eidos-action="save-review-draft"/);
+  const values={...request(current).values};
+  // Preserve the source revision declared by the page for draft-only save.
+  values.batchMode=before.fields.find(f=>f.key==="batchMode").initialValue;
+  values.choice_0="__IGNORE__";values.label_1="月结业务方式";
+  const draftRequest=createActionRequest(before,values,{actionId:"save-review-draft"});
+  assert.equal(draftRequest.command.code,OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
+  assert.equal(draftRequest.requiresConfirmation,false);
+  let saves=0,job=current;
+  let lazyReaderResolutions=0;
+  const handlers=createObjectExtensionActionHandlersV010({
+    repository:x.repo,canManageEnterpriseContext:()=>true,
+    resolveImportJobReader:async()=>{
+      lazyReaderResolutions++;
+      return (_,id)=>id===job.importJobId?job:undefined;
+    },
+    getImportableTargets:()=>[],
+    saveBatchReviewDraft:input=>{
+      saves++;job=assertDataImportJobV010({...job,
+        stagedAt:"2026-10-16T00:00:00Z",stagedBySubjectId:"owner",
+        batchReviewDrafts:[input.draft]});
+    }
+  });
+  const save=handlers.find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
+  assert.ok(save);
+  const result=await save.execute(draftRequest,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.state,"DRAFT_SAVED");
+  assert.equal(lazyReaderResolutions,1,"draft save must use lazy-resolved authoritative import reader");
+  assert.equal(saves,1);
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.deepEqual(job.mapping,originalMappings);
+  assert.deepEqual(job.source,untouched);
+  const restored=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"owner",locale:"zh-CN"
+  });
+  assert.equal(restored.fields.find(f=>f.key==="choice_0").initialValue,"__IGNORE__");
+  assert.equal(restored.fields.find(f=>f.key==="label_1").initialValue,"月结业务方式");
+  assert.match(restored.reviewTask.subject.statusLabel,/草稿已恢复/);
+  const other=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"another-owner",locale:"zh-CN"
+  });
+  assert.equal(other.fields.find(f=>f.key==="choice_0").initialValue,"__CREATE__");
+  assert.doesNotMatch(other.reviewTask.subject.statusLabel,/草稿/);
+  const forged={...draftRequest,values:{...draftRequest.values,choice_0:"unknown_target"}};
+  const failed=await save.execute(forged,ctx());
+  assert.equal(failed.ok,false);
+  assert.equal(saves,1);
+  assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
+  assert.throws(()=>createActionRequest(before,values,{actionId:"forged-approval"}),
+    /Selected submit action is not declared/);
+});
+
+test("V3 generic import Job and mapping-inspection responses expose only the calling Human's own draft",async()=>{
+  const job=fixture();
+  const draft=(actor,choice)=>({
+    actorSubjectId:actor,recordedAt:"2026-10-19T00:00:00.000Z",
+    columns:[{sourceColumn:columns[0],choice,label:columns[0],valueType:"STRING"}]
+  });
+  job.batchReviewDrafts=[
+    draft("owner","__IGNORE__"),
+    draft("other-owner","__CREATE__")
+  ];
+  const before=structuredClone(job);
+  const handlers=createDataImportActionHandlersV010({
+    service:{inspectMapping:()=>({contractVersion:"0.1.0",job,sourceColumns:[]})},
+    repository:{get:(_,id)=>id===job.importJobId?job:undefined},
+    canManageEnterpriseContext:()=>true,idFactory:()=>"_unused_"
+  });
+  const get=handlers.find(x=>x.commandCode===DATA_IMPORT_GET_COMMAND_V010);
+  const inspect=handlers.find(x=>x.commandCode===DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010);
+  assert.ok(get);assert.ok(inspect);
+  const req={contractVersion:"0.1.0",type:"command",
+    values:{importJobId:job.importJobId}};
+  const forActor=actor=>({...ctx(),principal:{...ctx().principal,subjectId:actor}});
+  for(const actor of ["owner","other-owner","new-owner"]){
+    const expected=before.batchReviewDrafts.filter(d=>d.actorSubjectId===actor);
+    const read=await get.execute(req,forActor(actor));
+    assert.equal(read.ok,true,JSON.stringify(read));
+    assert.deepEqual(read.result.job.batchReviewDrafts??[],expected);
+    const checked=await inspect.execute(req,forActor(actor));
+    assert.equal(checked.ok,true,JSON.stringify(checked));
+    assert.deepEqual(checked.result.job.batchReviewDrafts??[],expected);
+  }
+  assert.deepEqual(job,before,"read projection must not rewrite authoritative drafts or source rows");
+});
+
+test("V3 expired saved target does not silently become a new Schema field",()=>{
+  const job=fixture();
+  job.batchReviewDrafts=[{
+    actorSubjectId:"owner",recordedAt:"2026-10-19T00:00:00.000Z",
+    columns:[{
+      sourceColumn:columns[0],choice:"ext_deleted_supplier_field",
+      label:"默认支付方式",valueType:"STRING"
+    }]
+  }];
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"owner",locale:"zh-CN"
+  });
+  assert.equal(page.fields.find(x=>x.key==="choice_0").initialValue,"__REVIEW__",
+    "an unavailable saved target must require a new Human decision");
+  assert.match(page.reviewTask.subject.statusLabel,/已失效/);
+  assert.ok(page.reviewTask.issues.some(x=>x.title===columns[0]),
+    "the invalidated row remains in the task's actionable issues");
+  assert.equal(page.reviewGroups.find(x=>x.id==="source-0").defaultExpanded,true);
+  const other=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],actorSubjectId:"another-owner",locale:"zh-CN"
+  });
+  assert.doesNotMatch(other.reviewTask.subject.statusLabel,/失效|草稿/);
 });

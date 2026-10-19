@@ -225,7 +225,7 @@ ${taskOverview}
 <div data-eidos-form-fields>${fields}</div>
 ${preview}
 <footer data-eidos-form-actions>
-<button type="submit" data-eidos-action="${esc(model.submitAction.id)}" data-eidos-primary="true">${esc(model.submitAction.label)}</button>
+${model.submitActions.map((action,index)=>`<button type="submit" data-eidos-action="${esc(action.id)}" data-eidos-declared-command="${esc(action.command)}"${index===0 ? ` data-eidos-primary="true"` : ""}>${esc(action.label)}</button>`).join("")}
 ${agentActions}${cancels}
 </footer>
 </form>`;
