@@ -1,6 +1,6 @@
 # PA05-05/E01J4F — SQL-fenced operator-led prestartup UNINSTALL recovery
 
-**2026-10-19 · DECISION_RECORD · initial ENGINEERING_CANDIDATE, exact-HEAD CI pending. Full E01J4/W06 NOT_SIGNED.**
+**2026-10-19 · DECISION_RECORD · E01J4F ENGINEERING_BOUNDED_PASS / MERGED; full E01J4/W06 NOT_SIGNED.**
 
 ## Fixed milestone progress / no scope extension
 
@@ -14,7 +14,7 @@
 | E01J4C | BOUNDED_PASS 21/21 | Original AppManager Host-only lifecycle adapter |
 | E01J4D | BOUNDED_PASS 22/22 | Original Host HTTP/Action integration, default OFF |
 | E01J4E | BOUNDED_PASS 23/23 | DBA function-only least privilege and real Host |
-| **E01J4F** | **IN_PROGRESS / NOT_SIGNED** | Operator-led **prestartup** fenced UNINSTALL repair, original E01I quarantine unchanged, real Host restarts and three-PG18 24/24 zero skips |
+| **E01J4F** | **ENGINEERING_BOUNDED_PASS / merged #1044** | Operator-led **prestartup** fenced UNINSTALL repair, original E01I quarantine unchanged, real Host restarts and three-PG18 24/24 zero skips |
 | Full E01J4 | **OPEN / NOT_SIGNED** | Production real operator identity, DBA provisioning, unattended repair + cross-Worker authoritative states and atomicity |
 | PA05-05 E01–E05 | NOT_SIGNED | Enterprise/Human/Agent/Provider/browser still not certified |
 | PA-05/W06 | IN_PROGRESS / NOT_SIGNED | #988/#979/#913 OPEN |
@@ -34,10 +34,16 @@ The real three-PG18 workflow reuses old E01J1–J4E security checks, appends one
 
 **Explicitly NOT a signoff:** actual production Human/operator identity/Provider authorization of external one-shot maintenance, verifiable credential custody, installed repair CLI, automatic recovery of any process, all Host nodes converging, distributed JSON+PG ACID, writable source READ restoration, model/browser/enterprise acceptance, real crash-containment of postgres 3.4.9, third-party admin table owner compromise, or PA05-05 E01–E05/W06. Production material WRITE OFF. No Railway, global `project.status.json` or TR-01/HANDOFF-LATEST, BEX/CP03/Eidos/2D changes.
 
-## Primary original CI evidence and candidate status
+## Primary original CI evidence and verified merged engineering
+
+**Final accurate engineering PR HEAD and merged main (2026-10-19):** `fec8216bbdad119736b99697b338bffbac173447` after original test SQL quote correction, with 9 changed paths wholly PA05-specific. [Three real PostgreSQL18 #39225474209](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474209), job `117970578273`: directly inspected raw log, **24/24 PASS, 0 failed, 0 skipped**, `PA05_E01J4F_PRESTART_RECOVERY_PG` proving true OS SIGKILL, real E01I Host denial and subsequent unchanged Host boot, central approval stays revoked. All six other accurate-head workflows SUCCESS: [Project Continuity #39225474265](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474265), [Human UI #39225474225](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474225), [Platform #39225474194](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474194), [Governed WRITE #39225474325](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474325), [Cross-business READ #39225474204](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474204), [Lightweight Host #39225474379](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39225474379). [Engineering PR #1044](https://github.com/jiangxng/EVO-App-Platform/pull/1044) MERGED at main `9264e215496ab088b45a363453fe63bc9a5aae58`, original engineering branch confirmed absent (GitHub 404). No Railway/deployment, no production credentials, no global or other-owner changes.
+
+**Engineering bounded PASS only:** a one-shot operator-led internal *repair primitive* and disposable OS process E01I→repair→HTTP boot proof. The test worker's environmental operator predicate **is not real Operator/Provider authentication**, and **no production-run prestartup CLI/supervisor or secret provisioner** is delivered; multi-Worker consistency, postgres.js crash containment, signed PA05-05 E01–E05/W06 and SQL/JSON ACID remain NOT_SIGNED. #988/#979/#913 OPEN, Production material WRITE OFF.
+
+
 
 **Initial genuine failed CI (not covered up):** [three-PG18 #39224632491](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39224632491), original job `117967823276`, **23 PASS / 1 FAIL / 0 skipped**, new fixture's PostgreSQL REVOKE function name missing one schema closing quote. E01J4F scenario failed during disposable DBA fixture setup before exercising recovery; no authorization gate weakened. Fixed in original PR #1044.
 
 **First complete actual PG18 positive:** code HEAD `eb722c100fb9dc5f0513b92bd67ebbeac01212e1`, [three-PG18 #39224931853](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39224931853), original job `117968790397` raw log inspected: **24/24 PASS, 0 failed, 0 skipped** including all prior 23 tests. `PA05_E01J4F_PRESTART_RECOVERY_PG` attests real E01I blocked original Host before repair, no silent file rewrite, explicit test-only operator denial, no central fence, DISABLE-only intent, spoofed Host, unprivileged Worker, ambiguous pending, actual OS SIGKILL between original file UNINSTALL and SQL COMPLETE, another OS process completing the same durable record, duplicate idempotence, real original Host startup afterwards, central approval still frozen. Explicit marker flags `actualProductionOperatorIdentityCertified:false`, `productionRepairCommandWired:false`, `productionSecretsProvisioned:false`, `multiWorkerAtomicityCertified:false`, `pa05Signed:false`.
 
-**Current:** preliminary code-HEAD PASS only; exact final PR HEAD CI and merge/branch retirement PENDING; maintain `IN_PROGRESS` for E01J4F until final acceptance. No production operator utility or signing has been created.
+**Final:** E01J4F isolated engineering bounded PASS / MERGED, raw accurate-head 24/24 verified, source branch retired; production operator identity and complete E01J4/W06 remain NOT_SIGNED. No production operator utility or signing has been created.
