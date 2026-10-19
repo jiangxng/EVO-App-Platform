@@ -11,7 +11,8 @@ import type {
  * LOGIN session_user, pins the Host and Package, serializes the READ approval
  * cut with the original READ lock, and records the intent atomically.
  *
- * This runtime only has USAGE on schema and EXECUTE on ONE function. It has
+ * This runtime only has schema USAGE and EXECUTE on explicitly trusted
+ * transition/pending functions; the pending function is E01J4F opt-in. It has
  * no SELECT/INSERT/UPDATE/DELETE on central authority tables and no DDL.
  * The PostgreSQL functions and role grants MUST be provisioned separately.
  * An old E01J4D table-grant database without this function fails CLOSED.
@@ -20,7 +21,10 @@ export function createPa05ReadLifecyclePgAuthorityV010(input: {
   connectionString: string;
   schema: string;
   hostId: string;
-}): Pa05HostReadLifecycleAuthorityV010 & {close(): Promise<void>} {
+}): Pa05HostReadLifecycleAuthorityV010 & {
+  pending(): Promise<{operationId:string;operation:"DISABLE"|"UNINSTALL"} | null>;
+  close(): Promise<void>;
+} {
   if (!input.connectionString?.trim()
       || !/^postgres(?:ql)?:\/\//.test(input.connectionString)
       || !/^[a-z][a-z0-9_]{0,62}$/.test(input.schema)
@@ -57,6 +61,24 @@ export function createPa05ReadLifecyclePgAuthorityV010(input: {
     async fence(ctx){await transition("FENCE",ctx);},
     async assertFenced(ctx){await transition("ASSERT",ctx);},
     async complete(ctx){await transition("COMPLETE",ctx);},
+    async pending(){
+      // DBA-owned SECURITY DEFINER discovery is confined to *this*
+      // PostgreSQL-authenticated login's own Host and FENCED intents.
+      // No caller may supply operation id/type, or query central tables.
+      const rows=await db.unsafe(
+        "SELECT operation_id,operation FROM "+schema+
+          ".pa05_read_lifecycle_operator_pending($1::text)",
+        [input.hostId]
+      );
+      if(rows.length===0)return null;
+      if(rows.length!==1 || !["DISABLE","UNINSTALL"].includes(rows[0].operation)
+         || typeof rows[0].operation_id!=="string")
+        throw Error("PA05_READ_LIFECYCLE_PENDING_AMBIGUOUS");
+      return {
+        operationId:rows[0].operation_id,
+        operation:rows[0].operation as "DISABLE"|"UNINSTALL"
+      };
+    },
     async close(){await db.end({timeout:2});}
   };
 }

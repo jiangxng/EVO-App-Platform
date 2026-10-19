@@ -9,6 +9,11 @@ on:
       - "manager/pa05-read-owner-lifecycle-pg.ts"
       - "manager/server.ts"
       - "tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4f-prestartup-recovery-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j4f-pending-recovery.sql"
+      - "tests/agent-line/fixtures/pa05-e01j4f-repair-worker.mjs"
+      - "manager/pa05-read-owner-prestartup-recovery.ts"
+      - "docs/agent-line/PA05-E01J4F-PRESTART-RECOVERY-20261019.md"
       - "tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql"
       - "docs/agent-line/PA05-E01J4E-LEAST-PRIVILEGED-SQL-OPERATOR-20261019.md"
       - "docs/agent-line/PA05-E01J4D-ACTUAL-HOST-ROUTE-20261019.md"
@@ -58,6 +63,11 @@ on:
       - "manager/pa05-read-owner-lifecycle-pg.ts"
       - "manager/server.ts"
       - "tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4f-prestartup-recovery-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j4f-pending-recovery.sql"
+      - "tests/agent-line/fixtures/pa05-e01j4f-repair-worker.mjs"
+      - "manager/pa05-read-owner-prestartup-recovery.ts"
+      - "docs/agent-line/PA05-E01J4F-PRESTART-RECOVERY-20261019.md"
       - "tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql"
       - "docs/agent-line/PA05-E01J4E-LEAST-PRIVILEGED-SQL-OPERATOR-20261019.md"
       - "docs/agent-line/PA05-E01J4D-ACTUAL-HOST-ROUTE-20261019.md"
@@ -138,7 +148,7 @@ jobs:
           # Serial file runners prevent independent PG18 suites from exhausting
           # the same ephemeral central authority connection pool. Assertions,
           # 20-second per-IPC limits and the strict 22/22 zero-skip gate remain.
-          node --test --test-concurrency=1 tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs | tee pa05-xdb.log
+          node --test --test-concurrency=1 tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs tests/agent-line/pa05-e01j4f-prestartup-recovery-pg.test.mjs | tee pa05-xdb.log
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J_SHARED_READ_OWNER_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J2_AUTHENTICATED_HANDLER_PG=' pa05-xdb.log
@@ -149,6 +159,11 @@ jobs:
           grep -Fq 'PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J4D_ACTUAL_HTTP_LIFECYCLE_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4F_PRESTART_RECOVERY_PG=' pa05-xdb.log
+          grep -Fq '"realHostE01iRejectedBeforeRepair":true' pa05-xdb.log
+          grep -Fq '"actualOsCrashAfterLocalUninstallBeforeComplete":true' pa05-xdb.log
+          grep -Fq '"realHostBootedAfterClearedState":true' pa05-xdb.log
+          grep -Fq '"productionRepairCommandWired":false' pa05-xdb.log
           grep -Fq '"sqlHostRoleNoRawUpdate":true' pa05-xdb.log
           grep -Fq '"ordinaryWorkerFunctionDenied":true' pa05-xdb.log
           grep -Fq '"forgedHostIdentityAndGucDenied":true' pa05-xdb.log
@@ -252,8 +267,8 @@ jobs:
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           # Node 24 test reporter uses the unicode summary rather than TAP '# skipped'.
           # Pin actual case count so a conditional PG skip cannot look like success.
-          grep -Fq 'ℹ tests 23' pa05-xdb.log
-          grep -Fq 'ℹ pass 23' pa05-xdb.log
+          grep -Fq 'ℹ tests 24' pa05-xdb.log
+          grep -Fq 'ℹ pass 24' pa05-xdb.log
           grep -Fq 'ℹ fail 0' pa05-xdb.log
           grep -Fq 'ℹ skipped 0' pa05-xdb.log
           if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
