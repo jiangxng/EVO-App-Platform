@@ -41,13 +41,16 @@ function start(roleUrl,schema,stateFile){
   return child;
 }
 async function stop(child){
-  if(!child||child.exitCode!==null)return;
-  const done=reply(child,"closed",1500).catch(()=>null);
-  child.send({type:"close"});await done;
-  if(child.exitCode===null){
+  if(!child||child.exitCode!==null||child.signalCode!==null)return;
+  if(child.connected){
+    const done=reply(child,"closed",1500).catch(()=>null);
+    try{child.send({type:"close"});}catch{/* OS child already dead */}
+    await done;
+  }
+  if(child.exitCode===null&&child.signalCode===null){
     child.kill("SIGTERM");
     await Promise.race([new Promise(resolve=>child.once("exit",resolve)),delay(800)]);
-    if(child.exitCode===null)child.kill("SIGKILL");
+    if(child.exitCode===null&&child.signalCode===null)child.kill("SIGKILL");
   }
 }
 function assertBusiness(result,host){
