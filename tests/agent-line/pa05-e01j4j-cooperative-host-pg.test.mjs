@@ -107,6 +107,13 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
     first=launched(file,firstPort);
     assert.equal(await waitBoot(firstPort,first),true,first.output());
     assert.equal(existsSync(lock),true);
+    // An independent second *cooperating Host* must also be denied.
+    const contenderPort=await port();
+    const contender=launched(file,contenderPort);
+    try{
+      assert.equal(await waitBoot(contenderPort,contender,7000),false);
+      assert.match(contender.output(),/PA05_J4J_COOPERATIVE_LOCK_DENIED/);
+    }finally{await ended(contender,"SIGKILL");}
     // The true server is online; J4I must not touch operator Providers.
     await assert.rejects(recoverPa05OneShotHostPrestartupV010(params),
       /PA05_J4I_PRESTART_DENIED_OR_UNKNOWN/);
@@ -144,7 +151,7 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
     // automatic production stale-lock takeover.
     unlinkSync(lock);
     console.log("PA05_E01J4J_COOPERATING_HOST="+JSON.stringify({
-      actualSeparateNodeServer:true,hostHoldsSameStateLock:true,
+      actualSeparateNodeServer:true,hostHoldsSameStateLock:true,\n      secondCooperatingHostDenied:true,
       onlineHostExcludesMaintenanceBeforeIdentity:true,
       cooperativeGracefulExitReleases:true,
       operatorDenialAfterHostStop:true,
