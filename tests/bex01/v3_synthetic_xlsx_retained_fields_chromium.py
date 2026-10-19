@@ -227,6 +227,43 @@ with sync_playwright() as pw:
       return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
     }""")==saved_layout, (
         "route-focus must not overwrite persisted sidebar preference")
+    # An independent user may already have the sidebar OFF in saved layout.
+    # The V3 form still gets 1200px, and Ctrl+B must explicitly reveal the
+    # original navigation rather than being overridden by default focus.
+    hidden_context=browser.new_context(
+      viewport={"width":1280,"height":900},locale="zh-CN")
+    hidden_context.add_init_script("""
+      if(location.origin===%s) {
+        localStorage.setItem("evo.context.id",%s);
+        localStorage.setItem("evo.locale","zh-CN");
+        localStorage.setItem("eidos.workbench.layout",JSON.stringify({
+          contractVersion:"0.1.0",activeActivityId:"apps",
+          sidePanelVisible:false,sidePanelWidth:420,
+          workspaceTarget:"/workspace"
+        }));
+      }
+    """ % (json.dumps(HOST),json.dumps(CTX)))
+    hidden_page=hidden_context.new_page()
+    hidden_page.goto(HOST+"/?surface=desktop#"+mapping,
+      wait_until="domcontentloaded")
+    hidden_form=hidden_page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+    expect(hidden_form).to_be_visible(timeout=30000)
+    hidden_shell=hidden_page.locator('[data-eidos-app-host-layout="workbench"]')
+    expect(hidden_shell).to_have_attribute("data-eidos-workspace-focused","true")
+    expect(hidden_page.locator('[data-eidos-workspace-focus-toggle]')).not_to_be_visible()
+    hidden_width=hidden_form.evaluate(
+      "(node) => Math.round(node.getBoundingClientRect().width)")
+    assert 1120<=hidden_width<=1220,("saved-hidden-wide-review",hidden_width)
+    assert hidden_page.evaluate("""() =>
+      JSON.parse(localStorage.getItem("eidos.workbench.layout")).sidePanelVisible
+    """) is False
+    hidden_page.keyboard.press("Control+b")
+    expect(hidden_shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(hidden_page.locator('[data-eidos-side-panel]')).to_be_visible()
+    assert hidden_page.evaluate("""() =>
+      JSON.parse(localStorage.getItem("eidos.workbench.layout")).sidePanelVisible
+    """) is True, "explicit Ctrl+B must remain effective"
+    hidden_context.close()
     expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
         'data-eidos-review-table-presentation','compact')
     # Match the full #909 workflow hierarchy: source and actionable issues
