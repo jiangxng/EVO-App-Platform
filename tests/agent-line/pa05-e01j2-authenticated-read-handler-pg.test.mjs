@@ -6,6 +6,8 @@ import {fileURLToPath} from "node:url";
 import postgres from "postgres";
 import {createPa05SharedReadOwnerGateV010}
   from "../../dist/manager/pa05-read-owner-shared-sql-gate.js";
+import {createPa05AuthenticatedReadHostV010}
+  from "../../dist/manager/pa05-read-owner-authenticated-host.js";
 
 const authorityUrl=process.env.PA05_XDB_AUTHORITY_DATABASE_URL;
 const workerScript=fileURLToPath(new URL("./fixtures/pa05-e01j2-host-worker.mjs",import.meta.url));
@@ -240,5 +242,28 @@ $pa05_fn$`);
     for(const role of granted.reverse())
       await root.unsafe('DROP ROLE IF EXISTS "'+role+'"');
     await root.end();
+  }
+});
+
+test("E01J2 unavailable PostgreSQL authority must never invoke real READ callback",{
+  timeout:14000
+},async()=>{
+  const gate=createPa05AuthenticatedReadHostV010({
+    connectionString:"postgres://proof:proof@127.0.0.1:1/invalid",
+    schema:"pa05_e01j2_unavailable"
+  });
+  let callbackInvoked=false;
+  try{
+    await assert.rejects(gate.withReadAdmission({
+      expectedEpoch:2,
+      async perform(){callbackInvoked=true;return "FORBIDDEN";}
+    }),/connect|ECONNREFUSED|timeout|Connection/i);
+    assert.equal(callbackInvoked,false);
+    console.log("PA05_E01J2_AUTHORITY_UNAVAILABLE="+JSON.stringify({
+      sqlAuthorityUnreachable:true,readCallbackInvoked:false,
+      noLocalFallback:true,productionNetworkPartitionCertified:false
+    }));
+  }finally{
+    await gate.close();
   }
 });
