@@ -316,7 +316,7 @@ with sync_playwright() as pw:
     save_draft.click()
     expect(page.locator('[data-eidos-action-status]').last).to_contain_text(
       "unapproved draft",timeout=30000)
-    saved_for_actor=command("data-import.get",{"importJobId":job_id})["job"]
+    saved_for_actor=command("data-import.get",{"importJobId":jobid})["job"]
     print("BEX01_V3_E7_DRAFT_READ_DIAGNOSTIC="+json.dumps({
       "jobState":saved_for_actor["state"],
       "draftsVisibleToActionActor":[{
