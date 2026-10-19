@@ -29,7 +29,7 @@ const manager=createAppManagerService(createPackageCatalog([
 ]),process.env.PA05_E01J4_STATE_FILE
   ? createFileLifecycleStore(process.env.PA05_E01J4_STATE_FILE)
   : createMemoryLifecycleStore());
-if(!manager.snapshot().installedPackages.some(p=>p.packageId==="evo-purchase-attention")){
+if(!manager.getSnapshot().installedPackages.some(p=>p.packageId==="evo-purchase-attention")){
   // A disposable first launch only, never proof of production install consent.
   manager.install("evo-purchase-attention");
 }
@@ -117,7 +117,7 @@ process.on("message",async msg=>{
       process.exit(0);
     }
     if(msg.type==="snapshot"){
-      const snapshot=manager.snapshot();
+      const snapshot=manager.getSnapshot();
       send("localState",{installed:snapshot.installedPackages.some(p=>
         p.packageId==="evo-purchase-attention"),active:snapshot.activeFeatures.some(f=>
         f.featureId==="evo-purchase-attention.default")});
