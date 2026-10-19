@@ -21,7 +21,7 @@ async function port(){
   await new Promise(resolve=>server.close(resolve));
   return n;
 }
-function launched(file,p){
+function launched(file,p,cooperativeMode="OPT_IN"){
   const proc=spawn(process.execPath,["--input-type=module","-e",
     "process.umask(0o077); await import('./dist/manager/server.js');"
   ],{cwd:process.cwd(),env:{
@@ -30,7 +30,7 @@ function launched(file,p){
     APP_PLATFORM_STATE_FILE:file,
     APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION:"OFF",
     APP_PLATFORM_PA05_E01J4D_READ_LIFECYCLE:"OFF",
-    APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK:"OPT_IN"
+    APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK:cooperativeMode
   },stdio:["ignore","pipe","pipe"]});
   let output="";
   proc.stdout.on("data",b=>{output=(output+String(b)).slice(-12000);});
@@ -70,7 +70,7 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
   const file=join(dir,"state.json");
   const lock=file+".pa05-one-shot.lock";
   const audit=join(dir,"audit.jsonl");
-  let first,second;
+  let first,second,defaultHost;
   let identityCalls=0,secretCalls=0;
   try{
     const manager=createAppManagerService(createPackageCatalog([
@@ -95,6 +95,14 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
         secretCalls++;throw Error("never");
       }}
     };
+    // Real default-OFF control process, not a hardcoded marker.
+    // It must still boot normally without creating a J4J/J4I lock.
+    const defaultPort=await port();
+    defaultHost=launched(file,defaultPort,"OFF");
+    assert.equal(await waitBoot(defaultPort,defaultHost),true,defaultHost.output());
+    assert.equal(existsSync(lock),false);
+    await ended(defaultHost,"SIGTERM");
+    defaultHost=undefined;
     const firstPort=await port();
     first=launched(file,firstPort);
     assert.equal(await waitBoot(firstPort,first),true,first.output());
@@ -147,7 +155,7 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
       productionMaterialWriteEnabled:false,pa05Signed:false
     }));
   }finally{
-    try{if(first)await ended(first,"SIGKILL");}catch{}
+    try{if(defaultHost)await ended(defaultHost,"SIGKILL");}catch{}\n    try{if(first)await ended(first,"SIGKILL");}catch{}
     try{if(second)await ended(second,"SIGKILL");}catch{}
     process.umask(prior);
     chmodSync(dir,0o700);
