@@ -65,7 +65,7 @@ interface BrowserSessionSnapshotV010 {
 export function shouldFocusBex01V3ReviewWorkspaceRouteV010(route: string): boolean {
   const question = route.indexOf("?");
   const path = question < 0 ? route : route.slice(0,question);
-  if (/^\\/data-import\\/jobs\\/[^/]+\\/map$/.test(path)) return true;
+  if (/^\/data-import\/jobs\/[^/]+\/map$/.test(path)) return true;
   if (path !== "/object-extensions/from-import") return false;
   if (question < 0) return false;
   const params = new URLSearchParams(route.slice(question+1));
