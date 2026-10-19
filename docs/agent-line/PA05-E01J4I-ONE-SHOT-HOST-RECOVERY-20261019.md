@@ -37,3 +37,12 @@ J4F [受限恢复](../../manager/pa05-read-owner-prestartup-recovery.ts)和 J4G 
 ## 5. 下一闭环
 
 先按最终精确 HEAD 验证 CI、真实三个 PostgreSQL18 27/27 且 0 skipped；通过再合并 main 和清理工程分支。后续若要将 Host 内部入口升级为真正操作员工具，需**真实**组织批准的 IdP/Session 颁发、Host 全节点停机排它证明、DBA角色最小权限及密钥轮换、审计链路留存和安全运维流程，不能以此次 fixture 替代。若需改变已确认方案，须在总账追加新证据与理由。
+
+
+## 6. 两次首轮失败和真实原始通过日志（2026-10-19）
+
+**失败历史不删除：** 首轮 PR HEAD `7d704040b88a16de1ead8330ce255dea64b2c27d` 在 TypeScript 编译被 `ReturnType<typeof lstatSync>` 重载引发的可选/`bigint` mode 类型门禁拒绝，**未执行真实 PG18**；同 PR 修正为明确 `node:fs.Stats`。次轮 `6fdf50a18f8d2abf04d69c61c7aca2f8b74b0c3c` [三 PG18 #39275960370](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39275960370) job `118140198664` 为 **27 tests / 26 PASS / 1 FAIL / 0 skipped**：J4I 夹具在验证锁冲突时没有预先设置维护进程安全 `umask 077`，收到了更早的正确配置拒绝，而不是期待的锁冲突码。没有降低产品实现的安全门禁；将 strict umask 提前设置后复测。
+
+**第一次完整真阳性：** 第三轮 HEAD `6776496d4d6d45d44202a101e379baf122ae8990` 的 [三独立 PostgreSQL18 #39276317824](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39276317824)，job `118141428946`，GitHub 原始日志亲读：**27/27 PASS，0 failed，0 skipped**；`PA05_E01J4I_ONE_SHOT_HOST_PG` 与 `PA05_E01J4I_ONE_SHOT_DENIAL` 实际出现，二者如实包含 `noProductionMaintainerCli:true`、`productionIdentityCertified:false`、`distributedHostLockCertified:false`、`pa05Signed:false`。同 HEAD 包括 Lightweight Host、READ、WRITE、Platform 和 Continuity 的 **8/8 相关 CI SUCCESS**。本次仅可认定 J4I 隔离工程 BOUNDED_PASS，不签 E01J4/PA05-05/W06。
+
+此记录补充后 PR HEAD 将前进，只有**新准确最终 HEAD** 全部相关 CI 成功才可合并；不要将早期 HEAD 的通过断言套用到最后提交。
