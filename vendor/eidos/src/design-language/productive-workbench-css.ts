@@ -3043,6 +3043,36 @@ form[data-eidos-id] button:hover,
 
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
 [data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
+/* Eidos: optional Human decision-first task summary. All evidence, issue
+   focus buttons and metrics remain operable inside a native disclosure. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="decision-first"]{
+  gap:var(--eidos-space-xs);margin-block:var(--eidos-space-sm)
+}
+[data-eidos-form-task-details]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);min-width:0
+}
+[data-eidos-form-task-details]>summary{
+  cursor:pointer;min-height:44px;box-sizing:border-box;
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  color:var(--eidos-fg);font-size:var(--eidos-font-compact);
+  overflow-wrap:anywhere
+}
+[data-eidos-form-task-details]>summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-form-task-details]>summary strong{
+  font-weight:650;overflow-wrap:anywhere
+}
+[data-eidos-task-summary-issues]{
+  margin-inline-start:var(--eidos-space-md);
+  font-size:var(--eidos-font-meta);color:var(--eidos-warning)
+}
+[data-eidos-form-task-details-content]{
+  display:grid;gap:var(--eidos-space-md);padding:var(--eidos-space-lg);
+  border-top:1px solid var(--eidos-border);min-width:0
+}
+
 [data-eidos-form-task-steps]{display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-md);padding:0;margin:0;list-style:none;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)}
 [data-eidos-form-task-steps] li{display:flex;gap:var(--eidos-space-sm);align-items:center}
 [data-eidos-form-task-steps] li:before{content:"";width:8px;height:8px;border-radius:50%;border:2px solid var(--eidos-border-strong);background:var(--eidos-bg)}
