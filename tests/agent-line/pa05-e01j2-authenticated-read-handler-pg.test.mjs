@@ -648,6 +648,8 @@ $pa05_j4$`);
                 ]);
                 const openManager=()=>createAppManagerService(
                   catalog,createFileLifecycleStore(fileA));
+                await root.unsafe('ALTER TABLE "'+schema+
+                  '".pa05_read_lifecycle_intents ADD COLUMN lifecycle_operation text');
                 let local=openManager();
                 assert.equal(local.getSnapshot().activeFeatures.some(x=>
                   x.packageId==="evo-purchase-attention"),true);
@@ -660,9 +662,9 @@ $pa05_j4$`);
                     await root.begin(async tx=>{
                       await tx.unsafe('INSERT INTO "'+schema+
                         '".pa05_read_lifecycle_intents '+
-                        '(operation_id,host_id,owner_package_id,expected_epoch,state) '+
-                        'VALUES($1,$2,$3,$4,$5)',[
-                        operationId,"read-host-a",packageId,8,"FENCED"
+                        '(operation_id,host_id,owner_package_id,expected_epoch,state,lifecycle_operation) '+
+                        'VALUES($1,$2,$3,$4,$5,$6)',[
+                        operationId,"read-host-a",packageId,8,"FENCED",operation
                       ]);
                       const rows=await tx.unsafe('UPDATE "'+schema+
                         '".pa05_read_host_activation_epoch SET approved_epoch=7 '+
@@ -673,8 +675,8 @@ $pa05_j4$`);
                       assert.equal(rows.length,1);
                     });
                   },
-                  async assertFenced({operationId,packageId}){
-                    const rows=await root.unsafe('SELECT i.state, a.approved_epoch '+
+                  async assertFenced({operationId,operation,packageId}){
+                    const rows=await root.unsafe('SELECT i.state, i.lifecycle_operation, a.approved_epoch '+
                       'FROM "'+schema+'".pa05_read_lifecycle_intents i '+
                       'JOIN "'+schema+'".pa05_read_host_activation_epoch a '+
                       'ON a.owner_package_id=i.owner_package_id AND a.host_id=i.host_id '+
@@ -683,10 +685,12 @@ $pa05_j4$`);
                         operationId,packageId,"read-host-a"
                       ]);
                     assert.equal(rows.length,1);
+                    assert.equal(rows[0].lifecycle_operation,operation,
+                      "cannot recover a different lifecycle action with old intent ID");
                     assert.equal(Number(rows[0].approved_epoch),7);
                     assert.ok(["FENCED","COMPLETE"].includes(rows[0].state));
                   },
-                  async complete({operationId,packageId}){
+                  async complete({operationId,operation,packageId}){
                     if(failCompleteOnce){
                       failCompleteOnce=false;
                       throw Error("PA05_J4C_SIMULATED_COMPLETION_OUTAGE");
@@ -694,8 +698,8 @@ $pa05_j4$`);
                     const rows=await root.unsafe('UPDATE "'+schema+
                       '".pa05_read_lifecycle_intents SET state=$1 '+
                       'WHERE operation_id=$2 AND owner_package_id=$3 '+
-                      'AND host_id=$4 AND state=$5 RETURNING operation_id',[
-                      "COMPLETE",operationId,packageId,"read-host-a","FENCED"
+                      'AND host_id=$4 AND state=$5 AND lifecycle_operation=$6 RETURNING operation_id',[
+                      "COMPLETE",operationId,packageId,"read-host-a","FENCED",operation
                     ]);
                     if(rows.length===0){
                       const current=await root.unsafe('SELECT state FROM "'+schema+
@@ -735,6 +739,10 @@ $pa05_j4$`);
                 assert.equal(restored.activeFeatures.some(x=>
                   x.packageId==="evo-purchase-attention"),false);
                 await adapter.recover("DISABLE","j4c-disabl-0001");
+                await assert.rejects(adapter.recover("UNINSTALL","j4c-disabl-0001"),
+                  /cannot recover a different lifecycle action/);
+                assert.equal(local.getSnapshot().installedPackages.some(x=>
+                  x.packageId==="evo-purchase-attention"),true);
                 const afterUninstall=await adapter.apply("UNINSTALL","j4c-remove-0001");
                 assert.equal(afterUninstall.installedPackages.some(x=>
                   x.packageId==="evo-purchase-attention"),false);
