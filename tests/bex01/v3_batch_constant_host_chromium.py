@@ -70,7 +70,10 @@ with sync_playwright() as p:
     expect(form.locator('select[name="choice_0"]')).to_have_value("__CREATE__")
     subject.select_option("ORGANIZATION")
     page.screenshot(path=str(OUT/"v3-batch-constant-before-confirm-desktop.png"),full_page=True)
-    form.locator('button[type="submit"]').click()
+    # Target the governed approval action, not an independent draft-save action.
+    approval=form.locator('button[data-eidos-action="create-extension-batch"]')
+    expect(approval).to_have_count(1)
+    approval.click()
     mapping=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(mapping).to_be_visible(timeout=30000)
     saved=command("data-import.get",{"importJobId":job_id})["job"]
