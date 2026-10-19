@@ -182,3 +182,28 @@
 | M04 | 原客户 Excel 与真实列决策 | 待真实证据 | 两条银行字段 ID、三条主体类型逐行确认 |
 | M05 | Schema/Recipe/预检查/最终独立提交 | 待完整真实流程核验 | 幂等、失效与重新预检查、受权提交 |
 | M06 | 高保真桌面/手机 Human 签收 | 待人工签收 | Railway 已登录完整截图与 V3 对照 |
+
+## 13. 2026-10-19 M03 最终工程闭环：真实 Host 草稿合并与 Railway 部署（R）
+
+> **R 级新增事实**：本节只记录本轮直接核验的 GitHub PR、精确 SHA/Actions、源码比较和 Railway Connector 部署/健康状态。前面的 §1–§12 是历史时点事实，不因本节追加而重写。**M03 代码及部署完成 ≠ M04–M06 客户数据、生产业务记录与 Human 视觉签收完成。**
+
+1. **红灯复现**：原隔离测试 [Draft #1028](https://github.com/jiangxng/EVO-App-Platform/pull/1028) 的 [run 39207709249](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39207709249) 精确复现：来源甲映射后，旧页面 `choice_0` 错用于乙且草稿保存返回 `ok:true`。这是测试中的 Host action 业务一致性缺口，不是客户线上事故。
+2. **修复与选择**：在原“审核方式”选择的不可见提交值附加 Job 源列及正式映射摘要，保存草稿验证时、权威 Job 持久化入口处两次比对，同时核实当前可用目标 ID 与占用；仍保留老直接调用的 `BATCH` 审批协议。不增加按钮/页面、不触碰 Eidos 通用控件实现、不改变用户四列流程、dry-run、Schema 提交或供应商数据写入行为。修复的八领域审查为 `docs/ui-design-reviews/bex01-v3-m03-stale-review-source-rejection-20261019.md`。
+3. **独立修复证据**：[PR #1028](https://github.com/jiangxng/EVO-App-Platform/pull/1028) 精确代码 HEAD `9ece9385b80b70c43861185dca9cda7dd5a119a0` 的 GitHub Actions **43/43 SUCCESS**；后续文档 HEAD `16b5a7935b1bb8fa4139209aff3c47d3ed543094` 同样 **43/43 SUCCESS**；#1028 合并进 #999 的 SHA 为 `fa5278c61acdd62cd1eb039055a8c4a9f1c3c032`，未直接推 main。
+4. **并行无重叠的 latest-main 对齐**：对比 #999 的共同祖先 `8255065aa13cc918a4986764a64995e6de79cbc4`，当时 main `6648204d8ef8e373f611831acbbc2c335f27b602` 的 **8 个 PA05 文件变更**与 BEX 的 **22 个文件变更**交集为空。创建双亲保留提交 `d88b6932ed693aa69d177184243fa3d6d30f91a0`，以 GitHub compare 双向验证只保留对应 8 / 22 份文件内容；#999 对 main 为 `ahead=50, behind=0`，无强制覆盖其他窗口，且只推其独立功能分支。
+5. **最终精确 HEAD 和合并**：[#999](https://github.com/jiangxng/EVO-App-Platform/pull/999) 的上述 `d88b6932...` 经核验 **47/47 GitHub Actions SUCCESS**，包括 Platform CI、BEX-01 Real Host Chromium Supplier Journey、Human UI Design Gate、Lightweight Host Architecture、Project Continuity 和 PA05 受影响工作流。确认 PR HEAD 不变、main 未前进且 `mergeable=true` 后，合并到 main：`bdd5ee3b39465bd025a100582e40e7113653d041`。
+6. **生产环境准确证据**：Railway `EVO Ledger Runtime MVP` / production / `Ledger Configurator` 持续配置为 GitHub `main`，合并 SHA `bdd5ee3b...` 对应 deployment `8ab233bb-f2b7-4d1b-a2ae-aa1699dd42bb`。本次直接核验结果 **SUCCESS / Online / 1 running replica / 0 active warnings or criticals / no recent failures**；部署成功不证明真实用户已登录、已操作客户 Excel 或已进行视觉签收。
+7. **真实来源限制（D，未获得）**：当前可访问的聊天及文件 Library 检索未发现原始 `往来账户2026_10_08_10_15_23.xlsx` 的可读取文件，不可据旧 Job ID、设计原型的合成 `BANK_SETTLEMENT/BANK_ARCHIVE`、172×22 回归数据推断两个银行 field ID 或三条实际主体类型结果。Railway 服务健康与静态协议测试不能替代受权客户 Job、真实 Recipe/预检查/幂等/最终提交和用户视觉签收。
+
+### 固定里程碑状态（本轮结束时）
+
+| 里程碑 | 代码/部署或证据状态 | 当前判定 | 下一项原定门禁 |
+| --- | --- | --- | --- |
+| M01 四列审核、异常聚焦、即时状态、移动端 | #984/#989/#973/#978/#981 已合并 | 工程已合并 | 与 V3 登录后真实画面对照属于 M06 |
+| M02 主体类型批次值与受控字段方案预览 | #991/#993/#996 已合并 | 工程已合并 | 客户行身份事实属于 M04 |
+| M03 草稿保存、恢复、权限与失效 | #999 已合并，47/47 CI；Railway 同 SHA SUCCESS | **工程及生产部署已完成** | 真实客户账号权限/会话重进仍随业务现场核验 |
+| M04 原客户 Excel、两个开户银行和三行主体类型 | 未取得原文件与授权 Job | **待真实验证** | 逐一核对实际字段 ID/用途和三条行级修复 |
+| M05 字段批准、Recipe、预检查、最终独立提交 | 已有隔离 Host 及协议回归；未取得真实客户闭环 | **待客户真实验收** | 变更失效、重新预检、权限、幂等、最终显式提交 |
+| M06 原 V3 桌面/手机视觉与业务 Human 签收 | 原型与合成 Chromium 证据存在；未取得登录后 1280/390 完整客户页 | **待人工签收** | 对照四图/完整滚动并由用户确认 |
+
+**禁止改变的决策**：仍执行“异常优先、证据就地、批次共同决定、建议与人工批准分离、受控 Schema 创建、操作连续/系统记忆”；Eidos 通用交互、Platform 业务 Host 各自负责；不由 Agent 自动推断同名银行，不自动覆盖主体类型，不用模拟客户资料取代受权验证；不切 Railway 到 release、不写 `project.status.json`。
