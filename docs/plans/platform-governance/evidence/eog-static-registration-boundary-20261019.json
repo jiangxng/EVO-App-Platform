@@ -1,0 +1,368 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-19",
+  "baseline": "ec465d402c566513e15239077037f804cda7c8bd",
+  "handoffBaseline": "42ce894b4129089cbd8a270bd3473f0c93b7657b",
+  "baselineCompare": {
+    "status": "ahead",
+    "mergeBaseEqualsHandoffBaseline": true
+  },
+  "scope": "A01/R1 directed source inventory and component regression; not complete Host call graph",
+  "productionChange": false,
+  "sourceRootImports": [
+    {
+      "from": "manager/server.ts",
+      "specifier": "./eog-service-runtime.js",
+      "sourceLine": 1,
+      "bindings": [
+        "createOnUseEogServicesV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../contracts/definition-projection.js",
+      "sourceLine": 17,
+      "bindings": [
+        "createMemoryDefinitionProjectionSessionStoreV010",
+        "DEFINITION_2D_EDITOR_ROUTE_V010",
+        "DEFINITION_2D_PREVIEW_ROUTE_V010",
+        "definition2dPreviewRouteV010",
+        "parseDefinitionProjectionRouteV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../apps/eog-2d-designer/definition-persistence.js",
+      "sourceLine": 108,
+      "bindings": [
+        "createEnterpriseOperatingGraphDefinitionPersistenceV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../apps/eog-2d-designer/current-2d-editor-agent-tools.js",
+      "sourceLine": 111,
+      "bindings": [
+        "createCurrent2dEditorAgentToolRegistrationsV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../providers/enterprise-context/definition-projection.js",
+      "sourceLine": 114,
+      "bindings": [
+        "createEnterpriseDefinitionProjectionArtifactSourceV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./eog-startup-compatibility.js",
+      "sourceLine": 117,
+      "bindings": [
+        "migrateExistingEogGraphsV010",
+        "migrateExistingEogSopsV010",
+        "applyConfiguredEogPreviewSeedV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-service.js",
+      "sourceLine": 118,
+      "bindings": [
+        "createEnterpriseOperatingGraphHostServiceV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../providers/eog-view-state/store.js",
+      "sourceLine": 121,
+      "bindings": [
+        "createFileEogViewStateStoreV010",
+        "createMemoryEogViewStateStoreV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../providers/eog-view-state/runtime.js",
+      "sourceLine": 125,
+      "bindings": [
+        "createEogViewStateProviderV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-sop-service.js",
+      "sourceLine": 135,
+      "bindings": [
+        "createEogExpectedSopServiceV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-sop-actions.js",
+      "sourceLine": 138,
+      "bindings": [
+        "createEogExpectedSopActionHandlersV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-sop-agent-tools.js",
+      "sourceLine": 141,
+      "bindings": [
+        "createEogExpectedSopAgentToolRegistrationsV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-actions.js",
+      "sourceLine": 144,
+      "bindings": [
+        "createEnterpriseOperatingGraphActionHandlersV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-agent-tools.js",
+      "sourceLine": 147,
+      "bindings": [
+        "createEnterpriseOperatingGraphAgentToolRegistrationsV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-page.js",
+      "sourceLine": 150,
+      "bindings": [
+        "createEnterpriseOperatingGraphEditorPageV010",
+        "createEnterpriseOperatingGraphViewActionHandlersV010",
+        "EOG_EDITOR_PAGE_SOURCE"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-observatory-provider.js",
+      "sourceLine": 155,
+      "bindings": [
+        "createEnterpriseOperatingGraphObservatoryProviderResolverV020"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-inspector-provider.js",
+      "sourceLine": 158,
+      "bindings": [
+        "createEnterpriseOperatingGraphInspectorPropertyResolverV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "./enterprise-operating-graph-observatory-agent-tools.js",
+      "sourceLine": 161,
+      "bindings": [
+        "createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../providers/enterprise-context/definition-projection-store.js",
+      "sourceLine": 333,
+      "bindings": [
+        "createFileDefinitionProjectionStoreV010",
+        "createMemoryDefinitionProjectionStoreV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../providers/eog-bottleneck-analysis/package.js",
+      "sourceLine": 477,
+      "bindings": [
+        "EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID",
+        "EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID",
+        "eogBottleneckAnalysisProviderPackage"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../apps/eog-2d-designer/authorization.js",
+      "sourceLine": 607,
+      "bindings": [
+        "EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010",
+        "EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010",
+        "EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010",
+        "EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010",
+        "eogDefinitionProjectionAuthorizationPolicyV010"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../apps/eog-2d-designer/package.js",
+      "sourceLine": 793,
+      "bindings": [
+        "EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION",
+        "EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE",
+        "EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION",
+        "EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION",
+        "EOG_2D_DESIGNER_FEATURE_ID",
+        "EOG_2D_DESIGNER_PACKAGE_ID"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../apps/eog-2d-viewer/package.js",
+      "sourceLine": 951,
+      "bindings": [
+        "EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION",
+        "EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE",
+        "EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION",
+        "EOG_2D_VIEWER_FEATURE_ID",
+        "EOG_2D_VIEWER_PACKAGE_ID",
+        "EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION",
+        "EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE",
+        "EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION",
+        "EOG_2D_VIEWER_WORKSPACE_GET_ACTION",
+        "EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE",
+        "EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION"
+      ]
+    },
+    {
+      "from": "manager/server.ts",
+      "specifier": "../apps/eog-3d-viewer/package.js",
+      "sourceLine": 964,
+      "bindings": [
+        "EOG_3D_VIEWER_FEATURE_ID",
+        "EOG_3D_VIEWER_GET_ACTION",
+        "EOG_3D_VIEWER_PAGE_SOURCE",
+        "EOG_3D_VIEWER_PACKAGE_ID"
+      ]
+    }
+  ],
+  "selectedTransitiveEdges": [
+    {
+      "from": "manager/enterprise-operating-graph-service.ts",
+      "to": "apps/eog-2d-designer/enterprise-operating-graph-service.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/enterprise-operating-graph-service.ts",
+      "to": "apps/eog-2d-designer/enterprise-operating-graph-model.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/definition-persistence.ts",
+      "to": "apps/eog-2d-designer/enterprise-operating-graph-model.ts"
+    },
+    {
+      "from": "manager/enterprise-operating-graph-actions.ts",
+      "to": "apps/eog-2d-designer/enterprise-operating-graph-actions.ts"
+    },
+    {
+      "from": "manager/enterprise-operating-graph-agent-tools.ts",
+      "to": "apps/eog-2d-designer/agent-tools.ts"
+    },
+    {
+      "from": "manager/enterprise-operating-graph-agent-tools.ts",
+      "to": "apps/eog-3d-viewer/agent-tools.ts"
+    },
+    {
+      "from": "manager/enterprise-operating-graph-observatory-agent-tools.ts",
+      "to": "apps/enterprise-observatory/agent-tools.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/current-2d-editor-agent-tools.ts",
+      "to": "apps/eog-2d-designer/definition-projection-editor.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/current-2d-editor-agent-tools.ts",
+      "to": "eog/diagram-projection.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/definition-projection-editor.ts",
+      "to": "vendor/eidos/src/2d/index.ts"
+    },
+    {
+      "from": "manager/enterprise-operating-graph-page.ts",
+      "to": "apps/eog-2d-designer/enterprise-operating-graph-page.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/enterprise-operating-graph-page.ts",
+      "to": "apps/eog-2d-designer/enterprise-operating-graph-actions.ts"
+    },
+    {
+      "from": "apps/eog-2d-designer/enterprise-operating-graph-page.ts",
+      "to": "eog/diagram-projection.ts"
+    }
+  ],
+  "decisions": {
+    "retain": [
+      "public constants/manifests/authorization rules",
+      "pure shared graph model and synchronous public service contract",
+      "resource-free construction and registration behavior",
+      "shared method-access projection store and artifact source"
+    ],
+    "pendingImplementationLoading": [
+      "current-2d-editor tool -> definition-projection-editor -> Eidos 2D barrel",
+      "original graph page/view handlers and semantic/SOP action implementation modules"
+    ],
+    "doNotReopen": "Shared View State constructor already verified by #1020; no new defect claim",
+    "startupBusinessWork": "Existing conditional compatibility migrations / explicit preview retained from prior verified batches; not rerun locally",
+    "otherOpenResponsibilities": [
+      "R2 configured Agent SQL initialization",
+      "R3 Provider registration classification",
+      "R4 final cross-layer acceptance"
+    ]
+  },
+  "sha256": {
+    "manager/server.ts": "6cf91bafbd4d9c3bb18d42b7c0d46ec84f9565a65a6b70277f59205d0da51586",
+    "apps/eog-2d-designer/enterprise-operating-graph-model.ts": "85c3dbac40ff95bf3f2599c8210692904d1f8592345aa80030091512dc3c5cb3",
+    "apps/eog-2d-designer/enterprise-operating-graph-service.ts": "b0b3c90c29db0a5a32805ea0ffd556bfced40ccda8fc4ced5788a2b98e3a3b35",
+    "apps/eog-2d-designer/definition-persistence.ts": "f12296b5d9d8e70a35e2c3f99f26c08598d407c920472f51dd7a795f8bacd5b5",
+    "apps/eog-2d-designer/enterprise-operating-graph-actions.ts": "c88a8655940670a167a52845caa74f3a1313f23268764dc98cc81f7acc3a3819",
+    "manager/enterprise-operating-graph-sop-actions.ts": "7b3c1e9c90f3ed988021f485ae51c13acca4dedbc615643141eea28e9a76d291",
+    "manager/enterprise-operating-graph-sop-service.ts": "88f9728ec0b1ebc5277afa01f24d812fb5966826ef5e6fdc290686b62b83638e",
+    "manager/enterprise-operating-graph-agent-tools.ts": "7436eb2822168f5251f3718517ab7f3a3f68dbe4ea78d34f0f7fb8b4ee71e680",
+    "apps/eog-2d-designer/agent-tools.ts": "ddb34c6aa73cadc55718b24948ad92f8741b0b82aec89ebed1505ac4aa810b35",
+    "apps/eog-3d-viewer/agent-tools.ts": "5c9ad69ae90d64642b88acd68a7d635210979526147a0ed47300427509b58a17",
+    "manager/enterprise-operating-graph-sop-agent-tools.ts": "07179cbba86a3ec97b7a28a99013ac4c1f959ca5c72bae1e269376129b9650c8",
+    "apps/enterprise-observatory/agent-tools.ts": "6c260532dfde235df5a4f9f1ee912a2f4a7a7ceef1958b3fd80de21178b28bef",
+    "apps/eog-2d-designer/current-2d-editor-agent-tools.ts": "375a80330f9e4cccd3b2be07da4498128bfbbdf3d7ec20c8154009406305d235",
+    "apps/eog-2d-designer/enterprise-operating-graph-page.ts": "e246eb0b0fe9b9fd629c5124d32a9a9ce0804a638b9c2738a9378521553ebecb",
+    "apps/eog-2d-designer/definition-projection-editor.ts": "dd502223183eca3226baa3a14e9e80ed3a789d40d00769ff7a370a59e8c5b08e",
+    "manager/enterprise-operating-graph-observatory-provider.ts": "0de9b754cf83d97c40a918b4935da1bf58ba0e4bb7b8a4be3d3ab60e310ddc28",
+    "manager/enterprise-operating-graph-inspector-provider.ts": "5960c2eba4cd3ba6c4135f114f5f7683d956b25bf6bcdafbc5b743542263e7f4",
+    "providers/enterprise-context/definition-projection.ts": "9dd48e00a85c0a32210a362582bc99dc83c1b8266aabfe2ce294e87b8ce4888c",
+    "providers/enterprise-context/definition-projection-store.ts": "b0c32c52e1746cf2df9081d801731fc325eb911460f9a0ec6849df4018bc3e9e",
+    "contracts/enterprise-operating-graph.ts": "977268916c29be720dec17041fd5d20cb72a333b78600d7aa46de98e13881faa",
+    "contracts/enterprise-operating-graph-view.ts": "6c45e079025bee9381ac2aac43627f2723cb3a112a87667fcce08c409e144628",
+    "contracts/definition-projection.ts": "e14b096a03096c7b6aa35f0d6aeef031ef3b37057777bf0c1e0e8d669574b7d8",
+    "apps/eog-2d-designer/authorization.ts": "7b99f9e3fd8cd252299966b60eefa2503367d1abf329c633f4b3e8a28f803e93",
+    "agents/enterprise-agent/host-tool-catalog.ts": "c526baf9db826a49a23dce35fbccd99b3ea0b187cb260caef1118c592212b604",
+    "tests/protocol/eog-registration-resource-boundary.test.mjs": "994d109ecf07c4342febd778105606af895df32cf2d3922579a9b46c4c63d2a2",
+    ".github/workflows/lightweight-host.yml": "32bd2036ea87fdcb57800a5e24fd36f33ebba69fcbbb697b20c12f2ca3de73af"
+  },
+  "local": {
+    "node": "24.19.0",
+    "method": "Fixed-SHA source snapshot fetched via GitHub connector. Temporary Node stripTypeScriptTypes transform plus removal of erased/unused named imports. Not official TypeScript build/type check. No production source changed.",
+    "command": "node --test --test-isolation=none tests/protocol/eog-registration-resource-boundary.test.mjs",
+    "result": "✔ model, services and EOG registration construct without resource or business work (54.191885ms)\n✔ catalog discovery uses only lifecycle, editor session and candidate metadata (59.569474ms)\n✔ catalog refusal does not execute graph tools; first READ, disable and recovery preserve scope (6.071932ms)\nℹ tests 3\nℹ suites 0\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 157.493725\n",
+    "passed": 3,
+    "runnerLimit": "Sandbox child-process pipes fail EPERM; default isolated runner not locally accepted. Resource probes remain independent child processes with stdio ignore/inherit and exit status checking."
+  },
+  "ci": {
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "required": "npm ci, official TypeScript build, standard Node 22 test runner, existing real Host/lifecycle/isolated startup checks",
+    "statusAtCommit": "pending; exact head and outcomes recorded in PR"
+  },
+  "newLocalFourProfileAudit": false,
+  "historicalMeasurement": {
+    "pr": 1019,
+    "projectModulesPerProfile": 336,
+    "staticEdges": 255,
+    "isThisBatchMeasurement": false
+  },
+  "limits": [
+    "Guards installed after ESM import; loader IO/module import side effects not dynamically measured",
+    "Only enumerated fs/network/timer entrypoints and injected business dependencies intercepted; not all possible effects or DB clients",
+    "Catalog component tests are not live Agent tasks or real Provider/business integration",
+    "No precise in-flight disable injection, cross-process transaction guarantee or full projection lock/crash recovery acceptance",
+    "No browser or production acceptance; no deployment"
+  ]
+}
