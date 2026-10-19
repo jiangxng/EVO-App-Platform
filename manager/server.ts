@@ -1055,9 +1055,14 @@ if (pa05CooperativeLockMode === "OPT_IN") {
   const hostLock = acquirePa05CooperativeHostStateLockV010({
     mode: "OPT_IN", stateFile: lifecycleStateFile
   });
-  // Handles E01I early throws as well as normal SIGTERM/SIGINT process.exit;
-  // SIGKILL correctly leaves a stale lock for independent Human review.
-  process.once("exit", () => hostLock.release());
+  // Only successful clean exit releases the lock. An E01I early throw,
+  // shutdown failure or SIGKILL leaves it for independent Human review.
+  process.once("exit", (exitCode) => {
+    // Only clean process exit certifies a graceful Host release.
+    // Error exit, uncaught exception or failed shutdown leave this lock
+    // ambiguous for independently authorized stale-lock investigation.
+    if (exitCode === 0) hostLock.release();
+  });
 }
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
 
