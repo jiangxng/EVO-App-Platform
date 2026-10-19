@@ -42,11 +42,15 @@ test("V3 real Host mapping and batch forms lead with decisions while retaining s
     assert.match(html,/data-eidos-form-task-steps/);
     assert.match(html,/data-eidos-form-task-metrics/);
     assert.match(html,/data-eidos-form-review-table/);
+    assert.match(html,/data-eidos-review-table-presentation="compact"/);
+    assert.match(html,/data-eidos-review-table-choice-label/,
+      "source identity is already the first column; compact select keeps an accessible label");
     assert.match(html,/data-eidos-form-review-table-filter/);
     assert.match(html,/name="importJobId"/,"Host job identity must remain in the form");
   }
   assert.equal(job.source.rows[0]["系统编码"],"EXT-001");
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-presentation="decision-first"/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-review-table-presentation="compact"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-details\]>summary\{[\s\S]*min-height:44px/);
 });
 
