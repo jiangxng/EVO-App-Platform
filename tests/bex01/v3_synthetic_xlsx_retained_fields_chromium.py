@@ -188,6 +188,18 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(map_form).to_be_visible(timeout=30000)
+    # V3 desktop reference: the primary visible decision row belongs in the
+    # first screen, not below a full page of task stats and history.
+    map_top=page.evaluate("""() => {
+      const form=document.querySelector('[data-eidos-id="evo-data-import.mapping"]');
+      const row=[...form.querySelectorAll('[data-eidos-form-review-table-row]')]
+        .find(element=>!element.hidden);
+      return row?.getBoundingClientRect().top ?? null;
+    }""")
+    assert map_top is not None and 0 <= map_top < 844, (
+      "V3 /map first decision row must remain in the 1280px first viewport",map_top)
+    page.screenshot(path=str(OUT/"v3-fidelity-first-viewport-map-1280.png"),
+      full_page=False)
     expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
     expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
         "BEX-SYNTHETIC-RET-172.xlsx")
@@ -257,6 +269,16 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
+    batch_top=page.evaluate("""() => {
+      const form=document.querySelector('[data-eidos-id="evo-object-extension.batch-import"]');
+      const row=[...form.querySelectorAll('[data-eidos-form-review-table-row]')]
+        .find(element=>!element.hidden);
+      return row?.getBoundingClientRect().top ?? null;
+    }""")
+    assert batch_top is not None and 0 <= batch_top < 844, (
+      "V3 batch first decision row must remain in the 1280px first viewport",batch_top)
+    page.screenshot(path=str(OUT/"v3-fidelity-first-viewport-batch-1280.png"),
+      full_page=False)
     expect(form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     # V3: this authorized Job maps subjectType from an Excel source column.
@@ -451,6 +473,8 @@ with sync_playwright() as pw:
     small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     mobile_form=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(mobile_form).to_be_visible(timeout=30000)
+    small.screenshot(path=str(OUT/"v3-fidelity-first-viewport-batch-390.png"),
+      full_page=False)
     expect(mobile_form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(mobile_form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     expect(mobile_form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()
