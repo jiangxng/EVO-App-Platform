@@ -129,12 +129,13 @@ test("M04: actual XLSX stage Host keeps two same-label enterprise bank fields un
     assert.ok(evidence.initialValue.includes(fieldId));
     assert.ok(evidence.initialValue.includes(description));
   }
-  const reviewRow=page.reviewTable?.groups?.find(g=>g.primaryFieldKey==="map_"+bankIndex)
-    ?? page.reviewGroups?.find(g=>g.primaryFieldKey==="map_"+bankIndex);
-  if(reviewRow){
-    assert.equal(reviewRow.reviewStatus.key,"attention");
-    assert.equal(reviewRow.defaultExpanded,true);
-  }
+  const reviewRow=page.reviewGroups.find(g=>
+    g.primaryFieldKey==="map_"+bankIndex);
+  assert.ok(reviewRow,"the actual /map review row must remain available");
+  assert.equal(reviewRow.reviewStatus.key,"attention",
+    "duplicate bank candidates require Human attention");
+  assert.equal(reviewRow.defaultExpanded,true,
+    "candidate-purpose evidence opens in-place for Human review");
   for(const index of [164,168,171]){
     assert.equal(job.source.rows[index]["主体类型"],"",
       "synthetic row "+(index+1)+" must remain unresolved for Human correction");
