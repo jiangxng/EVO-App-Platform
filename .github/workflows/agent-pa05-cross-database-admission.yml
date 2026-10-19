@@ -126,6 +126,9 @@ jobs:
           grep -Fq '"cutOccurredDuringOriginalBusinessRead":true' pa05-xdb.log
           grep -Fq '"originalBusinessResultNeverEscapedCut":true' pa05-xdb.log
           grep -Fq '"staleEpochDeniedAfterTcpRecovery":true' pa05-xdb.log
+          grep -Fq '"supervisedFreshWorkerRecovered":true' pa05-xdb.log
+          grep -Fq '"originalWorkerGracefulTransportRecoveryCertified":false' pa05-xdb.log
+          grep -Fq '"liveProductionTransportCertified":false' pa05-xdb.log
           grep -Fq '"silentPacketBlackholeCertified":false' pa05-xdb.log
           grep -Fq '"readCallbackInvoked":false' pa05-xdb.log
           grep -Fq '"roleBoundSessionUser":true' pa05-xdb.log
