@@ -79,3 +79,12 @@ V3 Human 工作台首先让用户核对当前来源列、原始样本、字段�
 **来源事实 vs. 判断：** 以上可见结构与图片尺寸是本窗口直接读取的隔离浏览器截图事实；“仍未 100%”是根据 #909 原 HTML 布局、S01 视觉片段与该真实截图的比较判断，不等于生产客户现场测试。**下一项最高优先级 UI 差距：Eidos/Platform 工作台导航占宽与 V3 目标容器尺寸的协调**；仅在明确使用通用受控聚焦布局且不破坏其他页面的前提下修改。其后核对标题、摘要、行密度、问题卡片、操作区与跨页面连续性。不得为追求像素复制而绕开 Host 或越权关闭客户审查。
 
 工程 M01–M03 已完成；M04 真客户数据 OPEN；M05 真导入 OPEN；M06 高保真未签收。总工程进度固定 3/6。PR #1054 **保持 Draft，不自动合并到 main，不切换 Railway**。
+
+## 2026-10-19 续跑 #03：1200px 路由级聚焦布局（Eidos #202 待验证）
+
+**证据和新增决策：** 源自直接读取 #909 HTML、已保存的 S01 视觉目标、实际 Chromium 1280/390 工件 run 39277312473，以及 Eidos `src/workbench/shell.ts` 与 `productive-workbench-css.ts` 的原码。1280px 真实隔离 Host 中，原有侧栏约占 420px、主体宽度仅约 810px；即使隐藏侧栏，Eidos 默认表单还有 1100px 宽度上限。与 V3 目标的约 1200px 连续四列审核工作区不相符，故本轮增加**仅该业务路由选用、通用层提供、可随时恢复的聚焦布局**。
+
+- **Eidos owner 边界（进行中）：** [Eidos PR #202](https://github.com/jiangxng/eidos/pull/202) 提供 `WorkbenchShellOptions.shouldFocusWorkspaceRoute(route)`；桌面聚焦后保留活动栏，隐藏通常导航侧栏与 splitter，字段表最大宽度由通用变量控制（默认 1200px）。工具栏按钮可恢复原导航并重新聚焦，不写入持久化侧栏偏好；390px 使用既有单列工作区，不增加无意义的切换按钮。2026-10-19 本次记录时 #202 的 exact-HEAD CI 仍 **QUEUED**，不得称已合并。
+- **Platform 业务归属（Draft 暂存）：** 仅真实 `/data-import/jobs/:id/map` 及有 Job 参数的 `/object-extensions/from-import?mode=batch` 适用；供应商列表、最终预检、普通扩展字段、其他工作台、Agent 和外部 URL 均拒绝进入该聚焦模式。Platform 仅将通用 owner 改动临时同步进 #1054 Draft，与已合并 upstream 保持严格分离，待 #202 通过且合并才可正式认定版本依赖。
+- **验证用例（待最新 CI）：** `tests/protocol/bex01-v3-wide-route-focus.test.mjs` 逐个校验允许/拒绝路由；真实 Host Chromium 测试检查 1280px 的映射表实际宽度 1000–1220px、焦点模式开启、侧栏真正隐藏以及工具栏按钮先恢复后重新聚焦。任何绿色结论必须对应**最新精确 HEAD**，不能引用旧 run 39277312473 已通过来替代新代码的验证。
+- **后续：** Eidos #202 CI → 合并 → Platform #1054 精确 CI、真实截图 → 对照 #909 剩余标题、文件统计卡片、状态、底部操作区/跨路由流程 → Human 签收。真实客户 Excel、两个银行字段与三条缺失身份仍无新授权证据。**M01–M03 工程完成，M04/M05/M06 OPEN，工程总进度 3/6。** #1054 保持 Draft，不切 Railway release、不写真实客户数据、不覆盖 PA05/Eidos 其他工作。
