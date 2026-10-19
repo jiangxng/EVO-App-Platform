@@ -1,6 +1,6 @@
 # PA05-05/E01J4A — persisted multi-Worker READ Host reattestation after central revoke
 
-**Date:** 2026-10-19. **Class:** DECISION_RECORD; isolated engineering candidate. **Not** production Host lifecycle/Owner installation signoff.
+**Date:** 2026-10-19. **Class:** DECISION_RECORD. **Status:** E01J4A ENGINEERING_BOUNDED_PASS (merged); PA05-05/W06 NOT_SIGNED. **Not** production Host lifecycle/Owner installation signoff.
 
 ## Milestone ledger — fixed scope, no expansion
 
@@ -9,7 +9,7 @@
 | E01A–J1 | Previously completed bounded engineering and research | Do not recreate |
 | E01J2 | Engineering BOUNDED_PASS, [#1024](https://github.com/jiangxng/EVO-App-Platform/pull/1024) | Preserve authenticated SQL Host + original Handler/roles |
 | E01J3 | Engineering BOUNDED_PASS, [#1026](https://github.com/jiangxng/EVO-App-Platform/pull/1026) | Preserve 18/18 PG18 and TCP-fault negative history; driver P0 OPEN |
-| **E01J4A** | **IN_PROGRESS** | 2 original AppManagers + 2 independent persistent local state files + one central SQL reattest control; 19/19 PG18 with 0 skips required |
+| **E01J4A** | **ENGINEERING_BOUNDED_PASS — merged PR #1029, 19/19 PG18** | 2 original AppManagers + 2 independent persistent local state files + one central SQL reattest control; 19/19 PG18 with 0 skips required |
 | E01J4 full global lifecycle | **NOT_SIGNED** | Atomic cross-store install/disable/upgrade/crash/partition across real production Workers NOT proved |
 | PA05-05 E01–E05 | **NOT_SIGNED** | No actual Human/Agent/Provider/tenant/browser certification |
 | PA-05/W06 | **IN_PROGRESS / NOT_SIGNED** | #988, #979, #913 remain OPEN |
@@ -43,6 +43,6 @@ Use actual `createFileLifecycleStore` in two separate Node Host child processes 
 
 **Real preliminary failures preserved:** first CI [#39207937779](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39207937779) failed from generated JavaScript SQL-template collision (E01J4 was not executed); next [#39208207883](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208207883) failed due missing `createFileLifecycleStore` import and SIGKILL cleanup masking the cause. Fixes stayed on original PR #1029, with no relaxation of SQL/authorization or inherited tests.
 
-**Final accurate PR HEAD still requires six relevant CI checks and verified main merge/retirement** after this evidence/document change. An isolated initial code-HEAD PASS must not be silently upgraded into final PR-HEAD acceptance. One active PR; main branch protection preserved.
+**Final exact PR HEAD and actual merge (2026-10-19):** `33e307f6c5759f966abe9ded8c0a22dc7829e16d`. Real PostgreSQL18 [Actions #39208798334](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208798334), job `117917364937`, original log directly inspected: **19/19 PASS, 0 failed, 0 skipped**, including `PA05_E01J4_PERSISTED_MULTIWORKER_REATTEST_PG` with every intended positive/negative and unsigned boundary. At the same exact HEAD, [Governed WRITE #39208798317](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208798317), [Cross-business READ #39208798360](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208798360), [Project Continuity #39208798497](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208798497), [Human UI #39208798289](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208798289) and [Lightweight Host #39208798547](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39208798547) all SUCCESS. [PR #1029](https://github.com/jiangxng/EVO-App-Platform/pull/1029) MERGED at main `9ea731442bfbe28ab339965f77e137561bf3b6ee`. Six modified paths are exclusively PA05 test/CI/Agent documentation. **The full E01J4 distributed lifecycle remains NOT_SIGNED**, even though E01J4A's per-Host reattestation test has passed. One active PR; main branch protection preserved.
 
 **Subsequent gate (not silently added):** actual installed generic Host lifecycle admission with durable central activation authority across Worker upgrades/uninstall, secret-protected real operator consent and SQL/JSON repair after partial failure; resolve or securely contain `postgres 3.4.9` crash for actual in-process Host resilience, then separately PA05-05 E01–E05 and W06.
