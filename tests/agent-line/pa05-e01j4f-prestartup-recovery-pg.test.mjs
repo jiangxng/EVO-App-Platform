@@ -359,6 +359,7 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
         sessionProvider:identity,authorizationProvider:policy,
         secretsProvider:secrets
       };
+      const priorUmask=process.umask(0o077);
       const beforeI=readFileSync(file,"utf8");
       const lockFile=file+".pa05-one-shot.lock";
       writeFileSync(lockFile,"occupied",{mode:0o600});
@@ -370,7 +371,6 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
         ...oneShot,bearerToken:"forged-maintenance-token"
       }),/PA05_J4I_PRESTART_DENIED_OR_UNKNOWN/);
       assert.equal(readFileSync(file,"utf8"),beforeI);
-      const priorUmask=process.umask(0o077);
       let recoveredI;
       try { recoveredI=await recoverPa05OneShotHostPrestartupV010(oneShot); }
       finally { process.umask(priorUmask); }
