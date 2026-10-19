@@ -5,6 +5,9 @@ import type {
   JsonValue
 } from "../../actions/contracts.js";
 import {
+  ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_MOBILE_ROUTE as EOG_MOBILE_READ_ROUTE,
+  EOG_MOBILE_READ_GET_ACTION,
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "./package.js";
@@ -38,12 +41,11 @@ import {
   parseEogTimeLensInputV020
 } from "../../eog/observatory-input.js";
 
-export const EOG_MOBILE_READ_PAGE_SOURCE =
-  "app://evo-enterprise-operating-graph/pages/observatory-mobile-read";
-export const EOG_MOBILE_READ_ROUTE =
-  "/m/operating-graph/observe";
-export const EOG_MOBILE_READ_GET_ACTION =
-  "enterprise-operating-graph.observatory.mobile-read.get";
+export {
+  ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_MOBILE_ROUTE as EOG_MOBILE_READ_ROUTE,
+  EOG_MOBILE_READ_GET_ACTION
+} from "./package.js";
 
 export interface MobileEntityInspectorReaderPageV010 {
   contractVersion: "0.1.0";

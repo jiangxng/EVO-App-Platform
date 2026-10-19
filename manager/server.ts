@@ -1,3 +1,4 @@
+import { createOnUseEogServicesV010 } from "./eog-service-runtime.js";
 import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
 import { createProviderLifecycleAdministrationV010 } from "./provider-lifecycle-administration.js";
@@ -60,6 +61,10 @@ import {
 } from "./plugin-runtime-observability.js";
 import { retireExperimentalPackageV010 } from "./lifecycle-migrations.js";
 import { createAppActionRouter } from "../actions/router.js";
+import { createDataImportRuntimeHostV010 } from "./data-import-runtime.js";
+import { createObjectExtensionDefinitionRuntimeHostV010, createObjectExtensionValueRuntimeHostV010 } from "./object-extension-runtime.js";
+import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
+import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
 import {
@@ -109,16 +114,10 @@ import {
 import {
   createEnterpriseDefinitionProjectionArtifactSourceV010
 } from "../providers/enterprise-context/definition-projection.js";
-import {
-  migrateLegacyEnterpriseOperatingGraphsV010
-} from "../apps/eog-2d-designer/legacy-definition-migration.js";
+import { migrateExistingEogGraphsV010, migrateExistingEogSopsV010, applyConfiguredEogPreviewSeedV010 } from "./eog-startup-compatibility.js";
 import {
   createEnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
-import {
-  applyEogPreviewSeedV010,
-  parseEogPreviewSeedV010
-} from "./eog-preview-seed.js";
 import {
   createFileEogViewStateStoreV010,
   createMemoryEogViewStateStoreV010
@@ -160,28 +159,8 @@ import {
   createEnterpriseOperatingGraphInspectorPropertyResolverV010
 } from "./enterprise-operating-graph-inspector-provider.js";
 import {
-  createEnterpriseOperatingGraphObservatoryActionHandlersV020
-} from "./enterprise-operating-graph-observatory-actions.js";
-import {
   createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020
 } from "./enterprise-operating-graph-observatory-agent-tools.js";
-import {
-  createEnterpriseOperatingGraphObservatoryExperienceManifestV020,
-  createEnterpriseOperatingGraphObservatoryPageV020,
-  createEnterpriseOperatingGraphObservatoryViewActionHandlerV020,
-  createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020,
-  EOG_OBSERVATORY_PAGE_SOURCE
-} from "./enterprise-operating-graph-observatory-page.js";
-import {
-  createEnterpriseOperatingGraphMobileReadActionHandlerV010,
-  createEnterpriseOperatingGraphMobileReadPageV010,
-  EOG_MOBILE_READ_PAGE_SOURCE
-} from "./enterprise-operating-graph-mobile-read-page.js";
-import {
-  createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020,
-  createEnterpriseOperatingGraphSpatialObservatoryPageV020,
-  EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE
-} from "./enterprise-operating-graph-spatial-observatory-page.js";
 import { createPersonalAgentThreadActionHandlersV010 } from "../agents/enterprise-agent/thread-action-handlers.js";
 import { createThreadBackedAgentTurnActionHandlersV010 } from "../agents/enterprise-agent/thread-turn-action-handlers.js";
 import {
@@ -358,9 +337,6 @@ import {
 import {
   createEnterpriseTemplateTransferProviderV010
 } from "../providers/enterprise-context/template-transfer.js";
-import {
-  migrateLegacyEogSopsV010
-} from "../providers/enterprise-context/eog-sop-migration.js";
 import {
   HOST_STATIC_SESSION_PACKAGE_ID,
   HOST_STATIC_SESSION_PROVIDER_ID,
@@ -547,6 +523,7 @@ import {
 } from "./context-memory-operations.js";
 import {
   createContextMemorySchedulerV010,
+  createContextMemoryScheduleDriverV010,
   createFileContextMemorySchedulerLeaseV010,
   createMemoryContextMemorySchedulerLeaseV010,
   parseContextMemoryScheduleContextsV010
@@ -854,17 +831,6 @@ import {
   parseCounterpartyEditRouteV010
 } from "../apps/counterparty/constants.js";
 import {
-  createCounterpartyRepositoryV010
-} from "../apps/counterparty/repository.js";
-import {
-  createCounterpartyRoleRepositoryV010
-} from "../apps/counterparty/roles.js";
-import {
-  createCounterpartyAddressRepositoryV010,
-  createCounterpartyContactRepositoryV010,
-  createCounterpartyProfileRepositoryV010
-} from "../apps/counterparty/facets.js";
-import {
   counterpartyCoreSchemaV010
 } from "../apps/counterparty/foundation-object.js";
 import {
@@ -880,9 +846,6 @@ import {
   COUNTERPARTY_SUPPLIER_PROJECTION_V010,
   type CounterpartyProjectionIdV010
 } from "../apps/counterparty/projections.js";
-import {
-  createCounterpartyProjectionServiceV010
-} from "../apps/counterparty/projection-service.js";
 import {
   ITEM_ARCHIVE_COMMAND,
   ITEM_CREATE_COMMAND,
@@ -926,9 +889,6 @@ import {
   RESPONSIBILITY_PACKAGE_ID
 } from "../apps/responsibility/constants.js";
 import {
-  createResponsibilityRepositoryV010
-} from "../apps/responsibility/repository.js";
-import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_PAGE_SOURCE,
@@ -955,21 +915,9 @@ import {
 import {
   dataImportAuthorizationPolicyV010
 } from "../apps/data-import/authorization.js";
-import {
-  createDataImportRepositoryV010
-} from "../apps/data-import/repository.js";
-import {
-  createDataImportRecipeRepositoryV010
-} from "../apps/data-import/recipe.js";
-import {
-  createDataImportServiceV010
-} from "../apps/data-import/service.js";
 import type {
   FoundationObjectImportTargetV010
 } from "../contracts/foundation-object/import.js";
-import {
-  createHttpDataImportExperienceAdvisorV010
-} from "../apps/data-import/experience-advisor.js";
 import {
   OBJECT_EXTENSION_DEFINITION_ARCHIVE_COMMAND_V010,
   OBJECT_EXTENSION_DEFINITION_LIST_COMMAND_V010,
@@ -984,12 +932,6 @@ import {
 import {
   objectExtensionAuthorizationPolicyV010
 } from "../apps/object-extension/authorization.js";
-import {
-  createObjectExtensionRepositoryV010
-} from "../apps/object-extension/repository.js";
-import {
-  createObjectExtensionValueRepositoryV010
-} from "../apps/object-extension/values.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -1021,16 +963,22 @@ import {
 } from "../apps/eog-2d-viewer/package.js";
 import {
   EOG_3D_VIEWER_FEATURE_ID,
+  EOG_3D_VIEWER_GET_ACTION,
+  EOG_3D_VIEWER_PAGE_SOURCE,
   EOG_3D_VIEWER_PACKAGE_ID
 } from "../apps/eog-3d-viewer/package.js";
 import {
-  createEnterpriseOperatingGraph3dViewerPageV010,
-  createEnterpriseOperatingGraph3dViewerReadActionV010,
-  EOG_3D_VIEWER_PAGE_SOURCE
-} from "../apps/eog-3d/workspace-page.js";
-import {
+  ENTERPRISE_OBSERVATORY_2D_PAGE_SOURCE as EOG_OBSERVATORY_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE,
+  EOG_OBSERVE_ACTION,
+  EOG_ANALYZE_ACTION,
+  EOG_OBSERVATORY_VIEW_GET_ACTION,
+  EOG_OBSERVATORY_VIEW_OPERATION_ACTION,
+  EOG_MOBILE_READ_GET_ACTION,
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE as EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE,
+  EOG_SPATIAL_OBSERVATORY_GET_ACTION,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "../apps/enterprise-observatory/package.js";
 import type {
@@ -1122,56 +1070,58 @@ const enterpriseResourceRepository =
         enterpriseResourceStateFile
       )
     : createMemoryEnterpriseResourceRepositoryV010();
-const counterpartyRepository =
-  createCounterpartyRepositoryV010(enterpriseResourceRepository);
-const counterpartyRoleRepository =
-  createCounterpartyRoleRepositoryV010(
-    enterpriseResourceRepository,
-    counterpartyRepository
-  );
-const counterpartyContactRepository =
-  createCounterpartyContactRepositoryV010({
+const responsibilityRuntimeHost = createResponsibilityRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === RESPONSIBILITY_PACKAGE_ID && feature.featureId === RESPONSIBILITY_FEATURE_ID),
+  resources: enterpriseResourceRepository
+});
+const counterpartyRuntimeHost = createCounterpartyRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === COUNTERPARTY_PACKAGE_ID && feature.featureId === COUNTERPARTY_FEATURE_ID),
+  dependencies: async () => ({
     resources: enterpriseResourceRepository,
-    counterpartyRepository
-  });
-const counterpartyAddressRepository =
-  createCounterpartyAddressRepositoryV010({
-    resources: enterpriseResourceRepository,
-    counterpartyRepository
-  });
-const counterpartyProfileRepository =
-  createCounterpartyProfileRepositoryV010({
-    resources: enterpriseResourceRepository,
-    counterpartyRepository,
-    roleRepository: counterpartyRoleRepository
-  });
-const responsibilityRepository =
-  createResponsibilityRepositoryV010(enterpriseResourceRepository);
-const counterpartyProjectionService =
-  createCounterpartyProjectionServiceV010({
-    repository: counterpartyRepository,
-    roleRepository: counterpartyRoleRepository,
-    responsibilityRepository,
-    resolveAuthorizationProvider,
-    fieldIds: () =>
-      counterpartyCoreSchemaV010.fields.map(field => field.fieldId)
-  });
-const objectExtensionRepository =
-  createObjectExtensionRepositoryV010(enterpriseResourceRepository);
-const objectExtensionValueRepository =
-  createObjectExtensionValueRepositoryV010(enterpriseResourceRepository);
-const dataImportRepository =
-  createDataImportRepositoryV010(enterpriseResourceRepository);
-const dataImportRecipeRepository =
-  createDataImportRecipeRepositoryV010(enterpriseResourceRepository);
+    responsibilityRepository: await responsibilityRuntimeHost.resolve(),
+    resolveAuthorizationProvider
+  })
+});
+const extensionScope = (packageId: string, featureId: string) => ({
+  resources: enterpriseResourceRepository,
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === packageId && feature.featureId === featureId)
+});
+const extensionManagement = createObjectExtensionDefinitionRuntimeHostV010(
+  extensionScope(OBJECT_EXTENSION_PACKAGE_ID, OBJECT_EXTENSION_FEATURE_ID));
+const counterpartyExtensionDefinitions = createObjectExtensionDefinitionRuntimeHostV010(
+  extensionScope(COUNTERPARTY_PACKAGE_ID, COUNTERPARTY_FEATURE_ID));
+const counterpartyExtensionValues = createObjectExtensionValueRuntimeHostV010(
+  extensionScope(COUNTERPARTY_PACKAGE_ID, COUNTERPARTY_FEATURE_ID));
+const itemExtensionDefinitions = createObjectExtensionDefinitionRuntimeHostV010(
+  extensionScope(ITEM_PACKAGE_ID, ITEM_FEATURE_ID));
+const itemExtensionValues = createObjectExtensionValueRuntimeHostV010(
+  extensionScope(ITEM_PACKAGE_ID, ITEM_FEATURE_ID));
+const warehouseExtensionValues = createObjectExtensionValueRuntimeHostV010(
+  extensionScope(WAREHOUSE_PACKAGE_ID, WAREHOUSE_FEATURE_ID));
 const experienceCompilerAdvisoryBaseUrl =
   process.env.APP_PLATFORM_EC_ADVISORY_BASE_URL?.trim();
-const dataImportExperienceAdvisor = experienceCompilerAdvisoryBaseUrl
-  ? createHttpDataImportExperienceAdvisorV010({
+const dataImportRuntimeHost = createDataImportRuntimeHostV010({
+  isActive: dataImportFeatureActiveV010,
+  dependencies: {
+    resources: enterpriseResourceRepository,
+    ...(experienceCompilerAdvisoryBaseUrl ? {advisor: {
       baseUrl: experienceCompilerAdvisoryBaseUrl,
       token: process.env.APP_PLATFORM_EC_ADVISORY_TOKEN?.trim()
-    })
-  : undefined;
+    }} : {})
+  }
+});
+function dataImportFeatureActiveV010(): boolean {
+  return store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === DATA_IMPORT_PACKAGE_ID && feature.featureId === DATA_IMPORT_FEATURE_ID);
+}
+function canManageDataImport(principal: PlatformPrincipalV010, contextId: string): boolean {
+  return (resolveEnterpriseContextRelationshipProvider()?.listForPrincipal(principal) ?? []).some(item =>
+    item.contextId === contextId && item.state === "ACTIVE"
+    && (item.kind === "OWNER" || item.kind === "ADMIN"));
+}
 const templateStoreStateFile =
   process.env.APP_PLATFORM_TEMPLATE_STORE_FILE?.trim()
   || (lifecycleStateFile
@@ -1316,9 +1266,17 @@ const enterpriseGovernanceStore = enterpriseGovernanceStateFile
   : createMemoryEnterpriseContextGovernanceStoreV010();
 const contextMemoryStateFile = process.env.APP_PLATFORM_CONTEXT_MEMORY_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "context-memory.json") : undefined);
-const contextMemoryStore = contextMemoryStateFile
+let refreshContextMemorySchedule: () => void = () => {};
+const baseContextMemoryStore = contextMemoryStateFile
   ? createFileContextMemoryStoreV010(contextMemoryStateFile)
   : createMemoryContextMemoryStoreV010();
+const contextMemoryStore: typeof baseContextMemoryStore = {
+  snapshot: () => baseContextMemoryStore.snapshot(),
+  save(snapshot) {
+    baseContextMemoryStore.save(snapshot);
+    refreshContextMemorySchedule();
+  }
+};
 const legacyEnterpriseOperatingGraphStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_OPERATING_GRAPH_FILE?.trim()
   || (lifecycleStateFile
@@ -1353,7 +1311,7 @@ const enterpriseDefinitionProjectionStore =
       )
     : createMemoryDefinitionProjectionStoreV010();
 
-const legacyGraphMigration = migrateLegacyEnterpriseOperatingGraphsV010({
+const legacyGraphMigration = await migrateExistingEogGraphsV010({
   path: legacyEnterpriseOperatingGraphStateFile,
   repository: enterpriseBusinessDefinitionRepository
 });
@@ -1362,22 +1320,23 @@ if (legacyGraphMigration.sourcePresent && legacyGraphMigration.imported > 0) {
     `Migrated ${legacyGraphMigration.imported} legacy EOG graph definition(s) into Enterprise Context.`
   );
 }
-const enterpriseOperatingGraphDefinitionPersistence =
-  createEnterpriseOperatingGraphDefinitionPersistenceV010(
-    enterpriseBusinessDefinitionRepository
-  );
-const enterpriseOperatingGraphService =
-  createEnterpriseOperatingGraphHostServiceV010({
-    persistence: enterpriseOperatingGraphDefinitionPersistence,
+const onUseEogServices = createOnUseEogServicesV010({
+  createGraph: () => createEnterpriseOperatingGraphHostServiceV010({
+    persistence: createEnterpriseOperatingGraphDefinitionPersistenceV010(
+      enterpriseBusinessDefinitionRepository
+    ),
     id: randomUUID
-  });
+  }),
+  createSop: graphService => createEogExpectedSopServiceV010({
+    repository: enterpriseBusinessDefinitionRepository,
+    graphService
+  })
+});
+const enterpriseOperatingGraphService = onUseEogServices.graph;
 
-const eogPreviewSeed = parseEogPreviewSeedV010(
-  process.env.APP_PLATFORM_EOG_PREVIEW_SEED_JSON
-);
-const eogPreviewSeedResult = applyEogPreviewSeedV010({
+const eogPreviewSeedResult = await applyConfiguredEogPreviewSeedV010({
   service: enterpriseOperatingGraphService,
-  seed: eogPreviewSeed
+  raw: process.env.APP_PLATFORM_EOG_PREVIEW_SEED_JSON
 });
 if (eogPreviewSeedResult.seeded) {
   console.log(
@@ -1416,7 +1375,7 @@ const applicationRuntimeBindingProvider =
     store: applicationRuntimeBindingStore
   });
 
-const legacySopMigration = migrateLegacyEogSopsV010({
+const legacySopMigration = await migrateExistingEogSopsV010({
   path: legacyEogExpectedSopStateFile,
   repository: enterpriseBusinessDefinitionRepository
 });
@@ -1425,11 +1384,7 @@ if (legacySopMigration.sourcePresent && legacySopMigration.imported > 0) {
     `Migrated ${legacySopMigration.imported} legacy EOG SOP definition(s) into Enterprise Context.`
   );
 }
-const eogExpectedSopService =
-  createEogExpectedSopServiceV010({
-    repository: enterpriseBusinessDefinitionRepository,
-    graphService: enterpriseOperatingGraphService
-  });
+const eogExpectedSopService = onUseEogServices.sop;
 const contextMemoryGovernanceStateFile =
   process.env.APP_PLATFORM_CONTEXT_MEMORY_GOVERNANCE_FILE?.trim()
   || (lifecycleStateFile
@@ -1702,6 +1657,7 @@ const appHostAssetRevision = normalizeAssetRevisionV010(
 );
 const appHostShellHtml = createAppHostShellHtmlV010(appHostAssetRevision);
 const webAssetArchive = createWebAssetArchiveV010({
+  manifestPath: fileURLToPath(new URL("../web-asset-manifest.json", import.meta.url)),
   currentRevision: appHostAssetRevision,
   sourceRoot: fileURLToPath(new URL("../", import.meta.url)),
   archiveRoot:
@@ -2077,9 +2033,17 @@ providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
 });
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
-const providerBindings = providerBindingsFile
+const baseProviderBindings = providerBindingsFile
   ? createFileProviderBindingStoreV010(providerBindingsFile)
   : createMemoryProviderBindingStoreV010();
+const providerBindings: typeof baseProviderBindings = {
+  list: capability => baseProviderBindings.list(capability),
+  save(binding) { baseProviderBindings.save(binding); refreshContextMemorySchedule(); },
+  delete(capability, scope, scopeId) {
+    baseProviderBindings.delete(capability, scope, scopeId);
+    refreshContextMemorySchedule();
+  }
+};
 const bootstrapAdminToken = process.env.APP_PLATFORM_BOOTSTRAP_ADMIN_TOKEN?.trim()
   || process.env.APP_PLATFORM_PROVIDER_ADMIN_TOKEN?.trim();
 // PA05-05/E01D: host administration feature is unavailable in default builds.
@@ -2250,6 +2214,7 @@ const manager = createAppManagerService(
   () => new Date(),
   new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),
   event => {
+    refreshContextMemorySchedule();
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
     if (lifecycleEventLog.length > 100) lifecycleEventLog.shift();
@@ -2276,10 +2241,30 @@ const manager = createAppManagerService(
       if (event.packageId === BI_WORKBENCH_PACKAGE_ID_V010) {
         void disposeBiWorkbenchRuntimeV010();
       }
+      if (event.packageId === RESPONSIBILITY_PACKAGE_ID) {
+        void responsibilityRuntimeHost.stop().catch(error => console.error("Responsibility runtime stop failed", error));
+      }
+      if (event.packageId === DATA_IMPORT_PACKAGE_ID) {
+        void dataImportRuntimeHost.stop().catch(error => console.error("Data Import runtime stop failed", error));
+      }
+      if (event.packageId === OBJECT_EXTENSION_PACKAGE_ID) {
+        void extensionManagement.stop().catch(error => console.error("Extension management stop failed", error));
+      }
+      if (event.packageId === COUNTERPARTY_PACKAGE_ID) {
+        void Promise.all([counterpartyExtensionDefinitions.stop(), counterpartyExtensionValues.stop()])
+          .catch(error => console.error("Counterparty extension access stop failed", error));
+        dataImportTargetPromises.delete("evo-counterparty.import-target.v0.1");
+        void counterpartyRuntimeHost.stop().catch(error => console.error("Counterparty runtime stop failed", error));
+      }
       if (event.packageId === ITEM_PACKAGE_ID) {
+        dataImportTargetPromises.delete("evo-item.import-target.v0.1");
+        void Promise.all([itemExtensionDefinitions.stop(), itemExtensionValues.stop()])
+          .catch(error => console.error("Item extension access stop failed", error));
         itemRuntimePromise = undefined;
       }
       if (event.packageId === WAREHOUSE_PACKAGE_ID) {
+        dataImportTargetPromises.delete("evo-warehouse.location-import-target.v0.1");
+        void warehouseExtensionValues.stop().catch(error => console.error("Warehouse extension access stop failed", error));
         warehouseRuntimePromise = undefined;
       }
     }
@@ -2307,6 +2292,9 @@ async function resolveItemRuntimeV010() {
   if (!itemFeatureActiveV010()) {
     throw new Error("ITEM_FEATURE_NOT_ACTIVE");
   }
+  const responsibilityRepository = await responsibilityRuntimeHost.resolve();
+  const extensionValueRepository = await itemExtensionValues.resolveRead();
+  if (!itemFeatureActiveV010()) throw new Error("ITEM_FEATURE_NOT_ACTIVE");
   itemRuntimePromise ??= Promise.all([
     import("../apps/item/repository.js"),
     import("../apps/item/projection-service.js"),
@@ -2320,7 +2308,7 @@ async function resolveItemRuntimeV010() {
       projectionService: projectionModule.createItemProjectionServiceV010({
         repository,
         responsibilityRepository,
-        extensionValueRepository: objectExtensionValueRepository,
+        extensionValueRepository,
         resolveAuthorizationProvider,
         fieldIds: () =>
           foundationModule.itemCoreSchemaV010.fields.map(
@@ -2343,6 +2331,9 @@ async function resolveWarehouseRuntimeV010() {
   if (!warehouseFeatureActiveV010()) {
     throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
   }
+  const responsibilityRepository = await responsibilityRuntimeHost.resolve();
+  const extensionValueRepository = await warehouseExtensionValues.resolveRead();
+  if (!warehouseFeatureActiveV010()) throw new Error("WAREHOUSE_FEATURE_NOT_ACTIVE");
   warehouseRuntimePromise ??= Promise.all([
     import("../apps/warehouse/repository.js"),
     import("../apps/warehouse/locations.js"),
@@ -2369,7 +2360,7 @@ async function resolveWarehouseRuntimeV010() {
           repository,
           locationRepository,
           responsibilityRepository,
-          extensionValueRepository: objectExtensionValueRepository,
+          extensionValueRepository,
           resolveAuthorizationProvider,
           fieldIds: () =>
             foundationModule.warehouseCoreSchemaV010.fields.map(
@@ -2386,7 +2377,7 @@ const dataImportTargetPromises = new Map<
   Promise<FoundationObjectImportTargetV010>
 >();
 
-async function resolveEffectiveDataImportTargetsV010():
+async function resolveEffectiveDataImportTargetsV010(targetId: string):
 Promise<FoundationObjectImportTargetV010[]> {
   const contributions = manager.listEffectiveDataImportTargets();
   const activeRefs = new Set(
@@ -2396,32 +2387,35 @@ Promise<FoundationObjectImportTargetV010[]> {
     if (!activeRefs.has(ref)) dataImportTargetPromises.delete(ref);
   }
 
-  const targets = await Promise.all(contributions.map(contribution => {
+  const selected = contributions.filter(contribution => contribution.targetId === targetId);
+  const targets = await Promise.all(selected.map(contribution => {
     const ref = contribution.binding.ref;
     let pending = dataImportTargetPromises.get(ref);
     if (!pending) {
       if (ref === "evo-counterparty.import-target.v0.1") {
-        pending = import("../apps/counterparty/import-target.js")
-          .then(module => module.createCounterpartyImportTargetV010({
+        pending = Promise.all([
+          import("../apps/counterparty/import-target.js"), counterpartyRuntimeHost.resolve(),
+          counterpartyExtensionDefinitions.resolveRead(), counterpartyExtensionValues.resolveWrite()
+        ]).then(([module, runtime, extensionRepository, extensionValueRepository]) => module.createCounterpartyImportTargetV010({
             resources: enterpriseResourceRepository,
-            repository: counterpartyRepository,
-            roleRepository: counterpartyRoleRepository,
-            contactRepository: counterpartyContactRepository,
-            addressRepository: counterpartyAddressRepository,
-            profileRepository: counterpartyProfileRepository,
-            extensionRepository: objectExtensionRepository,
-            extensionValueRepository: objectExtensionValueRepository
+            repository: runtime.repository,
+            roleRepository: runtime.roleRepository,
+            contactRepository: runtime.contactRepository,
+            addressRepository: runtime.addressRepository,
+            profileRepository: runtime.profileRepository,
+            extensionRepository,
+            extensionValueRepository
           }));
       } else if (ref === "evo-item.import-target.v0.1") {
         pending = Promise.all([
           import("../apps/item/import-target.js"),
-          resolveItemRuntimeV010()
-        ]).then(([module, runtime]) =>
+          resolveItemRuntimeV010(), itemExtensionDefinitions.resolveRead(), itemExtensionValues.resolveWrite()
+        ]).then(([module, runtime, extensionRepository, extensionValueRepository]) =>
           module.createItemImportTargetV010({
             resources: enterpriseResourceRepository,
             repository: runtime.repository,
-            extensionRepository: objectExtensionRepository,
-            extensionValueRepository: objectExtensionValueRepository
+            extensionRepository,
+            extensionValueRepository
           })
         );
       } else if (
@@ -3887,6 +3881,7 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
     providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID);
     providerRuntimeRegistry.remove(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID);
   }
+  refreshContextMemorySchedule();
 }
 
 await refreshP12MemoryProviderRuntimes();
@@ -3997,6 +3992,12 @@ const contextMemorySchedulerLease = contextMemorySchedulerLeaseFile
       Math.max(contextMemoryScheduleMs > 0 ? contextMemoryScheduleMs * 2 : 120_000, 120_000)
     )
   : createMemoryContextMemorySchedulerLeaseV010();
+function canScheduleContextMemoryIntake(): boolean {
+  if (contextMemoryScheduleContexts.length === 0) return false;
+  const source = resolveContextMemoryIntakeSource();
+  const evidence = resolveContextMemoryEvidenceSourceProvider();
+  return Boolean(source && evidence?.describe(source.sourceId)?.sourceId === source.sourceId);
+}
 const contextMemoryScheduler = createContextMemorySchedulerV010({
   operations: contextMemoryScheduledOperations,
   operationLog: contextMemoryOperationLog,
@@ -4005,8 +4006,9 @@ const contextMemoryScheduler = createContextMemorySchedulerV010({
     return contextMemoryStore.snapshot().items.map(item => item.context);
   },
   listIntakeContexts() {
-    return contextMemoryScheduleContexts;
+    return canScheduleContextMemoryIntake() ? contextMemoryScheduleContexts : [];
   },
+  canRunSourceIntake: canScheduleContextMemoryIntake,
   async runSourceIntake(context) {
     const adapter = resolveContextMemoryIntakeSource();
     if (!adapter) throw new Error("CONTEXT_MEMORY_INTAKE_SOURCE_REQUIRED");
@@ -4039,15 +4041,14 @@ const contextMemoryScheduler = createContextMemorySchedulerV010({
     };
   }
 });
-let contextMemoryScheduleTimer: NodeJS.Timeout | undefined;
-if (contextMemoryScheduleMs > 0) {
-  contextMemoryScheduleTimer = setInterval(() => {
-    void contextMemoryScheduler.tick().catch(error => {
-      console.error("Scheduled Context Memory operation failed.", error);
-    });
-  }, contextMemoryScheduleMs);
-  contextMemoryScheduleTimer.unref();
-}
+const contextMemoryScheduleDriver = createContextMemoryScheduleDriverV010({
+  intervalMs: contextMemoryScheduleMs,
+  hasWork: () => contextMemoryStore.snapshot().items.length > 0 || canScheduleContextMemoryIntake(),
+  tick: () => contextMemoryScheduler.tick(),
+  onError: error => console.error("Scheduled Context Memory operation failed.", error)
+});
+refreshContextMemorySchedule = () => contextMemoryScheduleDriver.refresh();
+refreshContextMemorySchedule();
 
 function current2dEditorSessionKeysV010(
   principal: PlatformPrincipalV010
@@ -4561,19 +4562,73 @@ const actionRouter = createAppActionRouter(
         }
       }
     }),
-    ...createEnterpriseOperatingGraphObservatoryActionHandlersV020({
-      graphService: enterpriseOperatingGraphService,
-      providers: enterpriseOperatingGraphObservatoryProviders
-    }),
-    createEnterpriseOperatingGraphObservatoryViewActionHandlerV020({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      providers: enterpriseOperatingGraphObservatoryProviders,
-      locale(context) {
-        return context.locale;
+    ...[EOG_OBSERVE_ACTION, EOG_ANALYZE_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+        featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/enterprise-observatory/observatory-actions.js");
+          const handler = module.createEnterpriseOperatingGraphObservatoryActionHandlersV020({
+            graphService: enterpriseOperatingGraphService,
+            providers: enterpriseOperatingGraphObservatoryProviders
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_OBSERVATORY_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+                return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
+        }
+      })
+    ),
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+      commandCode: EOG_OBSERVATORY_VIEW_GET_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/desktop-page.js");
+        const handler = module.createEnterpriseOperatingGraphObservatoryViewActionHandlerV020({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService,
+          providers: enterpriseOperatingGraphObservatoryProviders,
+          locale(context) {
+            return context.locale;
+          }
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
       }
     }),
-    createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020(),
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+      commandCode: EOG_OBSERVATORY_VIEW_OPERATION_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/desktop-page.js");
+        const handler = module.createEnterpriseOperatingGraphObservatoryViewOperationActionHandlerV020();
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
+      }
+    }),
     createLazyAppActionHandlerV010({
       packageId: EOG_2D_VIEWER_PACKAGE_ID,
       featureId: EOG_2D_VIEWER_FEATURE_ID,
@@ -4711,21 +4766,72 @@ const actionRouter = createAppActionRouter(
         });
       }
     }),
-    createEnterpriseOperatingGraphMobileReadActionHandlerV010({
-      graphService: enterpriseOperatingGraphService,
-      providers: enterpriseOperatingGraphObservatoryProviders,
-      locale(context) {
-        return context.locale;
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
+      commandCode: EOG_MOBILE_READ_GET_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/mobile-read-page.js");
+        const handler = module.createEnterpriseOperatingGraphMobileReadActionHandlerV010({
+          graphService: enterpriseOperatingGraphService,
+          providers: enterpriseOperatingGraphObservatoryProviders,
+          locale(context) {
+            return context.locale;
+          }
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Enterprise Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
       }
     }),
-    createEnterpriseOperatingGraph3dViewerReadActionV010({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService
+    createLazyAppActionHandlerV010({
+      packageId: EOG_3D_VIEWER_PACKAGE_ID,
+      featureId: EOG_3D_VIEWER_FEATURE_ID,
+      commandCode: EOG_3D_VIEWER_GET_ACTION,
+      async load() {
+        const module = await import("../apps/eog-3d/workspace-page.js");
+        const handler = module.createEnterpriseOperatingGraph3dViewerReadActionV010({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "3D Viewer is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
+      }
     }),
-    createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
-      graphService: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      providers: enterpriseOperatingGraphObservatoryProviders
+    createLazyAppActionHandlerV010({
+      packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
+      featureId: ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+      commandCode: EOG_SPATIAL_OBSERVATORY_GET_ACTION,
+      async load() {
+        const module = await import("../apps/enterprise-observatory/spatial-page.js");
+        const handler = module.createEnterpriseOperatingGraphSpatialObservatoryActionHandlerV020({
+          graphService: enterpriseOperatingGraphService,
+          viewService: enterpriseOperatingGraphViewService,
+          providers: enterpriseOperatingGraphObservatoryProviders
+        });
+        return {
+          ...handler,
+          async execute(request, context) {
+            if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID)) {
+              return { ok: false, error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Spatial Observatory is not active." } };
+            }
+            return handler.execute(request, context);
+          }
+        };
+      }
     }),
     createEnterpriseContextCreationActionHandlerV010({
       store: enterpriseGovernanceStore,
@@ -4862,8 +4968,7 @@ const actionRouter = createAppActionRouter(
         async load() {
           const module = await import("../apps/counterparty/actions.js");
           const handlers = module.createCounterpartyActionHandlersV010({
-            repository: counterpartyRepository,
-            roleRepository: counterpartyRoleRepository,
+            resolveRepositories: () => counterpartyRuntimeHost.resolve(),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -4902,7 +5007,7 @@ const actionRouter = createAppActionRouter(
           );
           const handlers =
             module.createCounterpartyProjectionActionHandlersV010({
-              service: counterpartyProjectionService,
+              resolveService: async () => (await counterpartyRuntimeHost.resolve()).projectionService,
               resolveEnterpriseRelationshipKind(principal, contextId) {
                 return (
                   resolveEnterpriseContextRelationshipProvider()
@@ -5090,7 +5195,7 @@ const actionRouter = createAppActionRouter(
         async load() {
           const module = await import("../apps/responsibility/actions.js");
           const handlers = module.createResponsibilityActionHandlersV010({
-            repository: responsibilityRepository,
+            resolveRepository: () => responsibilityRuntimeHost.resolve(),
             canManageEnterpriseContext(principal, contextId) {
               return (
                 resolveEnterpriseContextRelationshipProvider()
@@ -5126,8 +5231,12 @@ const actionRouter = createAppActionRouter(
         async load() {
           const module = await import("../apps/object-extension/actions.js");
           const handlers = module.createObjectExtensionActionHandlersV010({
-            repository: objectExtensionRepository,
-            getImportJob: (contextId, jobId) => dataImportRepository.get(contextId,jobId),
+            resolveRepository: () => extensionManagement.resolveManage(),
+            async resolveImportJobReader() {
+              if (!dataImportFeatureActiveV010()) throw new Error("DATA_IMPORT_FEATURE_NOT_ACTIVE");
+              const runtime = await dataImportRuntimeHost.resolve();
+              return (contextId, jobId) => runtime.repository.get(contextId, jobId);
+            },
             async resolveImportServices(job) {
               const assertAvailable = () => {
                 if (!manager.getSnapshot().activeFeatures.some(feature =>
@@ -5139,11 +5248,13 @@ const actionRouter = createAppActionRouter(
                 )) throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
               };
               assertAvailable();
-              const batchImportTargets = await resolveEffectiveDataImportTargetsV010();
+              const runtime = await dataImportRuntimeHost.resolve();
+              const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
+              const batchImportTargets = await resolveEffectiveDataImportTargetsV010(job.targetId);
               assertAvailable();
               const batchImportService = createDataImportServiceV010({
-                repository: dataImportRepository,
-                recipeRepository: dataImportRecipeRepository,
+                repository: runtime.repository,
+                recipeRepository: runtime.recipeRepository,
                 targets: batchImportTargets
               });
               return {
@@ -5219,43 +5330,63 @@ const actionRouter = createAppActionRouter(
         packageId: DATA_IMPORT_PACKAGE_ID,
         featureId: DATA_IMPORT_FEATURE_ID,
         commandCode,
-        async load() {
-          const module = await import("../apps/data-import/actions.js");
-          const dataImportTargets =
-            await resolveEffectiveDataImportTargetsV010();
-          const dataImportService = createDataImportServiceV010({
-            repository: dataImportRepository,
-            recipeRepository: dataImportRecipeRepository,
-            targets: dataImportTargets
-          });
-          const handlers = module.createDataImportActionHandlersV010({
-            service: dataImportService,
-            repository: dataImportRepository,
-            targets: dataImportTargets,
-            ...(dataImportExperienceAdvisor
-              ? { experienceAdvisor: dataImportExperienceAdvisor }
-              : {}),
-            canManageEnterpriseContext(principal, contextId) {
-              return (
-                resolveEnterpriseContextRelationshipProvider()
-                  ?.listForPrincipal(principal) ?? []
-              ).some(item =>
-                item.contextId === contextId
-                && item.state === "ACTIVE"
-                && (item.kind === "OWNER" || item.kind === "ADMIN")
-              );
-            },
-            idFactory() {
-              return "import-" + randomUUID();
-            }
-          });
-          const handler = handlers.find(
-            candidate => candidate.commandCode === commandCode
-          );
-          if (!handler) {
-            throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
+        async guard(_request, context) {
+          try {
+            const { assertDataImportManagementRequestV010 } = await import("../apps/data-import/management-access.js");
+            assertDataImportManagementRequestV010(context, canManageDataImport);
           }
-          return handler;
+          catch (error) {
+            const code = error instanceof Error ? error.message : "DATA_IMPORT_ACTION_FAILED";
+            return {ok: false, ...(context?.correlationId ? {correlationId: context.correlationId} : {}), error: {code, message: code}};
+          }
+        },
+        async load() {
+          const { assertDataImportManagementRequestV010, activeEnterpriseContext } = await import("../apps/data-import/management-access.js");
+          const module = await import("../apps/data-import/actions.js");
+          const { dataImportActionTargetV010 } = await import("../apps/data-import/action-target.js");
+          // Cache module discovery, not lifecycle-bound target/service instances.
+          return {
+            packageId: DATA_IMPORT_PACKAGE_ID,
+            featureId: DATA_IMPORT_FEATURE_ID,
+            commandCode,
+            async execute(request, context) {
+              assertDataImportManagementRequestV010(context, canManageDataImport);
+              const runtime = await dataImportRuntimeHost.resolve();
+              const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
+              const targetId = dataImportActionTargetV010({
+                commandCode, request, repository: runtime.repository,
+                contextId: activeEnterpriseContext(context).contextId
+              });
+              const dataImportTargets = targetId === undefined ? []
+                : await resolveEffectiveDataImportTargetsV010(targetId);
+              assertDataImportManagementRequestV010(context, canManageDataImport);
+              runtime.assertAvailable();
+              const dataImportService = createDataImportServiceV010({
+                repository: runtime.repository,
+                recipeRepository: runtime.recipeRepository,
+                targets: dataImportTargets
+              });
+              const handlers = module.createDataImportActionHandlersV010({
+                service: dataImportService,
+                repository: runtime.repository,
+                targets: dataImportTargets,
+                ...(runtime.experienceAdvisor
+                  ? { experienceAdvisor: runtime.experienceAdvisor }
+                  : {}),
+                canManageEnterpriseContext: canManageDataImport,
+                idFactory() {
+                  return "import-" + randomUUID();
+                }
+              });
+              const handler = handlers.find(
+                candidate => candidate.commandCode === commandCode
+              );
+              if (!handler) {
+                throw new Error("DATA_IMPORT_HANDLER_NOT_FOUND");
+              }
+              return handler.execute(request, context);
+            }
+          };
         }
       })
     ),
@@ -7061,6 +7192,7 @@ const server = createServer(async (request, response) => {
         const canManage = relationship?.kind === "OWNER"
           || relationship?.kind === "ADMIN";
         const module = await import("../apps/counterparty/page.js");
+        const runtime = await counterpartyRuntimeHost.resolve();
         // Projection pages have their own governed read. Avoid loading and
         // authorizing the full collection here before the same owner read.
         // Directory/detail/edit retain their existing access path.
@@ -7090,7 +7222,7 @@ const server = createServer(async (request, response) => {
             url.searchParams.get("route"), projectionRoute
           );
           const pagingQuery = { ...userQuery, pageSize: userQuery.pageSize ?? 25 };
-          const projection = await counterpartyProjectionService.read({
+          const projection = await runtime.projectionService.read({
             contextId: active.contextId,
             projectionId,
             query: pagingQuery,
@@ -7126,12 +7258,14 @@ const server = createServer(async (request, response) => {
         }
 
         const allCounterparties =
-          counterpartyRepository.list(active.contextId);
+          runtime.repository.list(active.contextId);
+        const responsibilityRepository = await responsibilityRuntimeHost.resolve();
         const responsibilities = responsibilityRepository.list(
           active.contextId,
           { objectType: "counterparty.subject" }
         );
-        const extensionDefinitions = objectExtensionRepository.list(
+        const extensionDefinitionReader = await counterpartyExtensionDefinitions.resolveRead();
+        const extensionDefinitions = extensionDefinitionReader.list(
           active.contextId,"counterparty.subject"
         );
         const access = await resolveCounterpartyReadAccessV010({
@@ -7198,7 +7332,7 @@ const server = createServer(async (request, response) => {
           });
         }
         const counterparty =
-          counterpartyRepository.get(active.contextId, counterpartyId);
+          runtime.repository.get(active.contextId, counterpartyId);
         if (
           !counterparty
           || !authorizedCounterpartyIds.has(counterpartyId)
@@ -7222,29 +7356,29 @@ const server = createServer(async (request, response) => {
               })
             : module.createCounterpartyDetailPageV010({
                 counterparty,
-                roles: counterpartyRoleRepository.list(
+                roles: runtime.roleRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
-                customerProfile: counterpartyProfileRepository.get(
+                customerProfile: runtime.profileRepository.get(
                   active.contextId,
                   counterpartyId,
                   "CUSTOMER"
                 ),
-                supplierProfile: counterpartyProfileRepository.get(
+                supplierProfile: runtime.profileRepository.get(
                   active.contextId,
                   counterpartyId,
                   "SUPPLIER"
                 ),
-                contacts: counterpartyContactRepository.list(
+                contacts: runtime.contactRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
-                addresses: counterpartyAddressRepository.list(
+                addresses: runtime.addressRepository.list(
                   active.contextId,
                   counterpartyId
                 ),
-                extensionFields: objectExtensionValueRepository.listForObject({
+                extensionFields: (await counterpartyExtensionValues.resolveRead()).listForObject({
                   contextId:active.contextId,
                   objectType:"counterparty.subject",
                   objectId:counterpartyId
@@ -7662,7 +7796,9 @@ const server = createServer(async (request, response) => {
         const jobId=parseObjectExtensionImportRouteV010(
           url.searchParams.get("route")??undefined
         );
-        const job=jobId?dataImportRepository.get(active.contextId,jobId):undefined;
+        if (!dataImportFeatureActiveV010()) return json(response,409,{code:"DATA_IMPORT_FEATURE_NOT_ACTIVE"});
+        const importRuntime = await dataImportRuntimeHost.resolve();
+        const job=jobId?importRuntime.repository.get(active.contextId,jobId):undefined;
         if(!job||job.targetId!=="counterparty.subject") return json(response,404,{
           code:"OBJECT_EXTENSION_IMPORT_JOB_NOT_FOUND"
         });
@@ -7670,7 +7806,7 @@ const server = createServer(async (request, response) => {
         const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
         if (importRoute.searchParams.get("mode") === "batch") {
           const batch = await import("../apps/object-extension/batch-page.js");
-          const targets = await resolveEffectiveDataImportTargetsV010();
+          const targets = await resolveEffectiveDataImportTargetsV010(job.targetId);
           const target = targets.find(x => x.targetId === job.targetId);
           const importableTargets = (target?.describe({
             contextId: active.contextId, parameters: job.targetParameters,
@@ -7686,7 +7822,7 @@ const server = createServer(async (request, response) => {
           return json(response,200,batch.createObjectExtensionBatchImportPageV010({
             job,locale:requestedLocale(url),importableTargets,
             actorSubjectId:session.principal.subjectId,
-            definitions:objectExtensionRepository.list(active.contextId,"counterparty.subject")
+            definitions:(await extensionManagement.resolveRead()).list(active.contextId,"counterparty.subject")
           }));
         }
         const requestedColumn = importRoute.searchParams.get("column") ?? undefined;
@@ -7721,19 +7857,19 @@ const server = createServer(async (request, response) => {
             message: "Select an Enterprise Context first."
           });
         }
+        const importRuntime = await dataImportRuntimeHost.resolve();
         const module = await import("../apps/data-import/page.js");
-        const dataImportTargets =
-          await resolveEffectiveDataImportTargetsV010();
         const locale = requestedLocale(url);
         const routeValue = url.searchParams.get("route")?.trim();
 
         if (source === DATA_IMPORT_DIRECTORY_PAGE_SOURCE) {
+          const dataImportTargets = manager.listEffectiveDataImportTargets();
           return json(
             response,
             200,
             module.createDataImportDirectoryPageV010({
               targets: dataImportTargets,
-              jobs: dataImportRepository.list(active.contextId),
+              jobs: importRuntime.repository.list(active.contextId),
               locale
             })
           );
@@ -7743,6 +7879,9 @@ const server = createServer(async (request, response) => {
           const uploadIntent = parseDataImportUploadIntentV010(
             routeValue || undefined
           );
+          // An invalid route must not fall back to resolving every target.
+          const dataImportTargets = uploadIntent?.targetId
+            ? await resolveEffectiveDataImportTargetsV010(uploadIntent.targetId) : [];
           const target = dataImportTargets.find(item =>
             item.targetId === uploadIntent?.targetId
           );
@@ -7786,12 +7925,14 @@ const server = createServer(async (request, response) => {
             code: "DATA_IMPORT_CORRECTION_MANAGE_ROLE_REQUIRED"
           });
         }
-        const job = dataImportRepository.get(active.contextId, importJobId);
+        const job = importRuntime.repository.get(active.contextId, importJobId);
         if (!job) {
           return json(response, 404, {
             code: "DATA_IMPORT_JOB_NOT_FOUND"
           });
         }
+        const dataImportTargets = await resolveEffectiveDataImportTargetsV010(job.targetId);
+        importRuntime.assertAvailable();
         if (source === DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE) {
           const target = dataImportTargets.find(item => item.targetId === job.targetId);
           if (!target || !rowCorrection) return json(response, 404, {
@@ -8418,18 +8559,21 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
-        return json(
-          response,
-          200,
-          source === EOG_MOBILE_READ_PAGE_SOURCE
-            ? createEnterpriseOperatingGraphMobileReadPageV010({
-                activeContext
-              })
-            : createEnterpriseOperatingGraphObservatoryPageV020({
-                activeContext,
-                locale: requestedLocale(url)
-              })
-        );
+        if (source === EOG_MOBILE_READ_PAGE_SOURCE) {
+          const module = await import("../apps/enterprise-observatory/mobile-read-page.js");
+          if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+            return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+          }
+          return json(response, 200, module.createEnterpriseOperatingGraphMobileReadPageV010({ activeContext }));
+        }
+        const module = await import("../apps/enterprise-observatory/desktop-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_2D_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        return json(response, 200, module.createEnterpriseOperatingGraphObservatoryPageV020({
+          activeContext,
+          locale: requestedLocale(url)
+        }));
       }
       if (source === EOG_3D_VIEWER_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
@@ -8449,10 +8593,14 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const viewerModule = await import("../apps/eog-3d/workspace-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_3D_VIEWER_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
         return json(
           response,
           200,
-          createEnterpriseOperatingGraph3dViewerPageV010({
+          viewerModule.createEnterpriseOperatingGraph3dViewerPageV010({
             activeContext,
             locale: requestedLocale(url)
           })
@@ -8476,10 +8624,14 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const spatialModule = await import("../apps/enterprise-observatory/spatial-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_OBSERVATORY_3D_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphSpatialObservatoryPageV020({
+          spatialModule.createEnterpriseOperatingGraphSpatialObservatoryPageV020({
             activeContext,
             locale: requestedLocale(url)
           })
@@ -9860,14 +10012,25 @@ async function shutdown(signal: string): Promise<void> {
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
   evoRuntimeRevisionBridge?.dispose();
-  if (contextMemoryScheduleTimer) clearInterval(contextMemoryScheduleTimer);
-  contextMemorySchedulerLease.release();
+  contextMemoryScheduleDriver.dispose();
   let shutdownFailed = false;
   try {
-    await bottleneckRuntime.stop();
+    await contextMemoryScheduler.stop();
   } catch (error) {
     shutdownFailed = true;
-    console.error("Bottleneck runtime shutdown incomplete", error);
+    console.error("Context Memory scheduler shutdown incomplete", error);
+  }
+  try {
+    await bottleneckRuntime.stop();
+    await counterpartyRuntimeHost.stop();
+    await responsibilityRuntimeHost.stop();
+    await dataImportRuntimeHost.stop();
+    await Promise.all([extensionManagement.stop(), counterpartyExtensionDefinitions.stop(),
+      counterpartyExtensionValues.stop(), itemExtensionDefinitions.stop(),
+      itemExtensionValues.stop(), warehouseExtensionValues.stop()]);
+  } catch (error) {
+    shutdownFailed = true;
+    console.error("Managed runtime shutdown incomplete", error);
   }
   await optionalAgentAsyncRunReader?.close();
   await optionalAgentAsyncReadWorker?.close();

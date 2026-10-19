@@ -3,6 +3,7 @@ import {
 } from "../object-extension/constants.js";
 import type {
   FoundationObjectImportIssueV010,
+  FoundationObjectImportTargetSummaryV010,
   FoundationObjectImportTargetV010
 } from "../../contracts/foundation-object/import.js";
 import {
@@ -324,7 +325,7 @@ function importContextNavigationV010(input: {
 }
 
 export function createDataImportDirectoryPageV010(input: {
-  targets: readonly FoundationObjectImportTargetV010[];
+  targets: readonly FoundationObjectImportTargetSummaryV010[];
   jobs: readonly DataImportJobV010[];
   locale?: string;
 }): CatalogBrowserV010 {

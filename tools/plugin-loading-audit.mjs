@@ -35,10 +35,17 @@ async function sample(name, directory, profile, extra = {}) {
       child.on('message', message => { if (message.kind === 'host-baseline') resolve(message); });
     });
     clearTimeout(timer);
+    if (name === "minimal-scheduler-configured" && report.registeredIntervals.length !== 0) {
+      throw new Error("EMPTY_MINIMAL_HOST_BACKGROUND_TIMER");
+    }
     const lifecycle = JSON.parse(fs.readFileSync(state, 'utf8'));
     const inventory = files(directory);
     const storedFiles = inventory.filter(file => !file.path.startsWith('web-assets/'));
     const archived = inventory.filter(file => file.path.startsWith('web-assets/'));
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'dist/web-asset-manifest.json'), 'utf8'));
+    const expectedArchive = ['.ready', manifest.shellCss.path, ...manifest.files.map(file => file.path)].sort();
+    const actualArchive = archived.map(file => file.path.split('/').slice(2).join('/')).sort();
+    if (JSON.stringify(actualArchive) !== JSON.stringify(expectedArchive)) throw new Error('WEB_ARCHIVE_MANIFEST_COVERAGE_MISMATCH');
     const archiveAreas = {};
     for (const file of archived) {
       const area = file.path.split('/')[2];
@@ -54,11 +61,39 @@ async function sample(name, directory, profile, extra = {}) {
       || !report.loadedModules.includes('dist/manager/server.js')) {
       throw new Error('AUDIT_INVALID: ' + JSON.stringify({ shutdown, stderr, blockedOutbound: report.blockedOutbound }));
     }
+    for (const module of ['dist/apps/eog-2d-designer/legacy-definition-migration.js',
+      'dist/providers/enterprise-context/eog-sop-migration.js', 'dist/manager/eog-preview-seed.js']) {
+      if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
+    }
+    if (report.loadedModules.includes('dist/apps/eog-3d/workspace-page.js')) throw new Error('EOG_3D_VIEWER_PAGE_EAGER');
+    if (report.loadedModules.includes('dist/apps/enterprise-observatory/observatory-actions.js')) throw new Error('EOG_OBSERVATORY_ACTIONS_EAGER');
+    for (const surface of ['desktop-page', 'mobile-read-page']) {
+      if (report.loadedModules.includes(`dist/apps/enterprise-observatory/${surface}.js`)) throw new Error('EOG_OBSERVATORY_SURFACE_EAGER:' + surface);
+    }
+    if (report.loadedModules.includes('dist/apps/enterprise-observatory/spatial-page.js')) throw new Error('EOG_SPATIAL_OBSERVATORY_PAGE_EAGER');
     // Retired startup debt: fail CI if the compatibility runtime returns to
     // these unused/disabled startup paths. Counts remain observations only.
     for (const module of ['service', 'default-library', 'expression-compiler']) {
       if (report.loadedModules.includes(`dist/apps/ledger-runtime-configurator/${module}.js`)) {
         throw new Error('LEDGER_COMPATIBILITY_RUNTIME_EAGER: ' + module);
+      }
+    }
+    for (const module of ['runtime', 'repository', 'roles', 'facets', 'projection-service']) {
+      if (report.loadedModules.includes(`dist/apps/counterparty/${module}.js`)) {
+        throw new Error('COUNTERPARTY_RUNTIME_EAGER: ' + module);
+      }
+    }
+    if (report.loadedModules.includes('dist/apps/responsibility/repository.js')) {
+      throw new Error('RESPONSIBILITY_RUNTIME_EAGER');
+    }
+    for (const module of ['repository', 'values']) {
+      if (report.loadedModules.includes(`dist/apps/object-extension/${module}.js`)) {
+        throw new Error('OBJECT_EXTENSION_RUNTIME_EAGER: ' + module);
+      }
+    }
+    for (const module of ['runtime', 'repository', 'recipe', 'service', 'experience-advisor']) {
+      if (report.loadedModules.includes(`dist/apps/data-import/${module}.js`)) {
+        throw new Error('DATA_IMPORT_RUNTIME_EAGER: ' + module);
       }
     }
     // Hook instrumentation makes these unsuitable for performance comparisons.
@@ -105,8 +140,22 @@ const report = {
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
   sourceState: 'working tree; file hashes identify measured source',
   measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
+    'manager/web-asset-archive.ts', 'tools/build-web-asset-manifest.mjs',
+    'dist/web-asset-manifest.json',
     'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
     'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
+    'manager/data-import-runtime.ts', 'apps/data-import/runtime.ts',
+    'apps/data-import/management-access.ts', 'apps/data-import/actions.ts',
+    'apps/data-import/repository.ts', 'apps/data-import/recipe.ts',
+    'apps/data-import/service.ts', 'apps/data-import/experience-advisor.ts',
+    'manager/object-extension-runtime.ts', 'apps/object-extension/actions.ts',
+    'apps/object-extension/repository.ts', 'apps/object-extension/values.ts',
+    'manager/responsibility-runtime.ts', 'apps/responsibility/actions.ts',
+    'apps/responsibility/repository.ts',
+    'manager/counterparty-runtime.ts', 'apps/counterparty/runtime.ts',
+    'apps/counterparty/constants.ts', 'apps/counterparty/foundation-object.ts',
+    'apps/counterparty/repository.ts', 'apps/counterparty/actions.ts',
+    'apps/counterparty/projection-actions.ts',
     'apps/ledger-runtime-configurator/action-handler.ts',
     'apps/ledger-runtime-configurator/capability-action-handlers.ts']
     .map(file => [file, createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])),

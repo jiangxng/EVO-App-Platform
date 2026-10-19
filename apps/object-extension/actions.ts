@@ -124,13 +124,15 @@ export interface ObjectExtensionImportServicesV010 {
   }):void;
 }
 
-export function createObjectExtensionActionHandlersV010(input: {
-  repository: ObjectExtensionRepositoryV010;
+export function createObjectExtensionActionHandlersV010(input: ({ repository: ObjectExtensionRepositoryV010 } | {
+  resolveRepository(): Promise<ObjectExtensionRepositoryV010>;
+}) & {
   canManageEnterpriseContext(
     principal: PlatformPrincipalV010,
     contextId: string
   ): boolean;
   now?: () => Date;
+  resolveImportJobReader?(): Promise<(contextId: string, jobId: string) => DataImportJobV010 | undefined>;
   getImportJob?(contextId: string, jobId: string): DataImportJobV010 | undefined;
   /** Resolve per authorized import request; never during ordinary definition CRUD. */
   resolveImportServices?(job: DataImportJobV010): Promise<ObjectExtensionImportServicesV010>;
@@ -161,8 +163,10 @@ export function createObjectExtensionActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const targetObjectType = text(request.values.targetObjectType);
-        const definitions = input.repository.list(
+        const definitions = repository.list(
           active.contextId,
           targetObjectType
         );
@@ -194,7 +198,9 @@ export function createObjectExtensionActionHandlersV010(input: {
           input.canManageEnterpriseContext
         );
         const definition = definitionFromJson(request.values.definition);
-        const saved = input.repository.save({
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        const saved = repository.save({
           contextId: active.contextId,
           definition,
           actorSubjectId: context.principal.subjectId,
@@ -231,7 +237,9 @@ export function createObjectExtensionActionHandlersV010(input: {
           request.values.extensionId,
           "OBJECT_EXTENSION_ID_REQUIRED"
         );
-        input.repository.archive({
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        repository.archive({
           contextId: active.contextId,
           extensionId,
           actorSubjectId: context.principal.subjectId,
@@ -263,17 +271,22 @@ export function createObjectExtensionActionHandlersV010(input: {
         const active = activeEnterpriseContext(context);
         ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const jobId = required(request.values.importJobId,"OBJECT_EXTENSION_IMPORT_JOB_REQUIRED");
-        let job = input.getImportJob?.(active.contextId,jobId);
+        const getImportJob = input.resolveImportJobReader
+          ? await input.resolveImportJobReader() : input.getImportJob;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        let job = getImportJob?.(active.contextId,jobId);
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
+        const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const importServices: ObjectExtensionImportServicesV010 = input.resolveImportServices
           ? await input.resolveImportServices(job)
           : input;
         ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         importServices.assertAvailable?.();
         // Loading yields: never apply a stale job snapshot after another request changed it.
-        job = input.getImportJob?.(active.contextId,jobId);
+        job = getImportJob?.(active.contextId,jobId);
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
@@ -282,13 +295,13 @@ export function createObjectExtensionActionHandlersV010(input: {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
           const result = executeObjectExtensionBatchImportV010({
-            repository: input.repository, job,
+            repository, job,
             contextId: active.contextId,
             actorSubjectId: context.principal.subjectId,
             recordedAt: now().toISOString(),
             values: request.values,
             importableTargets: importServices.getImportableTargets?.(active.contextId,job),
-            getCurrentJob: () => input.getImportJob?.(active.contextId,jobId),
+            getCurrentJob: () => getImportJob?.(active.contextId,jobId),
             applyMapping: importServices.applyImportMapping
           });
           return {
@@ -306,7 +319,7 @@ export function createObjectExtensionActionHandlersV010(input: {
         if (!["STRING","NUMBER","BOOLEAN","DATE"].includes(valueType)) {
           throw new Error("OBJECT_EXTENSION_TYPE_INVALID");
         }
-        if (!importServices.applyImportMapping || !input.getImportJob) {
+        if (!importServices.applyImportMapping || !getImportJob) {
           // A field cannot be advertised as created-and-mapped if the
           // authoritative import owner is unavailable.
           throw new Error("OBJECT_EXTENSION_IMPORT_MAPPING_SERVICE_REQUIRED");
@@ -327,7 +340,7 @@ export function createObjectExtensionActionHandlersV010(input: {
           : "counterparty.identity";
         const normalize = (value: string) => value.normalize("NFKC")
           .replace(/\\s+/gu, "").toLocaleLowerCase();
-        const definitions = input.repository.list(active.contextId, job.targetId);
+        const definitions = repository.list(active.contextId, job.targetId);
         const prior = definitions.find(item => item.fieldId === fieldId);
         const sameName = definitions.filter(item =>
           item.fieldId !== fieldId && item.targetSlot === slot
@@ -362,14 +375,14 @@ export function createObjectExtensionActionHandlersV010(input: {
             importable:true,exportable:true,
             agentReadable:false,agentWritable:false
           });
-          saved = input.repository.save({
+          saved = repository.save({
             contextId:active.contextId,definition,
             actorSubjectId:context.principal.subjectId,recordedAt
           });
         }
         // Re-read the authoritative job after the definition write. A retry
         // must reuse the deterministic field rather than duplicating it.
-        const latest = input.getImportJob(active.contextId,jobId);
+        const latest = getImportJob(active.contextId,jobId);
         if (!latest || latest.targetId !== job.targetId
           || latest.source.headers.length !== job.source.headers.length
           || latest.source.headers.some((item,index) =>

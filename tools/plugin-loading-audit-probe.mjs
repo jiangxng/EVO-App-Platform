@@ -36,3 +36,10 @@ process.send = function (message, ...args) {
 };
 // Reuse loopback-only listener and outbound TCP block; no production connection.
 await import('./lightweight-host-probe.mjs');
+
+// Test-only post-request inventory; never installed in the production Host.
+process.on('message', message => {
+  if (message?.kind === 'audit-module-snapshot') {
+    send?.({ kind: 'audit-module-snapshot', id: message.id, loadedModules: drainLoadedModules() });
+  }
+});

@@ -179,10 +179,16 @@ Scheduled execution is disabled unless `APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS`
 The scheduler uses:
 
 - in-process re-entrancy protection;
-- an optional durable file lease with TTL for multiple Host processes sharing state;
+- an optional exclusive file claim; TTL is diagnostic only and never authorizes automatic takeover;
 - durable JSONL operation evidence;
 - deterministic Context de-duplication;
 - immutable Memory as the source candidate set.
+
+File-backed scheduling is supported with one designated scheduler Host per state directory. Competing updated processes sharing the same local filesystem path are excluded by exclusive creation; this is not a distributed transaction, fencing token, HA failover or a guarantee for shared/network filesystems. Memory-only scheduling has process-local exclusion only. Other writers to Memory/cursors are outside this claim.
+
+The file's `expiresAt` is an overrun diagnostic, not permission to delete it. Existing valid unexpired claims return busy; overdue claims report `CONTEXT_MEMORY_SCHEDULER_LEASE_OVERDUE`, and corrupt/partial/unreadable claims report `CONTEXT_MEMORY_SCHEDULER_LEASE_UNREADABLE`. Both block execution and leave bytes untouched. Each successful acquisition has a distinct `acquisitionId`; release requires both holder and acquisition to match. Normal completion releases in finally, while stop timeout never releases early.
+
+**Migration and recovery:** Stop every old/new scheduler sharing the state and drain or reconcile in-flight local/remote work before upgrading or removing a claim. Old binaries still implement TTL takeover: mixed-version overlap is unsupported. After confirming all writers have stopped, preserve the exact lease file and operation/cursor evidence, remove only that verified stale claim, and restart one designated scheduler. Do not infer termination from TTL or a PID alone; do not delete Memory, operation logs or cursors. A crash may require manual recovery; automatic availability is deliberately traded for exclusion until authoritative ownership/fencing and result-reconciliation contracts exist. Do not automate removal on a timer. See [verification and recovery detail](../plans/platform-governance/MEMORY-SCHEDULER-BOUNDARY-20261018.md#2026-10-18-文件租约收口增量).
 
 Retention and DLP can enumerate Contexts already represented by durable Memory.
 
@@ -272,7 +278,7 @@ Implemented on the P1.3 branch:
 - all-or-nothing Provider-evaluation phase for a DLP batch;
 - fail-closed missing/invalid DLP Provider behavior;
 - durable JSONL operation evidence;
-- scheduler re-entrancy protection and durable TTL lease;
+- scheduler re-entrancy protection and exclusive file claim (no automatic expiry takeover);
 - explicit scheduled intake Context allow-list;
 - durable intake cursor and one-page-per-tick backpressure;
 - scheduled intake remains Proposal-only;
