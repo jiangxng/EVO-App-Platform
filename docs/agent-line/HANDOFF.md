@@ -1,5 +1,7 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-19 PA05-05/E01J4G 工程候选（完整 E01J4/W06 未签收）：** [Provider/Secrets/Host 启动前恢复组合工程与 CI 原始证据](PA05-E01J4G-PROVIDER-TRUST-ENGINEERING-20261019.md) → [认证总账 §63](PA05-CERTIFICATION-BASELINE-20261015.md)。继续复用 J4E/J4F，新增 Host-scoped HUMAN request-bound identity + authorization.check + secrets.resolve、非秘密审计和实际 PostgreSQL18 正向/负向场景。首轮 PG18 25/25 测试层通过但 CI 因旧 24 项门禁失败；修正后 PR #1053 的 HEAD b00faf20 三 PostgreSQL18 25/25、0 skipped 且全部 8/8 相关 CI SUCCESS，最终文档 HEAD 仍须复测；不得提前写入已签收。生产身份/DBA/CLI/跨 Worker、PA05-05 E01–E05 与 W06 均 NOT_SIGNED、WRITE OFF；不动 Railway/BEX/CP03/Eidos/2D/全局状态。
+
 > **2026-10-19 PA05-05/E01J4G 生产操作员与恢复治理契约核查（实施/签收均 OPEN）：** [新增决策与源码索引](PA05-E01J4G-PRODUCTION-OPERATOR-TRUST-BOUNDARY-20261019.md) → [认证总账 §62](PA05-CERTIFICATION-BASELINE-20261015.md)。已核对在线 Host bootstrap+Authorization Provider 双门禁、既有 Host Secret Provider、J4D 专用 SQL URL 配置、J4E SQL session_user/函数和 J4F 离线操作员回调；它们**尚未组成可认证的生产离线维护身份+凭据链**。本轮只记录准确缺口与下一工程负面验收，不新增 PG18 或生产授权。此前 J2–F 17→24/24 保留，完整 E01J4 / PA05-05 E01–E05 / W06 NOT_SIGNED；#988/#979/#913 OPEN、Production WRITE OFF；不得部署 Railway 或改 BEX/CP03/Eidos/2D/全局状态。
 
 > **2026-10-19 E01J2–E01J4F 本聊天窗口研究资料交接（历史快照，非新签收）：** [简短接续入口](PA05-E01J2-J4F-WINDOW-RESEARCH-HANDOFF-ENTRY-20261019.md) · [详细已读来源/原始网址/CI/方案比较索引](PA05-E01J2-J4F-WINDOW-RESEARCH-REFERENCE-INDEX-20261019.md)。已完成 J2–J4F 隔离工程，不重复；历史 PostgreSQL 官网仅继承 2026-10-16 旧索引已读等级，本窗口没新读官网。完整 E01J4、PA05-05 E01–E05 和 W06 仍 NOT_SIGNED，生产 material WRITE OFF；后续先复核 main/PR/§61 再续接可信操作员身份及恢复治理，不动全球主线或其他窗口。

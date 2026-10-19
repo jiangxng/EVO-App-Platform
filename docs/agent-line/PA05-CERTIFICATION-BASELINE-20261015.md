@@ -699,3 +699,11 @@ E01J4E §60 accepted function-only Host SQL operator without raw central table a
 已在 GitHub 原始代码确认：`manager/server.ts` 在线生命周期路径使用 bootstrap 管理员认证 + `authorization.check` Provider 决策并双重校验；`manager/secret-store.ts` 和 `providers/secrets/runtime.ts` 提供 Host 秘密基础设施；J4D 专用 `APP_PLATFORM_PA05_E01J4D_DATABASE_URL` 尚非已认证生产 Secret Provider 链；J4E `session_user` + DBA SECURITY DEFINER 函数是 SQL 调用者/最小权限证明，不等于真实 Human 身份/同意；J4F 的 `authorizeHostOperator` 信任回调由**未实现的离线维护调用方**提供。E01I 在 HTTP listen 前隔离；不允许用被阻断的 Host 路由或 env `true` 来恢复。
 
 **下一门禁**：默认 OFF 的离线维护身份/Provider/Secrets 契约、Host/DBA 安全配置与审计、既有 FENCED UNINSTALL 定界恢复的真实负面工程验收；待明确并验证真实生产 IdP/专用 SQL 凭据发行和轮换，不能把文档推进误报工程 PASS。E01J2–F 既有物理 PG18 17→24/24、0 skipped 继承；完整 E01J4、PA05-05 E01–E05 和 W06 NOT_SIGNED；#988/#979/#913 OPEN；Production material WRITE OFF；无 Railway 或 BEX/CP03/Eidos/2D/全局状态文件变更。
+
+## 63. PA05-05/E01J4G — Provider-authenticated Host-internal startup recovery integration (2026-10-19)
+
+**工程候选 PR [#1053](https://github.com/jiangxng/EVO-App-Platform/pull/1053)，完整 E01J4 与 PA05-05 E01–E05/W06 仍 NOT_SIGNED；Production material WRITE OFF。** 承接 §62 已明确的生产身份缺口而不是重做 J4F。新增默认不接入 Host 的 `manager/pa05-read-owner-trusted-prestartup.ts`，用现有请求绑定 Identity Session Provider、Authorization Provider 和 Host Secrets Provider 组合 J4F 的原 SQL-fenced UNINSTALL；Session 必须为未过期 HUMAN，授权与精确 Host/Package 匹配且无附加 obligations，Secrets 仅在授权与非秘密审计后解析。没有部署生产 IdP、DBA 配置/证书或离线维护 CLI，也没有放松 E01I。详情与已读 GitHub 原始证据：[E01J4G 工程决策](PA05-E01J4G-PROVIDER-TRUST-ENGINEERING-20261019.md)。
+
+**第一轮三 PostgreSQL18 原始日志：** [Actions #39269428201](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39269428201) 在测试层 **25/25 PASS、0 failed/skipped**，新 Host-scoped Provider 真实 SQL 恢复与拒绝标记均出现；工作流整体 **FAIL**，因为脚本尾部仍使用旧 24 case 检查。已在原 PR 修正为 25 并增加两个新强制标记；**待最后准确 HEAD CI 后才允许工程 PASS/merge**，不得用这一轮 FAILED workflow 冒充成功。J2–F 24/24 旧结论照旧，生产操作员身份/秘钥签发/审计与跨 Worker 原子性仍 NOT_SIGNED。#988/#979/#913 OPEN。
+
+**§63 补充已实证 CI（2026-10-19）：** 原 PR #1053 中间 HEAD `b00faf208cfc0d8b77471e6adbe21935485fb174` 的 [物理 PostgreSQL18 #39270223784](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39270223784) job `118120255282` 原始日志 **25/25 PASS / 0 failed / 0 skipped**，两个 E01J4G 强制 marker 及全部旧 marker 保留；同 HEAD **8/8 相关 CI SUCCESS**。之前 #39269428201 因旧 24 项 CI 门禁失败的负证据保留。**此为工程阶段结论，完整 E01J4 / E01–E05 / W06 均 NOT_SIGNED，生产 WRITE OFF**。后续文档 HEAD CI 仍必须按最终准确版本检查。
