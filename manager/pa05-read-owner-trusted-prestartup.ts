@@ -80,9 +80,9 @@ export async function recoverPa05TrustedPrestartupUninstallV010(input: {
         scope: {contractVersion: "0.1.0"},
         action: "host.plugin.lifecycle.prestartup-uninstall-recovery",
         resource: {
-          type: "plugin-package", id: owner,
+          type: "plugin-host-lifecycle", id: owner + "@" + input.hostId,
           attributes: {
-            effect: "READ", operation: "UNINSTALL",
+            packageId: owner, effect: "READ", operation: "UNINSTALL",
             admission: "PRESTART_RECOVERY", hostId: input.hostId
           }
         }
