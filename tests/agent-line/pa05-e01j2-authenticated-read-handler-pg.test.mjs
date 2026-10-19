@@ -8,6 +8,16 @@ import {join} from "node:path";
 import {fileURLToPath} from "node:url";
 import postgres from "postgres";
 import {createPa05TcpCutLinkV010} from "./fixtures/pa05-e01j3-tcp-link.mjs";
+import {createPa05HostReadLifecycleV010}
+  from "../../dist/manager/pa05-read-owner-host-lifecycle.js";
+import {createAppManagerService} from "../../dist/manager/service.js";
+import {createFileLifecycleStore} from "../../dist/manager/store.js";
+import {createPackageCatalog} from "../../dist/catalog/catalog.js";
+import {purchaseAttentionPackageV010}
+  from "../../dist/apps/purchase-attention/package.js";
+import {tradingReferencePackageV010}
+  from "../../dist/apps/trading-reference/package.js";
+
 import {createPa05SharedReadOwnerGateV010}
   from "../../dist/manager/pa05-read-owner-shared-sql-gate.js";
 import {createPa05AuthenticatedReadHostV010}
@@ -490,7 +500,7 @@ $pa05_j4$`);
             /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
           await j4.test("E01J4B revoke-first durable lifecycle repair after multiple OS crashes",{
             timeout:42000
-          },async()=>{
+          },async j4b=>{
             let recoveredA;
             try{
               // A is authorized at epoch 8 and B is still locally ACTIVE
@@ -628,6 +638,148 @@ $pa05_j4$`);
               restartedB.send({type:"read",epoch:8});
               assert.match((await deniedB).message,
                 /PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+
+              await j4b.test("E01J4C original AppManager Host-only lifecycle adapter with real SQL repair",{
+                timeout:30000
+              },async()=>{
+                await stop(recoveredA);
+                const catalog=createPackageCatalog([
+                  tradingReferencePackageV010,purchaseAttentionPackageV010
+                ]);
+                const openManager=()=>createAppManagerService(
+                  catalog,createFileLifecycleStore(fileA));
+                let local=openManager();
+                assert.equal(local.getSnapshot().activeFeatures.some(x=>
+                  x.packageId==="evo-purchase-attention"),true);
+                let operatorAllowed=false;
+                let denyFence=false;
+                let failCompleteOnce=true;
+                const authority={
+                  async fence({operationId,operation,packageId}){
+                    if(denyFence)throw Error("PA05_J4C_SQL_UNREACHABLE");
+                    await root.begin(async tx=>{
+                      await tx.unsafe('INSERT INTO "'+schema+
+                        '".pa05_read_lifecycle_intents '+
+                        '(operation_id,host_id,owner_package_id,expected_epoch,state) '+
+                        'VALUES($1,$2,$3,$4,$5)',[
+                        operationId,"read-host-a",packageId,8,"FENCED"
+                      ]);
+                      const rows=await tx.unsafe('UPDATE "'+schema+
+                        '".pa05_read_host_activation_epoch SET approved_epoch=7 '+
+                        'WHERE owner_package_id=$1 AND host_id=$2 '+
+                        'AND approved_epoch IN (7,8) RETURNING host_id',[
+                        packageId,"read-host-a"
+                      ]);
+                      assert.equal(rows.length,1);
+                    });
+                  },
+                  async assertFenced({operationId,packageId}){
+                    const rows=await root.unsafe('SELECT i.state, a.approved_epoch '+
+                      'FROM "'+schema+'".pa05_read_lifecycle_intents i '+
+                      'JOIN "'+schema+'".pa05_read_host_activation_epoch a '+
+                      'ON a.owner_package_id=i.owner_package_id AND a.host_id=i.host_id '+
+                      'WHERE i.operation_id=$1 AND i.owner_package_id=$2 '+
+                      'AND i.host_id=$3',[
+                        operationId,packageId,"read-host-a"
+                      ]);
+                    assert.equal(rows.length,1);
+                    assert.equal(Number(rows[0].approved_epoch),7);
+                    assert.ok(["FENCED","COMPLETE"].includes(rows[0].state));
+                  },
+                  async complete({operationId,packageId}){
+                    if(failCompleteOnce){
+                      failCompleteOnce=false;
+                      throw Error("PA05_J4C_SIMULATED_COMPLETION_OUTAGE");
+                    }
+                    const rows=await root.unsafe('UPDATE "'+schema+
+                      '".pa05_read_lifecycle_intents SET state=$1 '+
+                      'WHERE operation_id=$2 AND owner_package_id=$3 '+
+                      'AND host_id=$4 AND state=$5 RETURNING operation_id',[
+                      "COMPLETE",operationId,packageId,"read-host-a","FENCED"
+                    ]);
+                    if(rows.length===0){
+                      const current=await root.unsafe('SELECT state FROM "'+schema+
+                        '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
+                        operationId
+                      ]);
+                      assert.equal(current.length,1);
+                      assert.equal(current[0].state,"COMPLETE");
+                    }
+                  }
+                };
+                const makeLifecycle=()=>createPa05HostReadLifecycleV010({
+                  manager:local,protectedPackageId:"evo-purchase-attention",
+                  async authorizeHostOperator(){return operatorAllowed;},
+                  authority
+                });
+                let adapter=makeLifecycle();
+                await assert.rejects(adapter.apply("DISABLE","j4c-disabl-0001"),
+                  /PA05_READ_HOST_LIFECYCLE_OPERATOR_DENIED/);
+                assert.equal(local.getSnapshot().activeFeatures.some(x=>
+                  x.packageId==="evo-purchase-attention"),true);
+                operatorAllowed=true;
+                denyFence=true;
+                await assert.rejects(adapter.apply("DISABLE","j4c-fenced-0001"),
+                  /PA05_J4C_SQL_UNREACHABLE/);
+                assert.equal(local.getSnapshot().activeFeatures.some(x=>
+                  x.packageId==="evo-purchase-attention"),true);
+                denyFence=false;
+                await assert.rejects(adapter.apply("DISABLE","j4c-disabl-0001"),
+                  /PA05_J4C_SIMULATED_COMPLETION_OUTAGE/);
+                assert.equal(local.getSnapshot().activeFeatures.some(x=>
+                  x.packageId==="evo-purchase-attention"),false);
+                // Actual file reload, not in-memory flags or duplicate event.
+                local=openManager();
+                adapter=makeLifecycle();
+                const restored=await adapter.recover("DISABLE","j4c-disabl-0001");
+                assert.equal(restored.activeFeatures.some(x=>
+                  x.packageId==="evo-purchase-attention"),false);
+                await adapter.recover("DISABLE","j4c-disabl-0001");
+                const afterUninstall=await adapter.apply("UNINSTALL","j4c-remove-0001");
+                assert.equal(afterUninstall.installedPackages.some(x=>
+                  x.packageId==="evo-purchase-attention"),false);
+                local=openManager();adapter=makeLifecycle();
+                const stillAbsent=await adapter.recover("UNINSTALL","j4c-remove-0001");
+                assert.equal(stillAbsent.installedPackages.some(x=>
+                  x.packageId==="evo-purchase-attention"),false);
+                // Reinstallation requires the existing AppManager AND separate
+                // renewed per-Host SQL authority (never provided automatically).
+                local.install("evo-purchase-attention");
+                const guard=createPa05AuthenticatedReadHostV010({
+                  connectionString:urlA,schema
+                });
+                let callbackInvoked=false;
+                try{
+                  await assert.rejects(guard.withReadAdmission({
+                    expectedEpoch:8,
+                    async perform(){callbackInvoked=true;return "INVALID";}
+                  }),/PA05_READ_SQL_HOST_REATTEST_REQUIRED/);
+                  assert.equal(callbackInvoked,false);
+                }finally{await guard.close();}
+                // SQL read-only Worker lacks the central operation completion grant.
+                await assert.rejects(sqlA.unsafe('UPDATE "'+schema+
+                  '".pa05_read_lifecycle_intents SET state=$1 '+
+                  'WHERE operation_id=$2',[
+                  "COMPLETE","j4c-remove-0001"
+                ]),/permission denied/);
+                console.log("PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG="+JSON.stringify({
+                  actualPostgresql18:true,realOriginalAppManager:true,
+                  privilegedOperatorRequired:true,
+                  centralOutageBlocksLocalMutation:true,
+                  sqlFirstFenceBeforeLocalDisable:true,
+                  completeOutageLeavesDurableRepair:true,
+                  originalJsonStoreReloaded:true,
+                  duplicateRepairIdempotent:true,
+                  originalAppManagerUninstall:true,
+                  noAutoReinstallAfterRecovery:true,
+                  ordinaryWorkerCannotCompleteIntent:true,
+                  reinstallWithoutHostReattestationDenied:true,
+                  actualProductionServerRouteWired:false,
+                  productionOperatorIdentityCertified:false,
+                  globalJsonPostgresAtomicityCertified:false,
+                  productionWriteEnabled:false,pa05Signed:false
+                }));
+              });
               console.log("PA05_E01J4B_CRASH_RECOVER_LIFECYCLE_PG="+JSON.stringify({
                 realPostgresql18:true,
                 originalAppManagerAndBusinessHandler:true,
