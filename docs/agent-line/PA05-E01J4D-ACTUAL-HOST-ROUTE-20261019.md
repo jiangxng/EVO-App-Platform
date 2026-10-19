@@ -1,6 +1,6 @@
 # PA05-05/E01J4D — existing Host HTTP and Action lifecycle routes with opt-in PostgreSQL READ fence
 
-**2026-10-19 · ENGINEERING_CANDIDATE, final CI pending.** No Railway, production credentials, automatic install, or W06 signoff.
+**2026-10-19 · ENGINEERING_CANDIDATE, first physical PG18 PASS; final CI pending.** No Railway, production credentials, automatic install, or W06 signoff.
 
 ## Fixed PA-05 milestone status
 
@@ -39,4 +39,6 @@ No real production administrator token/provider identity or credential provision
 
 ## Verification log
 
-**Initial:** CANDIDATE / exact-final-HEAD CI pending. Preserve failed and passing original CI logs, merge SHA, branch removal and signed/unsigned distinction. One active engineering PR, accurate main reconciliation, no edits to BEX/CP03/Eidos/2D/global status.
+**First primary PG18 proof:** engineering HEAD `d18f3402bae80432b433e05e388903a69f37581c`, [real PG18 CI #39214959937](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39214959937), original job `117936544924` **22/22 PASS, 0 failed/skipped**. Real Host HTTP+Action and central DBA inspected. **Concurrent separate WRITE CI FAILED:** [#39214960038](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39214960038), job 117936545290, test `pa05-host-write-lifecycle.test.mjs` expected two original Action branches but one branch had been missed by the first J4D routing change. This failure revealed a security-relevant duplicate Action path, not a failed SQL gate. Same PR now rewires BOTH duplicate Action disable/uninstall handlers and direct HTTP (six call sites total), updates source-gate assertions to require all six routing calls and zero direct legacy calls. No security test dropped or relaxed.
+
+**Still in progress:** final exact-head 22/22 PG18, governed WRITE, READ, Platform, Lightweight, Continuity, Human UI and full server-affected CI after latest-main reconciliation. DO NOT merge or sign before all required checks. No actual production credential or deployment authorization.
