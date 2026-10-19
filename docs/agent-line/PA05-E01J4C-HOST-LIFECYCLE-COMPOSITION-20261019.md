@@ -1,6 +1,6 @@
 # PA05-05/E01J4C — Host-only, revoke-first READ Owner lifecycle composition
 
-**2026-10-19 · ENGINEERING_CANDIDATE, awaiting exact-head CI · E01J4 full lifecycle NOT_SIGNED**
+**2026-10-19 · ENGINEERING_CANDIDATE; first physical PG18 21/21 PASS, final HEAD CI pending · E01J4 full lifecycle NOT_SIGNED**
 
 ## Fixed milestone progress
 
@@ -41,4 +41,4 @@ The adapter takes a trusted Host-supplied authority interface; that alone is **n
 
 ## CI/merge record
 
-**Initial:** engineering candidate; do not claim PASS until raw exact-head PG18 log, CI statuses, merged SHA and source branch retirement are verified. One activity/one PR. Keep this table updated on final delivery.
+**First exact-code-HEAD verification:** `1d1997a21159be9050a0911892f33b20be71146f`, [real 3-PG18 Actions #39212478504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212478504), job 117928755132 directly inspected **21/21 PASS, 0 failed/skipped**; first Platform, Lightweight, Continuity, Human UI workflows also SUCCESS. The positive-negative marker `PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG` directly supports all initial lifecycle assertions and explicitly prints production wiring/operator/atomicity `false`. Strengthened the same PR thereafter to bind each central intent to an exact operation type so DISABLE intent cannot authorize UNINSTALL recovery. **A fresh final-HEAD CI is required** before engineering closure. Preserve all inherited tests and graded source provenance. One activity/one PR.
