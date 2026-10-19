@@ -155,7 +155,8 @@ test("E01J4J cooperating real Host excludes J4I, graceful release, SIGKILL stale
       productionMaterialWriteEnabled:false,pa05Signed:false
     }));
   }finally{
-    try{if(defaultHost)await ended(defaultHost,"SIGKILL");}catch{}\n    try{if(first)await ended(first,"SIGKILL");}catch{}
+    try{if(defaultHost)await ended(defaultHost,"SIGKILL");}catch{}
+    try{if(first)await ended(first,"SIGKILL");}catch{}
     try{if(second)await ended(second,"SIGKILL");}catch{}
     process.umask(prior);
     chmodSync(dir,0o700);
