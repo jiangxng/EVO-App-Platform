@@ -1,6 +1,6 @@
 # PA05-05/E01J4C — Host-only, revoke-first READ Owner lifecycle composition
 
-**2026-10-19 · ENGINEERING_CANDIDATE; first physical PG18 21/21 PASS, final HEAD CI pending · E01J4 full lifecycle NOT_SIGNED**
+**2026-10-19 · ENGINEERING_BOUNDED_PASS / MERGED · E01J4 full lifecycle NOT_SIGNED**
 
 ## Fixed milestone progress
 
@@ -11,7 +11,7 @@
 | E01J3 | BOUNDED_PASS 18/18 | TCP fault + recorded postgres.js process-crash P0 remains |
 | E01J4A | BOUNDED_PASS 19/19 | Distinct persisted AppManagers, per-Host reattestation |
 | E01J4B | BOUNDED_PASS 20/20, [#1031](https://github.com/jiangxng/EVO-App-Platform/pull/1031) | SQL-first intent, 3 Worker crashes, idempotent repair |
-| **E01J4C** | **IN_PROGRESS / NOT_SIGNED** | Bounded reusable Host-internal DISABLE/UNINSTALL adapter, trusted callback + central SQL first, original AppManager, retry after local failure, 21/21 actual PG18 zero skip |
+| **E01J4C** | **ENGINEERING_BOUNDED_PASS / merged #1036** | Bounded reusable Host-internal DISABLE/UNINSTALL adapter, trusted callback + central SQL first, original AppManager, retry after local failure, 21/21 actual PG18 zero skip |
 | Full E01J4 production Host lifecycle | **OPEN / NOT_SIGNED** | Real configured operator/secret trust, production SQL schema provision and Host route/rollback |
 | PA05-05 E01–E05 | NOT_SIGNED | Actual Human/Agent/Provider/browser/enterprise evidence |
 | PA-05/W06 | IN_PROGRESS / NOT_SIGNED | #988, #979, #913 OPEN |
@@ -40,5 +40,11 @@ No default Host import, automatic installation, new public E01D admin endpoint, 
 The adapter takes a trusted Host-supplied authority interface; that alone is **not credential verification, CA/mTLS workload identity, production operator consent, or a shipped central SQL provider**. Production provisioning and actual running Host route remain OPEN. No transaction can make JSON file persistence and PostgreSQL a globally atomic ACID commit. Recoverability of READ permission is bounded by central fail-closed admission; arbitrary local effects or postgres.js fatal TCP crash stability are not proved. A successful 21/21 proves a reusable Host composition contract only. Full E01J4, E01–E05 and W06 remain NOT_SIGNED.
 
 ## CI/merge record
+
+
+**Final exact engineering HEAD (2026-10-19):** `a37b9ffe0ae5a97674f872f31b9b0a297b49109f` after safely absorbing concurrent main `0cb319e32f17f87b5cd18fe9f4fa5e107bbad28a`; only six PA05 test/Host adapter/workflow/Agent documentation files remain modified. [Three real PostgreSQL18 CI #39212988430](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988430), job `117930340130`, original raw job log inspected: **21/21 PASS, 0 failed, 0 skipped**. New `PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG` marker confirms original file-backed AppManager, current operator check, central outage fail-closed, durable SQL intent, idempotent repair, original unload/reinstall, separate Host reattestation, ordinary Worker denied, and **actualProductionServerRouteWired:false**, **productionOperatorIdentityCertified:false**, **globalJsonPostgresAtomicityCertified:false**, **pa05Signed:false**. The exact-operation-type replay rejection was included in the final run. At the same exact HEAD: [Human UI #39212988259](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988259), [Continuity #39212988265](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988265), [Governed WRITE #39212988277](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988277), [Cross-business READ #39212988315](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988315), [Platform #39212988308](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988308), [Lightweight Host #39212988293](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212988293) all SUCCESS.
+
+[PR #1036](https://github.com/jiangxng/EVO-App-Platform/pull/1036) MERGED main `ea9d2b388a0e27736914afd21a44c2efad845a15`, engineering source branch verified absent (GitHub 404). All prior bounded E01J1–J4B regression assets retained. The actual production Host lifecycle route, central privileged operator role provisioning, and cross-store atomicity remain NOT_SIGNED; #988/#979/#913 OPEN, W06 IN_PROGRESS/NOT_SIGNED, Production material WRITE OFF. No Railway or other-line/global status changes.
+
 
 **First exact-code-HEAD verification:** `1d1997a21159be9050a0911892f33b20be71146f`, [real 3-PG18 Actions #39212478504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39212478504), job 117928755132 directly inspected **21/21 PASS, 0 failed/skipped**; first Platform, Lightweight, Continuity, Human UI workflows also SUCCESS. The positive-negative marker `PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG` directly supports all initial lifecycle assertions and explicitly prints production wiring/operator/atomicity `false`. Strengthened the same PR thereafter to bind each central intent to an exact operation type so DISABLE intent cannot authorize UNINSTALL recovery. **A fresh final-HEAD CI is required** before engineering closure. Preserve all inherited tests and graded source provenance. One activity/one PR.
