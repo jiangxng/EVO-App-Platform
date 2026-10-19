@@ -1,6 +1,6 @@
 # PA05-05/E01J4E — least-privileged authenticated PostgreSQL lifecycle operator
 
-**Date:** 2026-10-19. **Class:** DECISION_RECORD. **State:** first physical PG18 code-head 23/23 PASS, final PR HEAD pending. Full E01J4, PA05-05 E01–E05 and W06 NOT_SIGNED. Production material WRITE OFF.
+**Date:** 2026-10-19. **Class:** DECISION_RECORD. **State:** E01J4E ENGINEERING_BOUNDED_PASS / MERGED; full E01J4 and W06 NOT_SIGNED. Full E01J4, PA05-05 E01–E05 and W06 NOT_SIGNED. Production material WRITE OFF.
 
 ## Fixed milestones
 
@@ -13,7 +13,7 @@
 | E01J4B | BOUNDED_PASS 20/20 | Three OS crashes and SQL-first durable repair |
 | E01J4C | BOUNDED_PASS 21/21 | Default-off Host lifecycle adapter |
 | E01J4D | BOUNDED_PASS 22/22, [#1040](https://github.com/jiangxng/EVO-App-Platform/pull/1040) | Existing live Host HTTP+Action pathways, dedicated SQL LOGIN |
-| **E01J4E** | **FIRST_CODE_HEAD_PG18_PASS / final PR HEAD pending** | Eliminate direct privileged-table DML from actual Host SQL operator, DBA-owned function with session_user and Host scoping; target 23/23 physical PG18 |
+| **E01J4E** | **ENGINEERING_BOUNDED_PASS / merged #1042** | Eliminate direct privileged-table DML from actual Host SQL operator, DBA-owned function with session_user and Host scoping; target 23/23 physical PG18 |
 | Full E01J4 | **OPEN / NOT_SIGNED** | Real production credentials, provisioned schema, recovery and cross-store consistency |
 | PA05-05 E01–E05 | **NOT_SIGNED** | Original environment/provider/browser checks |
 | PA-05/W06 | **IN_PROGRESS / NOT_SIGNED** | #988 / #979 / #913 OPEN |
@@ -31,12 +31,18 @@ The **existing actual Host SQL authority** now submits one authenticated command
 
 Existing HTTP/Action entrypoints and current E01D/E01F authorization rules are unchanged. In opt-in environments previously provisioned with old broad grants but missing the new function, the lifecycle **fails closed**, not silently falls back to raw table writes. Default J4D mode remains OFF with no eager PG import and no Railway/prod secrets.
 
-## Verification record — first real physical PostgreSQL18 proof
+## Verification record — final exact HEAD merged proof
+
+**Final exact engineering PR HEAD and merge (2026-10-19):** `40338a336a53e208fac88673305f5752541887c9`. Actual three PostgreSQL18 [Actions #39219535656](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535656), original job `117951339225`, raw log inspected **23/23 PASS, 0 failed, 0 skipped**; original Host HTTP/Action J4D marker and J4E least-privilege function marker both present, with all negative privilege tests and explicit `productionDatabaseProvisioned:false`, `operatorSecretCustodyCertified:false`, `crossStoreAtomicityCertified:false`, `pa05Signed:false`. Six other exact-HEAD relevant workflows SUCCESS: [Project Continuity #39219535654](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535654), [Governed WRITE #39219535644](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535644), [Cross-business READ #39219535690](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535690), [Human UI #39219535803](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535803), [Platform #39219535705](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535705), [Lightweight Host #39219535663](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219535663). [Engineering PR #1042](https://github.com/jiangxng/EVO-App-Platform/pull/1042) MERGED main `cae43693a3b78e9dd22110e7763f79f66daeeaee`, source branch `agent/pa05-e01j4e-sql-function-least-privilege-20261019` verified absent after automatic cleanup (GitHub 404). Seven changed paths limited to PA05 Host SQL provider, restricted DBA function SQL fixture, real Host PG test, workflow and Agent docs. No production migration, secrets, Railway or unrelated owner changes.
+
+**Bounded proof only:** least-privileged *preprovisionable* Host SQL operator contract, not actual deployed credentials/PKI, automatic lifecycle recovery, full cross-store agreement or PA05-05 E01–E05/W06 signature. #988/#979/#913 remain OPEN, production material WRITE OFF.
+
+
 
 - **Initial code HEAD:** `26d8907f773ad55b153c30ba231cecc428bb6426`. [Actual three-PG18 Actions #39219150421](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39219150421), raw job `117950079153` examined: **23/23 PASS, 0 failed, 0 skipped** including one E01J4E nested SQL-role/permission negative case and the original E01J4D real HTTP/Action routes.
 - Required marker `PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG` reports real `session_user` operator, no table SELECT or DML, Worker denied function, spoofed GUC and Host ID denied, mismatched operation intent denied, unchanged actual Host business lifecycle, and `productionDatabaseProvisioned:false`, `operatorSecretCustodyCertified:false`, `crossStoreAtomicityCertified:false`, `pa05Signed:false`.
 - Initial HEAD Platform, Lightweight Host, Project Continuity and Human UI Design workflows SUCCESS. No failures hidden, no test skips, original markers preserved.
-- **Final PR HEAD after documentation changes:** PENDING exact-head CI, PR merge SHA and branch retirement; do not mark merged before verification.
+- **Historical initial code-HEAD note:** first 23/23 positive run was followed by the final exact engineering HEAD check recorded above. This source-grade provenance is retained; no W06 or production signoff.
 
 ## Verified only after fresh real CI
 
