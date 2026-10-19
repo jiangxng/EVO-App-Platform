@@ -26,7 +26,7 @@ function identity(value: string, kind: "PRINCIPAL" | "SESSION"): string {
   // Deliberately does not accept free-text or secrets in audit fields.
   if (typeof value !== "string" ||
       value.length < 1 || value.length > 128 ||
-      !/^[A-Za-z0-9:@._\/-]+$/.test(value)) {
+      !/^[A-Za-z0-9:@._-]+$/.test(value)) {
     throw Error("PA05_J4H_AUDIT_" + kind + "_INVALID");
   }
   return value;
@@ -99,11 +99,19 @@ export function createPa05PrestartupAuditJournalV010(input: {
         if (writeSync(fd, line) !== line.length)
           throw Error("PA05_J4H_AUDIT_PARTIAL_APPEND");
         fsyncSync(fd);
+        // Flush the directory entry as well if the journal was just created.
+        const dirFd = openSync(dir, constants.O_RDONLY | constants.O_DIRECTORY |
+          constants.O_NOFOLLOW);
+        try { fsyncSync(dirFd); } finally { closeSync(dirFd); }
       } catch {
         // Never echo file paths, Session tokens or SQL URLs on failure.
         throw Error("PA05_J4H_AUDIT_UNAVAILABLE");
       } finally {
-        if (fd !== undefined) closeSync(fd);
+        if (fd !== undefined) {
+          try { closeSync(fd); } catch {
+            throw Error("PA05_J4H_AUDIT_UNAVAILABLE");
+          }
+        }
       }
     }
   };
