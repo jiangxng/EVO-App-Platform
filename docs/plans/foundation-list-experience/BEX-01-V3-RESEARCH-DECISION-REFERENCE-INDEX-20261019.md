@@ -219,3 +219,16 @@
 - **最小修复的采用与排除**：只在初始建议选择中允许 (1) 唯一别名对应真实 field ID；或 (2) 来源列明确等于唯一技术 `fieldId`。有重复业务别名而没有精确 ID 时返回未匹配，走**既有**四列人工审核和保留来源样本。不能因两个同名字段已有一个被占用而推断剩余字段；不自动改任何已保存 Human 映射/既有 Recipe，不改 Eidos、草稿、原 Excel、主体类型、schema 建立/权限、dry-run 或 supplier commit。修复提交 `8b720c5cdd20b9b3bac4c0eecd83fbd1015009fc`；最终通过与合并状态以最新 HEAD/CI 为准，不能预先宣称完成。
 - **三条主体类型验收边界**：现有 `tests/bex01/v3_synthetic_xlsx_172_chromium.py` 真实隔离 Host 验证 172×22 合成 XLSX 和 *synthetic* 的 165、169、172 三行空白，明确通过人工逐行更正、重开恢复、最后才独立 commit；测试都填 `ORGANIZATION` 不代表真实三行属于机构。真实客户仍需原始身份事实逐一确定，可为 `PERSON`，不能由供应商角色推断。
 - **下一门禁**：#1033 最终 HEAD Platform CI、Real Host Chromium、Human UI、连续性、轻量宿主全绿后方能考虑合并 main；**M04 只可标注“同名自动建议防误选完成”子项**。整个 M04 仍为“待真实客户数据核验”：需原 Excel、受权 Job 和两个实际字段 ID/描述/用途、三条实际身份结果。M05、M06 既定范围与签收门槛不动。
+
+## 15. 2026-10-19 M04：EC 经验建议不能绕过同名银行人工核对（R）
+
+> **范围锁定**：仅补 M04“两个同名开户银行必须由 Human 按真实字段 ID 和业务用途确认”的工程证据；不新增需求、页面或 Agent 能力。R 为本轮直接阅读 GitHub 代码、真实协议 Actions 及 CI 日志的验证；D 为尚无客户原 Excel、企业授权 Job、两条真实银行字段 ID 和三条实际主体身份。不能把测试用的 `test.bank.*`、合成银行名称、172×22 样本和测试行号冒充客户证据。
+
+- **既有通过项**：[#1033](https://github.com/jiangxng/EVO-App-Platform/pull/1033) 已将确定性字段别名匹配的同名候选留给人工，[#1035](https://github.com/jiangxng/EVO-App-Platform/pull/1035) 已用独立真实 Host Stage 验证 Excel 原值保存、两个实际（测试生成）技术 ID 的用途对比和审核关注状态。二者与真实客户对照仍属不同证据层级。
+- **新增发现**：`apps/data-import/actions.ts::data-import.stage-file` 另有 Experience Compiler 经验建议处理分支；此前即使推荐附 `advisoryOnly:true`，只要置信度够高、目标未占用，就会把它放入权威 `job.mapping`。这样不自动执行供应商 commit，但能在用户审核前为同名银行选定具体 ID，与上述 M04 人工确认边界不一致。**来源事实为真实代码**，不是客户生产事故判断。
+- **RED 可重复证明**：独立 [PR #1037](https://github.com/jiangxng/EVO-App-Platform/pull/1037) 新增 `tests/protocol/bex01-v3-m04-ec-bank-advisory.test.mjs`，使用纯合成的不同银行 ID（同标签不同用途）、未显式匹配的来源银行列及人工经验模拟接口。原始 [Platform CI run 39213354669](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39213354669) 1021 项通过／1 项失败（这条新增 M04 用例）／1 项跳过，失败实质为 Job 对同名来源列已有 EC 指定目标 `true !== false`。
+- **采用方案**：仅在首次 Stage 的 EC 建议入 Job 前，按当前有效企业 Schema 的业务标签、国际化名称确定重复候选 ID 集合。该目标存在同名歧义且源表头没有明确提供完全对应的技术字段 ID 时，不把 EC 建议预选为映射，保留原来源列供既有 V3 人工核对；其余无歧义、历史证明的 EC 推荐保持可用。已经 Human 确认且 Schema/来源匹配的 Recipe 重用、旧版本 Human 映射恢复维持原逻辑；不将本轮回退扩展到 Recipe。
+- **明确未改变**：两个银行的实际用途须由用户或有授权的业务责任人核实；不能从 SUPPLIER 推断 ORGANIZATION，三条空白主体类型仍逐行确认。没有改动原文件、企业字段定义、审核页布局、Eidos、dry-run、最终提交、Railway 配置、PA05 或 `project.status.json`。本次新测试的“通过”只代表模拟推荐与 Job 之间的安全约束，不能替代原始 XLSX、授权实体 ID 或 M05/M06 人工验收。
+- **合并门禁**：#1037 精确最终 HEAD 的 Platform CI、Real Host Chromium、Human UI、轻量宿主和 Project Continuity 全部 SUCCESS，且与当时最新 main 比较零冲突，再经 PR 合并和 Railway 同一 SHA Online/SUCCESS 才能关闭本项工程缺口。历史 RED／GREEN 证据、最终合并提交应依 GitHub/CI/Railway 实时数据核验，不能由计划文字代替。
+
+**固定里程碑口径仍是：** M01–M03 工程已完成；M04 的“同名字段不自动误选”分项逐步补足，但整个 M04 仍因客户真实文件/ID/三行身份未签收而开放；M05 的 Recipe/预检查/正式提交真实验收、M06 的桌面及 390px Human 签收均开放。不得把工程合并数量理解为整个 V3 完成比例。
