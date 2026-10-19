@@ -25,14 +25,15 @@ Rejected: client-declared Host ID or GUC identity; copying E01J1's privileged co
 
 **Explicitly not certified:** production credential custody, mTLS/PKI or hardware workload attestation; unauthorized possession of genuine Host SQL secrets; actual production Host route; live enterprise/EVO source READ; real Human + Agent credentials, Provider/model/browser; real central **network** partition during an in-flight READ (forced backend termination is only an isolated failure mode); unbounded asynchronous data leakage outside the callback; physically atomic AppManager install/activate/uninstall across local JSON and PostgreSQL; PA05-05 E01–E05 or W06 signature. No production material WRITE or Railway deployment.
 
-## Verification record (initial exact-code-HEAD PASS; final PR HEAD pending)
+## Verification record (two exact-code-HEAD PG18 proofs; final PR HEAD pending)
 
 - New file: `manager/pa05-read-owner-authenticated-host.ts`.
 - Original, opt-in business route in the child fixture: `tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs`.
 - Physical PG18 test: `tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs`.
 - Existing three-PG18 workflow now asserts `PA05_E01J2_AUTHENTICATED_HANDLER_PG`, zero skipped and all previous E01J1/D14C13 markers.
 - **First exact code HEAD:** `7316e5e2eb32bd4b83e09fcbbea67986b25b08a3`. [GitHub Actions #39202176977](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39202176977) job 117897290783 original log inspected: **three actual PostgreSQL18 instances**, **16/16 tests PASS, 0 failed, 0 skipped** (12 inherited physical WRITE + 3 E01J1 + 1 E01J2). E01J2 original log marker includes roleBoundSessionUser=true, workerCannotExecuteReadFunction=true, hostsCannotMutateEpochOrInventory=true, actualNodeHostProcesses=2, originalPurchaseAttentionHandlerAndSourceRouter=true, readHeldBlocksRevoke=true, oldEpochDeniedBothHosts=true, oldSqlBackendPrivilegeRevoked=true, activeBackendTerminationFailClosed=true, and productionHostWired=false/crossStorageAtomicInstallCertified=false/pa05Signed=false. At this same code HEAD, Project Continuity, Platform, Lightweight Host and Human UI Design Review workflows all SUCCESS. No inference of production signoff.
-- **Subsequent tightening:** add separate invalid-central-URL fail-closed assertion `PA05_E01J2_AUTHORITY_UNAVAILABLE` for no callback/no local fallback. Final precise PR HEAD rerun of related CI, commit/merge verification and cleanup remain required before marking engineering complete.
+- **Second exact code HEAD:** `f824770a85ea8efe9845788274191a290d38a5d4`, [real PG18 workflow #39202471711](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39202471711), job 117898174164 raw log directly inspected **2026-10-19**: **17/17 PASS, 0 failed, 0 skipped**. Additional original marker `PA05_E01J2_AUTHORITY_UNAVAILABLE` proves `sqlAuthorityUnreachable:true`, `readCallbackInvoked:false`, `noLocalFallback:true`, `productionNetworkPartitionCertified:false`. Earlier 16 inherited tests and prior SQL roles/Handler/revocation markers remain present. No actual network partition, production credential security or cross-store atomicity inferred.
+- **Final PR-head audit still required:** exact final HEAD related CI, commit/merge verification and branch cleanup; until then the engineering PR remains OPEN and production certification NOT_SIGNED.
 
 ## Remaining follow-on gate
 
