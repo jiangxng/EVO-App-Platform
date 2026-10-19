@@ -196,7 +196,7 @@ with sync_playwright() as pw:
     assert page.locator('[data-eidos-side-panel]').evaluate(
       "(node) => getComputedStyle(node).display")=="none"
     wide_width=map_form.evaluate("(node) => Math.round(node.getBoundingClientRect().width)")
-    assert 1000 <= wide_width <= 1220,("v3-wide-review-width",wide_width)
+    assert 1120 <= wide_width <= 1220,("v3-wide-review-width",wide_width)
     focus_toggle=page.locator('[data-eidos-workspace-focus-toggle]')
     expect(focus_toggle).to_be_visible()
     expect(focus_toggle).to_have_attribute("aria-pressed","true")
@@ -460,6 +460,9 @@ with sync_playwright() as pw:
     small.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     mobile_map=small.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(mobile_map).to_be_visible(timeout=30000)
+    # Small screens keep the existing Eidos single-column navigation. The
+    # desktop-only route focus toggle must not occupy 390px toolbar space.
+    expect(small.locator('[data-eidos-workspace-focus-toggle]')).not_to_be_visible()
     expect(mobile_map.locator('[data-eidos-form-review-table-row]')).to_have_count(22)
     mobile_filter=mobile_map.locator('[data-eidos-form-review-table-filter]')
     expect(mobile_filter).to_have_value("needs")
