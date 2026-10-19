@@ -19,7 +19,7 @@ const job={
   stagedAt:"2026-10-19T00:00:00.000Z",stagedBySubjectId:"owner"
 };
 
-test("V3 real Host mapping and batch forms lead with decisions while retaining source facts",()=>{
+test("V3 real Host mapping and batch forms visibly present real source and issues before decisions",()=>{
   const schema={fields:[{
     fieldId:"code",resolvedLabel:"供应商编码",readable:true,writable:true,
     surfaces:["IMPORT"],valueType:"STRING",required:true,semanticType:"counterparty-code"
@@ -31,13 +31,14 @@ test("V3 real Host mapping and batch forms lead with decisions while retaining s
     job,definitions:[],importableTargets:[],locale:"zh-CN",actorSubjectId:"owner"
   });
   for(const form of [mapping,batch]){
-    assert.equal(form.reviewTask.presentation,"decision-first");
+    assert.equal(form.reviewTask.presentation,"workbench");
     const validated=validateUidl(form);
     assert.equal(validated.ok,true,JSON.stringify(validated.diagnostics));
     const html=renderToHtml(form);
-    assert.match(html,/data-eidos-task-presentation="decision-first"/);
-    assert.match(html,/<details data-eidos-form-task-details>/);
-    assert.doesNotMatch(html,/<details data-eidos-form-task-details open/);
+    assert.match(html,/data-eidos-task-presentation="workbench"/);
+    assert.doesNotMatch(html,/<details data-eidos-form-task-details>/);
+    assert.ok(html.indexOf("data-eidos-form-task-metrics")<html.indexOf("data-eidos-form-review-table"),
+      "visible file and task metrics must precede review decisions");
     assert.match(html,/authorized-supplier-example\.xlsx/);
     assert.match(html,/data-eidos-form-task-steps/);
     assert.match(html,/data-eidos-form-task-metrics/);
@@ -49,9 +50,9 @@ test("V3 real Host mapping and batch forms lead with decisions while retaining s
     assert.match(html,/name="importJobId"/,"Host job identity must remain in the form");
   }
   assert.equal(job.source.rows[0]["系统编码"],"EXT-001");
-  assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-presentation="decision-first"/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-presentation="workbench"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-review-table-presentation="compact"/);
-  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-details\]>summary\{[\s\S]*min-height:44px/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issues/);
 });
 
 test("Eidos disclosure is opt-in; unknown modes fail closed",()=>{
