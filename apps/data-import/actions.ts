@@ -400,6 +400,31 @@ export function createDataImportActionHandlersV010(input: {
           .filter(field => field.writable)
           .map(field => field.fieldId);
         const availableTargetFieldIdSet = new Set(availableTargetFieldIds);
+        // EC advice is reviewable evidence, not permission to guess between
+        // multiple Human-visible meanings with the same business label.
+        // Unlike previously confirmed Recipes, an EC recommendation must not
+        // preselect such a field on initial staging (unless its exact fieldId
+        // was explicitly used as the source heading).
+        const normalizedBusinessAlias = (value: string) => value
+          .normalize("NFKC").trim().toLocaleLowerCase()
+          .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
+        const businessAliases = new Map<string, Set<string>>();
+        for (const field of fieldsForSurfaceV010(schema, "IMPORT")
+          .filter(item => item.writable)) {
+          for (const name of [field.resolvedLabel, field.label.default,
+            ...Object.values(field.label.translations ?? {})]) {
+            const key = normalizedBusinessAlias(name);
+            if (!key) continue;
+            const ids = businessAliases.get(key) ?? new Set<string>();
+            ids.add(field.fieldId);
+            businessAliases.set(key, ids);
+          }
+        }
+        const ambiguousTargetIds = new Set(
+          [...businessAliases.values()]
+            .filter(ids => ids.size > 1)
+            .flatMap(ids => [...ids])
+        );
         const resolvedMapping = structuredClone(initial.mapping);
         let experienceRecommendationCount = 0;
 
@@ -431,6 +456,9 @@ export function createDataImportActionHandlersV010(input: {
                 )
                 || usedSources.has(recommendation.sourceColumn)
                 || usedTargets.has(recommendation.targetFieldId)
+                || (ambiguousTargetIds.has(recommendation.targetFieldId)
+                  && normalizedBusinessAlias(recommendation.sourceColumn)
+                    !== normalizedBusinessAlias(recommendation.targetFieldId))
               ) {
                 continue;
               }
