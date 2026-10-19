@@ -3041,6 +3041,32 @@ form[data-eidos-id] button:hover,
  [data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{min-height:44px}
 }
 
+
+/* Generic compact Human review rows; field labels remain screen-reader visible. */
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice-label]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0
+}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] th,
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] td{padding:var(--eidos-space-sm) var(--eidos-space-md)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] [data-eidos-form-field] label{display:block;gap:0;line-height:normal}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] select{min-height:var(--eidos-control-normal)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-count]{order:-1}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-toolbar] label{white-space:nowrap;flex-wrap:nowrap}
+@media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-review-table-choice] select{min-height:44px}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
+}
+
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
 [data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
 /* Eidos: optional Human decision-first task summary. All evidence, issue
