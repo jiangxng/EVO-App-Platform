@@ -120,6 +120,7 @@ export interface ObjectExtensionImportServicesV010 {
   saveBatchReviewDraft?(input:{
     contextId:string; importJobId:string;
     draft:DataImportBatchReviewDraftV010;
+    sourceRevision:string;
     actorSubjectId:string; recordedAt:string;
   }):void;
 }
@@ -145,6 +146,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
   saveBatchReviewDraft?(input:{
     contextId:string; importJobId:string;
     draft:DataImportBatchReviewDraftV010;
+    sourceRevision:string;
     actorSubjectId:string; recordedAt:string;
   }):void;
 }): AppActionHandler[] {
@@ -455,7 +457,8 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         });
         services.saveBatchReviewDraft({
           contextId:active.contextId,importJobId,
-          draft,actorSubjectId:context.principal.subjectId,recordedAt
+          draft,sourceRevision:String(request.values.batchMode),
+          actorSubjectId:context.principal.subjectId,recordedAt
         });
         return {ok:true,correlationId:context.correlationId,
           result:{contractVersion:"0.1.0",state:"DRAFT_SAVED",
