@@ -93,9 +93,21 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
         data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
     </li>`).join("")}</ol>
   </section>` : "";
-  return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}
-    ${task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : ""}
-  </div>`;
+  const help=task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : "";
+  if(task.presentation === "decision-first") {
+    // Support context stays discoverable and keyboard accessible, but does not
+    // consume the first viewport ahead of Human field decisions.
+    const issuesLabel=task.issues?.length
+      ? `<span data-eidos-task-summary-issues>${esc(task.issuesTitle ?? "Review")}: ${task.issues.length}</span>`
+      : "";
+    return `<div data-eidos-form-task-overview data-eidos-task-presentation="decision-first">
+      <details data-eidos-form-task-details>
+        <summary><strong>${esc(subject.title)}</strong>${issuesLabel}</summary>
+        <div data-eidos-form-task-details-content>${steps}${context}${metrics}${issues}${help}</div>
+      </details>
+    </div>`;
+  }
+  return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}${help}</div>`;
 }
 
 export function renderToHtml(document: unknown): string {
