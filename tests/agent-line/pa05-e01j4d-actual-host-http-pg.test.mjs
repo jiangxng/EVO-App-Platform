@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {spawn} from "node:child_process";
 import {randomUUID} from "node:crypto";
 import {createServer} from "node:net";
-import {mkdtempSync,rmSync} from "node:fs";
+import {mkdtempSync,readFileSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import postgres from "postgres";
@@ -91,7 +91,7 @@ async function admitInstall(h){
 
 test("E01J4D real Node Host HTTP+Action existing routes enforce SQL-first READ lifecycle",{
   skip:!url?"physical PostgreSQL18 required":false,timeout:120000
-},async()=>{
+},async t=>{
   const suffix=randomUUID().replaceAll("-","").slice(0,10);
   const schema="pa05_j4d_"+suffix,hostId="read-host-a";
   const sqlRole="pa05_j4d_admin_"+suffix,workerRole="pa05_j4d_worker_"+suffix;
@@ -124,12 +124,15 @@ test("E01J4D real Node Host HTTP+Action existing routes enforce SQL-first READ l
       "operation text NOT NULL CHECK(operation IN ('DISABLE','UNINSTALL')))");
     await root.unsafe('GRANT USAGE ON SCHEMA "'+schema+'" TO "'+sqlRole+'"');
     await root.unsafe('GRANT USAGE ON SCHEMA "'+schema+'" TO "'+workerRole+'"');
-    await root.unsafe('GRANT SELECT ON ALL TABLES IN SCHEMA "'+schema+
-      '" TO "'+sqlRole+'"');
-    await root.unsafe('GRANT INSERT,UPDATE ON "'+schema+
-      '".pa05_read_lifecycle_intents TO "'+sqlRole+'"');
-    await root.unsafe('GRANT UPDATE ON "'+schema+
-      '".pa05_read_host_activation_epoch TO "'+sqlRole+'"');
+    const ddl=readFileSync(new URL("./fixtures/pa05-e01j4e-operator-function.sql",
+      import.meta.url),"utf8").replaceAll("__PA05_SCHEMA__",schema);
+    await root.unsafe(ddl);
+    // The DBA must revoke PostgreSQL's default PUBLIC function EXECUTE.
+    // The Host operator has EXECUTE ONLY, never raw central table DML/SELECT.
+    const func='"'+schema+'".pa05_read_lifecycle_operator_transition'+
+      '(text,text,text,text)';
+    await root.unsafe('REVOKE ALL ON FUNCTION '+func+' FROM PUBLIC');
+    await root.unsafe('GRANT EXECUTE ON FUNCTION '+func+' TO "'+sqlRole+'"');
     const roleUrl=new URL(url);roleUrl.username=sqlRole;roleUrl.password=secret;
     live=await host({
       APP_PLATFORM_PA05_E01J4D_DATABASE_URL:roleUrl.toString(),
@@ -160,6 +163,62 @@ test("E01J4D real Node Host HTTP+Action existing routes enforce SQL-first READ l
       await assert.rejects(sqlWorker.unsafe('UPDATE "'+schema+
         '".pa05_read_host_activation_epoch SET approved_epoch=1'),/permission denied/);
     }finally{await sqlWorker.end({timeout:2});}
+
+    await t.test("E01J4E least-privilege SQL Host role cannot forge central authority",async()=>{
+      const login=postgres(roleUrl.toString(),{max:1,prepare:false});
+      const workerConnection=new URL(url);
+      workerConnection.username=workerRole;
+      workerConnection.password=secret;
+      const worker=postgres(workerConnection.toString(),{max:1,prepare:false});
+      try{
+        assert.equal((await login.unsafe("SELECT session_user AS actor"))[0].actor,sqlRole);
+        await assert.rejects(login.unsafe('SELECT * FROM "'+schema+
+          '".pa05_read_host_activation_epoch'),/permission denied/);
+        await assert.rejects(login.unsafe('UPDATE "'+schema+
+          '".pa05_read_host_activation_epoch SET approved_epoch=1'),
+          /permission denied/);
+        await assert.rejects(login.unsafe('UPDATE "'+schema+
+          '".pa05_read_lifecycle_intents SET state=$1',["COMPLETE"]),
+          /permission denied/);
+        await assert.rejects(login.unsafe('INSERT INTO "'+schema+
+          '".pa05_read_lifecycle_intents '+
+          '(operation_id,host_id,owner_package_id,expected_epoch,state,operation) '+
+          'VALUES($1,$2,$3,$4,$5,$6)',[
+            "imposter",hostId,packageId,1,"COMPLETE","UNINSTALL"
+          ]),/permission denied/);
+        await assert.rejects(worker.unsafe('SELECT "'+schema+
+          '".pa05_read_lifecycle_operator_transition($1,$2,$3,$4)',[
+          "ASSERT",receipt[0].operation_id,"DISABLE",hostId
+        ]),/permission denied/);
+        await login.unsafe("SET application_name='read-host-b'");
+        await login.unsafe("SELECT set_config('pa05.host_id','read-host-b',false)");
+        await assert.rejects(login.unsafe('SELECT "'+schema+
+          '".pa05_read_lifecycle_operator_transition($1,$2,$3,$4)',[
+          "COMPLETE",receipt[0].operation_id,"DISABLE","read-host-b"
+        ]),/PA05_READ_LIFECYCLE_SQL_OPERATOR_NOT_TRUSTED/);
+        await assert.rejects(login.unsafe('SELECT "'+schema+
+          '".pa05_read_lifecycle_operator_transition($1,$2,$3,$4)',[
+          "COMPLETE",receipt[0].operation_id,"UNINSTALL",hostId
+        ]),/PA05_READ_LIFECYCLE_SQL_INTENT_MISMATCH/);
+        assert.equal((await root.unsafe('SELECT state FROM "'+schema+
+          '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
+          receipt[0].operation_id
+        ]))[0].state,"COMPLETE");
+        console.log("PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG="+JSON.stringify({
+          actualPostgresql18:true,operatorAuthenticatedBySessionUser:true,
+          sqlHostRoleNoCentralTableRead:true,sqlHostRoleNoRawUpdate:true,
+          sqlHostRoleNoIntentInjection:true,ordinaryWorkerFunctionDenied:true,
+          forgedHostIdentityAndGucDenied:true,operationReplayMismatchDenied:true,
+          originalActualHostHttpAndAction:true,ownedFunctionExecuteOnly:true,
+          productionDatabaseProvisioned:false,
+          operatorSecretCustodyCertified:false,
+          fullProductionHostRecoveryCertified:false,
+          crossStoreAtomicityCertified:false,pa05Signed:false
+        }));
+      }finally{
+        await Promise.allSettled([login.end({timeout:2}),worker.end({timeout:2})]);
+      }
+    });
 
     // A separately authorized DBA recertifies before the second transition;
     // no HTTP caller may set approved_epoch or select another Host.
