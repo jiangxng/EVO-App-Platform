@@ -13,6 +13,7 @@ import {recoverPa05OneShotHostPrestartupV010}
 test("E01J4I original file, opt-in and exclusive one-shot gate deny before Secrets/SQL",{
   skip:process.platform==="win32"?"POSIX-only one-shot audit filesystem":false
 },async()=>{
+  const priorUmask=process.umask(0o077);
   const dir=mkdtempSync(join(tmpdir(),"pa05-j4i-"));
   const stateFile=join(dir,"state.json");
   const auditFile=join(dir,"audit.jsonl");
@@ -47,6 +48,9 @@ test("E01J4I original file, opt-in and exclusive one-shot gate deny before Secre
   }
   try{
     await denied({mode:"OFF"},"PA05_J4I_PRESTART_CONFIGURATION_INVALID");
+    process.umask(0o022);
+    await denied({},"PA05_J4I_PRESTART_CONFIGURATION_INVALID");
+    process.umask(0o077);
     await denied({auditFile:join(tmpdir(),"other-file.jsonl")},
       "PA05_J4I_PRESTART_CONFIGURATION_INVALID");
     await denied(); // No existing durable state: never create an empty one.
@@ -90,6 +94,7 @@ test("E01J4I original file, opt-in and exclusive one-shot gate deny before Secre
       distributedHostOfflineCertified:false,pa05Signed:false
     }));
   }finally{
+    process.umask(priorUmask);
     chmodSync(dir,0o700);
     rmSync(dir,{recursive:true,force:true});
   }
