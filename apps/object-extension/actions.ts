@@ -430,7 +430,10 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         ensureManage(context.principal,active.contextId,input.canManageEnterpriseContext);
         const importJobId=required(request.values.importJobId,
           "OBJECT_EXTENSION_IMPORT_JOB_REQUIRED");
-        let job=input.getImportJob?.(active.contextId,importJobId);
+        const getImportJob=input.resolveImportJobReader
+          ? await input.resolveImportJobReader() : input.getImportJob;
+        ensureManage(context.principal,active.contextId,input.canManageEnterpriseContext);
+        let job=getImportJob?.(active.contextId,importJobId);
         if (!job || job.targetId!=="counterparty.subject")
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         const services: ObjectExtensionImportServicesV010=input.resolveImportServices
@@ -439,7 +442,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         services.assertAvailable?.();
         // Re-read the authoritative Job after potentially asynchronous
         // target/permission loading; no stale snapshot may be written.
-        job=input.getImportJob?.(active.contextId,importJobId);
+        job=getImportJob?.(active.contextId,importJobId);
         if (!job || job.targetId!=="counterparty.subject")
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         if (!services.saveBatchReviewDraft || !services.getImportableTargets)
