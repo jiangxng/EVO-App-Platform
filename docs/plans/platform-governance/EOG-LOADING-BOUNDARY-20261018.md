@@ -166,3 +166,60 @@ Host分别延迟装配桌面read、桌面operation与移动read handler；原ope
 未修改生产实现，因此没有新增构建或模块/RSS收益主张；使用当前main已构建产物（hash保存在[验证记录](evidence/eog-view-store-boundary-20261019.json)），CI负责重新构建运行。此前#1019的336模块/255静态边是历史最近实测，本批不冒充重新测量。没有多进程并发写测试、数据库事务/跨Host锁承诺、真实浏览器验收或生产部署；现有文件存储并发模型保持。
 
 本小项核实结束：共享View State不属于“启动提前读取文件”缺陷。R1的共享模型/编辑命令/Agent工具静态依赖仍需按消费路径收口；下一批先汇总这些剩余根边及其实际副作用，区分必要同步共享边界和可迁移业务实现，再定整改，避免无依据逐模块拆分。R2/R3/R4不变，固定7项、4闭环、3部分。无新增外网研究；源码事实与本节保留判断分开记录。
+
+## 12. 2026-10-19增量：剩余静态入口分类与登记零资源回归
+
+基线 main `ec465d402c566513e15239077037f804cda7c8bd`（#1045）。GitHub compare 确认 #1020 的 `42ce894b4129089cbd8a270bd3473f0c93b7657b` 是其祖先；没有回退其他窗口新增的 Agent/BEX 工作。本批是 **R1 的入口分类、保留决定及回归**，未修改生产实现、公共合同、UI、静态基线或全局项目状态。本节为新增历史证据，前文各批基线不改写为本轮实测。
+
+### 入口、实际触发和决定
+
+范围为 Host 的 EOG 静态 value-import 根边、下表关键实现及 Host 中对应调用位置。完整根入口和绑定名、关键传递边、源码 hash 保存在 [evidence/eog-static-registration-boundary-20261019.json](evidence/eog-static-registration-boundary-20261019.json)；这是定向源码清单，**不是全平台调用图或新的四组合模块审计**。
+
+| 静态入口 / 消费路径 | 源码事实：登记与实际动作 | 本批决定 / 后续边界 |
+|---|---|---|
+| `contracts/enterprise-operating-graph{,-view}.ts`；各 EOG package；`authorization.ts` | 合同版本、主图/视图 ID、清单及授权规则对象；不调用业务服务。`manager`兼容出口继续指向所属 app | 保留轻量元数据和公开出口；不为少几条边另建插件或代理，不卸载保护规则 |
+| graph service → `enterprise-operating-graph-model.ts`；definition persistence → 同一 model | model 只有类型导入和纯校验/操作函数；创建/校验/应用由调用触发。persistence 工厂仅封装仓库方法；graph 工厂只校验配置并封装方法 | 保留共享同步模型算法及已有首次使用委托。纯算法不等同业务存储，不制造异步同步强转；不复制各消费者的定义权威 |
+| Host → graph actions、SOP actions | 启动构造分别 5/4 个 handler；只创建闭包。执行才检查 Human/企业、解析输入、授权并读写 service；SOP publish 仍需确认 | 保留无资源登记行为并纳入回归；不据此认定所有命令实现必须永久静态加载。模块装配可后续使用既有 lazy handler，原命令/授权不可跳过 |
+| Host → graph Agent tools → 2D designer / 3D viewer tools；SOP tools | import 在冷链；工厂调用位于 `createPersonalAgentToolCatalogV010` 内，**不是无条件启动构造目录**。工厂建立 descriptor/available/execute；业务 service 在 execute 才调用 | 保留目录发现与业务执行分离。同步共享 service 不能绑定某一个 UI 的停用；每次可用性按原 feature/context 规则重算 |
+| Host → `current-2d-editor-agent-tools.ts` → `definition-projection-editor.ts` → Eidos `src/2d/index.ts` | 登记零业务调用；available 会查询当前 session/subject 的编辑目标并检查访问资格。execute 才读 graph、ensure view 或读取定义/投影，crop 才保存。静态导入同时带入编辑器和 Eidos 聚合出口 | **仅保留登记零资源这一行为，不为整条实现链签保留结论。** 当前编辑器算法/聚合出口是下一批装载候选；可在既有异步工具 execute 内按需取得实现，不新建通用工具框架、不改 Agent 产品合同 |
+| Host → Observatory Agent tools；observatory/inspector resolver | 工具工厂零业务调用；发现阶段调用候选元数据检查，不创建观测 service。observatory `createService` 才解析具体 runtime/analysis；inspector `inspect` 才调用 provider.inspect | 保留廉价 resolver 闭包，禁止用发现触发业务查询。`hasCandidates` 会检查 registry 中的 runtime，不能描述成从不查询 registry；具体 Provider 构造副作用仍归 R3 |
+| Host → `DefinitionProjectionStore`、projection artifact source、projection session store | 文件 store 构造封装 read/write/withWriteLock；get/snapshot 才读，put 才创建目录/锁及写文件。artifact source 构造只返回 get，get 才读取定义/投影并计算；session store 为进程内 Map | 保留现有同步共享读取边界。新回归覆盖文件 store/artifact source 构造零访问，不重开第11节已核实的另一套 View State；未验证本 store 的完整并发锁/崩溃恢复合同 |
+| Host → 原 2D graph page / view handler | 页面工厂在页面请求分支执行；但模块和 view handler 仍在启动链。view handler 构造只创建 semantic handlers/闭包；execute 才 get/ensure/project、授权及 apply | 当前页面/命令实现是可沿用原 page 分支和 lazy handler 的候选，尚未整改。涉及 UI 源码时须按原 UI 评审门禁处理，不能把本批当作 2D 改版 |
+
+**本范围未发现新的一处“启动构造即读取业务文件/建立连接/注册定时器/执行业务”的缺陷。** 这项结论来自上述构造与调用位置的定向源码核对及下述构造探针，不是声称所有模块 import 都被副作用拦截。已知真正启动写入仍有第2节的有条件旧数据迁移/显式 preview；这是前批已验收的例外，本批不重做。R2 的配置触发 SQL 仍是原收口文档记录的未关闭事实；本轮没有连接 SQL 或重做 Agent 会话初始化。
+
+### 资源、共享和验收
+
+新增 `tests/protocol/eog-registration-resource-boundary.test.mjs`，进入既有 Lightweight Host CI，三项组件回归：
+
+1. 真实 model 创建/校验、graph persistence/service、SOP service、投影文件 store/artifact source，以及 graph/SOP Human handler 和全部四组 EOG 工具登记：业务依赖调用计数为零；ID/时钟/授权回调不得提前执行。独立子进程在 import 后拦截所列 fs、TCP/HTTP/fetch、timer API，构造尝试访问即失败；即使异常被吞掉，attempt 计数仍使测试失败。
+2. 真实 Host tool catalog.list：启用未使用、无编辑目标、有编辑目标、停用和恢复只做生命周期/session/candidate 检查，不访问 graph/view/SOP/定义仓库、projection source 或观测 createService。原 SOP availability 只检查企业上下文的兼容事实保留，不能伪造本批修复了其全部资格合同。
+3. 真实 catalog.invoke 加合成 graph service：停用拒绝且不执行，首次 READ 才传入当前 enterpriseId，停用再恢复保持原返回。不是实际 Agent 任务、真实持久化或外部 Provider 验收；共享数据/图与SOP恢复继续复用第6/11节已存在的回归。
+
+无新增连接、定时器、订阅、后台任务或跨用户实例；工具闭包随目录持有请求 Principal/Context，不能缓存为跨用户全局单例。共享服务本身不缓存授权，停用由各入口拒绝新调用；没有独立外部资源的闭包不新增 dispose。不承诺撤销在途 WRITE、ESM 卸载或跨 Host 冻结。
+
+本地三项预检通过，**没有本地正式 TypeScript 全仓构建**：环境 Git 代理不可连接，使用 GitHub 连接器读取固定 SHA 源码到隔离快照，Node 24.19.0 `stripTypeScriptTypes` 加已擦除类型的未用 named import 清理生成临时 dist。sandbox 的子进程 pipe 返回 EPERM，测试探针用无 pipe 的子进程并检查退出码；本地 runner 使用 `--test-isolation=none`，资源拦截仍在独立子进程。正式 `npm ci`/TypeScript build、默认 Node 22 test runner 及真实 Host 回归以本 PR CI 为准。没有用这个预检冒充正式构建或环境性能收益，临时转译器不进入生产或项目工具体系。
+
+没有新增本地四组合测量，#1019 的 336 模块/255静态边仍仅为历史最近数据；本批不宣称减少模块/RSS、浏览器下载量或生产成本。未部署，最终 CI/合并标识见 PR；原始本地结果、能力限制与源码 hash 见上述 JSON。
+
+### 接续位置与固定进度
+
+下一批以本表为入口选择一个实现装配边界：优先核对当前编辑器工具的 `definition-projection-editor`/Eidos 聚合依赖与原 2D 页面/命令的共同消费者，判断先隔离哪条路径能实际排除冷链实现。使用原 lazy action/page 分支或允许 Promise 的 tool execute，保留同步公共 model/service；先确认共享另一条根边，避免只移动一条 import 就声称整个模块退出启动链。
+
+R1 整体未关闭；R2 Agent配置触发SQL需原owner的职责/资格及验收证据，R3 Provider逐类副作用对账、R4最终跨层矩阵均未关闭。固定总数不变，不代 Agent/BEX/2D 宣告完成。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；本批分类与组件回归 | R1剩余实现装配，继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、原Agent专项实施 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 未整体收口；按原验收条件推进 |
+
+阅读记录：完整读取根 AGENTS、AI-BOOTSTRAP、LLM、两份适用clinerules、交付规范、文档分类规则、本专项五份指定材料及装载规范；全局 `project.status`/生成handoff仅定向核对当前里程碑/最新闭环/live gate/部署声明，未改写，不能据其较旧全局快照覆盖本专项或其他owner最新记录。源码完整读取 graph model/service/persistence、SOP actions、observatory tools/resolver、projection store/source、inspector resolver；工具组逐个核对 import、工厂、available/execute，page/view handler与大 projection editor仅定向读取导入、构造及实际业务调用，不声称审计全部2D算法、Eidos实现或整个Host。无新增外网研究，复用现有合同与历史证据。
+
