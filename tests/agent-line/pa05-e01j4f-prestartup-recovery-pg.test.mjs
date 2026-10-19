@@ -370,7 +370,10 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
         ...oneShot,bearerToken:"forged-maintenance-token"
       }),/PA05_J4I_PRESTART_DENIED_OR_UNKNOWN/);
       assert.equal(readFileSync(file,"utf8"),beforeI);
-      const recoveredI=await recoverPa05OneShotHostPrestartupV010(oneShot);
+      const priorUmask=process.umask(0o077);
+      let recoveredI;
+      try { recoveredI=await recoverPa05OneShotHostPrestartupV010(oneShot); }
+      finally { process.umask(priorUmask); }
       assert.equal(recoveredI.installedPackages.some(x=>x.packageId===owner),false);
       assert.equal(isInstalled(),false);
       assert.equal((await root.unsafe('SELECT state FROM "'+schema+
