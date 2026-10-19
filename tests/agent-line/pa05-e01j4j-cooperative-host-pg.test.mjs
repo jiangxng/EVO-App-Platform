@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {spawn} from "node:child_process";
 import {createServer} from "node:net";
 import {mkdtempSync,chmodSync,existsSync,rmSync,unlinkSync} from "node:fs";
-import {join} from "node:path";
+import {join,dirname} from "node:path";
 import {tmpdir} from "node:os";
 import {createPackageCatalog} from "../../dist/catalog/catalog.js";
 import {createAppManagerService} from "../../dist/manager/service.js";
@@ -25,7 +25,7 @@ function launched(file,p){
   const proc=spawn(process.execPath,["--input-type=module","-e",
     "process.umask(0o077); await import('./dist/manager/server.js');"
   ],{cwd:process.cwd(),env:{
-    PATH:process.env.PATH??"",HOME:join(tmpdir()),
+    PATH:process.env.PATH??"",HOME:dirname(file),
     NODE_ENV:"test",PORT:String(p),
     APP_PLATFORM_STATE_FILE:file,
     APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION:"OFF",
