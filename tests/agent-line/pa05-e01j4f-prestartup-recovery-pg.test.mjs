@@ -256,7 +256,8 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
       // E01J4G: reuse J4F PostgreSQL functions, but require an independently
       // checked request-bound HUMAN Session, Host-scoped policy and secret
       // resolver before any actual second local UNINSTALL.
-      manager.install(owner);
+      const j4gManager=createAppManagerService(createPackageCatalog([tradingReferencePackageV010,purchaseAttentionPackageV010]),createFileLifecycleStore(file));
+      j4gManager.install(owner);
       assert.equal(isInstalled(),true);
       const j4gBefore=readFileSync(file,"utf8");
       await root.unsafe('UPDATE "'+schema+
@@ -292,7 +293,7 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
       const secrets=createHostEncryptedSecretsProviderV010(store);
       const j4gAudit=[];
       const params={
-        mode:"OPT_IN",hostId,schema,manager,
+        mode:"OPT_IN",hostId,schema,manager:j4gManager,
         sessionProvider:identity,authorizationProvider:policy,
         secretsProvider:secrets,
         audit:async event=>{j4gAudit.push(event);}
