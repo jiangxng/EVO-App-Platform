@@ -1,6 +1,6 @@
 import { executeObjectExtensionBatchImportV010 } from "./batch-action.js";
 import { createObjectExtensionBatchReviewDraftV010 } from "./batch-draft.js";
-import type { BexImportTargetField } from "./batch-page.js";
+import { batchReviewSourceRevisionV010, type BexImportTargetField } from "./batch-page.js";
 import type { DataImportJobV010, DataImportMappingV010, DataImportBatchReviewDraftV010 } from "../data-import/types.js";
 import type {
   AppActionExecutionResultV010,
@@ -292,7 +292,15 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
-        if (request.values.batchMode === "BATCH") {
+        const submittedMode=request.values.batchMode;
+        if (submittedMode === "BATCH" ||
+          typeof submittedMode==="string" && submittedMode.startsWith("BATCH:")) {
+          // New mounted pages bind indexed choices to a source revision.
+          // Legacy direct Host callers retain their existing BATCH contract.
+          if (submittedMode!=="BATCH" &&
+            submittedMode!==batchReviewSourceRevisionV010(job)) {
+            throw new Error("OBJECT_EXTENSION_BATCH_REVIEW_STALE");
+          }
           if (!importServices.applyImportMapping) {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
