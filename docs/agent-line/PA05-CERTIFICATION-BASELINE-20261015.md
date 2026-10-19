@@ -707,3 +707,12 @@ E01J4E §60 accepted function-only Host SQL operator without raw central table a
 **第一轮三 PostgreSQL18 原始日志：** [Actions #39269428201](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39269428201) 在测试层 **25/25 PASS、0 failed/skipped**，新 Host-scoped Provider 真实 SQL 恢复与拒绝标记均出现；工作流整体 **FAIL**，因为脚本尾部仍使用旧 24 case 检查。已在原 PR 修正为 25 并增加两个新强制标记；**待最后准确 HEAD CI 后才允许工程 PASS/merge**，不得用这一轮 FAILED workflow 冒充成功。J2–F 24/24 旧结论照旧，生产操作员身份/秘钥签发/审计与跨 Worker 原子性仍 NOT_SIGNED。#988/#979/#913 OPEN。
 
 **§63 补充已实证 CI（2026-10-19）：** 原 PR #1053 中间 HEAD `b00faf208cfc0d8b77471e6adbe21935485fb174` 的 [物理 PostgreSQL18 #39270223784](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39270223784) job `118120255282` 原始日志 **25/25 PASS / 0 failed / 0 skipped**，两个 E01J4G 强制 marker 及全部旧 marker 保留；同 HEAD **8/8 相关 CI SUCCESS**。之前 #39269428201 因旧 24 项 CI 门禁失败的负证据保留。**此为工程阶段结论，完整 E01J4 / E01–E05 / W06 均 NOT_SIGNED，生产 WRITE OFF**。后续文档 HEAD CI 仍必须按最终准确版本检查。
+
+
+## 64. PA05-05/E01J4H — 持久、Host-scoped 启动前恢复审计工程（2026-10-19）
+
+**工程 PR [#1055](https://github.com/jiangxng/EVO-App-Platform/pull/1055)，最终准确 HEAD CI 未核验前不得标记 PASS。** 在已合并 E01J4G 的 HUMAN Identity Session / Authorization / Secrets / J4F SQL-fenced 恢复接口上，新增隔离运行的 Host 内部 `manager/pa05-read-owner-prestartup-audit.ts`。仅存储已通过身份校验后的非秘密 AUTHORIZED/COMPLETED 事件，单 Host 严格 0700 目录、0600 文件、所有者约束、拒绝符号链接，append + fsync；真实 OS SIGKILL 后只能恢复已落盘 AUTHORIZED，不能推断完成。J4G 在三 PostgreSQL18 原始 SQL 回归中的 audit 回调改为实文件持久实现，新增独立 J4H 崩溃/不安全文件负面 suite，工程目标 `26/26 PASS, 0 skipped`。详情：[E01J4H 工程决策/真实负证据](PA05-E01J4H-DURABLE-PRESTART-AUDIT-20261019.md)。
+
+**须保留失败事实：** 已合并的 E01J4G `main@9a3edf8d` 自动 CI [#39271124305](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39271124305) 在已有 E01J2 `postgres.js 3.4.9` 断链空引用竞态实际崩溃，三 PG18 任务 **FAILURE**（reporter 21/20/1/0），与原 PR HEAD #39270689657 25/25 成功并存。J4H 不修复也不抹除此风险。此审核只能认定 Host 本地 fsynced audit 的隔离工程证据，**绝不等于**生产可信 Human/IdP、DBA 凭据签发/轮换、真实单次维护 CLI、签名审计、跨 Worker、跨存储 ACID 或 PA05-05 E01–E05/W06 签收。#988/#979/#913 OPEN；生产 material WRITE OFF；不修改 Railway、BEX/CP03/Eidos/2D/全局状态文件。
+
+**§64 真正工程隔离正证据（2026-10-19）：** [三 PG18 #39272963229](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39272963229) job `118129805194` 原始 log 已核，HEAD `eccb8f117638215a6d744fa121ea2b2b7c729452` **26/26 PASS / 0 failed / 0 skipped**；J4H SIGKILL 持久审计和原 J4G SQL/Provider markers 完整输出，准确 HEAD 全部相关 **8/8 SUCCESS**。这是 **E01J4H ENGINEERING_BOUNDED_PASS only**；此后追加记录造成 HEAD 前进仍须在最后准确 HEAD 重新过 CI。已知 `postgres.js` 的合并 main 竞态失败保持 OPEN，不借重跑掩盖；生产 IdP/DBA/CLI、跨 Worker/ACID 和 PA05-05/W06 仍 NOT_SIGNED。
