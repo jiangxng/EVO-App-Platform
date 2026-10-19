@@ -186,6 +186,12 @@ jobs:
           grep -Fq '"actualPa02Handoff":true' pa05-xdb.log
           grep -Fq '"sqlAdmissionRequiresStagedCentralReservation":true' pa05-xdb.log
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
+          # Node 24 test reporter uses the unicode summary rather than TAP '# skipped'.
+          # Pin actual case count so a conditional PG skip cannot look like success.
+          grep -Fq 'ℹ tests 17' pa05-xdb.log
+          grep -Fq 'ℹ pass 17' pa05-xdb.log
+          grep -Fq 'ℹ fail 0' pa05-xdb.log
+          grep -Fq 'ℹ skipped 0' pa05-xdb.log
           if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
       - name: Preserve isolated non-production evidence
         if: always()
