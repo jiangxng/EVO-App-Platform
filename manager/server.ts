@@ -5250,6 +5250,8 @@ const actionRouter = createAppActionRouter(
               assertAvailable();
               const runtime = await dataImportRuntimeHost.resolve();
               const { createDataImportServiceV010 } = await import("../apps/data-import/service.js");
+              const { batchReviewSourceRevisionV010, batchUnmappedColumnsV010 } =
+                await import("../apps/object-extension/batch-page.js");
               const batchImportTargets = await resolveEffectiveDataImportTargetsV010(job.targetId);
               assertAvailable();
               const batchImportService = createDataImportServiceV010({
@@ -5279,6 +5281,33 @@ const actionRouter = createAppActionRouter(
                   if (!latest || latest.targetId!=="counterparty.subject" ||
                     latest.state==="COMMITTED" || latest.state==="COMMITTED_WITH_ERRORS") {
                     throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_JOB_UNAVAILABLE");
+                  }
+                  // The Host rechecks the exact source identity at the write
+                  // boundary. A concurrent map update must not shift choice_0
+                  // from one Excel column to another.
+                  if (values.sourceRevision!==batchReviewSourceRevisionV010(latest) ||
+                    JSON.stringify(values.draft.columns.map(item=>item.sourceColumn))
+                      !==JSON.stringify(batchUnmappedColumnsV010(latest))) {
+                    throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_STALE_REVIEW");
+                  }
+                  // Re-evaluate existing target occupancy and availability at
+                  // the same persistence boundary. Drafts may propose field
+                  // creation, but may never reserve an unavailable target.
+                  const allowed=new Set(
+                    (batchImportTargets.find(target=>target.targetId===latest.targetId)
+                      ?.describe({contextId:values.contextId,
+                        parameters:latest.targetParameters}).fields??[])
+                      .filter(field=>field.readable && field.writable &&
+                        field.surfaces.includes("IMPORT"))
+                      .map(field=>field.fieldId)
+                  );
+                  const reserved=new Set(latest.mapping.map(item=>item.targetFieldId));
+                  for (const column of values.draft.columns) {
+                    if (["__CREATE__","__IGNORE__","__REVIEW__"].includes(column.choice))
+                      continue;
+                    if (!allowed.has(column.choice) || reserved.has(column.choice))
+                      throw new Error("OBJECT_EXTENSION_BATCH_DRAFT_TARGET_STALE");
+                    reserved.add(column.choice);
                   }
                   const drafts=(latest.batchReviewDrafts??[]).filter(item=>
                     item.actorSubjectId!==values.actorSubjectId);
