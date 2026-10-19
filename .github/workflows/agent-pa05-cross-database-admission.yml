@@ -164,6 +164,10 @@ jobs:
           grep -Fq 'PA05_E01J4D_ACTUAL_HTTP_LIFECYCLE_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J4F_PRESTART_RECOVERY_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4G_PROVIDER_DENIAL=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4G_TRUSTED_SQL_RECOVERY_PG=' pa05-xdb.log
+          grep -Fq '"productionOperatorIdentityCertified":false' pa05-xdb.log
+          grep -Fq '"maintenanceCliDelivered":false' pa05-xdb.log
           grep -Fq '"realHostE01iRejectedBeforeRepair":true' pa05-xdb.log
           grep -Fq '"actualOsCrashAfterLocalUninstallBeforeComplete":true' pa05-xdb.log
           grep -Fq '"realHostBootedAfterClearedState":true' pa05-xdb.log
@@ -271,8 +275,8 @@ jobs:
           grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
           # Node 24 test reporter uses the unicode summary rather than TAP '# skipped'.
           # Pin actual case count so a conditional PG skip cannot look like success.
-          grep -Fq 'ℹ tests 24' pa05-xdb.log
-          grep -Fq 'ℹ pass 24' pa05-xdb.log
+          grep -Fq 'ℹ tests 25' pa05-xdb.log
+          grep -Fq 'ℹ pass 25' pa05-xdb.log
           grep -Fq 'ℹ fail 0' pa05-xdb.log
           grep -Fq 'ℹ skipped 0' pa05-xdb.log
           if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
