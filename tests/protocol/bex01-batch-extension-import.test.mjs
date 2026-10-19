@@ -7,6 +7,8 @@ import { createObjectExtensionBatchImportPageV010 } from "../../dist/apps/object
 import { OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010 } from "../../dist/apps/object-extension/constants.js";
 import {assertDataImportJobV010} from "../../dist/apps/data-import/types.js";
 import {createActionRequest} from "../../dist/vendor/eidos/src/runtime/action.js";
+import {createDataImportActionHandlersV010} from "../../dist/apps/data-import/actions.js";
+import {DATA_IMPORT_GET_COMMAND_V010,DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010} from "../../dist/apps/data-import/constants.js";
 import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
 import { renderToHtml } from "../../dist/vendor/eidos/src/renderers/html/index.js";
 
@@ -533,4 +535,38 @@ test("V3 saved batch review choices are actor-scoped and never create enterprise
   assert.equal(x.repo.list(contextId,"counterparty.subject").length,0);
   assert.throws(()=>createActionRequest(before,values,{actionId:"forged-approval"}),
     /Selected submit action is not declared/);
+});
+
+test("V3 generic import Job and mapping-inspection responses expose only the calling Human's own draft",async()=>{
+  const job=fixture();
+  const draft=(actor,choice)=>({
+    actorSubjectId:actor,recordedAt:"2026-10-19T00:00:00.000Z",
+    columns:[{sourceColumn:columns[0],choice,label:columns[0],valueType:"STRING"}]
+  });
+  job.batchReviewDrafts=[
+    draft("owner","__IGNORE__"),
+    draft("other-owner","__CREATE__")
+  ];
+  const before=structuredClone(job);
+  const handlers=createDataImportActionHandlersV010({
+    service:{inspectMapping:()=>({contractVersion:"0.1.0",job,sourceColumns:[]})},
+    repository:{get:(_,id)=>id===job.importJobId?job:undefined},
+    canManageEnterpriseContext:()=>true,idFactory:()=>"_unused_"
+  });
+  const get=handlers.find(x=>x.commandCode===DATA_IMPORT_GET_COMMAND_V010);
+  const inspect=handlers.find(x=>x.commandCode===DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010);
+  assert.ok(get);assert.ok(inspect);
+  const req={contractVersion:"0.1.0",type:"command",
+    values:{importJobId:job.importJobId}};
+  const forActor=actor=>({...ctx(),principal:{...ctx().principal,subjectId:actor}});
+  for(const actor of ["owner","other-owner","new-owner"]){
+    const expected=before.batchReviewDrafts.filter(d=>d.actorSubjectId===actor);
+    const read=await get.execute(req,forActor(actor));
+    assert.equal(read.ok,true,JSON.stringify(read));
+    assert.deepEqual(read.result.job.batchReviewDrafts??[],expected);
+    const checked=await inspect.execute(req,forActor(actor));
+    assert.equal(checked.ok,true,JSON.stringify(checked));
+    assert.deepEqual(checked.result.job.batchReviewDrafts??[],expected);
+  }
+  assert.deepEqual(job,before,"read projection must not rewrite authoritative drafts or source rows");
 });
