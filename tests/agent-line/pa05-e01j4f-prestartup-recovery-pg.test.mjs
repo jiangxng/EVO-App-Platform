@@ -123,7 +123,7 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
     }
     const func1='"'+schema+
       '".pa05_read_lifecycle_operator_transition(text,text,text,text)';
-    const func2='"'+schema+'.pa05_read_lifecycle_operator_pending(text)';
+    const func2='"'+schema+'".pa05_read_lifecycle_operator_pending(text)';
     for(const f of [func1,func2]){
       await root.unsafe("REVOKE ALL ON FUNCTION "+f+" FROM PUBLIC");
       await root.unsafe('GRANT EXECUTE ON FUNCTION '+f+' TO "'+operator+'"');
