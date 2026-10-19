@@ -219,8 +219,9 @@ $pa05_fn$`);
         const proxied=new URL(urlB);
         proxied.hostname="127.0.0.1";
         proxied.port=String(proxy.port);
-        let partitionHost;
+        let partitionHost,offlineHost;
         let resultLeaked=false;
+        let workerExitAfterCut=false;
         const observe=m=>{if(m?.type==="readResult")resultLeaked=true;};
         try{
           partitionHost=start(proxied.toString(),schema);
@@ -237,7 +238,26 @@ $pa05_fn$`);
           assert.equal(active.length,1);
           assert.equal(active[0].usename,roleB);
           assert.ok(proxy.accepted>=1);
-          const denied=reply(partitionHost,"readDenied");
+          // Either an ordinary SQL rejection OR a crashed isolated worker
+          // must fail closed. Current postgres.js can fatally dereference its
+          // closed socket while queuing COMMIT; never fake graceful recovery.
+          const terminal=new Promise((resolve,reject)=>{
+            const timer=setTimeout(()=>{cleanup();reject(Error("PA05_E01J3_TERMINAL_TIMEOUT"));},15000);
+            const onMessage=m=>{
+              if(m?.type==="readDenied"){cleanup();resolve({kind:"denied",message:m.message});}
+              if(m?.type==="readResult"){cleanup();reject(Error("PA05_E01J3_RESULT_LEAKED"));}
+            };
+            const onExit=(code,signal)=>{
+              cleanup();resolve({kind:"crashed",code,signal,error:partitionHost.lastError});
+            };
+            function cleanup(){
+              clearTimeout(timer);
+              partitionHost.off("message",onMessage);
+              partitionHost.off("exit",onExit);
+            }
+            partitionHost.on("message",onMessage);
+            partitionHost.once("exit",onExit);
+          });
           // This closes ACTUAL Host->PostgreSQL TCP sockets, not an in-process
           // fake callback or DBA pg_terminate_backend. Other Host/DBA
           // connections stay healthy throughout the interrupted READ.
@@ -247,27 +267,41 @@ $pa05_fn$`);
           // DBA revoke may then freeze the epoch while JS source READ is held.
           assert.equal(await admin.revoke(4),5);
           assert.deepEqual(await admin.getEpoch(),{epoch:5,state:"FROZEN"});
-          partitionHost.send({type:"release"});
-          assert.match((await denied).message,
-            /connection|closed|CONNECTION|terminat|socket|network|transaction|write|read/i);
+          if(partitionHost.connected){
+            try{partitionHost.send({type:"release"});}catch{/* child already exited */}
+          }
+          const outcome=await terminal;
+          if(outcome.kind==="crashed"){
+            workerExitAfterCut=true;
+            assert.notEqual(outcome.code,0,"transport-fault crash reported successful exit");
+            assert.match(String(outcome.error),
+              /Cannot read properties of null|socket|connection|write|ERR_/i);
+          }else{
+            assert.match(outcome.message,
+              /connection|closed|CONNECTION|terminat|socket|network|transaction|write|read/i);
+          }
           assert.equal(resultLeaked,false,"business result escaped a severed SQL transaction");
-          const down=reply(partitionHost,"readDenied");
-          partitionHost.send({type:"read",epoch:5});
+          // A new supervised child is the conservative recovery path. This
+          // does NOT claim the original Host worker survives a TCP fault.
+          offlineHost=start(proxied.toString(),schema);
+          await reply(offlineHost,"ready");
+          const down=reply(offlineHost,"readDenied");
+          offlineHost.send({type:"read",epoch:5});
           await down;
           assert.equal(resultLeaked,false,"offline central SQL yielded a business result");
 
           proxy.restore();
-          const stale=reply(partitionHost,"readDenied");
-          partitionHost.send({type:"read",epoch:4});
+          const stale=reply(offlineHost,"readDenied");
+          offlineHost.send({type:"read",epoch:4});
           assert.match((await stale).message,/PA05_READ_SQL_ADMISSION_DENIED/);
-          const frozen=reply(partitionHost,"readDenied");
-          partitionHost.send({type:"read",epoch:5});
+          const frozen=reply(offlineHost,"readDenied");
+          offlineHost.send({type:"read",epoch:5});
           assert.match((await frozen).message,/PA05_READ_SQL_ADMISSION_DENIED/);
           assert.equal(await admin.certify({
             expectedEpoch:5,async trustedOperatorApproved(){return true;}
           }),6);
-          const recovered=reply(partitionHost,"readResult");
-          partitionHost.send({type:"read",epoch:6});
+          const recovered=reply(offlineHost,"readResult");
+          offlineHost.send({type:"read",epoch:6});
           assertBusiness(await recovered,"read-host-b");
           // A surviving independent Host must independently reacquire epoch 6.
           const oldOther=reply(hostB,"readDenied");
@@ -284,6 +318,9 @@ $pa05_fn$`);
             frozenEpochDeniedAfterTcpRecovery:true,
             explicitRecertificationAllowsOnlyNewEpoch:true,
             survivingWorkerMustRecheckEpoch:true,
+            isolatedWorkerCrashedOnTcpFault:workerExitAfterCut,
+            originalWorkerGracefulTransportRecoveryCertified:!workerExitAfterCut,
+            supervisedFreshWorkerRecovered:true,
             silentPacketBlackholeCertified:false,
             automaticAppManagerCrossStoreAtomicity:false,
             liveProductionTransportCertified:false,
@@ -292,7 +329,7 @@ $pa05_fn$`);
           }));
         }finally{
           if(partitionHost)partitionHost.off("message",observe);
-          await stop(partitionHost);
+          await Promise.allSettled([stop(partitionHost),stop(offlineHost)]);
           await proxy.close();
         }
       });
