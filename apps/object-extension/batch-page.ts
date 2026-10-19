@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { DataImportJobV010 } from "../data-import/types.js";
 import type { ObjectExtensionDefinitionV010 } from "../../contracts/foundation-object/extension.js";
 import { DATA_IMPORT_DIRECTORY_ROUTE, dataImportMappingRouteV010 } from "../data-import/constants.js";
@@ -18,6 +19,21 @@ export const BEX_BATCH_REVIEW = "__REVIEW__";
 export function batchUnmappedColumnsV010(job: DataImportJobV010): string[] {
   const used = new Set(job.mapping.filter(x => x.sourceColumn).map(x => x.sourceColumn));
   return job.source.headers.filter(column => !used.has(column));
+}
+
+/** Opaque identity of the authoritative source-column/mapping decision view.
+ * A stale mounted form must never shift an indexed choice to another column.
+ * This is a concurrency precondition, not an authentication token.
+ */
+export function batchReviewSourceRevisionV010(job: DataImportJobV010): string {
+  const snapshot = {
+    importJobId: job.importJobId,
+    headers: job.source.headers,
+    mapping: job.mapping,
+    ignoredSourceColumns: job.ignoredSourceColumns ?? []
+  };
+  return "BATCH:" + createHash("sha256")
+    .update(JSON.stringify(snapshot)).digest("hex").slice(0, 24);
 }
 
 export function batchApplicableDefinitionsV010(
@@ -129,8 +145,11 @@ export function createObjectExtensionBatchImportPageV010(input: {
         label: job.source.name ?? (zh ? "已保存的导入任务" : "Saved import task") }] },
     { key: "batchMode", label: zh ? "审核方式" : "Review mode",
       semanticType: "object-extension-batch-mode", control: "select" as const,
-      required: true, initialValue: "BATCH",
-      options: [{ value: "BATCH", label: zh ? "集中创建与映射" : "Review and map" }] },
+      required: true, initialValue: batchReviewSourceRevisionV010(job),
+      // Keep the identical Human-visible control. Only the opaque submitted
+      // option value carries this page's source identity for Host validation.
+      options: [{ value: batchReviewSourceRevisionV010(job),
+        label: zh ? "集中创建与映射" : "Review and map" }] },
     ...columns.flatMap((column, i) => {
       const same = all.filter(x =>
         normalizedLabel(x.label) === normalizedLabel(column)

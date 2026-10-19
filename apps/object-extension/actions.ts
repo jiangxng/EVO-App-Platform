@@ -1,6 +1,6 @@
 import { executeObjectExtensionBatchImportV010 } from "./batch-action.js";
 import { createObjectExtensionBatchReviewDraftV010 } from "./batch-draft.js";
-import type { BexImportTargetField } from "./batch-page.js";
+import { batchReviewSourceRevisionV010, type BexImportTargetField } from "./batch-page.js";
 import type { DataImportJobV010, DataImportMappingV010, DataImportBatchReviewDraftV010 } from "../data-import/types.js";
 import type {
   AppActionExecutionResultV010,
@@ -120,6 +120,7 @@ export interface ObjectExtensionImportServicesV010 {
   saveBatchReviewDraft?(input:{
     contextId:string; importJobId:string;
     draft:DataImportBatchReviewDraftV010;
+    sourceRevision:string;
     actorSubjectId:string; recordedAt:string;
   }):void;
 }
@@ -145,6 +146,7 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
   saveBatchReviewDraft?(input:{
     contextId:string; importJobId:string;
     draft:DataImportBatchReviewDraftV010;
+    sourceRevision:string;
     actorSubjectId:string; recordedAt:string;
   }):void;
 }): AppActionHandler[] {
@@ -290,7 +292,15 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         if (!job || job.targetId !== "counterparty.subject") {
           throw new Error("OBJECT_EXTENSION_IMPORT_TARGET_INVALID");
         }
-        if (request.values.batchMode === "BATCH") {
+        const submittedMode=request.values.batchMode;
+        if (submittedMode === "BATCH" ||
+          typeof submittedMode==="string" && submittedMode.startsWith("BATCH:")) {
+          // New mounted pages bind indexed choices to a source revision.
+          // Legacy direct Host callers retain their existing BATCH contract.
+          if (submittedMode!=="BATCH" &&
+            submittedMode!==batchReviewSourceRevisionV010(job)) {
+            throw new Error("OBJECT_EXTENSION_BATCH_REVIEW_STALE");
+          }
           if (!importServices.applyImportMapping) {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
@@ -455,7 +465,8 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
         });
         services.saveBatchReviewDraft({
           contextId:active.contextId,importJobId,
-          draft,actorSubjectId:context.principal.subjectId,recordedAt
+          draft,sourceRevision:String(request.values.batchMode),
+          actorSubjectId:context.principal.subjectId,recordedAt
         });
         return {ok:true,correlationId:context.correlationId,
           result:{contractVersion:"0.1.0",state:"DRAFT_SAVED",

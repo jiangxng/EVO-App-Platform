@@ -493,6 +493,8 @@ test("V3 saved batch review choices are actor-scoped and never create enterprise
   assert.equal(validateUidl(before).ok,true,JSON.stringify(validateUidl(before).diagnostics));
   assert.match(renderToHtml(before),/data-eidos-action="save-review-draft"/);
   const values={...request(current).values};
+  // Preserve the source revision declared by the page for draft-only save.
+  values.batchMode=before.fields.find(f=>f.key==="batchMode").initialValue;
   values.choice_0="__IGNORE__";values.label_1="月结业务方式";
   const draftRequest=createActionRequest(before,values,{actionId:"save-review-draft"});
   assert.equal(draftRequest.command.code,OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010);
