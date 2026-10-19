@@ -7,6 +7,7 @@ on:
       - "manager/pa05-read-owner-authenticated-host.ts"
       - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
       - "tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs"
+      - "docs/agent-line/PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md"
       - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
       - "tests/agent-line/fixtures/pa05-e01j-sql-host-worker.mjs"
       - "manager/pa05-cross-database-remote-sql-admission.ts"
@@ -44,6 +45,7 @@ on:
       - "manager/pa05-read-owner-authenticated-host.ts"
       - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
       - "tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs"
+      - "docs/agent-line/PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md"
       - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
       - "tests/agent-line/fixtures/pa05-e01j-sql-host-worker.mjs"
       - "manager/pa05-cross-database-remote-sql-admission.ts"
@@ -115,6 +117,8 @@ jobs:
           grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J_SHARED_READ_OWNER_PG=' pa05-xdb.log
           grep -Fq 'PA05_E01J2_AUTHENTICATED_HANDLER_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J2_AUTHORITY_UNAVAILABLE=' pa05-xdb.log
+          grep -Fq '"readCallbackInvoked":false' pa05-xdb.log
           grep -Fq '"roleBoundSessionUser":true' pa05-xdb.log
           grep -Fq '"originalPurchaseAttentionHandlerAndSourceRouter":true' pa05-xdb.log
           grep -Fq '"hostsCannotMutateEpochOrInventory":true' pa05-xdb.log
