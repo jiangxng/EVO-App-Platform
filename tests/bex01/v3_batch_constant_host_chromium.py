@@ -81,6 +81,8 @@ with sync_playwright() as p:
         latest_job=command("data-import.get",{"importJobId":job_id})["job"]
         print("BEX01_V3_APPROVAL_DIAGNOSTIC="+json.dumps({
             "url":page.url,"actionStatus":action_status,
+            "formValid":form.evaluate("(f)=>f.checkValidity()"),
+            "invalidControls":form.evaluate("""(f)=>Array.from(f.querySelectorAll(":invalid")).map(e=>({name:e.name,value:e.value,reason:e.validationMessage,hidden:!!e.closest("details:not([open])")}))"""),
             "jobState":latest_job["state"],
             "mapping":latest_job["mapping"],
             "visiblePageTail":page.locator("body").inner_text()[-1400:]
