@@ -25,6 +25,8 @@ import {createMemorySecretStoreV010}
   from "../../dist/manager/secret-store.js";
 import {createHostEncryptedSecretsProviderV010}
   from "../../dist/providers/secrets/runtime.js";
+import {createPa05PrestartupAuditJournalV010}
+  from "../../dist/manager/pa05-read-owner-prestartup-audit.js";
 
 const url=process.env.PA05_XDB_AUTHORITY_DATABASE_URL;
 const owner="evo-purchase-attention";
@@ -291,12 +293,14 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
         key:"operatorDatabaseUrl",scope:"INSTALLATION",scopeId:hostId
       },operatorUrl);
       const secrets=createHostEncryptedSecretsProviderV010(store);
-      const j4gAudit=[];
+      const j4hAuditFile=join(dir,"j4h-recovery-audit.jsonl");
+      const auditJournal=createPa05PrestartupAuditJournalV010({filePath:j4hAuditFile,hostId});
+      const j4gAudit=()=>readFileSync(j4hAuditFile,"utf8").trim().split("\n").map(x=>JSON.parse(x));
       const params={
         mode:"OPT_IN",hostId,schema,manager:j4gManager,
         sessionProvider:identity,authorizationProvider:policy,
         secretsProvider:secrets,
-        audit:async event=>{j4gAudit.push(event);}
+        audit:event=>auditJournal.append(event)
       };
       await assert.rejects(
         recoverPa05TrustedPrestartupUninstallV010({
@@ -307,7 +311,9 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
         ...params,bearerToken:j4gToken
       });
       assert.equal(authenticated.installedPackages.some(x=>x.packageId===owner),false);
-      assert.deepEqual(j4gAudit.map(x=>x.stage),["AUTHORIZED","COMPLETED"]);
+      assert.deepEqual(j4gAudit().map(x=>x.stage),["AUTHORIZED","COMPLETED"]);
+      assert.equal((readFileSync(j4hAuditFile,"utf8")).includes(operatorUrl),false);
+      assert.equal((readFileSync(j4hAuditFile,"utf8")).includes(j4gToken),false);
       assert.equal((await root.unsafe('SELECT state FROM "'+schema+
         '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
           "j4g-uninstall-"+id
