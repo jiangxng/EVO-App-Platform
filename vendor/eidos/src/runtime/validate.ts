@@ -865,7 +865,13 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation"]),p,out);
+      if (table.presentation !== undefined
+        && (!nonEmpty(table.presentation)
+          || !["standard","compact"].includes(table.presentation))) {
+        out.push(d("EIDOS_REVIEW_TABLE_PRESENTATION_INVALID",p+".presentation",
+          "Review-table presentation must be standard or compact"));
+      }
       extraKeys(table.columnLabels,
         new Set(["subject","evidence","decision","status"]),p+".columnLabels",out);
       const labels = table.columnLabels as Record<"subject"|"evidence"|"decision"|"status",string>;
@@ -916,6 +922,8 @@ export function validateUidl(
         }
       }
       reviewTable={
+        ...(table.presentation==="compact" || table.presentation==="standard"
+          ? {presentation:table.presentation} : {}),
         columnLabels:{
           subject:labels.subject,evidence:labels.evidence,
           decision:labels.decision,status:labels.status
@@ -1014,7 +1022,12 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","helpText"]),path,out);
+        "issuesDescription","issues","helpText","presentation"]),path,out);
+      if (task.presentation !== undefined
+        && (typeof task.presentation !== "string"
+          || !["full","decision-first","workbench"].includes(task.presentation))) {
+        fail(path+".presentation","Unknown review task presentation mode");
+      }
       extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
         path+".subject",out);
       if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")

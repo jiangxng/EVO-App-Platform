@@ -56,6 +56,8 @@ export interface UidlFormReviewGroupV010 {
 }
 /** Optional table realization of existing reviewGroups, preserving form field identity. */
 export interface UidlFormReviewTableV010 {
+  /** Opt-in compact Human decision rows; default remains standard. */
+  presentation?: "standard" | "compact";
   columnLabels: { subject: string; evidence: string; decision: string; status: string };
   filter?: {
     label: string;
@@ -77,6 +79,8 @@ export interface UidlFormReviewPlanV010 {
 }
 /** Reusable task context; all facts and issue semantics are Host/app supplied. */
 export interface UidlFormReviewTaskV010 {
+  /** Opt-in native disclosure retaining the complete task evidence. */
+  presentation?: "full" | "decision-first" | "workbench";
   subject: {
     title: string;
     subtitle?: string;
