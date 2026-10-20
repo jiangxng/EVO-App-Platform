@@ -75,8 +75,10 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
     `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
   ).join("");
   const context=`<section data-eidos-form-task-context>
-    <div data-eidos-form-task-identity><strong>${esc(subject.title)}</strong>
-      ${subject.subtitle ? `<p>${esc(subject.subtitle)}</p>` : ""}</div>
+    <div data-eidos-form-task-identity${subject.iconLabel ? ' data-eidos-form-task-has-icon="true"' : ""}>
+      ${subject.iconLabel ? `<span data-eidos-form-task-icon aria-hidden="true">${esc(subject.iconLabel)}</span>` : ""}
+      <div data-eidos-form-task-copy><strong>${esc(subject.title)}</strong>
+      ${subject.subtitle ? `<p>${esc(subject.subtitle)}</p>` : ""}</div></div>
     ${subject.statusLabel ? `<span data-eidos-form-task-source-status>${esc(subject.statusLabel)}</span>` : ""}
     ${facts ? `<dl data-eidos-form-task-facts>${facts}</dl>` : ""}
   </section>`;
@@ -243,6 +245,13 @@ export function renderToHtml(document: unknown): string {
       `<button type="button" data-eidos-agent-action="${esc(action.id)}">${esc(action.label)}</button>`
     )
     .join("");
+  const footer=model.reviewTask?.presentation === "workbench" ? model.reviewTask.footer : undefined;
+  const footerNavigation=footer?.back
+    ? `<button type="button" data-eidos-form-task-back data-eidos-context-route="${esc(footer.back.route)}">${esc(footer.back.label)}</button>` : "";
+  const footerReset=footer?.resetLabel
+    ? `<button type="reset" data-eidos-form-task-reset>${esc(footer.resetLabel)}</button>` : "";
+  const footerHint=footer?.saveHint
+    ? `<span data-eidos-form-task-save-hint>${esc(footer.saveHint)}</span>` : "";
   const cancels = model.cancelActions
     .map(action =>
       `<button type="button" data-eidos-action="${esc(action.id)}">${esc(action.label)}</button>`
@@ -264,6 +273,7 @@ ${taskOverview}
 <div data-eidos-form-fields>${fields}</div>
 ${preview}
 <footer data-eidos-form-actions>
+${footerHint}${footerNavigation}${footerReset}
 ${model.submitActions.map((action,index)=>`<button type="submit" data-eidos-action="${esc(action.id)}" data-eidos-declared-command="${esc(action.command)}"${index===0 ? ` data-eidos-primary="true"` : ""}>${esc(action.label)}</button>`).join("")}
 ${agentActions}${cancels}
 </footer>

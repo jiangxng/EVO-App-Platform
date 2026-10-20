@@ -69,6 +69,13 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(eidosProductiveWorkbenchCss,/li::before/);
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列来源/);
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
+  assert.equal(mapping.reviewTask.subject.iconLabel,"XLSX");
+  assert.match(renderToHtml(mapping),/data-eidos-form-task-icon aria-hidden="true">XLSX/);
+  assert.match(renderToHtml(mapping),/type="button" data-eidos-form-task-back data-eidos-context-route="\\/data-import"/);
+  assert.match(renderToHtml(mapping),/type="reset" data-eidos-form-task-reset/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-icon/);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    footer:{...mapping.reviewTask.footer,back:{label:"Unsafe",route:"https://bad"}}}}).ok,false);
 });
 
 test("Eidos disclosure is opt-in; unknown modes fail closed",()=>{

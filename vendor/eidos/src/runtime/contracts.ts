@@ -87,6 +87,8 @@ export interface UidlFormReviewTaskV010 {
     title: string;
     subtitle?: string;
     statusLabel?: string;
+    /** Decorative source-format label, explicitly supplied by the app. */
+    iconLabel?: string;
     facts?: { id: string; label: string; value: string }[];
   };
   steps?: { id: string; label: string; state: "complete" | "current" | "upcoming" }[];
@@ -106,6 +108,8 @@ export interface UidlFormReviewTaskV010 {
   }[];
   /** Presentation-only guidance; not a claim of a successful save. */
   helpText?: string;
+  /** Optional local-only form reset and safe internal navigation, never Host mutation. */
+  footer?: { back?: { label: string; route: string }; resetLabel?: string; saveHint?: string };
 }
 export interface UidlFormV011 {
   reviewGroups?: UidlFormReviewGroupV010[];

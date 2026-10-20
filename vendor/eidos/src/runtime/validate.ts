@@ -1043,18 +1043,48 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","helpText","presentation"]),path,out);
+        "issuesDescription","issues","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
       }
-      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
+      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","iconLabel","facts"]),
         path+".subject",out);
       if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")
         || (task.subject.statusLabel !== undefined
           && typeof task.subject.statusLabel !== "string")) {
         fail(path+".subject","Subject copy must be text");
+      }
+      if (task.subject.iconLabel !== undefined
+        && (typeof task.subject.iconLabel !== "string"
+          || !task.subject.iconLabel.trim()
+          || task.subject.iconLabel.trim().length > 8)) {
+        fail(path+".subject.iconLabel","Decorative iconLabel must have 1-8 characters");
+      }
+      if (task.footer !== undefined) {
+        if (task.presentation !== "workbench" || !isPlainObject(task.footer)) {
+          fail(path+".footer","Footer controls require a workbench task");
+        } else {
+          extraKeys(task.footer,new Set(["back","resetLabel","saveHint"]),path+".footer",out);
+          if (task.footer.back !== undefined
+            && (!isPlainObject(task.footer.back)
+              || !nonEmpty(task.footer.back.label)
+              || typeof task.footer.back.route !== "string"
+              || !task.footer.back.route.startsWith("/")
+              || task.footer.back.route.startsWith("//")
+              || /[\\r\\n]/.test(task.footer.back.route))) {
+            fail(path+".footer.back","Back requires a labeled internal route");
+          } else if (isPlainObject(task.footer.back)) {
+            extraKeys(task.footer.back,new Set(["label","route"]),path+".footer.back",out);
+          }
+          for (const key of ["resetLabel","saveHint"]) {
+            const value=task.footer[key];
+            if (value !== undefined && !nonEmpty(value)) {
+              fail(path+".footer."+key,"Footer text must be nonempty");
+            }
+          }
+        }
       }
       const checkIds = (items: unknown, pathName: string, max: number,
         predicate: (item:Record<string,unknown>,at:string)=>boolean) => {

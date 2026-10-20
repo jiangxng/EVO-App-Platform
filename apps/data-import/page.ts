@@ -877,6 +877,8 @@ export function createDataImportMappingPageV010(input: {
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
       statusLabel: zh(input.locale) ? "文件已读取" : "File read",
+      ...(input.job.source.kind === "XLSX" || input.job.source.kind === "CSV"
+        ? { iconLabel: input.job.source.kind } : {}),
       facts: []
     },
     // Match the approved V3 prototype: the top stepper has two stages.
@@ -909,7 +911,15 @@ export function createDataImportMappingPageV010(input: {
     issues: reviewIssues.slice(0,12),
     helpText:zh(input.locale)
       ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
-      : "Changes require explicit save and validation; viewing does not commit records."
+      : "Changes require explicit save and validation; viewing does not commit records.",
+    footer: {
+      back: {label:zh(input.locale) ? "返回文件" : "Back to files",
+        route:DATA_IMPORT_DIRECTORY_ROUTE},
+      resetLabel:zh(input.locale) ? "恢复初始选择" : "Reset choices",
+      saveHint:zh(input.locale)
+        ? "修改须明确保存；恢复只重置此页面未保存的选择"
+        : "Save changes explicitly; reset affects only unsaved choices"
+    }
   };
   return {
     contractVersion: "0.1.1" as const,
