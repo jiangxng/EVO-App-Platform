@@ -122,11 +122,15 @@ export function renderToHtml(document: unknown): string {
   const renderContextLink = (field: RenderFieldV010) => field.contextLink
     ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>` : "";
   const renderField = (field: RenderFieldV010, compactLabel = false,
-    includeContextLink = true) =>
-    `<div data-eidos-form-field><label>${compactLabel
+    includeContextLink = true) => {
+    if (field.hidden === true) {
+      return `<input type="hidden" name="${esc(field.inputName)}" data-semantic-type="${esc(field.semanticType)}" data-eidos-hidden-field value="${esc(field.initialValue)}">`;
+    }
+    return `<div data-eidos-form-field><label>${compactLabel
       ? `<span data-eidos-review-table-choice-label>${esc(field.label)}</span>`
       : esc(field.label)}${input(field)}</label>${includeContextLink
       ? renderContextLink(field) : ""}</div>`;
+  };
   const byKey = new Map(model.fields.map(field => [field.key, field]));
   const used = new Set<string>();
   const groups = (model.reviewGroups ?? []).map(group => {
