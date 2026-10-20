@@ -66,6 +66,12 @@ async function sample(name, directory, profile, extra = {}) {
       if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
     }
     if (report.loadedModules.includes('dist/apps/eog-2d-designer/definition-projection-editor.js')) throw new Error('EOG_DEFINITION_PROJECTION_EDITOR_EAGER');
+    for (const file of ['enterprise-operating-graph-actions', 'enterprise-operating-graph-page']) {
+      if (report.loadedModules.includes(`dist/apps/eog-2d-designer/${file}.js`)
+        || report.loadedModules.includes(`dist/manager/${file}.js`)) {
+        throw new Error('EOG_EDITOR_IMPLEMENTATION_EAGER:' + file);
+      }
+    }
     if (report.loadedModules.includes('dist/apps/eog-3d/workspace-page.js')) throw new Error('EOG_3D_VIEWER_PAGE_EAGER');
     if (report.loadedModules.includes('dist/apps/enterprise-observatory/observatory-actions.js')) throw new Error('EOG_OBSERVATORY_ACTIONS_EAGER');
     for (const surface of ['desktop-page', 'mobile-read-page']) {

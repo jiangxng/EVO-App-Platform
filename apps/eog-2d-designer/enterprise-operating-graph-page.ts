@@ -63,12 +63,16 @@ export const EOG_EDITOR_ROUTE = "/operating-graph";
 export const EOG_EDITOR_RESOURCE_ID =
   PRIMARY_ENTERPRISE_OPERATING_GRAPH_ID_V010;
 
-export const EOG_VIEW_GET_ACTION =
-  "enterprise-operating-graph.view.get";
-export const EOG_VIEW_OPERATION_ACTION =
-  "enterprise-operating-graph.view.operation";
-export const EOG_VIEW_SELECTION_GET_ACTION =
-  "enterprise-operating-graph.view.selection.get";
+import {
+  EOG_VIEW_GET_ACTION,
+  EOG_VIEW_OPERATION_ACTION,
+  EOG_VIEW_SELECTION_GET_ACTION
+} from "./package.js";
+export {
+  EOG_VIEW_GET_ACTION,
+  EOG_VIEW_OPERATION_ACTION,
+  EOG_VIEW_SELECTION_GET_ACTION
+} from "./package.js";
 
 export function createEnterpriseOperatingGraphExperienceManifestV010() {
   return {
@@ -982,3 +986,4 @@ export function createEnterpriseOperatingGraphViewActionHandlersV010(
     })
   ];
 }
+
