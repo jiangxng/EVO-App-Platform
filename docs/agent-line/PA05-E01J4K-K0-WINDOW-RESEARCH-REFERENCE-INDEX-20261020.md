@@ -246,3 +246,15 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 | [Railway connected production project](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) | **ORIGINAL_RAILWAY_CONNECTOR_METADATA_READ_THIS_WINDOW** (`get_tracing`, `list_webhooks`, `list_tcp_proxies`), 2026-10-20 | 5/5 services tracing disabled, autoInstrumentation disabled; 0 project webhooks; 0 Host TCP proxies. Does not imply no external HTTPS/private-net/database callers. No runtime logs/traces or secrets retrieved. |
 
 **Gap ownership, not new architectural decision:** [K0 worksheet §8](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) differentiates #1074 Host error-path patch, a future disposable PROCESS concurrency verification, authorized infrastructure identity + actual stop receipts, and privileged SQL/IdP owners. Source-derived coverage gap **not** an observed production race. Current explicit K0 sign-off status remains `NOT_SIGNED`.
+
+
+## 15. 2026-10-20 — CI 真实负面复现原始日志证据、版本和阅读等级
+
+| 原始来源 / URL | 本轮阅读等级 | 关键发现 / 非事实边界 |
+| --- | --- | --- |
+| [PR #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081)、[首个测试 HEAD](https://github.com/jiangxng/EVO-App-Platform/commit/6eeb01b01c680d1e0c90999c5a79fcc6776493c0) | **ORIGINAL_GITHUB_SOURCE_AND_PR_READ_THIS_WINDOW，2026-10-20** | 独立 Draft，两个新增文件 `tests/fixtures/pa05-k0-delayed-process.mjs`、`tests/protocol/pa05-k0-process-shutdown-negative.test.mjs`，没有 production Host 代码或 Railway 改动。测试代码在 CI 后另有仅证据输出时序修正，后续 HEAD 必须单独验 CI。 |
+| [Platform CI #39426909610 / job #118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592) | **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW**，2026-10-20T13:02:06Z | `ok #759` 的 stop/shutdown overlapping child 实测，`shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true`；`ok #760` 的 shutdown 后 fork 实测，`spawnedAfterShutdown=true`。全部 `globalStopCertified=false`。该 job 1087 total / 1086 pass / 1 skipped / 0 failed；5/5 exact HEAD check SUCCESS。原始两个 JSON 保留在 [工作表 §9](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)；留意 Actions 日志保留期。 |
+| [main@ae704ad7](https://github.com/jiangxng/EVO-App-Platform/commit/ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9)、[exact checks](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9/check-runs) | **ORIGINAL_GITHUB_API_READ_THIS_WINDOW**，2026-10-20 | PR #1080 合并后的 main，4/4 commit checks SUCCESS，但非定时 `test:all`。不能把已知 schedule 全套 10 FAIL 视为消失。 |
+| [Railway connected project](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) | **ORIGINAL_RAILWAY_DEPLOYMENT_AND_HEALTH_METADATA_READ_THIS_WINDOW**，2026-10-20 | 新 Host `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` 对应 `ae704ad7...` SUCCESS / Online；旧 `9aa54df8...` 显示 CRASHED，但当前 Host 1 running/0 crashed，不推断旧状态的根因或当前故障。 |
+
+**决定与分支职责：** 独立复现已把静态风险证据升级为隔离真实反例，**尚未进行修复**。保持 #1071 文档、#1074 Host 顶层清理、#1081 PROCESS 负面验证三线独立 Draft，禁止把 #1081 的“绿灯”解释为 K0 认证成功。继续 central fencing + 外部编排 stop receipts + PostgreSQL session re-query + IdP/DBA audit gate；不得以本机排他、CI 或 Lease 超时替代。

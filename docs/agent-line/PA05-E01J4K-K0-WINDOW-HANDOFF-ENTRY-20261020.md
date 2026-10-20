@@ -60,3 +60,10 @@
 - **下一窗最优先的未完成工作：** 如无权威 Infra/SRE、DBA、IdP 接口证据，保持只读；仅在独立**非生产**权限和工程分支获得批准后实施 PROCESS concurrency 隔离验证。在此之前不得假装具备全局 Worker 停机、临时 CLI 或生产 Operator 认证。K0 / E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`；material WRITE `OFF`；Issues #988/#979/#913 OPEN。
 
 **最新准确分支 HEAD：** 重新查询 GitHub PR #1071，不以上述任何历史 SHA 冒充永久最终状态。
+
+
+## 六、2026-10-20 续跑 #04：独立真实 Node child 负面复现（最新增量）
+
+本交接原内容和第五节保存当时的正确快照；新独立 [Draft PR #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 记录一次性 PROCESS child 的 **stop/shutdown in-flight 子进程尚存**和 **shutdown 后 fork 新 child** 两项**真正执行的隔离竞态复现**。首个测试 HEAD `6eeb01b01c680d1e0c90999c5a79fcc6776493c0`、[Actions #39426909610 / job #118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592) 已读原始日志，两个子测试 `ok #759/#760`、`globalStopCertified=false`。精确负面 JSON、原始阅读等级、字段输出时序小修和适用限制见 [K0 验收表 §9](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[研究索引 §15](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md) 及 [K0 生产拓扑 §26](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)。不得将绿色 CI 当作安全功能已修复。
+
+本次 main `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`（其他治理线 #1080）/ Railway 新 Host `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` SUCCESS、Host Online/1 running。#1071、#1074、#1081 均保持 Draft 未部署；K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE OFF。下次先核验三个 Draft 当前 HEAD 及 CI，再复用本轮原文证据；没有独立生产权限证明不得运行 Validator 或进入真实维护。

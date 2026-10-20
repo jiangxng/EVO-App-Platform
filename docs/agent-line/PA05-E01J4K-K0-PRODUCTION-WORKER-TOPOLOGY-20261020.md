@@ -402,3 +402,12 @@ Current GitHub [main@91ffb9bd](https://github.com/jiangxng/EVO-App-Platform/comm
 **Railway controls now independently read:** `get_tracing` for all 5 connected project services returned tracing/auto-instrumentation **disabled**, `list_webhooks` 0, Host `list_tcp_proxies` 0 (2026-10-20, original connector values). No tracing-based caller completeness can be certified; HTTP, Runner, private networking, SQL sessions and organizational external sources remain unproven. Do not activate tracing, read production logs, access Secrets, run Validator or issue production test requests.
 
 **Decision:** Keep K0 global stop proof **NOT_SIGNED**, complete E01J4/PA05-05 E01–E05/W06 **NOT_SIGNED**, production material WRITE **OFF**. No branch, production or operator identity/DB changes.
+
+
+## 26. 2026-10-20 — K0 PROCESS 子进程竞态从“静态风险”升级为隔离实证反面证据
+
+[独立 Draft #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 在 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 上单独新增 disposable PROCESS fixture 和 `tests/protocol/pa05-k0-process-shutdown-negative.test.mjs`；第一个真实 CI HEAD `6eeb01b01c680d1e0c90999c5a79fcc6776493c0` 的 [Platform CI #39426909610 / job #118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592) **原始日志已读**，明确输出 `shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true` 与 `spawnedAfterShutdown=true`，两个子测试 **ok #759/#760**；该 job 1087 tests / 1086 passed / 0 failed / 1 skipped，旧 HEAD 5/5 exact checks SUCCESS。**判定：`ISOLATED_PROCESS_RACE_REPRODUCED`；不是生产 SIGTERM 复现，不是多 Worker stop receipt，更不等于工程安全修复。** 原始 JSON、日期、来源等级与代码输出时点的小修正见 [K0 工作表 §9](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+新生产时间片：另一个治理 [PR #1080](https://github.com/jiangxng/EVO-App-Platform/pull/1080) 推动 main 至 `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`，其 **4/4 commit checks SUCCESS**，Railway Host deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` `SUCCESS`，当前 environment status 显示 Host Online / 1 running / 0 crashed；旧 `91ffb9bd...` 的 deploy `9aa54df8-26ca-43aa-a598-9b547f276a5c` 当前列表标为 `CRASHED`，但该状态**不是现有生产发生故障的证明，也没有日志定位其原因**。这不是 PA05 #1074/#1081 合并上线。
+
+**安全动作严格未发生：** 没有生产运行图、数据库、HTTP、Validator、Secrets、停机、重启、排空设置、解锁或 WRITE 变更。#1071、#1074、#1081 均应保持 Draft，K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`。

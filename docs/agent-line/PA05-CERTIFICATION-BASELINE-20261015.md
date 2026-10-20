@@ -941,3 +941,12 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 [工作表 §8](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 对原始测试文件、Draft #1074 Host 错误路径测试和 Railway 只读 trace/webhook/TCP proxy metadata 做了定向查阅：PROCESS runtime 已有 child 执行/超时恢复等测试，但 **stop 与 shutdown overlap / shutdown 期间再 fork 缺独立专项证明**；#1074 tests 只处理 Host cleanup error-path/HTTP close，不覆盖 PROCESS 子进程竞态，保留独立工程责任。Railway 可访问项目 5 服务的 tracing 全部未开启、0 project webhook、0 Host TCP proxies，**不足以证明**外部调用者或进程停止范围完整。新事实的原文级别及准确 URL 见 [研究索引 §14](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。本次未执行非生产竞态测试或任何生产操作、未合并 Draft。
 
 **K0 NOT_SIGNED；完整 E01J4、PA05-05 E01–E05、W06 NOT_SIGNED；production material WRITE OFF。** Issue #988/#979/#913 仍保留 OPEN 作为现有未闭合验收依据。
+
+
+## 83. PA05-05 / K0 — 本地 PROCESS child 真实负面竞态实证（2026-10-20）
+
+**新证据结论：`ISOLATED_PROCESS_RACE_REPRODUCED`，不是 `ENGINEERING_SAFE_PASS` 更不是 `K0 STOP_CONFIRMED`。** 独立隔离 [Draft #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 的真实 Node child tests 在 [Platform CI #39426909610 / job #118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592) 首个 HEAD `6eeb01b01c680d1e0c90999c5a79fcc6776493c0` 的原始日志中确认：Host shutdown 先于 pending stop/child exit 返回；shutdown 后还能 fork 新 child。测试 `ok #759/#760`；整个 job 1087 tests / 1086 pass / 1 skipped / 0 failed；5/5 exact-HEAD checks SUCCESS 仅代表**负面复现实验成功执行**。原始带日期 JSON、字段解释及 #1081 后续输出修复版本见 [K0 工作表 §9](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 和 [研究索引 §15](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。
+
+处理原则：#1081 保持测试-only Draft、不要合并让负面断言成为长期验收规范；#1074 Host shutdown error path Draft 保持独立。将来由有权限的独立工程评审补 PROCESS `shuttingDown` 拒绝新 fork、在途 stop promise 等待与子进程可验证 exit，转换为**要求缺陷不存在的正向测试**。只读真实组织 infrastructure/IdP/DBA 证据仍缺，**不能在生产运行 Validator、生产停机/重启/修改 draining、查看 Secret/DB 或凭据、清理异常锁**。
+
+**K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；生产 material WRITE `OFF`，Issues #988/#979/#913 保持 OPEN。**

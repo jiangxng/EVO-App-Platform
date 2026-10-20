@@ -144,3 +144,33 @@
 4. **Security / DBA / Human Owner:** attest real issuer/operator session and revocation, separate SQL role/session re-query, privileged credential rotation, audit signatures; never use test IdP/Lease expiry/one DB function as the whole proof.
 
 **Verdict remains `COVERAGE_GAP_CONFIRMED_BY_SOURCE / PROCESS_RACE_NOT_REPRODUCED / K0_NOT_SIGNED`; material WRITE OFF, #988/#979/#913 OPEN, no production Validator/Secrets/SQL/mutation.**
+
+
+## 9. 2026-10-20 — 隔离 Node 子进程负面竞态 **真实复现**（K0 仍未签收）
+
+**从纯源码推断升级为已执行隔离反例；原生产安全结论未升级。** 新独立测试 [Draft PR #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081)，分支 `agent/pa05-k0-process-runtime-concurrency-proof-20261020`，首个实测 HEAD `6eeb01b01c680d1e0c90999c5a79fcc6776493c0`，仅包含一次性本地 child fixture 和测试，**不修改 production runtime**、#1074、生产服务或凭据。
+
+### 9.1 可核查、保留期有限的真实执行原始证据
+
+- **原始 CI：** [Platform CI run #39426909610](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610)，job [#118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592)，GitHub Actions 日志 **ORIGINAL_JOB_LOG_READ_THIS_WINDOW，2026-10-20 13:02:06 UTC**，Node 22.22.2、`npm run test:platform`。首个 HEAD 精确 commit checks 5/5 SUCCESS；Platform 协议测试 1087 total / 1086 pass / 0 fail / 1 skipped。
+- 日志测试 `ok 759`，`K0 NEGATIVE: stop drops map entry before OS child exit; shutdown snapshot misses pending stop`，约 446.575 ms；原始标记：
+
+  ```json
+  {"scope":"isolated-local-child","shutdownReturnedWithChildAlive":true,"shutdownSkippedInFlightStop":true,"stopFinishedAfterwards":true,"globalStopCertified":false}
+  ```
+
+  **已实证：** 在本地 PROCESS child 退出之前，Host shutdown 返回且没有等待此前触发的 stop promise。该特定标记中的 `stopFinishedAfterwards` 字段在**首个代码版本的输出时点先打印固定 true**，不能单独作为 child 已结束的原始回执；测试后续实际 `await stopPending` 并断言 stop settled。此表达在后续测试 HEAD 中已修订为等待结束后才打印；其精确 CI 与日志仍需单独验证。
+- 日志 `ok 760`，`K0 NEGATIVE: PROCESS host permits a new child invocation after its shutdown() resolved`，约 450.201 ms；原始标记：
+
+  ```json
+  {"scope":"isolated-local-child","spawnedAfterShutdown":true,"globalStopCertified":false}
+  ```
+
+  **已实证：** 一个没有显式关闭准入标志的 PROCESS runtime Host 在 `shutdown()` 已返回后，调用 `invoke()` 能新 fork 并执行本地 child；测试 finally 清理 child。
+
+### 9.2 工程判断、范围和变更隔离
+
+- **新证据判定：** `ISOLATED_PROCESS_STOP_SNAPSHOT_RACE_REPRODUCED`、`ISOLATED_POST_SHUTDOWN_FORK_REPRODUCED`；不再仅标为“可能存在竞态/待复现”。这些是可执行的真实本地 Node 子进程，并非 Mock 或纯静态猜测。
+- **未证明：** 生产 Railway npm/SIGTERM 实际链路、服务子进程存活清单、真正全域 Worker/Runner 编排冻结、PG session 已撤销、Human IdP/DBA 凭据授权以及恶意外部调用都没有被这些测试证明。**此测试通过表示负面风险重现，不表示 K0 通过**。不能用 `5/5 CI SUCCESS` 擦除这一负面发现。
+- **责任边界：** #1074 继续只管 Host 顶层 shutdown/HTTP 503/错误路径；#1081 是独立 **Draft / non-production negative evidence**，当前不合并/部署。后续单独评审 PROCESS runtime 的 admission barrier、in-flight stop tracking 和独立进程退出证明；将现有负面测试改造成 **fail-closed 正向回归** 后再评估工程验收，不在 #1071 文档线实施代码。
+- **K0 总体结论不变：** `K0 NOT_SIGNED`、完整 `E01J4 NOT_SIGNED`、`PA05-05 E01–E05 NOT_SIGNED`、`W06 NOT_SIGNED`；production material WRITE `OFF`，Issues #988/#979/#913 OPEN。
