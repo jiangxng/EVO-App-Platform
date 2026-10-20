@@ -179,7 +179,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 [data-side-panel-visible="false"] [data-eidos-workbench-splitter]{display:none}
 
-[data-eidos-workspace]{
+/* A Host-selected focused workflow is not a permanent user preference.
+   Keep the activity strip visible and allow toolbar navigation restore. */
+@media (min-width:701px){
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-focused="true"]{
+    grid-template-columns:var(--eidos-activity-width) 0 0 minmax(0,1fr)
+  }
+  [data-eidos-workspace-focused="true"] [data-eidos-side-panel],
+  [data-eidos-workspace-focused="true"] [data-eidos-workbench-splitter]{
+    display:none
+  }
+  [data-eidos-workspace-focused="true"] [data-eidos-workspace]{
   grid-column:4;grid-row:1;min-width:0;min-height:0;
   display:flex;flex-direction:column;overflow:hidden;background:var(--eidos-bg);
 }
@@ -2267,6 +2277,18 @@ body{
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-toolbar]{
   grid-template-columns:minmax(0,1fr);
 }
+[data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-browser-toolbar]{
+  grid-template-columns:auto minmax(0,1fr);
+}
+[data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-global-controls]{
+  grid-column:2;
+}
+@media(max-width:700px){
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-global-controls]{grid-column:1}
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-browser-toolbar]{
+    grid-template-columns:minmax(0,1fr)
+  }
+}
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-address],
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-go],
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-external]{
@@ -3041,8 +3063,123 @@ form[data-eidos-id] button:hover,
  [data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{min-height:44px}
 }
 
+
+/* Generic compact Human review rows; field labels remain screen-reader visible. */
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice-label]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0
+}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] th,
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] td{padding:var(--eidos-space-sm) var(--eidos-space-md)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] [data-eidos-form-field] label{display:block;gap:0;line-height:normal}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] select{min-height:var(--eidos-control-normal)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-count]{order:-1}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-toolbar] label{white-space:nowrap;flex-wrap:nowrap}
+@media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-review-table-choice] select{min-height:44px}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
+}
+
+/* Opt-in Human review workbench: show the original source, the actual counts,
+   and every actionable blocker before choices; never conceal business facts. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+  gap:var(--eidos-space-md);
+  margin-block:var(--eidos-space-section);
+  min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+  justify-content:flex-end;gap:var(--eidos-space-md);min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-identity] strong{
+  font-size:var(--eidos-font-section)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+  grid-template-columns:repeat(4,minmax(0,1fr))
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+  padding:var(--eidos-space-md) var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header h2{
+  color:var(--eidos-fg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>ol{
+  background:var(--eidos-bg-subtle)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-help]{
+  color:var(--eidos-fg-muted)
+}
+@media(max-width:850px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+   justify-content:flex-start;flex-wrap:wrap
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:520px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   gap:var(--eidos-space-sm)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+   padding:var(--eidos-space-sm)
+ }
+}
+
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
 [data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
+/* Eidos: optional Human decision-first task summary. All evidence, issue
+   focus buttons and metrics remain operable inside a native disclosure. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="decision-first"]{
+  gap:var(--eidos-space-xs);margin-block:var(--eidos-space-sm)
+}
+[data-eidos-form-task-details]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);min-width:0
+}
+[data-eidos-form-task-details]>summary{
+  cursor:pointer;min-height:44px;box-sizing:border-box;
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  color:var(--eidos-fg);font-size:var(--eidos-font-compact);
+  overflow-wrap:anywhere
+}
+[data-eidos-form-task-details]>summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-form-task-details]>summary strong{
+  font-weight:650;overflow-wrap:anywhere
+}
+[data-eidos-task-summary-issues]{
+  margin-inline-start:var(--eidos-space-md);
+  font-size:var(--eidos-font-meta);color:var(--eidos-warning)
+}
+[data-eidos-form-task-details-content]{
+  display:grid;gap:var(--eidos-space-md);padding:var(--eidos-space-lg);
+  border-top:1px solid var(--eidos-border);min-width:0
+}
+
 [data-eidos-form-task-steps]{display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-md);padding:0;margin:0;list-style:none;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)}
 [data-eidos-form-task-steps] li{display:flex;gap:var(--eidos-space-sm);align-items:center}
 [data-eidos-form-task-steps] li:before{content:"";width:8px;height:8px;border-radius:50%;border:2px solid var(--eidos-border-strong);background:var(--eidos-bg)}
