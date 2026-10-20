@@ -1014,7 +1014,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   ],"the top-level stepper must match the approved two-stage V3 prototype");
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
   assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
-  assert.equal(page.reviewTask.issues[0].actionLabel,"核对本列");
+  assert.equal(page.reviewTask.issues[0].actionLabel,"处理此列");
   assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
   assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
   assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
@@ -1058,9 +1058,9 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   });
   assert.equal(failedPage.reviewTask.metrics.find(x=>x.id==="attention").value,"2",
     "persisted row validation issues count as attention alongside unresolved mapping columns");
-  const subjectIssue=failedPage.reviewTask.issues.find(x=>x.title==="主体类型");
+  const subjectIssue=failedPage.reviewTask.issues.find(x=>x.title==="3 条记录缺少主体类型");
   assert.ok(subjectIssue,"returning from a failed dry-run must expose its row issue on mapping review");
-  assert.match(subjectIssue.description,/3 条记录需要处理（第 1、2、3 行）/);
+  assert.match(subjectIssue.description,/请为以下记录选择正确的主体类型。（第 1、2、3 行）/);
   assert.equal(subjectIssue.focusGroupId,"map-source-4",
     "the issue should focus the existing source mapping group, not mutate the mapping");
   assert.equal(validateUidl(failedPage).ok,true,
