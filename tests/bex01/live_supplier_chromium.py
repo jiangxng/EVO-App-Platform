@@ -195,7 +195,7 @@ with sync_playwright() as p:
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    # Batch B is now visible beside the original per-column action.
-   expect(mapping_form.locator('[data-eidos-context-navigation] [data-eidos-context-route*="mode=batch"]').filter(has_text="集中审核")).to_have_count(1)
+   expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]').filter(has_text="集中审核")).to_have_count(1)
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
