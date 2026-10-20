@@ -50,14 +50,37 @@ with sync_playwright() as p:
     }
     const cards=el?.querySelector('[data-eidos-catalog-items]');
     const table=el?.querySelector('[data-eidos-catalog-table]');
+    const tableWrap=el?.querySelector('[data-eidos-catalog-table-wrap]');
     const cssLink=document.querySelector('link[rel="stylesheet"]');
     const cssResponse=cssLink?await fetch(cssLink.href):null;
     const cssBody=cssResponse?await cssResponse.text():"";
     const mark=cssBody.indexOf("data-eidos-catalog-has-table");
+    const tableWrapRules=[];
+    const collectRules=rules=>{
+      for(const rule of rules){
+        if(rule.cssRules) collectRules(rule.cssRules);
+        if(rule.selectorText?.includes("data-eidos-catalog-table-wrap")){
+          let matches=false;
+          try{matches=Boolean(tableWrap?.matches(rule.selectorText));}catch{}
+          tableWrapRules.push({selector:rule.selectorText,display:rule.style?.display??null,
+            media:rule.parentRule?.conditionText??null,matches});
+        }
+      }
+    };
+    for(const sheet of document.styleSheets){try{collectRules(sheet.cssRules)}catch{}}
+    const mobileRule=cssBody.lastIndexOf("data-eidos-catalog-table-wrap");
     return {innerWidth:innerWidth,pathname:location.pathname,hash:location.hash,
+      phoneMediaMatches:matchMedia("(max-width:700px)").matches,
       cssStatus:cssResponse?.status,cssLength:cssBody.length,
       cssHasTableRule:mark>=0,cssRuleExcerpt:mark>=0?cssBody.slice(mark-45,mark+105):null,
+      cssMobileTableRuleExcerpt:mobileRule>=0?cssBody.slice(Math.max(0,mobileRule-60),mobileRule+180):null,
       mobileSurface:document.querySelector("[data-mobile-surface]")?.getAttribute("data-mobile-surface"),
+      rootTableFlag:el?.getAttribute("data-eidos-catalog-has-table"),
+      tableWrapFound:Boolean(tableWrap),
+      tableWrapWithinRoot:Boolean(el&&tableWrap&&el.contains(tableWrap)),
+      tableWrapDisplay:tableWrap?getComputedStyle(tableWrap).display:null,
+      tableWrapInlineDisplay:tableWrap?.style.display||null,
+      tableWrapRules,
       cardsDisplay:cards?getComputedStyle(cards).display:null,
       tableDisplay:table?getComputedStyle(table).display:null,
       styleSheets:[...document.styleSheets].map(x=>x.href).slice(0,10),parents:trace};
@@ -177,6 +200,11 @@ with sync_playwright() as p:
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
      "/object-extensions/from-import?job="+job+"&column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C")
+   # In generic Eidos compact ReviewTable, source-bound actions are available
+   # in that same source row's accessible evidence disclosure.
+   bank_row=mapping_form.locator('[data-eidos-form-review-table-row="map-source-3"]')
+   bank_row.locator('[data-eidos-review-group-detail] summary').click()
+   expect(inline.first).to_be_visible()
    inline.first.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
