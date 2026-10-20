@@ -75,3 +75,13 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 - 最新截图已证明：标题“核对导入数据”、文件摘要、四列映射表、1280px 桌面和 390px 卡片布局正常。仍未签收：当前映射截图是 0 项 mapping attention 状态，未覆盖原型中的银行同名字段/主体类型/系统编码三类 issue box；顶部三步表达与原型两阶段不同；底部返回文件/恢复初始选择动作尚未对齐。不得把自动化绿灯等同 100% 视觉还原。
 - 下一步：等待 `6d77dcf…` 精确 HEAD 的 Platform CI 和 BEX-01 Real Host Chromium；检查新 artifact 的报告数据一致性；随后为未决字段创建隔离 Host 映射状态截图，审查 Host 安全动作契约，再按 #909 逐项修正。继续保持 Draft、不部署、不合并。
 - M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真/人类视觉签收 OPEN；总体 **3/6**。客户文件、授权 Job、银行字段真实身份/用途和三条真实主体身份仍未取得。
+
+
+## 2026-10-20 续跑 #10：行级问题区已验证，下一项是原型组合异常状态与底部动作
+
+- 候选 HEAD `dfc1cea0c6b74e21746769c04bd72047204572ca` 的 [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716071)、[Real Host Chromium](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067)、[In-Context Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716088) 均 PASS；PR #1060 仍 Draft。
+- 新 artifact [12244670622](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067/artifacts/12244670622) 已直接检查：`report.json` 为 54 条隔离供应商、分页 25/25/4、5/5 通过。新增截图 `v3-map-row-issues-desktop.png`（1280px）与 `v3-map-row-issues-phone.png`（390px）显示失败预检后映射页出现三条主体类型缺失的问题卡片；手机无横向溢出。
+- 代码已把持久化 dry-run 行问题按字段/错误码聚合到 Eidos 通用问题区，不自动执行 dry-run、不推断主体身份、不改变映射或提交。该项已通过真实 Host 验证。
+- 下一步：创建同时包含银行同名字段歧义、主体类型多行缺失和系统编码未决的隔离映射状态；核对三类问题卡片顺序与跳转。随后审查底部“返回文件/恢复初始选择/预检查并继续”与现有 Host/Eidos 动作契约，避免添加无行为按钮。
+- 仍需处理步骤条两步/三步视觉差异；保持预检查与明确提交的安全门禁。当前 main 最近核验 `eaa5e813b1e86a6460d988c76eb2076512c35127`，如前进须重新 compare。未部署、不合并、不修改 `project.status.json`。
+- M01–M03 完成，M04/M05/M06 OPEN，总体 3/6；客户真实文件/Job/银行字段身份/三条主体身份仍未取得，Human 视觉签收未完成。
