@@ -165,3 +165,53 @@ Host只增加两个owner的配置/启停版本和设置写入计数，属于有�
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+## 8. 2026-10-20增量：记忆适配器及共享安全登记的保留边界
+
+基线main `eaa5e813b1e86a6460d988c76eb2076512c35127`（#1073），已确认包含原交接#1020。前批LLM请求时凭据证据见[#1073收口](https://github.com/jiangxng/EVO-App-Platform/pull/1073#issuecomment-6283766419)，其311模块/246边及196行为/6守卫不是本轮测量。过程分支 `test/governance-memory-security-boundary-20261020`。本批只补测试/CI和分类依据，不改生产实现、公共合同、UI、Agent/BEX/2D或全局进度文件，不部署。
+
+### 逐层事实与决定
+
+| 已读入口 | 实际触发、资源及作用域 | 保留决定、限制与退出条件 |
+|---|---|---|
+| `providers/memory-intake/runtime.ts` 的parse、evidence、intake及health工厂 | parse在Host读取配置环境值后校验/规范化；evidence克隆source，intake构造克隆全部配置records；pull在内存按context筛选/分页并复制结果。probe仅描述配置，无文件/网络/timer | 保留配置型内存适配。并非零成本常量：构造成本随records线性增长。本轮单条合成记录证明资源边界，不是大批量内存预算验收；若用于大规模持久数据，应由原owner给出预算和源适配方案，不能推广为启动装载业务库 |
+| `providers/experience-compiler-memory/runtime.ts` | 配置校验、evidence克隆source、intake闭包和probe构造均不请求。实际pull才创建每请求AbortController/timeout并POST；finally清期限，覆盖response.json | 保留原同步配置工厂和已有fetch端口，不造懒代理/第二Provider。元数据与业务请求分开；工厂本身不验证Feature资格，原调用者仍负责有效贡献/授权 |
+| `providers/context-memory-semantic/runtime.ts`、`context-memory-dlp/runtime.ts` | 构造规范化URL、校验fetch/timeout，返回闭包；search/classify才POST及创建期限。没有连接池、订阅、后台循环或跨请求Promise缓存 | 保留无资源闭包。并发分别发请求，不自动重放；运行时在finally释放各自期限，不意味着旧引用有生命周期认证或在途业务回滚 |
+| 三种远端memory的health probe | 只检查endpoint协议；HTTPS报告HEALTHY、HTTP报告DEGRADED，不调用远端，不解析token，也不创建timer | 保持原状态语义；**这是配置状态，不是远端可用、凭据可解密或真实业务健康证据**。测试显式阻断fetch并记录零调用，不能套用LLM的主动GET探测结论 |
+| `refreshP12MemoryProviderRuntimes`、`optionalInstallationSecret` | Host启动及三类对应设置保存刷新时，若URL/EC配置存在，按installation reference执行Secrets.describe；configured为真即resolve并把token捕获在原options。随后登记，错误remove并记录fail-closed。reader会按当时有效semantic解析装配；末尾调用已有schedule重算 | **这是已定位而未整改的提前解密，不属于上面工厂零资源结论。** 与LLM上批不同，memory的Bearer可选，无token也可请求；不得直接复制必需Key标记/LLM helper或只加一次启动资格判断。下一批先核对动态绑定、共享reader、后台schedule与直接消费者资格，再做一个有界修正。不得重新打开已验收调度/租约或替Agent完成学习功能 |
+| `providers/identity-directory/runtime.ts` | service/probe构造不读store；get/list和显式probe才snapshot；认证记账/disable才save。Host的file store工厂**构造会读文件**；memory store只校验/克隆 | 保留共享可信身份及撤销权威，不与某个UI启停绑定。不能把adapter无I/O误写成Host身份目录零文件访问。身份撤销必须继续即时生效；替换/退役必须先证明全部安全消费者迁移，不为减少模块关闭保护 |
+| `providers/enterprise-context-grant/runtime.ts`、`enterprise-relationship/runtime.ts` | 构造只克隆静态grants或捕获动态source，不执行source；查询/显式probe才调用当前source。Host传入共享enterpriseGovernanceStore.snapshot；该文件store是snapshot时exists/read，save时验证/写文件 | 保留两包及同步共享源，不缓存旧授权、不绑定UI停用，也不复制影子存储。新回归确认撤销立即可见、来源异常拒绝且后续可恢复；不声称完整HTTP准入、跨Host撤销或治理存储全部生命周期已验收 |
+| `providers/authorization/runtime.ts`、`remote-credential/runtime.ts` | 静态策略校验/合并/检查是内存操作；credential工厂规范化配置Map，getBearerToken按原优先级取值，缺失显式拒绝，无网络/store/timer。配置Token仍保存在进程内 | 保留必要授权/受管凭据解析机制。未改默认拒绝、DENY优先、Secret权威或环境配置UX；无资源不等于没有敏感内存。没有授予所有环境凭据永久保留例外 |
+
+上述“保留”限于已读工厂/同步合同和本批资源事实，不是对所有调用者资格的豁免。registry仍是原Map登记：replace/setHealthProbe/discovery不执行probe。共享安全服务不能交给一个消费者UI销毁；本批未新增实例管理、连接、定时器、持久化、资源框架或dispose。未安装/停用/迟到调用的完整Host矩阵仍记R3/R4，不用独立工厂测试冒充。
+
+### 可执行保护与读取范围
+
+新增 `tests/protocol/memory-security-resource-boundary.test.mjs` 10项，并纳入现有Lightweight Host工作流：
+
+- 独立子进程复用既有求值前resource guard及原生不改源码loader，首次导入9个runtime根；构造配置后的适配器/probe，登记、发现及内存memory pull，不得触发已枚举文件、fetch/TCP、timer或子进程端口。安全store/source回调构造/发现调用数为0；原吞异常canary继续在CI运行。
+- semantic/DLP/EC每类两项：非法版本在请求/期限前拒绝，首次并发独立signal；HTTP、JSON解析、响应校验和网络失败每次只发一请求、清timer，显式后续调用恢复；受控Promise屏障证明等待body时期限仍在，模拟Abort后释放并恢复。不以sleep/真实网络延时推测结果。
+- 一项对账远端memory probe的配置语义；两项确认共享grant/relationship在调用时读当前来源、撤销/故障恢复，以及identity只在原认证/禁用动作写共享store。没有新增业务功能或删除原安全回归。
+
+本地新10项+原求值guard5项合计15项通过；fixture/新测试语法通过。执行环境为固定SHA部分源码快照、Node24.19临时类型擦除dist，**非正式全仓build，未本地真实Host/browser/数据库**。正式npm ci、TypeScript build、Node22、已有Host联合回归和四组合以本PR最终head CI为准，永久结果链接写入PR收口记录；不沿用#1073测量冒充本批。静态基线、冷禁入和已有断言不放宽。
+
+读取复用前批完整启动/LLM/交付/文档治理、EOG及装载规范；本轮复核根AGENTS、当前Provider接续、A01/CLOSEOUT与装载规范全文。新完整读取上述9个runtime、identity file store；memory四份及安全四份package只核对身份/manifest/Secret字段。Host局部：共享身份/治理store构造、provider登记、P12 refresh及设置触发；enterprise治理store局部：snapshot/save file factory及其来源接线；contracts局部：三个请求接口；复用已有LLM/guard测试设施并核对原memory测试覆盖。未通读整个Host/Agent或审计所有存储；无新增外网研究，无真实凭据/企业数据访问。详细固定blob及范围见[结构化证据](evidence/memory-security-resource-boundary-20261020.json)。
+
+### 下一步和停止条件
+
+本批最终CI通过即合并并停止扩充纯工厂拆分。下一批优先处理已定位P12可选token提前解析：先保存所有实际消费者/动态绑定/调度资格与缺token合同，再决定按请求fetch端口解析或有依据的Host保留；必须覆盖未装/停用/启用未用、首次并发、配置/停止竞态、失败恢复及重启，不能直接套用LLM必需Key语义。其余context-memory、EVO observatory及会话/OIDC等类别尚未逐类完成R3资源对账；A05认证产品策略仍在原行，不转为本批业务扩展。
+
+R1冻结SOP身份/资格、R2配置SQL及原owner责任、R3其余类别/消费者、R4最终跨层矩阵全部保留。#1074等Agent shutdown改进不证明R2配置SQL合格。尚无生产部署或Human验收。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；memory/共享安全工厂资源分类与回归 | R3 P12凭据与其他类别；R1/R2/R4保留 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |

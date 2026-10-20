@@ -85,3 +85,5 @@ R1页面/命令后续整改及24个保留入口对账见运行图文档第7～16
 R3后续已在Provider边界第6节移除两处refresh隐式环境Key写入，改由原显式Secret保存路径负责持久化及审计；普通模型保存与删除后refresh不再自动迁移/复活。提前解析/解密、同步消费者资源资格与其他Provider类别仍保留，不能据此关闭R3。
 
 R3 Provider边界第7节已接续LLM明文Key：启动仅describe，原同步选择保持，实际infer/probe通过既有fetchImpl端口解析并复核资格/配置/启停epoch/Abort；设置写入门禁与故障恢复单独验收。共享Secrets启动文件责任及其他Provider、R1/R2/R4不因此关闭；下一批按Provider文档第7节接续其余类别。
+
+R3 Provider边界第8节已接续memory-intake/EC、semantic/DLP及共享identity/grant/relationship/authorization/remote-credential：保留无资源工厂和必要同步安全来源，新增构造/发现、请求期限与共享撤销回归。P12 refresh提前解析可选token已单列待整改，其他Provider和完整消费者资格仍待对账；下一步以第8节为准，R1/R2/R4及固定7项口径保持。
