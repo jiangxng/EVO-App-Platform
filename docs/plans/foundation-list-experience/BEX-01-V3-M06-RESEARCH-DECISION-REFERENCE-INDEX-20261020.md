@@ -310,3 +310,22 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 3. 不创建无行为的底部按钮；若原型动作已有安全的 Host 命令，按现有契约接入并覆盖浏览器测试。
 4. 新改动必须重新运行精确 HEAD 的 Platform CI、Real Host Chromium、In-Context Resume、Human UI Design Review Gate 与 Lightweight Host Architecture，并重新生成 1280px/390px 画面。
 5. 继续保持 M04/M05 OPEN、M06 OPEN、总体 3/6；不改 `project.status.json`，不切 Railway release，不部署、不合并、不覆盖 PA05/Eidos/插件治理工作。
+
+
+## 2026-10-20 续跑 #12：步骤条差异的直接证据与修复
+
+### 新增直接读取来源（R）
+
+| ID | 来源 | 直接证据 | 结论 |
+|---|---|---|---|
+| R27 | [#909 原型 HTML（不可变提交）](https://github.com/jiangxng/EVO-App-Platform/blob/af58e0abad880439d54230485305bf2b4e05decc/docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html) | 原型 `.pagehead .stage` 的可见阶段为两个：`选择文件`、`核对并导入`；其内部通过 review/confirm/precheck/submit 等区域表达细分流程。 | 这是原型源码事实，适用于当前 Host 顶层步骤条对齐。 |
+| R28 | [Platform `apps/data-import/page.ts`（修复前 HEAD）](https://github.com/jiangxng/EVO-App-Platform/blob/dfc1cea0c6b74e21746769c04bd72047204572ca/apps/data-import/page.ts) | `reviewTask.steps` 有 source/review/commit 三项，其中第三项标签为“预检查与导入”。 | 与原型顶层两阶段结构不一致。 |
+| R29 | [Platform PR #1060](https://github.com/jiangxng/EVO-App-Platform/pull/1060) | 已提交两阶段步骤条和协议断言；新 HEAD `895ea758a3f8ba6787f9f96f06155afbf9ff05b9`。 | 新 HEAD CI/Host Chromium 正在重新执行，不能把前一 HEAD 的 PASS 继承为新 HEAD 结果。 |
+
+### 已执行修复与保护边界
+
+- `reviewTask.steps` 改为 `source=选择文件 (complete)` 与 `review=核对并导入 (current)` 两项。
+- `预检查`、新增字段 Schema 确认和明确提交仍保留在当前审核任务内部，不删除原安全门禁。
+- `tests/protocol/data-import-human-experience.test.mjs` 增加精确断言，验证两个步骤的 ID、中文标签与状态。
+- 未更改 Eidos 通用框架职责；此为 Platform 的导入业务流程表达，不把供应商语义写入 Eidos。
+- 新 HEAD 通过后仍须查看真实 Host 截图并由用户视觉签收；CI/Human UI Design Review Gate 不等同于用户签收。
