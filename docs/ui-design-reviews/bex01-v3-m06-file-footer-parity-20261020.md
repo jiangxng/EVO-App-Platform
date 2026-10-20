@@ -77,3 +77,8 @@
 ### 本轮追加 UI 复核：首屏注意力与认知负担
 
 查看最新 `v3-prototype-parity-issues-phone.png` 后确认正式手机 390px 把多段操作说明挤入首屏，使核心人工问题与字段选择滞后。按 Eidos 注意力规范和 #909 已读原型，`apps/data-import/page.ts` 首屏短句区分复用映射、EC 建议和普通核对，不改变底层事实。复杂业务约束仍在问题卡、任务指导与显式 Host 预检查；这是文案的有界移动，不是删除审计、安全或源数据。新增真实浏览器文案断言；Human 待签收。
+
+
+### 本轮追加 UI 复核：阶段视觉与真实问题计数（2026-10-20，后续增量）
+
+根据 [#909 原型](https://github.com/jiangxng/EVO-App-Platform/pull/909) 的已读 HTML 和上一轮下载的 1280px/390px Chromium，当前顶栏两阶段虽存在但默认点状图标太小，完成、当前阶段的注意力层级不足，问题标题旁缺“3 项待处理”。只为明确选择 Workbench 的表单增强调度视觉；绝不改变路由、步骤状态和 Host 指令。变化的通用 UI 实现：`vendor/eidos/src/renderers/html/index.ts` 继续渲染真实状态与 `aria-current="step"`；`vendor/eidos/src/design-language/productive-workbench-css.ts` 增强 24px 已完成勾号／当前序号、连接线、移动端换行。Eidos `reviewTask.issuesCountSuffix` 由 Platform 设置后，Eidos 从 `issues.length` 派生实际数量，拒绝空内容和不当范围；**不是静态“3”**。#204 owner 的三张独立编号问题卡原样保留，关于与 #909 连续问题框的视觉冲突继续留给 Human 决策。新增真实桌面/390px Host 断言与截图，未获得 Human 视觉签收，不代表100%还原。

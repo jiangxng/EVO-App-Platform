@@ -1064,7 +1064,7 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","helpText","presentation","footer"]),path,out);
+        "issuesDescription","issues","issuesCountSuffix","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
@@ -1154,6 +1154,14 @@ export function validateUidl(
           && (item.actionLabel===undefined || nonEmpty(item.actionLabel))
           && (item.actionLabel===undefined || item.focusGroupId!==undefined);
       });
+      if (task.issuesCountSuffix !== undefined
+        && (task.presentation !== "workbench"
+          || !nonEmpty(task.issuesCountSuffix)
+          || task.issuesCountSuffix.trim().length > 32
+          || !Array.isArray(task.issues) || task.issues.length === 0)) {
+        fail(path+".issuesCountSuffix",
+          "Issue count badge needs nonempty workbench issues and a bounded suffix");
+      }
       for (const key of ["issuesTitle","issuesDescription","helpText"] as const) {
         if (task[key]!==undefined && typeof task[key]!=="string") {
           fail(path+"."+key,"Review task copy must be text");

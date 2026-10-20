@@ -64,8 +64,10 @@ function input(field: RenderFieldV010): string {
 }
 
 function renderReviewTaskSteps(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
-  return task.steps?.length ? `<ol data-eidos-form-task-steps>
-    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
+  return task.steps?.length ? `<ol data-eidos-form-task-steps${task.presentation === "workbench"
+      ? ' data-eidos-task-steps-presentation="workbench"' : ""}>
+    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}"${step.state === "current"
+      ? ' aria-current="step"' : ""}>${esc(step.label)}</li>`).join("")}
   </ol>` : "";
 }
 
@@ -91,7 +93,9 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
   </section>` : "";
   const issues=task.issues?.length ? `<section data-eidos-form-task-issues>
     <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
-    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}</header>
+    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
+    ${task.presentation === "workbench" && task.issuesCountSuffix
+      ? `<span data-eidos-form-task-issue-count aria-label="${esc(task.issues.length + " " + task.issuesCountSuffix)}">${esc(task.issues.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
     <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
       <div><strong>${esc(issue.title)}</strong>
       ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>

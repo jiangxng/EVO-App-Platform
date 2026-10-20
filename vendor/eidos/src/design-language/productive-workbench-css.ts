@@ -3207,6 +3207,73 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
  }
 }
 
+
+/* Opt-in, accessible two-stage workbench hierarchy. Existing non-workbench
+   process indicators remain unchanged; the business app supplies state. */
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]{
+  counter-reset:eidos-workbench-step;gap:var(--eidos-space-lg);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li{
+  counter-increment:eidos-workbench-step;position:relative;gap:var(--eidos-space-sm);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li::before{
+  content:counter(eidos-workbench-step);
+  width:24px;height:24px;box-sizing:border-box;
+  display:grid;place-items:center;flex:0 0 24px;
+  border-radius:50%;border:1px solid var(--eidos-border-strong);
+  background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);
+  font-weight:700;font-size:var(--eidos-font-meta);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]
+  li[data-eidos-task-step-state="complete"]::before{
+  content:"✓";background:var(--eidos-bg-subtle);
+  border-color:var(--eidos-success);color:var(--eidos-success);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]
+  li[data-eidos-task-step-state="current"]::before{
+  background:var(--eidos-primary);border-color:var(--eidos-primary);
+  color:var(--eidos-bg);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li{
+  margin-inline-start:var(--eidos-space-lg);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li::after{
+  content:"";position:absolute;inset-inline-start:calc(-1 * (var(--eidos-space-lg) + var(--eidos-space-md)));
+  top:50%;width:var(--eidos-space-lg);height:1px;background:var(--eidos-border-strong);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+  column-gap:var(--eidos-space-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header h2{
+  grid-column:1;grid-row:1;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header p{
+  grid-column:1;grid-row:2;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+  grid-column:2;grid-row:1 / span 2;
+  padding:var(--eidos-space-xs) var(--eidos-space-sm);
+  border-radius:var(--eidos-radius-lg);
+  color:var(--eidos-warning);
+  background:color-mix(in srgb,var(--eidos-warning) 10%,var(--eidos-bg));
+  font-size:var(--eidos-font-meta);white-space:nowrap;
+}
+@media(max-width:520px){
+  [data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]{
+    gap:var(--eidos-space-sm);
+  }
+  [data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li{
+    margin-inline-start:var(--eidos-space-sm);
+  }
+  [data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li::after{
+    display:none;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+    align-self:start;
+  }
+}
+
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
 [data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
 /* Eidos: optional Human decision-first task summary. All evidence, issue

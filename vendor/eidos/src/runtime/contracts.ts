@@ -100,6 +100,8 @@ export interface UidlFormReviewTaskV010 {
   }[];
   issuesTitle?: string;
   issuesDescription?: string;
+  /** Short app-owned suffix; Eidos derives the issue count from the list. */
+  issuesCountSuffix?: string;
   issues?: {
     id: string;
     title: string;
