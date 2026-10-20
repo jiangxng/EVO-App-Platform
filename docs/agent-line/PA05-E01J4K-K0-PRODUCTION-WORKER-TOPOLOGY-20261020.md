@@ -257,3 +257,25 @@ The current Host and EVO Runtime still use `npm start`, one configured replica e
 Current main `manager/server.ts` at [exact blob](https://github.com/jiangxng/EVO-App-Platform/blob/d1c50cc2c4c52bd251146ce84dfc6acfeca45e53/manager/server.ts) registers one-time SIGTERM/SIGINT handlers. The shutdown function disposes the context-memory schedule driver, awaits scheduler stop, stops managed runtimes, closes optional Agent async workers/Owner and the PA05 lifecycle Host, shuts down the process runtime Host, closes the HTTP server, and schedules a 5-second fail-fast exit.
 
 **Source fact:** a graceful shutdown routine exists. **Remaining gap:** production still uses `npm start`, and effective Railway draining time is not exposed by the current configuration response. The source code does not prove direct SIGTERM delivery or completion before SIGKILL. No production process was signalled or restarted.
+
+
+## 17. 2026-10-20 — Shutdown error-path static finding
+
+### Exact source read
+- [`manager/server.ts` at blob `d1c50cc2c4c52bd251146ce84dfc6acfeca45e53`](https://github.com/jiangxng/EVO-App-Platform/blob/d1c50cc2c4c52bd251146ce84dfc6acfeca45e53/manager/server.ts), lines 10224–10259.
+
+### Observation
+The shutdown routine has local error handling around Context Memory scheduler stop and a grouped set of managed-runtime stops. Later operations are awaited sequentially without equivalent local catches: optional Agent async reader, optional Agent async read worker, optional PA-02 Object Extension Owner, PA05 write-lifecycle Host close, and process runtime Host shutdown. The call to `server.close()` and creation of the 5-second fail-fast timer occur only after those awaits.
+
+### Assessment / limitation
+A rejected close/shutdown promise can short-circuit subsequent cleanup and keep the routine from reaching HTTP server closure and its explicit fail-fast timer. This is a **static source-level risk**, not a reproduced runtime failure. The cooperative lock is released only on clean process exit; an abnormal path must retain the lock for independent Human review. This remains fail-closed but does not provide a per-resource stop receipt.
+
+### Safe next engineering task
+Before relying on the shutdown handler for any maintenance/stop attestation, add disposable exact-head tests that inject a rejection at every cleanup boundary and assert:
+1. every remaining cleanup action is attempted;
+2. HTTP admission is closed even if a resource cleanup fails;
+3. shutdown exits nonzero on incomplete cleanup;
+4. J4J lock release is not attempted on failed shutdown; and
+5. a clean path releases only after all required cleanup completes.
+
+Do not change production start commands, drain settings, production identity, DBA credentials, or material WRITE in this task. It is a bounded source/CI improvement, not a K1/K2 global stop proof. K0 remains NOT_SIGNED; external topology, effective drain interval and stop authority remain unresolved.

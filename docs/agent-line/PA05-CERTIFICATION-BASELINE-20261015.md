@@ -876,3 +876,12 @@ This deployment was caused by unrelated PR #1073, not this Draft documentation P
 Current main `manager/server.ts` at [exact blob](https://github.com/jiangxng/EVO-App-Platform/blob/d1c50cc2c4c52bd251146ce84dfc6acfeca45e53/manager/server.ts) registers one-time SIGTERM and SIGINT handlers. The shutdown function disposes the context-memory schedule driver, awaits scheduler stop, stops managed runtimes, closes optional Agent async workers/Owner and the PA05 lifecycle Host, shuts down the process runtime Host, closes the HTTP server and schedules a 5-second fail-fast exit.
 
 This establishes an intended graceful-shutdown code path, not that Railway delivers SIGTERM directly to Node through the configured `npm start` entry or allows enough time for completion. The effective drain value remains unexposed and unverified; the official Railway NodeJS page warns package managers may intercept SIGTERM. No production process was signalled/restarted.
+
+
+**§78 — Shutdown error-path source audit (2026-10-20)**
+
+At [`manager/server.ts` exact blob `d1c50cc2c4c52bd251146ce84dfc6acfeca45e53`](https://github.com/jiangxng/EVO-App-Platform/blob/d1c50cc2c4c52bd251146ce84dfc6acfeca45e53/manager/server.ts), lines 10224–10259, the SIGTERM/SIGINT handler calls scheduler stop and managed-runtime stops with local catches, then sequentially awaits optional Agent reader/worker, optional PA-02 Owner, PA05 lifecycle Host and process runtime Host without local catches. `server.close()` and the 5-second fail-fast timer are reached only after these awaits.
+
+**Static finding (not a demonstrated production failure):** if one of the later awaits rejects, the remaining cleanup actions may not be attempted and the code may not reach `server.close()` or schedule its explicit fail-fast timer. This does not release the J4J lock automatically; the lock remains ambiguous until independent review, consistent with fail-closed behavior, but complete shutdown is not proved.
+
+**Follow-up:** an isolated exact-head test should inject rejection at each cleanup boundary and assert subsequent cleanup is attempted, admission closes, shutdown exits nonzero on incomplete cleanup, and the lock is not auto-released. This is a bounded shutdown-correctness task, not authorization to implement K1/K2 production stop authority. No production process was signalled or restarted.
