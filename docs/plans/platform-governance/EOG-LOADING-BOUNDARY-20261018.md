@@ -346,7 +346,9 @@ E04稳定3帧、未观察到本轮几何变化，可信pointerdown命中真实cu
 
 本地既有18项组件/故障探针通过，selection2项首次因部分快照缺Viewer文件无法导入，补足固定SHA源码并临时转译后2项通过，合计20项通过。Host源码临时类型擦除后语法检查、新测试/fixture/audit脚本语法检查通过。**本地没有正式全仓TS构建或真实Host/browser执行**：复用前批受限环境的固定SHA部分源码快照，隔离到独立目录，不覆盖上一窗口文件；Node24临时类型擦除不是正式构建。正式npm ci/build、Node22测试、三项真实Host测试及四组合实测由本批CI给出，最终准确head/run/合并以本PR记录为准。
 
-静态允许集合仅删除6条退出冷链的旧边，253→247为本次编辑值，待正式strict ratchet核验，不扩允许集合。#1047最终四组合318模块/253边是历史基线，不是本批实测；本地未新测模块数量或生产性能。没有部署，不把合成浏览器/Host自动证据当作Human业务签署。
+首轮提交 `2a3fdb16ba792fa582b77aaf4ac8a6213312c12e` 正式npm ci/build与strict ratchet通过（253→247，只删除6条旧边）。Host行为测试169/170通过，新增正常生命周期/持久性/隔离与import期间停用两项通过；唯一失败是新故障用例误将已有动作异常HTTP envelope预期为500，实际为403。已定向读取Host动作路由内部catch，修正测试为403并精确检查注入故障码/消息，保留生产协议。错误尚未经过该旧断言之后的重启检查，不把169项通过宣称全绿；修正后的正式结果与最终head见PR。
+
+静态允许集合不扩张。#1047最终四组合318模块/253边是历史基线，不是本批实测；本地未新测模块数量或生产性能。没有部署，不把合成浏览器/Host自动证据当作Human业务签署。
 
 证据：[eog-editor-entries-lazy-20261020.json](evidence/eog-editor-entries-lazy-20261020.json)；[兼容评审](../../ui-design-reviews/eog-editor-entries-lazy-20261020.md)。复用已完整读取的AGENTS/启动、LLM、交付、根clinerules、装载规范、指定治理材料与Eidos设计总纲/清单；本轮核对它们的版本/接续章节，并补读lazy handler/router、原graph actions/page全文、相关原测试及server对应局部。全局状态仅读取当前/历史标识；没有把其较旧TR快照覆盖本专项。未新增外网研究，未声称通读全Host或其他owner全部代码。
 

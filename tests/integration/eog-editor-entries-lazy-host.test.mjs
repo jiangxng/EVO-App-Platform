@@ -153,8 +153,10 @@ test('native import failure does not create a graph; restart after delivery reco
     const result=await host.call('/v1/actions',{contractVersion:'0.1.0',type:'command',
       command:{code:EOG_CREATE_ACTION,inputVersion:'0.1.0'},values:{graphId},
       actionId:'import-fault',sourceInteractionId:'import-fault',requiresConfirmation:true},contextId);
-    assert.equal(result.status,500,'module delivery failure is surfaced by the Host');
-    assert.match(result.body.message,/EOG_EDITOR_TEST_IMPORT_FAILURE/);
+    assert.equal(result.status,403,'retain the existing thrown-action HTTP envelope');
+    assert.equal(result.body.ok,false);
+    assert.equal(result.body.error.code,'EOG_EDITOR_TEST_IMPORT_FAILURE');
+    assert.match(result.body.error.message,/EOG_EDITOR_TEST_IMPORT_FAILURE/);
     await waitFiles(directory,['enterprise-operating-graph-actions.ready']);
     await host.stop();host=await start(directory);unloaded(host.sample.loadedModules);
     assert.deepEqual((await host.execute(EOG_LIST_ACTION,{},contextId)).result.graphs,[]);

@@ -63,7 +63,7 @@
   "staticRatchet": {
     "oldEdges": 253,
     "newEditedEdges": 247,
-    "status": "only remove six allowances; official strict validation pending",
+    "status": "Verified strict ratchet on first head: 247, zero added allowances",
     "removed": [
       "apps/eog-2d-designer/enterprise-operating-graph-actions.ts -> apps/eog-2d-designer/package.ts [static]",
       "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/enterprise-operating-graph-actions.ts [static]",
@@ -71,16 +71,29 @@
       "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/package.ts [static]",
       "manager/enterprise-operating-graph-actions.ts -> apps/eog-2d-designer/enterprise-operating-graph-actions.ts [static]",
       "manager/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/enterprise-operating-graph-page.ts [static]"
-    ]
+    ],
+    "verifiedHead": "2a3fdb16ba792fa582b77aaf4ac8a6213312c12e"
   },
   "ci": {
-    "statusAtCommit": "pending; exact-head checks, measurements, merge and branch cleanup in this PR",
+    "statusAtCommit": "Fault envelope assertion fixed; new exact-head full CI pending. Final runs, measurements and merge in PR #1061.",
     "forbiddenColdModules": [
       "dist/apps/eog-2d-designer/enterprise-operating-graph-actions.js",
       "dist/apps/eog-2d-designer/enterprise-operating-graph-page.js",
       "dist/manager/enterprise-operating-graph-actions.js",
       "dist/manager/enterprise-operating-graph-page.js"
-    ]
+    ],
+    "firstAttempt": {
+      "head": "2a3fdb16ba792fa582b77aaf4ac8a6213312c12e",
+      "runs": 46,
+      "passed": 45,
+      "failedRun": 39363917227,
+      "failedJob": 118436212211,
+      "officialBuild": "pass",
+      "behaviorPassed": 169,
+      "behaviorTotal": 170,
+      "normalAndImportRaceHostTests": "pass",
+      "failure": "Fault test expected HTTP500/body.message; original thrown-action handler returns HTTP403/body.error. Test corrected to assert original status and exact injected code/message; production unchanged."
+    }
   },
   "historicalBaselineOnly": {
     "pr": 1047,
@@ -97,9 +110,9 @@
     "tools/lightweight-host-baseline.json": "e6d45df3dcbdfcb4a9a6898e309dbb6907781d61a0b50fcbe7eba1c97c1ffeb4",
     "tools/plugin-loading-audit.mjs": "5805d50ac6bc3a2e7402f7ceb858a648f71426743ea13b5089ef934ee2330844",
     ".github/workflows/lightweight-host.yml": "b59c2c9a5b9c59f33815c2c0966869ff74b137ccd8dd8d3aa98160167cc2c0a6",
-    "tests/integration/eog-editor-entries-lazy-host.test.mjs": "ad930e9b6e91dc9ae69f64f6c8af2128c73976aaa11f237ec1034c8643188491",
+    "tests/integration/eog-editor-entries-lazy-host.test.mjs": "9cdc8c0fb2b8ad44666d901f692b24d42089aef2a4be503c326282d6f244cf8d",
     "tests/fixtures/eog-editor-import-barrier.mjs": "ac8e1e603bc22979c6a3e413dfaf6bc279356a5c7e58ad04c6c0eea5572e1dd5",
-    "docs/plans/platform-governance/EOG-LOADING-BOUNDARY-20261018.md": "e6134ac37f166871f1df7d327bb4fe8882b670c7d46ea8223c5566037a531f97",
+    "docs/plans/platform-governance/EOG-LOADING-BOUNDARY-20261018.md": "7a917b171478d38d3ac0f84e4c93a8e3486133f5b4e7959022f5751786840ca7",
     "docs/plans/platform-governance/CLOSEOUT-COUNTDOWN.md": "88357abf3b9fe42a32f23557894ad9b41af71d3a16c74a86c9fc8b08f596841b",
     "docs/ui-design-reviews/eog-editor-entries-lazy-20261020.md": "56d9791e4161234ba1a8cf03fc357d23837b4d52b7945601d0e84c66ec7a1cb1"
   },
