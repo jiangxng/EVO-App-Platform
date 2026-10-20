@@ -248,7 +248,7 @@ const shape=tab=>tab.locator(selector).getAttribute("d");
 // These coordinate-based gestures need stable painted geometry, whereas a
 // single boundingBox/evaluate can run between layout and that observer. Keep
 // native input and record its actual target; never retry a missed gesture.
-const nativeDiagramGesture=async(tab,label,kind,itemId,perform)=>{
+const nativeDiagramGesture=async(tab,label,kind,itemId,perform,pointerType="mouse")=>{
   const measured=await tab.evaluate(async({kind,itemId,label})=>{
     const attr=kind==="node"?"data-eidos-diagram-node":"data-eidos-diagram-edge";
     const sel="["+attr+'="'+CSS.escape(itemId)+'"]';
@@ -286,11 +286,11 @@ const nativeDiagramGesture=async(tab,label,kind,itemId,perform)=>{
     }
     throw new Error("Diagram geometry did not settle within 120 animation frames");
   },{kind,itemId,label});
-  await tab.mouse.move(measured.point.x,measured.point.y);
+  if(pointerType==="mouse")await tab.mouse.move(measured.point.x,measured.point.y);
   await tab.evaluate(({sel})=>{
     window.__nativeDiagramDown=null;
     window.__nativeDiagramListener=event=>{
-      window.__nativeDiagramDown={trusted:event.isTrusted,
+      window.__nativeDiagramDown={trusted:event.isTrusted,pointerType:event.pointerType,
         expectedTarget:Boolean(event.target.closest?.(sel)),
         node:event.target.closest?.("[data-eidos-diagram-node]")?.getAttribute("data-eidos-diagram-node"),
         edge:event.target.getAttribute?.("data-eidos-diagram-edge"),x:event.clientX,y:event.clientY};
@@ -302,6 +302,7 @@ const nativeDiagramGesture=async(tab,label,kind,itemId,perform)=>{
     const down=await tab.evaluate(()=>window.__nativeDiagramDown);
     console.log("DIAGRAM_NATIVE_GESTURE_DIAGNOSTIC="+JSON.stringify({label,kind,itemId,measured,down}));
     assert.equal(down?.trusted,true,label+": Chromium must deliver trusted pointer input");
+    assert.equal(down.pointerType,pointerType,label+": native input must retain its pointer type");
     assert.equal(down.expectedTarget,true,label+": native pointerdown must hit the measured target");
   }finally{
     await tab.evaluate(()=>document.removeEventListener("pointerdown",window.__nativeDiagramListener,true));
@@ -1175,7 +1176,9 @@ try{
   const t06Tap=async locator=>{
     const b=await locator.boundingBox();
     assert.ok(b && b.width>4 && b.height>4,"T06 touch target must be rendered");
-    await t06Tab.touchscreen.tap(b.x+b.width/2,b.y+b.height/2);
+    const nodeId=await locator.getAttribute("data-eidos-diagram-node");
+    await nativeDiagramGesture(t06Tab,"T06 multi-select tap "+nodeId,"node",nodeId,
+      point=>t06Tab.touchscreen.tap(point.x,point.y),"touch");
   };
   const t06Geometry=await t06Tab.evaluate(()=>({
     viewport:document.documentElement.clientWidth,

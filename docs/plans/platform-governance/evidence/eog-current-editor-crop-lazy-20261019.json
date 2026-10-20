@@ -72,7 +72,7 @@
   "ci": {
     "workflow": ".github/workflows/lightweight-host.yml",
     "newColdStartupForbiddenModule": "dist/apps/eog-2d-designer/definition-projection-editor.js",
-    "statusAtCommit": "Six workflows passed on verifiedCodeHead; following documentation-only result commit CI and merge recorded in PR",
+    "statusAtCommit": "Code head 9940a3bb passed six gates; documentation head 2066981003 re-triggered six gates and failed T06 browser with five green. Added stable native touch preconditions, new head CI pending.",
     "verifiedHead": "1e2e56887e9ef17927fc0c7c6c3ffd0960b2f43e",
     "greenRuns": {
       "lightweightHost": 39251390733,
@@ -282,7 +282,17 @@
         }
       ],
       "browser": "Chromium 155.0.8059.39",
-      "humanOrPhysicalDeviceAcceptance": false
+      "humanOrPhysicalDeviceAcceptance": false,
+      "followup": {
+        "head": "2066981003ba756535defff23bd4d8afd60b652e",
+        "run": 39361148972,
+        "failedJob": 118427389279,
+        "browser": "Chromium 155.0.8059.84",
+        "failure": "T06 mobile tap must preserve first selection without Shift",
+        "otherFiveGates": "success",
+        "fixScope": "Same bounded geometry wait for three existing T06 taps, assert trusted native touch pointer; keep all original assertions",
+        "rootCause": "Single boundingBox plus inspector reflow inferred from source, pending trusted native touch evidence"
+      }
     },
     "verifiedCodeHead": "9940a3bb581e5be6b6367f35fd023032b0c1b768",
     "verifiedCodeRuns": [
