@@ -275,3 +275,38 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 - **底部动作区仍有差异：** #909 有“返回文件”“恢复初始选择”“预检查并继续”；当前页面是“保存映射并预检查”与“AI 自动匹配”。Eidos 当前 `UidlAction` 仅定义 submit/cancel/agent，不包含声明式 navigate；不要将一个无动作的按钮放到页面上。需进一步检查 cancel 行为与 Host command 路由，确定返回和重置应由通用导航还是明确的受控命令实现。
 - **步骤条仍为三步**（选择文件/核对映射/预检查与导入），原型呈现两阶段（选择文件/核对并导入）。先保持真实预检查与显式提交的安全步骤，再研究如何在视觉层把子步骤收敛到原型表达，不隐藏安全门禁。
 - **Human 视觉签收仍 OPEN**。自动化通过不代表 100% 还原。M04/M05 继续 OPEN，总进度 3/6。
+
+
+## 2026-10-20 续跑 #11：当前 HEAD 的浏览器证据与差异判断
+
+### 新增直接读取来源（R，2026-10-20）
+
+| ID | 标题 / 原始 URL | 直接观察 | 用途与限制 |
+|---|---|---|---|
+| R20 | [Platform #1060](https://github.com/jiangxng/EVO-App-Platform/pull/1060) | 当前 HEAD 为 `dfc1cea0c6b74e21746769c04bd72047204572ca`，Draft / Open；对最新 Platform main `eaa5e813b1e86a6460d988c76eb2076512c35127` 的 compare 为 ahead 29 / behind 0。 | 继续实施的唯一候选；没有合并、没有部署。 |
+| R21 | [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716071) | 精确 HEAD `dfc1cea0c6b74e21746769c04bd72047204572ca` completed / success。 | 自动化源码/协议门禁通过；不证明视觉签收。 |
+| R22 | [Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067) | 精确 HEAD completed / success；作业产物含 `report.json` 和桌面/手机 PNG。 | 实际下载并查看 artifact [12244670622](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067/artifacts/12244670622)。 |
+| R23 | [In-Context Import Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716088) | 精确 HEAD completed / success。 | 安全恢复回归通过；不代替真实客户验收。 |
+| R24 | [Human UI Design Review Gate](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716228) | 精确 HEAD completed / success。 | 这是自动化设计门禁，不是用户 Human 视觉签收。 |
+| R25 | [Lightweight Host Architecture](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716062) | 精确 HEAD completed / success。 | 轻量 Host 架构门禁通过。 |
+| R26 | [Real Host artifact 12244670622](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067/artifacts/12244670622) | 已下载并检查：隔离 Host、54 条已提交供应商记录、Chromium 141、5/5 场景 PASS、browserErrors=[]。包含桌面/手机映射、行级问题、连续滚动与合成 XLSX 回归截图。 | 当前精确 HEAD 的实际 Host 画面，但来自隔离合成数据；不是客户证据，也未获用户签收。 |
+
+### 本轮直接证据与项目判断分离
+
+**源事实：** 当前截图中桌面端显示标题、文件摘要、指标和四列映射表；手机端显示步骤导航、文件卡片、指标卡片与可滚动内容。report.json 为 5/5 PASS，无浏览器错误；手机视口 390px 的 scrollWidth=390。
+
+**项目判断：** 已证明前一轮 CSS 级联问题得到修复，手机响应式基础通过；但不能据此声称 #909 的视觉 100% 还原。需要专门核对原型中的文件/审核阶段、银行同名字段问题、主体类型缺失、系统编码问题、四列映射、步骤表达、底部 actionbar 和恢复初始选择动作。当前普通映射截图不足以覆盖所有组合异常状态。
+
+### 决策与排除方案
+
+- 采用：以当前精确 HEAD 的真实 Host 截图做逐项原型差异表，先定位正式页面差异，再以浏览器回归验证。
+- 排除：只凭 CI/Human UI Design Review Gate PASS 关闭 M06；用测试放宽替代手机布局修复；用截图演示页替代真实 Host 页面；把合成供应商/合成 XLSX 当客户证据；在未签收前启动 M04/M05。
+- 尚未解决：#909 原型与当前 Host 的步骤表达及底部动作是否存在可见/行为差异，需结合原型完整交互与 Host action contract 再确认；组合异常状态需保留最新截图；Eidos #202 的 owner PR 是否合并仍是独立发布问题，不能假设已合并。
+
+### 下一步落地
+
+1. 以 #909 不可变原型提交 `af58e0abad880439d54230485305bf2b4e05decc` 为基准，形成“原型元素 → 当前 Host 元素 → 差异 → 具体文件 → 修复 → 截图/测试证据”表。
+2. 审查 `apps/data-import/page.ts` 的页面结构与 `manager/desktop-workbench-runtime.ts` / Host action contract 的可执行动作；检查 `vendor/eidos/src/design-language/productive-workbench-css.ts` 与渲染器是否只承载通用样式/语义。
+3. 不创建无行为的底部按钮；若原型动作已有安全的 Host 命令，按现有契约接入并覆盖浏览器测试。
+4. 新改动必须重新运行精确 HEAD 的 Platform CI、Real Host Chromium、In-Context Resume、Human UI Design Review Gate 与 Lightweight Host Architecture，并重新生成 1280px/390px 画面。
+5. 继续保持 M04/M05 OPEN、M06 OPEN、总体 3/6；不改 `project.status.json`，不切 Railway release，不部署、不合并、不覆盖 PA05/Eidos/插件治理工作。
