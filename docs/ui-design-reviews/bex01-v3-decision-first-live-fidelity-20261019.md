@@ -104,3 +104,14 @@ V3 Human 工作台首先让用户核对当前来源列、原始样本、字段�
 **新增门禁：** Eidos Workbench 结构回归保护上述判断、临时揭示与按钮可见性；Platform 隔离 Host Chromium 使用独立 1280px 用户上下文，预设 `eidos.workbench.layout.sidePanelVisible=false`，核对 V3 实际映射表 1120–1220px、无多余聚焦按钮、原偏好保持不变，然后 `Ctrl+B` 确实恢复侧栏并更新普通偏好。390px 继续沿用 Eidos 单列导航。最新精确 HEAD CI 和真实浏览器结果**仍待 GitHub Actions Runner 运行，不能算 PASS**。
 
 上述是导航布局修复，不代表 #909 标题、文件卡片、审核区、底部操作区和 Human 视觉签收完成。M01–M03 工程完成，M04 客户真实数据验收 OPEN，M05 真实完整导入 OPEN，M06 高保真 OPEN，总体仍 **3/6**。#1054 继续 Draft；#202 未通过/合并前禁止宣告上线。
+
+
+## 2026-10-20 续跑 #07：标题与 Host 身份字段回到原型层级
+
+本次直接对照 #909 原始 HTML 的 review 状态（原型源码已读，R）与 Platform 当前真实 Host Chromium 截图（run 39363181134 工件已打开，R），确认两处可定位偏差：正式映射页标题仍为“字段映射 · 文件名”，而 #909 的审核步骤标题为“核对导入数据”；同时唯一选项的“当前文件”与“批量字段审核”只读导航字段被作为普通表单控件重复显示，原型已用文件摘要和现有上下文导航表达同一信息。
+
+**决定：** 标题改为“核对导入数据”，文件名只在真实文件摘要卡显示；不可变的 `importJobId` 与批次源修订号仍进入 Host 表单，但改用 Eidos 通用 `hidden: true` 语义，不再展示成可选项。批次审核/创建扩展字段的导航已存在于 `contextNavigation`，删除表单内重复的只读链接字段，保留原导航入口、Agent 自动匹配动作与 Host 命令。
+
+**架构边界：** Eidos 新增通用隐藏字段呈现能力（独立 Draft [#203](https://github.com/jiangxng/eidos/pull/203)），Platform 仅在当前文件与批次修订标识上 opt-in；隐藏字段不是授权凭据，Host 必须继续按当前授权上下文验证 ID。未修改映射目标、源值、权限、Recipe、字段创建/预检查/提交逻辑，也未使用合成样本冒充客户证据。
+
+**剩余门禁：** Eidos #203 CI/Human UI Gate；Platform exact-HEAD CI、真实 Host 1280px/390px；核对问题区真实有问题时的直接跳转、四列、底部操作区和原型完整长页。仍未签收视觉，M04/M05/M06 OPEN，总体 3/6。
