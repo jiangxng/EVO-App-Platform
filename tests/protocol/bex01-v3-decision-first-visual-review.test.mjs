@@ -45,7 +45,7 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
       "V3 source totals belong in the compact file subtitle and task metrics, not a duplicate facts row");
     assert.match(html,/data-eidos-form-task-steps/);
     const headingIndex=html.indexOf("<div data-eidos-page-heading>");
-    const stepperIndex=html.indexOf("<ol data-eidos-form-task-steps>");
+    const stepperIndex=html.indexOf("<ol data-eidos-form-task-steps");
     const overviewIndex=html.indexOf('<div data-eidos-form-task-overview data-eidos-task-presentation="workbench">');
     assert.ok(headingIndex < stepperIndex && stepperIndex < overviewIndex,
       "V3 workflow steps must share the page-heading row, not add a separate vertical block");
