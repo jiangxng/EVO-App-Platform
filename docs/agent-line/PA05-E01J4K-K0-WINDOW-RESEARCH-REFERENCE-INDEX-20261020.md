@@ -201,3 +201,10 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 | [GitHub Branch Hygiene 原始 workflow](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/.github/workflows/branch-hygiene.yml) 与 9 条源 branch/PR/compare API | **ORIGINAL_GITHUB_SOURCE_AND_REF_READ_THIS_WINDOW** | 9 条 PA05 docs 合并分支还存在、HEAD 不变、均非 protected、不被全部 **13 条**当前 open PR 引用；精确 tip 为 main 祖先。**只读安全退役审计已完成，删除未执行**：连接器不具备 delete ref / workflow dispatch；原 workflow 的自动合并清理只覆盖 agent/、docs/agent- 前缀，不匹配 docs/pa05-。 |
 
 **增量结论：** 外部 caller 与子进程不能用同一种“停机”证据。常驻 Worker 需要独立 OS/编排死亡回执；GitHub Runner/浏览器/临时 Validator 需要受保护路由/SQL 准入的 fail-closed deny，完整列表与独立权限边界需由组织签收。实际组织 stop/IdP/DBA owner 仍 `UNVERIFIED`，K0 `NOT_SIGNED`，WRITE `OFF`。两条 Draft PR 未合并。
+
+
+## 10. 2026-10-20 后续 main / Railway 实际部署快照
+
+**新独立控制面原文：** [GitHub main SHA `6fc8fac5...`](https://github.com/jiangxng/EVO-App-Platform/commit/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1) 由其他 owner 的 #1078 合并产生， [exact check-runs](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/check-runs) **40/40 SUCCESS**，`ORIGINAL_GITHUB_API_READ_THIS_WINDOW`。Railway connector `list_deployments` + `environment_status` **ORIGINAL_CONNECTOR_READ_THIS_WINDOW**：Host `002dc2d8-3fd5-42d2-88d5-8386c268b5e1` 对应 `6fc8fac5...` `SUCCESS/Online/1 running/0 crashed`，前一个 `102319de...` deployment `REMOVED`。
+
+**不替代反证：** main 在旧 SHA 的 [Ecosystem schedule #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) 仍曾 10 FAIL/82 skipped；后续 40/40 是另一组提交检查，不代表完整定时 `npm run test:all` 通过。#1074 工程未合并/未部署，Railway 真实 drain、Worker 停机/外部回执、Human IdP/DBA 凭据治理未签。详见 [K0 拓扑 §21](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md) 与 [未签收验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)；文档上一 HEAD `249fa43b6da7d68279fed488e96e923d7c35e857` 已获 **7/7 exact-HEAD CI SUCCESS**，本更新将推进 HEAD，后续应重新验 CI。

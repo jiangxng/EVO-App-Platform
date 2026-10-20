@@ -355,3 +355,14 @@ Require organization attestation of (1) all account/cloud/Runner/queue/manual ca
 - 已复核的 [Web Version Skew/RUM workflow](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/.github/workflows/web-version-skew-rum-production-proof.yml) 和 [脚本](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/tools/web-version-skew-rum-production-proof.mjs) 已经列在此前 §14；此次仅按原文复核 POST `/v1/web-performance` 为遥测写入，**不是新发现**，不能重复计入覆盖。瞬时外部调用者不要求全球停掉每个浏览器，但必须独立证明受保护入口/SQL 拒绝与进程停机完整性。
 
 **安全结论不变：** K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`，production material WRITE `OFF`。无生产 Validator/SQL/Secret/部署/重启/停机/清锁操作。
+
+
+## 21. 2026-10-20 — 另一个工作线合并后的版本更新（只读）
+
+**本次时点不是新 K0 签收：** 在新 K0 证据表已建立后，[main](https://github.com/jiangxng/EVO-App-Platform/commit/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1) 随不相关治理 [PR #1078](https://github.com/jiangxng/EVO-App-Platform/pull/1078) 推进到 `6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1`。原始 GitHub 精确 HEAD [40/40 检查](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/check-runs) SUCCESS；这些是该 SHA 的实际 checks，不是早先 schedule `test:all` 的相同范围。较早 [Ecosystem Certification #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) `1815/1723 pass/10 fail/82 skipped` 仍是独立已存负证据，不能据 40/40 推断已经修复其 10 失败。
+
+Railway 生产 Host [部署](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) `002dc2d8-3fd5-42d2-88d5-8386c268b5e1` 对应新 main，`SUCCESS / Online / 1 running / 0 crashed`。之前 `dffc4413-07e5-4302-95ac-adcf737fbdfb` 对应 `102319de...` 已标记 `REMOVED`。新部署并**未**合入 #1074 Host shutdown Draft，不提供真实全域进程停止、draining 或 SIGTERM 传播回执。
+
+已创建的 [K0 未签收验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 继续以固定 `102319de...` 源码作为所读取的**明确历史基线**；未来在 K0 实际签收前必须再基于生效新源码核实相关实现、权限与 PID，不能由旧文件日期推断最新运行源码恒等。PR #1071 前一文档 HEAD `249fa43b6da7d68279fed488e96e923d7c35e857` **7/7 exact-HEAD checks SUCCESS**；追加本节后又会产生一个新 HEAD，应单独核验。
+
+所有 K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，production material WRITE `OFF`；无主动生产操作。
