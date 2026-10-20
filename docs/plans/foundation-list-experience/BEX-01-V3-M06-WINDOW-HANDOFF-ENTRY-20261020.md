@@ -117,3 +117,15 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 - 已修正 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` 的步骤数量断言为 2，与 #909 原型一致。没有恢复第三个顶层步骤，也没有移除预检查、Schema 确认或明确提交。
 - 当前候选 HEAD 为 `0a135314c32fcd0633cedf1ac7dda1ad9be66407`。Platform CI、Real Host Chromium、In-Context Resume 等检查已重新触发；状态待完成。不要沿用 `895ea758…` 的 Real Host Chromium failure 或更早 HEAD 的 PASS 作为本 HEAD 最终结果。
 - 下一步等待最新精确 HEAD 的所有适用门禁，重点确认 V3 XLSX 子步骤走完并产出新 artifact。仍未合并/部署；M04/M05 OPEN、M06 OPEN，总体 3/6。
+
+
+## 2026-10-20 续跑 #14：真实 Host 证据复核与原型差异登记
+
+- 当前 Platform `main`：`eaa5e813b1e86a6460d988c76eb2076512c35127`。实施分支 `feat/bex01-v3-real-fidelity-clean-mainline-20261020` 的候选 HEAD `6049c5875adecadef7b353fbc8861acc5c154ecd` 相对 main ahead 36 / behind 0；没有必要再盲目 rebase。
+- 精确 HEAD `6049c587…` 的 Platform CI PASS（run `39384540039`）、BEX-01 Real Host Chromium PASS（run `39384540028`，5/5）、In-Context Resume PASS（run `39384540118`）。Host 截图 artifact ID `12246513104`，含桌面 1280px、手机 390px、映射异常区和连续滚动/底部操作区证据。
+- 最新文档更新 HEAD `107fbceb1c26043bd01ef2791e25068c3f474767` 已触发新一轮 CI；Platform CI 与 BEX-01 Real Host Chromium 当时仍在运行。不得把 `6049c587…` 的 PASS 继承成 `107fbceb…` 的最终结果。
+- 已实际打开对照 #909 原型 artifact ID `11957646429` 的 `01-desktop-overview.png` / `03-complete-field-table.png` 与真实 Host 的 `v3-fidelity-workbench-map-1280.png`、`v3-fidelity-first-viewport-batch-390.png`、`v3-map-row-issues-desktop.png`、`v3-map-row-issues-phone.png`、`v3-e4-map-desktop-submit.png`。
+- 差异已记录在 `docs/ui-design-reviews/bex01-v3-decision-first-live-fidelity-20261019.md` 的 2026-10-20 复核附录：原型文件卡片有更强的 XLSX 类型图标/信息层级；原型展示三种不同问题并逐项行动，当前问题截图仅包含 3 条主体类型缺失，因而只能呈现一个聚合问题卡；映射表四列已存在但 fixture 状态与原型不同；步骤条和底部操作区仍需统一状态后逐项核验。
+- 下一步不能只改 CSS 或把问题数写死。应建立独立 synthetic 视觉 fixture，复现 #909 的 22 列、16 已匹配、4 待新增、0 忽略、3 类异常状态；采集相同状态的 1280px/390px 连续截图，再修正文件卡片、异常项层级、步骤条和操作区。
+- 同一 HEAD 的 PA-01B2 Full Isolated Chrome Host Acceptance 曾以 7/8 失败，具体是普通聊天 transport 场景的 `MOCK_MODEL_CALL_NOT_SEEN`；这是独立 Agent 验收，不要改 PA05/PA01 源码或忽略断言来解决 BEX 任务。
+- #1060 继续 Draft，未合并/部署。M04 客户真实数据验收 OPEN；M05 真实完整导入 OPEN；M06 高保真建设中、Human 签收待定；总体进度 3/6。客户原始 Excel、授权 Import Job、两个银行字段真实身份与用途、三条真实主体身份仍未取得。
