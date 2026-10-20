@@ -710,6 +710,7 @@ with sync_playwright() as pw:
         assert label in issue_text,("BEX01_V3_VISUAL_ISSUE_MISSING",label,issue_text)
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
     assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
+    expect(visual_form.locator('[data-eidos-page-description]')).to_have_text("请核对字段对应关系，处理待解决的问题后继续。")
     expect(visual_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(visual_form.locator('[data-eidos-form-review-table-heading] p')).to_contain_text("系统已保留原有匹配结果")
     expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
@@ -761,6 +762,7 @@ with sync_playwright() as pw:
     phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     expect(phone_issues).to_have_count(3)
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
+    expect(phone_form.locator('[data-eidos-page-description]')).to_have_text("请核对字段对应关系，处理待解决的问题后继续。")
     expect(phone_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(phone_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")

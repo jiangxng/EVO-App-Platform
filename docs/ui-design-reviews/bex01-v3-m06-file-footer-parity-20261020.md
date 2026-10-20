@@ -72,3 +72,8 @@
 ### 本轮追加 UI 复核：四列审核区的标题与解释
 
 根据 #909 已读原型，字段审核表应由独立的“字段对应关系”标题和用途说明引导，避免上一段问题卡与下一段可编辑表格在认知上相连。变更 `vendor/eidos/src/runtime/contracts.ts`、`vendor/eidos/src/runtime/validate.ts`、`vendor/eidos/src/runtime/render-model.ts`、`vendor/eidos/src/renderers/html/index.ts`、`vendor/eidos/src/design-language/productive-workbench-css.ts`，增加仅在业务方声明时呈现的通用 heading。文案由 `apps/data-import/page.ts` 给出，安全验证限制标题和说明长度并转义 HTML。四列、选择器、Host 命令与手机响应式保持不变。新增双端 Chromium 断言核验标题，Human 仍 OPEN。
+
+
+### 本轮追加 UI 复核：首屏注意力与认知负担
+
+查看最新 `v3-prototype-parity-issues-phone.png` 后确认正式手机 390px 把多段操作说明挤入首屏，使核心人工问题与字段选择滞后。按 Eidos 注意力规范和 #909 已读原型，`apps/data-import/page.ts` 首屏短句区分复用映射、EC 建议和普通核对，不改变底层事实。复杂业务约束仍在问题卡、任务指导与显式 Host 预检查；这是文案的有界移动，不是删除审计、安全或源数据。新增真实浏览器文案断言；Human 待签收。

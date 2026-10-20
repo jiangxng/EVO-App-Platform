@@ -938,11 +938,19 @@ export function createDataImportMappingPageV010(input: {
     reviewTable,
     reviewTask,
     title: zh(input.locale) ? "核对导入数据" : "Review import data",
+    // The workbench first viewport is a decision surface, not a training manual.
+    // Existing source/provenance and safety guidance remain in the task and Host.
     description: input.job.mappingOrigin === "RECIPE"
-      ? t.recipeAppliedDescription
+      ? (zh(input.locale)
+        ? "已恢复此前确认的字段对应关系，请核对后继续。"
+        : "Previous confirmed mappings restored. Review before continuing.")
       : advisoryFields.length > 0
-        ? t.ecRecommendationDescription + " " + t.mappingDescription
-        : t.mappingDescription,
+        ? (zh(input.locale)
+          ? "系统提供了字段匹配建议，请核对需要处理的问题。"
+          : "Field matching suggestions are available. Review pending issues.")
+        : (zh(input.locale)
+          ? "请核对字段对应关系，处理待解决的问题后继续。"
+          : "Review field mappings and resolve outstanding issues before continuing."),
     contextNavigation: {
       items: [
         ...importContextNavigationV010({

@@ -69,6 +69,8 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(eidosProductiveWorkbenchCss,/li::before/);
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列来源/);
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
+  assert.match(mapping.description,/请核对字段对应关系/);
+  assert.ok(mapping.description.length < 80,"mapping first-screen copy should be concise");
   assert.equal(mapping.reviewTable.heading.title,"字段对应关系");
   assert.ok(renderToHtml(mapping).includes("<h2>字段对应关系</h2>"));
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
