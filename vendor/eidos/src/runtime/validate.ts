@@ -443,7 +443,7 @@ function parseField(
     control: control as UidlField["control"],
     required,
     ...(typeof hidden === "boolean" ? { hidden } : {}),
-    ...(typeof readOnly === "boolean" ? { readOnly } : {})
+    ...(typeof readOnly === "boolean" ? { readOnly } : {}),
     ...(
       ["string", "number", "boolean"].includes(typeof initialValue)
         ? { initialValue: initialValue as UidlOptionValue }
