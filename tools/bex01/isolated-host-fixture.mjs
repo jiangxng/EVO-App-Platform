@@ -89,7 +89,7 @@ try{
    assert.ok(outcome.value.snapshot?.installedPackages?.some(x=>x.packageId===packageId),"BEX01_INSTALL_FAILED_"+packageId);
  }
  const lines=["往来编码,往来名称,主体类型"];
- for(let index=1;index<=53;index++){
+ for(let index=1;index<=54;index++){
   const no=String(index).padStart(4,"0");
   lines.push("S"+no+",Supplier "+no+",ORGANIZATION");
  }
