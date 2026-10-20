@@ -73,5 +73,5 @@ test("standard business Workbench omits browser address controls", async () => {
   assert.doesNotMatch(source, /data-eidos-browser-go/);
   assert.doesNotMatch(source, /data-eidos-browser-external/);
   assert.doesNotMatch(source, /\bbrowserAddress\b|\bbrowserGo\b|\bbrowserExternal\b/);
-  assert.match(source, /browserToolbar\.append\(globalControls\)/);
+  assert.match(source, /browserToolbar\.append\(focusToggle,globalControls\)/);
 });

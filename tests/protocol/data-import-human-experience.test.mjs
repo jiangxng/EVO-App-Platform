@@ -1024,7 +1024,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-form-task-focus="map-source-3"/);
   assert.match(mapHtml,/<table data-eidos-form-review-table/);
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
-  assert.equal((mapHtml.match(/data-eidos-review-table-choice/g)??[]).length,4);
+  assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
   assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
   assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
@@ -1037,7 +1037,10 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
-  assert.match(page.fields.find(x=>x.key==="batchReviewEntry").contextLink.label,/集中审核/);
+  const batchReviewLink=page.contextNavigation.items.find(x=>x.id==="batch-review");
+  assert.ok(batchReviewLink,"Batch B remains available in the actual context navigation");
+  assert.match(batchReviewLink.label,/集中审核/);
+  assert.match(batchReviewLink.route,/mode=batch/);
   assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
   assert.ok(page.fields.find(x=>x.key==="map_2").options.some(x=>x.value==="__IGNORE__"));
   const review=handlers.find(x=>x.commandCode===DATA_IMPORT_REVIEW_COMMAND_V010);
@@ -1081,8 +1084,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   });
   assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
     && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
-  assert.match(completedPage.fields.find(x=>x.key==="batchConstantEntry").contextLink.label,
-    /查看或修改批次固定值/);
+  assert.match(completedPage.contextNavigation.items.find(x=>x.id==="batch-constant").label,
+    /核对本次导入的批次固定值/);
   assert.equal(validateUidl(completedPage).ok,true,
     JSON.stringify(validateUidl(completedPage).diagnostics));
 });
