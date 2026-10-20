@@ -122,3 +122,5 @@
 - **方案比较：** 直接删除 #204 card CSS 有跨工作流破坏及 owner 冲突，排除；更改实际问题分组/合并内容会丢失三条独立可执行工作流，排除；在 Eidos 中硬编码 BEX 供应商 ID、原型示例字段或固定数量，排除。保留双样式 opt-in 使 Human 可对照签收后选择，不是擅自宣布产品层统一决定。
 - **新验收约束：** protocol 应拒绝 unknown layout、非 Workbench layout、无问题的假 connected；桌面 1280px/390px 真 Host Chromium 检查该属性、真实三个问题 DOM、相邻卡行间的接缝 <=1.5 CSS pixel、容器和分隔线 computed border，手机无横向溢出；保存 `v3-connected-issues-desktop.png`、`v3-connected-issues-phone.png` 并继续测试 165/169/172 真实错误行和 Host 安全动作。具体 PASS 待该 HEAD CI，不事先填造。
 - **状态：** 本轮继续 #1077 stacked Draft → #1060，Eidos #204 未改，main/Railway 未改，Human 视觉正式签收 OPEN，M01–M03 COMPLETE；M04/M05/M06 OPEN，总体3/6。客户原始 XLSX 和 M05 真实业务验收继续禁止启动。
+
+**本轮工程审计节点：** connected opt-in 提交 `109c13518eef1c104216d98846379ee186cada84`。本交接尾注属于精确 HEAD 的可复核记录；实际 GitHub CI 和 Chromium 截图须以后续 workflow artifact 核验，勿将 HEAD 已推送当作测试通过。
