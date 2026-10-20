@@ -12,6 +12,8 @@ export interface UidlFileValueV010 {
 }
 export interface UidlField {
   key: string; label: string; semanticType: string; control: UidlControl; required: boolean;
+  /** Render as a non-interactive hidden form value while retaining Host submission identity. */
+  hidden?: boolean;
   readOnly?: boolean; initialValue?: UidlOptionValue; unit?: string; options?: UidlOption[];
   accept?: string[];
   maxBytes?: number;
