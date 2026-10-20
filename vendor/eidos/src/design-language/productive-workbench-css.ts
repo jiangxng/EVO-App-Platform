@@ -3550,8 +3550,6 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
 }
 
 
-`;
-
 /* An opt-in connected list matches continuous review prototypes while keeping
    the Eidos #204 independent numbered-card default, action semantics and DOM.
    No owner PR or generic issue-card presentation is overwritten. */
@@ -3571,3 +3569,4 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
   [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol>li+li{
   border-top:1px solid var(--eidos-border);
 }
+`;
