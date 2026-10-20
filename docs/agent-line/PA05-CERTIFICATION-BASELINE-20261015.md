@@ -913,3 +913,17 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 - [简短入口](PA05-E01J4K-K0-WINDOW-HANDOFF-ENTRY-20261020.md) 与 [详细来源索引](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md) 归档真实 GitHub/Railway 快照、原文阅读等级、来源事实 vs 工程判断、J4J/1074 正反测试、Railway drain 配置缺口及当前 main scheduled 全套反证。
 - 本次归档时主线 `eaa5e813b1e86a6460d988c76eb2076512c35127` 的 [Ecosystem Certification run #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) 是 **1815 tests / 1723 pass / 10 fail / 82 skipped**；该独立失败不得因局部 PR CI 全绿而隐藏；归因与修复不在本窗口跨线处理。
 - [PR #1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) 保持 Draft 文档专用；[PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 独立 shutdown 工程 Draft/未部署。K0、完整 E01J4、PA05-05 E01–E05 和 W06 仍 NOT_SIGNED；#988/#979/#913 OPEN；production material WRITE OFF。
+
+
+## 80. PA05-05/E01J4K K0 — 2026-10-20 当前版本与停机证据补充
+
+**认证结论不变：`K0 NOT_SIGNED`、完整 `E01J4 NOT_SIGNED`、`PA05-05 E01–E05 NOT_SIGNED`、`W06 NOT_SIGNED`；production material WRITE `OFF`。** 本次仅记录只读控制面和仓库源码证据。完整原始 URL、日期、阅读等级、正反证据见 [新窗口研究索引 §8](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)；逐项停机/身份缺口见 [K0 生产拓扑 §19](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)。
+
+- [main](https://github.com/jiangxng/EVO-App-Platform/commit/102319de812ce65682f0c6ccb1a930e10b4e22d4) 最新观察为 `102319de812ce65682f0c6ccb1a930e10b4e22d4`，其确切 push 检查 **3/3 SUCCESS**；Railway Host deployment `dffc4413-07e5-4302-95ac-adcf737fbdfb` 已对应此 SHA `SUCCESS / Online / 1 running, 0 crashed`。历史 `eaa5e813...` deployment 已退役，不得称为当前运行版本。
+- main 在较早 `eaa5e813...` 的定时 [Ecosystem Certification #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) 为 **1815 total / 1723 pass / 10 fail / 82 skipped**；本次所见最新 main push 3/3 **不包含**该全套测试，不能宣称先前 10 FAIL 已修复。
+- [#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) 继续为独立 Draft 文档 PR；[工程 #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 仍是 Draft/未合并/未部署，工程 HEAD `caccb1b60358b453ef471eaf6abecf1593e4965c` 的 45/45 SUCCESS / Lightweight Host 201/201 **仅**为工程证据。不得在本 PR 重复 shutdown 修复或未经明确授权合并部署。
+- Railway 当前连接项目仍可见五个服务，无独立 Cron Worker；Host 和 EVO Runtime 各一个配置副本，以 `npm start` 启动。当前 Host `package.json` 的 start 脚本是 `node dist/manager/server.js`，但 npm 启动包装层实际 PID 1 / SIGTERM 传递及 Settings-pane **有效 draining time 尚未证明**；官方默认 0 秒不是实际配置零秒的证据。lazy PROCESS 子进程具体存活清单、独立终止回执及组织全域外部调用者也未知。
+- 新的历史过程分支审核精确比对了九条 PA05 docs 已合并 PR 源分支，均 HEAD 等于合并时 PR tip 且是 main 祖先。当前连接器**不支持删除 Git ref 或 dispatch 既有 Branch Hygiene 工作流**，因此清理只完成了安全审计，**未执行远端删除**；两条仍活动的 #1071/#1074 分支不动。
+- [Issue #988](https://github.com/jiangxng/EVO-App-Platform/issues/988)、[#979](https://github.com/jiangxng/EVO-App-Platform/issues/979)、[#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) 重新核实保持 OPEN。真实身份 IdP、DBA/secret 轮换、全部生产 Worker 调用者与权威停机责任人仍须可信签收；本次未执行生产 Validator、HTTP、Secrets/SQL、重启/停止/扩缩容或异常锁处理。
+
+**证据边界：** K0 当前仅 `PLATFORM_TOPOLOGY_PARTIALLY_OBSERVED`，不是 `STOP_CONFIRMED`。新增仅文档，精确新提交 CI 仍须单独核验；归档历史和当前可变部署不得混写。
