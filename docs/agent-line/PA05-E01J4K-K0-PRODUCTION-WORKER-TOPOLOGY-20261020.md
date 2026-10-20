@@ -346,3 +346,12 @@ The reviewed shutdown patch closes HTTP admission before asynchronous cleanup, a
 ### Consequence / bounded next gate
 
 Require organization attestation of (1) all account/cloud/Runner/queue/manual callers and protected entrypoints, (2) every live Host and plugin child identity and responsible external supervisor, (3) exact effective per-service drain/overlap and direct SIGTERM PID delivery, (4) restart/scale freeze ownership, and (5) independently reconciled PG sessions and Human IdP/DBA/credential/audit owners. Until those exist, `STOP_CONFIRMED` must be refused; K0, complete E01J4, PA05-05 E01–E05 and W06 remain **NOT_SIGNED**; production material WRITE remains **OFF**. No service, secret, database, deployment, Validator or stale lock was touched in this inspection.
+
+
+## 20. 2026-10-20 K0 可信停机独立验收表（未签收）
+
+- [K0 可信停机证据验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 作为本记录的 **UNSIGNED_OPERATOR_EVIDENCE_WORKSHEET**：为基础设施/Host/Plugin Runtime/编排/IdP/DBA/审计 Owner 列明组织范围、实时进程与 PID/nonce、外部调用者、扩缩容冻结、Railway 有效 drain、可信逐实例退出、SQL session re-query 的准确证据字段及 DENY 条件。**不是可执行生产操作 Runbook**。
+- 2026-10-20 GitHub [当前 `manager/plugin-runtime-host.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/manager/plugin-runtime-host.ts) **已读源码**第 643–677 行：`stop(packageId)` 在本机等待 child `exit` 之前先删除 `runtimes` map 记录，再发 IPC shutdown，有 750ms SIGKILL fallback，`exit` 后 emit `PROCESS_STOPPED`。**来源事实：** map 删除早于退出；**工程判断：** map 空或本机 Host 日志都不能替代受信外部枚举/回执，父进程异常退出不能据此签全局停机。没有生产子进程/信号复现实测。
+- 已复核的 [Web Version Skew/RUM workflow](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/.github/workflows/web-version-skew-rum-production-proof.yml) 和 [脚本](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/tools/web-version-skew-rum-production-proof.mjs) 已经列在此前 §14；此次仅按原文复核 POST `/v1/web-performance` 为遥测写入，**不是新发现**，不能重复计入覆盖。瞬时外部调用者不要求全球停掉每个浏览器，但必须独立证明受保护入口/SQL 拒绝与进程停机完整性。
+
+**安全结论不变：** K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`，production material WRITE `OFF`。无生产 Validator/SQL/Secret/部署/重启/停机/清锁操作。

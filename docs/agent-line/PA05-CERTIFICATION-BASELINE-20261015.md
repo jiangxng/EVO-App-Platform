@@ -927,3 +927,10 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 - [Issue #988](https://github.com/jiangxng/EVO-App-Platform/issues/988)、[#979](https://github.com/jiangxng/EVO-App-Platform/issues/979)、[#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) 重新核实保持 OPEN。真实身份 IdP、DBA/secret 轮换、全部生产 Worker 调用者与权威停机责任人仍须可信签收；本次未执行生产 Validator、HTTP、Secrets/SQL、重启/停止/扩缩容或异常锁处理。
 
 **证据边界：** K0 当前仅 `PLATFORM_TOPOLOGY_PARTIALLY_OBSERVED`，不是 `STOP_CONFIRMED`。新增仅文档，精确新提交 CI 仍须单独核验；归档历史和当前可变部署不得混写。
+
+
+## 81. PA05-05 / K0 — 可信停机证据字段与拒绝门禁（2026-10-20）
+
+[原 K0 拓扑 §20](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md) 新增原文交叉核查，具体操作员证据字段与空白项见 [K0 停机证据验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。**独立已读源码**：`manager/plugin-runtime-host.ts` 在 child exit 前先删除 in-memory runtime map 条目；不能用空 map 证明 OS Worker 死亡或编排器可信终止。已有 GitHub RUM 生产探针（之前拓扑 §14 已登记）仅复核，不伪称新增。九条已合并 PA05 docs 分支确切 SHA/祖先关系/无 open PR 引用/未保护已审计；**远端删除未执行，不能虚报完成**。最新 #1071 文档提交 CI 需依新 SHA 重新核验，不复用上一版本 7/7。
+
+**K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，production material WRITE `OFF`，#988/#979/#913 保持 OPEN。** 无生产停机、Secrets、SQL 或 Validator 行为。
