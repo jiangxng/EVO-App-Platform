@@ -65,3 +65,47 @@ R1旧SOP工具身份/资格与冻结例外仍保留；R2 conversationDatabaseUrl
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
 
 提交期间main前进至 `f1bcfd80260394260d5f59c0589d4b692c8015de`，compare仅3个Agent交接/验收/拓扑文档路径，与本批8文件无重叠。以普通merge提交同步并完整保留；生产源码及本批分类事实不变。最终CI必须匹配同步后的准确head，结果见PR。
+
+## 6. 2026-10-20增量：refresh不再隐式持久化环境凭据
+
+基线main `2735edb72f2b44297466cbd53feda3892f84385b`（#1069），包含原交接#1020。#1069最终head `8abef0f99ac42e6268193a22dbe44fed485510a1`，4项CI、185行为/6守卫及四组合310模块/246静态边见[收口记录](https://github.com/jiangxng/EVO-App-Platform/pull/1069#issuecomment-6283394285)；这些不是本批测量。新分支 `fix/governance-llm-legacy-migration-trigger-20261020`；已核对开放BEX工作无本批路径重叠，不修改全局状态或其他专项。
+
+### 事实与有界修正
+
+继续查明同步`resolveLlmProvider`的Host chat/run/thread/async worker消费者，以及Human和Agent工具的安装路径。只在两个启动refresh前加Feature判断会使后来安装/启用的Provider缺少原runtime，不能假装是完整的按需修复；不为此改Agent合同或再造代理。因而本批先收口一个独立写副作用：两个refresh中`secrets.put(reference, legacyApiKey)`。
+
+该put并不需要infer调用或Secret管理授权：只要共享Secrets有效、对应记录未配置且环境Key存在，启动就会写；即使LLM未安装/停用也如此。普通模型设置保存也会进入refresh。更具体的缺陷是原显式REMOVE成功后，refresh会立即把仍存在的环境Key写回，令删除后的持久状态与用户动作不符。源码条件已确认；没有读取真实凭据或生产文件。
+
+本批只删除这两段隐式put及重复describe，保留一次metadata describe、已有密文resolve、settings选择、环境兼容fallback和原Provider工厂。**不再自动将环境Key迁入共享Secrets；需要持久化时在原设置的API Key字段显式提交。普通模型设置保存不算迁移授权。** 原`secret:apiKey`/`secret-remove:apiKey`路径继续经过原管理员认证/授权、加密写入及Secret审计，没有新写入口或授权规则。
+
+| 场景 | 本批实际行为/验收边界 |
+|---|---|
+| 未安装、停用、启用未使用、禁用重启 | refresh不写环境Key；共享安全store仍可创建/读取主密钥和密文，不宣称启动零文件访问 |
+| 首次合法调用/恢复启用 | 原已配置runtime和环境fallback保持，不需要等待新增加载器；真实Host测试以合成health GET检查兼容，不冒称真实LLM任务 |
+| 普通模型或Base URL保存 | 原配置保存/刷新保持，不附带Secret迁移或put；没有自动重放 |
+| 显式Key保存 | 原安装命名空间检查、管理员授权和审计保持；无授权拒绝，合法输入加密保存；已有记录不会被环境refresh覆盖 |
+| 显式删除后仍配置环境Key | 删除结果保留，refresh/启停/重装不再复活记录；旧环境回退仍可能继续可用，删除密文不是撤销部署环境变量 |
+| 重启/不再提供环境变量 | 原显式保存的密文仍可解析，启动不改写已有密文；删除且无环境Key时runtime不可用，探测不发外部请求 |
+
+### 验证与限制
+
+新增`tests/integration/llm-credential-persistence-host.test.mjs`一个多次重启的真实Host联合回归，覆盖上述两种已有Provider及密文不含明文、PUT/REMOVE审计。使用原profile、HTTP准入、生命周期和Secret store；test-only fetch fixture只接收合成.invalid端点GET，不打印Key；原TCP出站block保持。未为生产添加测试开关或替换源码，也不是第二个Provider生命周期试点。
+
+本地原LLM资源5项、health resolution2项、EOG guard5项合计12项通过；新Host测试/fixture及临时擦除Host语法通过。本地仍是固定SHA部分源码+Node24临时类型擦除，未正式全仓build或执行真实Host/browser。正式npm ci/build、Node22、联合Host回归与四组合在本PR CI；最终准确head、结果和合并见PR。没有新本地模块/性能测量，静态基线与冷禁入列表不改。
+
+读取复用完整项目启动/交付、装载规范、治理材料与Eidos权威；本轮补读原lazy-provider helper、Secret管理函数及相关settings校验，Host仅核对refresh、同步消费者、生命周期事件/入口和设置写路径，Agent工具仅核对install调用。未声称通读全Host/Agent或所有生命周期消费者。证据：[llm-credential-persistence-20261020.json](evidence/llm-credential-persistence-20261020.json)；[兼容评审](../../ui-design-reviews/llm-credential-persistence-20261020.md)。
+
+本批没有新实例、连接、timer、任务、全局缓存或dispose；启动时解析/解密已有Key、可选消费者资格、在途取消/轮换/跨Host冻结仍未解决，不能将本批写副作用修复冒充全部凭据按需装载。**本批验收达到后停止追加；下一步对账提前解析的同步消费者合同与必要Host配置职责，继续其他R3 Provider分类。** R1冻结SOP、R2配置SQL、R4跨层矩阵仍开放，无部署。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；LLM refresh隐式凭据写入已移除 | R3提前解析/其他Provider，R1/R2/R4保留 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |

@@ -3677,6 +3677,8 @@ function openAiApiKeyReference(): SecretReferenceV010 {
 }
 
 async function refreshOpenAiProviderRuntime(): Promise<void> {
+  // Environment credentials are a read-only compatibility fallback. Persist
+  // only through the existing authorized secret settings path, never refresh.
   const reference = openAiApiKeyReference();
   const legacyApiKey = process.env.OPENAI_API_KEY?.trim();
   let apiKey: string | undefined;
@@ -3685,12 +3687,7 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
     const secrets = resolveManagedSecretsProvider();
     if (secrets) {
       const status = await secrets.describe(reference);
-      if (!status.configured && legacyApiKey) {
-        await secrets.put(reference, legacyApiKey);
-        console.log("Migrated legacy OpenAI credential into Host Secrets Provider.");
-      }
-      const refreshedStatus = await secrets.describe(reference);
-      if (refreshedStatus.configured) {
+      if (status.configured) {
         apiKey = (await secrets.resolve(reference)).trim();
       }
     }
@@ -3747,6 +3744,7 @@ function deepSeekApiKeyReference(): SecretReferenceV010 {
 }
 
 async function refreshDeepSeekProviderRuntime(): Promise<void> {
+  // Refresh must not import an environment key or recreate a removed secret.
   const reference = deepSeekApiKeyReference();
   const legacyApiKey = process.env.DEEPSEEK_API_KEY?.trim();
   let apiKey: string | undefined;
@@ -3755,12 +3753,7 @@ async function refreshDeepSeekProviderRuntime(): Promise<void> {
     const secrets = resolveManagedSecretsProvider();
     if (secrets) {
       const status = await secrets.describe(reference);
-      if (!status.configured && legacyApiKey) {
-        await secrets.put(reference, legacyApiKey);
-        console.log("Migrated legacy DeepSeek credential into Host Secrets Provider.");
-      }
-      const refreshedStatus = await secrets.describe(reference);
-      if (refreshedStatus.configured) {
+      if (status.configured) {
         apiKey = (await secrets.resolve(reference)).trim();
       }
     }
