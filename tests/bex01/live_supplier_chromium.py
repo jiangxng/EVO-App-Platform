@@ -166,8 +166,33 @@ with sync_playwright() as p:
    # Same safe workspace exit is present from field mapping.
    mapping_route="/data-import/jobs/"+bad_id+"/map"
    page.goto(HOST+"/?surface=desktop#"+mapping_route,wait_until="domcontentloaded")
-   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=20000)
+   mapping_form=page.locator('[data-eidos-id="evo-data-import.mapping"]')
+   expect(mapping_form).to_be_visible(timeout=20000)
    assert page.locator('[data-eidos-context-route="'+route+'"]').count()==1
+   # A failed dry-run is already persisted Host evidence. The mapping page
+   # must surface the three missing subjectType rows before the user edits.
+   issue_panel=mapping_form.locator('[data-eidos-form-task-issues]')
+   expect(issue_panel).to_be_visible()
+   expect(issue_panel).to_contain_text("主体类型")
+   expect(issue_panel).to_contain_text("3 条记录需要处理")
+   expect(issue_panel).to_contain_text("第 1、2、3 行")
+   focus_issue=issue_panel.locator('[data-eidos-form-task-focus="map-source-2"]')
+   expect(focus_issue).to_be_visible()
+   page.screenshot(path=str(OUT/"v3-map-row-issues-desktop.png"),full_page=True)
+   phone_context=make_context(390,844,True)
+   try:
+    phone_page=phone_context.new_page()
+    phone_page.goto(HOST+"/?surface=desktop#"+mapping_route,wait_until="domcontentloaded")
+    phone_form=phone_page.locator('[data-eidos-id="evo-data-import.mapping"]')
+    expect(phone_form).to_be_visible(timeout=20000)
+    phone_issue_panel=phone_form.locator('[data-eidos-form-task-issues]')
+    expect(phone_issue_panel).to_be_visible()
+    expect(phone_issue_panel).to_contain_text("3 条记录需要处理")
+    expect(phone_issue_panel).to_contain_text("第 1、2、3 行")
+    expect(phone_page.locator("html")).to_have_js_property("scrollWidth",390)
+    phone_page.screenshot(path=str(OUT/"v3-map-row-issues-phone.png"),full_page=True)
+   finally:
+    phone_context.close()
    # The upload step also retains the originating business workspace.
    upload="/data-import/new/counterparty.subject?parameter__relationshipMode=SUPPLIER"
    page.goto(HOST+"/?surface=desktop#"+upload,wait_until="domcontentloaded")
