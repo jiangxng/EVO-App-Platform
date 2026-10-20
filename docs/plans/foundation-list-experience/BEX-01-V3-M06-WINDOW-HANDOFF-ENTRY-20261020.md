@@ -63,3 +63,15 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 本次没有重新开展竞品/外站研究；外部参考网址与历史阅读等级继承自 [M04 详细索引](BEX-01-V3-M04-RESEARCH-DECISION-REFERENCE-INDEX-20261019.md) 和 [2026-10-15 UI/业务研究索引](BEX-01-UI-RESEARCH-DECISION-REFERENCE-INDEX-20261015.md)、[业务流程研究索引](BEX-01-RESEARCH-DECISION-REFERENCE-INDEX-20261015.md)。本次新读的是 GitHub 原型、源码、PR、Actions 日志、部署元数据；具体 URL、结果、方案比较和未决冲突见[详细索引](BEX-01-V3-M06-RESEARCH-DECISION-REFERENCE-INDEX-20261020.md)。
 
 尚未取得/永久保存：客户原始 `往来账户2026_10_08_10_15_23.xlsx`、受权客户 Import Job、真实银行字段身份与用途决定、三条真实主体身份、用户原始四张参考 PNG 的永久仓库附件，以及本轮最新 V3 专项 Chromium 截图。最新失败 run 的 artifact 可查阅，但本轮尚未下载检查其内部文件清单；不得声称它包含已跳过的 V3 专项截图。
+
+
+## 2026-10-20 续跑 #08 最新执行状态
+
+> 详细证据、截图文件名、原型差异与纠正理由见[详细研究资料与决策索引 §续跑 #08](BEX-01-V3-M06-RESEARCH-DECISION-REFERENCE-INDEX-20261020.md)。
+
+- Platform main 最近一次核验为 `eaa5e813b1e86a6460d988c76eb2076512c35127`；Eidos main 为 `1b651737182c083bdb945e30c4d16b9ecacbc1e1`。PR #1060 当前候选 `def4fa6c99a72e17f6de5569b28307ba2a77e878` 已基于该 Platform main，compare ahead 25 / behind 0；仍为 Draft，未部署。
+- 精确 HEAD `def4fa6…` 的 Platform CI、Real Host Chromium、In-Context Import Resume、Human UI Design Review Gate、Lightweight Host Architecture 均 PASS。浏览器 artifact 为 [12242119759](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762771/artifacts/12242119759)，已实际打开桌面/手机 PNG。真实 Host Chromium 5/5 场景通过；V3 source audit、row correction、batch constant restore、172×22 synthetic XLSX 的 V3 专项步骤实际执行并通过。
+- 复核 artifact 后发现 `report.json` 的页数和行数元数据落后于测试断言。已提交修正 `6d77dcf22324a9039f315432598892b8dc5d6e07`（分页报告改为 25/25/4，样本报告改为 54 行）；**新 HEAD 的 CI/Chromium 仍需重跑确认，暂不记为最终 PASS**。
+- 最新截图已证明：标题“核对导入数据”、文件摘要、四列映射表、1280px 桌面和 390px 卡片布局正常。仍未签收：当前映射截图是 0 项 mapping attention 状态，未覆盖原型中的银行同名字段/主体类型/系统编码三类 issue box；顶部三步表达与原型两阶段不同；底部返回文件/恢复初始选择动作尚未对齐。不得把自动化绿灯等同 100% 视觉还原。
+- 下一步：等待 `6d77dcf…` 精确 HEAD 的 Platform CI 和 BEX-01 Real Host Chromium；检查新 artifact 的报告数据一致性；随后为未决字段创建隔离 Host 映射状态截图，审查 Host 安全动作契约，再按 #909 逐项修正。继续保持 Draft、不部署、不合并。
+- M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真/人类视觉签收 OPEN；总体 **3/6**。客户文件、授权 Job、银行字段真实身份/用途和三条真实主体身份仍未取得。
