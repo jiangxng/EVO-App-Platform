@@ -934,3 +934,10 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 [原 K0 拓扑 §20](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md) 新增原文交叉核查，具体操作员证据字段与空白项见 [K0 停机证据验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。**独立已读源码**：`manager/plugin-runtime-host.ts` 在 child exit 前先删除 in-memory runtime map 条目；不能用空 map 证明 OS Worker 死亡或编排器可信终止。已有 GitHub RUM 生产探针（之前拓扑 §14 已登记）仅复核，不伪称新增。九条已合并 PA05 docs 分支确切 SHA/祖先关系/无 open PR 引用/未保护已审计；**远端删除未执行，不能虚报完成**。最新 #1071 文档提交 CI 需依新 SHA 重新核验，不复用上一版本 7/7。
 
 **K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，production material WRITE `OFF`，#988/#979/#913 保持 OPEN。** 无生产停机、Secrets、SQL 或 Validator 行为。
+
+
+## 82. PA05-05 / K0 — PROCESS 停机测试覆盖与 Railway 追踪缺口（2026-10-20）
+
+[工作表 §8](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 对原始测试文件、Draft #1074 Host 错误路径测试和 Railway 只读 trace/webhook/TCP proxy metadata 做了定向查阅：PROCESS runtime 已有 child 执行/超时恢复等测试，但 **stop 与 shutdown overlap / shutdown 期间再 fork 缺独立专项证明**；#1074 tests 只处理 Host cleanup error-path/HTTP close，不覆盖 PROCESS 子进程竞态，保留独立工程责任。Railway 可访问项目 5 服务的 tracing 全部未开启、0 project webhook、0 Host TCP proxies，**不足以证明**外部调用者或进程停止范围完整。新事实的原文级别及准确 URL 见 [研究索引 §14](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。本次未执行非生产竞态测试或任何生产操作、未合并 Draft。
+
+**K0 NOT_SIGNED；完整 E01J4、PA05-05 E01–E05、W06 NOT_SIGNED；production material WRITE OFF。** Issue #988/#979/#913 仍保留 OPEN 作为现有未闭合验收依据。

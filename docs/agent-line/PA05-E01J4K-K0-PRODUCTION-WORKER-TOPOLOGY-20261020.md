@@ -391,3 +391,14 @@ Railway 生产 Host [部署](https://railway.com/project/aee4643e-912b-4ca1-ae95
 **新版部署/CI 快照：** 与本轮源码对应的 [main `91ffb9bd...`](https://github.com/jiangxng/EVO-App-Platform/commit/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa) 为其他治理线 PR #1079 合并，已通过 **39/39 此 SHA 的 GitHub commit checks**；Railway Host deployment `9aa54df8-26ca-43aa-a598-9b547f276a5c` 已标记 `SUCCESS`，前一个 `6fc8fac5...` deploy 为 `REMOVED`。主线两次 `manager/server.ts` 的管理员鉴权、E01D PA05 registration、Action 前置目标包权限、直接 HTTP 生命周期 mutations 以及 shutdown 段均在**各自精准截取段逐字相同**；不能据此推断全文件所有行为相同。独立 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 仍未部署，先前定时全套测试 10 FAIL 的负证据仍保留。
 
 保持 K0、E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED` 与 material WRITE `OFF`。本次没有生产 HTTP、Validator、SQL/Secret 查询、进程停止/重启、扩缩容或清锁。
+
+
+## 25. 2026-10-20 — Test coverage and tracing evidence separate from global shutdown
+
+Current GitHub [main@91ffb9bd](https://github.com/jiangxng/EVO-App-Platform/commit/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa), [K0 document PR #1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) prior head `30886a61860d28b29fcdb04ed5d6998b03d36d03` **7/7 checks SUCCESS**; [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) remains an independent Draft. No newly merged PA05 shutdown engineering.
+
+**Test scope established from files:** [PROCESS host protocol test](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/tests/protocol/process-runtime-host.test.mjs) tests expected child invoke/permission/isolation and timeout/crash restart, but lacks a deterministic stop/shutdown overlap or fork-after-shutdown case. [#1074 error-path test](https://github.com/jiangxng/EVO-App-Platform/blob/caccb1b60358b453ef471eaf6abecf1593e4965c/tests/agent-line/pa05-host-shutdown-error-path.test.mjs) tests Host step cleanup and HTTP admission refusal; does not cover the separate `plugin-runtime-host.ts` in-memory child registry race from §24. This is a **coverage finding**, not a reproduced failure. Complete evidence and proposed bounded owner split: [K0 worksheet §8](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md).
+
+**Railway controls now independently read:** `get_tracing` for all 5 connected project services returned tracing/auto-instrumentation **disabled**, `list_webhooks` 0, Host `list_tcp_proxies` 0 (2026-10-20, original connector values). No tracing-based caller completeness can be certified; HTTP, Runner, private networking, SQL sessions and organizational external sources remain unproven. Do not activate tracing, read production logs, access Secrets, run Validator or issue production test requests.
+
+**Decision:** Keep K0 global stop proof **NOT_SIGNED**, complete E01J4/PA05-05 E01–E05/W06 **NOT_SIGNED**, production material WRITE **OFF**. No branch, production or operator identity/DB changes.

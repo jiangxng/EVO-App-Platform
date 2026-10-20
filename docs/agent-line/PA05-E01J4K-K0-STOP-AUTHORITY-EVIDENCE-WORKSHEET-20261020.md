@@ -118,3 +118,29 @@
 | 无法联系编排器、外部 Worker/DB 会话持续存活 | 不允许 `STOP_CONFIRMED`、不执行维护、material WRITE 仍 OFF |
 
 **阶段决定：`SOURCE_TIMING_RISK_IDENTIFIED / ENGINEERING_REPRO_NOT_RUN / K0_NOT_SIGNED`。** 此处不擅改 #1074 Host shutdown 工程分支或任何生产行为。可将上述用例提交未来经授权的独立**非生产**核验线；真实跨进程停机仍需要组织编排器签发回执并由 DBA 重查 PostgreSQL sessions。
+
+
+## 8. 2026-10-20 — Existing test scope, #1074 non-overlap, and observable caller limitations
+
+**Evidence level: source file fully inspected for test-case coverage / Railway connector settings read-only.** No tests were run in this turn; no live production route was called.
+
+| Reference and exact source | Already tested in source | K0 negative case NOT established |
+| --- | --- | --- |
+| [`tests/protocol/process-runtime-host.test.mjs` at live main `91ffb9bd...`](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/tests/protocol/process-runtime-host.test.mjs), blob `41099d341c956b67fcf998fe05f841a5e6efed88`, **full 332 lines read** | Node child isolated invoke/storage/event, restricted fs and environment, timeout/crash recovery, unverified process and Sigstore admission. `host.shutdown()` is used in cleanup at 160/194/245/304/329 | **No explicit test** of `stop()` map deletion overlapping `shutdown()` snapshot, new `fork()` after shutdown begins, duplicate in-flight stop, independent child PID exit receipts after parent crash, or remote Worker death. Absence means *not covered by this file*, not “impossible” or a runtime-proven bug |
+| [Draft PR #1074 `tests/agent-line/pa05-host-shutdown-error-path.test.mjs`](https://github.com/jiangxng/EVO-App-Platform/blob/caccb1b60358b453ef471eaf6abecf1593e4965c/tests/agent-line/pa05-host-shutdown-error-path.test.mjs), blob `7de61c117653c71866298c4061315ee991153117`, **entire 2713-byte file read** | Verifies every cleanup step attempted after injected exceptions; multiple failures; clean completion; shutting-down HTTP keep-alive 503 | **Does not cover PROCESS child map identity, remote Worker's supervised exit, or live Railway PID 1**. #1074 changed `manager/server.ts`, `manager/host-shutdown.ts`, this test and CI; it did **not** modify `manager/plugin-runtime-host.ts`. Avoid duplicate engineering on #1071 |
+| [`tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs`](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs), blob `84785a29006e8f7e55096727d1ba8b8714dd513d`, **test-case/exit portions inspected** | Two co-operating Hosts excluded by exact inode file lock and abnormal SIGKILL stale state remains fail-closed | Not a global Host+lazy child+remote Runner termination proof; inherited J4J 28/28 PG18 engineering evidence remains bounded |
+
+### 8.1 Railway observability coverage
+
+**Actual read-only connector returns (2026-10-20):** `get_tracing` on the connected production environment `98b8b20c-d791-4073-a11d-bb1f7f0a1cb3` showed `tracingEnabled=false`, `autoInstrumentationEnabled=false`, `autoInstrumentationActive=false` for **all five services**. `list_webhooks` returned **0** project webhooks; `list_tcp_proxies` for Ledger Configurator Host returned **0** public TCP proxies. Original service inventory and project: [Railway project](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601). These reads neither use nor expose Secrets.
+
+**Scope:** Lack of Railway tracing means its distributed-trace data cannot currently constitute complete K0 caller attestation. No project webhooks or public Host TCP proxy does **not** prove absence of HTTPS traffic, private-network endpoints, connected PostgreSQL clients, GitHub runners, external organizations or internal process children. Do not switch on production instrumentation in K0 without a separate authorized change and privacy/cost review.
+
+### 8.2 Task separation and next acceptance ownership
+
+1. **#1074 engineering owner only:** maintain existing Draft Host cleanup failure/HTTP admission patch, keep 45/45 CI and 201/201 Lightweight Host evidence *bounded*. K0 document PR must not rewrite same source or merge/deploy this Draft.
+2. **Future isolated PROCESS-runtime test owner, only with separately authorized branch:** add deterministic fault-injection cases from §7 for stop-before-exit + shutdown snapshot, start-after-shutdown, orphan child after Host death. Specify an externally observed child PID/nonce and bounded cleanup receipt rather than relying on `runtimes` empty; do not falsely assert such cases currently pass. Distinct target: `manager/plugin-runtime-host.ts` and `tests/protocol/process-runtime-host.test.mjs` or a new dedicated test file; **no implementation performed here**.
+3. **Infrastructure / SRE:** attest organization/project/workspace + service/child + external runner enumeration, effective Railway drain, PID 1 signal path and independent stop/restart/scale freeze; allow testing on disposable isolated infrastructure only.
+4. **Security / DBA / Human Owner:** attest real issuer/operator session and revocation, separate SQL role/session re-query, privileged credential rotation, audit signatures; never use test IdP/Lease expiry/one DB function as the whole proof.
+
+**Verdict remains `COVERAGE_GAP_CONFIRMED_BY_SOURCE / PROCESS_RACE_NOT_REPRODUCED / K0_NOT_SIGNED`; material WRITE OFF, #988/#979/#913 OPEN, no production Validator/Secrets/SQL/mutation.**
