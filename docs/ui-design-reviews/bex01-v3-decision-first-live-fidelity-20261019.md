@@ -177,3 +177,40 @@ V3 Human 工作台首先让用户核对当前来源列、原始样本、字段�
 - 保持 PR #1060 为 Draft；不部署、不合并、不启动 M04/M05 真实客户 Excel 验收。
 - 下一项具体工作：增加一个**独立、隔离、明确标记为 synthetic 的 V3 视觉 fixture**，让实际 Host 呈现与 #909 同等的 22 列、16 已匹配、4 待新增、0 忽略、3 类问题状态；保存 1280px 和 390px 连续截图。然后逐项修复文件卡片、异常区、步骤流程和底部操作区的真实差异，再请求 Human 签收。
 - 不改 `project.status.json`，不切换 Railway 到 release，不修改 PA05/Eidos 其他工作或插件治理。
+
+## 2026-10-20 continuation: real three-issue state and actionable cards
+
+### New live Host evidence
+
+The isolated Host now stages a dedicated synthetic 22-column, 172-row visual-review job. It does not use customer data and is not committed. The job is shaped to show the prototype's decision classes at once: 16 existing-field matches, 4 new-field proposals, 0 ignored columns, and 3 issues.
+
+The latest actual Host Chromium run passed:
+- [BEX-01 Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545718)
+- [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545794)
+- [BEX-01 In-Context Import Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545764)
+- [Human UI Design Review Gate](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545683)
+
+The browser artifact `bex01-real-host-chromium-evidence` contains:
+- `v3-prototype-parity-issues-desktop.png`
+- `v3-prototype-parity-issues-phone.png`
+- `v3-prototype-parity-submit-desktop.png`
+- `v3-prototype-parity-submit-phone.png`
+
+The issue list now shows distinct Human actions:
+1. `开户银行存在多个对应字段` → `选择字段`
+2. `3 条记录缺少主体类型` → `查看记录`, with rows 165, 169, and 172 preserved
+3. `「系统编码」尚未选择处理方式` → `处理此列`
+
+The issue order is explicitly tested to match the approved prototype. The desktop and 390px screenshots come from the actual isolated Host and Chromium, not a static mock.
+
+### Decisions and limits
+
+- Ambiguous bank targets are not auto-selected. The issue action only focuses the existing field-choice control.
+- Missing subject type is summarized from durable dry-run evidence; it does not invent or fill a business value.
+- System-code-like metadata is retained in the source record until a Human chooses how to handle it.
+- The issue-card visual treatment is scoped to Eidos's opt-in `workbench` task presentation. The owner-layer CSS and regression test are tracked separately in [Eidos PR #204](https://github.com/jiangxng/eidos/pull/204), based on Eidos main and independent of PR #202.
+- The original V3 source-file card still lacks the prototype's explicit XLSX badge. The bottom action bar also still has only the current functional Host actions (`保存映射并预检查` and `AI 自动匹配`); `返回文件` and `恢复初始选择` have not been implemented yet because their real navigation/reset behavior must be added, not drawn as inert buttons.
+
+### Human review remains open
+
+This is a more faithful issue-state fixture and a validated implementation improvement, not final visual acceptance. Continue to compare the complete source card, issue panel, four-column table, stepper and bottom actions against PR #909 at 1280px and 390px. Do not start customer Excel acceptance until the user signs off the final V3 page.
