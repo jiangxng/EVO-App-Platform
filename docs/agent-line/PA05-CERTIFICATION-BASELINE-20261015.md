@@ -906,3 +906,10 @@ At [`manager/server.ts` exact blob `d1c50cc2c4c52bd251146ce84dfc6acfeca45e53`](h
 **§75 — PR #1074 exact-HEAD CI correction (2026-10-20)**
 
 The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) HEAD `caccb1b60358b453ef471eaf6abecf1593e4965c`, based on `main@eaa5e813b1e86a6460d988c76eb2076512c35127`, has **45/45 GitHub Actions SUCCESS**. Current [Lightweight Host #39378563738](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378563738) is **201/201 pass, 0 fail**, including shutdown error-path and real J4J separate-Host tests. This corrects the earlier 200-test count from a previous run; it does not increase the production evidence ceiling. PR remains Draft/unmerged and has not been deployed to Railway.
+
+
+**§76 2026-10-20 — E01J4K K0 本窗口研究资料/决策交接目录（仅档案，不增签安全门禁）**
+
+- [简短入口](PA05-E01J4K-K0-WINDOW-HANDOFF-ENTRY-20261020.md) 与 [详细来源索引](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md) 归档真实 GitHub/Railway 快照、原文阅读等级、来源事实 vs 工程判断、J4J/1074 正反测试、Railway drain 配置缺口及当前 main scheduled 全套反证。
+- 本次归档时主线 `eaa5e813b1e86a6460d988c76eb2076512c35127` 的 [Ecosystem Certification run #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) 是 **1815 tests / 1723 pass / 10 fail / 82 skipped**；该独立失败不得因局部 PR CI 全绿而隐藏；归因与修复不在本窗口跨线处理。
+- [PR #1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) 保持 Draft 文档专用；[PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 独立 shutdown 工程 Draft/未部署。K0、完整 E01J4、PA05-05 E01–E05 和 W06 仍 NOT_SIGNED；#988/#979/#913 OPEN；production material WRITE OFF。
