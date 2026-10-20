@@ -263,3 +263,15 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 ### 15.1 测试修正版本再次真实验收（2026-10-20）
 
 [Draft #1081 测试 HEAD `a1e8a0941ff5b796816aaea0904b89533191a239`](https://github.com/jiangxng/EVO-App-Platform/commit/a1e8a0941ff5b796816aaea0904b89533191a239) **5/5 exact-head checks SUCCESS**；[Platform CI #39427280985 / job #118643113249](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39427280985/job/118643113249) **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW**（2026-10-20T13:05:32Z）：子测试 #759/#760 实际再次 `ok`，`shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true`、`spawnedAfterShutdown=true`、`globalStopCertified=false`；`stopFinishedAfterwards=true` **此次在 stop promise await 完成后才输出**；整个协议 CI `1087/1086 pass/0 fail/1 skipped`。这是后续正确时序版本，不是补造前版日志。只支持隔离本地 PROCESS 两项安全反例；全域停机、生产 SIGTERM、operator IdP 与 DBA 证据仍未获取。
+
+
+## 16. 2026-10-20 — PROCESS 局部 stop barrier 正向回归原文索引
+
+| 原始资料/URL | 本轮阅读等级 | 新证据、限制与用途 |
+| --- | --- | --- |
+| [独立 Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) / [HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167`](https://github.com/jiangxng/EVO-App-Platform/commit/41b4fec7f153fe1df2df671a6f6030bd36d2b167) | **ORIGINAL_GITHUB_SOURCE_COMMITTED_THIS_WINDOW / PR_AND_FILES_READ，2026-10-20** | `plugin-runtime-host.ts` 增加 shutdown 后 start/invoke admission 拒绝、external integrity await 后再校验、在途 stop tracking，以及旧 record identity-safe cleanup。隔离测试 fixture + 正向回归，未修改 #1074 工程源码。仍 Draft/未合并/未部署 |
+| [Platform CI #39428680055 / job #118647684472](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472) | **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW，2026-10-20T13:15:11Z** | `ok #759` 两个局部停止时序标记为 false（原反例为 true），`ok #760` shutdown 后 fork 被拒绝。真实 Node 子进程。1087 total/1086 pass/1 skipped/0 fail；commit 5/5 checks SUCCESS。只证明本地两个确定性回归，不证明 Railway 或跨 Worker |
+| [现有 main `manager/plugin-runtime-host.ts` timeout 源码](https://github.com/jiangxng/EVO-App-Platform/blob/ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9/manager/plugin-runtime-host.ts#L609-L626) | **ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW，2026-10-20** | timeout 删除 map、随后发送 SIGKILL；**推导**其 OS exit/旧子进程仍可能在 shutdown 快照外，本轮无专门测试确认。不可由 #1082 两个绿灯推断该路径已封闭 |
+| [#1081 修正后真实负面日志](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39427280985/job/118643113249) | **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_PREVIOUS_WINDOW，同日** | `shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true`、`spawnedAfterShutdown=true`；与 #1082 同域正向断言形成可比较的前后真实证据，`globalStopCertified=false` 两者始终不变 |
+
+**选择方案：** 使用独立 `stopping` promise 跟踪弥补两项真实复现的缺口，不修改 #1074 Host 顶层关闭，且不合并测试-only #1081 的负面断言。**未选择**借助进程列表为空、Lease 超时或 CI success 签发可信全局停止；剩余 timeout/child 身份完整性以及外部 Infrastructure/IdP/DBA/SQL authority 仍需新证据。下一轮保持 Draft 分支隔离和生产写入 OFF。

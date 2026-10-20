@@ -185,3 +185,26 @@
 - 两条均明确 `globalStopCertified=false`；整份 `test:platform` 1087 total / 1086 passed / 0 failed / 1 skipped。
 
 因此 §9.1 首版固定字段的时序瑕疵**已通过后续新 HEAD 修复并重新真实跑通**，负面结论没有改变。永久保存新 HEAD、run/job 和标记（GitHub Actions job log 后续可能因保留期失效）；绝不把 5/5 测试绿灯记成 production stop certification。仍不合并、不部署 #1081；K0 `NOT_SIGNED`，material WRITE `OFF`。
+
+
+## 10. 2026-10-20 — PROCESS 局部停机屏障修复：已执行正向测试，K0 仍未签收
+
+### 10.1 独立工程与真实 CI 证据
+
+新独立 [Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 为 `agent/pa05-k0-process-runtime-stop-barrier-20261020`，首轮 HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167`（以 [该提交](https://github.com/jiangxng/EVO-App-Platform/commit/41b4fec7f153fe1df2df671a6f6030bd36d2b167) 为稳定可复核快照）。以 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 创建；未修改 #1074 所覆盖的 `manager/server.ts` 或 `manager/host-shutdown.ts`，未合并、未部署。仅三文件：`manager/plugin-runtime-host.ts`、本地一次性 PROCESS fixture、正向回归 `tests/protocol/pa05-k0-process-shutdown-barrier.test.mjs`。PR 文件列表已由 GitHub 原始信息确认。
+
+- **实际执行证据：** [Platform CI #39428680055 / job #118647684472](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472)，日志 `ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW`，2026-10-20T13:15:11Z。该 HEAD **5/5 commit checks SUCCESS**，`npm run test:platform` 日志为 **1087 total / 1086 passed / 0 failed / 1 skipped**。
+- **正向测试 #759 `ok`：** `PA05_K0_BOUNDED_STOP_BARRIER={"scope":"isolated-local-child","shutdownReturnedWithChildAlive":false,"shutdownSkippedInFlightStop":false,"stopFinishedAfterwards":true,"globalStopCertified":false}`；在旧版 [#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 中，同样真实 Node child 的反例为前两项 `true`。
+- **正向测试 #760 `ok`：** `PA05_K0_BOUNDED_START_DENIED={"scope":"isolated-local-child","postShutdownForkDenied":true,"globalStopCertified":false}`；旧版 #1081 曾实测 `spawnedAfterShutdown=true`。
+- **工程实现的静态事实：** 新 runtime 在 `shutdown()` 开始时立即 `shuttingDown=true`，拒绝后续 `start/invoke`，外部完整性校验 `await` 后再核对；单 package 同时 stop 时拒绝新 fork；已发起 `stop()` 的 promise 与 active map 单独跟踪并一起 await；`cleanupRecord` 只删除同一 `RuntimeRecord` 身份，避免旧 child 误删新登记。
+
+### 10.2 证据定级与仍需修复/验收的缺口
+
+| 边界 | 有界结论 |
+| --- | --- |
+| #1081 两项负面反例 → #1082 同项正向回归 | `ISOLATED_PROCESS_STOP_BARRIER_BOUNDED_PASS`，**真实子进程、单 Host/单机**；是特定测试通过，不是整个 PROCESS lifecycle 所有并发均无缺陷 |
+| 超时路径 | **NOT_COVERED**：当前源码在 `invoke` timeout 时可在 `child.kill("SIGKILL")` 的 OS exit 完成前删除 map 记录；该异常 child 不属于此次以显式 `stop()` 建立的 in-flight stop map。需要下一阶段**精确子进程实例注册/退出**或等价完整跟踪，针对 timeout/SIGKILL→shutdown、child error、不同代际同包子进程做进一步隔离负面测试与修复 |
+| 外部完整性校验途中关机 / 父进程被 SIGKILL | 新代码含校验后再检查 `shuttingDown`，但尚无专门可阻塞 verifier 的确定性 CI；父进程 SIGKILL 不可能靠本机 promise 等待提供独立终止回执 |
+| Railway / 生产身份 / DB 权限 | `NOT_VERIFIED`：生效 draining 与 npm→Node SIGTERM、完整容器 PID/子进程/Runner 清单、可信 orchestrator receipts、`pg_stat_activity`/Role grants、Human IdP/MFA/DBA/Audit Owner/Secret 轮换，均不是此 PR 的测试对象 |
+
+**决策：** 不把 #1082 的 5/5 GitHub checks 改写成全域 `STOP_CONFIRMED`，也不提前合并。既有 #1074 顶层 Host cleanup error path 与 #1082 内部 PROCESS stop barrier 依然两条独立 Draft 工程线。K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 保持 OPEN。没有生产操作。

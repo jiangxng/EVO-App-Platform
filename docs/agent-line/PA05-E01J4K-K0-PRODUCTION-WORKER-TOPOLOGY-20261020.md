@@ -411,3 +411,12 @@ Current GitHub [main@91ffb9bd](https://github.com/jiangxng/EVO-App-Platform/comm
 新生产时间片：另一个治理 [PR #1080](https://github.com/jiangxng/EVO-App-Platform/pull/1080) 推动 main 至 `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`，其 **4/4 commit checks SUCCESS**，Railway Host deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` `SUCCESS`，当前 environment status 显示 Host Online / 1 running / 0 crashed；旧 `91ffb9bd...` 的 deploy `9aa54df8-26ca-43aa-a598-9b547f276a5c` 当前列表标为 `CRASHED`，但该状态**不是现有生产发生故障的证明，也没有日志定位其原因**。这不是 PA05 #1074/#1081 合并上线。
 
 **安全动作严格未发生：** 没有生产运行图、数据库、HTTP、Validator、Secrets、停机、重启、排空设置、解锁或 WRITE 变更。#1071、#1074、#1081 均应保持 Draft，K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`。
+
+
+## 27. 2026-10-20 — 独立 PROCESS stop barrier 正向 CI（仅单 Host 有界）
+
+接续 [§26 的隔离真实负面反例](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)：独立 [Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 已以 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 单独实施局部 PROCESS stop barrier，工程 HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167`，准确原始 [Platform CI #39428680055 / job #118647684472](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472) 于 2026-10-20T13:15:11Z 显示两个真 Node child 正向回归 `ok #759/#760`。`shutdownReturnedWithChildAlive=false`、`shutdownSkippedInFlightStop=false`、`postShutdownForkDenied=true`，整次协议 CI `1087 / 1086 pass / 0 fail / 1 skipped`，该 HEAD **5/5 exact-head checks SUCCESS**。**`ISOLATED_PROCESS_STOP_BARRIER_BOUNDED_PASS`，不代表 K0 可信全域停机。**
+
+**剩余工程反面风险必须显式保留：** 在 `invoke` timeout 时删 map / 发 SIGKILL、child error/exit、同 package 多代 child 的完整终止跟踪仍未有单独确定性专项回归；#1082 的 `stopping` 记录聚焦通过 `stop()` 的在途 promise，并不天然列举所有已被 timeout 路径删除但 OS exit 尚未到来的子进程；不能把这次正向 CI 升级为所有本地 Child 的完整停机保证。具体需求与精确原文见 [工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+#1071 文档、#1074 Host 顶层错误清理和 #1081 负面测试、#1082 局部修复四条均 **Draft / 未合并 / 未部署**；生产仅保有外部治理线 main/Railway 的历史部署版本。不进行生产 Validator、生产停机、配置/Secret/DB 查询、清锁或 material WRITE。所有 K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`。

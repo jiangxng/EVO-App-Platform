@@ -950,3 +950,10 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 处理原则：#1081 保持测试-only Draft、不要合并让负面断言成为长期验收规范；#1074 Host shutdown error path Draft 保持独立。将来由有权限的独立工程评审补 PROCESS `shuttingDown` 拒绝新 fork、在途 stop promise 等待与子进程可验证 exit，转换为**要求缺陷不存在的正向测试**。只读真实组织 infrastructure/IdP/DBA 证据仍缺，**不能在生产运行 Validator、生产停机/重启/修改 draining、查看 Secret/DB 或凭据、清理异常锁**。
 
 **K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；生产 material WRITE `OFF`，Issues #988/#979/#913 保持 OPEN。**
+
+
+## 84. PA05-05 / K0 — PROCESS 子进程 stop barrier 局部实测通过，不升级全域停机（2026-10-20）
+
+**有界工程实证：`ISOLATED_PROCESS_STOP_BARRIER_BOUNDED_PASS`。** [Draft 工程 #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 首轮 HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167` 的 [Platform CI #39428680055 / job #118647684472](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472) 原始日志 `ok #759/#760`：真 Node child stop/shutdown overlap 不再提前返回或遗漏旧 stop；shutdown 后尝试新 fork 被拒。1087 tests/1086 passed/1 skipped/0 fail，5/5 exact-head checks SUCCESS。新代码仅在独立 Draft，**production main 未合入**；#1074 顶层 Host error-path 独立，#1081 负面复现保留。此 PASS 仅限**两个指定单机时序**，不可推断调用超时 child map 清理与 SIGKILL 同步、所有子进程、外部多 Worker 编排或生产凭据已经安全。精确资料见 [K0 工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[拓扑 §27](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)、[资料索引 §16](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。
+
+**K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`，Production material WRITE `OFF`，#988/#979/#913 仍 OPEN。** 外部组织权限、Railway drain、PID1/SIGTERM、真实人类 IdP/DBA/PG session 仍不具备可认证证据。

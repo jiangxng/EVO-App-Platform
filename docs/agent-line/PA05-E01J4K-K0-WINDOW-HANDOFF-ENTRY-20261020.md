@@ -67,3 +67,12 @@
 本交接原内容和第五节保存当时的正确快照；新独立 [Draft PR #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 记录一次性 PROCESS child 的 **stop/shutdown in-flight 子进程尚存**和 **shutdown 后 fork 新 child** 两项**真正执行的隔离竞态复现**。首个测试 HEAD `6eeb01b01c680d1e0c90999c5a79fcc6776493c0`、[Actions #39426909610 / job #118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592) 已读原始日志，两个子测试 `ok #759/#760`、`globalStopCertified=false`。精确负面 JSON、原始阅读等级、字段输出时序小修和适用限制见 [K0 验收表 §9](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[研究索引 §15](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md) 及 [K0 生产拓扑 §26](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)。不得将绿色 CI 当作安全功能已修复。
 
 本次 main `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`（其他治理线 #1080）/ Railway 新 Host `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` SUCCESS、Host Online/1 running。#1071、#1074、#1081 均保持 Draft 未部署；K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE OFF。下次先核验三个 Draft 当前 HEAD 及 CI，再复用本轮原文证据；没有独立生产权限证明不得运行 Validator 或进入真实维护。
+
+
+## 七、2026-10-20 续跑 #05：单机 PROCESS 停机修复有界通过
+
+- **工程序列**：[#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 旧版真实负面复现（两个命题为 true）→ 新独立 [Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) `agent/pa05-k0-process-runtime-stop-barrier-20261020`，HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167`，新增 PROCESS `shuttingDown` admission barrier、in-flight `stop()` 跟踪、实例同一性清理；[原始 CI job](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472) **5/5 exact-head checks SUCCESS**，`ok #759/#760`，真实 child shutdown 等待完成并阻止 shutdown 后 fork；**仅 `ISOLATED_PROCESS_STOP_BARRIER_BOUNDED_PASS`**。
+- **未闭合**：timeout 导致 map 提前删除并发送 SIGKILL、旧 Child 完整身份/退出收据、父进程异常停机、Railway effective draining + npm signal、全域 Runner/外部 SQL 连接及真实 Human IdP/DBA/audit 均未得到认证；下次优先隔离验证 timeout/child-generation 路径而非重复研究。#1071 文档、#1074 顶层 shutdown、#1081 负面证据、#1082 局部修复四条 PR **全保持 Draft / 不合并 / 不部署**。
+- **回收约束**：九条先前已合并 PA05 docs 过程分支只完成安全审计、实际远端删除未执行（连接器无对应能力）；当前四条活跃 Draft 绝不可清。生产 material WRITE 始终 OFF，K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，Issues #988/#979/#913 OPEN。
+
+具体证据和数据来源阅读等级：[工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[研究索引 §16](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)、[拓扑 §27](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)。此处保留历史时间片，不把当前线上 main 写成永久稳定状态。
