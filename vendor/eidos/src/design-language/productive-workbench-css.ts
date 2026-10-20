@@ -611,6 +611,18 @@ form[data-eidos-id] button,
   gap:var(--eidos-space-section);min-width:0;
 }
 [data-eidos-page-heading-copy]{min-width:0}
+form[data-eidos-id] [data-eidos-page-heading] > [data-eidos-form-task-steps]{
+  justify-content:flex-end;align-self:flex-start;flex:0 0 auto;max-width:48%;
+  margin:0
+}
+@media(max-width:850px){
+  form[data-eidos-id] [data-eidos-page-heading]:has(> [data-eidos-form-task-steps]){
+    flex-wrap:wrap
+  }
+  form[data-eidos-id] [data-eidos-page-heading] > [data-eidos-form-task-steps]{
+    width:100%;max-width:none;justify-content:flex-start
+  }
+}
 form[data-eidos-id] [data-eidos-page-heading] h1,
 [data-eidos-capability="catalog-browser"] [data-eidos-page-heading] h1{
   margin:0;font-size:var(--eidos-font-page);line-height:1.25;letter-spacing:-.015em;

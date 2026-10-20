@@ -42,6 +42,11 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
       "visible file and task metrics must precede review decisions");
     assert.match(html,/authorized-supplier-example\.xlsx/);
     assert.match(html,/data-eidos-form-task-steps/);
+    const headingIndex=html.indexOf("<div data-eidos-page-heading>");
+    const stepperIndex=html.indexOf("<ol data-eidos-form-task-steps>");
+    const overviewIndex=html.indexOf('<div data-eidos-form-task-overview data-eidos-task-presentation="workbench">');
+    assert.ok(headingIndex < stepperIndex && stepperIndex < overviewIndex,
+      "V3 workflow steps must share the page-heading row, not add a separate vertical block");
     assert.match(html,/data-eidos-form-task-metrics/);
     assert.match(html,/data-eidos-form-review-table/);
     assert.match(html,/type="hidden" name="importJobId"[^>]*value="v3-human-review-fidelity"/);
@@ -55,6 +60,7 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   }
   assert.equal(job.source.rows[0]["系统编码"],"EXT-001");
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-presentation="workbench"/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-page-heading\] > \[data-eidos-form-task-steps\]/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-review-table-presentation="compact"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issues/);
 });

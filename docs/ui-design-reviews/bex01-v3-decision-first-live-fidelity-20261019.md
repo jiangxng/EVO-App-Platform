@@ -115,3 +115,16 @@ V3 Human 工作台首先让用户核对当前来源列、原始样本、字段�
 **架构边界：** Eidos 新增通用隐藏字段呈现能力（独立 Draft [#203](https://github.com/jiangxng/eidos/pull/203)），Platform 仅在当前文件与批次修订标识上 opt-in；隐藏字段不是授权凭据，Host 必须继续按当前授权上下文验证 ID。未修改映射目标、源值、权限、Recipe、字段创建/预检查/提交逻辑，也未使用合成样本冒充客户证据。
 
 **剩余门禁：** Eidos #203 CI/Human UI Gate；Platform exact-HEAD CI、真实 Host 1280px/390px；核对问题区真实有问题时的直接跳转、四列、底部操作区和原型完整长页。仍未签收视觉，M04/M05/M06 OPEN，总体 3/6。
+
+
+## 2026-10-20 续跑 #08：工作流步骤回归原型标题行（R）
+
+**直接读取的证据：** 本次重新下载并打开 #909 对应原型浏览器工件（run [38704093619](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38704093619)，artifact `11957646429`，2026-10-15 的原始 V3 HTML/Chromium 画面），并打开最新实际 Host Chromium 工件（run [39381740543](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39381740543)，artifact `12245951269`，精确候选 HEAD `0a135314c32fcd0633cedf1ac7dda1ad9be66407`，2026-10-20）。两者均为已直接读取，不是搜索摘要。
+
+**观察到的差异：** #909 原型中两阶段步骤指示器与“核对导入数据”标题在同一水平行；实际 Host 的 `renderReviewTask()` 将步骤放在标题 `header` 之后的 task overview 内，导致标题、说明之后又单独占用一行，增加垂直距离并改变首屏层级。该差异与数据内容不同无关，是 HTML 结构层面的真实差异。当前真实 Host 1280px 画面还显示文件摘要比原型更高；本次只处理有明确结构根因的步骤位置，不顺带修改尚未量化的卡片高度。
+
+**决定与改动：** 对 `reviewTask.presentation="workbench"`，将通用步骤列表移入 `data-eidos-page-heading`，与标题/说明形成同一桌面标题行；工作流概览中不再重复输出步骤。移动端在 850px 以下允许步骤另起一行并左对齐。其他 `full` / `decision-first` 呈现维持旧结构，不影响普通表单。增加协议回归，要求 workbench 步骤 DOM 位于页面标题容器内、任务摘要之前。
+
+**边界：** 仅更改 Platform vendor Eidos 通用 renderer/CSS、V3 视觉回归测试与本审查记录；不修改字段映射、真实数据、Host 命令、授权、导入提交、PA05、EOG 或 `project.status.json`。这是按 #909 已读原型做的局部高保真修正，不代表 M06 100% 完成。需以新的精确 HEAD 通过 Platform CI、V3 实际 Host Chromium，并重新读取 1280px/390px 截图后继续检查文件卡片、问题区、四列、底部操作区和完整流程。
+
+当前里程碑保持：M01–M03 工程完成；M04 客户真实数据验收 OPEN；M05 真实完整导入 OPEN；M06 高保真建设中、待 Human 视觉签收；总体 3/6。

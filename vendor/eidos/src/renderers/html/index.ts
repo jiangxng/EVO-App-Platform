@@ -63,7 +63,13 @@ function input(field: RenderFieldV010): string {
   return `<input type="${type}" ${common}${initial}${min}${max}${pattern}>${field.unit ? `<span data-unit>${esc(field.unit)}</span>` : ""}`;
 }
 
-function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
+function renderReviewTaskSteps(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
+  return task.steps?.length ? `<ol data-eidos-form-task-steps>
+    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
+  </ol>` : "";
+}
+
+function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010, stepsInHeader = false): string {
   const subject=task.subject;
   const facts=(subject.facts ?? []).map(fact =>
     `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
@@ -74,9 +80,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
     ${subject.statusLabel ? `<span data-eidos-form-task-source-status>${esc(subject.statusLabel)}</span>` : ""}
     ${facts ? `<dl data-eidos-form-task-facts>${facts}</dl>` : ""}
   </section>`;
-  const steps=task.steps?.length ? `<ol data-eidos-form-task-steps>
-    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
-  </ol>` : "";
+  const steps=renderReviewTaskSteps(task);
   const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
     ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
       data-eidos-form-task-metric-id="${esc(metric.id)}"
@@ -111,7 +115,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
     // Keep actual source, status, metrics, and actionable issues visible in
     // their workflow order before Human review choices (Eidos #201).
     return `<div data-eidos-form-task-overview data-eidos-task-presentation="workbench">
-      ${steps}${context}${metrics}${issues}${help}
+      ${stepsInHeader ? "" : steps}${context}${metrics}${issues}${help}
     </div>`;
   }
   return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}${help}</div>`;
@@ -227,7 +231,10 @@ export function renderToHtml(document: unknown): string {
     <ul data-eidos-review-plan-items></ul>
     <p data-eidos-review-plan-warning>${esc(model.reviewPlan.warning)}</p>
   </section>` : "";
-  const taskOverview=model.reviewTask ? renderReviewTask(model.reviewTask) : "";
+  const workbenchSteps=model.reviewTask?.presentation === "workbench"
+    ? renderReviewTaskSteps(model.reviewTask) : "";
+  const taskOverview=model.reviewTask
+    ? renderReviewTask(model.reviewTask,model.reviewTask.presentation === "workbench") : "";
   const fields = standalone + (model.reviewTable
     ? reviewTable : groups
       ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
@@ -250,6 +257,7 @@ ${renderContextNavigationV010(model.contextNavigation)}
 <h1>${esc(model.title)}</h1>
 ${model.description ? `<p data-eidos-page-description>${esc(model.description)}</p>` : ""}
 </div>
+${workbenchSteps}
 </div>
 </header>
 ${taskOverview}
