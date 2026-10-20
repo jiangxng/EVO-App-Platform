@@ -830,15 +830,15 @@ export function createDataImportMappingPageV010(input: {
         value:String(input.job.source.headers.length)
       }]
     },
+    // Match the approved V3 prototype: the top stepper has two stages.
+    // Precheck, schema confirmation and explicit commit remain substeps of
+    // "核对并导入", not a third top-level stage.
     steps: [{
       id:"source",label:zh(input.locale)?"选择文件":"Choose file",
       state:"complete" as const
     }, {
-      id:"review",label:zh(input.locale)?"核对映射":"Review mapping",
+      id:"review",label:zh(input.locale)?"核对并导入":"Review & import",
       state:"current" as const
-    }, {
-      id:"commit",label:zh(input.locale)?"预检查与导入":"Validate & import",
-      state:"upcoming" as const
     }],
     metrics: [{
       id:"matched",label:zh(input.locale)?"已匹配":"Matched",
