@@ -238,6 +238,9 @@ export function createProcessPluginRuntimeHostV010(
   // Serializes all in-progress verified starts, including an asynchronous
   // Sigstore verifier. Prevents duplicate fork for the same package.
   const starting = new Map<string, Promise<PluginRuntimeStatusV010>>();
+  // Cancels the LOCAL wait for a pending external verifier. The verifier
+  // itself may continue externally; a cancelled start must never fork.
+  const cancelVerifying = new Map<string, (error: Error) => void>();
   let shuttingDown = false;
   const childEntrypoint = fileURLToPath(
     new URL("./plugin-runtime-process-child.js", import.meta.url)
@@ -399,7 +402,24 @@ export function createProcessPluginRuntimeHostV010(
           `PLUGIN_EXTERNAL_EVIDENCE_VERIFIER_REQUIRED: ${pkg.packageId}: SIGSTORE_BUNDLE`
         );
       }
-      const evidence = await options.verifyExternalEvidence(pkg, artifactBytes);
+      let cancel!: (error: Error) => void;
+      const cancellation = new Promise<never>((_resolve, reject) => {
+        cancel = reject;
+      });
+      cancelVerifying.set(pkg.packageId, cancel);
+      let evidence: PluginExternalEvidenceVerificationV010;
+      try {
+        // Promise.race attaches handlers to both promises: a late rejection
+        // from a verifier abandoned by shutdown cannot become unhandled.
+        evidence = await Promise.race([
+          options.verifyExternalEvidence(pkg, artifactBytes),
+          cancellation
+        ]);
+      } finally {
+        if (cancelVerifying.get(pkg.packageId) === cancel) {
+          cancelVerifying.delete(pkg.packageId);
+        }
+      }
       if (evidence.state !== "VERIFIED") {
         throw new Error(
           `PLUGIN_EXTERNAL_EVIDENCE_REJECTED: ${pkg.packageId}: ${evidence.state}: ${evidence.message}`
@@ -722,7 +742,12 @@ export function createProcessPluginRuntimeHostV010(
       let record = runtimes.get(packageId);
       if (!record) {
         const pendingStart = starting.get(packageId);
-        if (pendingStart) await pendingStart.catch(() => {});
+        if (pendingStart) {
+          cancelVerifying.get(packageId)?.(
+            new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${packageId}`)
+          );
+          await pendingStart.catch(() => {});
+        }
         record = runtimes.get(packageId);
       }
       if (!record) return;
@@ -775,6 +800,12 @@ export function createProcessPluginRuntimeHostV010(
       // Close all future start/invoke admission before building a stop
       // snapshot. Include children already removed by a previous stop().
       shuttingDown = true;
+      // Cancel LOCAL verifier admission before awaiting pending starts.
+      // A remote verifier that ignores cancellation may still run, but
+      // its eventual resolution no longer authorizes a new fork.
+      for (const cancel of cancelVerifying.values()) {
+        cancel(new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN"));
+      }
       // A verifier may be pending without a forked child yet. Wait until
       // those calls observe shutdown and reject before returning.
       const pendingStarts = [...starting.values()].map(promise =>

@@ -3,6 +3,11 @@
 export async function invoke(request) {
   if (request.method === "pid") return { pid: process.pid };
   if (request.method === "hang") await new Promise(() => {});
+  if (request.method === "disconnect-ipc") {
+    process.disconnect?.();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return { disconnected: true };
+  }
   throw new Error("PA05_K0_FIXTURE_UNSUPPORTED_METHOD");
 }
 

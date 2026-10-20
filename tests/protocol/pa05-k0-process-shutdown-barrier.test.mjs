@@ -300,3 +300,105 @@ test("K0 bounded: stop during pending verifier refuses late fork", {timeout: 120
     await host.shutdown();
   }
 });
+
+
+test("K0 bounded: shutdown cancels a verifier that never returns and prevents a late fork", {timeout: 12000}, async () => {
+  const pkg = fixturePackage(3000, true);
+  let release, entered, forks = 0;
+  const gate = new Promise(resolve => {release = resolve;});
+  const verifierEntered = new Promise(resolve => {entered = resolve;});
+  const host = localRuntime({
+    onRuntimeEvent(event) { if (event.type === "PROCESS_STARTING") forks += 1; },
+    async verifyExternalEvidence(manifest) {
+      entered();
+      await gate;
+      return {state: "VERIFIED", packageId: manifest.packageId,
+        evidenceType: "SIGSTORE_BUNDLE", message: "local-only fixture"};
+    }
+  });
+  let starting;
+  try {
+    starting = host.start(pkg, installed());
+    await verifierEntered;
+    const shutdown = host.shutdown();
+    const bounded = await Promise.race([
+      shutdown.then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 1000))
+    ]);
+    assert.equal(bounded, true, "local Host shutdown must not await a hung verifier");
+    await assert.rejects(starting, /PLUGIN_PROCESS_HOST_SHUTTING_DOWN/);
+    release();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(forks, 0, "late external verifier result must never fork");
+    console.log("PA05_K0_BOUNDED_VERIFIER_SHUTDOWN=" + JSON.stringify({
+      scope: "isolated-local-child",
+      boundedShutdown: bounded, lateForks: forks, globalStopCertified: false
+    }));
+  } finally {
+    release();
+    if (starting) await Promise.allSettled([starting]);
+    await host.shutdown();
+  }
+});
+
+test("K0 bounded: stop cancels a never-resolving verifier without waiting for external work", {timeout: 12000}, async () => {
+  const pkg = fixturePackage(3000, true);
+  let release, entered, forks = 0;
+  const gate = new Promise(resolve => {release = resolve;});
+  const verifierEntered = new Promise(resolve => {entered = resolve;});
+  const host = localRuntime({
+    onRuntimeEvent(event) { if (event.type === "PROCESS_STARTING") forks += 1; },
+    async verifyExternalEvidence(manifest) {
+      entered();
+      await gate;
+      return {state: "VERIFIED", packageId: manifest.packageId,
+        evidenceType: "SIGSTORE_BUNDLE", message: "local-only fixture"};
+    }
+  });
+  let starting, stopping;
+  try {
+    starting = host.start(pkg, installed());
+    await verifierEntered;
+    stopping = host.stop(pkg.packageId);
+    const bounded = await Promise.race([
+      stopping.then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 1000))
+    ]);
+    assert.equal(bounded, true, "local stop must revoke pending start without external verifier response");
+    await assert.rejects(starting, /PLUGIN_PROCESS_STOP_IN_PROGRESS/);
+    release();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(forks, 0);
+    console.log("PA05_K0_BOUNDED_VERIFIER_STOP=" + JSON.stringify({
+      scope: "isolated-local-child",
+      boundedStop: bounded, lateForks: forks, globalStopCertified: false
+    }));
+  } finally {
+    release();
+    if (starting) await Promise.allSettled([starting]);
+    if (stopping) await stopping;
+    await host.shutdown();
+  }
+});
+
+test("K0 bounded: unexpected child IPC disconnect fails pending invocation and reaps local child", {timeout: 12000}, async () => {
+  const pkg = fixturePackage();
+  const host = localRuntime();
+  let pid;
+  try {
+    pid = (await host.invoke(pkg, installed(), {method: "pid", input: null})).pid;
+    assert.equal(pidAlive(pid), true);
+    await assert.rejects(
+      host.invoke(pkg, installed(), {method: "disconnect-ipc", input: null}),
+      /PLUGIN_PROCESS_EXITED|PLUGIN_PROCESS_ERROR|PLUGIN_PROCESS_FATAL/
+    );
+    await host.shutdown();
+    assert.equal(pidAlive(pid), false);
+    console.log("PA05_K0_BOUNDED_IPC_DISCONNECT=" + JSON.stringify({
+      scope: "isolated-local-child",
+      disconnectedChildClosed: true, globalStopCertified: false
+    }));
+  } finally {
+    await host.shutdown();
+  }
+});
