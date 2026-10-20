@@ -92,3 +92,8 @@
 ### 自动续跑 #02：Agent 入口归位字段映射工具栏
 
 原型底部三项主流程操作与真实 Host 四项底部操作存在差异。将原始 `ai-auto-map`（实际 Agent.personal action、带 Host 上下文）按 `reviewTable.agentActionId` 精确引用，在 Eidos 通用字段筛选工具栏显示且底栏不重复显示；页控制器继续按同一 `data-eidos-agent-action` 绑定，严禁发明网络动作。单独契约验证缺失/伪 Agent action 不通过；1280px 和 390px 验证按钮存在唯一、触摸尺寸和 footer 干净。此次展示调整不表明 Agent 模型调用已经实际执行过，业务数据仍需人工预检及提交。
+
+
+### M06 自动续跑 #03：待处理问题关联真实错误行
+
+对照已读 #909 原型与真实 Host，修复“查看记录”原先只聚焦字段表而不能打开具体异常记录的问题。仅在每条异常行均通过业务层 `dataImportCorrectableSourceV010` 校验时，Workbench 的通用 issue 原生折叠披露真实修正路径，采用已有 Host delegated route；不推断缺失主体身份，不执行 Host 写入。桌面和390px 浏览器需实测三条行链接与实际逐行更正页面，其他 issue 仍保持原字段定位。此更改提升功能实用性但不能替代视觉 Human 100% 签收。

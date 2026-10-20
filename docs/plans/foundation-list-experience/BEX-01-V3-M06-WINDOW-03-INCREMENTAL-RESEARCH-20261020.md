@@ -81,3 +81,12 @@
 - **采用设计（判断）：** Eidos `reviewTable.agentActionId` 仅引用原有 agent action；解析契约严格确认 ID 有界且必须是已声明的 Agent action。渲染在同一字段筛选工具栏，底栏只保留原有真实返回、重置、保存并预检；事件仍被页控制器原事件绑定发现，不能复制或发明 Host 动作。Eidos 仍通用，不在基础控件内写 BEX 特有文案。
 - **不采用：** 删除 AI、在 footer 保留重复按钮、将 AI 自动触发或仅写一个没有事件的图标。桌面和 390px 浏览器断言同一 action id 恰有一个按钮、footer 不再包含 AI、移动端可触高度至少44px；不在合成测试里自动触发 Agent 请求以防意外影响独立网络环境。
 - **当前状态：** 此文档记录实施意图；是否 CI PASS 必须单独核对新 commit 精确 HEAD，Human signoff 未完成。#204 独立问题卡仍是待决，与本改动不冲突。
+
+
+## M06 Window-03 自动续跑 #03｜问题卡真正关联原始错误行（2026-10-20）
+
+- **已读源码 R：** #909 原型“3 条记录缺少主体类型”提供“查看记录”并展开具体错误行；#1077 真实 Host 此前“查看记录”仅触发通用 `data-eidos-form-task-focus`，定位来源字段的 select，无法直接进入对应的逐行更正页面。现有 `dataImportRowCorrectRouteV010` 及 `dataImportCorrectableSourceV010` 已提供明确路由与可修正性校验；review 页同样使用此校验生成改正按钮。
+- **本轮采用（实施判断）：** Eidos 通用 reviewTask issue 可选 `relatedRoutes:[{label,route}]`，1–8、唯一、非空内部路由、HTML 安全转义，由既有 `data-eidos-context-route` Host delegated navigation 执行。仅当 `dryRun` 实际包含缺失主体类型的行且每条 row 的真实 source column、schema 和 Host correction policy 校验全部通过时，Platform 提供链接；显示原始实际行数，例如 165、169、172。点击“查看记录”只展开链接，再明确点击第 N 行进入真实编辑表单；不会自动保存或提交。若任何行不可修正，继续原字段定位，不会显示假的记录入口。
+- **拒绝方案：** 写死 #909 行号、在浏览器端绕过 Host 权限、自动将供应商主体类型设为企业、自动跳到第一条并静默提交、使用模拟内嵌表格复制业务对象。#204 独立问题卡整体保留，卡片与连续问题框冲突仍待 Human 签收。
+- **测试计划：** 协议校验正常内路由及拒绝外部／重复路径；隔离真实 Host 的 1280px 和 390px 点击展开三条来源记录，分别导航至 row165、row169 的真实 `evo-data-import.row-correct`，核对真实行号后安全返回，新增 `v3-issue-real-row-links-desktop.png` 与 `v3-issue-real-row-links-phone.png`。无真实客户 Excel，全部 synthetic。
+- **进度边界：** 本段是本轮提交前研究记录，不事先宣称 CI PASS；M01–M03 DONE，M04/M05/M06 OPEN，总体仍 3/6。Human 视觉签收 OPEN，勿将 synthetic Host 视为客户业务确认。

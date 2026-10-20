@@ -114,6 +114,8 @@ export interface UidlFormReviewTaskV010 {
     /** Focus an already defined group; never acts upon Host data. */
     focusGroupId?: string;
     actionLabel?: string;
+    /** Verified internal routes to real row correction pages, not client mutations. */
+    relatedRoutes?: { label: string; route: string }[];
   }[];
   /** Presentation-only guidance; not a claim of a successful save. */
   helpText?: string;

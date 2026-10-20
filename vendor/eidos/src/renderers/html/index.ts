@@ -99,7 +99,15 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
     <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
       <div><strong>${esc(issue.title)}</strong>
       ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>
-      ${issue.focusGroupId ? `<button type="button"
+      ${issue.relatedRoutes?.length
+        ? `<details data-eidos-form-task-issue-related>
+            <summary>${esc(issue.actionLabel ?? "View records")}</summary>
+            <div data-eidos-form-task-issue-related-links>${issue.relatedRoutes.map(link=>
+              `<button type="button" data-eidos-form-task-issue-row
+                data-eidos-context-route="${esc(link.route)}">${esc(link.label)}</button>`
+              ).join("")}</div>
+          </details>`
+        : issue.focusGroupId ? `<button type="button"
         data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
     </li>`).join("")}</ol>
   </section>` : "";

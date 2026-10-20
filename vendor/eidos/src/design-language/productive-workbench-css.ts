@@ -3424,6 +3424,38 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
 [data-eidos-review-plan-warning]{
   margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
 }
+/* Verified row-correction links within a workbench issue. Native disclosure
+   preserves layout and keyboard behavior; navigation is Host-owned. */
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related]{
+  align-self:start;min-width:0;max-width:100%;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary{
+  display:flex;align-items:center;justify-content:center;
+  min-height:var(--eidos-control-normal);box-sizing:border-box;
+  padding:0 var(--eidos-space-sm);border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-md);background:var(--eidos-bg);
+  color:var(--eidos-primary);font-size:var(--eidos-font-compact);
+  font-weight:600;cursor:pointer;list-style:none;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary::-webkit-details-marker{display:none}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links]{
+  display:grid;gap:var(--eidos-space-xs);padding-top:var(--eidos-space-sm);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links] button{
+  min-height:var(--eidos-control-normal);white-space:nowrap;
+}
+@media(max-width:850px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related]{
+    grid-column:2;justify-self:start;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary,
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links] button{
+    min-height:44px;
+  }
+}
 /* BEX-01 workbench parity: distinct, numbered Human actions rather than one
    undifferentiated grey list. Only the opt-in workbench presentation changes. */
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{

@@ -1164,14 +1164,25 @@ export function validateUidl(
       });
       checkIds(task.issues,path+".issues",12,(item,at)=>{
         extraKeys(item,new Set(["id","title","description",
-          "focusGroupId","actionLabel"]),at,out);
+          "focusGroupId","actionLabel","relatedRoutes"]),at,out);
         return nonEmpty(item.title)
           && (item.description===undefined || typeof item.description==="string")
           && (item.focusGroupId===undefined
             || nonEmpty(item.focusGroupId)
               && reviewGroups.some(group=>group.id===item.focusGroupId))
           && (item.actionLabel===undefined || nonEmpty(item.actionLabel))
-          && (item.actionLabel===undefined || item.focusGroupId!==undefined);
+          && (item.actionLabel===undefined
+            || item.focusGroupId!==undefined || item.relatedRoutes!==undefined)
+          && (item.relatedRoutes===undefined || Array.isArray(item.relatedRoutes)
+            && item.relatedRoutes.length>=1 && item.relatedRoutes.length<=8
+            && item.relatedRoutes.every((raw:unknown)=>isPlainObject(raw)
+              && nonEmpty(raw.label) && raw.label.length<=80
+              && typeof raw.route==="string" && raw.route.length<=360
+              && raw.route.startsWith("/") && !raw.route.startsWith("//")
+              && !raw.route.includes(String.fromCharCode(10))
+              && !raw.route.includes(String.fromCharCode(13)))
+            && new Set(item.relatedRoutes.map((v:{route:string})=>v.route)).size
+              === item.relatedRoutes.length);
       });
       if (task.issuesCountSuffix !== undefined
         && (task.presentation !== "workbench"

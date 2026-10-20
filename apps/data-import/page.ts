@@ -760,6 +760,7 @@ export function createDataImportMappingPageV010(input: {
     description: string;
     focusGroupId?: string;
     actionLabel?: string;
+    relatedRoutes?: {label:string;route:string}[];
   }[] = attentionColumns.map(group => {
     const candidates = candidatesFor(group.title);
     if (candidates.length > 1) {
@@ -847,6 +848,32 @@ export function createDataImportMappingPageV010(input: {
         + importReviewIssueMessageV010({
           issue: rowIssue.issue, schema: input.schema, locale: input.locale
         });
+    // Only expose correction links for *actual* flagged rows whose exact
+    // source/target mapping and Host correction policy both authorize editing.
+    // No inference from "supplier" role or from the prototype's sample rows.
+    const correctionRoutes: {label:string;route:string}[] = [];
+    const sourceColumn = sourceMapping?.sourceColumn;
+    if(missingSubjectType && sourceGroup && sourceColumn && input.schema
+      && rowNumbers.length<=8){
+      const columnIndex=input.job.source.headers.indexOf(sourceColumn);
+      for(const rowNumber of rowNumbers){
+        try{
+          dataImportCorrectableSourceV010({
+            job:input.job,schema:input.schema,rowNumber,sourceColumn
+          });
+          correctionRoutes.push({
+            label:zh(input.locale) ? "第 "+rowNumber+" 行" : "Row "+rowNumber,
+            route:dataImportRowCorrectRouteV010(
+              input.job.importJobId,rowNumber,columnIndex)
+          });
+        }catch{
+          // Mapping, permissions or cell editability can make row correction
+          // unavailable; retain the original source-column focus action.
+        }
+      }
+    }
+    const relatedRoutes = correctionRoutes.length===rowNumbers.length
+      && correctionRoutes.length>0 ? correctionRoutes : undefined;
     const existing = sourceGroup
       ? reviewIssues.find(item => item.focusGroupId === sourceGroup.id)
       : undefined;
@@ -855,12 +882,14 @@ export function createDataImportMappingPageV010(input: {
       if (missingSubjectType) {
         existing.title = title;
         existing.actionLabel = zh(input.locale) ? "查看记录" : "View records";
+        if(relatedRoutes) existing.relatedRoutes=relatedRoutes;
       }
     } else {
       reviewIssues.push({
         id: "dry-run-issue-" + index,
         title,
         description,
+        ...(relatedRoutes ? {relatedRoutes} : {}),
         ...(sourceGroup ? {
           focusGroupId: sourceGroup.id,
           actionLabel: missingSubjectType

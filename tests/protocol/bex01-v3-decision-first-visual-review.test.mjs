@@ -71,6 +71,21 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
   assert.match(mapping.description,/请核对字段对应关系/);
   assert.ok(mapping.description.length < 80,"mapping first-screen copy should be concise");
+  const linkTask={...mapping.reviewTask,issues:[{id:"subject-rows",
+    title:"3 条记录缺少主体类型",actionLabel:"查看记录",
+    relatedRoutes:[{label:"第 165 行",route:"/data-import/jobs/test-job/fix/165/2"}]}]};
+  const linkDoc={...mapping,reviewTask:linkTask};
+  assert.equal(validateUidl(linkDoc).ok,true,
+    "verified row correction links must work with original review-task contract");
+  assert.match(renderToHtml(linkDoc),/data-eidos-form-task-issue-related/);
+  assert.match(renderToHtml(linkDoc),/data-eidos-context-route="\/data-import\/jobs\/test-job\/fix\/165\/2"/);
+  assert.equal(validateUidl({...linkDoc,reviewTask:{...linkTask,issues:[{
+    ...linkTask.issues[0],relatedRoutes:[{label:"Unsafe",route:"https://outside.invalid"}]
+  }]}}).ok,false,"row links must only allow Host-internal navigation");
+  assert.equal(validateUidl({...linkDoc,reviewTask:{...linkTask,issues:[{
+    ...linkTask.issues[0],relatedRoutes:[
+      linkTask.issues[0].relatedRoutes[0],linkTask.issues[0].relatedRoutes[0]]
+  }]}}).ok,false,"repeated row links must fail closed");
   assert.equal(mapping.reviewTable.agentActionId,"ai-auto-map");
   const htmlWithAgent=renderToHtml(mapping);
   assert.match(htmlWithAgent,/data-eidos-review-table-agent-action/);
