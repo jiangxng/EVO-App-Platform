@@ -1073,7 +1073,8 @@ export function validateUidl(
               || typeof task.footer.back.route !== "string"
               || !task.footer.back.route.startsWith("/")
               || task.footer.back.route.startsWith("//")
-              || /[\\r\\n]/.test(task.footer.back.route))) {
+              || task.footer.back.route.includes(String.fromCharCode(10))
+              || task.footer.back.route.includes(String.fromCharCode(13)))) {
             fail(path+".footer.back","Back requires a labeled internal route");
           } else if (isPlainObject(task.footer.back)) {
             extraKeys(task.footer.back,new Set(["label","route"]),path+".footer.back",out);
