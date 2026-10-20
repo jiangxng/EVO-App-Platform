@@ -71,7 +71,8 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
   assert.equal(mapping.reviewTask.subject.iconLabel,"XLSX");
   assert.match(renderToHtml(mapping),/data-eidos-form-task-icon aria-hidden="true">XLSX/);
-  assert.match(renderToHtml(mapping),/type="button" data-eidos-form-task-back data-eidos-context-route="\\/data-import"/);
+  assert.ok(renderToHtml(mapping).includes('type="button" data-eidos-form-task-back data-eidos-context-route="/data-import"'),
+    "Back to file list must be bound to real internal navigation");
   assert.match(renderToHtml(mapping),/type="reset" data-eidos-form-task-reset/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-icon/);
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
