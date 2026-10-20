@@ -29,3 +29,36 @@
 - 工作表信息层级（需真实、可信来源字段）、底部动作 Chromium 行为测试和完整滚动状态核对。
 - Eidos owner 对通用 footer/reset 契约单独复核，#1077 仍 Draft。
 - Human 视觉签收 **OPEN**；真实客户 Excel/授权 Import Job/银行两 fieldId/三条主体身份仍缺证据。总里程碑 **3/6**。
+
+
+## 目标与完成条件
+
+使用 #909 原型实现 BEX-01 V3 审核工作台，操作人为人工审查供应商 Excel 映射的业务人员。以真实 Host 1280px 和 390px 下的文件卡、三问题、字段映射、完整底部操作为交付对象；最终条件是源码、精确 HEAD CI、真实 Chromium 与用户 Human 视觉签收分别通过。客户文件验收另在 M04，未经签收不能开始。
+
+## 流程与步骤
+
+顶层只有“选择文件 → 核对并导入”；进入核对页可检查来源文件、四项汇总、三类问题、原始 22 列，逐项做选择，显式保存并预检，再明确授权提交。新增返回文件和恢复本地选择，不触发预检、Schema 创建或真实供应商提交。Agent 自动匹配保持可选入口，无法代替两条同名开户银行的 Human 决策。
+
+## 导航与信息架构
+
+`apps/data-import/page.ts` 的 `reviewTask.footer.back.route` 由 Platform 使用正式 `DATA_IMPORT_DIRECTORY_ROUTE`，通过 `vendor/eidos/src/renderers/html/index.ts` 渲染成已有 `data-eidos-context-route` 内部导航，复用 Eidos page-controller；不自建假链接、不改历史侧栏偏好。移动端保持原活动栏/可逆聚焦和浏览器历史语义。
+
+## 视觉与颜色
+
+源卡首先使用与 Eidos #203 一致的通用 iconLabel，XLSX/CSV 装饰块采用现有 Eidos 变量和间距，不硬编码供应商意义；文件标题、来源行列、已读取状态仍有明确层级。底部保留一个主要业务提交按钮、两个次要按钮与真实保存提示。桌面与 390px 继续采用已有四列转卡片机制，不缩小表格蒙混测试。
+
+## 记忆与注意力
+
+编辑中的非持久修改与服务器已有 Import Job 分开：返回文件不丢失 Host 已保存内容；恢复初始选择只恢复本次从 Host 加载的映射初值，并同时刷新排他候选、审核指标和筛选。无需用户记住修改前所有字段，但也不暗示自动保存。不能将 synthetic fixture 的“供应商清单”工作表编造为真实来源。
+
+## 无障碍与跨年龄
+
+文件类型标记是装饰性 `aria-hidden`；文件名仍为文字。返回与重置是原生 `button type=button/reset`，可键盘触达。手机下必须达到触控尺寸、保持无横向溢出、可查看四列信息对应的卡片。测试需验证 1280px/390px 点击后状态和导航，不以年龄推断用户能力。
+
+## 安全与数据修复
+
+导航只允许内部 Host 路由；`vendor/eidos/src/runtime/validate.ts` 对外部 URL 和换行拒绝。重置不调用 Host action、不提交未授权数据、不覆盖真实 mapping、Recipe、银行 fieldId、主体类型或 Import Job。两条同名开户银行需真实 fieldId 与用途及 Human 确认，主体类型不从 SUPPLIER 推断。预检和提交按原 Host 权限与审计门禁处理。
+
+## 证据与剩余问题
+
+2026-10-20 已下载 #909 原型 artifact 11957646429 与 #1060 合成 Host artifact 12250007262 并实际对照部分桌面、390px、底部和问题状态截图。精确 HEAD `6e21ed8d…` 首轮 Human UI/continuity 因没有 8 节复核记录而失败；本次补齐是门禁要求，不是伪造人工签收。另已提交 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` 的真实返回/重置桌面与手机断言。最终合格必须等到新精确 HEAD Platform CI、BEX Chromium 全步骤及新截图核验；当前 Human 视觉 OPEN、M04/M05 OPEN、总进度 3/6。Eidos 通用 footer 契约仍应由 Eidos owner 另行复核。
