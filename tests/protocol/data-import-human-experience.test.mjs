@@ -975,11 +975,12 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(page.fields.find(x=>x.key==="map_0").initialValue,"code");
   const currentFile=page.fields.find(x=>x.key==="importJobId");
   assert.equal(currentFile.label,"当前文件");
+  assert.equal(currentFile.presentation,"hidden",
+    "the stable Host Job ID must remain in the form payload without a visible selector");
+  assert.equal(currentFile.control,"text");
   assert.equal(currentFile.initialValue,"batch-proposals");
-  assert.equal(currentFile.options[0].value,"batch-proposals",
-    "Host must continue receiving the stable Import Job ID");
-  assert.equal(currentFile.options[0].label,"已保存的导入任务",
-    "technical Job UUID must not be visible in the business-facing option");
+  assert.equal(currentFile.options,undefined,
+    "a hidden Host Job ID must not expose a technical dropdown or alter the selected job");
   assert.equal(page.reviewGroups.length,source.headers.length,
     "actual /map route must group every source column, not just the other batch page");
   assert.equal(validateUidl(page).ok,true,

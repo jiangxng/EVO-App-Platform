@@ -971,9 +971,13 @@ export function createDataImportMappingPageV010(input: {
     reviewTable,
     reviewTask,
     title: zh(input.locale) ? "核对导入数据" : "Review import data",
-    description: zh(input.locale)
-      ? "确认字段对应关系，处理数据问题后导入供应商。"
-      : "Confirm field mappings and resolve data issues before importing suppliers.",
+    description: [
+      input.job.mappingOrigin === "RECIPE" ? t.recipeAppliedDescription
+        : advisoryFields.length > 0 ? t.ecRecommendationDescription : "",
+      zh(input.locale)
+        ? "确认字段对应关系，处理数据问题后导入供应商。"
+        : "Confirm field mappings and resolve data issues before importing suppliers."
+    ].filter(Boolean).join(" "),
     contextNavigation: importContextNavigationV010({
       target: input.target,
       parameters: input.job.targetParameters,
