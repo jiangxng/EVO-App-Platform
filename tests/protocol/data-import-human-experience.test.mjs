@@ -275,7 +275,8 @@ test("mapping and review pages keep validation and commit explicit", () => {
     mappingPage.contextNavigation.items.map(item => [item.label, item.route]),
     [["数据导入", "/data-import"], ["字段映射", undefined]]
   );
-  assert.match(mappingPage.description, /先恢复本企业之前的映射/);
+  assert.match(mappingPage.reviewTask.helpText, /先恢复本企业之前的映射/,
+    "Recipe provenance remains visible in the review workbench without replacing its concise title");
   assert.equal(
     mappingPage.fields.find(field => field.key === "map_0").initialValue,
     "code"
@@ -794,7 +795,8 @@ test("CP-03D EC learns a Human-confirmed field mapping and reuses it across a di
     schema,
     locale: "zh-CN"
   });
-  assert.match(mappingPage.description, /Experience Compiler/);
+  assert.match(mappingPage.reviewTask.helpText, /Experience Compiler/,
+    "Experience Compiler recommendations remain visible in the review workbench");
   assert.equal(
     mappingPage.fields.find(field => field.key === "map_1").initialValue,
     "code"
@@ -1009,7 +1011,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
   assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
   assert.equal(page.reviewTask.issues[0].actionLabel,"核对本列");
-  assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
+  assert.equal(page.reviewTable.columnLabels.subject,"Excel 列名");
   assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
   assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
   assert.equal(page.reviewTable.filter.selectedId,"needs");
@@ -1027,7 +1029,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
   assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
-  assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
+  assert.match(mapHtml,/data-eidos-form-review-table-count[\\s\\S]*?>显示 3 \/ 4 列<\\/span>/);
   assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);

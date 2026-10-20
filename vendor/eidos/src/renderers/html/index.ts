@@ -76,7 +76,7 @@ function renderTaskStepsHeading(task: import("../../runtime/contracts.js").UidlF
 
 function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010, omitSteps = false): string {
   const subject = task.subject;
-  const facts = (subject.facts ?? []).map(fact =>
+  const facts = subject.badgeLabel ? "" : (subject.facts ?? []).map(fact =>
     `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
   ).join("");
   const fileContext = subject.badgeLabel ? " data-eidos-form-task-file-context" : "";
