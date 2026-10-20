@@ -966,3 +966,12 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 **未签部分不得混同：** 没有生产有效 draining、容器 PID1/npm→SIGTERM、全组织 Worker/Child/Runner 清单与外部编排回执、实际 PostgreSQL session revoke、Human IdP/MFA/DBA credential rotation/审计责任与批准。#1074 Host 顶层独立 Draft，#1082 局部 runtime 新修复未合入 production。#1071/#1074/#1081/#1082 均 Draft，未合并/部署。
 
 **K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，material WRITE `OFF`；安全 Issues #988/#979/#913 保持 OPEN。**
+
+
+## 86. PA05-05 / K0 — 九项本地 PROCESS 生命周期正向回归（2026-10-20）
+
+最新 [Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 工程 HEAD `c15ce1f5225272b26d14f5b564a2a6b9f0582270` 的 [Platform CI #39432525667 / job #118660946764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39432525667/job/118660946764) 实际日志 `ok #759–#767`：九项 disposable 单机 Node PROCESS 启停、超时与代际、异步 verifier/stop、无限等待本地取消、意外 IPC 断线后的 child close 验收均通过；全 job 1094 tests / 1093 pass / 1 skipped / 0 fail；所有证据 `globalStopCertified=false`。适用范围和原始来源严格参见 [K0 工作表 §12](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 与 [索引 §18](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。
+
+**归档标签 `ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`：** 绝不代表 Host 父进程 SIGKILL 后外部 supervisor 的 child 终止、生产 Railway drain、Node PID1 SIGTERM、Human/DBA/PG 权限或跨 Worker fencing 已签。取消 Promise 不等于取消 verifier 自身的远程工作。#1082 是独立未合并 Draft，不同于独立 #1074 顶层 Host shutdown patch。无需重复旧研究，不提交过时结论为线上现状。
+
+K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 继续 OPEN。

@@ -241,3 +241,29 @@
 | **生产 K0 阶段** | Railway 有效 drain/npm PID1→SIGTERM、组织级 Worker/Runner 和数据库 session 清点、中心 fencing/freeze owner、Human IdP、DBA/rotation/审计都仍 **`UNVERIFIED`** | 不运行生产 Validator/SQL、不开关生产服务、不开 WRITE、不清异常锁 |
 
 [#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) 文档、[#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) Host 顶层修复、[#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 负面复现、[#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) PROCESS 修复 **全部保持 Draft、未合并、未部署**。K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`；material WRITE `OFF`；Issues #988/#979/#913 OPEN。
+
+
+## 12. 2026-10-20 续跑 #07 — verifier 等待取消与本地 IPC 异常关闭（真实有界 CI）
+
+**结论：`ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`，不是生产 `STOP_CONFIRMED`。** 作为 [独立工程 Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 的第三次工程增量，commit [`c15ce1f5225272b26d14f5b564a2a6b9f0582270`](https://github.com/jiangxng/EVO-App-Platform/commit/c15ce1f5225272b26d14f5b564a2a6b9f0582270) 仅修改 `manager/plugin-runtime-host.ts`、已有 disposable child fixture 和本地 PROCESS 测试；它没有修改 #1074 的顶层 Host shutdown 路由/错误路径，也未进 main 或生产。
+
+### 精确原始来源与实测结果
+
+[Platform CI #39432525667 / job #118660946764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39432525667/job/118660946764)：**原始 GitHub Actions job log 本轮已直接读取**，2026-10-20T13:41:47Z，`npm run test:platform` **1094 total / 1093 PASS / 1 SKIPPED / 0 FAIL**；本地九项 `ok #759–#767`，所有 K0 日志均 `globalStopCertified=false`。
+
+| 局部专项回归（新增三项） | 原始可复核日志字段 | 正确解释 |
+| --- | --- | --- |
+| `ok #765`：shutdown 期间外部 verifier 一直等待 | `PA05_K0_BOUNDED_VERIFIER_SHUTDOWN`: `boundedShutdown=true`、`lateForks=0` | 本机 Host 取消自己的 pending start wait，并保证 verifier 迟到返回后也不再 fork；**不表示真实远端 verifier 已停止** |
+| `ok #766`：stop 期间 verifier 一直等待 | `PA05_K0_BOUNDED_VERIFIER_STOP`: `boundedStop=true`、`lateForks=0` | 单包 stop 立即撤销本地待启动准入，不被无界 verifier 阻塞；**不代表对外部请求的取消已确认** |
+| `ok #767`：一次性子进程主动 IPC disconnect | `PA05_K0_BOUNDED_IPC_DISCONNECT`: `disconnectedChildClosed=true` | Pending invocation 拒绝，随后本地 Node child 已 close；**不是父 Host 死亡后的独立 supervisor 证据** |
+
+**原有六项 #759–#764 均在同一 HEAD 的 raw job log 中重新 `ok`**：stop/shutdown overlap、post-shutdown no-fork、timeout SIGKILL → close、同包 generations 先旧后新、异步 verifier single-flight、stop-in-verifier fencing。该提交的全部 exact-HEAD CI 应按实时查询确认；不能以 protocol job 单独代表其他 jobs 都已结束。
+
+### 源码方案、限制与未解决的问题
+
+- 事实：新实现增加 per-package `cancelVerifying` 的 Promise rejection 通道，以 `Promise.race(externalEvidencePromise, localCancellation)` 满足本地 stop/shutdown 可完成；取消不会放行 late verifier fork，且 race 双方均有 rejection 处理以避免异步未处理异常。
+- 重要限制：`verifyExternalEvidence` 当前公开签名仍无 `AbortSignal`，因此只能取消 **Host 等待与其后续 fork 授权**，不能证明实际外部 verifier 的网络请求/资源已停止。真实远程验证方的取消、超时上限、审计回执需其 owner 单独定义。
+- 尚未实现和验收：父 Host 突然被 SIGKILL 的独立 OS/编排级 Worker 子孙清点与回收；容器 PID1 与 npm→Node 生产 SIGTERM；有效 Railway draining；跨 Worker stop/freeze 回执；现存 PostgreSQL backend/revocation；真实 operator Human IdP/DBA/audit。直接在 runner 杀死父进程可能产生临时孤儿；本轮**未做故意遗孤实验**，不得把缺失证据写成已通过。
+- 仍有更狭窄的局部边界待评估：子进程 `activate()` 永远不发 `ready` 时 `startOne()` 的等待、child spawn error 与 cleanup、极端非合作 child 的终止预算。九项场景不证明所有可能时序已穷举。
+
+**责任隔离：** #1071 文档 Draft；#1074 顶层 Host shutdown Draft；#1081 两项负面复现 Draft；#1082 PROCESS 本地修复 Draft，四者均不得未经授权合并/生产部署。K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`；production material WRITE `OFF`，Issues #988/#979/#913 OPEN。

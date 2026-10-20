@@ -288,3 +288,14 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 | [原 K0 工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) | **PROJECT_DECISION_AND_SYNTHESIS_THIS_WINDOW** | 辨明本地 bounded pass 与仍缺的生产编排外部 stop receipts、SQL session 重查、真实 IdP/DBA credential governance。**自有分析不能伪装上游实测** |
 
 **未改既定路线：** 以上六项正向通过只能补足本地 PROCESS runtime 工程，不足以签可信 K0/生产操作员授权。下轮有权限的隔离测试可补 parent sudden death、长耗时 verifier 在 shutdown deadline 内的行为、host/child IPC 异常；真正跨 Worker/SQL/IdP 证据仍需权威 Owner。四条 Draft 分支不自动合并。
+
+
+## 18. 2026-10-20 — 本地 verifier cancel / IPC disconnect 原始日志索引
+
+| 来源和原始 URL | 访问等级 | 可引用的精确事实 / 不应推断 |
+| --- | --- | --- |
+| [Draft #1082 commit `c15ce1f5225272b26d14f5b564a2a6b9f0582270`](https://github.com/jiangxng/EVO-App-Platform/commit/c15ce1f5225272b26d14f5b564a2a6b9f0582270) | **ORIGINAL_GITHUB_SOURCE_AUTHORED_AND_COMMITTED_THIS_WINDOW**，2026-10-20 | 新增 `cancelVerifying` 本地 Promise race、三项 disposable 负面场景正向回归；只改 PROCESS runtime + fixture + tests，#1074 顶层工程不变 |
+| [Actions Platform CI #39432525667 / job #118660946764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39432525667/job/118660946764) | **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW**，2026-10-20T13:41:47Z | `ok #759–#767`，新增 `PA05_K0_BOUNDED_VERIFIER_SHUTDOWN` (boundedShutdown true, lateForks 0)、`PA05_K0_BOUNDED_VERIFIER_STOP` (boundedStop true, lateForks 0)、`PA05_K0_BOUNDED_IPC_DISCONNECT` (disconnectedChildClosed true)。整套平台协议测试 1094 total/1093 pass/1 skipped/0 fail。**local child only / globalStopCertified false** |
+| [Railway 当前连接的生产 Host](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) + GitHub [main@ae704ad7](https://github.com/jiangxng/EVO-App-Platform/commit/ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9) | **ORIGINAL_RAILWAY_DEPLOYMENT/HEALTH_AND_GITHUB_BRANCH_READ_THIS_WINDOW**，2026-10-20 | main/Railway 与工程 Draft 分离；有效 drain、PID1/npm signal、外部 stop receipts、组织账号清点、PG role sessions/IdP/DBA/audit 没有返回。上述平台测试不覆盖生产 |
+
+**原方案不变**：保留已完成 PostgreSQL18 / Lease / OAuth / NIST 研究索引原文级别和结果；此轮未对它们重新查询。Parent SIGKILL 遗孤实验**未进行**（避免没有外部清理器时产生未受控孤儿），外部 verifier 自身请求中止**没有证明**。现有 K0/完整 E01J4/PA05-05 E01–E05/W06 均 NOT_SIGNED，material WRITE OFF。

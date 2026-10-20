@@ -430,3 +430,10 @@ Current GitHub [main@91ffb9bd](https://github.com/jiangxng/EVO-App-Platform/comm
 2. [最新 `12dcfa1a...`](https://github.com/jiangxng/EVO-App-Platform/commit/12dcfa1aec30e32247a865fe7c44267350e2f237) 串行同包异步 verifier 准入、提前登记 stop 意图、关闭过程中等待 pending starts；[原始 CI #39431045554 / job #118655876047](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554/job/118655876047) **5/5 checks、1091/1090 pass/1 skipped、0 fail**。六项本地 child 回归 `ok #759–#764`；新增 `verifyCount=1/forks=1` 与 `stop during verifier forks=0/lateForkDenied=true`。
 
 **限度和否决：** `ISOLATED_PROCESS_LIFECYCLE_BOUNDED_PASS` 仅指单 Host 的六项指定时序。闭锁时本地 ChildProcess `close` 不是外部编排权威证明；无生产 SIGTERM/PID1 测试，无组织全域实例签收、生产 Human/DBA/session/audit。四个关联 PR #1071/#1074/#1081/#1082 均仍 Draft 未入 main/Railway。完整证据、来源等级、下步负面覆盖见 [K0 工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。**K0 与所有原签收门禁 `NOT_SIGNED`，production material WRITE `OFF`。**
+
+
+## 29. 2026-10-20 — 续跑 #07 的本地 verifier/IPC 关闭证据（不替代生产权威）
+
+[独立 Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 工程 HEAD `c15ce1f5225272b26d14f5b564a2a6b9f0582270` 新增本地 verifier Promise 取消准入和 IPC disconnect child cleanup。 [Platform CI #39432525667 / job #118660946764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39432525667/job/118660946764) 已读 **原始完整日志**：`ok #759–#767` 九项 disposable 本地 Node PROCESS 测试全部通过，1094 total/1093 pass/1 skipped/0 fail；新增 `boundedShutdown=true/lateForks=0`、`boundedStop=true/lateForks=0`、`disconnectedChildClosed=true`。此处 **`ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`**，不表示外部 verifier 已被终止，更不证明 production multi-Worker `STOP_CONFIRMED`。
+
+此次只读 main/Railway 保持 `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` / deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` SUCCESS、Ledger Configurator 1 running/0 crashed。#1071/#1074/#1081/#1082 均仍 Draft/未合并/未生产部署。父 Host 突然死亡后的真实 child 回收/签名回执、生产 draining/PID1 信号链、全组织 Worker/外部 Runner/SQL backend/IdP/DBA 仍未被此本地测试签收。没有任何生产 Validator、stop/restart、SQL/Secrets、配置修改或异常锁回收。完整证据在 [K0 验收表 §12](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。

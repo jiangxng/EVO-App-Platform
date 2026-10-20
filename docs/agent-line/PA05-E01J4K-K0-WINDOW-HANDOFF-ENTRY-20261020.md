@@ -86,3 +86,13 @@
 - **生产状态快照：** 本轮只读 GitHub main `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`，Railway Host deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` SUCCESS；与最新 #1082 不同，#1071/#1074/#1081/#1082 均 Draft。**下次须重新核对，不能假设该 main 永远最新**。
 
 K0/完整 E01J4/PA05-05 E01–E05/W06 均 `NOT_SIGNED`，production material WRITE `OFF`；Issues #988/#979/#913 OPEN。九条历史 PA05 docs merged 分支只审计未删除，当前 Draft 分支不动。
+
+
+## 九、2026-10-20 续跑 #07：verifier 无限等待与 IPC 异常完成本地有界验证
+
+- **最新工程线（非生产）**：独立 [Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082)，HEAD `c15ce1f5225272b26d14f5b564a2a6b9f0582270`，增加本机 verifier Promise 撤销通道，使 stop/shutdown 可不等 verifier 的无限等待并防止 late fork；主动 IPC disconnect 的 disposable child invocation 失败后能够收尾。**注意这不证明 verifier 本身外部工作已取消。**
+- **精确原始测试证据**：[Actions #39432525667 / job #118660946764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39432525667/job/118660946764) 日志九项专项 `ok #759–#767`，1094/1093 PASS/1 SKIPPED/0 FAIL，`globalStopCertified=false`。完整 URL/阅读等级/测试限制见 [工作表 §12](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[拓扑 §29](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md) 和 [研究索引 §18](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。
+- **剩余真正未完成**：父 Host 突然死亡的组织编排器子进程回收与凭证/会话吊销；真实服务有效 drain、SIGTERM delivery / PID1；Human IdP/DBA/审计实际责任及签发；不可用一台机器的 Node Promise 代替全域 `STOP_CONFIRMED`。没有可监督清理保证时，本轮没有故意制造孤儿进程试验。
+- **4 PR 均独立 Draft**：#1071 文档、#1074 顶层 Host 修复、#1081 两条旧负面复现、#1082 局部 PROCESS 修复；都没有合并/生产部署。九条已合并 docs 过程分支仍只完成 SHA 安全审计，远端实际删除未执行。认证维持 K0/完整 E01J4/PA05-05 E01–E05/W06 NOT_SIGNED、material WRITE OFF，Issues #988/#979/#913 OPEN。
+
+下次应先刷新最新 GitHub main / PR exact HEAD/CI / Railway；后续只要不涉及真正可信 Infra/SRE/DBA/IdP 签名，不可宣称 K0 通过。
