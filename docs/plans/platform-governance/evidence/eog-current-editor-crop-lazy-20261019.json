@@ -72,7 +72,7 @@
   "ci": {
     "workflow": ".github/workflows/lightweight-host.yml",
     "newColdStartupForbiddenModule": "dist/apps/eog-2d-designer/definition-projection-editor.js",
-    "statusAtCommit": "Code head 9940a3bb passed six gates; documentation head 2066981003 re-triggered six gates and failed T06 browser with five green. Added stable native touch preconditions, new head CI pending.",
+    "statusAtCommit": "6408b18c passed six gates; strict continuity required updated main e123924a merged while approval was running. Latest-main integration CI and merge recorded in PR #1047.",
     "verifiedHead": "1e2e56887e9ef17927fc0c7c6c3ffd0960b2f43e",
     "greenRuns": {
       "lightweightHost": 39251390733,
@@ -292,7 +292,356 @@
         "otherFiveGates": "success",
         "fixScope": "Same bounded geometry wait for three existing T06 taps, assert trusted native touch pointer; keep all original assertions",
         "rootCause": "Single boundingBox plus inspector reflow inferred from source, pending trusted native touch evidence"
-      }
+      },
+      "latestQualifiedHead": "6408b18c0a41d51cd5315012a3fe2a210cb44d8e",
+      "latestQualifiedRun": 39361363250,
+      "latestQualifiedJob": 118428064465,
+      "latestQualifiedConclusion": "success",
+      "latestDiagnostics": [
+        {
+          "label": "T06 multi-select tap sale",
+          "kind": "node",
+          "itemId": "sale",
+          "measured": {
+            "point": {
+              "x": 83.01408386230469,
+              "y": 445.0140838623047
+            },
+            "first": {
+              "rect": [
+                49,
+                429.5943603515625,
+                68.02816772460938,
+                30.839447021484375
+              ],
+              "canvas": [
+                0,
+                148.5,
+                420,
+                685.5
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                49,
+                429.5943603515625,
+                68.02816772460938,
+                30.839447021484375
+              ],
+              "canvas": [
+                0,
+                148.5,
+                420,
+                685.5
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-node=\"sale\"]"
+          },
+          "down": {
+            "trusted": true,
+            "pointerType": "touch",
+            "expectedTarget": true,
+            "node": "sale",
+            "edge": null,
+            "x": 83.01408386230469,
+            "y": 445.01409912109375
+          }
+        },
+        {
+          "label": "T06 multi-select tap receipt",
+          "kind": "node",
+          "itemId": "receipt",
+          "measured": {
+            "point": {
+              "x": 336.9859161376953,
+              "y": 461.4859161376953
+            },
+            "first": {
+              "rect": [
+                302.9718322753906,
+                446.0661926269531,
+                68.02816772460938,
+                30.839447021484375
+              ],
+              "canvas": [
+                0,
+                148.5,
+                420,
+                533.1875
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                302.9718322753906,
+                446.0661926269531,
+                68.02816772460938,
+                30.839447021484375
+              ],
+              "canvas": [
+                0,
+                148.5,
+                420,
+                533.1875
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-node=\"receipt\"]"
+          },
+          "down": {
+            "trusted": true,
+            "pointerType": "touch",
+            "expectedTarget": true,
+            "node": "receipt",
+            "edge": null,
+            "x": 336.98590087890625,
+            "y": 461.48590087890625
+          }
+        },
+        {
+          "label": "T06 multi-select tap sale",
+          "kind": "node",
+          "itemId": "sale",
+          "measured": {
+            "point": {
+              "x": 83.01408386230469,
+              "y": 373.0140838623047
+            },
+            "first": {
+              "rect": [
+                49,
+                357.5943603515625,
+                68.02816772460938,
+                30.839447021484375
+              ],
+              "canvas": [
+                0,
+                148.5,
+                420,
+                542.34375
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                49,
+                357.5943603515625,
+                68.02816772460938,
+                30.839447021484375
+              ],
+              "canvas": [
+                0,
+                148.5,
+                420,
+                542.34375
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-node=\"sale\"]"
+          },
+          "down": {
+            "trusted": true,
+            "pointerType": "touch",
+            "expectedTarget": true,
+            "node": "sale",
+            "edge": null,
+            "x": 83.01408386230469,
+            "y": 373.01409912109375
+          }
+        },
+        {
+          "label": "E04 reselect after inspector collapse",
+          "kind": "edge",
+          "itemId": "v01-v03-sales-to-receipt",
+          "measured": {
+            "point": {
+              "x": 426.6019058227539,
+              "y": 298.2222900390625
+            },
+            "first": {
+              "rect": [
+                343.75,
+                287.875,
+                512.5,
+                196.25
+              ],
+              "canvas": [
+                0,
+                48,
+                1200,
+                676
+              ],
+              "matrix": [
+                1.25,
+                0,
+                0,
+                1.25,
+                56.25,
+                52.875
+              ],
+              "d": "M 230 188 C 402.2 188 467.8 345 640 345"
+            },
+            "settled": {
+              "rect": [
+                343.75,
+                287.875,
+                512.5,
+                196.25
+              ],
+              "canvas": [
+                0,
+                48,
+                1200,
+                676
+              ],
+              "matrix": [
+                1.25,
+                0,
+                0,
+                1.25,
+                56.25,
+                52.875
+              ],
+              "d": "M 230 188 C 402.2 188 467.8 345 640 345"
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-edge=\"v01-v03-sales-to-receipt\"]"
+          },
+          "down": {
+            "trusted": true,
+            "pointerType": "mouse",
+            "expectedTarget": true,
+            "edge": "v01-v03-sales-to-receipt",
+            "x": 426.6018981933594,
+            "y": 298.2222900390625
+          }
+        },
+        {
+          "label": "D02 first node move",
+          "kind": "node",
+          "itemId": "sale",
+          "measured": {
+            "point": {
+              "x": 130.33802795410156,
+              "y": 274.83802795410156
+            },
+            "first": {
+              "rect": [
+                49,
+                237.96478271484375,
+                162.67605590820312,
+                73.74649047851562
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                49,
+                237.96478271484375,
+                162.67605590820312,
+                73.74649047851562
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-node=\"sale\"]"
+          },
+          "down": {
+            "trusted": true,
+            "pointerType": "mouse",
+            "expectedTarget": true,
+            "node": "sale",
+            "edge": null,
+            "x": 130.33802795410156,
+            "y": 274.8380126953125
+          }
+        },
+        {
+          "label": "D02 post-Save node move",
+          "kind": "node",
+          "itemId": "sale",
+          "measured": {
+            "point": {
+              "x": 136.2165870666504,
+              "y": 282.3307571411133
+            },
+            "first": {
+              "rect": [
+                186.20437622070312,
+                232.08047485351562,
+                187.5,
+                85
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                48.987789154052734,
+                242.7870330810547,
+                174.4575958251953,
+                79.08744812011719
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 1,
+            "frames": 4,
+            "sel": "[data-eidos-diagram-node=\"sale\"]"
+          },
+          "down": {
+            "trusted": true,
+            "pointerType": "mouse",
+            "expectedTarget": true,
+            "node": "sale",
+            "edge": null,
+            "x": 136.21658325195312,
+            "y": 282.33074951171875
+          }
+        }
+      ]
     },
     "verifiedCodeHead": "9940a3bb581e5be6b6367f35fd023032b0c1b768",
     "verifiedCodeRuns": [
@@ -326,6 +675,39 @@
         "name": "Diagram Commercial V01-V03 Native Browser Subgate",
         "conclusion": "success"
       }
+    ],
+    "latestQualifiedHead": "6408b18c0a41d51cd5315012a3fe2a210cb44d8e",
+    "latestQualifiedRuns": [
+      {
+        "id": 39361363215,
+        "name": "Project Continuity CI",
+        "conclusion": "success"
+      },
+      {
+        "id": 39361363211,
+        "name": "Human UI Design Review Gate",
+        "conclusion": "success"
+      },
+      {
+        "id": 39361363196,
+        "name": "Diagram Designer Integration CI",
+        "conclusion": "success"
+      },
+      {
+        "id": 39361363245,
+        "name": "Platform CI",
+        "conclusion": "success"
+      },
+      {
+        "id": 39361363250,
+        "name": "Diagram Commercial V01-V03 Native Browser Subgate",
+        "conclusion": "success"
+      },
+      {
+        "id": 39361363235,
+        "name": "Lightweight Host Architecture",
+        "conclusion": "success"
+      }
     ]
   },
   "newLocalFourProfileAudit": false,
@@ -354,6 +736,15 @@
     "overlapWithThisPr": false,
     "localDirectedRegressionPassed": 18,
     "browserScriptSyntaxCheck": "pass",
-    "productionFilesUnchangedSincePriorHead": true
+    "productionFilesUnchangedSincePriorHead": true,
+    "strictMainRefresh": {
+      "main": "e123924af8bdd1214a4aec6bfaf358c5afb9f445",
+      "priorMain": "5919e0147232fef1ddfc4f7e9a38b67969100bcf",
+      "mainPr": 1057,
+      "changedPaths": 9,
+      "overlapWithThisPr": false,
+      "reason": "Required continuity check strict up-to-date, merge API 405 after concurrent main advance",
+      "newHeadResult": "Final PR checks/comments; do not reuse prior 317-module measurement"
+    }
   }
 }

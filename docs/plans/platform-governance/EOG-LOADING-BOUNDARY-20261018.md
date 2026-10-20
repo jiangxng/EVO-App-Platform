@@ -285,6 +285,12 @@ E04稳定3帧、未观察到本轮几何变化，可信pointerdown命中真实cu
 
 复用同脚本前置条件，仅覆盖T06原有三个节点点按；保留原rendered尺寸断言和全部无Shift多选/移除/框选行为断言。使用原生touchscreen.tap，新增pointerType必须为touch；其他手势必须为mouse。不会用mouse替代touch，不进行手势重试、状态注入或放宽断言。正式浏览器结果待新head CI，未合并、未部署；不扩展2D产品功能或调整其实现。
 
+### 2026-10-20 最终head及并行main同步
+
+`6408b18c0a41d51cd5315012a3fe2a210cb44d8e` 六项CI均通过：Lightweight Host `39361363235`（159行为测试/6守卫、四组合317模块/253静态边）、Native Browser `39361363250`、Platform `39361363245`、Continuity `39361363215`、Human UI Review `39361363211`、Diagram Integration `39361363196`。三个T06 tap的可信pointerType均为touch且正确命中sale/receipt/sale，原无Shift多选、切换移除、原生触摸框选及无Save断言通过。节点选择前后画布高度从685.5变为533.1875/542.34375，说明不能假定相邻点按的画布几何不变；本轮三次稳定等待自身未捕获变化帧，仍不伪称复现旧T06失败现场。D02再次捕获约137px横移并保留全部原断言。
+
+合并期间另一个窗口已合入#1057，main前进至 `e123924af8bdd1214a4aec6bfaf358c5afb9f445`。仓库continuity规则启用strict up-to-date，首次合并API因新合并基线缺检查返回405；没有绕过规则。已核对9个新增/变更路径（Agent文档、CI、cooperative lock、server和对应测试）与本PR无重叠，完整保留并同步最新main。该Agent改动不等于本专项R2资源资格/SQL合同已闭环；R1–R4及固定7项口径不变。此同步提交的正式CI测量和最终合并结果见[PR #1047](https://github.com/jiangxng/EVO-App-Platform/pull/1047)，不将上个head的317模块冒充更新后实测。未部署。
+
 ### 接续与固定进度
 
 本入口整改完成后停止追加拆分。R1原运行图page/view handler、semantic/SOP命令模块及其他静态实现仍需按第12节分类继续选择，保留纯模型/同步共享合同；不能据此称整个Eidos 2D链或全部编辑器都退出Host。下一批优先原graph page/view handler与semantic actions的共同装配，复用既有lazy handler并保持当前编辑器选择回调；不重做定义投影页面或本批裁剪入口。R2 Agent配置触发SQL、R3 Provider分类、R4最终跨层验收仍未关闭。
