@@ -65,6 +65,7 @@ async function sample(name, directory, profile, extra = {}) {
       'dist/providers/enterprise-context/eog-sop-migration.js', 'dist/manager/eog-preview-seed.js']) {
       if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
     }
+    if (report.loadedModules.includes('dist/apps/eog-2d-designer/definition-projection-editor.js')) throw new Error('EOG_DEFINITION_PROJECTION_EDITOR_EAGER');
     if (report.loadedModules.includes('dist/apps/eog-3d/workspace-page.js')) throw new Error('EOG_3D_VIEWER_PAGE_EAGER');
     if (report.loadedModules.includes('dist/apps/enterprise-observatory/observatory-actions.js')) throw new Error('EOG_OBSERVATORY_ACTIONS_EAGER');
     for (const surface of ['desktop-page', 'mobile-read-page']) {
@@ -168,3 +169,4 @@ fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(samples.map(s => ({ profile: s.profile, installed: s.installedPackages.length,
   loadedModules: s.loadedModuleCount, intervals: s.registeredIntervals.length, stateFiles: s.storedFiles.length, archivedAssets: s.archivedAssets.files,
   blockedOutbound: s.blockedOutbound, exit: s.shutdown.code })), null, 2));
+
