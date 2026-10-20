@@ -157,3 +157,64 @@
 - [#909 前序完整研究索引](https://github.com/jiangxng/EVO-App-Platform/blob/docs/bex01-v2-human-design-review-20261015/docs/plans/foundation-list-experience/BEX-01-UI-V3-SESSION-RESEARCH-INDEX-20261015.md)
 
 以上是历史研究遗产，不可把“旧索引里记录了原文”说成本轮重新阅读了外站原文。
+
+
+## 2026-10-20 续跑 #08：精确 HEAD 真实 Host 全旅程通过、截图直接复核与证据报告纠偏
+
+### 本轮直接读取证据（R）
+
+- Platform 当前 main（本次核验）：`eaa5e813b1e86a6460d988c76eb2076512c35127`。
+- BEX-01 候选分支：`feat/bex01-v3-real-fidelity-clean-mainline-20261020`；精确 HEAD `def4fa6c99a72e17f6de5569b28307ba2a77e878` 是从当时最新 main 同步后形成，compare 为 ahead 25 / behind 0、merge-base 等于该 main。不要用旧 PR 元数据中的 base SHA 误判它仍然落后；以后仍须重新查询，因为 main 会继续移动。
+- [Platform PR #1060](https://github.com/jiangxng/EVO-App-Platform/pull/1060) 仍 Draft / Open；候选未合并、未部署。
+- 精确 HEAD 的 [Platform CI run 39373762600](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762600)、[BEX-01 Real Host Chromium run 39373762771](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762771)、[In-Context Import Resume 39373762700](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762700)、[Human UI Design Review Gate 39373762750](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762750)、[Lightweight Host Architecture 39373762704](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762704) 均完成并 PASS。Human UI Gate 是自动化门禁，不是用户本人视觉签收。
+- Real Host Chromium artifact：[run 39373762771 / artifact 12242119759](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39373762771)。本轮已下载 ZIP 并实际打开 PNG；ZIP 约 6.5 MB，包含 67 个文件。其 `report.json` 声明 Headless Chromium 141、actualHost=true、disposable isolated fixture、5/5 case PASS、browserErrors=[]；不证明 iOS Safari、实体 Android 或弱网/真实移动键盘，也不是生产客户页面。
+- 手机 390px 诊断直接记录 `tableWrapDisplay=none`、`cardsDisplay=grid`、`scrollWidth=390`，实际手机卡片/搜索/导入入口旅程 PASS；1280px 桌面浏览器旅程、V3 专项源审计、纠错恢复、批次常量持久化/恢复、22 列 172 行合成 XLSX 的 Host 旅程也都在该 run 实际执行而非 skipped。
+
+### 截图 / 附件索引（R）
+
+所有截图均来自隔离 Host 合成验收，不是生产页面或客户数据。可从上述 artifact ZIP 直接取用：
+
+| 文件 | 视口/场景 | 已直接观察到的内容 | 限制 |
+|---|---|---|---|
+| `v3-fidelity-workbench-map-1280.png` | 1280×900，映射页首屏 | 标题“核对导入数据”、文件摘要、步骤、四项指标、四列映射表 | 该 fixture 为 4 已匹配 / 17 待新增 / 1 忽略 / 0 需核对；不是 #909 的 3 项异常状态 |
+| `v3-fidelity-first-viewport-batch-390.png` | 390×844，批次审核首屏 | 手机纵向卡片、文件摘要、指标、来源提示和工作台底部导航 | 不是 #909 原图逐像素对照，也未由用户签收 |
+| `v3-e4-map-desktop-overview.png` | 1280×900 | 四列标题、筛选、文件信息及第一批映射行 | 同样是无 mapping attention 的合成样本 |
+| `v3-e4-map-desktop-submit.png` | 1280×900，长页底部 | 末尾字段行与底部操作区 | 当前可见“保存映射并预检查”“AI 自动匹配”；原型底部动作集合还包括返回文件、恢复初始选择和保存状态 |
+| `v3-e4-map-phone-overview.png` / `v3-e4-map-phone-submit.png` | 390×844，手机长页首尾 | 真实手机卡片式映射、长页末尾 | 只覆盖当前 Host 状态，不覆盖所有问题状态 |
+| `v3-e4-task-overview-desktop.png` / `v3-e4-task-overview-phone.png` | 桌面/手机任务概览 | Eidos 通用任务摘要 | 不能代替异常处理区域视觉验收 |
+| `v3-source-audit-desktop.png` | 1280×900，失败预检来源审计 | 文件/来源与学习证据、行级问题、修正入口 | 这是预检页，不是映射页顶部的原型 issue box |
+| `v3-correction-desktop.png` | 1280×900，行纠错 | 主体类型修正表单、Excel 原值、使用修正值、重新预检查及返回操作 | 功能/状态证据，不代表视觉签收 |
+| `v3-retained-xlsx-ready-172.png` | 1280×900，172 行预检 | 真实 Host 的隔离 XLSX 预检、来源保留和纠错后结果 | 合成数据；不能充当客户 Excel 验收 |
+
+### 与 #909 原型的直接对照：确认项与仍有差异
+
+**已被当前真实 Host 截图/自动化证明：**
+
+1. 页面标题已采用“核对导入数据”。
+2. 真实 Job 文件摘要和源数据保留标识存在。
+3. 桌面有四列：来源列名、示例值、对应系统字段、状态；桌面长页能滚动到最后一行和底部操作区。
+4. 390px 实际切换为卡片，不显示桌面表格，页面宽度未超出 390px。
+5. 真实 Host 操作旅程包含显式保存/预检查、行纠错、批次字段创建/映射与提交结果；这些测试使用隔离合成样本。
+
+**尚未达到或尚未覆盖的原型差异（D）：**
+
+1. 当前主要映射截图为 0 个 mapping attention 的状态，因此不能证明 #909 中“开户银行同名字段”“3 条缺少主体类型”“系统编码未决”三类问题卡片及其展开/跳转已按原型呈现。预检来源审计截图只能证明后续预检/纠错存在，不能替代映射页 issue box。
+2. #909 顶部是“选择文件 → 核对并导入”的两阶段视觉表达；当前正式页面呈现“选择文件 → 核对映射 → 预检查与导入”三步。需由产品决策确定是保持真实 Host 的三步流程但按原型视觉压缩/命名，还是有证据后调整；不可为像素相似而隐藏真实预检步骤。
+3. #909 映射区底部有自动保存状态、返回文件、恢复初始选择、预检查并继续；当前 Host 页面显示“保存映射并预检查”和“AI 自动匹配”。这是一项真实功能/视觉差异，不应只通过 CSS 模仿按钮；需要先确认 Host 是否有安全的重置与返回动作契约，再实现或记录有理由的差异。
+4. 当前全局 Eidos Host 的应用栏、企业/语言/用户顶部栏和左侧导航与原型独立 HTML 的 topbar 不完全相同；视觉核验应区分宿主固定框架与页面自身区域，不要为了复制原型删除通用导航。
+5. 当前已打开的 mapping screenshot 使用合成文件名和不同的映射分布，不等于原型的示例状态；不应把指标数字不同直接判为 UI 缺陷，也不应以这些数值作为客户证据。
+
+### 本轮发现的证据报告不一致与纠正
+
+直接读取 `tests/bex01/live_supplier_chromium.py` 的测试步骤后，发现浏览器断言已检查 54 条供应商的分页（25、25、4），但报告生成器仍写 `pages:[25,25,3]` 和“53 committed supplier rows”。这是测试证据元数据过时，并不代表业务页面失败。已在候选分支新增修正提交 `6d77dcf22324a9039f315432598892b8dc5d6e07`，将报告改为 25/25/4 和 54 条；**该新提交的精确 HEAD CI/Chromium 正在重跑，未通过之前不把这项报告纠偏记为最终验证完成**。
+
+### 下一步决策与实施顺序
+
+1. 等待新 HEAD `6d77dcf22324a9039f315432598892b8dc5d6e07` 的 Platform CI、BEX-01 Real Host Chromium 和 V3 专项步骤全部 PASS；确认新 artifact 的 `report.json` 与真实分页断言一致。
+2. 不重新开展已完成的外站研究。使用当前 #909 HTML、S01–S04 历史截图观察记录与本次最新 Host 截图继续逐项核对。
+3. 首要视觉/功能缺口是映射页的“需要处理”区覆盖：增加一个隔离测试状态，使真实 Host 在字段映射页呈现未决同名字段/未映射列的 issue list；对行级缺值，只在 Host 已有 dry-run/issue 证据时显示，不能自行推断客户主体身份。
+4. 审查底部动作：先阅读 Eidos 表单动作合同与 Host 命令路由，确认“返回文件”“恢复初始选择”是否有现成、可审计的安全动作；不使用未经定义的 UI-only click，不删除当前 AI 自动匹配入口。
+5. 以最新 main 为基线做变更路径审查；只要 main 再前进，重新 compare。#1060 保持 Draft，不部署、不合并。
+6. 取得最新 1280px/390px 映射页首屏、问题区、表格长页底部与预检/纠错截图后，再交由用户进行 Human 视觉签收。
+
+M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真及 Human 视觉签收 OPEN；总体进度继续保持 **3/6**。原客户 Excel、授权 Import Job、两个银行字段真实身份/用途、三条真实主体身份仍未取得，不使用合成样本替代。
