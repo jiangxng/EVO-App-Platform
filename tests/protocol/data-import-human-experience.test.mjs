@@ -1089,8 +1089,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
       contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
     }),locale:"zh-CN",canCreateExtension:true
   });
-  assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
-    && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
+  assert.ok(completedPage.reviewTable.links.some(x=>x.id==="batch-constant"
+    && x.route.includes("mode=batch")),"saved batch constant remains editable from the review-table tools after all columns mapped");
   assert.match(completedPage.fields.find(x=>x.key==="batchConstantEntry").contextLink.label,
     /查看或修改批次固定值/);
   assert.equal(validateUidl(completedPage).ok,true,
