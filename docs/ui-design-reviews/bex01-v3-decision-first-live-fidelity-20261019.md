@@ -137,3 +137,43 @@ V3 Human 工作台首先让用户核对当前来源列、原始样本、字段�
 **改动：** 映射页移除重复 facts 行，保留真实行数和来源列数于文件 subtitle，并将状态文案调整为“文件已读取”。批次页将 subtitle 改为“导入文件 · 行数 · 来源列数 · 待处理列数”，移除重复 facts 行；不更改指标统计、源 Excel、Job、字段决策或 Host 命令。通用 Eidos 移动端任务卡片改为文件身份与状态并排，窄于 360px 时退回安全单列。V3 协议测试新增断言，防止映射/批次文件卡片重新出现重复 facts。
 
 **验收边界：** 该修复目标是缩短文件卡片、消除信息重复，并接近 #909 文件卡片的桌面/手机层级。必须在新精确 HEAD 上重新通过 Platform CI 与真实 Host Chromium，直接检查最新 1280px/390px 图像。它不表示整个页面已 100% 还原；问题区、表格密度、底部操作区、跨阶段流程仍须逐项核验。M01–M03 完成；M04/M05/M06 OPEN；总体 3/6。
+
+
+## 2026-10-20｜真实 Host 截图复核与剩余视觉差异
+
+### 核验范围与可复现证据
+
+- Platform 候选提交：`6049c5875adecadef7b353fbc8861acc5c154ecd`。
+- 当前 Platform `main`：`eaa5e813b1e86a6460d988c76eb2076512c35127`。双向比较显示候选分支领先 36 个提交、落后 0 个提交；本轮不需要再盲目 rebase。PR #1060 仍为 Draft，未合并。
+- [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540039)：PASS。
+- [BEX-01 Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540028)：PASS；产物 `bex01-real-host-chromium-evidence`（artifact ID `12246513104`），包含真实 Host 的隔离合成数据截图和 `report.json`。
+- [BEX-01 In-Context Import Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540118)：PASS。
+- 同一 HEAD 的 [PA-01B2 Full Isolated Chrome Host Acceptance](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540116) 有独立失败：普通聊天 transport 场景的 mock model call 未被观察到（7/8）。这不是 BEX 专项门禁，不应通过改动 PA01/PA05 源码或忽略该失败来处理。
+- V3 原型对照来源仍是 [#909 原型产物](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38704093619)，其中 `bex-v3-in-context-import-open-in-browser` artifact ID `11957646429`。该产物的 `report.json` 明确标注其为 synthetic fixture，且真实客户工作簿、授权、生产提交和 Human 视觉审批未验证。
+
+### 实际截图观察
+
+当前 Host 产物中可复查以下文件：
+
+- `v3-fidelity-workbench-map-1280.png`：映射页首屏。
+- `v3-fidelity-workbench-batch-1280.png`：批次集中审核页首屏。
+- `v3-fidelity-first-viewport-batch-390.png`：390px 手机首屏。
+- `v3-map-row-issues-desktop.png`、`v3-map-row-issues-phone.png`：有真实 Host 映射问题的桌面/手机视图。
+- `v3-e4-map-desktop-contiguous-00.png` 至 `v3-e4-map-desktop-contiguous-03.png`、`v3-e4-map-desktop-submit.png`：映射表连续滚动与底部操作区证据。
+- `report.json`：5/5 个 BEX 真实 Host 浏览器场景通过，浏览器错误列表为空。数据是隔离合成供应商数据，不是客户验收证据。
+
+### 对照 #909 原型后确认的差异
+
+1. **上下文 Host 外壳不同**：正式页面在 Eidos/Platform Host 导航、语言和用户控件内运行；原型使用轻量演示页头。当前判断这是运行环境差异，不单独复制原型外壳到业务页。
+2. **文件卡片细节未达到原型**：原型展示 XLSX 类型图标、文件名、工作表、行列数及绿色“文件已读取”状态；当前 Host 有文件名、记录数、列数和读取状态，但缺少同等显著的文件类型图标/信息层级。列为待修复视觉差异。
+3. **异常区的内容结构不同**：原型截图使用 3 种不同异常（开户银行多目标、3 条主体类型缺失、系统编码未决），各有独立动作；当前真实 Host 问题截图使用只有 3 条主体类型缺失的隔离 CSV，因此只显示一个聚合问题卡和“核对本列”。这不是同一数据状态，不能据此声称异常区已 100% 还原。下一步应补充单独的隔离视觉 fixture，覆盖三个不同问题类型；不修改真实客户数据。
+4. **映射表结构已对齐基本四列**：来源列名、示例值、对应系统字段、状态均存在；但实际 fixture 的字段名、匹配/待新增比例与原型不同。最终签收需要在相同 22 列语义状态下比对，而不是用 172×22 另一组数据替代原型截图。
+5. **步骤流程与底部操作区尚未完成逐项签收**：Host 的当前步骤标识可见；原型有更明确的已完成步骤、连接线和编号层级。Host 映射页底部有“保存映射并预检查 / AI 自动匹配”，而原型概览底部是“返回文件 / 恢复初始选择 / 预检查并继续”。操作差异可能由实际工作流状态与上下文入口导致，需先统一测试状态再决定是否调整，不应仅为截图复制按钮。
+6. **手机布局已有功能性证据，不等于视觉签收**：390px 下页面宽度不溢出，卡片重排及触控检查通过；当前手机问题区只有一类聚合问题，且 Host 固定底部导航与原型不同。仍需用同一三类异常 fixture 做连续截图复核。
+
+### 决策与下一步
+
+- 不把自动化 PASS 当作 Human 视觉签收，也不把原型测试数据当作真实客户证据。
+- 保持 PR #1060 为 Draft；不部署、不合并、不启动 M04/M05 真实客户 Excel 验收。
+- 下一项具体工作：增加一个**独立、隔离、明确标记为 synthetic 的 V3 视觉 fixture**，让实际 Host 呈现与 #909 同等的 22 列、16 已匹配、4 待新增、0 忽略、3 类问题状态；保存 1280px 和 390px 连续截图。然后逐项修复文件卡片、异常区、步骤流程和底部操作区的真实差异，再请求 Human 签收。
+- 不改 `project.status.json`，不切换 Railway 到 release，不修改 PA05/Eidos 其他工作或插件治理。
