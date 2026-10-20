@@ -914,7 +914,9 @@ export function createDataImportMappingPageV010(input: {
       value:String(reviewIssues.length),tone:"warning" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
-    issuesCountSuffix: zh(input.locale) ? "项待处理" : "pending",
+    ...(reviewIssues.length > 0
+      ? { issuesCountSuffix: zh(input.locale) ? "项待处理" : "pending" }
+      : {}),
     issuesDescription: zh(input.locale)
       ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
       : "Review only uncertain sources; jump directly to the relevant choice.",
