@@ -124,7 +124,7 @@ test("K0 NEGATIVE: stop drops map entry before OS child exit; shutdown snapshot 
       scope: "isolated-local-child",
       shutdownReturnedWithChildAlive,
       shutdownSkippedInFlightStop,
-      stopFinishedAfterwards: true,
+      stopFinishedAfterwards: stopSettled,
       globalStopCertified: false
     }));
     assert.equal(shutdownReturnedWithChildAlive, true);
