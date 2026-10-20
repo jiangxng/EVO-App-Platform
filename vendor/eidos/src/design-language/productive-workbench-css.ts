@@ -3300,5 +3300,40 @@ form[data-eidos-id] button:hover,
 [data-eidos-review-plan-warning]{
   margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
 }
+/* BEX-01 workbench parity: distinct, numbered Human actions rather than one
+   undifferentiated grey list. Only the opt-in workbench presentation changes. */
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+  border:0;background:transparent;padding:0;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>ol{
+  display:grid;gap:var(--eidos-space-sm);counter-reset:eidos-workbench-issue;
+  border:0;background:transparent;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+  display:grid;grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:start;gap:var(--eidos-space-md);
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  border:1px solid color-mix(in srgb,var(--eidos-warning) 30%,var(--eidos-border));
+  border-radius:var(--eidos-radius-lg);background:var(--eidos-bg);
+  counter-increment:eidos-workbench-issue;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li::before{
+  content:counter(eidos-workbench-issue);display:grid;place-items:center;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--eidos-bg-subtle);color:var(--eidos-warning);
+  font-size:var(--eidos-font-meta);font-weight:700;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li button{
+  align-self:center;
+}
+@media(max-width:850px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    grid-template-columns:28px minmax(0,1fr);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li button{
+    grid-column:2;justify-self:start;align-self:start;
+  }
+}
+
 
 `;

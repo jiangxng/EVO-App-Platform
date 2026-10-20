@@ -747,13 +747,42 @@ export function createDataImportMappingPageV010(input: {
     description: string;
     focusGroupId?: string;
     actionLabel?: string;
-  }[] = attentionColumns.map(group => ({
-    id: group.id,
-    title: group.title,
-    description: group.reviewStatus.label + " · " + group.summary,
-    focusGroupId: group.id,
-    actionLabel: zh(input.locale) ? "核对本列" : "Review column"
-  }));
+  }[] = attentionColumns.map(group => {
+    const candidates = candidatesFor(group.title);
+    if (candidates.length > 1) {
+      return {
+        id: group.id,
+        title: zh(input.locale)
+          ? group.title + "存在多个对应字段"
+          : group.title + " has multiple target fields",
+        description: zh(input.locale)
+          ? "请确认这列数据应写入哪个业务字段。"
+          : "Confirm which business field should receive this source column.",
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
+      };
+    }
+    if (metadataLikeColumn(group.title)) {
+      return {
+        id: group.id,
+        title: zh(input.locale)
+          ? "「" + group.title + "」尚未选择处理方式"
+          : "No handling choice for “" + group.title + "”",
+        description: zh(input.locale)
+          ? "请确认是否需要导入为业务字段。原文件内容会保留在导入记录中。"
+          : "Decide whether to import this as a business field. The original value remains in the import record.",
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "处理此列" : "Handle column"
+      };
+    }
+    return {
+      id: group.id,
+      title: group.title,
+      description: group.reviewStatus.label + " · " + group.summary,
+      focusGroupId: group.id,
+      actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+    };
+  });
 
   // A failed dry-run is durable Host evidence. Surface row-level validation
   // issues when returning to mapping; never infer business identities from
@@ -783,23 +812,37 @@ export function createDataImportMappingPageV010(input: {
       : undefined;
     const field = input.schema.fields.find(item =>
       item.fieldId === rowIssue.issue.fieldId);
-    const title = field
-      ? localizedTextV010(field.label, input.locale)
-      : rowIssue.issue.fieldId ?? rowIssue.issue.code;
     const rowNumbers = [...rowIssue.rowNumbers].sort((a, b) => a - b);
     const visibleRows = rowNumbers.slice(0, 8).join("、")
       + (rowNumbers.length > 8 ? " 等" : "");
-    const description = (zh(input.locale)
-      ? rowNumbers.length + " 条记录需要处理（第 " + visibleRows + " 行）· "
-      : rowNumbers.length + " row(s) need attention (rows " + visibleRows + ") · ")
-      + importReviewIssueMessageV010({
-        issue: rowIssue.issue, schema: input.schema, locale: input.locale
-      });
+    const missingSubjectType = rowIssue.issue.fieldId === "subjectType"
+      && rowIssue.issue.code.includes("REQUIRED");
+    const title = missingSubjectType
+      ? (zh(input.locale)
+        ? rowNumbers.length + " 条记录缺少主体类型"
+        : rowNumbers.length + " records are missing subject type")
+      : field
+        ? localizedTextV010(field.label, input.locale)
+        : rowIssue.issue.fieldId ?? rowIssue.issue.code;
+    const description = missingSubjectType
+      ? (zh(input.locale)
+        ? "请为以下记录选择正确的主体类型。（第 " + visibleRows + " 行）"
+        : "Choose the correct subject type for these records (rows " + visibleRows + ").")
+      : (zh(input.locale)
+        ? rowNumbers.length + " 条记录需要处理（第 " + visibleRows + " 行）· "
+        : rowNumbers.length + " row(s) need attention (rows " + visibleRows + ") · ")
+        + importReviewIssueMessageV010({
+          issue: rowIssue.issue, schema: input.schema, locale: input.locale
+        });
     const existing = sourceGroup
       ? reviewIssues.find(item => item.focusGroupId === sourceGroup.id)
       : undefined;
     if (existing) {
       existing.description += "；" + description;
+      if (missingSubjectType) {
+        existing.title = title;
+        existing.actionLabel = zh(input.locale) ? "查看记录" : "View records";
+      }
     } else {
       reviewIssues.push({
         id: "dry-run-issue-" + index,
@@ -807,7 +850,9 @@ export function createDataImportMappingPageV010(input: {
         description,
         ...(sourceGroup ? {
           focusGroupId: sourceGroup.id,
-          actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+          actionLabel: missingSubjectType
+            ? (zh(input.locale) ? "查看记录" : "View records")
+            : (zh(input.locale) ? "核对本列" : "Review column")
         } : {})
       });
     }
