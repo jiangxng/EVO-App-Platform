@@ -366,3 +366,10 @@ Railway 生产 Host [部署](https://railway.com/project/aee4643e-912b-4ca1-ae95
 已创建的 [K0 未签收验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 继续以固定 `102319de...` 源码作为所读取的**明确历史基线**；未来在 K0 实际签收前必须再基于生效新源码核实相关实现、权限与 PID，不能由旧文件日期推断最新运行源码恒等。PR #1071 前一文档 HEAD `249fa43b6da7d68279fed488e96e923d7c35e857` **7/7 exact-HEAD checks SUCCESS**；追加本节后又会产生一个新 HEAD，应单独核验。
 
 所有 K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，production material WRITE `OFF`；无主动生产操作。
+
+
+## 22. 2026-10-20 — 新部署 shutdown 源码精确对照（只读，不是生产停机测试）
+
+基于 [两次 main 的精确差异](https://github.com/jiangxng/EVO-App-Platform/compare/102319de812ce65682f0c6ccb1a930e10b4e22d4...6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1)，#1078 确实修改了 `manager/server.ts`（新 blob `019b42a97aca18403245bf8480978638eacb65e5`），但通过直接读取**旧/new 两份源码原文**，从 `let shuttingDown = false;` 至 SIGTERM/SIGINT 处理器的整个 1449 字符末尾片段 **逐字一致**：仍按序关闭 runtime、随后 `server.close()`、再设置 5 秒 fail-fast。独立 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 的 attempt-all/admission-close 修复**并未**随 [#1078 main](https://github.com/jiangxng/EVO-App-Platform/commit/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1) 部署。此处只是静态源码对照，不是 Railway SIGTERM 已送达或异常退出的生产复现。
+
+**保持拒绝门禁：** 有效 Railway draining、container PID 1/npm 信号传播、实际 child stop receipt、组织身份与 SQL 会话均未认证；K0 NOT_SIGNED、production material WRITE OFF。原先 Ecosystem schedule 10 FAIL 保留独立反证。
