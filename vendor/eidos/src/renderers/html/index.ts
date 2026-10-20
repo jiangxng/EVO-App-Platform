@@ -233,12 +233,22 @@ export function renderToHtml(document: unknown): string {
             data-eidos-agent-action="${esc(toolbarAgent.id)}">${esc(toolbarAgent.label)}</button>` : ""}
           </div></div>`
       : "";
+    const utilities=model.reviewTable?.utilityNavigation;
+    const utilityMenu=utilities
+      ? `<details data-eidos-form-review-table-utility-nav>
+          <summary>${esc(utilities.label)}</summary>
+          <div data-eidos-form-review-table-utility-links>${utilities.items.map(item=>
+            `<button type="button" data-eidos-form-review-table-utility-id="${esc(item.id)}"
+              data-eidos-context-route="${esc(item.route)}">${esc(item.label)}</button>`
+          ).join("")}</div>
+        </details>` : "";
     const heading=model.reviewTable?.heading
       ? `<header data-eidos-form-review-table-heading>
           <h2>${esc(model.reviewTable.heading.title)}</h2>
           ${model.reviewTable.heading.description
             ? `<p>${esc(model.reviewTable.heading.description)}</p>` : ""}
-        </header>` : "";
+          ${utilityMenu}
+        </header>` : utilityMenu;
     return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>

@@ -86,6 +86,22 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     ...linkTask.issues[0],relatedRoutes:[
       linkTask.issues[0].relatedRoutes[0],linkTask.issues[0].relatedRoutes[0]]
   }]}}).ok,false,"repeated row links must fail closed");
+  assert.equal(mapping.reviewTable.utilityNavigation.label,"字段处理工具");
+  assert.deepEqual(mapping.reviewTable.utilityNavigation.items.map(item=>item.id),
+    ["batch-review","create-extension"]);
+  assert.equal(mapping.contextNavigation.items.some(item=>item.id==="batch-review"
+    || item.id==="create-extension"),false);
+  const utilityHtml=renderToHtml(mapping);
+  assert.match(utilityHtml,/data-eidos-form-review-table-utility-nav/);
+  assert.match(utilityHtml,/data-eidos-form-review-table-utility-id="batch-review"/);
+  assert.match(utilityHtml,/data-eidos-context-route="\/object-extensions\/from-import\?/);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    utilityNavigation:{label:"Unsafe",items:[{id:"bad",label:"Unsafe",
+      route:"https://example.invalid"}]}}}).ok,false);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    utilityNavigation:{label:"Duplicate",items:[
+      mapping.reviewTable.utilityNavigation.items[0],
+      mapping.reviewTable.utilityNavigation.items[0]]}}}).ok,false);
   assert.equal(mapping.reviewTable.agentActionId,"ai-auto-map");
   const htmlWithAgent=renderToHtml(mapping);
   assert.match(htmlWithAgent,/data-eidos-review-table-agent-action/);

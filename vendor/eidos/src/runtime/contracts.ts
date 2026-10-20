@@ -67,6 +67,8 @@ export interface UidlFormReviewTableV010 {
   footnote?: string;
   /** Optional reference to an existing Agent action, rendered beside the mapping filter. */
   agentActionId?: string;
+  /** Optional real internal routes for secondary workflow tools, not breadcrumbs. */
+  utilityNavigation?: {label:string;items:{id:string;label:string;route:string}[]};
   columnLabels: { subject: string; evidence: string; decision: string; status: string };
   filter?: {
     label: string;

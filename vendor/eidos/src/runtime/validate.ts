@@ -886,7 +886,7 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote","agentActionId"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
       for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
         const value=table[key];
         if(value!==undefined && (!nonEmpty(value) || value.length>max)){
@@ -968,7 +968,42 @@ export function validateUidl(
         out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",p+".agentActionId",
           "Toolbar agent action requires an existing action ID"));
       }
+      let utilityNavigation:import("./contracts.js").UidlFormReviewTableV010["utilityNavigation"];
+      if(table.utilityNavigation!==undefined){
+        const nav=table.utilityNavigation;
+        if(!isPlainObject(nav) || !nonEmpty(nav.label) || nav.label.length>64
+          || !Array.isArray(nav.items) || nav.items.length<1
+          || nav.items.length>3){
+          out.push(d("EIDOS_REVIEW_TABLE_UTILITY_INVALID",p+".utilityNavigation",
+            "Secondary navigation needs a bounded label and 1-3 internal routes"));
+        }else{
+          extraKeys(nav,new Set(["label","items"]),p+".utilityNavigation",out);
+          const ids=new Set<string>();
+          const items:{id:string;label:string;route:string}[]=[];
+          for(const [index,raw] of nav.items.entries()){
+            const at=p+".utilityNavigation.items["+index+"]";
+            if(!isPlainObject(raw) || !nonEmpty(raw.id) || raw.id.length>80
+              || ids.has(raw.id) || !nonEmpty(raw.label) || raw.label.length>150
+              || !nonEmpty(raw.route) || raw.route.length>1024
+              || !raw.route.startsWith("/") || raw.route.startsWith("//")
+              || raw.route.includes("#") || raw.route.includes("\\")
+              || raw.route.includes(String.fromCharCode(10))
+              || raw.route.includes(String.fromCharCode(13))){
+              out.push(d("EIDOS_REVIEW_TABLE_UTILITY_INVALID",at,
+                "Only unique, bounded Host-internal navigation is allowed"));
+            }else{
+              extraKeys(raw,new Set(["id","label","route"]),at,out);
+              ids.add(raw.id);
+              items.push({id:raw.id,label:raw.label,route:raw.route});
+            }
+          }
+          if(items.length===nav.items.length){
+            utilityNavigation={label:nav.label,items};
+          }
+        }
+      }
       reviewTable={
+        ...(utilityNavigation ? {utilityNavigation} : {}),
         ...(nonEmpty(table.agentActionId) && table.agentActionId.length <= 128
           ? {agentActionId:table.agentActionId} : {}),
         ...(typeof table.toolbarHint==="string" && table.toolbarHint.trim()

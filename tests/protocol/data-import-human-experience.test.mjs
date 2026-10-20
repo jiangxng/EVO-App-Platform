@@ -1084,8 +1084,10 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
-  const batchReviewLink=page.contextNavigation.items.find(x=>x.id==="batch-review");
-  assert.ok(batchReviewLink,"Batch B remains available in the actual context navigation");
+  const batchReviewLink=page.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-review");
+  assert.ok(batchReviewLink,"Batch B remains available beside mapping decisions");
+  assert.ok(!page.contextNavigation.items.some(x=>x.id==="batch-review"),
+    "secondary actions must not be masqueraded as breadcrumbs");
   assert.match(batchReviewLink.label,/集中审核/);
   assert.match(batchReviewLink.route,/mode=batch/);
   assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
@@ -1129,9 +1131,9 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
       contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
     }),locale:"zh-CN",canCreateExtension:true
   });
-  assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
+  assert.ok(completedPage.reviewTable.utilityNavigation.items.some(x=>x.id==="batch-constant"
     && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
-  assert.match(completedPage.contextNavigation.items.find(x=>x.id==="batch-constant").label,
+  assert.match(completedPage.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-constant").label,
     /核对本次导入的批次固定值/);
   assert.equal(validateUidl(completedPage).ok,true,
     JSON.stringify(validateUidl(completedPage).diagnostics));

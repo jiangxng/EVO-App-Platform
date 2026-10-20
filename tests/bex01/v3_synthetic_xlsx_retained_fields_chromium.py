@@ -738,6 +738,14 @@ with sync_playwright() as pw:
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
     assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
     expect(visual_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
+    expect(visual_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
+    options_menu=visual_form.locator('[data-eidos-form-review-table-utility-nav]')
+    expect(options_menu.locator("summary")).to_have_text("字段处理工具")
+    options_menu.locator("summary").click()
+    expect(options_menu.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
+    expect(options_menu.locator('[data-eidos-form-review-table-utility-id="create-extension"]')).to_be_visible()
+    visual_page.screenshot(path=str(OUT/"v3-secondary-field-tools-desktop.png"),full_page=False)
+    options_menu.locator("summary").click()
     expect(visual_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(visual_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
     toolbar_ai=visual_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
@@ -825,6 +833,15 @@ with sync_playwright() as pw:
     phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
     expect(phone_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
+    phone_tools=phone_form.locator('[data-eidos-form-review-table-utility-nav]')
+    expect(phone_tools.locator("summary")).to_have_text("字段处理工具")
+    assert phone_tools.locator("summary").evaluate("(el)=>el.getBoundingClientRect().height")>=44
+    phone_tools.locator("summary").click()
+    expect(phone_tools.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
+    expect(phone_tools.locator('[data-eidos-form-review-table-utility-id="create-extension"]')).to_be_visible()
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX_V3_PHONE_UTILITIES_OVERFLOW"
+    visual_phone.screenshot(path=str(OUT/"v3-secondary-field-tools-phone.png"),full_page=False)
+    phone_tools.locator("summary").click()
     expect(phone_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(phone_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
     phone_ai=phone_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')

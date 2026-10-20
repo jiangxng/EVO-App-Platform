@@ -717,9 +717,34 @@ export function createDataImportMappingPageV010(input: {
       statusKeys: handledKeys
     }] : [])
   ];
+  const utilityNavigationItems = [
+    ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
+        && unmapped.length>0 ? [{
+      id:"batch-review",
+      label:zh(input.locale)
+        ? "集中审核 "+unmapped.length+" 个未匹配字段"
+        : "Review "+unmapped.length+" unmatched fields together",
+      route:objectExtensionImportRouteV010(input.job.importJobId)+"&mode=batch"
+    },{
+      id:"create-extension",
+      label:zh(input.locale)
+        ? "创建企业扩展字段（未匹配列）"
+        : "Create extension from unmatched columns",
+      route:objectExtensionImportRouteV010(input.job.importJobId)
+    }] : []),
+    ...(!unmapped.length && canReviewBatchConstant ? [{
+      id:"batch-constant",
+      label:zh(input.locale) ? "核对本次导入的批次固定值" : "Review batch constants",
+      route:objectExtensionImportRouteV010(input.job.importJobId)+"&mode=batch"
+    }] : [])
+  ];
   const reviewTable = {
     // V3 compact four-column density uses upstream Eidos #200 semantics.
     presentation: "compact" as const,
+    ...(utilityNavigationItems.length ? {utilityNavigation:{
+      label:zh(input.locale) ? "字段处理工具" : "Field tools",
+      items:utilityNavigationItems
+    }} : {}),
     agentActionId: "ai-auto-map",
     toolbarHint: zh(input.locale)
       ? "优先显示需要确认的来源字段；可切换查看全部原始列。"
@@ -990,34 +1015,12 @@ export function createDataImportMappingPageV010(input: {
         : (zh(input.locale)
           ? "先恢复本企业之前的映射；请核对字段对应关系后继续。"
           : "Review field mappings and resolve outstanding issues before continuing."),
-    contextNavigation: {
-      items: [
-        ...importContextNavigationV010({
-          target: input.target,
-          parameters: input.job.targetParameters,
-          locale: input.locale,
-          step: "mapping"
-        }).items,
-        ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
-          ? [{
-              id:"batch-review",
-              label:zh(input.locale)
-                ? "集中审核 " + unmapped.length + " 个未匹配字段"
-                : "Review " + unmapped.length + " unmatched fields together",
-              route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-            }, {
-              id:"create-extension",
-              label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
-              route:objectExtensionImportRouteV010(input.job.importJobId)
-            }]
-          : []),
-        ...(!unmapped.length && canReviewBatchConstant ? [{
-          id:"batch-constant",
-          label:zh(input.locale) ? "核对本次导入的批次固定值" : "Review batch constant",
-          route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-        }] : [])
-      ]
-    },
+    contextNavigation: importContextNavigationV010({
+      target: input.target,
+      parameters: input.job.targetParameters,
+      locale: input.locale,
+      step:"mapping"
+    }),
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_REVIEW_COMMAND_V010,

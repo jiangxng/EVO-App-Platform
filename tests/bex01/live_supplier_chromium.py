@@ -244,7 +244,11 @@ with sync_playwright() as p:
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    # Batch B is now visible beside the original per-column action.
-   expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(1)
+   expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
+   utility=mapping_form.locator('[data-eidos-form-review-table-utility-nav]')
+   expect(utility.locator("summary")).to_have_text("字段处理工具")
+   utility.locator("summary").click()
+   expect(utility.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
@@ -333,9 +337,12 @@ with sync_playwright() as p:
    page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
    expect(page.locator('form[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=30000)
    expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
-   entry=page.locator('[data-eidos-context-route*="&mode=batch"]')
-   expect(entry.first).to_be_visible()
-   entry.first.click()
+   expect(page.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="&mode=batch"]')).to_have_count(0)
+   tools=page.locator('form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-utility-nav]')
+   tools.locator("summary").click()
+   entry=tools.locator('[data-eidos-form-review-table-utility-id="batch-review"]')
+   expect(entry).to_be_visible()
+   entry.click()
    page.wait_for_timeout(850)
    print("BEX_BATCH_ROUTE_AFTER_CLICK="+json.dumps(page.evaluate("""() => ({
      url: location.href,

@@ -2901,8 +2901,43 @@ form[data-eidos-id] button:hover,
 
 /* Optional domain-neutral heading before the E2 decision table. */
 [data-eidos-form-review-table-heading]{
-  display:grid;gap:var(--eidos-space-xs);margin-top:var(--eidos-space-section);
-  min-width:0
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  column-gap:var(--eidos-space-md);row-gap:var(--eidos-space-xs);
+  margin-top:var(--eidos-space-section);min-width:0
+}
+[data-eidos-form-review-table-heading] h2{grid-column:1;grid-row:1}
+[data-eidos-form-review-table-heading] p{grid-column:1;grid-row:2}
+[data-eidos-form-review-table-utility-nav]{
+  grid-column:2;grid-row:1 / span 2;justify-self:end;
+  min-width:0;max-width:100%;font-size:var(--eidos-font-compact)
+}
+[data-eidos-form-review-table-utility-nav] summary{
+  display:flex;align-items:center;min-height:var(--eidos-control-normal);
+  cursor:pointer;color:var(--eidos-primary);font-weight:600;
+  padding:0 var(--eidos-space-sm);border-radius:var(--eidos-radius-md);
+  border:1px solid var(--eidos-border-strong);background:var(--eidos-bg);
+}
+[data-eidos-form-review-table-utility-nav] summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-form-review-table-utility-links]{
+  display:grid;gap:var(--eidos-space-xs);padding-top:var(--eidos-space-xs)
+}
+[data-eidos-form-review-table-utility-links] button{
+  text-align:left;white-space:normal;overflow-wrap:anywhere;
+  border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-md);
+  padding:var(--eidos-space-sm);min-height:var(--eidos-control-normal);
+  background:var(--eidos-bg);color:var(--eidos-primary);cursor:pointer
+}
+[data-eidos-form-review-table-utility-links] button:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+@media(max-width:700px){
+  [data-eidos-form-review-table-utility-nav]{
+    grid-column:1 / -1;grid-row:auto;justify-self:start
+  }
+  [data-eidos-form-review-table-utility-nav] summary,
+  [data-eidos-form-review-table-utility-links] button{min-height:44px}
 }
 [data-eidos-form-review-table-heading] h2{
   margin:0;color:var(--eidos-fg);font-size:var(--eidos-font-section)
