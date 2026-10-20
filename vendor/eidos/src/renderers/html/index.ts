@@ -93,7 +93,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
       <span>${esc(metric.label)}</span></div>`).join("")}
   </section>` : "";
   const issues=task.issues?.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
-    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>`
+    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
     <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
     ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
     ${task.presentation === "workbench" && task.issuesCountSuffix
