@@ -195,7 +195,7 @@ with sync_playwright() as p:
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    # Batch B is now visible beside the original per-column action.
-   expect(mapping_form.locator('[data-eidos-context-navigation] [data-eidos-context-route*="mode=batch"]')).to_have_count(1)
+   expect(mapping_form.locator('[data-eidos-context-navigation] [data-eidos-context-route*="mode=batch"]').filter(has_text="集中审核")).to_have_count(1)
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
@@ -374,8 +374,12 @@ with sync_playwright() as p:
    assert size["scrollWidth"] <= size["viewport"]+2, "PHONE_HORIZONTAL_PAGE_OVERFLOW: "+str(size)
    control=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
    assert control.bounding_box()["height"] >= 44, "PHONE_SEARCH_TOUCH_TARGET"
+   initial_summary=page.locator('[data-eidos-page-summary]').inner_text()
+   assert initial_summary.startswith("1–25 / "), "PHONE_INITIAL_PAGE_SUMMARY: "+initial_summary
+   total=int(initial_summary.rsplit("/",1)[1].strip())
+   assert total >= 50, "PHONE_FIXTURE_MUST_EXERCISE_PAGINATION: "+initial_summary
    page.locator('[data-eidos-catalog-action="next-page"]').click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 55")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text(f"26–50 / {total}")
    expect(cards).to_have_count(25)
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0053")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
