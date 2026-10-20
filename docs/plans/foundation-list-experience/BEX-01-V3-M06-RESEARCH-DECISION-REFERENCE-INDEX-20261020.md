@@ -372,3 +372,9 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 - 注意：较早 HEAD `6049c587…` 的 PA-01B2 full Chrome 曾因 `MOCK_MODEL_CALL_NOT_SEEN` 失败，但更新后的 `107fbceb…` 已通过该门禁。状态记录以精确 HEAD 为准，不延用较早失败或成功。
 - 上述自动化 PASS 不构成 Human 视觉签收。实际截图与 #909 原型的数据状态不同，当前问题截图只有一类主体类型缺失，文件卡片/异常项层级/步骤与底部操作仍有差异；这些差异已登记在 BEX-01 视觉审查文档。
 - 下一步：单独增加 synthetic V3 视觉 fixture，精确复现 22 列、16 匹配、4 新增、0 忽略、3 类异常；生成 1280px/390px 对照截图并修复视觉差异。客户 Excel 与授权证据仍缺失，禁止启动 M04/M05。
+
+## 2026-10-20 续跑 #16：分支计数校正
+
+- 再次比较确认 Platform `main`=`eaa5e813b1e86a6460d988c76eb2076512c35127`，实施分支 `107fbceb1c26043bd01ef2791e25068c3f474767` 为 ahead 37 / behind 0。上一条 #15 的 ahead 36 是新增视觉审查文档提交前的计数；本条以最新双向比较为准。
+- 该计数变化不影响精确 HEAD `107fbceb…` 的 CI 结果：Platform CI run `39386798443` PASS，BEX Real Host Chromium run `39386798369` PASS（artifact `12248210391`，5/5），In-Context Resume `39386798367` PASS，Human UI Design Review Gate `39386798312` PASS，Lightweight Host Architecture `39386798311` PASS，PA-01B2 Full Isolated Chrome Host Acceptance `39386798382` PASS。
+- 当前未合并/部署。保持 M04/M05 OPEN、M06 待 Human 视觉签收，总体 3/6。下一项是构建与 #909 同状态的隔离视觉 fixture，避免用不一致的数据状态声称 100% 还原。
