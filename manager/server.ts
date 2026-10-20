@@ -1,4 +1,5 @@
 import { createLlmCredentialFetchV010 } from "./llm-credential-fetch.js";
+import { createMemoryCredentialFetchV010 } from "./memory-credential-fetch.js";
 import { createOnUseEogServicesV010 } from "./eog-service-runtime.js";
 import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
@@ -2059,6 +2060,25 @@ providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
     : "In-memory Host secret store is active for this process.",
   checkedAt: new Date().toISOString()
 });
+// Two optional-token consumers only; bounded epochs/counts contain no credentials.
+const memoryCredentialOwners = new Map<string, string>([
+  [REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID],
+  [EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID]
+]);
+const memoryCredentialEpochs = new Map<string, number>();
+const memorySettingsWrites = new Map<string, number>();
+function invalidateMemoryCredential(providerId: string): void {
+  memoryCredentialEpochs.set(providerId, (memoryCredentialEpochs.get(providerId) ?? 0) + 1);
+}
+function invalidateMemoryBinding(capability: string): void {
+  if (capability === CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    invalidateMemoryCredential(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
+  }
+  if (capability === CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY
+      || capability === CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    invalidateMemoryCredential(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID);
+  }
+}
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
 const baseProviderBindings = providerBindingsFile
@@ -2066,9 +2086,14 @@ const baseProviderBindings = providerBindingsFile
   : createMemoryProviderBindingStoreV010();
 const providerBindings: typeof baseProviderBindings = {
   list: capability => baseProviderBindings.list(capability),
-  save(binding) { baseProviderBindings.save(binding); refreshContextMemorySchedule(); },
+  save(binding) {
+    try { baseProviderBindings.save(binding); }
+    finally { invalidateMemoryBinding(binding.capability); }
+    refreshContextMemorySchedule();
+  },
   delete(capability, scope, scopeId) {
-    baseProviderBindings.delete(capability, scope, scopeId);
+    try { baseProviderBindings.delete(capability, scope, scopeId); }
+    finally { invalidateMemoryBinding(capability); }
     refreshContextMemorySchedule();
   }
 };
@@ -2259,6 +2284,11 @@ const manager = createAppManagerService(
     const llmProviderId = event.packageId === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
       : event.packageId === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
     if (llmProviderId) llmCredentialEpochs.set(llmProviderId, (llmCredentialEpochs.get(llmProviderId) ?? 0) + 1);
+    const memoryProviderId = memoryCredentialOwners.get(event.packageId);
+    if (memoryProviderId) invalidateMemoryCredential(memoryProviderId);
+    if (catalog.get(event.packageId)?.features.some(feature => feature.providesCapabilities?.includes(SECRETS_RESOLVE_CAPABILITY))) {
+      invalidateMemoryBinding(SECRETS_RESOLVE_CAPABILITY);
+    }
     refreshContextMemorySchedule();
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
@@ -3888,16 +3918,18 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 
   if (remoteDlpEndpoint) {
     try {
-      const bearerToken = await optionalInstallationSecret(
-        REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
-        "apiToken"
-      );
       const options = {
         endpoint: remoteDlpEndpoint,
         ...(Number.isFinite(remoteDlpTimeoutMs)
           ? { timeoutMs: remoteDlpTimeoutMs }
           : {}),
-        ...(bearerToken ? { bearerToken } : {})
+        fetchImpl: createMemoryCredentialFetchV010({
+          reference: installationSecretReference(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, "apiToken"),
+          resolveSecrets: resolveManagedSecretsProvider,
+          isCurrent: () => (memorySettingsWrites.get(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID) ?? 0) === 0
+            && resolveContextMemoryDlpClassifier()?.providerId === REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+          epoch: () => memoryCredentialEpochs.get(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID) ?? 0
+        })
       };
       providerRuntimeRegistry.replace<ContextMemoryDlpClassifierV010>(
         REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
@@ -3925,13 +3957,15 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 
   if (experienceCompilerMemoryIntakeConfig) {
     try {
-      const bearerToken = await optionalInstallationSecret(
-        EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
-        "apiToken"
-      );
       const options = {
         config: experienceCompilerMemoryIntakeConfig,
-        ...(bearerToken ? { bearerToken } : {})
+        fetchImpl: createMemoryCredentialFetchV010({
+          reference: installationSecretReference(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, "apiToken"),
+          resolveSecrets: resolveManagedSecretsProvider,
+          isCurrent: () => (memorySettingsWrites.get(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID) ?? 0) === 0
+            && resolveContextMemoryIntakeSource()?.providerId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+          epoch: () => memoryCredentialEpochs.get(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID) ?? 0
+        })
       };
       providerRuntimeRegistry.replace<ContextMemoryEvidenceSourceProviderV010>(
         EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
@@ -9664,6 +9698,11 @@ const server = createServer(async (request, response) => {
             llmConfigurationEpochs.set(llmProviderId, (llmConfigurationEpochs.get(llmProviderId) ?? 0) + 1);
             llmSettingsWrites.set(llmProviderId, (llmSettingsWrites.get(llmProviderId) ?? 0) + 1);
           }
+          const memoryProviderId = memoryCredentialOwners.get(namespace);
+          if (memoryProviderId) {
+            invalidateMemoryCredential(memoryProviderId);
+            memorySettingsWrites.set(memoryProviderId, (memorySettingsWrites.get(memoryProviderId) ?? 0) + 1);
+          }
           try {
             if (secretsProvider) {
               for (const change of secretChanges) {
@@ -9709,6 +9748,11 @@ const server = createServer(async (request, response) => {
                 await refreshDeepSeekProviderRuntime();
               }
             } finally {
+              if (memoryProviderId) {
+                const remaining = (memorySettingsWrites.get(memoryProviderId) ?? 1) - 1;
+                if (remaining) memorySettingsWrites.set(memoryProviderId, remaining);
+                else memorySettingsWrites.delete(memoryProviderId);
+              }
               if (llmProviderId) {
                 const remaining = (llmSettingsWrites.get(llmProviderId) ?? 1) - 1;
                 if (remaining) llmSettingsWrites.set(llmProviderId, remaining);
@@ -9720,11 +9764,9 @@ const server = createServer(async (request, response) => {
           if (namespace === GENERIC_OIDC_PACKAGE_ID) {
             await refreshGenericOidcProviderRuntime();
           }
-          if (
-            namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
-            || namespace === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
-            || namespace === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
-          ) {
+          // DLP/EC tokens are resolved per request; no runtime refresh or
+          // unrelated semantic Secret decryption is needed when they change.
+          if (namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID) {
             await refreshP12MemoryProviderRuntimes();
           }
 

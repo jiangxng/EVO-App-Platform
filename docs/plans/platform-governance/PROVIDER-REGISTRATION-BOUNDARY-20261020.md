@@ -215,3 +215,58 @@ R1冻结SOP身份/资格、R2配置SQL及原owner责任、R3其余类别/消费�
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+## 9. 2026-10-20增量：DLP/EC可选凭据按实际请求解析
+
+基线main `102319de812ce65682f0c6ccb1a930e10b4e22d4`（#1076），过程分支 `fix/governance-memory-request-credentials-20261020`。#1076的4项CI、206行为/6守卫及311模块/246边是[历史结果](https://github.com/jiangxng/EVO-App-Platform/pull/1076#issuecomment-6290439620)，不作本批测量。固定7项仍4闭环、3部分完成；本批不新建Provider试点、Agent功能或资源框架，不部署。
+
+### 消费者对账与有界选择
+
+DLP的`createContextMemoryScheduledOperationsV010.runDlp`每次先调用`resolveDlpClassifier`；旧批次会保留该classifier直到循环完成，故每次真正classify仍须复核资格。EC的intake action先做Human/确认/上下文及原授权，intake service每次解析source/evidence、匹配sourceId后pull；已有scheduler也每次解析当前source/evidence，保留原工作资格、游标和租约。真实Host里Provider binding的save/delete均经既有`providerBindings`入口，本批不新增路由或绕过上述准入。
+
+**semantic暂不与这两类合并修正**：Host的P12 refresh一次解析semantic runtime并把引用传入共享reader；停用后启用、动态绑定和刷新涉及该同步消费者的选择合同。其`optionalInstallationSecret`启动/semantic设置刷新提前解密仍保留为明确债务，下一批优先处理，不能称P12三类全部按需。本批没有改semantic算法、reader或Agent Context Assembly。
+
+### 本批实现与原合同
+
+| 层/场景 | 本批行为及限制 |
+|---|---|
+| DLP/EC构造、登记、配置探测 | 移除这两处refresh中的optionalInstallationSecret，复用原工厂fetchImpl注入。构造不describe/resolve token，配置型health仍只查URL协议；共享Secrets的主密钥/密文文件加载仍在，不称Host零I/O |
+| 实际classify/pull | 新`manager/memory-credential-fetch.ts`只服务这两个既有Host消费者；每请求从有效Secrets读取installation/default、对应包apiToken。保留原URL/method/body/signal/redirect及结果校验，无明文/Promise缓存、连接或新timer |
+| 可选token | 只有describe明确未配置才不带authorization；已配置则resolve，空值/错误/Secrets缺失均拒绝，不降级匿名，不复制LLM必需Key标记或环境fallback。每次克隆Headers并移除旧authorization，防止错误沿用入参凭据 |
+| 有效性、绑定和迟到解析 | 请求前及每次await后复查当前原resolver选择、owner epoch和AbortSignal；共享Secrets runtime替换也拒绝。两个owner的生命周期、对应DLP/intake/evidence及Secrets绑定变化、所有声明secrets.resolve的包生命周期改变使相应有界epoch失效；离开再返回也不能放行旧等待 |
+| 显式保存/删除token | 原管理员授权、字段检查、加密写入及审计保持；进入写入前更新owner epoch并计数，finally释放，覆盖并行保存和失败。DLP/EC没有普通可改端点/模型字段，原URL来自启动配置；每请求取token，无需重建runtime或顺带解密semantic。坏写入后不声称存储事务回滚，后续原显式重试可恢复 |
+| 停用/卸载/恢复 | 入口原有效贡献判断保持；已经持有的runtime也不能在停用后取得新token。共享Secrets不随消费者销毁，卸载不删token。**已发送请求/业务写入仍遵循原owner在途合同**；不新增跨Host冻结、强制取消或JS字符串擦除承诺 |
+| 旧环境自动安装 | 配置DLP URL/EC配置仍可能经原bootstrap安装；本批不改变默认安装策略，不把已配置重启称为“仍未安装”。Host验证的是未使用、持久停用重启及进程内卸载拒绝；配置自动装包归R3后续资格对账 |
+
+原请求timeout现在也覆盖fetch端口内的Secrets等待；不响应signal的Secret Promise可能到期后才完成，返回时仍拒绝发迟到请求。epoch与写计数只保存两个owner整数，不持有Key或待处理调用。Host安全基础、记忆调度/租约及保留治理原实现不变，不把这次局部凭据防线冒充资源生命周期全部合格。
+
+### 验证与证据分级
+
+新增组件9项：构造/无效资格/预先Abort零读取，未配置匿名与配置并发分别绑定、缺失/空/损坏凭据不匿名回退及恢复；describe/resolve两阶段的epoch往返、Abort、共享Secrets替换。Promise屏障只验证helper竞态，不冒充真实HTTP同时启停/保存的屏障。
+
+新增一个真实Host多次重启联合用例，通过test-only crypto.createDecipheriv计数观察实际加密store，沿用原HTTP设置/生命周期/绑定及真实scheduler callback。测试仅使用独立临时目录、合成个人Memory和.invalid端点注入；无真实token/远端、无生产开关或源码替换。覆盖配置已存token启动、未用/配置型probe/普通保存零解密；未授权保存拒绝、真实put文件失败后修复/重试；实际DLP/EC运行才各解密；失败不重放、下一次恢复；停用重启/进程内卸载不解密，重装保留；显式删除恢复匿名；原EC/local source/evidence绑定切换只调用当前目标。它复用已验收调度，不重开TTL/租约专项，也不新增学习语义。
+
+本地Node24.19部分固定SHA源码+临时类型擦除，新9项与前批10项合计19/19通过，Host/fixture和擦除后server语法通过。**未本地正式npm ci/全仓build、真实Host/browser/数据库**；新Host实际结果、正式Node22/build、既有Host回归和本轮四组合须以本PR最终head CI为准，最终结果永久保存在PR收口评论。静态基线/冷禁入不放宽，新增轻量helper可能增加一个模块，不承诺模块数量下降。
+
+读取：复用已完整阅读的启动/交付/文档/装载与Eidos权威；本轮完整读取Secrets、AI-native state/context及Help规范，完整读取DLP/EC manifest、前批runtime和新helper/tests。Host局部核对bootstrap、resolver、共享reader接线、P12 refresh、设置与绑定/生命周期回调；intake service只读run的解析/pull和回执段，intake action全文；operations只读依赖与runDlp，scheduler只读tick/drain及已有Host测试，不声称通读Agent或全Host。Help影响：现有显式Secret保存/删除、授权和Provider拒绝说明仍有效；无新增用户步骤/设置字段，配置探测≠远端健康及重试限制在本节与兼容评审明确。
+
+结构化证据：[memory-request-credentials-20261020.json](evidence/memory-request-credentials-20261020.json)；[兼容评审](../../ui-design-reviews/memory-request-credentials-20261020.md)。
+
+### 接续与停止条件
+
+本批准确head CI通过后合并并停止追加DLP/EC重构。下一批先处理semantic提前凭据解析与共享reader同步选择：保存未装/停用/启用未用、当前绑定、启用恢复和直接消费者证据，复用原算法及资源端口，不扩展Agent功能。R3的配置自动装包、其余context-memory/EVO观测/session/OIDC资源分类及全消费者资格继续保留；R1冻结SOP身份/资格、R2配置SQL/原owner责任、R4最终跨层矩阵均未关闭。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；DLP/EC请求时可选凭据与竞态保护 | semantic同步消费者、R3其余类别；R1/R2/R4保留 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
