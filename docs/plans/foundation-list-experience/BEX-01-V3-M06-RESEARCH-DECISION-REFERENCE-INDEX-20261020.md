@@ -218,3 +218,32 @@
 6. 取得最新 1280px/390px 映射页首屏、问题区、表格长页底部与预检/纠错截图后，再交由用户进行 Human 视觉签收。
 
 M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真及 Human 视觉签收 OPEN；总体进度继续保持 **3/6**。原客户 Excel、授权 Import Job、两个银行字段真实身份/用途、三条真实主体身份仍未取得，不使用合成样本替代。
+
+
+## 2026-10-20 续跑 #09：证据报告纠偏已验证；映射页持久化行问题开始真实 Host 覆盖
+
+### 报告元数据纠偏（R，已完成）
+
+- 修正提交：`6d77dcf22324a9039f315432598892b8dc5d6e07`。
+- [Platform CI 39377496124](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377496124)、[BEX-01 Real Host Chromium 39377496173](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377496173)、[In-Context Resume 39377496210](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377496210)、[Human UI Gate 39377496040](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377496040) 均对精确 HEAD `6d77dcf…` PASS。
+- 下载并打开新 artifact [12243798507](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377496173/artifacts/12243798507) 后，`report.json` 已与断言一致：`54 committed supplier rows`，分页 `[25,25,4]`，5/5 场景通过、`browserErrors=[]`。这关闭了前一节记录的报告元数据不一致；报告纠偏不是生产数据变更。
+
+### 新增“失败预检后回到映射页”真实 Host 问题区（R/D）
+
+直接代码检查确认，原型 #909 的映射审核页要显示问题区；之前 Platform `reviewTask.issues` 只由 mapping attention 列构成，忽略已持久化 dry-run 中按行记录的必填字段错误。因此在用户从失败预检返回映射时，行级错误可能仍留在后续预检页，而映射工作台没有把它们合并进“需要处理”区。这是实现缺口，不是视觉样式缺陷。
+
+已在候选分支实现：
+
+- `apps/data-import/page.ts`：仅读取已有 `job.dryRun.rows[].issues`，按 `fieldId + code` 分组并列出受影响行号；若该字段已有 mapping attention 卡片，则合并详情；否则添加问题卡片并聚焦对应的现有源列组。
+- 不在页面渲染时自动运行 dry-run，不从源值推断主体身份，不修改映射、字段值、权限、预检结果或提交状态。
+- `tests/protocol/data-import-human-experience.test.mjs`：加入 3 行主体类型缺失的回归，检查问题卡片、行号、焦点组及 Eidos 合同验证。此代码和单元测试在精确 HEAD `e0fa3e6…` 的 [Platform CI 39378466711](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378466711) PASS。
+- `tests/bex01/live_supplier_chromium.py`：进一步加入失败预检后映射页的实际 Host 断言，并计划保存 `v3-map-row-issues-desktop.png` 和 `v3-map-row-issues-phone.png`；候选提交 `dfc1cea0c6b74e21746769c04bd72047204572ca` 的 [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716071) 与 [Real Host Chromium](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067) 当前正在运行，**尚不能判定 PASS**。
+
+### 下一步
+
+1. 等待 `dfc1cea…` 的 Platform CI、Real Host Chromium 和 In-Context Resume 全部完成；检查实际 1280px/390px issue-state 截图及 report 元数据。
+2. 若断言通过，按 #909 进一步对齐 issue 卡片的顺序、行号呈现和操作入口；若失败，修复真实 Host/渲染问题，不放宽断言。
+3. 随后核对底部操作契约差异：原型含返回文件、恢复初始选择、预检查并继续；当前正式 Host 是保存映射/预检查与 AI 自动匹配。先查 Host/Eidos 现有 action contracts，再决定是否新增可审计动作。
+4. 最新可确认 Platform main 仍为 `eaa5e813b1e86a6460d988c76eb2076512c35127`；如果 main 前进，重新 compare。PR #1060 继续 Draft，不合并、不部署。
+
+M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真及 Human 视觉签收 OPEN；总体 3/6。合成 Host 只验证工程，不替代客户数据或 Human 视觉签收。
