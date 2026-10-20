@@ -194,6 +194,9 @@ interface RuntimeRecord {
     }
   >;
   eventSubscriptions: Map<string, () => void>;
+  // Settles only after Node reports the child's OS exit and all stdio/IPC
+  // handles have closed. This is a LOCAL receipt, not external attestation.
+  closed: Promise<void>;
 }
 
 function defaultEntrypointResolver(pkg: PackageManifestV010): string {
@@ -228,6 +231,10 @@ export function createProcessPluginRuntimeHostV010(
   // A runtime may be absent from the active map while its child is still
   // stopping. Keep that exit promise so shutdown cannot claim completion early.
   const stopping = new Map<string, Promise<void>>();
+  // A timeout can remove a child from runtimes before SIGKILL finishes.
+  // Keep every forked generation until the ChildProcess "close" event.
+  const liveChildren = new Set<RuntimeRecord>();
+  const retiring = new Map<string, RuntimeRecord>();
   let shuttingDown = false;
   const childEntrypoint = fileURLToPath(
     new URL("./plugin-runtime-process-child.js", import.meta.url)
@@ -342,6 +349,16 @@ export function createProcessPluginRuntimeHostV010(
     if (stopping.has(pkg.packageId)) {
       throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
     }
+    // Before a new generation is forked, the previous timed-out
+    // generation must have actually closed, not merely received SIGKILL.
+    const oldGeneration = retiring.get(pkg.packageId);
+    if (oldGeneration) {
+      await oldGeneration.closed;
+      if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+      if (stopping.has(pkg.packageId)) {
+        throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+      }
+    }
     const existing = runtimes.get(pkg.packageId);
     if (existing) {
       await existing.ready;
@@ -430,6 +447,8 @@ export function createProcessPluginRuntimeHostV010(
       serialization: "advanced"
     });
 
+    let resolveClosed!: () => void;
+    const closed = new Promise<void>(resolvePromise => {resolveClosed = resolvePromise;});
     const record: RuntimeRecord = {
       pkg: structuredClone(pkg),
       child,
@@ -446,9 +465,18 @@ export function createProcessPluginRuntimeHostV010(
       rejectReady,
       readySettled: false,
       pending: new Map(),
-      eventSubscriptions: new Map()
+      eventSubscriptions: new Map(),
+      closed
     };
+    liveChildren.add(record);
     runtimes.set(pkg.packageId, record);
+    // "close" follows OS exit (or a failed spawn) and handles draining.
+    // It is deliberately tracked independently from the active-package map.
+    child.once("close", () => {
+      liveChildren.delete(record);
+      if (retiring.get(pkg.packageId) === record) retiring.delete(pkg.packageId);
+      resolveClosed();
+    });
 
     child.on("message", raw => {
       const message = raw as {
@@ -630,6 +658,7 @@ export function createProcessPluginRuntimeHostV010(
         if (runtimes.get(pkg.packageId) === record) {
           runtimes.delete(pkg.packageId);
         }
+        retiring.set(pkg.packageId, record);
         const timeoutMessage = `PLUGIN_PROCESS_TIMEOUT: ${pkg.packageId}: ${request.method}: ${timeoutMs}ms`;
         emit({
           packageId: pkg.packageId,
@@ -668,13 +697,9 @@ export function createProcessPluginRuntimeHostV010(
     runtimes.delete(packageId);
 
     const stopPromise = (async (): Promise<void> => {
-      const stopped = new Promise<void>(resolvePromise => {
-        if (record.child.exitCode !== null || record.child.signalCode !== null) {
-          resolvePromise();
-          return;
-        }
-        record.child.once("exit", () => resolvePromise());
-      });
+      // Even a previously timed-out child is not confirmed closed until
+      // its own Node close receipt has fired.
+      const stopped = record.closed;
 
       // The bounded kill fallback is local process hygiene, not an
       // independent orchestrator stop receipt.
@@ -730,7 +755,10 @@ export function createProcessPluginRuntimeHostV010(
       shuttingDown = true;
       const inFlight = [...stopping.values()];
       const active = [...runtimes.keys()].map(packageId => stop(packageId));
-      await Promise.all([...inFlight, ...active]);
+      // This list also includes children removed by invocation timeout,
+      // fatal/error cleanup, or another asynchronous lifecycle operation.
+      const everyForkedChild = [...liveChildren].map(record => record.closed);
+      await Promise.all([...inFlight, ...active, ...everyForkedChild]);
     }
   };
 }

@@ -34,7 +34,7 @@ const entrypoint = fileURLToPath(
   new URL("../fixtures/pa05-k0-delayed-process.mjs", import.meta.url)
 );
 
-function fixturePackage() {
+function fixturePackage(invocationTimeoutMs = 3000) {
   const pkg = {
     contractVersion: "0.1.0",
     packageId: "pa05-k0-disposable-process",
@@ -52,7 +52,7 @@ function fixturePackage() {
       kind: "PROCESS",
       isolation: "PROCESS",
       entrypoint,
-      limits: {invocationTimeoutMs: 3000, memoryMb: 32}
+      limits: {invocationTimeoutMs, memoryMb: 32}
     },
     storage: {scope: "PACKAGE", quotaBytes: 4096},
     events: {publish: [], subscribe: []},
@@ -151,6 +151,63 @@ test("K0 bounded: PROCESS host refuses new fork after shutdown()", {timeout: 120
     console.log("PA05_K0_BOUNDED_START_DENIED=" + JSON.stringify({
       scope: "isolated-local-child",
       postShutdownForkDenied: true,
+      globalStopCertified: false
+    }));
+  } finally {
+    await host.shutdown();
+  }
+});
+
+
+test("K0 bounded: timed-out SIGKILL child is reaped before Host shutdown completes", {timeout: 12000}, async () => {
+  const host = localRuntime(), pkg = fixturePackage(80);
+  let pid;
+  try {
+    const first = await host.invoke(pkg, installed(), {method: "pid", input: null});
+    pid = first.pid;
+    assert.equal(pidAlive(pid), true);
+    await assert.rejects(
+      host.invoke(pkg, installed(), {method: "hang", input: null}),
+      /PLUGIN_PROCESS_TIMEOUT/
+    );
+    // The active map is empty, but the timed-out PROCESS generation is
+    // still covered by the independent close-receipt inventory.
+    assert.equal(host.status(pkg.packageId), undefined);
+    await host.shutdown();
+    assert.equal(pidAlive(pid), false);
+    console.log("PA05_K0_BOUNDED_TIMEOUT_REAPED=" + JSON.stringify({
+      scope: "isolated-local-child",
+      timeoutChildClosedBeforeShutdown: true,
+      globalStopCertified: false
+    }));
+  } finally {
+    await host.shutdown();
+  }
+});
+
+test("K0 bounded: a new PROCESS generation cannot precede timed-out child close", {timeout: 12000}, async () => {
+  const host = localRuntime(), pkg = fixturePackage(80);
+  try {
+    const first = await host.invoke(pkg, installed(), {method: "pid", input: null});
+    assert.equal(pidAlive(first.pid), true);
+    await assert.rejects(
+      host.invoke(pkg, installed(), {method: "hang", input: null}),
+      /PLUGIN_PROCESS_TIMEOUT/
+    );
+    const second = await host.invoke(pkg, installed(), {method: "pid", input: null});
+    assert.notEqual(second.pid, first.pid);
+    assert.equal(pidAlive(first.pid), false, "old child must close before new PID is returned");
+    assert.equal(pidAlive(second.pid), true);
+    assert.equal(host.status(pkg.packageId)?.status, "READY");
+    // Give the previous generation's exit/close callbacks an event-loop
+    // turn and assert they cannot delete this newly registered record.
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(host.status(pkg.packageId)?.status, "READY");
+    console.log("PA05_K0_BOUNDED_GENERATION=" + JSON.stringify({
+      scope: "isolated-local-child",
+      priorChildClosed: true,
+      newChildReady: true,
+      staleCleanupDidNotDeleteReplacement: true,
       globalStopCertified: false
     }));
   } finally {
