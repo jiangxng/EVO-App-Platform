@@ -104,3 +104,12 @@
 ### M06 自动续跑 #04｜CI 触发确认与不变量复核
 
 在实现提交 `b29b58d40723917f098debe93d59988a13c3b471` 后，GitHub Actions 起初只记录 Project Continuity CI 的 push 运行；尚未出现该 HEAD 的 Platform CI / BEX Real Host Chromium 的 pull_request 工作流。因此不允许沿用上一轮 13/14 或 5/5 验证结论。已核查 BEX 浏览器工作流 `.github/workflows/bex01-real-browser.yml` 监听 `pull_request` 对 `apps/data-import/**`、`vendor/eidos/src/design-language/productive-workbench-css.ts`、`tests/bex01/**` 的变更，本轮确有匹配文件；问题属于 CI 事件触发/可见性，原因未确认。本次用 GitHub Contents API 更新该交接文档，继续观察同步事件；无论结果如何都不得把未执行的门禁写成 PASS，也不可以绕过验证合并。
+
+
+## M06 自动续跑 #05｜来源状态和风险指标可辨识（2026-10-20）
+
+- **已读原型与真实截图（R）**：在 #909 原型 `01-desktop-overview.png`、`10-mobile-overview.png`，文件卡的「文件已读取」是绿色状态提示，四个统计卡中「3 个需要处理的问题」有独立暖色描边与极浅暖色背景。直接检查上轮 `ffca8247...` Chromium `v3-prototype-parity-issues-desktop.png`，来源状态仍是灰色，警告卡只有数字金色而外框与其他中性卡相同。这是两个确定性差距，并非需要重新决定的 #204 问题卡组合样式。
+- **落地决策（判断）**：沿用现有 Eidos 标准 token（`--eidos-success`、`--eidos-warning`、`--eidos-border`、`--eidos-bg`），将 `reviewTask.subject.statusTone` 做为可选的 domain-neutral 枚举，只有带真实可见 `statusLabel` 才允许 positive/warning；业务方 Platform 只对已由授权真实 Host 加载的工作簿设置 positive。Workbench 的真实 `metric.tone=warning` 触发轻微暖色描边/底色，不重排卡片。没有待处理事项时 `attention` 改为 neutral，防止用户看到虚警告。
+- **拒绝**：不把全部 statusLabel 一律视为成功、不按 XLSX 后缀猜已成功、不复制原型的硬编码数字、不将 CSS 跨越全局普通表单、不覆盖 Eidos #204 issue owner CSS。完全不触碰保存、重置、Agent、文件行列及权限。
+- **验证任务**：新 HEAD 的协议用例检测错误 source tone 和缺失 label 必须拒绝；1280px/390px 真实 Host 断言 source tone 的真实 computed color 与其他灰文案不同、warning 统计卡实际 borderColor 与 neutral 统计卡不同，并保存新 Chromium 画面。此段为实施来源记录，不替代精确 HEAD 的测试结果或 Human 签收。
+- **阶段边界**：#1077 stacked Draft on #1060；M01–M03 DONE、M04/M05/M06 OPEN、总体3/6。#909 连续三问题列表与 Eidos #204 独立编号卡仍待 Human 判定，不提前放宽100%准入。无客户 Excel，不动 Railway/main。
