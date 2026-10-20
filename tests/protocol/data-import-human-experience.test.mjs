@@ -1003,7 +1003,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     "one unambiguous business field should not show raw technical fieldId");
   assert.equal(actualTarget.value,"code","submission still uses the exact Host fieldId");
   assert.equal(page.reviewTask.subject.title,"batch-proposals");
-  assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
+  assert.match(page.reviewTask.subject.subtitle,/4 列待处理/,
+    "source-column count stays in the file summary without duplicating a second facts row");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
   assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
