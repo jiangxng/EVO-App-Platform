@@ -373,3 +373,10 @@ Railway 生产 Host [部署](https://railway.com/project/aee4643e-912b-4ca1-ae95
 基于 [两次 main 的精确差异](https://github.com/jiangxng/EVO-App-Platform/compare/102319de812ce65682f0c6ccb1a930e10b4e22d4...6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1)，#1078 确实修改了 `manager/server.ts`（新 blob `019b42a97aca18403245bf8480978638eacb65e5`），但通过直接读取**旧/new 两份源码原文**，从 `let shuttingDown = false;` 至 SIGTERM/SIGINT 处理器的整个 1449 字符末尾片段 **逐字一致**：仍按序关闭 runtime、随后 `server.close()`、再设置 5 秒 fail-fast。独立 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 的 attempt-all/admission-close 修复**并未**随 [#1078 main](https://github.com/jiangxng/EVO-App-Platform/commit/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1) 部署。此处只是静态源码对照，不是 Railway SIGTERM 已送达或异常退出的生产复现。
 
 **保持拒绝门禁：** 有效 Railway draining、container PID 1/npm 信号传播、实际 child stop receipt、组织身份与 SQL 会话均未认证；K0 NOT_SIGNED、production material WRITE OFF。原先 Ecosystem schedule 10 FAIL 保留独立反证。
+
+
+## 23. 2026-10-20 — 生产生效 Host 受保护入口静态核查
+
+基于 [当前部署 `main@6fc8fac5...` 的 `manager/server.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/manager/server.ts) **直接已读原始源码**，新增完整实例化审阅点：[K0 停机证据验收表 §6](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。源码存在 E01D 默认 OFF 的特定 Host 管理员注册入口（第 6982–7073 行）；E01F 覆盖五个直接 HTTP 生命周期变更路由（10105–10219）及 `/v1/actions` 中五类 `app-platform.*-package` Action（9421–9452、9819–10063）；DISABLE/UNINSTALL J4D SQL-fenced 路径（3363–3415）默认 OFF，只有明确 opt-in 和独立 SQL authority 参数才组装。静态 auth 校验包含 bootstrap 管理员 + Authorization Provider，但**不等于真实生产 Human/DBA 身份与实际调用拒绝的运行证明**。独立 `*/plan` 路由已定位，底层规划函数副作用未重新审计。
+
+从 K0 出发，**变更入口源码覆盖 ≠ 全部实际调用者枚举 ≠ 全域准入/停机**。当前 connected Railway 变量名未显示 E01D/J4D/J4J opt-in，不能据此签数据库直接角色、外部维护工具、Runner 或重启竞态均已封闭。未发生产请求、未执行 Validator、未变更任何生产开关/权限/Secret/DB。K0、E01J4、PA05-05 E01–E05/W06 `NOT_SIGNED`；production WRITE `OFF`。

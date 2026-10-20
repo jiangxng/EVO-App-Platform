@@ -63,3 +63,28 @@
 - 两个 [Draft PR #1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) / [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 保持独立、未合并。全部 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，K0 `NOT_SIGNED`，生产 material WRITE `OFF`；Issues [#988](https://github.com/jiangxng/EVO-App-Platform/issues/988)、[#979](https://github.com/jiangxng/EVO-App-Platform/issues/979)、[#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) 保持 OPEN。
 
 **无真实签署材料：** 目前没有实际 PID、进程 nonce、外部监督者退出回执、生产 Human IdP/DBA/审计签字、Settings-pane 影像或生产 SQL session 快照。本表不伪造这些字段。
+
+
+## 6. 受保护 Host 入口覆盖矩阵：本次源码查阅（未签收）
+
+**阅读级别：`ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW`，2026-10-20。** 精确读取当前生产对应 [`manager/server.ts` at main `6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1`](https://github.com/jiangxng/EVO-App-Platform/blob/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/manager/server.ts)，其 blob 为 `019b42a97aca18403245bf8480978638eacb65e5`。本表仅枚举**已找到的实际 route 分支**，不是网络扫描，也不是所有扩展/SQL 直连路径都已证明封闭。
+
+| 分类与实际操作入口 | 源码证据（该 blob 行号） | 现有静态门禁 | 尚需真实的负面验收 |
+| --- | --- | --- | --- |
+| **PA05 注册** — `POST /v1/admin/pa05/read-plugin/admit` | 6982–7073 | 默认 `APP_PLATFORM_PA05_E01D_ADMIN_READ_ADMISSION=OFF` 返回 404；`OPT_IN` 后检查 Bearer bootstrap 身份、Authorization Provider，使用两次策略核查，并返回 `AVAILABLE_NOT_INSTALLED` | 未授权/过期操作员、Provider 拒绝/中断、生产 IdP 未签发时不能注册；注册并不等于 install/activate |
+| **普通 HTTP** — `POST /v1/install`, `/v1/upgrade`, `/v1/enable`, `/v1/disable`, `/v1/uninstall` | 10105–10219 | 每条变更 route 调用 `authorizePa05E01fLifecycle`；DISABLE/UNINSTALL 的 PA05 受保护包在 J4D `OPT_IN` 时调用 SQL-fenced `applyPa05ReadLifecycleMutation`；ENABLE 经 `pa05WriteLifecycleHost.admitActivation` | 所有五条都应检查正确 packageId/间接依赖、身份与 authorization、旧 epoch、并发变更；不得以 HTTP 层成功替代 SQL 准入/真实身份证明 |
+| **Agent/Action** — `POST /v1/actions` + `app-platform.install-package`, `enable-package`, `upgrade-package`, `disable-package`, `uninstall-package` | 9421–9452、9819–10063 | 单次入口在命令 dispatch 之前以 `pa05E01fProtectedActions` 匹配操作，若 `itemId` 为字符串才调用 `authorizePa05E01fLifecycle`；已审阅的对应 mutation handlers 缺 `itemId` 会拒绝。代码中存在多段 dispatch 分支，均在统一入口门禁之后 | 针对**每一个**命令与重复 dispatch 分支测试缺失/错误 itemId、间接依赖、过期/伪造凭据、Provider 故障、重启重入/并发竞态；不可凭当前静态片段宣布所有插件扩展动作已闭合 |
+| **只作计划的 HTTP routes** — `POST /v1/install/plan`, `/v1/upgrade/plan`, `/v1/disable/plan`, `/v1/uninstall/plan` | 10099–10204 | 已读 handler 直接调用 `manager.plan*` 或 `installPlanWithDigest` / `upgradePlanWithDigest`；该 handler 无直接 install/disable/uninstall 执行调用 | 此处只认定路由表层为**规划**，不推断底层完全无副作用；需隔离测试证明没有受保护状态变更 |
+| **SQL/Owner 准入** — J4D DISABLE/UNINSTALL 专用通道 | 3363–3415；J4J 本地锁在 1050–1073 | J4D 只有 `OPT_IN` 且有独立 DB URL/schema/Host ID 才组装 SQL authority；E01F Host 管理认证依赖 bootstrap+Provider，`session_user`/SQL 角色属于此前 J4E 证据。J4J 默认 OFF 且单本地文件系统有效 | 真实 PostgreSQL role grants、存活旧 backend、外部 CLI/其他应用数据库路径、凭据轮换与撤销需要 DBA 独立确认；J4J 锁不提供多 Worker stop receipt |
+
+### 6.1 由来源事实推导的准入层限制
+
+- **来源事实：** `authorizeHostAdministration`（第 3274–3311 行）先做 `authenticateBootstrapAdministratorV010`，再取 Authorization Provider 并调用 `authorizeProviderAdministrationV010`；无法解析 Provider 则拒绝。**判断：** bootstrap/策略组合只能证明已实现软件路径，不能签收真实 Human IdP/MFA/授权撤销 SLA。不得把 bootstrap token 冒充生产维护授权。
+- **来源事实：** `authorizePa05E01fLifecycle`（第 3325–3357 行）对目标包及 INSTALL/ENABLE 的依赖影响调用稳定策略/影响范围核查；该 route 层不等于全组织或数据库的 Worker 清点。**判断：** 必须继续将 SQL 直接角色、外部进程和新建 Worker 当作待查的独立准入边界。
+- **来源事实：** 当前 Host 的 PA05 E01D、J4D、J4J 开关在源码默认为 OFF；连接的 Railway `describe_service` 当前变量**名称**不包含上述开关或 J4D 独立 DB 连接参数。**判断：** 这是受限控制面与源码的合并证据，不等于生产数据已审计，也不等于受保护入口最终可删除。
+- **外部调用者影响：** Railway Validator 的已读脚本目标为 `evo-ledger-runtime-configurator`，而不是 `evo-purchase-attention`。这不证明其始终不能调用其他命令或所有未授权请求都会被生产拒绝。已登记的 GitHub RUM POST 是**遥测**，不是 PA05 material WRITE。
+- **负证据/未完成：** 目前不存在经本次任务亲自发出的生产 HTTP 请求、SQL 会话查询、真实操作员 Token、生产子进程列表或外部停机回执。K0 绝不允许把源码分支匹配视为 `STOP_CONFIRMED`。
+
+### 6.2 归档判定
+
+`SOURCE_ROUTE_INVENTORY_PARTIAL / PRODUCTION_INGRESS_REACHABILITY_NOT_SIGNED / TRUSTED_STOP_NOT_SIGNED`。此增量帮助 R3（外部调用入口）进一步收敛，但 R1、R2、R4–R8 保持 `UNVERIFIED`。新的入口范围不改变此前已选择的中央 epoch/fencing + 外部停机回执 + PG session 重查方案。

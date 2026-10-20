@@ -213,3 +213,13 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 ## 11. #1078 后主线 Host shutdown 段源码一致性核查
 
 **ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW，2026-10-20：** [旧 main manager/server.ts](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/manager/server.ts) blob `d1c50cc2c4c52bd251146ce84dfc6acfeca45e53` 对照 [新 main](https://github.com/jiangxng/EVO-App-Platform/blob/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/manager/server.ts) blob `019b42a97aca18403245bf8480978638eacb65e5`；整个从 `let shuttingDown = false;` 到文件尾 SIGTERM/SIGINT 注册的 1449 字符片段**逐字相同**，虽然同一文件其余部分随 #1078 变更。精确代码部分相同不是 runtime PID/信号/停机证明。**工程判断**：#1074 仍 Draft/未合并/未部署，生产 Host 没有其新 cleanup exception/error-path 保障。详见 [K0 §22](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)。不改 #1074、不重构并行治理代码。
+
+
+## 12. 2026-10-20 — Host PA05 受保护入口直接源码证据与 K0 R3 收敛
+
+| Source / 阅读日期 | 阅读等级 | 本轮精确发现及适用边界 |
+| --- | --- | --- |
+| [Platform `manager/server.ts`（`6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1`）](https://github.com/jiangxng/EVO-App-Platform/blob/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/manager/server.ts)，2026-10-20，blob `019b42a97aca18403245bf8480978638eacb65e5` | **ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW，读取实际源码相应原行号** | 3274–3357 bootstrap+Authorization Provider 与目标包作用范围；3363–3415 默认 OFF 的 J4D SQL authority；6982–7073 默认 OFF 的管理员注册；9421–9452/9819–10063 的 Action mutations；10099–10219 的 direct HTTP/plan 路由。完整分类与测试缺口见 [K0 工作表 §6](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。这是代码事实，不是生产请求或权限测试。 |
+| [Railway production service configuration](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601)，2026-10-20 | **ORIGINAL_RAILWAY_CONNECTOR_READ_THIS_WINDOW**（`describe_service` / `describe_environment`，只读） | 5 服务、Host 1 副本、无 Cron/已暂存变更；变量名没有显式 E01D/J4D/J4J opt-in。有效 drain/进程树、实际 SQL grants/IdP 均没有返回；不读取 Secret 值。 |
+
+**决策：原 K0 边界保持不变。** 实施前先要求外部组织权威提交完整 Worker/临时调用者边界、冻结扩缩容/重启收据、旧 SQL Backend 实际失效证据，以及生产 IdP/DBA/Audit Owner 签字。五条 HTTP 或 Action 的静态检查不能替代这组准入证明；不做生产探针或动作。#1071 / #1074 继续 Draft，production material WRITE OFF。
