@@ -275,3 +275,16 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 | [#1081 修正后真实负面日志](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39427280985/job/118643113249) | **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_PREVIOUS_WINDOW，同日** | `shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true`、`spawnedAfterShutdown=true`；与 #1082 同域正向断言形成可比较的前后真实证据，`globalStopCertified=false` 两者始终不变 |
 
 **选择方案：** 使用独立 `stopping` promise 跟踪弥补两项真实复现的缺口，不修改 #1074 Host 顶层关闭，且不合并测试-only #1081 的负面断言。**未选择**借助进程列表为空、Lease 超时或 CI success 签发可信全局停止；剩余 timeout/child 身份完整性以及外部 Infrastructure/IdP/DBA/SQL authority 仍需新证据。下一轮保持 Draft 分支隔离和生产写入 OFF。
+
+
+## 17. 2026-10-20 — PROCESS timeout、代际退出与异步验证竞态证据（精确来源）
+
+| 原始 URL | 阅读等级（2026-10-20） | 事实与判断边界 |
+| --- | --- | --- |
+| [PR #1082 提交 c1e03419](https://github.com/jiangxng/EVO-App-Platform/commit/c1e0341951e00c9965780190e203ccfd2fa5a22d) | **ORIGINAL_GITHUB_SOURCE_AUTHORED_AND_COMMITTED_THIS_WINDOW** | 新增所有已 fork child 直至 `close` 的跟踪、retiring 代际等待与 timeout child 退出屏障。源码修改事实，非生产 OS stop receipt |
+| [Platform CI #39430410538 / job #118653676285](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39430410538/job/118653676285) | **ORIGINAL_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW** `2026-10-20T13:27:25Z` | 真 Node child `ok #759–#762`，新增 timeout close 与旧代际已关闭证据。1089 total/1088 pass/1 skipped/0 fail；SHA 5/5 checks SUCCESS |
+| [PR #1082 最新 c1e 后提交 12dcfa1a](https://github.com/jiangxng/EVO-App-Platform/commit/12dcfa1aec30e32247a865fe7c44267350e2f237) | **ORIGINAL_GITHUB_SOURCE_AUTHORED_AND_COMMITTED_THIS_WINDOW** | `starting` Map 单飞 verifier，`stop` 在 pending verifier await 之前注册 stop fence，`shutdown` 等待未完成 starts；未更改 #1074 Host 顶层源码 |
+| [Platform CI #39431045554 / job #118655876047](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554/job/118655876047) | **ORIGINAL_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW** `2026-10-20T13:31:53Z` | 六项真实 local PROCESS regression `ok #759–#764`，同包 concurrent verifier `verifyCount=1/forks=1`，stop while verifier `forks=0/lateForkDenied=true`。1091 total/1090 pass/1 skipped/0 fail，5/5 exact SHA success |
+| [原 K0 工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) | **PROJECT_DECISION_AND_SYNTHESIS_THIS_WINDOW** | 辨明本地 bounded pass 与仍缺的生产编排外部 stop receipts、SQL session 重查、真实 IdP/DBA credential governance。**自有分析不能伪装上游实测** |
+
+**未改既定路线：** 以上六项正向通过只能补足本地 PROCESS runtime 工程，不足以签可信 K0/生产操作员授权。下轮有权限的隔离测试可补 parent sudden death、长耗时 verifier 在 shutdown deadline 内的行为、host/child IPC 异常；真正跨 Worker/SQL/IdP 证据仍需权威 Owner。四条 Draft 分支不自动合并。

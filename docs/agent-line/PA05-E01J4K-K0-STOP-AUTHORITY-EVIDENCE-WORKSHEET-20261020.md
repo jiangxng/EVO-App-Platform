@@ -208,3 +208,36 @@
 | Railway / 生产身份 / DB 权限 | `NOT_VERIFIED`：生效 draining 与 npm→Node SIGTERM、完整容器 PID/子进程/Runner 清单、可信 orchestrator receipts、`pg_stat_activity`/Role grants、Human IdP/MFA/DBA/Audit Owner/Secret 轮换，均不是此 PR 的测试对象 |
 
 **决策：** 不把 #1082 的 5/5 GitHub checks 改写成全域 `STOP_CONFIRMED`，也不提前合并。既有 #1074 顶层 Host cleanup error path 与 #1082 内部 PROCESS stop barrier 依然两条独立 Draft 工程线。K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 保持 OPEN。没有生产操作。
+
+
+## 11. 2026-10-20 — 超时 child close、代际串行与异步验证停机屏障：有界 CI 正向证据
+
+**证据等级：`ORIGINAL_GITHUB_SOURCE_COMMITTED_THIS_WINDOW` + `ORIGINAL_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW`。** 本节只覆盖 disposable GitHub Runner 上的本地 Node PROCESS，绝非 Railway 或可信多 Worker 实例回执。
+
+### 11.1 先前超时 SIGKILL 与代际缺口：HEAD `c1e03419`
+
+[Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 的 [独立工程提交 `c1e0341951e00c9965780190e203ccfd2fa5a22d`](https://github.com/jiangxng/EVO-App-Platform/commit/c1e0341951e00c9965780190e203ccfd2fa5a22d) 扩展 PROCESS runtime 的 **所有已 fork child** 跟踪：每个实际 ChildProcess 的 `close` 独立 promise / liveChildren Set，不再把 active map 删除或发送 SIGKILL 视为 OS child 已经关闭；timeout 代际在 `retiring` 中保留，后代 start 等前代 `close`。同一条 shutdown barrier 在实际停止中 await liveChildren promises。
+
+- 该 SHA **5/5 exact-HEAD GitHub checks SUCCESS**；[Platform CI #39430410538 / job #118653676285](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39430410538/job/118653676285) 原始日志 `2026-10-20T13:27:25Z`，协议 **1089 tests / 1088 passed / 1 skipped / 0 failed**。
+- `ok #761`、`PA05_K0_BOUNDED_TIMEOUT_REAPED`：`timeoutChildClosedBeforeShutdown=true`，证实**本地测试 child** 在 `shutdown()` 完成前已关闭。
+- `ok #762`、`PA05_K0_BOUNDED_GENERATION`：`priorChildClosed=true`、`newChildReady=true`、`staleCleanupDidNotDeleteReplacement=true`。断言是旧 PID 不再存活、再返回新 PID 和 READY 状态，旧 record identity-safe cleanup 未误删新登记。
+- 先前 `ok #759/#760` 停机重叠与 shutdown 后 fork 拒绝继续通过。所有测试日志 `globalStopCertified=false`。
+
+### 11.2 新增异步 Sigstore verifier 与 stop/fork 竞争：HEAD `12dcfa1a`
+
+[最新工程提交 `12dcfa1aec30e32247a865fe7c44267350e2f237`](https://github.com/jiangxng/EVO-App-Platform/commit/12dcfa1aec30e32247a865fe7c44267350e2f237) 用 per-package **`starting` 单飞 Promise** 串行完整性验证；`stop()` 在 await pending verifier **之前登记停止意图**，防止验证返回后偷跑 fork；`shutdown()` 等待所有 pending start 完成拒绝/清理。所有新增逻辑仅位于 `manager/plugin-runtime-host.ts` 与隔离测试，不影响 #1074 的 `manager/server.ts` 和 Host 顶层关闭实现。
+
+- 该 SHA **5/5 exact-HEAD GitHub checks SUCCESS**；[Platform CI #39431045554 / job #118655876047](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554/job/118655876047) 原始完整日志 `2026-10-20T13:31:53Z`，协议 **1091 tests / 1090 passed / 1 skipped / 0 failed**。
+- `ok #763`，`PA05_K0_BOUNDED_ASYNC_FORK_SINGLETON`：`verifyCount=1`、`forks=1`；并发的同包 start 只走一次本地 verifier/fork。
+- `ok #764`，`PA05_K0_BOUNDED_ASYNC_STOP_FENCE`：`forks=0`、`lateForkDenied=true`；stop 在 verifier pending 时阻止其后续 fork。
+- 之前的 `ok #759–#762` 四项正向回归在同一真实日志再次通过。所有专门回执均 `scope="isolated-local-child"`、`globalStopCertified=false`。
+
+### 11.3 分层结论与仍不得签收的事项
+
+| 层次 | 本轮真实结论 | 不得误用 |
+| --- | --- | --- |
+| **本地 PROCESS 六项专门关闭/启动并发场景** | `ISOLATED_PROCESS_LIFECYCLE_BOUNDED_PASS`，六项真实 Node child 回归通过，单次 CI、指定 Linux runner 与源码 SHA | 不是所有异常时序或平台安全认证；不能证明跨 Host shutdown |
+| **缺少的局部异常覆盖** | 仍需独立验证 **父进程突然 SIGKILL**、子进程及 IPC 断开、反复并发重入/异常回调，以及 `shutdown` 等待尚未返回的外部 verifier 时的 deadline 行为 | 本地 promise 与 OS `close` 不构成外部编排/独立签名终止收据 |
+| **生产 K0 阶段** | Railway 有效 drain/npm PID1→SIGTERM、组织级 Worker/Runner 和数据库 session 清点、中心 fencing/freeze owner、Human IdP、DBA/rotation/审计都仍 **`UNVERIFIED`** | 不运行生产 Validator/SQL、不开关生产服务、不开 WRITE、不清异常锁 |
+
+[#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) 文档、[#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) Host 顶层修复、[#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 负面复现、[#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) PROCESS 修复 **全部保持 Draft、未合并、未部署**。K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`；material WRITE `OFF`；Issues #988/#979/#913 OPEN。

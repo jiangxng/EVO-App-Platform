@@ -957,3 +957,12 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 **有界工程实证：`ISOLATED_PROCESS_STOP_BARRIER_BOUNDED_PASS`。** [Draft 工程 #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 首轮 HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167` 的 [Platform CI #39428680055 / job #118647684472](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472) 原始日志 `ok #759/#760`：真 Node child stop/shutdown overlap 不再提前返回或遗漏旧 stop；shutdown 后尝试新 fork 被拒。1087 tests/1086 passed/1 skipped/0 fail，5/5 exact-head checks SUCCESS。新代码仅在独立 Draft，**production main 未合入**；#1074 顶层 Host error-path 独立，#1081 负面复现保留。此 PASS 仅限**两个指定单机时序**，不可推断调用超时 child map 清理与 SIGKILL 同步、所有子进程、外部多 Worker 编排或生产凭据已经安全。精确资料见 [K0 工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[拓扑 §27](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)、[资料索引 §16](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。
 
 **K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`，Production material WRITE `OFF`，#988/#979/#913 仍 OPEN。** 外部组织权限、Railway drain、PID1/SIGTERM、真实人类 IdP/DBA/PG session 仍不具备可认证证据。
+
+
+## 85. PA05-05 / K0 — PROCESS 六项局部生命周期隔离真实 CI 通过（2026-10-20）
+
+**工程限定通过：`ISOLATED_PROCESS_LIFECYCLE_BOUNDED_PASS`，不是 K0 签收。** 独立 [Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 两个精确提交 `c1e03419...` 和 `12dcfa1a...` 对真实本地 child 增加 timeout SIGKILL 后 `close` 跟踪与新旧代际串行、并发异步 verifier 单飞、stop-verifier admission fence。原始 [CI #39430410538](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39430410538) 与 [#39431045554](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554) 对应 exact commits **各 5/5 GitHub checks SUCCESS**；后者完整 raw Platform CI job #118655876047 的六项子测试 `ok #759–#764`，1091 total / 1090 PASS / 1 SKIPPED / 0 FAIL，全部 `globalStopCertified=false`。精确输出、阅读等级、对比与来源网址见 [工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) / [拓扑 §28](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md) / [研究索引 §17](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)。
+
+**未签部分不得混同：** 没有生产有效 draining、容器 PID1/npm→SIGTERM、全组织 Worker/Child/Runner 清单与外部编排回执、实际 PostgreSQL session revoke、Human IdP/MFA/DBA credential rotation/审计责任与批准。#1074 Host 顶层独立 Draft，#1082 局部 runtime 新修复未合入 production。#1071/#1074/#1081/#1082 均 Draft，未合并/部署。
+
+**K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，material WRITE `OFF`；安全 Issues #988/#979/#913 保持 OPEN。**

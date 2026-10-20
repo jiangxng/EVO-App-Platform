@@ -420,3 +420,13 @@ Current GitHub [main@91ffb9bd](https://github.com/jiangxng/EVO-App-Platform/comm
 **剩余工程反面风险必须显式保留：** 在 `invoke` timeout 时删 map / 发 SIGKILL、child error/exit、同 package 多代 child 的完整终止跟踪仍未有单独确定性专项回归；#1082 的 `stopping` 记录聚焦通过 `stop()` 的在途 promise，并不天然列举所有已被 timeout 路径删除但 OS exit 尚未到来的子进程；不能把这次正向 CI 升级为所有本地 Child 的完整停机保证。具体需求与精确原文见 [工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
 
 #1071 文档、#1074 Host 顶层错误清理和 #1081 负面测试、#1082 局部修复四条均 **Draft / 未合并 / 未部署**；生产仅保有外部治理线 main/Railway 的历史部署版本。不进行生产 Validator、生产停机、配置/Secret/DB 查询、清锁或 material WRITE。所有 K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`。
+
+
+## 28. 2026-10-20 — K0 PROCESS 本地超时、代际与异步验证关闭屏障有界正向实测
+
+独立 [Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 完成第二轮 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 派生的局部 PROCESS 修复，但**未合并/未部署**：
+
+1. [`c1e03419...`](https://github.com/jiangxng/EVO-App-Platform/commit/c1e0341951e00c9965780190e203ccfd2fa5a22d) 保留实际已 fork 子进程直至 OS `close`，timeout/SIGKILL 不能从 active map 消失就视为停止；新一代等待旧一代 close，shutdown 统一等待；[原始 CI #39430410538 / job #118653676285](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39430410538/job/118653676285) **5/5 checks，1089/1088 pass/1 skipped，0 fail**；本地新增 `ok #761/#762`。
+2. [最新 `12dcfa1a...`](https://github.com/jiangxng/EVO-App-Platform/commit/12dcfa1aec30e32247a865fe7c44267350e2f237) 串行同包异步 verifier 准入、提前登记 stop 意图、关闭过程中等待 pending starts；[原始 CI #39431045554 / job #118655876047](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554/job/118655876047) **5/5 checks、1091/1090 pass/1 skipped、0 fail**。六项本地 child 回归 `ok #759–#764`；新增 `verifyCount=1/forks=1` 与 `stop during verifier forks=0/lateForkDenied=true`。
+
+**限度和否决：** `ISOLATED_PROCESS_LIFECYCLE_BOUNDED_PASS` 仅指单 Host 的六项指定时序。闭锁时本地 ChildProcess `close` 不是外部编排权威证明；无生产 SIGTERM/PID1 测试，无组织全域实例签收、生产 Human/DBA/session/audit。四个关联 PR #1071/#1074/#1081/#1082 均仍 Draft 未入 main/Railway。完整证据、来源等级、下步负面覆盖见 [K0 工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。**K0 与所有原签收门禁 `NOT_SIGNED`，production material WRITE `OFF`。**

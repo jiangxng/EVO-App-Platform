@@ -76,3 +76,13 @@
 - **回收约束**：九条先前已合并 PA05 docs 过程分支只完成安全审计、实际远端删除未执行（连接器无对应能力）；当前四条活跃 Draft 绝不可清。生产 material WRITE 始终 OFF，K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，Issues #988/#979/#913 OPEN。
 
 具体证据和数据来源阅读等级：[工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[研究索引 §16](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)、[拓扑 §27](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)。此处保留历史时间片，不把当前线上 main 写成永久稳定状态。
+
+
+## 八、2026-10-20 续跑 #06：超时退出与异步 verifier 并发已实证关闭（有界）
+
+- **当前关联工程：** [Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 独立 PROCESS runtime 修复 HEAD `12dcfa1aec30e32247a865fe7c44267350e2f237`（保持 Draft、未生产部署）；先前 `c1e03419...` 补充任何实际 fork child 的 `close` 跟踪、timeout SIGKILL 退出等待与代际防复用。两轮各 **5/5 exact SHA CI SUCCESS**，真实 [Platform #39431045554 / job #118655876047](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554/job/118655876047) 六项 local PROCESS regression `ok #759–#764`，1091 total/1090 passed/1 skipped/0 failed；包含异步 Sigstore 单包并发验证 `verifyCount=1/forks=1`，在验证 pending 时 stop `forks=0`。**只是 `ISOLATED_PROCESS_LIFECYCLE_BOUNDED_PASS`，不是全球停机或生产认证。**
+- **准确接续索引：** [K0 工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[拓扑 §28](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)、[研究与参考索引 §17](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)、[认证总账 §85](PA05-CERTIFICATION-BASELINE-20261015.md)。保留原 E01J4G–J4J PostgreSQL/OAuth/Lease/NIST 参考遗产，不重复造来源。
+- **下轮实际待证：** 已有六项局部证据之外，独立 parent SIGKILL、IPC 错误、verifier 长时挂起/关闭截止时间、Railway effective drain 和真实 PID1，仍未获独立证据。组织 infrastructure/IdP/DBA/SQL/audit Owner 缺失时不进入生产 K1/K2，不开启 material WRITE 或清 stale lock。
+- **生产状态快照：** 本轮只读 GitHub main `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`，Railway Host deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` SUCCESS；与最新 #1082 不同，#1071/#1074/#1081/#1082 均 Draft。**下次须重新核对，不能假设该 main 永远最新**。
+
+K0/完整 E01J4/PA05-05 E01–E05/W06 均 `NOT_SIGNED`，production material WRITE `OFF`；Issues #988/#979/#913 OPEN。九条历史 PA05 docs merged 分支只审计未删除，当前 Draft 分支不动。
