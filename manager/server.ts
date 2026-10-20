@@ -143,16 +143,8 @@ import {
   createEogExpectedSopAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-sop-agent-tools.js";
 import {
-  createEnterpriseOperatingGraphActionHandlersV010
-} from "./enterprise-operating-graph-actions.js";
-import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-agent-tools.js";
-import {
-  createEnterpriseOperatingGraphEditorPageV010,
-  createEnterpriseOperatingGraphViewActionHandlersV010,
-  EOG_EDITOR_PAGE_SOURCE
-} from "./enterprise-operating-graph-page.js";
 import {
   createEnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
@@ -797,7 +789,16 @@ import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
   EOG_2D_DESIGNER_FEATURE_ID,
-  EOG_2D_DESIGNER_PACKAGE_ID
+  EOG_2D_DESIGNER_PAGE_SOURCE as EOG_EDITOR_PAGE_SOURCE,
+  EOG_2D_DESIGNER_PACKAGE_ID,
+  EOG_CREATE_ACTION,
+  EOG_GET_ACTION,
+  EOG_LIST_ACTION,
+  EOG_VALIDATE_ACTION,
+  EOG_APPLY_OPERATION_ACTION,
+  EOG_VIEW_GET_ACTION,
+  EOG_VIEW_OPERATION_ACTION,
+  EOG_VIEW_SELECTION_GET_ACTION
 } from "../apps/eog-2d-designer/package.js";
 import {
   ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
@@ -4622,36 +4623,79 @@ const actionRouter = createAppActionRouter(
         return (await resolveBiWorkbenchRuntimeV010()).service;
       }
     }),
-    ...createEnterpriseOperatingGraphActionHandlersV010({
-      service: enterpriseOperatingGraphService,
-      resolveAuthorizationProvider
-    }),
+    ...[EOG_CREATE_ACTION, EOG_GET_ACTION, EOG_LIST_ACTION,
+      EOG_VALIDATE_ACTION, EOG_APPLY_OPERATION_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/eog-2d-designer/enterprise-operating-graph-actions.js");
+          const handler = module.createEnterpriseOperatingGraphActionHandlersV010({
+            service: enterpriseOperatingGraphService,
+            resolveAuthorizationProvider
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+                return { ok: false, correlationId: request.sourceInteractionId,
+                  error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "EOG Designer feature is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
+        }
+      })
+    ),
     ...createEogExpectedSopActionHandlersV010({
       service: eogExpectedSopService,
       resolveAuthorizationProvider
     }),
-    ...createEnterpriseOperatingGraphViewActionHandlersV010({
-      service: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      resolveAuthorizationProvider,
-      inspectorResolver: enterpriseOperatingGraphInspectorProperties,
-      locale(context) {
-        return context.locale;
-      },
-      onEditorRead(context, target) {
-        const selectedAt = new Date().toISOString();
-        for (const key of current2dEditorSessionKeysV010(context.principal)) {
-          current2dEditorSessions.set(key, {
-            contractVersion: "0.1.0",
-            kind: "OPERATING_GRAPH",
-            enterpriseId: target.enterpriseId,
-            graphId: target.graphId,
-            resourceId: target.resourceId,
-            selectedAt
-          });
+    ...[EOG_VIEW_GET_ACTION, EOG_VIEW_OPERATION_ACTION, EOG_VIEW_SELECTION_GET_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/eog-2d-designer/enterprise-operating-graph-page.js");
+          const handler = module.createEnterpriseOperatingGraphViewActionHandlersV010({
+            service: enterpriseOperatingGraphService,
+            viewService: enterpriseOperatingGraphViewService,
+            resolveAuthorizationProvider,
+            inspectorResolver: enterpriseOperatingGraphInspectorProperties,
+            locale(context) {
+              return context.locale;
+            },
+            onEditorRead(context, target) {
+              const selectedAt = new Date().toISOString();
+              for (const key of current2dEditorSessionKeysV010(context.principal)) {
+                current2dEditorSessions.set(key, {
+                  contractVersion: "0.1.0",
+                  kind: "OPERATING_GRAPH",
+                  enterpriseId: target.enterpriseId,
+                  graphId: target.graphId,
+                  resourceId: target.resourceId,
+                  selectedAt
+                });
+              }
+            }
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_VIEW_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+                return { ok: false, correlationId: request.sourceInteractionId,
+                  error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "EOG Designer feature is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
         }
-      }
-    }),
+      })
+    ),
     ...[EOG_OBSERVE_ACTION, EOG_ANALYZE_ACTION].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
@@ -8289,10 +8333,14 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const module = await import("../apps/eog-2d-designer/enterprise-operating-graph-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphEditorPageV010({
+          module.createEnterpriseOperatingGraphEditorPageV010({
             activeContext,
             locale: requestedLocale(url)
           })

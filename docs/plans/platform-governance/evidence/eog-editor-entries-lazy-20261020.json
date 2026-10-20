@@ -1,0 +1,138 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-20",
+  "baseline": "00d05159af8912f9a1194399d7723adfbbf686a5",
+  "branch": "fix/governance-eog-editor-entries-lazy-20261020",
+  "scope": "A01/R1 original graph page and eight Human action loading",
+  "productionFilesChanged": [
+    "manager/server.ts",
+    "apps/eog-2d-designer/package.ts",
+    "apps/eog-2d-designer/enterprise-operating-graph-actions.ts",
+    "apps/eog-2d-designer/enterprise-operating-graph-page.ts"
+  ],
+  "facts": {
+    "semanticHandlers": 5,
+    "viewHandlers": 3,
+    "constructors": "resource-free closures; business reads/writes in execute",
+    "sharedSynchronousServices": "retained; no coupling to single UI stop",
+    "unchanged": "semantic algorithms, page JSON, authorization, confirmation, CAS, inspector and onEditorRead callback",
+    "constantPlacement": "existing package metadata; legacy action/page/manager exports retained"
+  },
+  "loads": {
+    "semantic": "legal first call imports original action implementation; list does not load page",
+    "view": "legal first view command imports original page/view implementation",
+    "page": "original effective page branch imports page factory",
+    "postAwait": "effective Designer rechecked before page or handler execution",
+    "resources": "only existing per-command lazy-handler promise; no new connection, business store, timer, subscription or cross-user cache",
+    "esmFailure": "native failure may remain cached; fix delivery then restart, no cache busting or automatic WRITE replay"
+  },
+  "tests": {
+    "new": "tests/integration/eog-editor-entries-lazy-host.test.mjs",
+    "newHostCases": 3,
+    "fixture": "tests/fixtures/eog-editor-import-barrier.mjs",
+    "method": "real isolated HTTP Host, existing ESM inventory probe, native load hook with bounded test-only file barrier or fault; no module source transformation",
+    "scenarios": [
+      "absent / disabled / enabled unused cold",
+      "same-command concurrent first list; semantic use does not load view/page",
+      "original localized page JSON equality",
+      "view selection / node move / stale CAS / no semantic mutation",
+      "enterprise isolation and explicit publish confirmation",
+      "disable/enable, uninstall/reinstall and process restart persistence",
+      "disable during actual native import rejects semantic CREATE, view GET and page; same-handler recovery",
+      "import failure is HTTP error, no graph after restart; qualified recovery"
+    ],
+    "uninstalledFixture": "Original settings API marks peer 3D/Observatory/bottleneck one-time defaults retired so they do not auto-install 2D; production startup defaults unchanged"
+  },
+  "local": {
+    "node": "24.19.0",
+    "componentPassed": 20,
+    "previousComponentCases": 18,
+    "selectionCases": 2,
+    "syntax": [
+      "temporarily type-erased Host",
+      "new integration test",
+      "new fixture",
+      "audit script"
+    ],
+    "initialIncompleteSnapshot": "Selection test initially could not import missing Viewer source; fetched fixed-SHA file, temporary transform, both cases then passed",
+    "officialBuild": false,
+    "realHostExecuted": false,
+    "browserExecuted": false,
+    "limitation": "fixed-SHA partial source snapshot in isolated directory, temporary Node type erasure; sandbox blocks loopback and Chromium sockets; official build and Host proof in CI"
+  },
+  "staticRatchet": {
+    "oldEdges": 253,
+    "newEditedEdges": 247,
+    "status": "Verified strict ratchet on first head: 247, zero added allowances",
+    "removed": [
+      "apps/eog-2d-designer/enterprise-operating-graph-actions.ts -> apps/eog-2d-designer/package.ts [static]",
+      "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/enterprise-operating-graph-actions.ts [static]",
+      "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/inspector-editors.ts [static]",
+      "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/package.ts [static]",
+      "manager/enterprise-operating-graph-actions.ts -> apps/eog-2d-designer/enterprise-operating-graph-actions.ts [static]",
+      "manager/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/enterprise-operating-graph-page.ts [static]"
+    ],
+    "verifiedHead": "2a3fdb16ba792fa582b77aaf4ac8a6213312c12e"
+  },
+  "ci": {
+    "statusAtCommit": "Fault envelope assertion fixed; new exact-head full CI pending. Final runs, measurements and merge in PR #1061.",
+    "forbiddenColdModules": [
+      "dist/apps/eog-2d-designer/enterprise-operating-graph-actions.js",
+      "dist/apps/eog-2d-designer/enterprise-operating-graph-page.js",
+      "dist/manager/enterprise-operating-graph-actions.js",
+      "dist/manager/enterprise-operating-graph-page.js"
+    ],
+    "firstAttempt": {
+      "head": "2a3fdb16ba792fa582b77aaf4ac8a6213312c12e",
+      "runs": 46,
+      "passed": 45,
+      "failedRun": 39363917227,
+      "failedJob": 118436212211,
+      "officialBuild": "pass",
+      "behaviorPassed": 169,
+      "behaviorTotal": 170,
+      "normalAndImportRaceHostTests": "pass",
+      "failure": "Fault test expected HTTP500/body.message; original thrown-action handler returns HTTP403/body.error. Test corrected to assert original status and exact injected code/message; production unchanged."
+    }
+  },
+  "historicalBaselineOnly": {
+    "pr": 1047,
+    "head": "796d22aa7687e9f515c985a0e5977b7e911eb6d4",
+    "modulesPerProfile": 318,
+    "edges": 253,
+    "currentMeasurement": false
+  },
+  "sha256": {
+    "manager/server.ts": "1017e540b299a6d2f407bc66c17420669513477fd08d68f1ceab6d038a98a11c",
+    "apps/eog-2d-designer/package.ts": "7ec5bba6bd273ebd0ea25dcd80b436b5d492acce8c73286f0997901c53adf778",
+    "apps/eog-2d-designer/enterprise-operating-graph-actions.ts": "9806de5b09853a36e0cd1f9938cb96676f28b846ceea72256223c61555a7041c",
+    "apps/eog-2d-designer/enterprise-operating-graph-page.ts": "44d531fa6f503a14da15bee7f56bb0ba8220ad63808f4ea1745a9dce376093a3",
+    "tools/lightweight-host-baseline.json": "e6d45df3dcbdfcb4a9a6898e309dbb6907781d61a0b50fcbe7eba1c97c1ffeb4",
+    "tools/plugin-loading-audit.mjs": "5805d50ac6bc3a2e7402f7ceb858a648f71426743ea13b5089ef934ee2330844",
+    ".github/workflows/lightweight-host.yml": "b59c2c9a5b9c59f33815c2c0966869ff74b137ccd8dd8d3aa98160167cc2c0a6",
+    "tests/integration/eog-editor-entries-lazy-host.test.mjs": "9cdc8c0fb2b8ad44666d901f692b24d42089aef2a4be503c326282d6f244cf8d",
+    "tests/fixtures/eog-editor-import-barrier.mjs": "ac8e1e603bc22979c6a3e413dfaf6bc279356a5c7e58ad04c6c0eea5572e1dd5",
+    "docs/plans/platform-governance/EOG-LOADING-BOUNDARY-20261018.md": "7a917b171478d38d3ac0f84e4c93a8e3486133f5b4e7959022f5751786840ca7",
+    "docs/plans/platform-governance/CLOSEOUT-COUNTDOWN.md": "88357abf3b9fe42a32f23557894ad9b41af71d3a16c74a86c9fc8b08f596841b",
+    "docs/ui-design-reviews/eog-editor-entries-lazy-20261020.md": "56d9791e4161234ba1a8cf03fc357d23837b4d52b7945601d0e84c66ec7a1cb1"
+  },
+  "remaining": [
+    "R1 SOP actions/tools and remaining classified roots",
+    "R2 configured Agent SQL resource qualification",
+    "R3 Provider classification",
+    "R4 final cross-layer acceptance"
+  ],
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  },
+  "productionDeployment": false,
+  "submissionBase": {
+    "sha": "3d9f59cdb06902253469a653d0d6adc5c7e231eb",
+    "prior": "00d05159af8912f9a1194399d7723adfbbf686a5",
+    "additionalMainPr": 1059,
+    "changedPaths": 4,
+    "overlap": false
+  }
+}
