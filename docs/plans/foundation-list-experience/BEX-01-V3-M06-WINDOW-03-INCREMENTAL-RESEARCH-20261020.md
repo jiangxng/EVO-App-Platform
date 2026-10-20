@@ -32,3 +32,11 @@
 **版本治理**：#1077 仍叠加 #1060 的 Draft，不合并、不部署；Railway production 自动跟踪其他窗口的 Platform main，当前发现成功部署 main SHA `102319de812ce65682f0c6ccb1a930e10b4e22d4`，不是此 Draft。Eidos #203/204 等通用 owner 仍需独立协调。M01–M03 COMPLETE，M04/M05/M06 OPEN，**3/6**。无真实 Excel、授权 Job、两开户银行真实 fieldId/用途和三条主体身份的新增证据。
 
 本节记录的精确成功 HEAD 为 `aed515…`；**如本文档自身增量追加生成了更新的 SHA，其新 CI 仍需单独核对**，不能自动迁移旧 PASS。
+
+
+## Window-03 续跑｜真实工作表名称的来源与还原（2026-10-20）
+
+- **直接核实源码（R）：** `apps/data-import/xlsx.ts` 原已解析 `xl/workbook.xml` 内第一张工作表的 `r:id` 并解析工作表 XML，但 `DataImportSourceV010` 原仅保存 name/headers/rows，因此旧 UI 无从得到真实 sheet name。此非模型视觉判断：是真实 Host 源数据契约缺失。
+- **增量方案：** parser 在原选中的 sheet 标签读取 `name`，存为可选 `source.worksheetName`，`assertDataImportJobV010` 对来源类型、长度和换行校验并保留入库；Host 文件卡仅在来源为 XLSX 且确有此值时显示「工作表：真实名称 · 共 N 条记录 · M 列」。旧 Job/CSV/ROWS 无 worksheetName 时继续原有展示，绝不猜测客户工作表名。
+- **源事实与判断：** #909 原型文件卡含工作表名是已读原文；从真实 `xl/workbook.xml` 获取并存入 Job 是本轮设计判断。不新增采集客户 Excel 的动作。行、列、Recipe 指纹（只使用 headers）、权限、显式提交均保持原契约。
+- **验证任务：** synthetic XLSX workbook 真实首张 sheet 名 `Synthetic`，独立 Host 的 V3 视觉 workbook 的 `name` 为 `Visual review`，协议和 1280px/390px Chromium 都对精确文字断言。新 HEAD 的 CI/截图必须另行核对；此段不宣称完成或 Human 签收。总体 3/6，M04/M05/M06 OPEN。

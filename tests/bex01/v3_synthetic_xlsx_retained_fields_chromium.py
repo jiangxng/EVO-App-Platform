@@ -711,6 +711,7 @@ with sync_playwright() as pw:
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
     assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
     expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
+    expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(visual_form.locator('[data-eidos-form-task-back]')).to_have_text("返回文件")
     expect(visual_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
@@ -759,6 +760,7 @@ with sync_playwright() as pw:
     expect(phone_issues).to_have_count(3)
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
     expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
+    expect(phone_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(phone_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
     phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()

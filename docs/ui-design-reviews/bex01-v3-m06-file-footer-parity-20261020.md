@@ -62,3 +62,8 @@
 ## 证据与剩余问题
 
 2026-10-20 已下载 #909 原型 artifact 11957646429 与 #1060 合成 Host artifact 12250007262 并实际对照部分桌面、390px、底部和问题状态截图。精确 HEAD `6e21ed8d…` 首轮 Human UI/continuity 因没有 8 节复核记录而失败；本次补齐是门禁要求，不是伪造人工签收。另已提交 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` 的真实返回/重置桌面与手机断言。最终合格必须等到新精确 HEAD Platform CI、BEX Chromium 全步骤及新截图核验；当前 Human 视觉 OPEN、M04/M05 OPEN、总进度 3/6。Eidos 通用 footer 契约仍应由 Eidos owner 另行复核。
+
+
+### 本轮追加 UI 复核：可信工作表信息
+
+调整 `apps/data-import/page.ts` 文件摘要时，文件名与真实来源工作表名仍分层显示，实际 XLSX parser 与 `DataImportSourceV010` 才是唯一受信来源。文件未带名称时只展示可信行列数；不把原型的演示工作表或 synthetic fixture 误当客户证据。业务核对阶段、排他字段映射和 Host 提交完全不变。1280px 桌面和 390px 移动断言核查“工作表：Visual review”，属于隔离 Chromium 证据，不代表已完成人工 100% 视觉签收。

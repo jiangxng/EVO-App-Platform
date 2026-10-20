@@ -873,7 +873,10 @@ export function createDataImportMappingPageV010(input: {
     presentation: "workbench" as const,
     subject: {
       title: input.job.source.name ?? input.job.importJobId,
-      subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
+      subtitle: (input.job.source.kind === "XLSX" && input.job.source.worksheetName
+        ? (zh(input.locale) ? "工作表：" : "Worksheet: ")
+          + input.job.source.worksheetName + (zh(input.locale) ? " · 共 " : " · ")
+        : (zh(input.locale) ? "导入文件 · " : "Source file · "))
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
       statusLabel: zh(input.locale) ? "文件已读取" : "File read",

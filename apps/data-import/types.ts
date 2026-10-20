@@ -23,6 +23,8 @@ export type DataImportJobStateV010 =
 export interface DataImportSourceV010 {
   kind: "CSV" | "XLSX" | "ROWS";
   name?: string;
+  /** Original XLSX worksheet selected by the parser, not inferred from a file name. */
+  worksheetName?: string;
   headers: string[];
   rows: Array<Record<string, FoundationObjectImportCellV010>>;
 }
@@ -168,6 +170,15 @@ export function assertDataImportJobV010(
     "COMMITTED_WITH_ERRORS"
   ].includes(value.state)) {
     throw new Error("DATA_IMPORT_JOB_STATE_INVALID");
+  }
+  if (value.source.worksheetName !== undefined
+    && (value.source.kind !== "XLSX"
+      || typeof value.source.worksheetName !== "string"
+      || !value.source.worksheetName.trim()
+      || value.source.worksheetName.length > 128
+      || value.source.worksheetName.includes(String.fromCharCode(10))
+      || value.source.worksheetName.includes(String.fromCharCode(13)))) {
+    throw new Error("DATA_IMPORT_SOURCE_WORKSHEET_INVALID");
   }
   const headers = value.source.headers.map(header =>
     required(header, "DATA_IMPORT_SOURCE_HEADER_INVALID")
@@ -368,6 +379,8 @@ export function assertDataImportJobV010(
       ...(value.source.name?.trim()
         ? { name: value.source.name.trim() }
         : {}),
+      ...(value.source.worksheetName !== undefined
+        ? { worksheetName: value.source.worksheetName.trim() } : {}),
       headers,
       rows: structuredClone(value.source.rows)
     },
