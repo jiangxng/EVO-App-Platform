@@ -362,3 +362,13 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 - 视觉复核附录提交 `107fbceb1c26043bd01ef2791e25068c3f474767` 触发了新一轮 CI；在该 HEAD 上的 Platform CI 与 BEX-01 Real Host Chromium 当时仍在运行，必须按精确 HEAD 刷新状态，不继承前一提交的 PASS。
 - PA-01B2 Full Isolated Chrome Host Acceptance 在 `6049c587…` 失败于普通聊天 transport `MOCK_MODEL_CALL_NOT_SEEN`（7/8）。这是独立 Agent 线；不得改 PA05/PA01 或放宽其断言来换取 BEX-01 通过。
 - PR #1060 继续 Draft、未合并/部署。M04/M05 OPEN，M06 待 Human 视觉签收，总体进度 3/6。不得改 `project.status.json`，不得将 Railway 切换至 release。
+
+## 2026-10-20 续跑 #15：最新精确 HEAD 门禁状态
+
+- 实施候选 HEAD：`107fbceb1c26043bd01ef2791e25068c3f474767`；Platform `main`：`eaa5e813b1e86a6460d988c76eb2076512c35127`。分支 ahead 36 / behind 0。
+- [Platform CI run 39386798443](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39386798443)：PASS。
+- [BEX-01 Real Host Chromium run 39386798369](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39386798369)：PASS；artifact ID `12248210391`，报告 `2026-10-20T07:30:03Z`，5/5 场景通过、无浏览器错误。
+- [BEX-01 In-Context Import Resume run 39386798367](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39386798367)：PASS；[Human UI Design Review Gate run 39386798312](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39386798312)：PASS；[Lightweight Host Architecture run 39386798311](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39386798311)：PASS；[PA-01B2 Full Isolated Chrome Host Acceptance run 39386798382](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39386798382)：PASS。
+- 注意：较早 HEAD `6049c587…` 的 PA-01B2 full Chrome 曾因 `MOCK_MODEL_CALL_NOT_SEEN` 失败，但更新后的 `107fbceb…` 已通过该门禁。状态记录以精确 HEAD 为准，不延用较早失败或成功。
+- 上述自动化 PASS 不构成 Human 视觉签收。实际截图与 #909 原型的数据状态不同，当前问题截图只有一类主体类型缺失，文件卡片/异常项层级/步骤与底部操作仍有差异；这些差异已登记在 BEX-01 视觉审查文档。
+- 下一步：单独增加 synthetic V3 视觉 fixture，精确复现 22 列、16 匹配、4 新增、0 忽略、3 类异常；生成 1280px/390px 对照截图并修复视觉差异。客户 Excel 与授权证据仍缺失，禁止启动 M04/M05。
