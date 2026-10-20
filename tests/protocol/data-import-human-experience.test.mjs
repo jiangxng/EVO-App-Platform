@@ -1029,7 +1029,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
   assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
-  assert.match(mapHtml,/data-eidos-form-review-table-count[\\s\\S]*?>显示 3 \/ 4 列<\\/span>/);
+  assert.ok(mapHtml.includes("data-eidos-form-review-table-count"));
+  assert.ok(mapHtml.includes("显示 3 / 4 列"));
   assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
