@@ -207,12 +207,16 @@ export function renderToHtml(document: unknown): string {
     const count=(model.reviewGroups ?? []).filter(group =>
       !allowed || allowed.includes(group.reviewStatus!.key)).length;
     const toolbar=filter
-      ? `<div data-eidos-form-review-table-toolbar><label>${esc(filter.label)}
+      ? `<div data-eidos-form-review-table-toolbar>
+          <div data-eidos-form-review-table-toolbar-context>
+            <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span>
+            ${model.reviewTable?.toolbarHint ? `<p data-eidos-form-review-table-toolbar-hint>${esc(model.reviewTable.toolbarHint)}</p>` : ""}
+          </div>
+          <label>${esc(filter.label)}
           <select data-eidos-form-review-table-filter>${filter.options.map(option =>
             `<option value="${esc(option.id)}"
               data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
-          ).join("")}</select></label>
-          <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span></div>`
+          ).join("")}</select></label></div>`
       : "";
     const heading=model.reviewTable?.heading
       ? `<header data-eidos-form-review-table-heading>
@@ -232,6 +236,7 @@ export function renderToHtml(document: unknown): string {
         </table>
       </div>
       ${filter ? `<p data-eidos-form-review-table-empty${count ? " hidden" : ""}>${esc(filter.noMatchesMessage)}</p>` : ""}
+      ${model.reviewTable?.footnote ? `<p data-eidos-form-review-table-footnote>${esc(model.reviewTable.footnote)}</p>` : ""}
       </section>`;
   })() : "";
   const preview=model.reviewPlan ? `<section data-eidos-form-review-plan

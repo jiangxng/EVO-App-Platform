@@ -82,3 +82,8 @@
 ### 本轮追加 UI 复核：阶段视觉与真实问题计数（2026-10-20，后续增量）
 
 根据 [#909 原型](https://github.com/jiangxng/EVO-App-Platform/pull/909) 的已读 HTML 和上一轮下载的 1280px/390px Chromium，当前顶栏两阶段虽存在但默认点状图标太小，完成、当前阶段的注意力层级不足，问题标题旁缺“3 项待处理”。只为明确选择 Workbench 的表单增强调度视觉；绝不改变路由、步骤状态和 Host 指令。变化的通用 UI 实现：`vendor/eidos/src/renderers/html/index.ts` 继续渲染真实状态与 `aria-current="step"`；`vendor/eidos/src/design-language/productive-workbench-css.ts` 增强 24px 已完成勾号／当前序号、连接线、移动端换行。Eidos `reviewTask.issuesCountSuffix` 由 Platform 设置后，Eidos 从 `issues.length` 派生实际数量，拒绝空内容和不当范围；**不是静态“3”**。#204 owner 的三张独立编号问题卡原样保留，关于与 #909 连续问题框的视觉冲突继续留给 Human 决策。新增真实桌面/390px Host 断言与截图，未获得 Human 视觉签收，不代表100%还原。
+
+
+### M06 自动续跑 #02：四列表工具栏认知说明与底注
+
+对照 #909 原型，Eidos 通用 `UidlFormReviewTableV010` 在声明时展示 toolbarHint 和 footnote。栏位仍显示真实筛选可见数，不复制静态原型数字；Platform 通过两句短文本分别解释“为什么优先展示部分列”和“排他选择／不导入不删除源数据”。界面文字在 Eidos 转义、校验，不绕开 Host 显式保存。桌面、390px mobile 将增加选择筛选时计数动态变化和底注内容断言，证明是活控件而非截图复制。

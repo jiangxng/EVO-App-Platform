@@ -886,7 +886,14 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation","heading"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote"]),p,out);
+      for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
+        const value=table[key];
+        if(value!==undefined && (!nonEmpty(value) || value.length>max)){
+          out.push(d("EIDOS_REVIEW_TABLE_GUIDANCE_INVALID",p+"."+key,
+            "Guidance must be a bounded, nonempty string"));
+        }
+      }
       if (table.heading !== undefined) {
         if (!isPlainObject(table.heading)
           || !nonEmpty(table.heading.title)
@@ -956,6 +963,10 @@ export function validateUidl(
         }
       }
       reviewTable={
+        ...(typeof table.toolbarHint==="string" && table.toolbarHint.trim()
+          && table.toolbarHint.length<=240 ? {toolbarHint:table.toolbarHint} : {}),
+        ...(typeof table.footnote==="string" && table.footnote.trim()
+          && table.footnote.length<=400 ? {footnote:table.footnote} : {}),
         ...(isPlainObject(table.heading) && nonEmpty(table.heading.title)
           && table.heading.title.length <= 120
           && (table.heading.description === undefined

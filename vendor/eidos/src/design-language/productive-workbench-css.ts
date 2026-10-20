@@ -2931,6 +2931,16 @@ form[data-eidos-id] button:hover,
   padding:var(--eidos-space-md) var(--eidos-space-lg);
   border-bottom:1px solid var(--eidos-border);
 }
+[data-eidos-form-review-table-toolbar-context]{display:grid;gap:var(--eidos-space-xs);min-width:0}
+[data-eidos-form-review-table-toolbar-hint]{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+  overflow-wrap:anywhere;
+}
+[data-eidos-form-review-table-footnote]{
+  margin:0;padding:var(--eidos-space-md) var(--eidos-space-lg);
+  background:var(--eidos-bg-subtle);border-top:1px solid var(--eidos-border);
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+}
 [data-eidos-form-review-table-toolbar] label{
   display:flex;
   gap:var(--eidos-space-sm);
@@ -3117,11 +3127,11 @@ form[data-eidos-id] button:hover,
   [data-eidos-review-table-choice] [data-eidos-form-field] label{display:block;gap:0;line-height:normal}
 [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
   [data-eidos-review-table-choice] select{min-height:var(--eidos-control-normal)}
-[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
-  [data-eidos-form-review-table-count]{order:-1}
-[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
   [data-eidos-form-review-table-toolbar] label{white-space:nowrap;flex-wrap:nowrap}
 @media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar-context]{width:100%}
  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
    [data-eidos-review-table-choice] select{min-height:44px}
  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]

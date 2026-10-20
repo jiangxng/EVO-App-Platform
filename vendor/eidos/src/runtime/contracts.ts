@@ -62,6 +62,9 @@ export interface UidlFormReviewTableV010 {
   presentation?: "standard" | "compact";
   /** Optional section context preceding the original decision table. */
   heading?: { title: string; description?: string };
+  /** Optional factual guidance near the live filter count and source-integrity footer. */
+  toolbarHint?: string;
+  footnote?: string;
   columnLabels: { subject: string; evidence: string; decision: string; status: string };
   filter?: {
     label: string;

@@ -720,6 +720,12 @@ export function createDataImportMappingPageV010(input: {
   const reviewTable = {
     // V3 compact four-column density uses upstream Eidos #200 semantics.
     presentation: "compact" as const,
+    toolbarHint: zh(input.locale)
+      ? "优先显示需要确认的来源字段；可切换查看全部原始列。"
+      : "Priority source decisions first; switch the filter to inspect all original columns.",
+    footnote: zh(input.locale)
+      ? "系统字段不能重复直接对应来源列；选择“不导入”只影响本次写入，原始文件内容仍会保留。"
+      : "A target field cannot be directly mapped twice. Excluding a column changes this import only; source data remains preserved.",
     heading: {
       title: zh(input.locale) ? "字段对应关系" : "Field mappings",
       description: zh(input.locale)

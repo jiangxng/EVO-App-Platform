@@ -72,6 +72,14 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(mapping.description,/请核对字段对应关系/);
   assert.ok(mapping.description.length < 80,"mapping first-screen copy should be concise");
   assert.equal(mapping.reviewTable.heading.title,"字段对应关系");
+  assert.match(mapping.reviewTable.toolbarHint,/优先显示需要确认/);
+  assert.match(mapping.reviewTable.footnote,/原始文件内容仍会保留/);
+  assert.match(renderToHtml(mapping),/data-eidos-form-review-table-toolbar-context/);
+  assert.match(renderToHtml(mapping),/data-eidos-form-review-table-footnote/);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    footnote:""}}).ok,false);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    toolbarHint:"x".repeat(241)}}).ok,false);
   assert.ok(renderToHtml(mapping).includes("<h2>字段对应关系</h2>"));
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     heading:{title:""}}}).ok,false);

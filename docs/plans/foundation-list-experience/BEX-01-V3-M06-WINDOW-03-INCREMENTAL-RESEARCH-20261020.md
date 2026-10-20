@@ -63,3 +63,12 @@
 - 排除：不在 Platform 写死3、不为原型添加虚构按钮、不将独立卡片恢复为单列表；#204 owner 的三张问题卡仍为未决视觉冲突，需要与 Human 签收对齐，不能自行覆盖。
 - 检验：协议断言状态/空后缀拒绝，真实 Host Chromium 在 1280px 与390px 核对2个步骤、当前步 aria-current、完成勾号以及“3 项待处理”，新 artifact 实际对比。CI 不能替代 Human 签收。
 - 边界：M01–M03完成，M04/M05/M06 OPEN，总体3/6；#1077 Draft，不合并不部署，不触碰客户 Excel、PA05、EOG 或 Railway。
+
+
+## M06 Window-03 自动续跑 #02｜四列表工具栏与来源保护底注（2026-10-20）
+
+- **来源等级 R／已读原文：** PR #909 的 `BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html` 中 mappingpanel 的表头工具栏同时显示“优先显示需要确认和新增的字段”、当前筛选计数、筛选器和“修改字段对应关系不会更改原 Excel 文件”，表格底部显式告知系统字段排他对应与原来源保留。真实 Host 上一版截图 `v3-prototype-parity-submit-desktop.png` 只显示 6/22 与筛选选择器、缺少这些可信解释。**原型用7/22，Host 实际为6/22，因此绝不可复制静态7。**
+- **采用方案（设计判断）：** Eidos `reviewTable` 增加可选的 `toolbarHint`、`footnote` 两个纯展示文本，由 Platform 提供实际简短本地化业务语义；Eidos 校验有界非空、转义 HTML，计数仍从现有 `reviewGroups`／Host 筛选状态实时计算。不将安全底注误写成自动保存保证。不改任何字段值、Recipe、Host 路由／command、原始 XLSX。
+- **未采用：** 硬编码“7/22”、改动源表数据、为原型自动保存文案绕开 Host 显式保存、直接套用 #909 的案例字段名。#204 独立问题卡仍保留，连续问题框冲突由 Human 决策。
+- **验证目标：** desktop 1280px/phone 390px synthetic isolation，核对真实筛选 6/22→22/22→6/22、指导文本、来源保留底注且不会改动 Host 数据，新增协议测试验证空和超长说明拒绝。具体 CI 与截图须由本 HEAD 实际出具，不预填 PASS。
+- **范围与状态：** #1077 → #1060 stacked Draft，不改 main 或生产。M01–M03 DONE，M04/M05/M06 OPEN，总进度3/6，Human视觉签收仍OPEN。
