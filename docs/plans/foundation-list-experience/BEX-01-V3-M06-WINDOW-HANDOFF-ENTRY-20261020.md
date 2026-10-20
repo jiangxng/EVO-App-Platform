@@ -129,3 +129,12 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 - 下一步不能只改 CSS 或把问题数写死。应建立独立 synthetic 视觉 fixture，复现 #909 的 22 列、16 已匹配、4 待新增、0 忽略、3 类异常状态；采集相同状态的 1280px/390px 连续截图，再修正文件卡片、异常项层级、步骤条和操作区。
 - 同一 HEAD 的 PA-01B2 Full Isolated Chrome Host Acceptance 曾以 7/8 失败，具体是普通聊天 transport 场景的 `MOCK_MODEL_CALL_NOT_SEEN`；这是独立 Agent 验收，不要改 PA05/PA01 源码或忽略断言来解决 BEX 任务。
 - #1060 继续 Draft，未合并/部署。M04 客户真实数据验收 OPEN；M05 真实完整导入 OPEN；M06 高保真建设中、Human 签收待定；总体进度 3/6。客户原始 Excel、授权 Import Job、两个银行字段真实身份与用途、三条真实主体身份仍未取得。
+
+## 2026-10-20 续跑 #15：精确 HEAD 门禁收敛
+
+- 2026-10-20 07:30 UTC 复核：Platform 实施分支最新 HEAD 为 `107fbceb1c26043bd01ef2791e25068c3f474767`；Platform `main` 仍为 `eaa5e813b1e86a6460d988c76eb2076512c35127`。实施分支相对 main ahead 36 / behind 0，改动路径与主线已分离；不做盲目 rebase。
+- 此 HEAD 的 Platform CI PASS（run `39386798443`），BEX-01 Real Host Chromium PASS（run `39386798369`），BEX-01 In-Context Import Resume PASS（run `39386798367`），Human UI Design Review Gate PASS（run `39386798312`），Lightweight Host Architecture PASS（run `39386798311`），PA-01B2 Full Isolated Chrome Host Acceptance 本轮也 PASS（run `39386798382`）。此前 `6049c587…` 的 PA-01B2 失败是较早 HEAD 的结果，不再描述为当前最新状态。
+- 最新 BEX 真实 Host artifact ID `12248210391`，报告时间 `2026-10-20T07:30:03Z`，5/5 场景通过、无浏览器错误；截图均来自隔离合成数据。不要把该结果当作客户真实验收或 Human 视觉签收。
+- 已将 #909 原型截图与真实 Host 截图实际打开比对，并在 `docs/ui-design-reviews/bex01-v3-decision-first-live-fidelity-20261019.md` 追加了有证据的视觉差异记录。关键差异是原型和当前截图使用不同的数据状态；文件卡片的 XLSX 视觉提示较弱；当前异常截图只有主体类型缺失一类，不能证明原型中的三种独立异常和对应动作已复现；步骤条/底部动作区仍需在同一流程状态下核验。
+- 下一步继续实施独立 synthetic 视觉 fixture：目标状态锁定为 22 列、16 已匹配、4 待新增、0 忽略、3 类问题；用同一状态分别采集 1280px 和 390px 截图，再修复差异。禁止把真实客户身份、银行字段用途或导入证据合成出来。
+- #1060 仍为 Draft、未合并/部署；当前 CI 通过不等于视觉签收。M04 客户真实数据 OPEN，M05 真实完整导入 OPEN，M06 待 Human 视觉签收，总体进度 3/6。不得改 `project.status.json`，不得切换 Railway 到 release。
