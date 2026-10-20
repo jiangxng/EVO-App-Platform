@@ -283,12 +283,17 @@ with sync_playwright() as pw:
     expect(map_form.locator('[data-eidos-form-task-details]')).to_have_count(0)
     page.screenshot(path=str(OUT/"v3-fidelity-workbench-map-1280.png"),
       full_page=False)
-    expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
-    expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
-        "BEX-SYNTHETIC-RET-172.xlsx")
+    expect(map_form.get_by_role("heading",name="核对导入数据")).to_be_visible()
+    expect(map_form.locator('input[type="hidden"][name="importJobId"]')).to_have_value(jobid)
+    expect(map_form.locator('select[name="importJobId"]')).to_have_count(0)
+    expect(map_form.locator('[data-eidos-form-task-file-kind]')).to_have_text("XLSX")
     expect(map_form.locator('[data-eidos-form-task-overview]')).to_be_visible()
     expect(map_form.locator('[data-eidos-form-task-metric]')).to_have_count(4)
-    expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(3)
+    expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(2)
+    expect(map_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
+    expect(map_form.locator('[data-eidos-form-actions] button[data-eidos-action="back-to-file"]')).to_have_text("返回文件")
+    expect(map_form.locator('[data-eidos-form-actions] button[data-eidos-action="restore-initial"]')).to_have_text("恢复初始选择")
+    expect(map_form.locator('[data-eidos-form-actions] button[data-eidos-action="review"]')).to_have_text("预检查并继续")
     # Separate evidence view from the scrollable Eidos shell: capture actual E3
     # overview/metrics rather than assuming a mid-table full_page shot includes it.
     map_form.locator('[data-eidos-form-task-overview]').screenshot(
@@ -308,6 +313,13 @@ with sync_playwright() as pw:
     expect(map_filter).to_have_value("needs")
     expect(map_rows.first).to_be_hidden()
     expect(map_rows.nth(4)).to_be_visible()
+    show_all_button=map_form.locator('[data-eidos-review-table-show-all]')
+    expect(show_all_button).to_be_visible()
+    show_all_button.click()
+    expect(map_filter).to_have_value("all")
+    expect(map_form.locator('[data-eidos-form-review-table-count]')).to_contain_text("显示 22 / 22 列")
+    map_filter.select_option("needs")
+    expect(map_rows.first).to_be_hidden()
     expect(map_rows.nth(4)).to_contain_text("synthetic-4-0001")
     expect(map_rows.nth(4).locator('[data-eidos-review-table-evidence]')).not_to_contain_text(
         "synthetic-4-0002")
@@ -321,7 +333,13 @@ with sync_playwright() as pw:
     map_filter.select_option("all")
     expect(map_rows.first).to_be_visible()
     expect(map_rows.first).to_contain_text("往来编码")
-    expect(map_rows.first.locator('select[name="map_0"]')).to_have_value("code")
+    map_zero=map_rows.first.locator('select[name="map_0"]')
+    expect(map_zero).to_have_value("code")
+    map_zero.select_option("__IGNORE__")
+    map_form.locator('[data-eidos-form-actions] button[data-eidos-action="restore-initial"]').click()
+    expect(map_zero).to_have_value("code")
+    map_filter.select_option("all")
+    expect(map_rows.first).to_be_visible()
     # Unambiguous labels remain business-language while submitted option values
     # still carry the original stable schema field ID.
     code_option=map_rows.first.locator('select[name="map_0"] option[value="code"]')
