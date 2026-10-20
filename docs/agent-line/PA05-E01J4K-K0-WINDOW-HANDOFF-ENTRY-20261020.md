@@ -46,3 +46,17 @@
 - **没有**新增截图、二进制附件、真实凭据或生产数据库备份；有保留期风险的 CI/job 与日志位置已写入详细索引。
 
 **准确交接提交：** 请读取本交接所在分支的最新 HEAD，并以本次交接 commit 为稳定快照；不能把旧 `472947a8...` 当成最终 HEAD。
+
+
+## 五、2026-10-20 本窗口连续更新入口（取代上文实时状态，不改历史快照）
+
+> **注意：** 上文第二节保存交接时 `eaa5e813...` 的历史准确状态。以下是新窗口续跑 #01–#03 的新证据时间片，所有 HEAD/CI/部署仍须在下次恢复时再刷新，不能将此节当永久最新状态。
+
+- **截至 2026-10-20 新近只读观察：** [main](https://github.com/jiangxng/EVO-App-Platform/commit/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa) `91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa`（其他治理线 PR #1079 已合并）；该提交确切检查 39/39 SUCCESS；Railway Host deployment `9aa54df8-26ca-43aa-a598-9b547f276a5c` SUCCESS/Online/1 running。**#1074 Host shutdown 仍 Draft，未合并/部署**；曾有 [定时 Ecosystem 全套 10 FAIL/82 skipped](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504)，后续提交 check-runs 并非同范围复核。
+- **文档继续归档：** [K0 生产拓扑 §§19–25](PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md)、[权威停机证据验收表 §§1–8](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)（新文件）、[研究资料与来源索引 §§8–14](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)、[PA05 认证总账 §§80–82](PA05-CERTIFICATION-BASELINE-20261015.md) 与本入口继续保持同一 Draft PR #1071。已在 GitHub CI 证明的早期文档 HEAD `30886a61860d28b29fcdb04ed5d6998b03d36d03` **7/7 SUCCESS**；`4fccc321854d1d974e54aae148b0ccae190029d7` 及本次最新 HEAD 需按确切 SHA 独立核验，不借用早先绿灯。
+- **新的具体覆盖事实：** main [PROCESS runtime](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/plugin-runtime-host.ts) 在 stop 时先从 map 删除条目、再等待 child exit；shutdown 只快照剩余 map keys，Host 插件停用事件使用 `void stop`。源码可推导 stop/shutdown/fork 竞态，**未隔离复现，非生产故障事实**。 [PROCESS runtime 现有测试](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/tests/protocol/process-runtime-host.test.mjs) 测执行/隔离/超时恢复但没有专项 stop/shutdown overlap；[#1074 的测试](https://github.com/jiangxng/EVO-App-Platform/blob/caccb1b60358b453ef471eaf6abecf1593e4965c/tests/agent-line/pa05-host-shutdown-error-path.test.mjs) 仅覆盖 Host 清理步骤和拒绝新 HTTP，**不要让两条工程职责重叠**。
+- **控制面结论：** 当前可连接 Railway 项目 5 服务的 `get_tracing` 显示 tracing / auto instrumentation 全部 OFF；项目 Webhook 0、Host TCP proxy 0。有效 draining/overlap、容器 PID 1/npm 的 SIGTERM 传递、所有可执行子进程和外部调用者、独立 stop receipts、真实生产 IdP/DBA/审计责任与 SQL session re-query **仍未验证**。不得为了取证自行开启追踪、读生产 logs/Secrets/SQL 或试运行 Validator。
+- **分支清理边界：** 九条历史 PA05 docs 已合并 PR 的远端过程分支在精确 SHA 祖先关系、未保护和无当前 open PR 引用方面均审计通过，**实际远端删除尚未执行**（GitHub 当前连接器无 delete ref/workflow dispatch）。当前 #1071 文档、#1074 工程分支均保留 Draft/活动状态；不要擅自误删。
+- **下一窗最优先的未完成工作：** 如无权威 Infra/SRE、DBA、IdP 接口证据，保持只读；仅在独立**非生产**权限和工程分支获得批准后实施 PROCESS concurrency 隔离验证。在此之前不得假装具备全局 Worker 停机、临时 CLI 或生产 Operator 认证。K0 / E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`；material WRITE `OFF`；Issues #988/#979/#913 OPEN。
+
+**最新准确分支 HEAD：** 重新查询 GitHub PR #1071，不以上述任何历史 SHA 冒充永久最终状态。
