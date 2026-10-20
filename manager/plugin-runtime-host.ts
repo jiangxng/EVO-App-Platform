@@ -225,6 +225,10 @@ export function createProcessPluginRuntimeHostV010(
   options: ProcessPluginRuntimeHostOptionsV010
 ): ProcessPluginRuntimeHostV010 {
   const runtimes = new Map<string, RuntimeRecord>();
+  // A runtime may be absent from the active map while its child is still
+  // stopping. Keep that exit promise so shutdown cannot claim completion early.
+  const stopping = new Map<string, Promise<void>>();
+  let shuttingDown = false;
   const childEntrypoint = fileURLToPath(
     new URL("./plugin-runtime-process-child.js", import.meta.url)
   );
@@ -325,16 +329,23 @@ export function createProcessPluginRuntimeHostV010(
     record.pending.clear();
     for (const unsubscribe of record.eventSubscriptions.values()) unsubscribe();
     record.eventSubscriptions.clear();
-    runtimes.delete(record.pkg.packageId);
+    if (runtimes.get(record.pkg.packageId) === record) {
+      runtimes.delete(record.pkg.packageId);
+    }
   }
 
   async function start(
     pkg: PackageManifestV010,
     installed: InstalledPackageV010
   ): Promise<PluginRuntimeStatusV010> {
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+    if (stopping.has(pkg.packageId)) {
+      throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+    }
     const existing = runtimes.get(pkg.packageId);
     if (existing) {
       await existing.ready;
+      if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
       return structuredClone(existing.status);
     }
 
@@ -376,6 +387,12 @@ export function createProcessPluginRuntimeHostV010(
       }
     }
 
+    // External integrity verification may have awaited while Host shutdown
+    // began. Recheck admission directly before forking the child.
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+    if (stopping.has(pkg.packageId)) {
+      throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+    }
     emit({
       packageId: pkg.packageId,
       type: "PROCESS_STARTING",
@@ -589,6 +606,7 @@ export function createProcessPluginRuntimeHostV010(
   ): Promise<unknown> {
     if (!request.method.trim()) throw new Error("PLUGIN_PROCESS_METHOD_REQUIRED");
     await start(pkg, installed);
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
     const record = runtimes.get(pkg.packageId);
     if (!record || record.status.status !== "READY") {
       throw new Error(`PLUGIN_PROCESS_NOT_READY: ${pkg.packageId}`);
@@ -641,39 +659,61 @@ export function createProcessPluginRuntimeHostV010(
   }
 
   async function stop(packageId: string): Promise<void> {
+    // Repeated calls must await the same process exit, even after removing
+    // the runtime from the active map.
+    const inFlight = stopping.get(packageId);
+    if (inFlight) return await inFlight;
     const record = runtimes.get(packageId);
     if (!record) return;
     runtimes.delete(packageId);
 
-    const stopped = new Promise<void>(resolvePromise => {
-      if (record.child.exitCode !== null || record.child.signalCode !== null) {
-        resolvePromise();
-        return;
-      }
-      record.child.once("exit", () => resolvePromise());
-    });
+    const stopPromise = (async (): Promise<void> => {
+      const stopped = new Promise<void>(resolvePromise => {
+        if (record.child.exitCode !== null || record.child.signalCode !== null) {
+          resolvePromise();
+          return;
+        }
+        record.child.once("exit", () => resolvePromise());
+      });
 
-    if (record.child.connected) {
-      record.child.send({ type: "shutdown" });
+      // The bounded kill fallback is local process hygiene, not an
+      // independent orchestrator stop receipt.
+      const killTimer = setTimeout(() => {
+        if (record.child.exitCode === null && record.child.signalCode === null) {
+          record.child.kill("SIGKILL");
+        }
+      }, 750);
+      try {
+        if (record.child.connected) {
+          try {
+            record.child.send({ type: "shutdown" });
+          } catch {
+            // An IPC error must not skip the exit wait/kill fallback.
+          }
+        }
+        await stopped;
+        emit({
+          packageId,
+          type: "PROCESS_STOPPED",
+          message: "Plugin process stopped by Host lifecycle."
+        });
+      } finally {
+        clearTimeout(killTimer);
+        cleanupRecord(
+          record,
+          new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`)
+        );
+      }
+    })();
+
+    // Registered synchronously before the first await, so shutdown can
+    // capture a stop already underway during another lifecycle event.
+    stopping.set(packageId, stopPromise);
+    try {
+      await stopPromise;
+    } finally {
+      if (stopping.get(packageId) === stopPromise) stopping.delete(packageId);
     }
-
-    const killTimer = setTimeout(() => {
-      if (record.child.exitCode === null && record.child.signalCode === null) {
-        record.child.kill("SIGKILL");
-      }
-    }, 750);
-
-    await stopped;
-    clearTimeout(killTimer);
-    emit({
-      packageId,
-      type: "PROCESS_STOPPED",
-      message: "Plugin process stopped by Host lifecycle."
-    });
-    cleanupRecord(
-      record,
-      new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`)
-    );
   }
 
   return {
@@ -685,7 +725,12 @@ export function createProcessPluginRuntimeHostV010(
       return value ? structuredClone(value) : undefined;
     },
     async shutdown() {
-      await Promise.all([...runtimes.keys()].map(packageId => stop(packageId)));
+      // Close all future start/invoke admission before building a stop
+      // snapshot. Include children already removed by a previous stop().
+      shuttingDown = true;
+      const inFlight = [...stopping.values()];
+      const active = [...runtimes.keys()].map(packageId => stop(packageId));
+      await Promise.all([...inFlight, ...active]);
     }
   };
 }
