@@ -710,12 +710,29 @@ with sync_playwright() as pw:
         assert label in issue_text,("BEX01_V3_VISUAL_ISSUE_MISSING",label,issue_text)
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
     assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
+    expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
+    expect(visual_form.locator('[data-eidos-form-task-back]')).to_have_text("返回文件")
+    expect(visual_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
     visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_page.evaluate("""async () => {
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     }""")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-submit-desktop.png"),full_page=False)
+    # Reset is actual local form restoration, not a Host command or persisted job change.
+    desktop_reset_choice=visual_form.locator('select[name="map_21"]')
+    desktop_initial=desktop_reset_choice.input_value()
+    assert desktop_initial != "__IGNORE__", desktop_initial
+    desktop_reset_choice.select_option("__IGNORE__")
+    expect(desktop_reset_choice).to_have_value("__IGNORE__")
+    visual_form.locator('[data-eidos-form-task-reset]').click()
+    expect(desktop_reset_choice).to_have_value(desktop_initial)
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    visual_page.screenshot(path=str(OUT/"v3-file-footer-reset-desktop.png"),full_page=False)
+    visual_form.locator('[data-eidos-form-task-back]').click()
+    expect(visual_page.locator('[data-eidos-capability="catalog-browser"]')).to_be_visible(timeout=30000)
+    assert visual_page.evaluate("location.hash")== "#/data-import", "RETURN_TO_FILE_LIST_ROUTE_REQUIRED"
+    print("BEX01_V3_FOOTER_RESET_AND_NAV_DESKTOP_PASS",flush=True)
     visual_context.close()
 
     visual_phone_context=browser.new_context(viewport={"width":390,"height":844},
@@ -741,12 +758,26 @@ with sync_playwright() as pw:
     phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     expect(phone_issues).to_have_count(3)
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
+    expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
+    expect(phone_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
     phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_phone.evaluate("""async () => {
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     }""")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-submit-phone.png"),full_page=False)
+    phone_reset_choice=phone_form.locator('select[name="map_21"]')
+    phone_initial=phone_reset_choice.input_value()
+    assert phone_initial != "__IGNORE__", phone_initial
+    phone_reset_choice.select_option("__IGNORE__")
+    phone_form.locator('[data-eidos-form-task-reset]').click()
+    expect(phone_reset_choice).to_have_value(phone_initial)
+    expect(phone_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    visual_phone.screenshot(path=str(OUT/"v3-file-footer-reset-phone.png"),full_page=False)
+    phone_form.locator('[data-eidos-form-task-back]').click()
+    expect(visual_phone.locator('[data-eidos-capability="catalog-browser"]')).to_be_visible(timeout=30000)
+    assert visual_phone.evaluate("location.hash")== "#/data-import", "PHONE_RETURN_TO_FILE_LIST_ROUTE_REQUIRED"
+    print("BEX01_V3_FOOTER_RESET_AND_NAV_PHONE_PASS",flush=True)
     visual_phone_context.close()
 
     context.close()
