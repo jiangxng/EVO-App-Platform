@@ -1,6 +1,6 @@
 import type {ManagedSecretsProviderV010, SecretReferenceV010} from "../contracts/platform-services.js";
 
-/** Request-bound optional tokens for the existing DLP and EC fetch ports.
+/** Request-bound optional tokens for the existing semantic, DLP and EC fetch ports.
  * Unconfigured is anonymous; unavailable/corrupt Secrets never falls back.
  */
 export function createMemoryCredentialFetchV010(input: {

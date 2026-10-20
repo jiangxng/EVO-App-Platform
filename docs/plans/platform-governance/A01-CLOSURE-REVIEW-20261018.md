@@ -89,3 +89,5 @@ R3 Provider边界第7节已接续LLM明文Key：启动仅describe，原同步选
 R3 Provider边界第8节已接续memory-intake/EC、semantic/DLP及共享identity/grant/relationship/authorization/remote-credential：保留无资源工厂和必要同步安全来源，新增构造/发现、请求期限与共享撤销回归。P12 refresh提前解析可选token已单列待整改，其他Provider和完整消费者资格仍待对账；下一步以第8节为准，R1/R2/R4及固定7项口径保持。
 
 R3 Provider边界第9节已将DLP/EC可选apiToken移至原fetchImpl实际请求边界，保留未配置匿名/读取失败拒绝，增加有效选择、启停/绑定代际、写入计数及Abort保护。semantic提前解密及共享reader同步选择明确保留为下一批；配置自动安装与R1/R2/R4未关闭，固定7项不变。
+
+R3 Provider边界第10节已接续semantic：token复用原请求helper，shared reader逐次调用原同步resolver，缺失/异常不回退旧对象，原直接注入/过滤/排序保持。Host零解密/词法页面与semantic服务合同正向调用分别验收，不新增产品入口或冒称HTTP semantic矩阵。三类P12提前token问题局部收口，配置安装、其他Provider及R1/R2/R4仍待核对，下一批按第10节接续。

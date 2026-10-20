@@ -2060,8 +2060,9 @@ providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
     : "In-memory Host secret store is active for this process.",
   checkedAt: new Date().toISOString()
 });
-// Two optional-token consumers only; bounded epochs/counts contain no credentials.
+// Three optional-token consumers only; bounded epochs/counts contain no credentials.
 const memoryCredentialOwners = new Map<string, string>([
+  [REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID],
   [REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID],
   [EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID]
 ]);
@@ -2071,6 +2072,9 @@ function invalidateMemoryCredential(providerId: string): void {
   memoryCredentialEpochs.set(providerId, (memoryCredentialEpochs.get(providerId) ?? 0) + 1);
 }
 function invalidateMemoryBinding(capability: string): void {
+  if (capability === CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    invalidateMemoryCredential(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
+  }
   if (capability === CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
     invalidateMemoryCredential(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
   }
@@ -3691,20 +3695,6 @@ function installationSecretReference(
   };
 }
 
-async function optionalInstallationSecret(
-  namespace: string,
-  key: string
-): Promise<string | undefined> {
-  const secrets = resolveManagedSecretsProvider();
-  if (!secrets) throw new Error("SECRETS_PROVIDER_REQUIRED");
-  const reference = installationSecretReference(namespace, key);
-  const status = await secrets.describe(reference);
-  if (!status.configured) return undefined;
-  const value = (await secrets.resolve(reference)).trim();
-  if (!value) throw new Error(`SECRET_VALUE_EMPTY: ${namespace}/${key}`);
-  return value;
-}
-
 function openAiApiKeyReference(): SecretReferenceV010 {
   return {
     contractVersion: "0.1.0",
@@ -3861,21 +3851,21 @@ async function refreshGenericOidcProviderRuntime(): Promise<void> {
 
 await refreshGenericOidcProviderRuntime();
 
-async function refreshP12MemoryProviderRuntimes(): Promise<void> {
-  let semanticRetriever: ContextMemorySemanticRetrieverV010 | undefined;
-
+function refreshP12MemoryProviderRuntimes(): void {
   if (remoteSemanticEndpoint) {
     try {
-      const bearerToken = await optionalInstallationSecret(
-        REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID,
-        "apiToken"
-      );
       const options = {
         endpoint: remoteSemanticEndpoint,
         ...(Number.isFinite(remoteSemanticTimeoutMs)
           ? { timeoutMs: remoteSemanticTimeoutMs }
           : {}),
-        ...(bearerToken ? { bearerToken } : {})
+        fetchImpl: createMemoryCredentialFetchV010({
+          reference: installationSecretReference(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, "apiToken"),
+          resolveSecrets: resolveManagedSecretsProvider,
+          isCurrent: () => (memorySettingsWrites.get(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID) ?? 0) === 0
+            && resolveContextMemorySemanticRetriever()?.providerId === REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+          epoch: () => memoryCredentialEpochs.get(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID) ?? 0
+        })
       };
       providerRuntimeRegistry.replace<ContextMemorySemanticRetrieverV010>(
         REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
@@ -3893,7 +3883,6 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
           checkedAt: new Date().toISOString()
         }
       );
-      semanticRetriever = resolveContextMemorySemanticRetriever();
     } catch (error) {
       providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
       console.error("Remote Context Memory Semantic Provider failed closed.", error);
@@ -3912,7 +3901,7 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
             .filter(item => item.state === "ACTIVE");
         }
       },
-      ...(semanticRetriever ? { semanticRetriever } : {})
+      resolveSemanticRetriever: resolveContextMemorySemanticRetriever
     })
   );
 
@@ -4017,7 +4006,7 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
   refreshContextMemorySchedule();
 }
 
-await refreshP12MemoryProviderRuntimes();
+refreshP12MemoryProviderRuntimes();
 
 providerRuntimeRegistry.replace<EnterpriseOperatingGraphAnalysisProviderV020>(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
@@ -9764,11 +9753,8 @@ const server = createServer(async (request, response) => {
           if (namespace === GENERIC_OIDC_PACKAGE_ID) {
             await refreshGenericOidcProviderRuntime();
           }
-          // DLP/EC tokens are resolved per request; no runtime refresh or
-          // unrelated semantic Secret decryption is needed when they change.
-          if (namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID) {
-            await refreshP12MemoryProviderRuntimes();
-          }
+          // All three memory tokens resolve per request; fixed endpoint
+          // runtimes and the shared reader do not need rebuilding on save.
 
           const secretStatus = await Promise.all(
             (pkg.secrets ?? []).map(async declaration => {

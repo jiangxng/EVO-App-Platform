@@ -270,3 +270,60 @@ DLP的`createContextMemoryScheduledOperationsV010.runDlp`每次先调用`resolve
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
 
+
+
+## 10. 2026-10-20增量：semantic凭据及共享reader的当前选择
+
+基线main `6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1`（#1078），已确认包含原交接#1020；过程分支 `fix/governance-semantic-request-credentials-20261020`。#1078的44项CI、216行为/6守卫及312模块/246边属于[历史记录](https://github.com/jiangxng/EVO-App-Platform/pull/1078#issuecomment-6290786188)，不是本批测量。只接续原semantic可选凭据及同步共享消费者，不新增Provider、Agent功能、UI或通用加载框架，不部署。
+
+### 原消费者与选择缺口
+
+原P12 refresh启动及semantic设置保存时调用optionalInstallationSecret并resolve apiToken，把明文捕获到原remote factory；同时一次性resolve semantic runtime，传给共享Host Context Memory reader。后来绑定变化或启停不能更新这个捕获值；若启动时停用，reader会缺失该选项，单纯启用也不能恢复语义读取。模块工厂零网络不能掩盖这两层实际接线问题。
+
+本批已查Host直接reader消费者：Memory Search页面明确请求LEXICAL；Agent的search/recall/audit/read适配传query/IDs等，接口不接受strategy；record/promote动作的exactMemory读取也未指定strategy。**这些现有入口不是semantic HTTP产品入口**。不为验证添加按钮、Agent字段、任意方法执行API或绕过原授权。原SEMANTIC/HYBRID服务合同仍由直接reader消费者/既有合同测试使用，本批不能据代码索引的空且incomplete结果宣称仓库没有其他调用者。
+
+### 本批实现与保留
+
+| 层/场景 | 实现、归属及限制 |
+|---|---|
+| semantic登记/配置 | 复用第9节既有memory credential fetch和原remote factory的fetchImpl，按实际请求解析对应apiToken；owner/epoch映射从两类扩为三类，加入semantic capability及Secrets绑定失效。没有新helper/Provider/连接/timer/缓存 |
+| shared reader | 原factory增加可选同步resolveSemanticRetriever；LEXICAL及无效语义输入不解析semantic。合法语义读取才按当前有效贡献/绑定/健康resolver选择；getter未提供时保留原semanticRetriever直接注入。**提供getter后，其undefined/异常是权威拒绝，不能回退捕获的旧对象或词法结果** |
+| 过滤与算法 | 原context、governance、supersession/canonicalization候选过滤、score校验、排序、HYBRID合成、分页和结果合同保持；先产生已授权候选再送原semantic服务，不改变记忆/EC数据语义或持久化 |
+| Host接线 | reader传原resolveContextMemorySemanticRetriever函数，不捕获一次性结果；Host不重建reader来响应启停/绑定。删除已无消费者的提前Secret helper；P12 refresh改为纯同步登记，设置保存不再刷新任何P12 runtime。端点/timeout仍来自启动配置，不新增可改设置 |
+| 凭据/竞态 | 与DLP/EC同一helper：未配置才匿名，Secrets缺失/空值/读取失败不匿名降级；实际请求前及await后复核当前resolver、owner epoch、Abort与同一Secrets runtime。原设置写入前失效/计数/finally释放及Secrets生命周期变化保护覆盖semantic；共享安全服务不随UI启停销毁 |
+| 未使用/恢复 | 构造、配置probe、词法页面、Secret保存和启用未使用不解密；同一reader在当前Provider重新可用后可再次选择。卸载不删密文；共享reader与Secrets不绑定可选semantic/UI生命周期 |
+| 在途及范围 | 已发出的search响应仍遵循原在途READ合同；本批没有响应后跨Host撤销重验、业务WRITE冻结、超时强制终止外部Secrets或JS明文擦除承诺。配置型HEALTHY仍只表示URL协议，不证明Key/远端可用 |
+
+这是原有选择/凭据边界的修正，不扩展Human或Agent的语义检索产品能力。三类原P12的提前token解析局部问题在本批实现收口，但R3所有Provider/消费者资格尚未关闭；配置存在时原bootstrap自动安装行为也未改变，待按原启动策略核对保留理由/迁移条件，不能仅凭URL认定全生命周期合格。
+
+### 验证分级
+
+新增4项组件/合同集成：构造/LEXICAL/非法输入不resolve semantic；同一reader逐次选择、过滤后传候选；缺失/异常不回退旧注入，恢复可用且旧直接注入保持；原registry/resolver/binding、remote semantic runtime、reader和真实加密file store组合覆盖并发首次请求、停用、显式绑定不可用与解除、轮换新token、读取失败拒绝/恢复、删除匿名。替代选择只用测试对象，不新增第二Provider试点。复用第9节9项Promise屏障测试验证等待期间epoch往返、Abort及Secrets替换，不重复造竞态框架。
+
+另新增真实Host三次启动联合回归：以test-only crypto.createDecipheriv实际计数、已存合成token及独立临时Memory验证启动/配置probe/保存/坏put修复/绑定/启停/卸载重装/停用和有效重启零解密，并保持原词法Memory Search页面结果。测试把意外fetch显式计数/拒绝，既有TCP block保持；不替换项目源码、不加生产测试开关、不访问真实凭据或业务数据。
+
+**Host联合用例不执行semantic业务请求**：现有已核对HTTP入口走LEXICAL，正向semantic使用证据来自上述服务合同集成。Host零解密、合同集成及helper屏障各自证明有限范围，不拼成“真实HTTP semantic在途启停/绑定完整矩阵”；后者留R4按实际产品消费者验收，不为凑证据扩展Agent。
+
+本地Node24.19部分固定SHA源码及临时类型擦除，新4项+原9凭据/10资源合计23/23通过；新Host/fixture、擦除server语法通过。非正式全仓npm ci/build，未本地真实Host/browser/数据库。正式Node22/build、新Host结果、原P1.2/P1.3与DLP/EC回归及本轮四组合以本PR最终准确head CI为准，永久结果链接记PR收口。静态基线/冷禁入不放宽；本批无新增生产模块，不推断耗时或生产收益。
+
+读取复用前批完整启动/交付/装载/Secrets/AI-native/Help/Eidos权威，并核对未变基线。新完整读取context-memory runtime及新测试；semantic manifest/runtime复用并核对，Host局部：reader两处登记、resolver、P12 refresh、bootstrap、生命周期/绑定/设置及直接调用；Agent host-tool-catalog局部：readContextMemory接口和search/recall/audit/read适配；memory-governance-page局部：search函数/路由；context-memory-actions全文。旧semantic合同测试复用其原直接注入/过滤断言，不声称通读全Agent或所有插件。来源为本仓源码，无新增外网研究。
+
+证据：[semantic-request-credentials-20261020.json](evidence/semantic-request-credentials-20261020.json)；[兼容评审](../../ui-design-reviews/semantic-request-credentials-20261020.md)。Help影响：原Secret显式保存/删除、Provider拒绝与词法页面说明保持有效，无新增用户步骤或字段；当前选择及配置probe限制在本节说明，不宣称新增Human semantic能力。
+
+### 接续与停止条件
+
+本批最终CI合格后合并，停止追加P12 token拆分。下一批回到R3尚未逐类完成的EVO observatory与session/OIDC等实际构造/调用副作用，并核对配置驱动安装的权威/退出条件；复用已验证纯工厂、共享安全保留和调度结论，不重做新Provider试点或认证产品。R1冻结SOP身份/资格、R2配置SQL/原owner责任、R4跨层最终矩阵继续开放；A03/A05原实施缺口不变。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；P12 token请求边界、reader当前选择 | R3其余类别/配置安装；R1/R2/R4保留 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
