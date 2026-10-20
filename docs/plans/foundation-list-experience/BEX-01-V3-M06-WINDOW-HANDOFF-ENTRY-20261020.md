@@ -85,3 +85,17 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 - 下一步：创建同时包含银行同名字段歧义、主体类型多行缺失和系统编码未决的隔离映射状态；核对三类问题卡片顺序与跳转。随后审查底部“返回文件/恢复初始选择/预检查并继续”与现有 Host/Eidos 动作契约，避免添加无行为按钮。
 - 仍需处理步骤条两步/三步视觉差异；保持预检查与明确提交的安全门禁。当前 main 最近核验 `eaa5e813b1e86a6460d988c76eb2076512c35127`，如前进须重新 compare。未部署、不合并、不修改 `project.status.json`。
 - M01–M03 完成，M04/M05/M06 OPEN，总体 3/6；客户真实文件/Job/银行字段身份/三条主体身份仍未取得，Human 视觉签收未完成。
+
+
+## 2026-10-20 续跑 #11：最新精确 HEAD、真实 Host 截图与当前差距
+
+> 本节为追加记录，不回写上文历史快照。动态状态以 GitHub 当前分支/Actions 为准。
+
+- Platform main 最新核验：`eaa5e813b1e86a6460d988c76eb2076512c35127`。实施 PR [#1060](https://github.com/jiangxng/EVO-App-Platform/pull/1060) 当前 HEAD `dfc1cea0c6b74e21746769c04bd72047204572ca`，Draft / Open；相对最新 main compare 为 ahead 29 / behind 0。未合并、未部署。
+- 精确 HEAD 的 [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716071)、[Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067)、[In-Context Import Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716088)、[Human UI Design Review Gate](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716228)、[Lightweight Host Architecture](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716062) 均 completed / success。
+- 已下载并实际检查 Real Host Chromium artifact [12244670622](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067/artifacts/12244670622)。报告明确为隔离 Host、54 条已提交供应商记录、Headless Chromium 141、5/5 场景通过、无浏览器错误；它不证明 iOS Safari、物理 Android Chrome 或弱网/实体手机键盘。
+- 截图清单中实际存在 1280px 桌面审核页 `v3-fidelity-workbench-map-1280.png` 与 390px 手机首屏 `v3-fidelity-first-viewport-batch-390.png`，以及行级问题区桌面/手机截图、完整映射滚动截图和 172×22 合成 XLSX 的桌面/手机截图。当前两张主要截图已从 artifact 打开检查。
+- 桌面截图显示正式 Host 已有“核对导入数据”标题、文件摘要、四项指标、四列映射表；手机截图显示标题、文件摘要、响应式指标卡片与步骤导航，无横向溢出。但这只能证明布局和功能旅程，不能判定 #909 视觉 100% 还原。
+- 已确认仍需逐项人工比对的差距：原型采用文件/审核阶段的明确组织方式；当前 Host 顶部以三项步骤状态表达；原型底部 `.actionbar` 的返回、恢复初始选择、预检/继续与明确提交需要与当前 Host 的实际动作逐项核对，不能新增没有 Host 行为的装饰按钮；必须同时查看包含银行同名字段、主体类型缺失、系统编码未决的组合异常状态，而非只看普通映射首屏。
+- 最新浏览器证据可用但尚未 Human 签收；截图均为隔离合成数据。客户原始 Excel、授权 Import Job、银行字段真实 ID/用途和三条真实主体身份仍缺失。保持 M04/M05 OPEN，M06 OPEN，总体 3/6。
+- 下一步：对照 #909 的原型源和最新实际截图建立逐项差异表；先修正有明确证据的正式页面差异，再运行新的精确 HEAD CI/Chromium 并重新取证。不得以当前 5/5 自动化 PASS 替代视觉签收。
