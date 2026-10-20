@@ -62,7 +62,15 @@ async function start(directory, legacy = true) {
       }};
       child.on('message', receive); child.send({kind: 'llm-credential-counts', id});
     });
-    return {call, settings, lifecycle, probe, counts, adminToken: profile.bootstrapAdminToken, async stop() {
+    const decryptions = () => new Promise((resolve, reject) => {
+      const id = crypto.randomUUID();
+      const timeout = setTimeout(() => {child.off('message', receive); reject(Error('DECRYPTION_COUNT_TIMEOUT'));}, 5000);
+      const receive = message => {if (message.kind === 'llm-credential-decryptions' && message.id === id) {
+        clearTimeout(timeout); child.off('message', receive); resolve(message.decryptions);
+      }};
+      child.on('message', receive); child.send({kind: 'llm-credential-decryptions', id});
+    });
+    return {call, settings, lifecycle, probe, counts, decryptions, adminToken: profile.bootstrapAdminToken, async stop() {
       if (child.exitCode === null && child.signalCode === null) {
         child.kill('SIGTERM'); const kill = setTimeout(() => child.kill('SIGKILL'), 7000);
         assert.equal(await exit, 0); clearTimeout(kill);
@@ -125,5 +133,55 @@ test('legacy keys stay ephemeral across lifecycle; only explicit secret settings
     const audit = fs.readFileSync(path.join(dir, 'secret-audit.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
     assert.equal(audit.filter(x => x.action === 'PUT_SECRET' && x.outcome === 'ALLOWED').length, 2);
     assert.equal(audit.filter(x => x.action === 'REMOVE_SECRET' && x.outcome === 'ALLOWED').length, 2);
+  } finally {await host?.stop(); fs.rmSync(dir, {recursive: true, force: true});}
+});
+
+test('persisted LLM keys are not decrypted on discovery, cold startup or lifecycle; explicit probes bind on use', {timeout: 90000}, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'llm-request-credential-')); let host;
+  try {
+    host = await start(dir, false);
+    await host.lifecycle('install', providers[0].packageId);
+    // Force the real encrypted-store persist to fail, then repair the test
+    // directory and explicitly retry. Do not claim the old store rolls back its
+    // in-memory mutation on failure; verify the new request gate is released.
+    const temporary = path.join(dir, 'secrets.enc.json.tmp');
+    fs.mkdirSync(temporary);
+    const failed = await host.settings(providers[0].packageId, {'secret:apiKey': 'synthetic-request-failed', adminToken: host.adminToken});
+    assert.equal(failed.status, 422); assert.equal(await host.decryptions(), 0);
+    assert.deepEqual(records(dir), {});
+    fs.rmSync(temporary, {recursive: true});
+    for (const provider of providers) {
+      if (provider !== providers[0]) await host.lifecycle('install', provider.packageId);
+      const result = await host.settings(provider.packageId, {'secret:apiKey': 'synthetic-request-' + provider.name, adminToken: host.adminToken});
+      assert.equal(result.status, 200); assert.equal(result.body.ok, true);
+    }
+    assert.equal(await host.decryptions(), 0, 'settings refresh must only describe metadata');
+    for (const provider of providers) await host.lifecycle('uninstall', provider.packageId);
+    await host.stop(); host = await start(dir, false);
+    assert.equal(await host.decryptions(), 0, 'stored keys for uninstalled Providers must stay encrypted');
+    for (const provider of providers) {
+      assert.equal((await host.probe(provider)).body.error.code, 'PROVIDER_NOT_ACTIVE');
+      await host.lifecycle('install', provider.packageId);
+      await host.lifecycle('disable', provider.packageId);
+    }
+    assert.equal(await host.decryptions(), 0);
+    await host.stop(); host = await start(dir, false);
+    for (const provider of providers) {
+      assert.equal((await host.probe(provider)).body.error.code, 'PROVIDER_NOT_ACTIVE');
+      await host.lifecycle('enable', provider.packageId);
+    }
+    assert.equal(await host.decryptions(), 0, 'enabled but unused remains encrypted');
+    const results = await Promise.all(providers.map(provider => host.probe(provider)));
+    for (const result of results) assert.equal(result.body.health.state, 'HEALTHY');
+    assert.equal(await host.decryptions(), 2, 'one decryption per actual request, no global plaintext cache');
+    for (const provider of providers) {
+      await host.settings(provider.packageId, {model: provider.model});
+      await host.lifecycle('disable', provider.packageId); await host.lifecycle('enable', provider.packageId);
+    }
+    assert.equal(await host.decryptions(), 2);
+    await host.stop(); host = await start(dir, false);
+    assert.equal(await host.decryptions(), 0, 'active cold restart must not decrypt');
+    for (const provider of providers) assert.equal((await host.probe(provider)).body.health.state, 'HEALTHY');
+    assert.equal(await host.decryptions(), 2);
   } finally {await host?.stop(); fs.rmSync(dir, {recursive: true, force: true});}
 });

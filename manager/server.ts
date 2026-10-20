@@ -1,3 +1,4 @@
+import { createLlmCredentialFetchV010 } from "./llm-credential-fetch.js";
 import { createOnUseEogServicesV010 } from "./eog-service-runtime.js";
 import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
@@ -2244,12 +2245,20 @@ const bottleneckRuntime = createLazyProviderRuntimeV010<EnterpriseOperatingGraph
   }
 });
 
+// Bounded metadata only: no credentials or pending operations are stored here.
+const llmCredentialEpochs = new Map<string, number>();
+const llmConfigurationEpochs = new Map<string, number>();
+const llmSettingsWrites = new Map<string, number>();
+
 const manager = createAppManagerService(
   catalog,
   store,
   () => new Date(),
   new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),
   event => {
+    const llmProviderId = event.packageId === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
+      : event.packageId === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
+    if (llmProviderId) llmCredentialEpochs.set(llmProviderId, (llmCredentialEpochs.get(llmProviderId) ?? 0) + 1);
     refreshContextMemorySchedule();
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
@@ -3677,28 +3686,18 @@ function openAiApiKeyReference(): SecretReferenceV010 {
 }
 
 async function refreshOpenAiProviderRuntime(): Promise<void> {
-  // Environment credentials are a read-only compatibility fallback. Persist
-  // only through the existing authorized secret settings path, never refresh.
   const reference = openAiApiKeyReference();
-  const legacyApiKey = process.env.OPENAI_API_KEY?.trim();
-  let apiKey: string | undefined;
-
+  const revision = (llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) ?? 0) + 1;
+  llmConfigurationEpochs.set(OPENAI_LLM_PROVIDER_ID, revision);
+  let configured = false;
   try {
     const secrets = resolveManagedSecretsProvider();
-    if (secrets) {
-      const status = await secrets.describe(reference);
-      if (status.configured) {
-        apiKey = (await secrets.resolve(reference)).trim();
-      }
-    }
+    configured = secrets ? (await secrets.describe(reference)).configured : false;
   } catch (error) {
-    console.error("OpenAI Secret resolution failed closed.", error);
+    console.error("OpenAI Secret metadata resolution failed closed.", error);
   }
-
-  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
-  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
-
-  if (!apiKey) {
+  if (llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) !== revision) return;
+  if (!configured && !process.env.OPENAI_API_KEY?.trim()) {
     providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
     return;
   }
@@ -3712,9 +3711,20 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
     : process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
 
   const options = {
-    apiKey,
+    // Validates factory configuration without capturing a plaintext credential.
+    apiKey: "configured-at-request",
     model,
-    baseUrl
+    baseUrl,
+    fetchImpl: createLlmCredentialFetchV010({
+      reference,
+      resolveSecrets: resolveManagedSecretsProvider,
+      legacyKey: () => process.env.OPENAI_API_KEY,
+      isCurrent: () => llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) === revision
+        && (llmSettingsWrites.get(OPENAI_LLM_PROVIDER_ID) ?? 0) === 0
+        && manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === OPENAI_LLM_PROVIDER_ID),
+      activationEpoch: () => llmCredentialEpochs.get(OPENAI_LLM_PROVIDER_ID) ?? 0,
+      onSecretError: error => console.error("OpenAI Secret resolution failed closed.", error)
+    })
   };
   providerRuntimeRegistry.replace<LlmInferenceProvider>(
     OPENAI_LLM_PROVIDER_ID,
@@ -3744,27 +3754,18 @@ function deepSeekApiKeyReference(): SecretReferenceV010 {
 }
 
 async function refreshDeepSeekProviderRuntime(): Promise<void> {
-  // Refresh must not import an environment key or recreate a removed secret.
   const reference = deepSeekApiKeyReference();
-  const legacyApiKey = process.env.DEEPSEEK_API_KEY?.trim();
-  let apiKey: string | undefined;
-
+  const revision = (llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0) + 1;
+  llmConfigurationEpochs.set(DEEPSEEK_LLM_PROVIDER_ID, revision);
+  let configured = false;
   try {
     const secrets = resolveManagedSecretsProvider();
-    if (secrets) {
-      const status = await secrets.describe(reference);
-      if (status.configured) {
-        apiKey = (await secrets.resolve(reference)).trim();
-      }
-    }
+    configured = secrets ? (await secrets.describe(reference)).configured : false;
   } catch (error) {
-    console.error("DeepSeek Secret resolution failed closed.", error);
+    console.error("DeepSeek Secret metadata resolution failed closed.", error);
   }
-
-  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
-  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
-
-  if (!apiKey) {
+  if (llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) !== revision) return;
+  if (!configured && !process.env.DEEPSEEK_API_KEY?.trim()) {
     providerRuntimeRegistry.remove(DEEPSEEK_LLM_PROVIDER_ID);
     return;
   }
@@ -3778,9 +3779,20 @@ async function refreshDeepSeekProviderRuntime(): Promise<void> {
     : process.env.DEEPSEEK_BASE_URL?.trim() || "https://api.deepseek.com";
 
   const options = {
-    apiKey,
+    // Validates factory configuration without capturing a plaintext credential.
+    apiKey: "configured-at-request",
     model,
-    baseUrl
+    baseUrl,
+    fetchImpl: createLlmCredentialFetchV010({
+      reference,
+      resolveSecrets: resolveManagedSecretsProvider,
+      legacyKey: () => process.env.DEEPSEEK_API_KEY,
+      isCurrent: () => llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) === revision
+        && (llmSettingsWrites.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0) === 0
+        && manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === DEEPSEEK_LLM_PROVIDER_ID),
+      activationEpoch: () => llmCredentialEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0,
+      onSecretError: error => console.error("DeepSeek Secret resolution failed closed.", error)
+    })
   };
   providerRuntimeRegistry.replace<LlmInferenceProvider>(
     DEEPSEEK_LLM_PROVIDER_ID,
@@ -9646,48 +9658,65 @@ const server = createServer(async (request, response) => {
             values
           );
 
-          if (secretsProvider) {
-            for (const change of secretChanges) {
-              try {
-                if (change.operation === "PUT") {
-                  await secretsProvider.put(change.reference, change.value!);
-                } else {
-                  await secretsProvider.remove(change.reference);
+          const llmProviderId = namespace === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
+            : namespace === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
+          if (llmProviderId) {
+            llmConfigurationEpochs.set(llmProviderId, (llmConfigurationEpochs.get(llmProviderId) ?? 0) + 1);
+            llmSettingsWrites.set(llmProviderId, (llmSettingsWrites.get(llmProviderId) ?? 0) + 1);
+          }
+          try {
+            if (secretsProvider) {
+              for (const change of secretChanges) {
+                try {
+                  if (change.operation === "PUT") {
+                    await secretsProvider.put(change.reference, change.value!);
+                  } else {
+                    await secretsProvider.remove(change.reference);
+                  }
+                  secretAudit.append(secretAuditEventV010({
+                    action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                    outcome: "ALLOWED",
+                    actorId: change.authorization?.actorId ?? "unknown",
+                    ...(change.authorization?.policyProviderId
+                      ? { policyProviderId: change.authorization.policyProviderId }
+                      : {}),
+                    correlationId: action.sourceInteractionId,
+                    reference: change.reference,
+                    reason: change.authorization?.reason ?? "AUTHORIZED_SECRET_CHANGE"
+                  }));
+                } catch (error) {
+                  secretAudit.append(secretAuditEventV010({
+                    action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                    outcome: "FAILED",
+                    actorId: change.authorization?.actorId ?? "unknown",
+                    ...(change.authorization?.policyProviderId
+                      ? { policyProviderId: change.authorization.policyProviderId }
+                      : {}),
+                    correlationId: action.sourceInteractionId,
+                    reference: change.reference,
+                    reason: error instanceof Error ? error.message : String(error)
+                  }));
+                  throw error;
                 }
-                secretAudit.append(secretAuditEventV010({
-                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
-                  outcome: "ALLOWED",
-                  actorId: change.authorization?.actorId ?? "unknown",
-                  ...(change.authorization?.policyProviderId
-                    ? { policyProviderId: change.authorization.policyProviderId }
-                    : {}),
-                  correlationId: action.sourceInteractionId,
-                  reference: change.reference,
-                  reason: change.authorization?.reason ?? "AUTHORIZED_SECRET_CHANGE"
-                }));
-              } catch (error) {
-                secretAudit.append(secretAuditEventV010({
-                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
-                  outcome: "FAILED",
-                  actorId: change.authorization?.actorId ?? "unknown",
-                  ...(change.authorization?.policyProviderId
-                    ? { policyProviderId: change.authorization.policyProviderId }
-                    : {}),
-                  correlationId: action.sourceInteractionId,
-                  reference: change.reference,
-                  reason: error instanceof Error ? error.message : String(error)
-                }));
-                throw error;
+              }
+            }
+          } finally {
+            try {
+              if (namespace === OPENAI_LLM_PACKAGE_ID) {
+                await refreshOpenAiProviderRuntime();
+              }
+              if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
+                await refreshDeepSeekProviderRuntime();
+              }
+            } finally {
+              if (llmProviderId) {
+                const remaining = (llmSettingsWrites.get(llmProviderId) ?? 1) - 1;
+                if (remaining) llmSettingsWrites.set(llmProviderId, remaining);
+                else llmSettingsWrites.delete(llmProviderId);
               }
             }
           }
 
-          if (namespace === OPENAI_LLM_PACKAGE_ID) {
-            await refreshOpenAiProviderRuntime();
-          }
-          if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
-            await refreshDeepSeekProviderRuntime();
-          }
           if (namespace === GENERIC_OIDC_PACKAGE_ID) {
             await refreshGenericOidcProviderRuntime();
           }
