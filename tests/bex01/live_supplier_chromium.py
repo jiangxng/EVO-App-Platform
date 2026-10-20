@@ -137,7 +137,7 @@ with sync_playwright() as p:
    expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1)
    assert "search=Supplier" in page.url,page.url
    page.screenshot(path=str(OUT/"desktop-supplier-filter.png"),full_page=True)
-   return {"table":True,"pages":[25,25,3],"backRestoresPage":True,"serverSearch":True}
+   return {"table":True,"pages":[25,25,4],"backRestoresPage":True,"serverSearch":True}
   finally: context.close()
  run("desktop-live-Host-search-page-and-browser-back",desktop)
  def failed_precheck_navigation():
@@ -393,7 +393,7 @@ with sync_playwright() as p:
  browser.close()
 report={"checkedAtUtc":datetime.now(timezone.utc).isoformat(),
  "browser":"Headless Chromium "+version,
- "actualHost":True,"data":"disposable isolated fixture, 53 committed supplier rows",
+ "actualHost":True,"data":"disposable isolated fixture, 54 committed supplier rows",
  "device":"desktop plus touch-enabled 390px Chromium mobile emulation",
  "notProven":["iOS Safari","physical Android Chrome","real weak-network/mobile keyboard"],
  "passed":sum(i["result"]=="PASS" for i in checks),
