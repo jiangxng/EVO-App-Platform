@@ -261,3 +261,12 @@ PA-01B2接入前需注意：旧基线Eidos源文件与Platform vendor存在既�
 - Eidos组件正式owner仍为 [eidos#142](https://github.com/jiangxng/eidos/pull/142)，目前独立Draft/未合并。不得把Platform的vendor窄适配误称为Eidos owner正式合入。
 - **当前尚未完成**：PA-01和变动较大的main重对账、up-to-date CI/required status checks、主线合并、Eidos owner审核、产线部署、真实LLM质量、PA-02持久状态集成/恢复。PA-01分支最初落后main数百提交；不能只凭旧head测试自动合入。
 - **执行规则**：从现在起不新建新的Agent开发分支，单阶段仅保留一个活跃集成PR；测试/文档随本阶段收口。当前先完成PA-01对当前main的集成门禁，再考虑下一阶段。TR/EVO Ledger Runtime/2D和全局 `project.status.json` 不动。
+
+
+## 2026-10-20 — PA05 / E01J4K latest post-merge evidence
+
+- Latest checked main after [PR #1065](https://github.com/jiangxng/EVO-App-Platform/pull/1065): `36a3ee4ec2385c8e3657d509f382649144f4857d`.
+- PR #1065 is merged. Its seven exact-HEAD PR checks were all SUCCESS; applicable post-merge main checks on the merge SHA are [continuity](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39368628659) and [lightweight-host](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39368628796), **2/2 SUCCESS**.
+- Railway deployment [`6e13ca5a-8096-4be4-8663-f22df8c958f1`](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601/service/a8622238-480e-4da3-be6f-60fd0f3e18db?id=6e13ca5a-8096-4be4-8663-f22df8c958f1&environmentId=98b8b20c-d791-4073-a11d-bb1f7f0a1cb3) matches exact `main@36a3ee4...`, SUCCESS / Online, 1 running / 0 crashed, 0 warnings / 0 criticals, no pending work.
+- Current K0 source/config review remains bounded: the connected Railway production project exposes five services, no staged configuration changes, and no separately configured cron service. The Host's current variable-name inventory does not expose the PA05 J4D/J4J opt-in flags or dedicated J4D database/schema/Host ID; no variable values were read. The service configuration API does not expose an effective deployment draining interval, so that setting remains UNVERIFIED.
+- **No K0 signoff:** complete Worker/child inventory, external callers, effective drain budget, organization-approved Human IdP, DBA/secret-provider lifecycle and audit signers remain unresolved. Full E01J4, PA05-05 E01–E05 and W06 remain NOT_SIGNED; production material WRITE remains OFF. No production service was stopped/restarted/scaled, no Validator was run, no secret values were read, and no production identity/DBA configuration was changed.

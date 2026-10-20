@@ -105,3 +105,15 @@ Do not implement a generic distributed lock or enable production PA05 flags yet.
 - No automatic stale-lock cleanup, production stop, service restart/scale/redeploy, secret retrieval, or identity/DBA configuration change.
 - `project.status.json` and generated `docs/roadmap/HANDOFF-LATEST.md` were not modified. The overall project continuity snapshot still tracks the separate TR-01 mainline; this PA05 record does not attempt to overwrite that global snapshot.
 - This K0 note is additive evidence. The accepted J4K decision record remains intact; its design baseline is not being rewritten.
+
+
+## 9. 2026-10-20 post-merge revalidation
+
+This section supersedes only the earlier main/deployment snapshot in §1; it does not change the K0 acceptance boundary or claim a complete inventory.
+
+- PR [#1065](https://github.com/jiangxng/EVO-App-Platform/pull/1065) merged as `36a3ee4ec2385c8e3657d509f382649144f4857d`. The latest main pointer at verification was the same SHA.
+- The seven exact-HEAD checks for #1065 were all SUCCESS. Applicable post-merge checks were [continuity #39368628659](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39368628659) and [lightweight-host #39368628796](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39368628796), 2/2 SUCCESS.
+- Railway deployment [`6e13ca5a-8096-4be4-8663-f22df8c958f1`](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601/service/a8622238-480e-4da3-be6f-60fd0f3e18db?id=6e13ca5a-8096-4be4-8663-f22df8c958f1&environmentId=98b8b20c-d791-4073-a11d-bb1f7f0a1cb3) corresponds to exact `main@36a3ee4...` and reports SUCCESS / Online, 1 running / 0 crashed, no warnings/criticals/pending work.
+- Read-only Railway configuration recheck found no staged changes, Host configured for one SFO replica, and no effective draining interval exposed in the service config response. The current Host variable-name list omits the PA05 E01D/J4D/J4J opt-in flags and dedicated J4D DB URL/schema/Host ID. No variable values were read.
+- **Still unresolved:** whether infrastructure outside the connected Railway project exists; live PROCESS child inventory and per-child exit receipts; authority to freeze/restart/scale every instance; effective Railway drain interval; EVO Runtime database grants and Validator route scope; approved production Human IdP issuer/audience/revocation SLA; least-privilege DBA and secrets broker/rotation; durable audit sink and named signers.
+- No production stop/restart/scale/redeploy, Validator run, secret read, database query, stale-lock cleanup, or identity/DBA configuration change occurred. K0 remains NOT_SIGNED and production material WRITE remains OFF.

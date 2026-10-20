@@ -136,5 +136,15 @@
     "tests/protocol/llm-provider-resource-boundary.test.mjs": "45c92cd6585ee88563a32359ea82b5d87e9d669800fba425bbe9704afbeca4ba",
     ".github/workflows/lightweight-host.yml": "3debbf7e021ed0f5ff52dc49256fed9a58c5c37b6f144442afdea8ae04909f67",
     "tools/lightweight-host-baseline.json": "c446aa8b6797f95efc18eb6da3df680c09d8d12de50e81729bb4f1310e220c09"
+  },
+  "mainSynchronization": {
+    "sha": "f1bcfd80260394260d5f59c0589d4b692c8015de",
+    "changedPaths": [
+      "docs/agent-line/HANDOFF.md",
+      "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md",
+      "docs/agent-line/PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md"
+    ],
+    "productionSourcesChanged": false,
+    "overlap": false
   }
 }
