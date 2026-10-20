@@ -67,12 +67,41 @@
       "apps/eog-2d-designer/current-2d-editor-agent-tools.ts -> apps/eog-2d-designer/definition-projection-editor.ts [static]",
       "apps/eog-2d-designer/definition-projection-editor.ts -> apps/eog-2d/package.ts [static]"
     ],
-    "statusAtCommit": "Allowances edited; official inspect/ratchet result in PR CI"
+    "statusAtCommit": "Verified on 1e2e568 CI: 253 edges; no allowance expansion"
   },
   "ci": {
     "workflow": ".github/workflows/lightweight-host.yml",
     "newColdStartupForbiddenModule": "dist/apps/eog-2d-designer/definition-projection-editor.js",
-    "statusAtCommit": "pending; official npm ci/build/default Node22 runner, Host profiles and final outcomes recorded in PR"
+    "statusAtCommit": "Five workflows passed on prior head; native browser failed twice. Test-only native geometry synchronization added; refreshed head CI pending.",
+    "verifiedHead": "1e2e56887e9ef17927fc0c7c6c3ffd0960b2f43e",
+    "greenRuns": {
+      "lightweightHost": 39251390733,
+      "platform": 39251390850,
+      "continuity": 39251390817,
+      "humanUiReview": 39251390806,
+      "diagramIntegration": 39251390825
+    },
+    "measurement": {
+      "source": "PR #1047 official CI, not local",
+      "modulesPerProfile": 317,
+      "staticEdges": 253,
+      "profiles": 4,
+      "behaviorTests": 159,
+      "guards": 6,
+      "intervals": 0,
+      "archiveFiles": 96
+    },
+    "nativeBrowser": {
+      "run": 39251390713,
+      "firstFailedJob": 118055765407,
+      "firstFailure": "D02 post-Save native drag did not change node coordinates",
+      "secondFailedJob": 118071070157,
+      "secondFailure": "E04 select wait timeout after inspector collapse",
+      "fixScope": "test-only stable geometry wait and trusted native pointerdown target assertion; no gesture retries or relaxed business assertions",
+      "localBrowserExecuted": false,
+      "localReason": "sandbox EPERM for loopback listener and Chromium socket",
+      "rootCauseStatus": "Asynchronous ResizeObserver camera refit confirmed in source; attribution of observed failures remains inference pending native event diagnostics"
+    }
   },
   "newLocalFourProfileAudit": false,
   "historicalOnly": {
@@ -92,5 +121,14 @@
     "Module observation is not connection/RSS/browser download measurement",
     "No production deployment, browser visual acceptance or cross-Host write freeze",
     "Native ESM import/evaluation failures can remain cached; fix module/deployment then restart Host, no in-process automatic recovery promise"
-  ]
+  ],
+  "continuation": {
+    "date": "2026-10-20",
+    "integratedMain": "5919e0147232fef1ddfc4f7e9a38b67969100bcf",
+    "mainChangedFiles": 18,
+    "overlapWithThisPr": false,
+    "localDirectedRegressionPassed": 18,
+    "browserScriptSyntaxCheck": "pass",
+    "productionFilesUnchangedSincePriorHead": true
+  }
 }

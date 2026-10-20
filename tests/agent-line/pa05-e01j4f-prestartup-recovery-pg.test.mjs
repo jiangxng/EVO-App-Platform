@@ -15,6 +15,22 @@ import {purchaseAttentionPackageV010} from "../../dist/apps/purchase-attention/p
 import {createPa05ReadLifecyclePgAuthorityV010}
   from "../../dist/manager/pa05-read-owner-lifecycle-pg.js";
 
+import {recoverPa05TrustedPrestartupUninstallV010}
+  from "../../dist/manager/pa05-read-owner-trusted-prestartup.js";
+import {createHostBearerSessionProviderV010}
+  from "../../dist/providers/request-session/runtime.js";
+import {createHostStaticAuthorizationProviderV010}
+  from "../../dist/providers/authorization/runtime.js";
+import {createMemorySecretStoreV010}
+  from "../../dist/manager/secret-store.js";
+import {createHostEncryptedSecretsProviderV010}
+  from "../../dist/providers/secrets/runtime.js";
+import {createPa05PrestartupAuditJournalV010}
+  from "../../dist/manager/pa05-read-owner-prestartup-audit.js";
+import {recoverPa05OneShotHostPrestartupV010}
+  from "../../dist/manager/pa05-read-owner-one-shot-prestartup.js";
+import {chmodSync,writeFileSync,unlinkSync} from "node:fs";
+
 const url=process.env.PA05_XDB_AUTHORITY_DATABASE_URL;
 const owner="evo-purchase-attention";
 async function port(){
@@ -242,6 +258,145 @@ test("E01J4F original Host restart quarantine and fenced prestart UNINSTALL repa
       assert.notEqual(repeat.code,0);
       assert.match(repeat.output,/PA05_READ_PRESTART_RECOVERY_NO_DB_FENCE/);
       assert.equal(isInstalled(),false);
+      // E01J4G: reuse J4F PostgreSQL functions, but require an independently
+      // checked request-bound HUMAN Session, Host-scoped policy and secret
+      // resolver before any actual second local UNINSTALL.
+      const j4gManager=createAppManagerService(createPackageCatalog([tradingReferencePackageV010,purchaseAttentionPackageV010]),createFileLifecycleStore(file));
+      j4gManager.install(owner);
+      assert.equal(isInstalled(),true);
+      const j4gBefore=readFileSync(file,"utf8");
+      await root.unsafe('UPDATE "'+schema+
+        '".pa05_read_host_activation_epoch SET approved_epoch=1');
+      await authority.fence({
+        operationId:"j4g-uninstall-"+id,operation:"UNINSTALL",packageId:owner
+      });
+      const j4gToken="test-only-session-"+id;
+      const j4gSubject="human:recovery-operator-"+id;
+      const identity=createHostBearerSessionProviderV010([{
+        token:j4gToken,session:{
+          contractVersion:"0.1.0",sessionId:"j4g-session-"+id,
+          principal:{contractVersion:"0.1.0",subjectId:j4gSubject,
+            actorType:"HUMAN",identityProviderId:"disposable-test-provider"},
+          issuedAt:new Date(Date.now()-10000).toISOString(),
+          expiresAt:new Date(Date.now()+120000).toISOString()
+        }
+      }]);
+      const policy=createHostStaticAuthorizationProviderV010({
+        contractVersion:"0.1.0",rules:[{
+          id:"j4g-exact-host-"+id,effect:"ALLOW",
+          actions:["host.plugin.lifecycle.prestartup-uninstall-recovery"],
+          subjectIds:[j4gSubject],actorTypes:["HUMAN"],
+          resourceTypes:["plugin-host-lifecycle"],
+          resourceIds:[owner+"@"+hostId]
+        }]
+      });
+      const store=createMemorySecretStoreV010();
+      store.put({
+        contractVersion:"0.1.0",namespace:"pa05-read-lifecycle",
+        key:"operatorDatabaseUrl",scope:"INSTALLATION",scopeId:hostId
+      },operatorUrl);
+      const secrets=createHostEncryptedSecretsProviderV010(store);
+      const j4hAuditFile=join(dir,"j4h-recovery-audit.jsonl");
+      const auditJournal=createPa05PrestartupAuditJournalV010({filePath:j4hAuditFile,hostId});
+      const j4gAudit=()=>readFileSync(j4hAuditFile,"utf8").trim().split("\n").map(x=>JSON.parse(x));
+      const params={
+        mode:"OPT_IN",hostId,schema,manager:j4gManager,
+        sessionProvider:identity,authorizationProvider:policy,
+        secretsProvider:secrets,
+        audit:event=>auditJournal.append(event)
+      };
+      await assert.rejects(
+        recoverPa05TrustedPrestartupUninstallV010({
+          ...params,bearerToken:"not-authorized"
+        }),/PA05_J4G_OPERATOR_DENIED/);
+      sameBytes(j4gBefore);
+      const authenticated=await recoverPa05TrustedPrestartupUninstallV010({
+        ...params,bearerToken:j4gToken
+      });
+      assert.equal(authenticated.installedPackages.some(x=>x.packageId===owner),false);
+      assert.deepEqual(j4gAudit().map(x=>x.stage),["AUTHORIZED","COMPLETED"]);
+      assert.equal((readFileSync(j4hAuditFile,"utf8")).includes(operatorUrl),false);
+      assert.equal((readFileSync(j4hAuditFile,"utf8")).includes(j4gToken),false);
+      assert.equal((await root.unsafe('SELECT state FROM "'+schema+
+        '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
+          "j4g-uninstall-"+id
+        ]))[0].state,"COMPLETE");
+      assert.equal((await root.unsafe('SELECT approved_epoch FROM "'+schema+
+        '".pa05_read_host_activation_epoch'))[0].approved_epoch,"0");
+      console.log("PA05_E01J4G_TRUSTED_SQL_RECOVERY_PG="+JSON.stringify({
+        actualPostgresql18:true,hostBoundAuthenticatedHumanSession:true,
+        authorizationProviderRequired:true,
+        scopedSecretResolvedWithoutSqlUrlInAudit:true,
+        originalAppManagerUninstalledOnlyAfterDbFence:true,
+        centralReadStillRevoked:true,
+        auditStages:["AUTHORIZED","COMPLETED"],
+        originalE01iUnchanged:true,
+        productionOperatorIdentityCertified:false,
+        productionSecretsProvisioned:false,
+        maintenanceCliDelivered:false,
+        multiWorkerAtomicityCertified:false,
+        pa05Signed:false
+      }));
+      // J4I: a fresh Host-internal one-shot instance loads the *original*
+      // persisted store, obtains its own lock, reuses J4G/H Providers, and
+      // repairs only the original DBA fenced UNINSTALL. Not a production CLI.
+      j4gManager.install(owner);
+      chmodSync(file,0o600);
+      assert.equal(isInstalled(),true);
+      await root.unsafe('UPDATE "'+schema+
+        '".pa05_read_host_activation_epoch SET approved_epoch=1');
+      await authority.fence({
+        operationId:"j4i-uninstall-"+id,operation:"UNINSTALL",packageId:owner
+      });
+      const j4iAudit=join(dir,"j4i-prestart-audit.jsonl");
+      const oneShot={
+        mode:"OPT_IN",hostId,schema,
+        stateFile:file,auditFile:j4iAudit,
+        catalog:createPackageCatalog([
+          tradingReferencePackageV010,purchaseAttentionPackageV010
+        ]),
+        bearerToken:j4gToken,
+        sessionProvider:identity,authorizationProvider:policy,
+        secretsProvider:secrets
+      };
+      const priorUmask=process.umask(0o077);
+      const beforeI=readFileSync(file,"utf8");
+      const lockFile=file+".pa05-one-shot.lock";
+      writeFileSync(lockFile,"occupied",{mode:0o600});
+      await assert.rejects(recoverPa05OneShotHostPrestartupV010(oneShot),
+        /PA05_J4I_PRESTART_DENIED_OR_UNKNOWN/);
+      assert.equal(readFileSync(file,"utf8"),beforeI);
+      unlinkSync(lockFile);
+      await assert.rejects(recoverPa05OneShotHostPrestartupV010({
+        ...oneShot,bearerToken:"forged-maintenance-token"
+      }),/PA05_J4I_PRESTART_DENIED_OR_UNKNOWN/);
+      assert.equal(readFileSync(file,"utf8"),beforeI);
+      let recoveredI;
+      try { recoveredI=await recoverPa05OneShotHostPrestartupV010(oneShot); }
+      finally { process.umask(priorUmask); }
+      assert.equal(recoveredI.installedPackages.some(x=>x.packageId===owner),false);
+      assert.equal(isInstalled(),false);
+      assert.equal((await root.unsafe('SELECT state FROM "'+schema+
+        '".pa05_read_lifecycle_intents WHERE operation_id=$1',[
+          "j4i-uninstall-"+id
+        ]))[0].state,"COMPLETE");
+      const journalI=readFileSync(j4iAudit,"utf8").trim()
+        .split("\n").map(x=>JSON.parse(x));
+      assert.deepEqual(journalI.map(x=>x.stage),["AUTHORIZED","COMPLETED"]);
+      assert.equal(readFileSync(j4iAudit,"utf8").includes(operatorUrl),false);
+      assert.equal(readFileSync(j4iAudit,"utf8").includes(j4gToken),false);
+      assert.equal((await root.unsafe('SELECT approved_epoch FROM "'+schema+
+        '".pa05_read_host_activation_epoch'))[0].approved_epoch,"0");
+      console.log("PA05_E01J4I_ONE_SHOT_HOST_PG="+JSON.stringify({
+        actualPostgresql18:true,realPersistedManagerUsed:true,
+        originalHostBoundDbOperator:true,liveSessionAndPolicyChecked:true,
+        concurrentRecoveryRejected:true,forgedBearerBeforeSqlDenied:true,
+        originalDbFenceBeforeLocalUninstall:true,centralApprovalStillRevoked:true,
+        durableAuditStages:["AUTHORIZED","COMPLETED"],noSecretsInAudit:true,
+        noProductionMaintainerCli:true,productionIdentityCertified:false,
+        distributedHostLockCertified:false,crossStoreAtomicityCertified:false,
+        pa05Signed:false
+      }));
       const bootAfter=await childResult(file,{},true);
       assert.equal(bootAfter.served,true,bootAfter.output);
       assert.equal((await root.unsafe('SELECT approved_epoch FROM "'+schema+

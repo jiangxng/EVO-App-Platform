@@ -259,6 +259,16 @@ R1 整体未关闭；R2 Agent配置触发SQL需原owner的职责/资格及验收
 
 完整证据：[eog-current-editor-crop-lazy-20261019.json](evidence/eog-current-editor-crop-lazy-20261019.json)；[兼容评审](../../ui-design-reviews/eog-current-editor-crop-lazy-20261019.md)。未部署，无真实模型/用户任务、浏览器视觉、生产权限变动或跨Host冻结验收。源码事实来自完整当前编辑器工具与原当前投影测试、局部editor裁剪/merge/thumbnail链及Host对应消费者；没有通读整个Host或全部Eidos算法。复用已读装载/交付规范及第12节根边研究，完整读取工具系统规范、UI检查规则/设计总纲/清单，不重复外部研究。
 
+### 2026-10-20 门禁接续记录（PR #1047）
+
+原提交 `1e2e56887e9ef17927fc0c7c6c3ffd0960b2f43e` 的 Lightweight Host、Platform、Continuity、Human UI Review、Diagram Integration 五项CI通过；正式Host日志为159项行为测试、6项守卫、四组合均317个项目ESM模块/253条静态边、0 interval、96个归档文件。这是本批CI实测，不是本地测量或#1019历史值。
+
+Native Browser run `39251390713` 首轮在D02 Save后新拖动未改变坐标，唯一一次失败job复验在E04收起检查器后重新点击曲线超时（job `118071070157`）。两条路径直接调用原editor/renderer，不经过本批当前编辑器工具；没有据此证明生产缺陷，也没有跳过断言或合并红灯。定向读源码确认检查器布局改变后ResizeObserver会异步重新适配camera，单次boundingBox/CTM测量存在时序风险，实际失败是否由此导致仍需原生事件证据，不能把推断写成已复现根因。
+
+本次仅在原browser proof内补充三个有界坐标手势的前置条件：E04重新选择、D02前后两次节点移动，要求目标元素/画布/屏幕几何连续三个动画帧一致（最多120帧），重新选择真实可命中路径点，并记录可信pointerdown及真实目标。只发一次原生点击/拖拽，不重复手势、不更改DOM状态、无固定sleep、不放宽位移/Undo/CAS/ghost-chord断言；未改Eidos、2D页面或业务实现。由CI日志检验布局稳定与真实命中，保留诊断失败。
+
+合入当前main `5919e0147232fef1ddfc4f7e9a38b67969100bcf`：已逐文件比较基线后的18个变更，均为Agent/BEX独立路径，无本PR文件重叠。以main完整tree叠加本PR文件并保留双亲，避免部分本地快照丢失并行工作。本地18项定向回归与browser脚本语法检查通过；本地沙箱禁止回环监听/Chromium socket，未执行浏览器场景，正式浏览器与合入后CI仍待本PR验证，结果以PR后续记录为准。未部署。
+
 ### 接续与固定进度
 
 本入口整改完成后停止追加拆分。R1原运行图page/view handler、semantic/SOP命令模块及其他静态实现仍需按第12节分类继续选择，保留纯模型/同步共享合同；不能据此称整个Eidos 2D链或全部编辑器都退出Host。下一批优先原graph page/view handler与semantic actions的共同装配，复用既有lazy handler并保持当前编辑器选择回调；不重做定义投影页面或本批裁剪入口。R2 Agent配置触发SQL、R3 Provider分类、R4最终跨层验收仍未关闭。

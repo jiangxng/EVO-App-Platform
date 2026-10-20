@@ -244,6 +244,69 @@ const waitReady=tab=>tab.waitForFunction(sel=>
   document.querySelector("[data-eidos-diagram-status]")?.textContent==="Ready."
   && Boolean(document.querySelector(sel)),selector,{timeout:30000});
 const shape=tab=>tab.locator(selector).getAttribute("d");
+// Inspector changes resize the canvas; ResizeObserver then updates its camera.
+// These coordinate-based gestures need stable painted geometry, whereas a
+// single boundingBox/evaluate can run between layout and that observer. Keep
+// native input and record its actual target; never retry a missed gesture.
+const nativeDiagramGesture=async(tab,label,kind,itemId,perform)=>{
+  const measured=await tab.evaluate(async({kind,itemId,label})=>{
+    const attr=kind==="node"?"data-eidos-diagram-node":"data-eidos-diagram-edge";
+    const sel="["+attr+'="'+CSS.escape(itemId)+'"]';
+    const canvas=document.querySelector("[data-eidos-diagram-canvas]");
+    let previous,first,stable=0,changes=0,element;
+    for(let frame=0;frame<120;frame++){
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      const current=document.querySelector(sel);
+      if(!current)throw new Error(label+": gesture target disappeared");
+      const rect=current.getBoundingClientRect(),box=canvas.getBoundingClientRect();
+      const m=kind==="edge"?current.getScreenCTM():null;
+      const geometry={rect:[rect.x,rect.y,rect.width,rect.height],
+        canvas:[box.x,box.y,box.width,box.height],
+        matrix:m?[m.a,m.b,m.c,m.d,m.e,m.f]:null,d:current.getAttribute("d")};
+      const snapshot=JSON.stringify(geometry);
+      first??=geometry;
+      stable=snapshot===previous&&current===element?stable+1:0;
+      if(previous&&snapshot!==previous)changes++;
+      previous=snapshot;element=current;
+      if(stable<2)continue;
+      let point;
+      if(kind==="node")point={x:rect.x+rect.width/2,y:rect.y+rect.height/2};
+      else{
+        const length=current.getTotalLength();
+        for(let i=15;i<=85;i++){
+          const p=current.getPointAtLength(length*i/100);
+          const x=p.x*m.a+p.y*m.c+m.e,y=p.x*m.b+p.y*m.d+m.f;
+          if(x<box.left+8||x>box.right-8||y<box.top+8||y>box.bottom-8)continue;
+          if(document.elementFromPoint(x,y)?.getAttribute(attr)===itemId){point={x,y};break;}
+        }
+      }
+      if(!point||document.elementFromPoint(point.x,point.y)?.closest(sel)!==current)
+        throw new Error("Stable diagram target has no unobstructed native hit point: "+sel);
+      return {point,first,settled:geometry,changes,frames:frame+1,sel};
+    }
+    throw new Error("Diagram geometry did not settle within 120 animation frames");
+  },{kind,itemId,label});
+  await tab.mouse.move(measured.point.x,measured.point.y);
+  await tab.evaluate(({sel})=>{
+    window.__nativeDiagramDown=null;
+    window.__nativeDiagramListener=event=>{
+      window.__nativeDiagramDown={trusted:event.isTrusted,
+        expectedTarget:Boolean(event.target.closest?.(sel)),
+        node:event.target.closest?.("[data-eidos-diagram-node]")?.getAttribute("data-eidos-diagram-node"),
+        edge:event.target.getAttribute?.("data-eidos-diagram-edge"),x:event.clientX,y:event.clientY};
+    };
+    document.addEventListener("pointerdown",window.__nativeDiagramListener,{capture:true,once:true});
+  },measured);
+  try{
+    await perform(measured.point);
+    const down=await tab.evaluate(()=>window.__nativeDiagramDown);
+    console.log("DIAGRAM_NATIVE_GESTURE_DIAGNOSTIC="+JSON.stringify({label,kind,itemId,measured,down}));
+    assert.equal(down?.trusted,true,label+": Chromium must deliver trusted pointer input");
+    assert.equal(down.expectedTarget,true,label+": native pointerdown must hit the measured target");
+  }finally{
+    await tab.evaluate(()=>document.removeEventListener("pointerdown",window.__nativeDiagramListener,true));
+  }
+};
 let browser;
 try{
   server.listen(0,"127.0.0.1");await once(server,"listening");
@@ -1545,19 +1608,8 @@ try{
     "E04 clicking ghost-chord location must NOT select edited edge");
   // Blank click collapses the inspector and may move/refit the canvas.
   // Re-measure the painted curve after that layout change, not stale pixels.
-  const e04Reselect=await e04Tab.evaluate(edgeId=>{
-    const path=document.querySelector('[data-eidos-diagram-edge="'+edgeId+'"]');
-    const m=path.getScreenCTM(),len=path.getTotalLength();
-    for(let i=15;i<=85;i++){
-      const q=path.getPointAtLength(len*i/100);
-      const x=q.x*m.a+q.y*m.c+m.e,y=q.x*m.b+q.y*m.d+m.f;
-      if(document.elementFromPoint(x,y)?.getAttribute("data-eidos-diagram-edge")===edgeId)
-        return {x,y};
-    }
-    return null;
-  },relationId);
-  assert.ok(e04Reselect,"E04 curve must remain hit-testable after inspector collapse");
-  await e04Tab.mouse.click(e04Reselect.x,e04Reselect.y);
+  await nativeDiagramGesture(e04Tab,"E04 reselect after inspector collapse","edge",relationId,
+    point=>e04Tab.mouse.click(point.x,point.y));
   await e04Tab.locator('select[data-eidos-diagram-edge-path-kind="'+relationId+'"]')
     .waitFor({state:"visible"});
   assert.equal(store.getVersion(id),0,"E04 hit-testing cannot save business graph");
@@ -2144,12 +2196,11 @@ try{
   const d02Original=await d02XY();
   const d02Node=d02Tab.locator('[data-eidos-diagram-node="sale"]');
   await d02Node.click();
-  let d02Box=await d02Node.boundingBox();
-  await d02Tab.mouse.move(d02Box.x+d02Box.width/2,d02Box.y+d02Box.height/2);
-  await d02Tab.mouse.down({button:"left"});
-  await d02Tab.mouse.move(d02Box.x+d02Box.width/2+52,
-    d02Box.y+d02Box.height/2+29,{steps:8});
-  await d02Tab.mouse.up({button:"left"});
+  await nativeDiagramGesture(d02Tab,"D02 first node move","node","sale",async point=>{
+    await d02Tab.mouse.down({button:"left"});
+    await d02Tab.mouse.move(point.x+52,point.y+29,{steps:8});
+    await d02Tab.mouse.up({button:"left"});
+  });
   const d02Moved=await d02XY();
   assert.ok(Math.hypot(d02Moved.x-d02Original.x,d02Moved.y-d02Original.y)>12,
     "D02 native mouse node move must be a second edit");
@@ -2212,12 +2263,11 @@ try{
   assert.equal(d02Persisted.result.hiddenNodeIds?.includes("sale")??false,false);
   assert.equal(d02Persisted.result.edges[0].pathKind,"orthogonal");
   await d02Tab.locator('[data-eidos-diagram-node="sale"]').click();
-  d02Box=await d02Tab.locator('[data-eidos-diagram-node="sale"]').boundingBox();
-  await d02Tab.mouse.move(d02Box.x+d02Box.width/2,d02Box.y+d02Box.height/2);
-  await d02Tab.mouse.down({button:"left"});
-  await d02Tab.mouse.move(d02Box.x+d02Box.width/2+36,
-    d02Box.y+d02Box.height/2+22,{steps:8});
-  await d02Tab.mouse.up({button:"left"});
+  await nativeDiagramGesture(d02Tab,"D02 post-Save node move","node","sale",async point=>{
+    await d02Tab.mouse.down({button:"left"});
+    await d02Tab.mouse.move(point.x+36,point.y+22,{steps:8});
+    await d02Tab.mouse.up({button:"left"});
+  });
   assert.ok(Math.hypot((await d02XY()).x-d02Moved.x,
     (await d02XY()).y-d02Moved.y)>8,
     "D02 new edit after Save must become unsaved");
@@ -2779,3 +2829,4 @@ try{
   server.closeAllConnections?.();server.close();
   rmSync(tmp,{recursive:true,force:true});
 }
+
