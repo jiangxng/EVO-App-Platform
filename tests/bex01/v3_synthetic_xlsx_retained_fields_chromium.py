@@ -180,6 +180,13 @@ with sync_playwright() as pw:
       if(location.origin===%s) {
         localStorage.setItem("evo.context.id",%s);
         localStorage.setItem("evo.locale","zh-CN");
+        // Start with an explicit saved preference; absence of a stored layout
+        // is not evidence that route focus overwrote a user's preference.
+        localStorage.setItem("eidos.workbench.layout",JSON.stringify({
+          contractVersion:"0.1.0",activeActivityId:"apps",
+          sidePanelVisible:true,sidePanelWidth:420,
+          workspaceTarget:"/workspace"
+        }));
       }
     """ % (json.dumps(HOST),json.dumps(CTX)))
     page=context.new_page()
@@ -222,11 +229,13 @@ with sync_playwright() as pw:
     expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
     focus_toggle.click()
     expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
-    assert page.evaluate("""() => {
+    final_layout=page.evaluate("""() => {
       const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
       return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
-    }""")==saved_layout, (
-        "route-focus must not overwrite persisted sidebar preference")
+    }""")
+    assert final_layout==saved_layout, (
+        "route-focus must not overwrite persisted sidebar preference: "
+        + json.dumps({"saved":saved_layout,"actual":final_layout},ensure_ascii=False))
     # An independent user may already have the sidebar OFF in saved layout.
     # The V3 form still gets 1200px, and Ctrl+B must explicitly reveal the
     # original navigation rather than being overridden by default focus.
