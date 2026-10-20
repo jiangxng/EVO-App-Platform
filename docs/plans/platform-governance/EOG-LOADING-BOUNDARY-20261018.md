@@ -308,3 +308,63 @@ E04稳定3帧、未观察到本轮几何变化，可信pointerdown命中真实cu
 | A07 个人/企业上下文边界 | 已闭环、原Agent专项实施 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
 
+## 14. 2026-10-20增量：原运行图页面与八条Human命令按需装配
+
+基线main `00d05159af8912f9a1194399d7723adfbbf686a5`（#1047），包含#1020基线。已核对开放PR；Agent/BEX独立工作保留，不改全局project.status/HANDOFF，不重复第11节View State或第13节裁剪整改。新过程分支 `fix/governance-eog-editor-entries-lazy-20261020`。本节是A01/R1一个有界入口批次，不是2D或Agent产品开发。
+
+### 事实、保留决定与最小整改
+
+完整读取原graph actions（298行）及page/view实现（985行），局部核对server全部对应imports、登记与页面分支。5个semantic handler与3个view handler的构造只生成闭包；业务get/list/validate/create、view.ensure/apply与inspector.inspect发生在execute，页面工厂仅生成页面合同。**没有发现本批工厂启动即访问业务存储的新缺陷**；但Host静态导入两个manager兼容出口，仍把可选页面/命令实现加入冷链，符合第12/13节已保存的装配候选。
+
+本批只调整原装配位置：
+
+- 在现有designer package元数据中声明8个原命令字符串；actions/page及manager兼容出口继续导出同名值，不改旧公共调用路径。复用原package，不新增通用框架、代理、插件或第二个Provider。
+- Host为5个semantic命令和3个view命令分别使用原createLazyAppActionHandlerV010；对应模块由合法首次调用动态import，按commandCode取得原handler。路由原Feature/权限前置检查保持；await后复查Designer有效性，再执行原handler，停用不执行迟到WRITE/READ。
+- 页面使用原有效Feature分支加载原page工厂，页面来源复用package已有source；await后再检查有效性。保留Personal/单企业fallback、语言、requestValues与页面内容，不改Human导航或视觉。
+- 原onEditorRead闭包原样保留，继续按session/subject记住当前企业图；原管理角色/授权、确认、semantic/view版本与冲突、inspector owner调用均不变。未做真实LLM任务验收。
+
+共享graph service、View State provider/store、纯model/projection算法及Agent登记继续按第6/11/12节决定保留同步共享合同；不得因Designer停用清理其他插件共同使用的业务事实。SOP语义/工具、其他静态Provider仍留后续核对，不机械拆轻量常量或纯算法。
+
+### 触发、资源与恢复
+
+| 场景 | 本批行为及证据入口 |
+|---|---|
+| 未安装、停用、启用未使用 | 目录保留廉价描述；页面404，八命令按原Feature拒绝；两个owner实现及两个manager兼容模块加入四组合冷启动禁入 |
+| 首次semantic并发 | 原lazy handler按命令缓存初始化Promise，Node ESM缓存共享模块；先调用list不连带page/view实现；原业务结果保持 |
+| 首次page/view | 加载原page/view模块；该模块仍复用原semantic函数，未拆成影子算法。页面与原工厂深比较；GET/selection/operation保持合同 |
+| import期间停用 | test-only原生ESM hook用有期限文件屏障挂起两个模块，真实HTTP disable后放行；semantic CREATE、view GET与page必须分别拒绝，重新启用后同handler可正常使用 |
+| import失败 | hook原样抛出交付故障，Host显式失败；重启且恢复模块后list为空、create成功，不能用失败返回推断已有业务WRITE已回滚 |
+| 视图/语义一致性 | 布局写入保留CAS；stale revision拒绝，semantic原图不变；不同企业相同graphId隔离；停用/恢复、卸载重装及进程重启保留各自数据 |
+
+本批没有新业务实例、连接、timer、订阅或后台任务。每命令cache仅持有原共享服务和Host resolver，execute仍使用当前请求Principal/Context；没有捕获单用户上下文为全局缓存。没有需dispose的新资源；停止拒绝新调用与新增await后的迟到调用，不承诺撤销已进入原业务授权/提交阶段的WRITE、ESM卸载或跨Host冻结。原生ESM失败可能缓存；修复交付后重启恢复，不做cache busting或自动重放。
+
+### 验证与限制
+
+真实Host测试采用原compatible/static-session合成夹具，并通过原startup-defaults settings API记入已退休的3D/Observatory/bottleneck一次性默认项，以免其依赖自动安装2D；断言state中2D确实未安装。未修改生产默认安装或准入代码，测试仍经真实HTTP安装/权限/生命周期。
+
+新增 `tests/integration/eog-editor-entries-lazy-host.test.mjs` 三项真实Host测试及一个test-only原生loader屏障/故障fixture，进入既有Lightweight Host CI；沿用原模块观察probe和隔离合成企业，不新增生产诊断入口。补入原semantic Host组件回归及lazy selection协议回归，继续运行原当前编辑器/构造资源回归。屏障仅测试中10ms有期限轮询，生产没有轮询或测试参数，模块源码未被替换/改写。
+
+本地既有18项组件/故障探针通过，selection2项首次因部分快照缺Viewer文件无法导入，补足固定SHA源码并临时转译后2项通过，合计20项通过。Host源码临时类型擦除后语法检查、新测试/fixture/audit脚本语法检查通过。**本地没有正式全仓TS构建或真实Host/browser执行**：复用前批受限环境的固定SHA部分源码快照，隔离到独立目录，不覆盖上一窗口文件；Node24临时类型擦除不是正式构建。正式npm ci/build、Node22测试、三项真实Host测试及四组合实测由本批CI给出，最终准确head/run/合并以本PR记录为准。
+
+首轮提交 `2a3fdb16ba792fa582b77aaf4ac8a6213312c12e` 正式npm ci/build与strict ratchet通过（253→247，只删除6条旧边）。Host行为测试169/170通过，新增正常生命周期/持久性/隔离与import期间停用两项通过；唯一失败是新故障用例误将已有动作异常HTTP envelope预期为500，实际为403。已定向读取Host动作路由内部catch，修正测试为403并精确检查注入故障码/消息，保留生产协议。错误尚未经过该旧断言之后的重启检查，不把169项通过宣称全绿；修正后的正式结果与最终head见PR。
+
+静态允许集合不扩张。#1047最终四组合318模块/253边是历史基线，不是本批实测；本地未新测模块数量或生产性能。没有部署，不把合成浏览器/Host自动证据当作Human业务签署。
+
+证据：[eog-editor-entries-lazy-20261020.json](evidence/eog-editor-entries-lazy-20261020.json)；[兼容评审](../../ui-design-reviews/eog-editor-entries-lazy-20261020.md)。复用已完整读取的AGENTS/启动、LLM、交付、根clinerules、装载规范、指定治理材料与Eidos设计总纲/清单；本轮核对它们的版本/接续章节，并补读lazy handler/router、原graph actions/page全文、相关原测试及server对应局部。全局状态仅读取当前/历史标识；没有把其较旧TR快照覆盖本专项。未新增外网研究，未声称通读全Host或其他owner全部代码。
+
+### 接续与固定进度
+
+本入口达到对应CI后停止追加拆分。R1剩余SOP命令/工具静态入口先核对现有责任及副作用，再决定必要整改或保留；纯共享model/View State结论不重开。R2配置SQL仍需原Agent owner资源资格/职责/验收证据，R3 Provider逐类分类、R4最终跨层矩阵仍未关闭；不代任何其他专项宣告完成。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；原图页面/八命令按需装配 | R1剩余SOP/工具边界，继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 未整体收口 |
