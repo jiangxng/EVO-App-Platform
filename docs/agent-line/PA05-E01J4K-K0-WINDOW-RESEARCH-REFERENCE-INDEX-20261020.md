@@ -258,3 +258,8 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 | [Railway connected project](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) | **ORIGINAL_RAILWAY_DEPLOYMENT_AND_HEALTH_METADATA_READ_THIS_WINDOW**，2026-10-20 | 新 Host `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` 对应 `ae704ad7...` SUCCESS / Online；旧 `9aa54df8...` 显示 CRASHED，但当前 Host 1 running/0 crashed，不推断旧状态的根因或当前故障。 |
 
 **决定与分支职责：** 独立复现已把静态风险证据升级为隔离真实反例，**尚未进行修复**。保持 #1071 文档、#1074 Host 顶层清理、#1081 PROCESS 负面验证三线独立 Draft，禁止把 #1081 的“绿灯”解释为 K0 认证成功。继续 central fencing + 外部编排 stop receipts + PostgreSQL session re-query + IdP/DBA audit gate；不得以本机排他、CI 或 Lease 超时替代。
+
+
+### 15.1 测试修正版本再次真实验收（2026-10-20）
+
+[Draft #1081 测试 HEAD `a1e8a0941ff5b796816aaea0904b89533191a239`](https://github.com/jiangxng/EVO-App-Platform/commit/a1e8a0941ff5b796816aaea0904b89533191a239) **5/5 exact-head checks SUCCESS**；[Platform CI #39427280985 / job #118643113249](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39427280985/job/118643113249) **ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW**（2026-10-20T13:05:32Z）：子测试 #759/#760 实际再次 `ok`，`shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true`、`spawnedAfterShutdown=true`、`globalStopCertified=false`；`stopFinishedAfterwards=true` **此次在 stop promise await 完成后才输出**；整个协议 CI `1087/1086 pass/0 fail/1 skipped`。这是后续正确时序版本，不是补造前版日志。只支持隔离本地 PROCESS 两项安全反例；全域停机、生产 SIGTERM、operator IdP 与 DBA 证据仍未获取。

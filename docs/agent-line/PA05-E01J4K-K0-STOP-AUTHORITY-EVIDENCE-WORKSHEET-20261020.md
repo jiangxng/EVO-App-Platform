@@ -174,3 +174,14 @@
 - **未证明：** 生产 Railway npm/SIGTERM 实际链路、服务子进程存活清单、真正全域 Worker/Runner 编排冻结、PG session 已撤销、Human IdP/DBA 凭据授权以及恶意外部调用都没有被这些测试证明。**此测试通过表示负面风险重现，不表示 K0 通过**。不能用 `5/5 CI SUCCESS` 擦除这一负面发现。
 - **责任边界：** #1074 继续只管 Host 顶层 shutdown/HTTP 503/错误路径；#1081 是独立 **Draft / non-production negative evidence**，当前不合并/部署。后续单独评审 PROCESS runtime 的 admission barrier、in-flight stop tracking 和独立进程退出证明；将现有负面测试改造成 **fail-closed 正向回归** 后再评估工程验收，不在 #1071 文档线实施代码。
 - **K0 总体结论不变：** `K0 NOT_SIGNED`、完整 `E01J4 NOT_SIGNED`、`PA05-05 E01–E05 NOT_SIGNED`、`W06 NOT_SIGNED`；production material WRITE `OFF`，Issues #988/#979/#913 OPEN。
+
+
+### 9.3 修正后测试 HEAD 及原始日志复核（作为最新精确证据）
+
+[#1081 最新测试 HEAD `a1e8a0941ff5b796816aaea0904b89533191a239`](https://github.com/jiangxng/EVO-App-Platform/commit/a1e8a0941ff5b796816aaea0904b89533191a239) 的确切 GitHub check-runs **5/5 SUCCESS**。已直接读取 [Platform CI run #39427280985，job #118643113249](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39427280985/job/118643113249) 的完整原始日志（`ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_READ_THIS_WINDOW`，2026-10-20T13:05:32Z）：
+
+- `ok 759`：`shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true`、**`stopFinishedAfterwards=true` 在实际 `await stopPending` 后才输出**。
+- `ok 760`：`spawnedAfterShutdown=true`。
+- 两条均明确 `globalStopCertified=false`；整份 `test:platform` 1087 total / 1086 passed / 0 failed / 1 skipped。
+
+因此 §9.1 首版固定字段的时序瑕疵**已通过后续新 HEAD 修复并重新真实跑通**，负面结论没有改变。永久保存新 HEAD、run/job 和标记（GitHub Actions job log 后续可能因保留期失效）；绝不把 5/5 测试绿灯记成 production stop certification。仍不合并、不部署 #1081；K0 `NOT_SIGNED`，material WRITE `OFF`。
