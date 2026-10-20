@@ -380,3 +380,14 @@ Railway 生产 Host [部署](https://railway.com/project/aee4643e-912b-4ca1-ae95
 基于 [当前部署 `main@6fc8fac5...` 的 `manager/server.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/manager/server.ts) **直接已读原始源码**，新增完整实例化审阅点：[K0 停机证据验收表 §6](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。源码存在 E01D 默认 OFF 的特定 Host 管理员注册入口（第 6982–7073 行）；E01F 覆盖五个直接 HTTP 生命周期变更路由（10105–10219）及 `/v1/actions` 中五类 `app-platform.*-package` Action（9421–9452、9819–10063）；DISABLE/UNINSTALL J4D SQL-fenced 路径（3363–3415）默认 OFF，只有明确 opt-in 和独立 SQL authority 参数才组装。静态 auth 校验包含 bootstrap 管理员 + Authorization Provider，但**不等于真实生产 Human/DBA 身份与实际调用拒绝的运行证明**。独立 `*/plan` 路由已定位，底层规划函数副作用未重新审计。
 
 从 K0 出发，**变更入口源码覆盖 ≠ 全部实际调用者枚举 ≠ 全域准入/停机**。当前 connected Railway 变量名未显示 E01D/J4D/J4J opt-in，不能据此签数据库直接角色、外部维护工具、Runner 或重启竞态均已封闭。未发生产请求、未执行 Validator、未变更任何生产开关/权限/Secret/DB。K0、E01J4、PA05-05 E01–E05/W06 `NOT_SIGNED`；production WRITE `OFF`。
+
+
+## 24. 2026-10-20 — 多 Worker 证明再细化：异步 stop 与 shutdown 快照竞态
+
+**静态源码原文已经读到：** 当前 `main@91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa` 的 [plugin-runtime-host.ts](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/plugin-runtime-host.ts) `stop()` 先删除 runtime map 再等待子进程 `exit`（646–666）；`shutdown()` 只对当前 map keys 快照等待（687–689）。[server.ts](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/server.ts) 的生命周期事件无等待发起 `void processRuntimeHost.stop`（约 2311–2312）。`start()/invoke()` 源码中无该类自带的 shutdown admission flag（331–434、591）。
+
+**独立工程推导：** 一个已从 map 删除却尚未退出的 child 可能不在 shutdown 时的 map 快照中；另一个并发的 `start()` 也需要显式准入冻结，否则单次清单无法证明停止集封闭。**不是实际生产异常或隔离测试已经触发的事实**；须在安全的独立环境做定向竞态/异常关闭回归。实际完整负面案例和证据等级在 [K0 验收表 §7](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+**新版部署/CI 快照：** 与本轮源码对应的 [main `91ffb9bd...`](https://github.com/jiangxng/EVO-App-Platform/commit/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa) 为其他治理线 PR #1079 合并，已通过 **39/39 此 SHA 的 GitHub commit checks**；Railway Host deployment `9aa54df8-26ca-43aa-a598-9b547f276a5c` 已标记 `SUCCESS`，前一个 `6fc8fac5...` deploy 为 `REMOVED`。主线两次 `manager/server.ts` 的管理员鉴权、E01D PA05 registration、Action 前置目标包权限、直接 HTTP 生命周期 mutations 以及 shutdown 段均在**各自精准截取段逐字相同**；不能据此推断全文件所有行为相同。独立 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 仍未部署，先前定时全套测试 10 FAIL 的负证据仍保留。
+
+保持 K0、E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED` 与 material WRITE `OFF`。本次没有生产 HTTP、Validator、SQL/Secret 查询、进程停止/重启、扩缩容或清锁。

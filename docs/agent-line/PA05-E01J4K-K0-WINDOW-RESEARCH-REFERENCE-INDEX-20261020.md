@@ -223,3 +223,14 @@ Using original GitHub PR metadata, live branch SHA and `compare_commits(base=bra
 | [Railway production service configuration](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601)，2026-10-20 | **ORIGINAL_RAILWAY_CONNECTOR_READ_THIS_WINDOW**（`describe_service` / `describe_environment`，只读） | 5 服务、Host 1 副本、无 Cron/已暂存变更；变量名没有显式 E01D/J4D/J4J opt-in。有效 drain/进程树、实际 SQL grants/IdP 均没有返回；不读取 Secret 值。 |
 
 **决策：原 K0 边界保持不变。** 实施前先要求外部组织权威提交完整 Worker/临时调用者边界、冻结扩缩容/重启收据、旧 SQL Backend 实际失效证据，以及生产 IdP/DBA/Audit Owner 签字。五条 HTTP 或 Action 的静态检查不能替代这组准入证明；不做生产探针或动作。#1071 / #1074 继续 Draft，production material WRITE OFF。
+
+
+## 13. 2026-10-20 — PROCESS child 异步停机竞态原始源码与新主线时间片
+
+| 来源 | 阅读等级 | 已读原文事实与工作线解释 |
+| --- | --- | --- |
+| [`manager/plugin-runtime-host.ts` at `main@91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa`](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/plugin-runtime-host.ts)，blob `7554a10065b907a1fd89c194505f7e5e9cb047f1` | **ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW**，331–434、591、643–689 行 | `stop` map 删除早于 child exit；`shutdown()` snapshot map，`invoke()` 可进入 `start()` 且所审阅的类中无关闭准入标记。竞态由源代码推导，**尚未实际测试或生产复现**。不能以 map 空或 parent completed 取代外部可信进程回执。 |
+| [`manager/server.ts` at 同一 SHA](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/server.ts)，blob `6d5878fc9030bd2de910106f6566b5f4adb9ead7` | **ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW**，第 2311–2312 行及 PA05/Host shutdown 对照 | 生命周期通知对 PROCESS child 调用 `void stop`，并非全域 await。与前一个 main 逐段比较，PA05 管理员/生命周期入口、shutdown 段逐字相同；该比对不证明生产进程停止。 |
+| [current main `91ffb9bd...` checks](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/check-runs) 与 Railway [project](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) | **ORIGINAL_GITHUB_API_AND_RAILWAY_CONNECTOR_READ_THIS_WINDOW** | Governance PR #1079 使 main 推进，**39/39 exact SHA checks SUCCESS**；Railway deployment `9aa54df8-26ca-43aa-a598-9b547f276a5c` 对应此 SHA 且 SUCCESS。旧 Ecosystem scheduled 全套 10 FAIL/82 skipped 反证仍独立保留，不因局部 checks 变绿而抹去。 |
+
+**K0 影响与不采用的证据：** 因子进程清单可能在尚未 exit 时提前消失，明确拒绝“Host map 空”作为 Worker `STOP_CONFIRMED`。未来隔离进程测试要覆盖 stop 与 shutdown 重叠、fork 与 shutdown 竞争、失联 child、父进程 SIGKILL 和跨服务重启竞态。仅保存设计用例，不重复开发 #1074，也不做生产 stop/身份/DBA 操作。K0、完整 E01J4、PA05-05 E01–E05 和 W06 全部 `NOT_SIGNED`，production material WRITE `OFF`。

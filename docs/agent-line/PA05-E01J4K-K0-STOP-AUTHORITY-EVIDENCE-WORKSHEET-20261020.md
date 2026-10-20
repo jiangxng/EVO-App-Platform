@@ -88,3 +88,33 @@
 ### 6.2 归档判定
 
 `SOURCE_ROUTE_INVENTORY_PARTIAL / PRODUCTION_INGRESS_REACHABILITY_NOT_SIGNED / TRUSTED_STOP_NOT_SIGNED`。此增量帮助 R3（外部调用入口）进一步收敛，但 R1、R2、R4–R8 保持 `UNVERIFIED`。新的入口范围不改变此前已选择的中央 epoch/fencing + 外部停机回执 + PG session 重查方案。
+
+
+## 7. 新源码风险：PROCESS 清单与实际停机的并发时间窗（尚未复现）
+
+**阅读级别：`ORIGINAL_GITHUB_SOURCE_READ_THIS_WINDOW`。** 精确基线：最新核验 `main@91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa` 的 [`manager/plugin-runtime-host.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/plugin-runtime-host.ts)，blob `7554a10065b907a1fd89c194505f7e5e9cb047f1`；[同 SHA 的 `manager/server.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/server.ts)，blob `6d5878fc9030bd2de910106f6566b5f4adb9ead7`。
+
+### 7.1 源码已证明的先后顺序（事实）
+
+1. `plugin-runtime-host.ts` **第 643–677 行**：`stop(packageId)` 先 `runtimes.delete(packageId)`（646），后注册/等待 child `exit`（648–654）、IPC shutdown（656–658）、750ms SIGKILL fallback（660–664），`await stopped` 后才 emit `PROCESS_STOPPED`（666–671）。
+2. **第 687–689 行**：`shutdown()` 在调用时一次性按 `[...runtimes.keys()]` 快照构造 `stop` promises，`Promise.all` 等待这些**当时仍在 map 里**的条目；不会凭此快照自动等待此前已从 map 删除、尚未退出的 child。
+3. `server.ts` 生命周期事件处理部分（约 **2311–2312**）：收到 `FEATURE_DEACTIVATED` 或 `PACKAGE_UNINSTALLED` 时调用 `void processRuntimeHost.stop(event.packageId)`，上层没有等待该 promise 形成全局停机屏障。
+4. `plugin-runtime-host.ts` **第 331–434 行**：`start()` 在现有 map 不含该包时做 admission / 完整性检查后执行 Node `fork()` 并重新登记；`invoke()` 第 591 行会调用 `start()`。已读该类中的 `start()` / `shutdown()` 片段**没有单独的全局 shutting-down admission flag**。
+
+### 7.2 工程推导（不是已实证 defect）
+
+- **时间窗 A：** 某个 lifecycle 事件触发异步 `stop()`；它先从 map 删除进程但尚未收到 child exit；与此同时 Host `shutdown()` 快照 map。该 Host shutdown 能遗漏该已退出 map、但仍在停止中的 child 的 await。不能把一次空 map 或 `shutdown()` resolved 单独当作 OS 全部停止证明。
+- **时间窗 B：** `shutdown()` 对 map 做快照后，另一个受信调用路径若仍允许 `invoke()/start()`，该类自身没有在上述已读源码显示禁止新 fork 的统一入口屏障。**是否能在实际生产中触发，需检查所有调用方并做独立负面测试；这里不声称已复现。**
+- 上述代码仍可在正常无并发路径按预期发 IPC shutdown、等 exit。识别时序风险**不推翻既有 J4J 的 28/28 本机工程 PASS 或 #1074 的 201/201 shutdown 测试**；只是两组旧测试没有形成外部可信编排器的全域子进程收据。
+
+### 7.3 将来的隔离验证，不授权在生产执行
+
+| 负面案例（disposable non-production） | 必要的结果 |
+| --- | --- |
+| lifecycle 触发 stop，在 map 删除之后、child 真实 exit 之前触发 Host shutdown | 全部 child 仍有可核验的 exit/kill 结束与可信独立枚举；不得凭 map 空输出 `STOP_CONFIRMED` |
+| 在 shutdown 快照之后并发提交受信 `invoke/start` | 新 child 必须被准入屏障拒绝，或纳入新的可信停止清单；重启/扩缩容 race 也须拒绝 |
+| child 不响应 IPC，SIGKILL 尚未产生 OS exit | 继续 `UNKNOWN/DENY`，直到独立实例终止回执；SIGKILL 发送返回值不等于已退出 |
+| 父 Host 在任一等待点异常 SIGKILL | 外部 supervisor 仍能够列出、停止和验证所有孤儿/残余 child；不删除 J4J 异常锁 |
+| 无法联系编排器、外部 Worker/DB 会话持续存活 | 不允许 `STOP_CONFIRMED`、不执行维护、material WRITE 仍 OFF |
+
+**阶段决定：`SOURCE_TIMING_RISK_IDENTIFIED / ENGINEERING_REPRO_NOT_RUN / K0_NOT_SIGNED`。** 此处不擅改 #1074 Host shutdown 工程分支或任何生产行为。可将上述用例提交未来经授权的独立**非生产**核验线；真实跨进程停机仍需要组织编排器签发回执并由 DBA 重查 PostgreSQL sessions。
