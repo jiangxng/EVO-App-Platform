@@ -283,9 +283,8 @@ with sync_playwright() as pw:
     expect(map_form.locator('[data-eidos-form-task-details]')).to_have_count(0)
     page.screenshot(path=str(OUT/"v3-fidelity-workbench-map-1280.png"),
       full_page=False)
-    expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
-    expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
-        "BEX-SYNTHETIC-RET-172.xlsx")
+    expect(map_form.locator('input[type="hidden"][name="importJobId"]')).to_have_value(jobid)
+    expect(map_form.locator('select[name="importJobId"]')).to_have_count(0)
     expect(map_form.locator('[data-eidos-form-task-overview]')).to_be_visible()
     expect(map_form.locator('[data-eidos-form-task-metric]')).to_have_count(4)
     expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(3)
