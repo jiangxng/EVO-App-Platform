@@ -137,8 +137,11 @@ import {
   createEogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
 import {
-  createEogExpectedSopActionHandlersV010
-} from "./enterprise-operating-graph-sop-actions.js";
+  EOG_SOP_LIST_ACTION,
+  EOG_SOP_CREATE_ACTION,
+  EOG_SOP_REVISE_ACTION,
+  EOG_SOP_PUBLISH_ACTION
+} from "../contracts/enterprise-operating-graph-sop.js";
 import {
   createEogExpectedSopAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-sop-agent-tools.js";
@@ -4649,10 +4652,32 @@ const actionRouter = createAppActionRouter(
         }
       })
     ),
-    ...createEogExpectedSopActionHandlersV010({
-      service: eogExpectedSopService,
-      resolveAuthorizationProvider
-    }),
+    ...[EOG_SOP_LIST_ACTION, EOG_SOP_CREATE_ACTION,
+      EOG_SOP_REVISE_ACTION, EOG_SOP_PUBLISH_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ENTERPRISE_AGENT_PACKAGE_ID,
+        featureId: ENTERPRISE_AGENT_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("./enterprise-operating-graph-sop-actions.js");
+          const handler = module.createEogExpectedSopActionHandlersV010({
+            service: eogExpectedSopService,
+            resolveAuthorizationProvider
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_SOP_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID)) {
+                return { ok: false, correlationId: request.sourceInteractionId,
+                  error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Legacy SOP action owner feature is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
+        }
+      })
+    ),
     ...[EOG_VIEW_GET_ACTION, EOG_VIEW_OPERATION_ACTION, EOG_VIEW_SELECTION_GET_ACTION].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: EOG_2D_DESIGNER_PACKAGE_ID,

@@ -1,0 +1,133 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-20",
+  "baseline": "71d63ce6716c19d68e34e77dcd2fe0c185027e35",
+  "branch": "fix/governance-sop-command-loading-20261020",
+  "scope": "A01/R1 legacy SOP Human command loading; no SOP product or Agent feature expansion",
+  "productionFilesChanged": [
+    "manager/server.ts",
+    "manager/enterprise-operating-graph-sop-actions.ts",
+    "contracts/enterprise-operating-graph-sop.ts"
+  ],
+  "legacyIdentity": {
+    "humanOwnerPackage": "enterprise-agent",
+    "humanOwnerFeature": "enterprise-agent.default",
+    "commands": [
+      "list",
+      "create",
+      "revise",
+      "publish"
+    ],
+    "agentToolOwner": "evo-app-platform",
+    "agentAvailability": "Enterprise context only; preserved compatibility debt, not fixed by this batch",
+    "designerStatus": "source scaffold, default OFF, not Host registered; product/extraction deferred"
+  },
+  "retained": {
+    "businessDefinitionAuthority": "Enterprise Context",
+    "synchronousSopService": true,
+    "sharedOnUseFacades": true,
+    "pureValidation": true,
+    "agentTools": true,
+    "preservedCorpusCi": "not promoted into EOG Core gate",
+    "graphViewStateAndEarlierFixes": "unchanged"
+  },
+  "sourceFindings": {
+    "construction": "SOP action factory creates closures; service/Agent factories perform no business IO",
+    "businessTrigger": "handler.execute or tool.execute; service list/history/listPublished touch definition repository, create/revise validate graph nodes",
+    "consumers": [
+      "Host legacy Human handlers",
+      "request-time Agent tool catalog",
+      "expectedSopService injected into bottleneck analysis Provider"
+    ]
+  },
+  "loading": {
+    "metadata": "Original four command strings in existing SOP contract; old action exports retained",
+    "mechanism": "existing createLazyAppActionHandlerV010 per command and native dynamic import; original handler selected by identity",
+    "postAwait": "recheck original Agent Feature before executing original handler",
+    "resources": "no new connection, timer, task, subscription, store or per-user global cache",
+    "stop": "new calls and delayed imports refused; no in-flight WRITE rollback, ESM unload or cross-Host freeze promise",
+    "faultRecovery": "native ESM failure can cache; restore delivery then restart; no cache busting or automatic WRITE replay"
+  },
+  "tests": {
+    "newHostFile": "tests/integration/eog-sop-command-lazy-host.test.mjs",
+    "newHostCases": 3,
+    "fixture": "tests/fixtures/sop-action-import-hook.mjs",
+    "fixtureType": "real native ESM load hook; bounded file barrier/fault, no source replacement or production hook",
+    "scenarios": [
+      "absent/disabled/installed unused stays cold",
+      "first concurrent list; does not load graph page/actions",
+      "legacy confirmation/version/attribution/published immutability and enterprise isolation",
+      "disable owner preserves graph state; enable/uninstall/reinstall/restart preserves SOP",
+      "disable during actual import rejects read/write, definitions bytes unchanged, same-handler recovery",
+      "import failure returns original HTTP403 and injected code; zero definition writes and restart recovery"
+    ],
+    "frozenDesigner": "assert not installed, do not change catalog/package scaffold"
+  },
+  "local": {
+    "node": "24.19.0",
+    "passed": 10,
+    "existingOnUse": 5,
+    "existingRegistration": 3,
+    "manualPreservedAuthority": 2,
+    "preservedCorpusAddedToMandatoryEogCore": false,
+    "syntax": "temporary erased Host, integration test, hook and audit script passed",
+    "officialBuild": false,
+    "realHost": false,
+    "browser": false,
+    "limitation": "Isolated fixed-SHA partial snapshot plus temporary Node type erasure; sandbox prohibits loopback/Chromium sockets. Formal full build/Node22 and Host proofs in CI."
+  },
+  "static": {
+    "priorEdges": 247,
+    "editedEdges": 246,
+    "removedOnly": "manager/enterprise-operating-graph-sop-actions.ts -> agents/enterprise-agent/package.ts [static]",
+    "allowanceExpanded": false,
+    "forbiddenColdModule": "dist/manager/enterprise-operating-graph-sop-actions.js",
+    "measurement": "pending strict CI; total module count may stay unchanged because cheap contract replaces implementation"
+  },
+  "ci": {
+    "statusAtCommit": "pending; final accurate-head CI, measurements, merge and branch cleanup recorded in this PR"
+  },
+  "historicalOnly": {
+    "pr": 1061,
+    "head": "16be3e4233eb49ea94a96232588110480734703d",
+    "modulesPerProfile": 310,
+    "staticEdges": 247,
+    "currentMeasurement": false
+  },
+  "reading": {
+    "full": [
+      "SOP contract/actions/service/tools",
+      "shared on-use implementation",
+      "Enterprise Definition/EOG boundaries",
+      "EOG peer-plugin extraction baseline"
+    ],
+    "structuredFields": "eog asset boundary/extraction ownership and CI fields",
+    "host": "local imports, shared instance configuration, all direct SOP consumers and action registration",
+    "priorAuthorities": "reuse previous complete project rules and lazy-resource-loading reading; no repeated external research"
+  },
+  "sha256": {
+    "manager/server.ts": "3a877b4f3f64b2a22eead6dfdde5390333b3a03ccfdac020db99fce1a2fbbe38",
+    "manager/enterprise-operating-graph-sop-actions.ts": "dc3f87746c937c88884eacb8ad6f54b5f355d7d16a84ed52dc1440d09883d65b",
+    "contracts/enterprise-operating-graph-sop.ts": "bead00d1fee458183e3d6e7d85bcd8c13291fa5946863a68155522df7a90aadb",
+    "tools/plugin-loading-audit.mjs": "c8e3250d82e9638494c95be8d919632bcd5e070c6c22904236c73099e0f270fb",
+    "tools/lightweight-host-baseline.json": "c446aa8b6797f95efc18eb6da3df680c09d8d12de50e81729bb4f1310e220c09",
+    ".github/workflows/lightweight-host.yml": "8febb908c73752bbddc88aca69b4f9f120115b823ed6a3189838817be50a0ca2",
+    "tests/integration/eog-sop-command-lazy-host.test.mjs": "b117533b15d71e918a9d7db58e11b89048279b9102029cfab59737d1e1911b62",
+    "tests/fixtures/sop-action-import-hook.mjs": "085bd29e423cd0412e55d2f02f1357993433f4a739dd3b093004210c89176b4f",
+    "docs/plans/platform-governance/EOG-LOADING-BOUNDARY-20261018.md": "eb8c2a9cfd4ab69f408e6e6c42b6572a879d1dea50c2275ed12d509f2839d586",
+    "docs/plans/platform-governance/CLOSEOUT-COUNTDOWN.md": "549afc61df439c5421907ea5d97732fe82ba02ebddf13df80f1136cc73e88833",
+    "docs/ui-design-reviews/eog-sop-command-loading-20261020.md": "d914255abfba01a87723ea9e11b41f9cc635347008a60900c4a0f8a147ef0819"
+  },
+  "remaining": [
+    "R1 final static-root/retention/frozen-exception reconciliation including legacy SOP tool identity/qualification debt",
+    "R2 Agent configured SQL ownership/qualification/acceptance",
+    "R3 Provider side effects classification",
+    "R4 final cross-layer matrix"
+  ],
+  "progress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  },
+  "productionDeployment": false
+}

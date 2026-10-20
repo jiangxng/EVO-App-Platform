@@ -368,3 +368,57 @@ E04稳定3帧、未观察到本轮几何变化，可信pointerdown命中真实cu
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 未整体收口 |
+
+## 15. 2026-10-20增量：旧SOP Human命令装配与冻结边界
+
+基线main `71d63ce6716c19d68e34e77dcd2fe0c185027e35`（#1062）；已核对包含#1061及#1020祖先。#1061最终head `16be3e4233eb49ea94a96232588110480734703d` 的46项CI通过、170行为/6守卫、四组合310模块/247边，合并 `e51ceadeaa7b46413443a1d7af6d1b50ae2e3300`，[收尾证据](https://github.com/jiangxng/EVO-App-Platform/pull/1061#issuecomment-6282656104)。这些是前批结果，不是本批测量。#1062仅5个Agent文档路径；开放BEX #1060已核对18个文件，无本批路径重叠。不覆盖其他窗口、不修改全局状态或部署。
+
+### 已读事实与选择
+
+本批完整读取SOP contract、actions、service、Agent tools、原共享on-use实现；Host局部核对全部SOP消费者。并完整补读定义/EOG边界和peer extraction baseline及结构化职责/CI字段，确认**SOP product/extraction仍DEFERRED**，既有SOP定义/分析语料为preserved/non-gating。源码身份scaffold不等于已注册可安装产品。本批不启用SOP Designer、不改APQC+time语义、SOP分析或Agent功能，不把preserved corpus加入EOG Core产品门禁。
+
+| 入口/事实 | 触发与副作用 | 本批决定 |
+|---|---|---|
+| 旧Human四命令：list/create/revise/publish | 原owner为enterprise-agent / enterprise-agent.default；构造仅建闭包。execute才读服务，WRITE才授权、版本校验/确认及调用Enterprise Context仓库 | 合法首次调用经现有lazy handler加载原实现；原owner/command与错误、授权、确认、版本规则保持；await后重查原Feature |
+| 3项SOP Agent工具 | 工厂在请求目录构建中调用；只创建描述/闭包。旧ownerPackageId=evo-app-platform，available仅检查Enterprise，execute才调SOP service | 保留原登记及业务合同，不新增工具/发布能力，不擅改归属与资格。此旧身份/资格债务如需迁移，须按冻结产品边界独立决定；不能声称本批使其全部生命周期合同正确 |
+| 共享SOP service及on-use委托 | Host Human handler、Agent工具，以及向bottleneck provider注入的expectedSopService共用；SOP构造无业务调用，list/history/listPublished只读定义仓库，create/revise才需要graph.get校验节点 | 保留同步共享服务与既有按需实例，不绑定单个UI/Agent Feature停用释放，不重开第6节；纯校验/转换不另造异步代理 |
+| SOP contract | 版本/类型；本批加入原四命令字符串，旧actions继续同名导出 | 只保留轻量公共身份，未转导出任何实现。不新增插件、影子仓库或通用加载框架 |
+
+未发现本批这几个构造函数“启动即业务I/O”的新缺陷；整改的是四个可选业务handler的静态装配，而非假称解决一次文件访问。SOP service实现仍保留在共享冷链，这是有依据的保留，不承诺把所有含SOP名称的模块清零。Host其余Agent路径/Provider副作用不在这份局部源码结论内。
+
+### 生命周期、恢复与回归
+
+四个原身份值进入现有SOP contract；旧actions公共导出保持；Host原静态factory登记改为4个现有createLazyAppActionHandler。路由前置Feature/授权保持，加载后再次检查原Agent Feature；之后执行原handler，每次使用当前请求Context/Principal，不缓存某个用户资格。原生ESM缓存+每command初始化Promise不等于授权缓存；原实现没有新增连接、任务、订阅或业务缓存，不新增dispose。
+
+新增 `tests/integration/eog-sop-command-lazy-host.test.mjs` 三项资源/装配兼容测试，进入原Lightweight Host治理CI，不是SOP产品认证；原preserved业务/analysis corpus和SOP Designer scaffold均不改。复用已验证Host隔离profile、startup-defaults journal及module probe；test-only原生ESM hook用有期限文件屏障挂起实际import，或抛出加载故障，无源码替换或生产测试入口。
+
+- 未安装/停用四命令拒绝，已安装未使用模块不加载；首次并发list返回相同结果，且不连带加载graph页面/命令。
+- 合成企业兼容检查原create/revise/publish、stale revision拒绝、发布确认与Human attribution、已发布不可变、不同企业隔离；原数据经停用/恢复、卸载重装、重启保留。停用旧owner时EOG独立图入口仍读原图，不释放共享状态。SOP Designer保持未安装。
+- 实际import期间HTTP停用后，迟到list/create拒绝且共享定义文件字节不变；重新启用后同lazy handler可读。交付故障按原Host动作HTTP403/body.error显式返回，定义文件不写；修复模块且重启后恢复。没有自动重放WRITE或绕过Node ESM失败缓存。
+
+停止只拒绝新调用与新增await之后的动作，不撤销已进入原授权/提交的WRITE、不承诺ESM卸载或跨Host冻结。SOP Agent工具旧资格不由本批附带重构。R2 Agent配置SQL、R3 Provider分类、R4最终矩阵仍未关闭。
+
+### 验证、证据与读取限制
+
+本地10项通过：原on-use共享服务5项、原登记/发现资源边界3项、preserved authority手动2项；最后2项仅为兼容证据，未恢复到EOG Core必跑语料。覆盖零工厂、SOP只读不创建graph、授权拒绝、共享仓库/隔离、恢复和发布Human确认/无Agent发布工具。Host临时类型擦除语法与新增test/hook/audit语法通过。仍为独立固定SHA部分源码快照+Node24临时转译，**不是本地正式全仓TS build，未本地执行真实Host/browser**；正式npm ci/build、Node22、三项Host回归及本批四组合数字由本PR CI给出，最终准确head/run/合并见PR。
+
+静态基线只删除旧SOP actions→Agent package一条退出冷链的边，247→246为编辑值，待严格CI验证；新增SOP actions冷启动禁入。contract常量替代实现模块，模块总数不一定下降；不能据数字不变否定正确装配，也不据数字下降声称资源/性能全合格。没有新的本地四组合测量，不用#1061的310/247当作本批结果。
+
+证据：[eog-sop-command-loading-20261020.json](evidence/eog-sop-command-loading-20261020.json)；[兼容评审](../../ui-design-reviews/eog-sop-command-loading-20261020.md)。复用前批已完整读取的项目启动/LLM/交付/clinerules/装载规范及本专项材料；本轮核对最新main、AGENTS及第14节接续，新增读取上述SOP/冻结权威全文与相关原测试，Host仅局部。无外网重复研究，无真实LLM/用户、物理设备、生产验收或部署。
+
+### 接续与固定进度
+
+本批通过对应CI后不继续拆纯模型/零资源工具。下一批先统一核对R1剩余静态根入口和有依据的保留/冻结例外，保留旧SOP工具身份/资格债务的明确边界，再推进R3 Provider逐类副作用。R1不因本批变为完成；R2需原Agent owner资源职责/资格和验收证据，R4跨层最终验收仍待完成；不替其他专项宣告闭环。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；旧SOP Human命令装配已整改 | R1剩余根边/保留项统一对账；R2/R3/R4继续 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
