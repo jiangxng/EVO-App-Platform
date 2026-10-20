@@ -11,6 +11,7 @@ import { createLazyProviderRuntimeV010 } from "./lazy-provider-runtime.js";
 import type { EnterpriseOperatingGraphAnalysisProviderV020 } from "../contracts/enterprise-operating-graph-observatory.js";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
+import { acquirePa05CooperativeHostStateLockV010 } from "./pa05-read-owner-cooperative-host-lock.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
@@ -1041,6 +1042,28 @@ const catalog = createPackageCatalog([
   ...tradingStagePreviewContribution.packages
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
+// PA05/E01J4J: optional *cooperating process* exclusion on exactly the
+// J4I one-shot state file. All ordinary startup paths remain unchanged by
+// default. This is NOT a distributed Worker/production-offline proof.
+const pa05CooperativeLockMode =
+  process.env.APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK?.trim() || "OFF";
+if (!["OFF", "OPT_IN"].includes(pa05CooperativeLockMode))
+  throw Error("PA05_J4J_COOPERATIVE_LOCK_MODE_INVALID");
+if (pa05CooperativeLockMode === "OPT_IN") {
+  if (!lifecycleStateFile)
+    throw Error("PA05_J4J_COOPERATIVE_STATE_FILE_REQUIRED");
+  const hostLock = acquirePa05CooperativeHostStateLockV010({
+    mode: "OPT_IN", stateFile: lifecycleStateFile
+  });
+  // Only successful clean exit releases the lock. An E01I early throw,
+  // shutdown failure or SIGKILL leaves it for independent Human review.
+  process.once("exit", (exitCode) => {
+    // Only clean process exit certifies a graceful Host release.
+    // Error exit, uncaught exception or failed shutdown leave this lock
+    // ambiguous for independently authorized stale-lock investigation.
+    if (exitCode === 0) hostLock.release();
+  });
+}
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
 
 // PA05-05/E01I: the local file store is NOT a shared, transactional
