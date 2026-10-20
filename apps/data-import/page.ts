@@ -821,14 +821,8 @@ export function createDataImportMappingPageV010(input: {
       subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
-      statusLabel: zh(input.locale) ? "来源数据已保留" : "Source preserved",
-      facts: [{
-        id:"records",label:zh(input.locale)?"记录数":"Records",
-        value:String(input.job.source.rows.length)
-      }, {
-        id:"columns",label:zh(input.locale)?"来源列数":"Columns",
-        value:String(input.job.source.headers.length)
-      }]
+      statusLabel: zh(input.locale) ? "文件已读取" : "File read",
+      facts: []
     },
     // Match the approved V3 prototype: the top stepper has two stages.
     // Precheck, schema confirmation and explicit commit remain substeps of

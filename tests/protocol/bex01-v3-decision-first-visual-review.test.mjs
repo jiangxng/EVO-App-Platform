@@ -41,6 +41,8 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     assert.ok(html.indexOf("data-eidos-form-task-metrics")<html.indexOf("data-eidos-form-review-table"),
       "visible file and task metrics must precede review decisions");
     assert.match(html,/authorized-supplier-example\.xlsx/);
+    assert.doesNotMatch(html,/data-eidos-form-task-facts/,
+      "V3 source totals belong in the compact file subtitle and task metrics, not a duplicate facts row");
     assert.match(html,/data-eidos-form-task-steps/);
     const headingIndex=html.indexOf("<div data-eidos-page-heading>");
     const stepperIndex=html.indexOf("<ol data-eidos-form-task-steps>");
@@ -63,6 +65,8 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-page-heading\] > \[data-eidos-form-task-steps\]/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-review-table-presentation="compact"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issues/);
+  assert.match(batch.reviewTask.subject.subtitle,/22 列来源/);
+  assert.match(batch.reviewTask.subject.subtitle,/18 列待处理/);
 });
 
 test("Eidos disclosure is opt-in; unknown modes fail closed",()=>{

@@ -430,8 +430,9 @@ export function createObjectExtensionBatchImportPageV010(input: {
     presentation: "workbench" as const,
     subject: {
       title: job.source.name ?? (zh ? "未完成的导入任务" : "Saved import task"),
-      subtitle: (zh ? "集中审核 · " : "Batch review · ") +
+      subtitle: (zh ? "导入文件 · " : "Source file · ") +
         job.source.rows.length + (zh ? " 条记录 · " : " rows · ") +
+        job.source.headers.length + (zh ? " 列来源 · " : " source columns · ") +
         columns.length + (zh ? " 列待处理" : " pending columns"),
       statusLabel: unavailableDraftSources.size
         ? (zh ? "草稿中 " + unavailableDraftSources.size + " 列原目标已失效，需重新核对"
@@ -439,12 +440,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
         : draft
         ? (zh ? "当前审核人的未批准草稿已恢复" : "Your unapproved review draft restored")
         : (zh ? "原始 Excel 已保留" : "Original Excel retained"),
-      facts: [
-        { id: "sourceColumns", label: zh ? "来源列总数" : "Source columns",
-          value: String(job.source.headers.length) },
-        { id: "unmatched", label: zh ? "待集中审核" : "Batch review",
-          value: String(columns.length) }
-      ]
+      facts: []
     },
     steps: [
       { id: "upload", label: zh ? "选择文件" : "Choose file",

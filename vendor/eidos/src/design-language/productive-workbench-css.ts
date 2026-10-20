@@ -3158,6 +3158,11 @@ form[data-eidos-id] button:hover,
    grid-template-columns:repeat(2,minmax(0,1fr))
  }
 }
+@media(max-width:360px){
+  [data-eidos-form-task-context]{grid-template-columns:minmax(0,1fr)}
+  [data-eidos-form-task-identity]{grid-column:1;grid-row:auto}
+  [data-eidos-form-task-source-status]{grid-column:1;grid-row:auto;justify-self:start;max-width:100%;text-align:left}
+}
 @media(max-width:520px){
  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
    padding:var(--eidos-space-md)
@@ -3240,8 +3245,10 @@ form[data-eidos-id] button:hover,
 [data-eidos-form-task-issues] li button:focus-visible{outline:2px solid var(--eidos-focus);outline-offset:2px}
 [data-eidos-form-task-help]{font-size:var(--eidos-font-compact);color:var(--eidos-fg-muted);margin:0}
 @media(max-width:680px){
-  [data-eidos-form-task-context]{grid-template-columns:minmax(0,1fr)}
-  [data-eidos-form-task-source-status]{justify-self:start}
+  [data-eidos-form-task-context]{grid-template-columns:minmax(0,1fr) auto;align-items:start}
+  [data-eidos-form-task-identity]{grid-column:1;grid-row:1}
+  [data-eidos-form-task-source-status]{grid-column:2;grid-row:1;justify-self:end;align-self:start;max-width:42vw;white-space:normal;text-align:right}
+  [data-eidos-form-task-facts]{grid-column:1/-1}
   [data-eidos-form-task-issues] li{flex-wrap:wrap;gap:var(--eidos-space-sm)}
   [data-eidos-form-task-issues] li button{min-height:44px}
 }
