@@ -857,6 +857,16 @@ export function createDataImportMappingPageV010(input: {
       });
     }
   }
+  // The V3 workbench orders decisions by the approved review sequence:
+  // ambiguous target first, row-level required data second, metadata handling last.
+  const issuePriority = (issue: typeof reviewIssues[number]): number => {
+    if (issue.title.includes("多个对应字段")) return 0;
+    if (issue.title.includes("缺少主体类型")) return 1;
+    if (issue.title.includes("尚未选择处理方式")) return 2;
+    return 3;
+  };
+  reviewIssues.sort((a, b) => issuePriority(a) - issuePriority(b));
+
   const reviewTask = {
     // Eidos #196: keep all task context behind an accessible disclosure
     // so real source-row decisions lead the first viewport.

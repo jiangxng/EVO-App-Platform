@@ -709,6 +709,7 @@ with sync_playwright() as pw:
     for label in ["开户银行存在多个对应字段","3 条记录缺少主体类型","「系统编码」尚未选择处理方式"]:
         assert label in issue_text,("BEX01_V3_VISUAL_ISSUE_MISSING",label,issue_text)
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
+    assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
     visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_page.evaluate("""async () => {
