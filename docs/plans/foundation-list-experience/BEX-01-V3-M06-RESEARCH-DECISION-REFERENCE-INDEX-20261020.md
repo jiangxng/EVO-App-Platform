@@ -247,3 +247,31 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 4. 最新可确认 Platform main 仍为 `eaa5e813b1e86a6460d988c76eb2076512c35127`；如果 main 前进，重新 compare。PR #1060 继续 Draft，不合并、不部署。
 
 M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真及 Human 视觉签收 OPEN；总体 3/6。合成 Host 只验证工程，不替代客户数据或 Human 视觉签收。
+
+
+## 2026-10-20 续跑 #10：失败预检返回映射页的问题区已通过真实 Host / 双视口验证
+
+### 精确 HEAD 与 CI（R）
+
+- 当前候选 HEAD：`dfc1cea0c6b74e21746769c04bd72047204572ca`，Platform #1060 仍 Draft / Open。
+- [Platform CI 39378716071](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716071)：PASS。
+- [BEX-01 Real Host Chromium 39378716067](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067)：PASS。
+- [In-Context Import Resume 39378716088](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716088)：PASS。
+- [Human UI Design Review Gate 39378716228](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716228)：PASS（自动门禁，非用户签收）。
+- 新 artifact：[12244670622](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378716067/artifacts/12244670622)。已下载并直接打开 `report.json` 与两张新增 PNG。报告仍是隔离 Host、54 条供应商、分页 25/25/4、5/5 场景通过、browserErrors=[]；未证明真机 iOS/Android 或弱网行为。
+
+### 新增真实浏览器覆盖（R）
+
+`tests/bex01/live_supplier_chromium.py` 现在在失败预检后重入同一 Job 的 `/map` 页面时，检查已保存 dry-run 中 3 条主体类型缺失问题确实出现在映射页“需要处理”区域，并验证该卡片聚焦到既有 `map-source-2` 源字段组；不执行额外提交、不改变映射或修正值。
+
+- `v3-map-row-issues-desktop.png`：1280px 真实 Host 映射页，显示 3 条记录问题卡片与四列映射表。
+- `v3-map-row-issues-phone.png`：390px 真实 Host 映射页，问题卡片按手机宽度换行；浏览器断言无横向溢出。
+- 该 fixture 是隔离测试 CSV `bex01-bad-supplier-mapping.csv`，3 条主体类型为空，不是客户文件。截图只证明当前失败预检返回路径和问题区，不代表原型所有问题状态都已还原。
+
+### 设计判断与仍余缺口
+
+- **已补齐一个真实功能差异：** 映射页不再忽略已持久化 dry-run 的行级问题；行问题按 `fieldId + code` 聚合，并列出受影响行号。页面只读取已有 Host 证据，不在加载时自动运行 dry-run，也不猜测客户主体身份。
+- **仍未完整覆盖 #909 的组合异常状态：** 当前新增截图只有主体类型缺失这一类；仍需一份隔离 fixture 同时呈现同名“开户银行”歧义、主体类型多行问题和“系统编码”未决，再确认三个问题卡片的顺序、文案与焦点行为。
+- **底部动作区仍有差异：** #909 有“返回文件”“恢复初始选择”“预检查并继续”；当前页面是“保存映射并预检查”与“AI 自动匹配”。Eidos 当前 `UidlAction` 仅定义 submit/cancel/agent，不包含声明式 navigate；不要将一个无动作的按钮放到页面上。需进一步检查 cancel 行为与 Host command 路由，确定返回和重置应由通用导航还是明确的受控命令实现。
+- **步骤条仍为三步**（选择文件/核对映射/预检查与导入），原型呈现两阶段（选择文件/核对并导入）。先保持真实预检查与显式提交的安全步骤，再研究如何在视觉层把子步骤收敛到原型表达，不隐藏安全门禁。
+- **Human 视觉签收仍 OPEN**。自动化通过不代表 100% 还原。M04/M05 继续 OPEN，总进度 3/6。
