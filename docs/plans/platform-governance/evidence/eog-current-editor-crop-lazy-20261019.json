@@ -72,7 +72,7 @@
   "ci": {
     "workflow": ".github/workflows/lightweight-host.yml",
     "newColdStartupForbiddenModule": "dist/apps/eog-2d-designer/definition-projection-editor.js",
-    "statusAtCommit": "Five workflows passed on prior head; native browser failed twice. Test-only native geometry synchronization added; refreshed head CI pending.",
+    "statusAtCommit": "Six workflows passed on verifiedCodeHead; following documentation-only result commit CI and merge recorded in PR",
     "verifiedHead": "1e2e56887e9ef17927fc0c7c6c3ffd0960b2f43e",
     "greenRuns": {
       "lightweightHost": 39251390733,
@@ -82,7 +82,7 @@
       "diagramIntegration": 39251390825
     },
     "measurement": {
-      "source": "PR #1047 official CI, not local",
+      "source": "Official CI 39360320807 at 9940a3bb581e5be6b6367f35fd023032b0c1b768, not local",
       "modulesPerProfile": 317,
       "staticEdges": 253,
       "profiles": 4,
@@ -100,8 +100,223 @@
       "fixScope": "test-only stable geometry wait and trusted native pointerdown target assertion; no gesture retries or relaxed business assertions",
       "localBrowserExecuted": false,
       "localReason": "sandbox EPERM for loopback listener and Chromium socket",
-      "rootCauseStatus": "Asynchronous ResizeObserver camera refit confirmed in source; attribution of observed failures remains inference pending native event diagnostics"
-    }
+      "rootCauseStatus": "D02 new run observed 137px node rect shift between first and settled frame; first center outside settled node. Trusted native events and original assertions pass after stable geometry. Prior failed attempts had no pointer trace; E04 root cause remains unconfirmed (new run stable with zero observed layout changes).",
+      "correctedRun": 39360320862,
+      "correctedJob": 118424743952,
+      "correctedConclusion": "success",
+      "diagnostics": [
+        {
+          "label": "E04 reselect after inspector collapse",
+          "kind": "edge",
+          "itemId": "v01-v03-sales-to-receipt",
+          "measured": {
+            "point": {
+              "x": 426.6019058227539,
+              "y": 298.2222900390625
+            },
+            "first": {
+              "rect": [
+                343.75,
+                287.875,
+                512.5,
+                196.25
+              ],
+              "canvas": [
+                0,
+                48,
+                1200,
+                676
+              ],
+              "matrix": [
+                1.25,
+                0,
+                0,
+                1.25,
+                56.25,
+                52.875
+              ],
+              "d": "M 230 188 C 402.2 188 467.8 345 640 345"
+            },
+            "settled": {
+              "rect": [
+                343.75,
+                287.875,
+                512.5,
+                196.25
+              ],
+              "canvas": [
+                0,
+                48,
+                1200,
+                676
+              ],
+              "matrix": [
+                1.25,
+                0,
+                0,
+                1.25,
+                56.25,
+                52.875
+              ],
+              "d": "M 230 188 C 402.2 188 467.8 345 640 345"
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-edge=\"v01-v03-sales-to-receipt\"]"
+          },
+          "down": {
+            "trusted": true,
+            "expectedTarget": true,
+            "edge": "v01-v03-sales-to-receipt",
+            "x": 426.6018981933594,
+            "y": 298.2222900390625
+          }
+        },
+        {
+          "label": "D02 first node move",
+          "kind": "node",
+          "itemId": "sale",
+          "measured": {
+            "point": {
+              "x": 130.33802795410156,
+              "y": 274.83802795410156
+            },
+            "first": {
+              "rect": [
+                49,
+                237.96478271484375,
+                162.67605590820312,
+                73.74649047851562
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                49,
+                237.96478271484375,
+                162.67605590820312,
+                73.74649047851562
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 0,
+            "frames": 3,
+            "sel": "[data-eidos-diagram-node=\"sale\"]"
+          },
+          "down": {
+            "trusted": true,
+            "expectedTarget": true,
+            "node": "sale",
+            "edge": null,
+            "x": 130.33802795410156,
+            "y": 274.8380126953125
+          }
+        },
+        {
+          "label": "D02 post-Save node move",
+          "kind": "node",
+          "itemId": "sale",
+          "measured": {
+            "point": {
+              "x": 136.2165870666504,
+              "y": 282.3307571411133
+            },
+            "first": {
+              "rect": [
+                186.20437622070312,
+                232.08047485351562,
+                187.5,
+                85
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "settled": {
+              "rect": [
+                48.987789154052734,
+                242.7870330810547,
+                174.4575958251953,
+                79.08744812011719
+              ],
+              "canvas": [
+                0,
+                48,
+                868,
+                676
+              ],
+              "matrix": null,
+              "d": null
+            },
+            "changes": 1,
+            "frames": 4,
+            "sel": "[data-eidos-diagram-node=\"sale\"]"
+          },
+          "down": {
+            "trusted": true,
+            "expectedTarget": true,
+            "node": "sale",
+            "edge": null,
+            "x": 136.21658325195312,
+            "y": 282.33074951171875
+          }
+        }
+      ],
+      "browser": "Chromium 155.0.8059.39",
+      "humanOrPhysicalDeviceAcceptance": false
+    },
+    "verifiedCodeHead": "9940a3bb581e5be6b6367f35fd023032b0c1b768",
+    "verifiedCodeRuns": [
+      {
+        "id": 39360320803,
+        "name": "Project Continuity CI",
+        "conclusion": "success"
+      },
+      {
+        "id": 39360320857,
+        "name": "Human UI Design Review Gate",
+        "conclusion": "success"
+      },
+      {
+        "id": 39360320842,
+        "name": "Diagram Designer Integration CI",
+        "conclusion": "success"
+      },
+      {
+        "id": 39360320867,
+        "name": "Platform CI",
+        "conclusion": "success"
+      },
+      {
+        "id": 39360320807,
+        "name": "Lightweight Host Architecture",
+        "conclusion": "success"
+      },
+      {
+        "id": 39360320862,
+        "name": "Diagram Commercial V01-V03 Native Browser Subgate",
+        "conclusion": "success"
+      }
+    ]
   },
   "newLocalFourProfileAudit": false,
   "historicalOnly": {
