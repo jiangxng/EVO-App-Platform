@@ -29,6 +29,14 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
       : {}),
     ...(doc.reviewTable
       ? { reviewTable: {
+          ...(doc.reviewTable.presentation ? {presentation:doc.reviewTable.presentation} : {}),
+          ...(doc.reviewTable.title ? {title:doc.reviewTable.title} : {}),
+          ...(doc.reviewTable.description ? {description:doc.reviewTable.description} : {}),
+          ...(doc.reviewTable.summaryLabel ? {summaryLabel:doc.reviewTable.summaryLabel} : {}),
+          ...(doc.reviewTable.showAllLabel ? {showAllLabel:doc.reviewTable.showAllLabel} : {}),
+          ...(doc.reviewTable.countPrefix !== undefined ? {countPrefix:doc.reviewTable.countPrefix} : {}),
+          ...(doc.reviewTable.countSuffix !== undefined ? {countSuffix:doc.reviewTable.countSuffix} : {}),
+          ...(doc.reviewTable.links ? {links:doc.reviewTable.links.map(link=>({...link}))} : {}),
           columnLabels: {...doc.reviewTable.columnLabels},
           ...(doc.reviewTable.filter ? { filter: {
             ...doc.reviewTable.filter,
@@ -49,7 +57,11 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
     })),
     cancelActions: doc.actions
       .filter(action => action.type === "cancel")
-      .map(action => ({ id: action.id, label: action.label })),
+      .map(action => ({
+        id: action.id, label: action.label,
+        ...(action.route ? {route:action.route} : {}),
+        ...(action.resetForm === true ? {resetForm:true} : {})
+      })),
     agentActions: doc.actions
       .filter(action => action.type === "agent")
       .map(action => ({

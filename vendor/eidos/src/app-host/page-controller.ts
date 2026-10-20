@@ -642,6 +642,30 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(() =>
       reviewTableFilter.removeEventListener("change", applyReviewTableFilter));
     applyReviewTableFilter();
+
+    const showAllButton = container.querySelector<HTMLButtonElement>(
+      "[data-eidos-review-table-show-all]"
+    );
+    if (showAllButton) {
+      const showAll = () => {
+        const allRows = Array.from(container.querySelectorAll<HTMLElement>(
+          "[data-eidos-form-review-table-row]"
+        ));
+        const allKeys = new Set(allRows.map(row => row.dataset.eidosReviewTableStatusKey)
+          .filter((key): key is string => Boolean(key)));
+        const allOption = Array.from(reviewTableFilter.options).find(option => {
+          const optionKeys = new Set((option.dataset.eidosReviewTableFilterKeys ?? "")
+            .split(",").filter(Boolean));
+          return [...allKeys].every(key => optionKeys.has(key));
+        });
+        if (allOption) {
+          reviewTableFilter.value = allOption.value;
+          reviewTableFilter.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      };
+      showAllButton.addEventListener("click", showAll);
+      listeners.push(() => showAllButton.removeEventListener("click", showAll));
+    }
   }
 
   // Opt-in, purely local review feedback. Never sends a Host command,
@@ -2558,6 +2582,18 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
   const form = container.querySelector<HTMLFormElement>("form[data-eidos-id]");
   if (form) {
+    // Native reset restores the rendered initial choices. Re-run the local
+    // review counters and filters after the browser has reset control values.
+    const onFormReset = () => {
+      queueMicrotask(() => {
+        for (const select of Array.from(form.querySelectorAll<HTMLSelectElement>("select"))) {
+          select.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      });
+    };
+    form.addEventListener("reset", onFormReset);
+    listeners.push(() => form.removeEventListener("reset", onFormReset));
+
     // Opt-in dependent selects: a selected option disappears from other
     // selectors in the group, while exempt placeholders remain available.
     // Snapshots preserve the original option order and allow release/restore.

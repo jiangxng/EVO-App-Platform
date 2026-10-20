@@ -44,6 +44,7 @@ const fieldKeys = new Set([
   "control",
   "required",
   "readOnly",
+  "presentation",
   "initialValue",
   "unit",
   "options",
@@ -58,6 +59,8 @@ const actionKeys = new Set([
   "label",
   "type",
   "command",
+  "route",
+  "resetForm",
   "requiresConfirmation",
   "prompt",
   "agentCapability",
@@ -113,6 +116,7 @@ function parseField(
     control,
     required,
     readOnly,
+    presentation,
     initialValue,
     unit,
     options,
@@ -164,6 +168,14 @@ function parseField(
       `${path}.readOnly`,
       "readOnly must be boolean"
     ));
+  }
+  if (presentation !== undefined && presentation !== "hidden") {
+    out.push(d("EIDOS_FIELD_PRESENTATION_INVALID", `${path}.presentation`,
+      "Field presentation must be hidden when specified"));
+  }
+  if (presentation === "hidden" && control !== "text") {
+    out.push(d("EIDOS_FIELD_PRESENTATION_CONTROL_MISMATCH", path,
+      "Hidden presentation is supported only for text fields"));
   }
   if (unit !== undefined && typeof unit !== "string") {
     out.push(d(
@@ -423,6 +435,7 @@ function parseField(
     control: control as UidlField["control"],
     required,
     ...(typeof readOnly === "boolean" ? { readOnly } : {}),
+    ...(presentation === "hidden" ? { presentation } : {}),
     ...(
       ["string", "number", "boolean"].includes(typeof initialValue)
         ? { initialValue: initialValue as UidlOptionValue }
@@ -485,6 +498,23 @@ function parseAction(
       `${path}.command`,
       "command must be non-empty when present"
     ));
+  }
+  if (value.route !== undefined
+    && (!nonEmpty(value.route) || !value.route.startsWith("/") || value.route.startsWith("//"))) {
+    out.push(d("EIDOS_ACTION_ROUTE_INVALID", `${path}.route`,
+      "Cancel action route must be an absolute in-app route"));
+  }
+  if (value.resetForm !== undefined && typeof value.resetForm !== "boolean") {
+    out.push(d("EIDOS_SCHEMA_TYPE", `${path}.resetForm`,
+      "resetForm must be boolean when present"));
+  }
+  if ((value.route !== undefined || value.resetForm !== undefined) && value.type !== "cancel") {
+    out.push(d("EIDOS_ACTION_CANCEL_BEHAVIOR_TYPE", path,
+      "route and resetForm are supported only for cancel actions"));
+  }
+  if (value.route !== undefined && value.resetForm === true) {
+    out.push(d("EIDOS_ACTION_CANCEL_BEHAVIOR_CONFLICT", path,
+      "A cancel action cannot both navigate and reset the form"));
   }
   if (
     value.requiresConfirmation !== undefined
@@ -571,6 +601,8 @@ function parseAction(
     label: value.label,
     type: value.type,
     ...(nonEmpty(value.command) ? { command: value.command } : {}),
+    ...(nonEmpty(value.route) ? { route: value.route } : {}),
+    ...(typeof value.resetForm === "boolean" ? { resetForm: value.resetForm } : {}),
     ...(typeof value.requiresConfirmation === "boolean"
       ? { requiresConfirmation: value.requiresConfirmation }
       : {}),
@@ -865,10 +897,56 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter"]),p,out);
+      extraKeys(table, new Set([
+        "columnLabels","filter","presentation","title","description",
+        "summaryLabel","showAllLabel","countPrefix","countSuffix","links"
+      ]),p,out);
+      if (table.presentation !== undefined
+        && (!nonEmpty(table.presentation)
+          || !["standard","compact"].includes(table.presentation))) {
+        out.push(d("EIDOS_REVIEW_TABLE_PRESENTATION_INVALID",p+".presentation",
+          "Review-table presentation must be standard or compact"));
+      }
+      for (const key of ["title","summaryLabel","showAllLabel"] as const) {
+        if (table[key] !== undefined && !nonEmpty(table[key])) {
+          out.push(d("EIDOS_REVIEW_TABLE_COPY_INVALID",p+"."+key,
+            "Review-table labels must be non-empty text"));
+        }
+      }
+      for (const key of ["description","countPrefix","countSuffix"] as const) {
+        if (table[key] !== undefined && typeof table[key] !== "string") {
+          out.push(d("EIDOS_REVIEW_TABLE_COPY_INVALID",p+"."+key,
+            "Review-table copy must be text"));
+        }
+      }
       extraKeys(table.columnLabels,
         new Set(["subject","evidence","decision","status"]),p+".columnLabels",out);
       const labels = table.columnLabels as Record<"subject"|"evidence"|"decision"|"status",string>;
+      let links: import("./contracts.js").UidlFormReviewTableV010["links"];
+      if (table.links !== undefined) {
+        if (!Array.isArray(table.links) || table.links.length > 3) {
+          out.push(d("EIDOS_REVIEW_TABLE_LINKS_INVALID",p+".links",
+            "Review-table links must be a bounded array of at most three routes"));
+        } else {
+          const ids = new Set<string>();
+          const parsedLinks: NonNullable<import("./contracts.js").UidlFormReviewTableV010["links"]> = [];
+          table.links.forEach((raw: unknown, index: number) => {
+            const at = p+".links["+index+"]";
+            if (!isPlainObject(raw) || !nonEmpty(raw.id) || !raw.id.trim()
+              || !nonEmpty(raw.label) || !raw.label.trim()
+              || !nonEmpty(raw.route) || !raw.route.startsWith("/")
+              || raw.route.startsWith("//") || ids.has(raw.id)) {
+              out.push(d("EIDOS_REVIEW_TABLE_LINKS_INVALID",at,
+                "Each table link needs a unique id, label and safe in-app route"));
+              return;
+            }
+            extraKeys(raw,new Set(["id","label","route"]),at,out);
+            ids.add(raw.id);
+            parsedLinks.push({id:raw.id,label:raw.label,route:raw.route});
+          });
+          links = parsedLinks;
+        }
+      }
       let filter: import("./contracts.js").UidlFormReviewTableV010["filter"];
       if (table.filter !== undefined) {
         const f = table.filter;
@@ -916,6 +994,15 @@ export function validateUidl(
         }
       }
       reviewTable={
+        ...(table.presentation==="compact" || table.presentation==="standard"
+          ? {presentation:table.presentation} : {}),
+        ...(typeof table.title==="string"?{title:table.title}:{}),
+        ...(typeof table.description==="string"?{description:table.description}:{}),
+        ...(typeof table.summaryLabel==="string"?{summaryLabel:table.summaryLabel}:{}),
+        ...(typeof table.showAllLabel==="string"?{showAllLabel:table.showAllLabel}:{}),
+        ...(typeof table.countPrefix==="string"?{countPrefix:table.countPrefix}:{}),
+        ...(typeof table.countSuffix==="string"?{countSuffix:table.countSuffix}:{}),
+        ...(links ? {links} : {}),
         columnLabels:{
           subject:labels.subject,evidence:labels.evidence,
           decision:labels.decision,status:labels.status
@@ -1014,13 +1101,22 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","helpText"]),path,out);
-      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
-        path+".subject",out);
+        "issuesDescription","issues","helpText","presentation"]),path,out);
+      if (task.presentation !== undefined
+        && (typeof task.presentation !== "string"
+          || !["full","decision-first","workbench"].includes(task.presentation))) {
+        fail(path+".presentation","Unknown review task presentation mode");
+      }
+      extraKeys(task.subject,new Set([
+        "title","subtitle","statusLabel","statusTone","badgeLabel","facts"
+      ]),path+".subject",out);
       if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")
         || (task.subject.statusLabel !== undefined
-          && typeof task.subject.statusLabel !== "string")) {
-        fail(path+".subject","Subject copy must be text");
+          && typeof task.subject.statusLabel !== "string")
+        || (task.subject.badgeLabel !== undefined && !nonEmpty(task.subject.badgeLabel))
+        || (task.subject.statusTone !== undefined
+          && !["neutral","positive","warning"].includes(task.subject.statusTone as string))) {
+        fail(path+".subject","Subject copy, badge or status tone is invalid");
       }
       const checkIds = (items: unknown, pathName: string, max: number,
         predicate: (item:Record<string,unknown>,at:string)=>boolean) => {
