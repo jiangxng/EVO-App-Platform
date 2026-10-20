@@ -354,3 +354,54 @@ test("OIDC health probe validates discovery issuer binding", async () => {
   const health = await probe();
   assert.equal(health.state, "HEALTHY");
 });
+
+test("failed discovery is shared only in flight; a new explicit login retries and successful discovery stays cached", async () => {
+  const authority = fakeAuthority();
+  let discoveryCalls = 0, fail;
+  const failure = new Promise((_resolve, reject) => { fail = reject; });
+  const identityProvider = provider(authority, {fetchImpl: async (url, init) => {
+    if (String(url).endsWith('/.well-known/openid-configuration')) {
+      discoveryCalls++;
+      if (discoveryCalls === 1) return failure;
+    }
+    return authority.fetchImpl(url, init);
+  }});
+  const begin = () => identityProvider.begin({contractVersion: '0.1.0', callbackUrl, returnTo: '/'});
+  const first = begin(), second = begin();
+  assert.equal(discoveryCalls, 1);
+  const rejected = Promise.all([assert.rejects(first, /synthetic-discovery-failure/),
+    assert.rejects(second, /synthetic-discovery-failure/)]);
+  fail(Error('synthetic-discovery-failure'));
+  await rejected;
+  assert.equal(discoveryCalls, 1, 'no automatic retry');
+  const recovered = await begin();
+  const cached = await begin();
+  assert.equal(discoveryCalls, 2);
+  assert.notEqual(new URL(recovered.redirectUrl).searchParams.get('state'),
+    new URL(cached.redirectUrl).searchParams.get('state'));
+});
+
+test("failed JWKS fetch consumes the callback; only a new login can retry and authenticate", async () => {
+  const authority = fakeAuthority();
+  let jwksCalls = 0;
+  const identityProvider = provider(authority, {fetchImpl: async (url, init) => {
+    if (String(url) === issuer + '/jwks' && ++jwksCalls === 1) throw Error('synthetic-jwks-failure');
+    return authority.fetchImpl(url, init);
+  }});
+  const complete = authorize => identityProvider.complete({contractVersion: '0.1.0', callbackUrl:
+    callbackUrl + '?code=synthetic&state=' + encodeURIComponent(authorize.searchParams.get('state'))});
+  const failed = await beginLogin(identityProvider, authority);
+  await assert.rejects(complete(failed), /synthetic-jwks-failure/);
+  await assert.rejects(complete(failed), /OIDC_STATE_INVALID/);
+  assert.equal(jwksCalls, 1, 'consumed callback cannot replay token exchange or key request');
+  assert.equal(authority.calls.filter(call => call.url === issuer + '/token').length, 1);
+  const next = await beginLogin(identityProvider, authority);
+  const result = await complete(next);
+  assert.match(result.principal.subjectId, /^oidc:[A-Za-z0-9_-]{16}:subject-123$/);
+  await assert.rejects(complete(next), /OIDC_STATE_INVALID/);
+  const cached = await beginLogin(identityProvider, authority);
+  await complete(cached);
+  assert.equal(jwksCalls, 2, 'successful JWKS stays cached');
+  assert.equal(authority.calls.filter(call => call.url.endsWith('/.well-known/openid-configuration')).length, 1);
+});
+

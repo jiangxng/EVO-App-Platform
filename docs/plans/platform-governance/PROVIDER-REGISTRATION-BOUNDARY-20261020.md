@@ -318,7 +318,59 @@ DLP的`createContextMemoryScheduledOperationsV010.runDlp`每次先调用`resolve
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| A01 轻量宿主与按需装载 | 部分完成；P12 token请求边界、reader当前选择 | R3其余类别/配置安装；R1/R2/R4保留 |
+| A01 轻量宿主与按需装载 | 部分完成；P12 token请求边界、reader当前选择 | 后续见第11节；R1/R2/R4保留 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+
+## 11. 2026-10-20增量：session/EVO/OIDC资源与失败缓存恢复
+
+基线main `91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa`（#1079，原#1020已在此前祖先链确认），过程分支 `fix/governance-oidc-cache-resource-boundary-20261020`。本节只接续R3现有身份及观测Provider，不扩展认证产品、Agent、第二Provider试点或UI。#1079的312模块/246边、221行为/6守卫属于[历史结果](https://github.com/jiangxng/EVO-App-Platform/pull/1079#issuecomment-6291061712)，不能当作本批实测。
+
+### 工厂、共享权威与实际触发
+
+| 入口 | 构造/登记与调用事实 | 判断、范围与退出条件 |
+|---|---|---|
+| static session / bearer session | 解析JSON、克隆内存Session；current/resolve才检查期限/比较token，health只读内存 | 保留轻量同步工厂；不为减少模块数包懒代理。Bearer health描述配置数量，不证明每个token有效 |
+| managed session adapter | 仅捕获共享service；空token/冲突token不调用service；有效resolve才查索引，显式probe才list | 保留同步共享安全权威，不能绑定单个UI启停；本批回归验证同一adapter看到后续撤销 |
+| managed service / JSONL store | store构造exists/read/解析日志；service创建时list并物化Session与token hash索引；issue/revoke/rotate才append，resolve不逐次重读文件 | EA1A §6明确要求受管认证启动重放，属于受管模式安全职责保留。**Host受管模式关闭但显式设置session文件时仍会读取**，这一资格缺口未获例外，后续单独核对；不把adapter零访问扩为整Host零I/O |
+| OIDC runtime / registry | 构造只校验配置并持有Map/未初始化Promise；begin才discovery、生成state/nonce/PKCE；complete消费state后交换token/验JWT/JWKS；显式health才网络 | 保留工厂，注册/发现不做认证。请求已有8秒含正文deadline、redirect:error及finally清理；本批修复失败Promise永久缓存，成功缓存不变 |
+| OIDC Host refresh | issuer/clientId缺失则移除runtime；完整配置可describe并resolve clientSecret，注册时不发网络 | **提前解密仍是R3待整改项**，历史Host-wiring文档不能替代A01资格证据。认证Basic/public-client与登录事务需单独设计验证，不能机械复制Bearer token helper |
+| EVO observatory runtime | 构造仅闭包；query先解析enterprise映射，缺失零fetch，有映射GET企业，再按指标/目标请求；health显式GET readiness | 保留工厂；probe仅可达性，不证明业务授权/映射/查询成功。原query/probe缺本地deadline/Abort/redirect:error，仍留R3/R4，不用revision bridge的10秒合同替它验收 |
+| EVO revision bridge | 构造无timer/网络；有订阅兴趣后才启unref interval、poll；原有取消、有限请求和dispose | 复用已有协议/真实资源回归，不重做生命周期试点；bridge和query是不同请求端口 |
+| 配置驱动安装/映射 | 一次默认安装有journal并保留原停用；Host另有配置驱动bootstrap分支：EVO flag、managed、static/Bearer、memory/P12等。OIDC configureRuntime不等于安装；应用映射非空还可能安装/启用binding包并bind写入 | catalog、已安装/有效贡献、配置完整必须分开。配置自动重装/映射写入的资格、来源权威与退出条件未闭环，不能宣称配置存在仍“未安装”或原默认安装journal覆盖全部分支 |
+
+上述保留只针对实际无资源闭包、内存合同和明确受管认证职责。未来替换共享认证权威须有消费者迁移/重启/撤销证据，不因某个可选页面停用销毁索引。OIDC待完成事务当前只在complete检查TTL，容量/过期清理和成功JWKS长期刷新策略不在本批实现，仍需按原owner资源预算评估；不引入新timer掩盖它。
+
+### 有界修复与安全合同
+
+原discoveryCache/jwksCache把拒绝Promise永久保存，瞬时网络/正文失败后同一runtime无法通过显式新登录恢复。现在只在捕获拒绝时、且缓存仍指向当前pending的情况下清空，继续向原调用者抛错。成功结果及并发首次请求共享保持；不自动重试discovery/token写请求，不放行旧callback，不降低issuer/audience/nonce/期限/签名校验。JWKS未知kid原一次force refresh仍保留；引用身份比较避免旧拒绝误清替代缓存，不新增通用cache框架。
+
+### 证据分级与读取
+
+新增7项：并发失败discovery共享且新begin恢复/成功缓存；JWKS失败旧state不可重放、新begin完成RS256认证并缓存；求值前资源守卫覆盖六个runtime根、配置工厂和registry发现；managed调用/撤销；EVO缺映射零出站、显式请求/probe失败恢复；OIDC refresh有意Secret读取且零网络；discovery正文等待8秒Abort清理后新begin恢复。守卫复用原文件/网络/timer/子进程拦截与吞异常自检，不把注入计数冒充真实Host资源测量。
+
+本地固定SHA部分源码、Node24.19临时类型擦除：新增2个缓存回归在旧实现上均失败，原8项通过；修复后新7+既有13合计20/20通过。**非正式全仓npm ci/build，未本地运行真实Host、浏览器或数据库**。正式Node22/build、认证协议与原Host矩阵、本轮四组合以PR最终准确head CI为准，永久结果保存在PR收口评论。Lightweight CI新增这三个测试文件；静态基线/冷禁入没有放宽。无新增生产模块，不推断模块降幅或生产收益。
+
+完整读取：上述五类runtime、OIDC host-runtime、identity-session-store、revision bridge、startup-defaults；OIDC provider/host既有测试及本批测试；EA1A Session、EA1B2A OIDC合同、EA1B2B Host接线权威全文。manifest读取身份/能力/Secret字段，不声称重读全部UI元数据。Host只读managed构造、Provider注册/refresh、配置bootstrap及EVO映射绑定段，不声称通读全部server或消费者。复用已读项目启动/交付、装载架构§11及治理交接（运行图至§16、Provider至§10）、Eidos和Help权威，无新增外网研究。共享View State原零文件构造结论保持。
+
+证据：[oidc-cache-resource-boundary-20261020.json](evidence/oidc-cache-resource-boundary-20261020.json)；[认证恢复兼容记录](../../ui-design-reviews/oidc-cache-resource-boundary-20261020.md)。Help影响：仍使用原显式新登录流程，无新字段/步骤/产品入口；失败旧callback拒绝，不自动重放，Secret管理与管理员授权不变。未执行生产部署或Human验收。
+
+### 下一批与停止条件
+
+本批准确head CI合格后合并，停止追加工厂拆分。下一批优先处理**OIDC Host提前clientSecret解析与实际登录事务的资格/恢复边界**，复用原同步认证合同、原Secret管理与Provider resolver，先核对当前选择和在途会话责任，再确定最小修正；不要把P12 helper直接套在Basic认证上。之后保留：managed关闭但指定文件、EVO配置映射启动写入、配置驱动安装权威/退出条件、query资源期限与其余Provider资格。R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层矩阵均开放，A03/A05不由本批代关。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；session/EVO/OIDC资源分类与失败缓存恢复 | R3资格/配置安装；R1/R2/R4仍开放 |
 | A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
 | A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
 | A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |

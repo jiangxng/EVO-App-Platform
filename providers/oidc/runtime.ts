@@ -252,7 +252,15 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
       }
       return metadata;
     })();
-    return discoveryCache;
+    const pending = discoveryCache;
+    try {
+      return await pending;
+    } catch (error) {
+      // Keep successful metadata and in-flight sharing, but allow a new login
+      // after failure. A stale rejection must not evict a replacement cache.
+      if (discoveryCache === pending) discoveryCache = undefined;
+      throw error;
+    }
   }
 
   async function jwks(forceRefresh = false): Promise<JwkSetV010> {
@@ -266,7 +274,13 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
         "OIDC_JWKS"
       );
     })();
-    return jwksCache;
+    const pending = jwksCache;
+    try {
+      return await pending;
+    } catch (error) {
+      if (jwksCache === pending) jwksCache = undefined;
+      throw error;
+    }
   }
 
   async function validateIdToken(
@@ -501,3 +515,4 @@ export function createGenericOidcIdentityHealthProbeV010(
     }
   };
 }
+
