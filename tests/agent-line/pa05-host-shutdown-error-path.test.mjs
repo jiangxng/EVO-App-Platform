@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {runHostShutdownStepsV010} from "../../dist/manager/host-shutdown.js";
+import {rejectHostShutdownRequestV010, runHostShutdownStepsV010} from "../../dist/manager/host-shutdown.js";
 
 const names = [
   "scheduler", "managed runtime", "async reader", "write lifecycle Host",
@@ -50,4 +50,23 @@ test("Host shutdown reports clean completion only when every cleanup succeeds", 
 
   assert.deepEqual(attempted, names);
   assert.deepEqual(result, {ok: true, failedSteps: []});
+});
+
+test("Host shutdown admission rejects requests and closes keep-alive", () => {
+  const response = {
+    statusCode: 200,
+    headers: {},
+    body: "",
+    setHeader(name, value) { this.headers[name] = value; return this; },
+    end(body) { this.body = body; return this; }
+  };
+  assert.equal(rejectHostShutdownRequestV010(false, response), false);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.headers, {});
+  assert.equal(response.body, "");
+
+  assert.equal(rejectHostShutdownRequestV010(true, response), true);
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.headers.Connection, "close");
+  assert.equal(response.body, "Host shutting down");
 });

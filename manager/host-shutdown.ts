@@ -29,3 +29,21 @@ export async function runHostShutdownStepsV010(
   }
   return {ok: failedSteps.length === 0, failedSteps};
 }
+
+export interface HostShutdownResponseV010 {
+  statusCode: number;
+  setHeader(name: string, value: string): unknown;
+  end(body?: string): unknown;
+}
+
+/** Refuse new requests, including those arriving on an existing keep-alive connection. */
+export function rejectHostShutdownRequestV010(
+  shuttingDown: boolean,
+  response: HostShutdownResponseV010
+): boolean {
+  if (!shuttingDown) return false;
+  response.statusCode = 503;
+  response.setHeader("Connection", "close");
+  response.end("Host shutting down");
+  return true;
+}

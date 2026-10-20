@@ -13,7 +13,7 @@ import type { EnterpriseOperatingGraphAnalysisProviderV020 } from "../contracts/
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { acquirePa05CooperativeHostStateLockV010 } from "./pa05-read-owner-cooperative-host-lock.js";
-import { runHostShutdownStepsV010 } from "./host-shutdown.js";
+import { rejectHostShutdownRequestV010, runHostShutdownStepsV010 } from "./host-shutdown.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
@@ -6226,12 +6226,7 @@ function publishActionRealtimeEvents(
 let shuttingDown = false;
 const server = createServer(async (request, response) => {
   try {
-    if (shuttingDown) {
-      response.statusCode = 503;
-      response.setHeader("Connection", "close");
-      response.end("Host shutting down");
-      return;
-    }
+    if (rejectHostShutdownRequestV010(shuttingDown, response)) return;
     const url = new URL(request.url ?? "/", "http://localhost");
     applyWebSecurityHeaders(response);
     applyWebRevisionHeadersV010(
