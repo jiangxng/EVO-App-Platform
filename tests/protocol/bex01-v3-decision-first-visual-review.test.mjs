@@ -30,6 +30,7 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   const batch=createObjectExtensionBatchImportPageV010({
     job,definitions:[],importableTargets:[],locale:"zh-CN",actorSubjectId:"owner"
   });
+  assert.equal(mapping.title,"核对导入数据", "the review title should match the approved V3 prototype");
   for(const form of [mapping,batch]){
     assert.equal(form.reviewTask.presentation,"workbench");
     const validated=validateUidl(form);
@@ -43,6 +44,9 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     assert.match(html,/data-eidos-form-task-steps/);
     assert.match(html,/data-eidos-form-task-metrics/);
     assert.match(html,/data-eidos-form-review-table/);
+    assert.match(html,/type="hidden" name="importJobId"[^>]*value="v3-human-review-fidelity"/);
+    assert.doesNotMatch(html,/<label>当前文件<select/);
+    assert.doesNotMatch(html,/<label>批量字段审核/);
     assert.match(html,/data-eidos-review-table-presentation="compact"/);
     assert.match(html,/data-eidos-review-table-choice-label/,
       "source identity is already the first column; compact select keeps an accessible label");
