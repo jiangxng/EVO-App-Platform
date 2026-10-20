@@ -43,6 +43,8 @@ export interface WorkbenchShellOptions {
   actionHost?: ActionHost;
   localization?: LocalizationRuntime;
   initialWorkspaceRoute?: string;
+  /** Opt-in Host-owned route predicate for a reversible wide workspace. */
+  shouldFocusWorkspaceRoute?: (route: string) => boolean;
   /**
    * Legacy explicit Surface id used by existing Workbench embedders.
    * When declared by the owning Experience it is resolved to that Surface target.
@@ -330,6 +332,9 @@ export async function mountWorkbenchShell(
     setIconContent(button, iconName, undefined, size);
   }
 
+  // Focus never replaces or persists the user's normal side-panel preference.
+  let expandedForFocusedRoute = false;
+  let focusedRouteIdentity: string | undefined;
   const root = document.createElement("div");
   root.setAttribute("data-eidos-app-host", "0.1.0");
   root.setAttribute("data-eidos-app-host-layout", "workbench");
@@ -397,7 +402,11 @@ export async function mountWorkbenchShell(
   localeWrap.append(localeLabel, localeSelect);
   if (localization) globalControls.append(localeWrap);
 
-  browserToolbar.append(globalControls);
+  const focusToggle = document.createElement("button");
+  focusToggle.type = "button";
+  focusToggle.setAttribute("data-eidos-workspace-focus-toggle","");
+  focusToggle.hidden = true;
+  browserToolbar.append(focusToggle,globalControls);
 
   let workspaceDraft: ReturnType<typeof trackContextualFormDraftV010> | undefined;
   const workspaceContent = document.createElement("div");
@@ -430,7 +439,37 @@ export async function mountWorkbenchShell(
     return activity.kind === "navigation" || activity.kind === "side-route";
   }
 
+  function updateFocusedRoutePresentation(): void {
+    // A previously hidden side panel still gets the wider review surface;
+    // the route focus cannot silently overwrite the user's saved preference.
+    const eligible = workspaceMode === "app"
+      && options.shouldFocusWorkspaceRoute?.(state.workspaceTarget) === true;
+    if (!eligible || focusedRouteIdentity !== state.workspaceTarget) {
+      expandedForFocusedRoute = false;
+    }
+    focusedRouteIdentity = eligible ? state.workspaceTarget : undefined;
+    const focused = eligible && (!state.sidePanelVisible || !expandedForFocusedRoute);
+    const canToggle = eligible && state.sidePanelVisible;
+    root.setAttribute("data-eidos-workspace-focus-eligible",canToggle ? "true" : "false");
+    root.setAttribute("data-eidos-workspace-focused",focused ? "true" : "false");
+    focusToggle.hidden = !canToggle;
+    if (canToggle) {
+      const label = focused
+        ? hostText("workbench.showSidePanel","Show side panel")
+        : hostText("workbench.hideSidePanel","Hide side panel");
+      setIconButton(focusToggle,"sidebar",label);
+      focusToggle.setAttribute("aria-pressed",focused ? "true" : "false");
+    }
+  }
+
+  focusToggle.addEventListener("click", () => {
+    if (!focusedRouteIdentity) return;
+    expandedForFocusedRoute = !expandedForFocusedRoute;
+    updateFocusedRoutePresentation();
+  });
+
   function updateLayoutAttributes(): void {
+    updateFocusedRoutePresentation();
     root.setAttribute("data-side-panel-visible", state.sidePanelVisible ? "true" : "false");
     const toggleLabel = state.sidePanelVisible
       ? hostText("workbench.hideSidePanel", "Hide side panel")
@@ -787,6 +826,7 @@ export async function mountWorkbenchShell(
       }
 
       state.workspaceTarget = resolvedTarget;
+      updateFocusedRoutePresentation();
       if (
         surface?.resolution.kind !== "HANDOFF"
         && currentHashPath() !== resolvedTarget
@@ -813,6 +853,7 @@ export async function mountWorkbenchShell(
       workspaceMode = "web";
       root.setAttribute("data-eidos-workspace-mode", workspaceMode);
       state.workspaceTarget = normalized;
+      updateFocusedRoutePresentation();
       persist();
       renderWeb(normalized);
       root.setAttribute("data-mobile-surface", "workspace");
@@ -941,7 +982,13 @@ export async function mountWorkbenchShell(
       return;
     }
 
-    if (state.activeActivityId === activity.id && state.sidePanelVisible) {
+    // Navigation activities must also be accessible from a saved hidden panel.
+    preserveExplicitNavigationReveal();
+    if (focusedRouteIdentity && state.sidePanelVisible) {
+      expandedForFocusedRoute = true;
+    }
+    if (state.activeActivityId === activity.id && state.sidePanelVisible
+      && !focusedRouteIdentity) {
       state.sidePanelVisible = false;
     } else {
       state.activeActivityId = activity.id;
@@ -955,7 +1002,24 @@ export async function mountWorkbenchShell(
     root.setAttribute("data-mobile-surface", "panel");
   }
 
+  // An explicit request to open a previously hidden side panel must win
+  // over default route focus; the user can then use their usual navigation.
+  function preserveExplicitNavigationReveal(): void {
+    if (state.sidePanelVisible || workspaceMode !== "app"
+      || options.shouldFocusWorkspaceRoute?.(state.workspaceTarget) !== true) return;
+    focusedRouteIdentity = state.workspaceTarget;
+    expandedForFocusedRoute = true;
+  }
+
   async function toggleSidePanel(): Promise<void> {
+    // Keep Cmd/Ctrl+B and the existing sidebar toggle temporary on this route.
+    if (focusedRouteIdentity && state.sidePanelVisible) {
+      expandedForFocusedRoute = !expandedForFocusedRoute;
+      updateFocusedRoutePresentation();
+      if (expandedForFocusedRoute) await renderSidePanel();
+      return;
+    }
+    preserveExplicitNavigationReveal();
     state.sidePanelVisible = !state.sidePanelVisible;
     persist();
     updateLayoutAttributes();
@@ -1090,6 +1154,7 @@ export async function mountWorkbenchShell(
         persist();
       }
     }
+    updateFocusedRoutePresentation();
     await renderSidePanel();
     if (workspaceMode === "app") {
       await renderInternalWorkspace(state.workspaceTarget);

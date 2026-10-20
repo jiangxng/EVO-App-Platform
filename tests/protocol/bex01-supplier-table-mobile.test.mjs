@@ -38,6 +38,8 @@ test("BEX-01 supplier page is a real bounded table with visible columns and mobi
  const styles=readFileSync("vendor/eidos/src/design-language/productive-workbench-css.ts","utf8");
  assert.match(styles, /max-width:700px/);
  assert.match(styles, /data-eidos-catalog-has-table/);
+ assert.match(styles, /data-eidos-workspace-focused="true"\]\s+form\[data-eidos-id\]/);
+ assert.match(styles, /\}\s*\n\[data-eidos-workspace-focus-toggle\]/);
  assert.match(styles, /safe-area-inset-bottom/);
 });
 test("BEX-01 URL params never override projection identity and reject polluted paging",()=>{

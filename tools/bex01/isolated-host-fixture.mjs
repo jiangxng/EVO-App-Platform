@@ -89,7 +89,7 @@ try{
    assert.ok(outcome.value.snapshot?.installedPackages?.some(x=>x.packageId===packageId),"BEX01_INSTALL_FAILED_"+packageId);
  }
  const lines=["往来编码,往来名称,主体类型"];
- for(let index=1;index<=53;index++){
+ for(let index=1;index<=54;index++){
   const no=String(index).padStart(4,"0");
   lines.push("S"+no+",Supplier "+no+",ORGANIZATION");
  }
@@ -216,7 +216,7 @@ try{
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
  assert.equal(first.status,200,JSON.stringify(first.value).slice(0,1800));
  assert.equal(first.value.table?.rows?.length,25,"BEX01_FIRST_PAGE_NOT_BOUNDED");
- assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
+ assert.equal(first.value.table?.pageInfo?.total,54,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
  const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,
    syntheticXlsxJobId:syntheticJobId,syntheticXlsxRows:172,syntheticXlsxColumns:22,
@@ -225,7 +225,7 @@ try{
    retainedCodePrefix:"RET-",
    retainedNamePrefix:"Retained Supplier ",
    route:COUNTERPARTY_SUPPLIERS_ROUTE,
-   expectedTotal:53,isolated:true,productionUsed:false};
+   expectedTotal:54,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
  console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));
 }catch(error){console.error("BEX01_BROWSER_FIXTURE_FAILED",error);await shutdown();process.exit(1);}
