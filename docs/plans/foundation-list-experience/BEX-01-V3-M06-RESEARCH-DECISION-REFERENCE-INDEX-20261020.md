@@ -378,3 +378,25 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 - 再次比较确认 Platform `main`=`eaa5e813b1e86a6460d988c76eb2076512c35127`，实施分支 `107fbceb1c26043bd01ef2791e25068c3f474767` 为 ahead 37 / behind 0。上一条 #15 的 ahead 36 是新增视觉审查文档提交前的计数；本条以最新双向比较为准。
 - 该计数变化不影响精确 HEAD `107fbceb…` 的 CI 结果：Platform CI run `39386798443` PASS，BEX Real Host Chromium run `39386798369` PASS（artifact `12248210391`，5/5），In-Context Resume `39386798367` PASS，Human UI Design Review Gate `39386798312` PASS，Lightweight Host Architecture `39386798311` PASS，PA-01B2 Full Isolated Chrome Host Acceptance `39386798382` PASS。
 - 当前未合并/部署。保持 M04/M05 OPEN、M06 待 Human 视觉签收，总体 3/6。下一项是构建与 #909 同状态的隔离视觉 fixture，避免用不一致的数据状态声称 100% 还原。
+## 2026-10-20 续跑 #17：真实 Host 三问题视觉 fixture 与门禁
+
+### 直接证据
+
+- Platform implementation PR #1060: https://github.com/jiangxng/EVO-App-Platform/pull/1060
+- Tested code HEAD: `0e3aec5b7c1e4be6f8f1454ea51b05cb18f7b161`
+- Docs-only follow-up HEAD: `0f5b5b301749cbbb4d13d14cd2c2d582c6fdee23` (must rerun/check exact-HEAD CI before declaring latest branch green).
+- Real Host Chromium run: https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545718
+- Artifact ID: `12249767148`, `bex01-real-host-chromium-evidence`
+- Screenshot files: `v3-prototype-parity-issues-desktop.png`, `v3-prototype-parity-issues-phone.png`, `v3-prototype-parity-submit-desktop.png`, `v3-prototype-parity-submit-phone.png`.
+
+### Fixture contract and observed result
+
+A disposable isolated Host job uses synthetic data only: 22 columns, 172 rows, 16 existing target mappings, four new-field proposals, zero ignored columns, and three distinct issues. The three issue cards are rendered in prototype order and expose different actions: ambiguous bank target / choose field; missing subject type for rows 165, 169, 172 / view records; system-code metadata / handle column. The overall Real Host Chromium workflow is green, and the visual-fixture-specific assertions ran inside that workflow. The standard `report.json` still lists the five pre-existing named journeys; it does not add the visual-fixture case to its count, so do not describe it as a sixth report.json case.
+
+### Implementation split and remaining parity gaps
+
+- Platform business copy and action labels: `apps/data-import/page.ts`.
+- Platform vendored Eidos issue-card realization: `vendor/eidos/src/design-language/productive-workbench-css.ts`.
+- Platform regression checks: `tests/protocol/data-import-human-experience.test.mjs`, `tests/protocol/bex01-v3-decision-first-visual-review.test.mjs`, `tests/bex01/live_supplier_chromium.py`, and `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py`.
+- Eidos owner-layer issue-card CSS/test is isolated in PR #204: https://github.com/jiangxng/eidos/pull/204. Its CI and Human UI Design Review Gate pass on head `199feb9addfa8de1ae930097c56f528ba1b86ab3`; it remains Draft and does not alter PR #202.
+- Remaining: file-type badge on source card; real return-to-file navigation; native restore-initial-selection/reset action; exact stepper and footer parity; final Human visual signoff. No customer Excel acceptance until signoff.

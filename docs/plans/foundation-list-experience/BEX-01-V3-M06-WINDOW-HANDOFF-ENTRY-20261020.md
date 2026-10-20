@@ -144,3 +144,30 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 - 计数更正：#15 记录的 `107fbceb…` 分支 ahead 36 是按当时快照记录；本次再次调用 GitHub 双向比较，当前 main `eaa5e813…` 到实施分支 `107fbceb…` 为 ahead 37 / behind 0。新增的一个差异来自已追加的视觉审查文档提交。behind 仍为 0，因此无需 rebase；提交数不影响此前精确 HEAD CI 结论。
 - 当前实施 HEAD 仍为 `107fbceb1c26043bd01ef2791e25068c3f474767`；该 HEAD 的 Platform CI、BEX Real Host Chromium、In-Context Resume、Human UI Design Review Gate、Lightweight Host Architecture、PA-01B2 Full Isolated Chrome Host Acceptance 均 PASS。最新 BEX artifact ID `12248210391`，5/5，浏览器错误为空。
 - 继续保持 #1060 Draft，未合并/部署。下一步是建立独立 synthetic 视觉 fixture 并对照 #909，而不是继续重复跑已经通过的相同测试。
+## 2026-10-20 续跑 #17：三类问题高保真状态与真实 Host 证据
+
+### 已完成的实施与证据
+
+- 当前 Platform 实施 PR：[#1060](https://github.com/jiangxng/EVO-App-Platform/pull/1060)，仍为 Draft，未合并、未部署。代码验收 HEAD `0e3aec5b7c1e4be6f8f1454ea51b05cb18f7b161` 的 Platform CI、BEX-01 Real Host Chromium、In-Context Import Resume、Human UI Design Review Gate、Lightweight Host Architecture、PA-01B2 Full Isolated Chrome Host Acceptance 均 PASS。后续追加视觉评审文档形成 `0f5b5b301749cbbb4d13d14cd2c2d582c6fdee23`，这是 docs-only 提交，需以该精确 HEAD 的新门禁结果为准。
+- 新增隔离 synthetic visual-review job：22 列、172 行；16 已匹配、4 待新增、0 忽略、3 类问题。该 job 不使用客户数据，未执行业务提交。
+- 真实 Host Chromium 运行：[BEX-01 Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545718)，5/5 既有浏览器旅程通过，额外 V3 visual-review fixture 的断言也通过。最新 artifact ID `12249767148`，包括 `v3-prototype-parity-issues-desktop.png`、`v3-prototype-parity-issues-phone.png`、`v3-prototype-parity-submit-desktop.png`、`v3-prototype-parity-submit-phone.png`。
+- 问题卡现在按原型顺序显示：开户银行存在多个对应字段 → 选择字段；3 条记录缺少主体类型 → 查看记录（第 165、169、172 行）；「系统编码」尚未选择处理方式 → 处理此列。问题数量、行号和操作均来自 Host 状态，不是前端伪造。
+
+### 设计边界
+
+- Platform 页面负责业务问题标题、行号、动作语义；Eidos 负责编号卡片、边框和手机端按钮布局。
+- Eidos owner-layer 独立 PR [#204](https://github.com/jiangxng/eidos/pull/204) 已补充 Human UI 设计审查记录，CI 与 Human UI Design Review Gate 均 PASS；仍为 Draft，未合并，也不修改 PR #202。
+- 已排除为通过测试而放宽断言或将按钮做成纯装饰的方案。
+
+### 仍未完成
+
+- 文件卡尚缺 XLSX 文件类型徽标。
+- 底部仍只有当前有效的保存映射并预检查和 AI 自动匹配；原型中的返回文件、恢复初始选择尚未实现，需先定义真实导航/原生 reset 语义，再实现。
+- 完整 1280px/390px 原型逐项核对与 Human 视觉签收仍未完成。自动化 PASS 不等于视觉签收。
+
+### 当前基线与项目状态
+
+- Platform `main`：`eaa5e813b1e86a6460d988c76eb2076512c35127`。
+- 实施分支相对最新 `main` 为 ahead 43 / behind 0（以 `0f5b5b3…` 文档提交后的双向比较为准）；无需 rebase，不直接推 main。
+- 不改 `project.status.json`，不切换 Railway 到 release，不覆盖 PA05/Eidos 其他工作。
+- M01–M03 完成；M04 客户真实数据 OPEN；M05 真实完整导入 OPEN；M06 高保真建设中、待 Human 签收。总体进度仍为 3/6。客户 Excel、授权 Import Job、两个银行字段真实身份与用途、三条真实主体身份仍未取得，禁止用 synthetic fixture 冒充客户证据。
