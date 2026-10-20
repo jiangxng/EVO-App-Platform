@@ -4,10 +4,10 @@
 
 ## 0.1 最终合并后验收（2026-10-20，优先于下方历史快照）
 
-- **PR #1057 已 MERGED**：最终工程 HEAD `1fba63927a80f2e9658b8608bb5a92a9849abcdf`，合并/main SHA `e123924af8bdd1214a4aec6bfaf358c5afb9f445`。
+- **PR #1057 已 MERGED**：最终工程 HEAD `1fba63927a80f2e9658b8608bb5a92a9849abcdf`，合并提交 SHA `e123924af8bdd1214a4aec6bfaf358c5afb9f445`。
 - 最终工程 HEAD：45/45 checks SUCCESS；[PR-head 三 PostgreSQL18 #39360366722](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39360366722)，job `118424890768`，28/28 PASS、0 failed、0 skipped。J4J 正向/负向 marker 实际存在。
 - 合并后 main：39/39 checks SUCCESS；[main 三 PostgreSQL18 #39361578987](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39361578987)，job `118428747522`，28/28 PASS、0 failed、0 skipped。
-- Railway 自动部署 `91ac2596-8e4f-4863-a208-5eca3d5c4931` 对应 `main@e123924...`，SUCCESS / Online，1 running / 0 crashed，0 warnings / 0 critical；没有待处理部署。工程分支 `agent/pa05-e01j4j-cooperative-host-lock-20261019` 已自动删除。
+- J4J 合并时 Railway deployment `91ac2596-8e4f-4863-a208-5eca3d5c4931` 对应合并提交并已 SUCCESS / Online；随后其他工作线 [PR #1047](https://github.com/jiangxng/EVO-App-Platform/pull/1047) 推进 main 至 `00d05159af8912f9a1194399d7723adfbbf686a5`。当前 Railway deployment `448f3428-6497-46a5-8f54-f6d3b490dd1a` 对应此较新 SHA，SUCCESS / Online，1 running / 0 crashed，0 warnings / 0 critical，无待处理部署。该较新 main 的当前 checks 为 5 SUCCESS / 1 CANCELLED（continuity）；不要与 J4J 合并提交当时的 39/39 混淆，不在本线重跑其他工作线门禁。工程分支 `agent/pa05-e01j4j-cooperative-host-lock-20261019` 已自动删除。
 - 旧 HEAD `16e002...` 的 43 SUCCESS / 2 CANCELLED 是历史快照。两项旧取消的具体原因未能证实：两 workflow 均启用 `concurrency.cancel-in-progress: true`，但旧 job 日志现返回 BlobNotFound；不伪造原因。最终 HEAD 45/45 与 main 39/39 全绿。
 - **认证边界不变：** J4J 仅 ENGINEERING_BOUNDED_PASS，不代表多 Worker 全局停机；完整 E01J4、PA05-05 E01–E05、W06 仍 NOT_SIGNED；真实生产 IdP/DBA/CLI/集中审计与 PG+JSON 原子性未证明；#988/#979/#913 OPEN，production material WRITE OFF。
 
