@@ -315,3 +315,10 @@ This improves the local Host shutdown contract, but does not prove Railway deliv
 - The source/CI fix does not certify the actual Railway draining setting, direct Node SIGTERM delivery, the full Worker/caller inventory, the authoritative stop actor, production IdP/DBA, or production material WRITE. No production process was stopped/restarted/scaled/redeployed; no Validator, secret or database access occurred.
 
 Status remains `K0 NOT_SIGNED`; full E01J4, PA05-05 E01–E05 and W06 remain NOT_SIGNED; production material WRITE remains OFF.
+
+
+## 14. 2026-10-20 — Current PR #1074 exact-HEAD evidence
+
+Current head `caccb1b60358b453ef471eaf6abecf1593e4965c`, base `main@eaa5e813b1e86a6460d988c76eb2076512c35127`: **45/45 applicable GitHub Actions SUCCESS**. [Lightweight Host run #39378563738](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378563738) reports **201 tests / 201 pass / 0 fail**, including `pa05-host-shutdown-error-path.test.mjs` and `pa05-e01j4j-cooperative-host-pg.test.mjs`. This supersedes the earlier 200-test count recorded above; both are different exact runs.
+
+The reviewed shutdown patch closes HTTP admission before asynchronous cleanup, adds a referenced five-second fail-fast deadline, attempts all cleanup steps despite individual rejection, and exits nonzero on cleanup or listener-close failure so J4J preserves its lock on ambiguous shutdown. It is source/CI improvement only: the configured Railway draining interval and signal delivery remain unverified, J4J remains OFF by default and absent from the current Host variable-name list, and no global Worker inventory/stop authority is signed. PR #1074 remains Draft/unmerged/un-deployed.
