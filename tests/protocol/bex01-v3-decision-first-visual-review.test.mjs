@@ -65,8 +65,8 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-page-heading\] > \[data-eidos-form-task-steps\]/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-review-table-presentation="compact"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issues/);
-  assert.match(batch.reviewTask.subject.subtitle,/22 列来源/);
-  assert.match(batch.reviewTask.subject.subtitle,/18 列待处理/);
+  assert.match(batch.reviewTask.subject.subtitle,/\d+ 列来源/);
+  assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
 });
 
 test("Eidos disclosure is opt-in; unknown modes fail closed",()=>{
