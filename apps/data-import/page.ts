@@ -742,8 +742,8 @@ export function createDataImportMappingPageV010(input: {
     group.reviewStatus.key === "attention"
       || group.reviewStatus.key === "suggested");
   const reviewTask = {
-    // Eidos #196: keep all task context behind an accessible disclosure
-    // so real source-row decisions lead the first viewport.
+    // Eidos workbench: the source summary and task metrics precede decisions;
+    // avoid repeating row/column counts in the file card.
     presentation: "workbench" as const,
     subject: {
       title: input.job.source.name ?? input.job.importJobId,
@@ -751,13 +751,7 @@ export function createDataImportMappingPageV010(input: {
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
       statusLabel: zh(input.locale) ? "来源数据已保留" : "Source preserved",
-      facts: [{
-        id:"records",label:zh(input.locale)?"记录数":"Records",
-        value:String(input.job.source.rows.length)
-      }, {
-        id:"columns",label:zh(input.locale)?"来源列数":"Columns",
-        value:String(input.job.source.headers.length)
-      }]
+
     },
     steps: [{
       id:"source",label:zh(input.locale)?"选择文件":"Choose file",
