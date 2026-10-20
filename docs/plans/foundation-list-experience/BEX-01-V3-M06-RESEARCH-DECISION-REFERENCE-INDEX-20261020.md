@@ -1,0 +1,159 @@
+# BEX-01 V3｜M06 高保真工作台研究资料与决策详细参考索引（2026-10-20）
+
+> **配套简短入口：** [BEX-01 V3 M06 窗口接续入口](BEX-01-V3-M06-WINDOW-HANDOFF-ENTRY-20261020.md)。本页记录本窗口 #05–#06 接续中的直接读取来源、源码审查、CI 失败证据、方案取舍、截图/附件位置及下一步实现落点；不覆盖或改写 [M04 前序交接入口](BEX-01-V3-M04-WINDOW-HANDOFF-ENTRY-20261019.md)、[M04 详细索引](BEX-01-V3-M04-RESEARCH-DECISION-REFERENCE-INDEX-20261019.md) 或 [V3 总研究索引](BEX-01-V3-RESEARCH-DECISION-REFERENCE-INDEX-20261019.md)。
+>
+> **核对快照日期：2026-10-20。** Platform main `5919e0147232fef1ddfc4f7e9a38b67969100bcf`；Eidos main `1b651737182c083bdb945e30c4d16b9ecacbc1e1`；Railway production 当前记录为 Platform main 同 SHA、deployment SUCCESS。PR/CI 与部署是动态状态，后续窗口必须重新查询。
+>
+> **证据等级：**
+> - **R（本轮直接读取）**：GitHub 原型 HTML、TypeScript/CSS/MJS/Python 源码、PR 元数据、Actions 日志/作业结果、Railway 部署元数据。
+> - **H（继承历史研究）**：本轮直接读取了 GitHub 中已保存的研究索引，但没有重新打开索引列出的外部网站原文。其原始网址、历史阅读日期与 A/B/C 阅读等级均以旧索引为准。
+> - **D（待验证）**：还没有证据或需要修复/重跑才能确认的事项。
+> - **源事实与项目判断分开**：CI 日志/源码属于源事实；“不能弱化手机测试”“必须 Human 选择歧义字段”是用户已确认的 EVO 决策或本项目工程判断，不能伪装成外部研究结论。
+
+## 1. 本轮目标与边界
+
+本轮不是重新开展 UI 竞品研究，而是接续 V3 高保真工作台建设，修复桌面宽审核和可逆导航的边界，并确认最新的 GitHub CI、原型状态和生产部署。用户明确要求按 #909 原型 100% 还原；页面未完成且未由 Human 签收之前，先不要开始真实客户 Excel 业务验收。
+
+- **设计基准**：#909 中的 V3 交互 HTML 原型；不是当前 Railway 生产页面，也不是已合并实现。
+- **职责边界**：Eidos 负责通用工作台布局、导航、响应式和控件；Platform 负责导入路由、字段语义、Import Job、Host 权限、预检、提交与审计。
+- **禁止范围扩张**：不重新做已经完成的外站研究；不重做 M01–M03；不更改客户字段语义；不把供应商业务规则写进 Eidos；不直接推 main；不切 Railway 到 release；不修改 `project.status.json`，不覆盖 PA05、插件治理或其他并行窗口。
+- **固定进度**：M01–M03 工程完成；M04 客户真实数据验收仍 OPEN；M05 真实导入全链路仍 OPEN；M06 视觉/交互 Human 签收仍 OPEN。总计仍为 **3/6**。
+
+## 2. 本轮直接读取的 GitHub / Railway 来源（R）
+
+| ID | 标题、原始网址与读取日期 | 直接读到的事实 | 对项目的具体用途与证据限制 |
+|---|---|---|---|
+| R01 | [V3 高保真 HTML 原型（#909 的不可变提交 af58e0a）](https://github.com/jiangxng/EVO-App-Platform/blob/af58e0abad880439d54230485305bf2b4e05decc/docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html)，2026-10-20 | 直接读取 30,883 字节的 HTML。关键 ID 包含 `stageOne`、`stageTwo`、`review`、`tableFilter`、`mappingRows`、`saveStatus`、`prepare`、`confirm`、`precheck`、`submit`、`done`；有 `.actionbar`、`.reviewtable`。原型文字明确包含“开户银行存在多个对应字段”“3 条记录缺少主体类型”，并呈现四项审核汇总。 | 最高优先级的设计参照。它是 HTML 演示原型，不是生产页面/真实 Host；原型内的演示字段 ID 和示例数据不能代替客户真实字段证据。 |
+| R02 | [#909 原型 PR](https://github.com/jiangxng/EVO-App-Platform/pull/909)，2026-10-20 | PR 仍 Open、Draft，head `af58e0abad880439d54230485305bf2b4e05decc`，base `5a46f846b81fe1c2a244371e0783b906cfe170c5`，当前元数据的 mergeable 为 false。 | 原型需要直接作为视觉基准继续核对；不能称原型已合并或已部署。由于其分支可能落后，读取时应使用不可变提交链接。 |
+| R03 | [Eidos #202](https://github.com/jiangxng/eidos/pull/202)，2026-10-20 | Open、未合并；head `f3e2b5ec4d90ababa43b343c0008295243a19ca6`；base 与当时 Eidos main `1b651737182c083bdb945e30c4d16b9ecacbc1e1` 相同。 | 通用路由聚焦布局的 owner PR；仍需与 Platform vendor 副本和后续发布顺序协调。 |
+| R04 | [Eidos Workbench shell.ts（精确提交）](https://github.com/jiangxng/eidos/blob/f3e2b5ec4d90ababa43b343c0008295243a19ca6/src/workbench/shell.ts)，2026-10-20 | 直接读取 `updateFocusedRoutePresentation`、`setActivity`、`toggleSidePanel` 等实现。发现最初把 `state.sidePanelVisible` 当作启用路由聚焦的必要条件；随后修正为分离“路由符合聚焦条件”与“侧栏当前可见”，并加入 `preserveExplicitNavigationReveal()`。 | 修复“侧栏原本关闭导致 V3 宽表仍受 1100px 表单宽度限制”及“Ctrl/Cmd+B 或活动栏显式打开后又立即隐藏”的通用布局问题。此为源码事实；浏览器效果仍需 Platform 当前 HEAD 的实际测试证明。 |
+| R05 | [Eidos productive-workbench-css.ts（精确提交）](https://github.com/jiangxng/eidos/blob/f3e2b5ec4d90ababa43b343c0008295243a19ca6/src/design-language/productive-workbench-css.ts)，2026-10-20 | 直接读取桌面 `min-width:701px` 的聚焦规则、工作区宽度 `min(var(--eidos-focused-workspace-content-max,1200px),100%)`，以及 `max-width:700px` 隐藏专用聚焦按钮的规则。 | 聚焦只由 Host 显式匹配路由触发，不是全站永久宽布局；手机沿用现有单列/导航行为。CSS 规则本身不证明 390px 页面没有横向溢出。 |
+| R06 | [Eidos Workbench 测试（精确提交）](https://github.com/jiangxng/eidos/blob/f3e2b5ec4d90ababa43b343c0008295243a19ca6/tests/workbench/workbench.test.mjs)，2026-10-20 | 增加源码级断言，保护路由聚焦可逆、隐藏侧栏时的宽度逻辑、原导航恢复操作及偏好不被错误覆盖。 | 属于源码/单元测试证据；不能代替 Platform 隔离 Host 的 1280px/390px 浏览器画面或 Human 签收。 |
+| R07 | [Platform #1054](https://github.com/jiangxng/EVO-App-Platform/pull/1054)，2026-10-20 | Open、Draft、未合并；head `3845c9d953943a3f962ad298669fc66c46956758`；PR base `504554d151081324645ab6d180872c720eaa25d8`。与当前 Platform main 比较：共同基点为 `504554d…`，branch ahead 51 / behind 43，compare 状态 diverged。 | 该分支包含 V3 工作代码及 vendor Eidos 同步，不能直接合并/盲目 rebase；先审查提交差异并制定安全同步策略。 |
+| R08 | [Platform vendor Eidos shell.ts（精确提交）](https://github.com/jiangxng/EVO-App-Platform/blob/3845c9d953943a3f962ad298669fc66c46956758/vendor/eidos/src/workbench/shell.ts)，2026-10-20 | 直接读取同步到 Platform 的聚焦/活动栏/快捷键逻辑。 | Eidos owner 包与 Platform vendor 副本必须保持一致；但同步副本并不等于 #202 已合并或 Platform 已通过 CI。 |
+| R09 | [V3 合成 XLSX 保真 Chromium 测试（精确提交）](https://github.com/jiangxng/EVO-App-Platform/blob/3845c9d953943a3f962ad298669fc66c46956758/tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py)，2026-10-20 | 新增 1280px 宽度范围 `1120–1220px`，验证聚焦按钮、侧栏、`Ctrl+B`、活动栏、原持久化偏好；新增独立 1280px 用户上下文，预设 `sidePanelVisible=false`，检查仍可获得宽表且快捷键能显式打开导航；测试中仍包含 390px 手机布局检查。 | 测试目标合理，但当前 Real Host Chromium workflow 在更早的手机供应商列表步骤先失败，后续 V3 专项步骤被跳过。因此此 HEAD 的新断言还没有获得真实运行通过的证据。 |
+| R10 | [Platform mobile design language 测试](https://github.com/jiangxng/EVO-App-Platform/blob/3845c9d953943a3f962ad298669fc66c46956758/tests/app-host/mobile-design-language.test.mjs#L68-L80)，2026-10-20 | 旧断言要求源码精确匹配 `browserToolbar.append(globalControls)`；当前通用工具栏新增聚焦按钮后实际为 `browserToolbar.append(focusToggle,globalControls)`，导致 Platform CI 第 27 项失败。 | 初步判断是结构断言没有随新通用按钮更新。修复应验证“globalControls 仍在工具栏且不出现地址栏控件”等稳定不变量，不应移除正确的聚焦按钮以迎合旧文本匹配。该判断需由修复后测试确认。 |
+| R11 | [Real Host Chromium 测试脚本](https://github.com/jiangxng/EVO-App-Platform/blob/3845c9d953943a3f962ad298669fc66c46956758/tests/bex01/live_supplier_chromium.py#L260-L335)，2026-10-20 | 最新浏览器 run 在 390px viewport 诊断到 CSS HTTP 200、CSS 长度 130,805、`cardsDisplay=block`，但 `tableDisplay=table`；触发 `PHONE_TABLE_SHOULD_REFLOW_TO_CARDS`，总计 4/5 场景通过。 | 这是实际手机响应式失败。尚未确认是 CSS 级联、DOM 结构、selector 或分支与 main 分叉造成；不可弱化断言或宣称已修复。 |
+| R12 | [Platform CI run 39285016324](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39285016324)，2026-10-20 | 精确 #1054 HEAD 的 Platform CI 失败。日志：1,031 tests，1,029 pass、1 fail、1 skipped；唯一失败是 `tests/app-host/mobile-design-language.test.mjs:68` 的工具栏源码断言。 | 明确的当前失败门禁，不能用其他 workflow success 抵消。 |
+| R13 | [Real Host Chromium run 39285016537](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39285016537)，2026-10-20 | 精确 #1054 HEAD 的桌面/手机 Chromium step 失败；`PHONE_TABLE_SHOULD_REFLOW_TO_CARDS`，4/5 通过。失败后“V3 actual Host source audit desktop and phone”“governed row correction and revert”“batch subject constant”“synthetic 22-column XLSX”后续步骤均 skipped。 | 当前没有该 run 对应的 V3 专项最新 1280px/390px 画面签收证据。 |
+| R14 | [当前失败 run 的 Chromium evidence artifact（ID 12201219707）](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39285016537/artifacts/12201219707)，2026-10-20 | GitHub artifact metadata 显示 `bex01-real-host-chromium-evidence`，约 952,504 bytes，未过期，包含 15 个文件；本轮只核对元数据和日志，没有下载/逐图检查内部文件。 | 可供下一窗口检查日志/截图；由于 V3 专项 step 已 skipped，不得假定其中有新生成的 V3 1280px/390px 截图。 |
+| R15 | [此前成功的 Real Host Chromium run 39277312473](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39277312473) 与 [artifact ID 12197673105](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39277312473/artifacts/12197673105)，2026-10-20 查元数据 | 此历史 run 的 head 是 `0ade1040d701f456e362338cadf075e73de6c96a`，workflow success，artifact 约 5,986,397 bytes。 | **不是当前 HEAD**；只能作为历史截图/对比材料，不能覆盖新 HEAD 的手机回归失败。 |
+| R16 | [Eidos CI run 39285222302](https://github.com/jiangxng/eidos/actions/runs/39285222302)、[Eidos Human UI Design Review Gate 39285222230](https://github.com/jiangxng/eidos/actions/runs/39285222230)，2026-10-20 | Eidos #202 的精确 HEAD 两项均 completed / success。 | Eidos 的独立通用改动通过了当前自动化门禁；未合并，不代表 Platform vendor 副本或整条 V3 旅程已通过。 |
+| R17 | [Platform 当前 main commit](https://github.com/jiangxng/EVO-App-Platform/commit/5919e0147232fef1ddfc4f7e9a38b67969100bcf)、[Eidos 当前 main commit](https://github.com/jiangxng/eidos/commit/1b651737182c083bdb945e30c4d16b9ecacbc1e1)；Railway 当前 deployment `5b921757-ca9e-4b48-9eba-595a5b6f6459` | 2026-10-20 直接核验：Platform main 为 `5919e014…`，Eidos main 为 `1b651737…`；Railway production 为 Platform main 同 SHA、status SUCCESS。 | 生产没有包含当前 #1054 Draft 的未合并修改。本轮没有部署、没有切 release。 |
+| R18 | [当前分支中的 V3 设计审查记录](https://github.com/jiangxng/EVO-App-Platform/blob/3845c9d953943a3f962ad298669fc66c46956758/docs/ui-design-reviews/bex01-v3-decision-first-live-fidelity-20261019.md) 与 [Eidos 聚焦布局记录](https://github.com/jiangxng/eidos/blob/f3e2b5ec4d90ababa43b343c0008295243a19ca6/docs/ui-design-reviews/eidos-route-focus-reversible-workbench-20261019.md)，2026-10-20 | 直接读取当前 branch 上的设计记录，确认已记录路由级聚焦、持久偏好保护与 Human 签收边界。 | 新的 M06 交接文档为增量记录，不替换既有设计审查文档。 |
+| R19 | [M04 简短交接入口](BEX-01-V3-M04-WINDOW-HANDOFF-ENTRY-20261019.md)、[M04 详细索引](BEX-01-V3-M04-RESEARCH-DECISION-REFERENCE-INDEX-20261019.md)、[V3 总研究索引](BEX-01-V3-RESEARCH-DECISION-REFERENCE-INDEX-20261019.md)，2026-10-20 | 直接读取 main 中已保存的三份 Markdown，核对历史决策、M01–M06 固定门禁、外站来源阅读等级与客户数据缺口。 | 作为研究遗产索引，不覆盖其历史快照，也不把旧的 CI/PR 状态当作最新状态。 |
+
+## 3. V3 原型的可操作结构与现状冲突
+
+### 原型源事实（R01）
+
+本次读取的 #909 HTML 在不可变提交 `af58e0a…` 中包含：
+
+- 上传与恢复：`stageOne`、`upload`、`resumeImport`、`clearImportDraft`。
+- 审核区域：`stageTwo`、`review`、`mappedCount`、`createCount`、`skipCount`、`issueCount`。
+- 问题优先处理：`bankIssue`、`subjectIssue`、`metadataIssue`；银行问题的说明是两个同名字段用途不同，主体类型问题是三条记录缺失。
+- 映射表：`tableFilter`、`mappingRows`、`tableCaption`，样式含 `.reviewtable`。
+- 连续流程：`prepare`、`confirm`、`schemaRows`、`precheck`、`blockers`、`rerun`、`submit`、`done`。
+- 操作反馈：`saveStatus`、`.actionbar`、返回/重置/准备/确认/重新预检/提交等操作入口。
+
+这证明原型不仅是一张字段映射表，而是“文件与恢复 → 异常优先 → 四列字段决策 → Schema 受控确认 → 独立预检 → 明确提交 → 结果”的连续审核流程。具体文字、间距、表格列、底部按钮布局仍必须通过对照 HTML 与实际页面截图逐项确认，不能仅凭 ID 列表判定视觉完成。
+
+### 当前实现与原型的冲突
+
+1. 当前 #1054 在 CI 的 390px 手机供应商列表仍显示表格，原型/项目要求的手机可用性没有被证明；这不是 1200px 聚焦 CSS 单独通过就能覆盖的问题。
+2. #1054 最新 Real Host Chromium 在通用供应商旅程先失败，后续 V3 专项审查、行级纠错、批次常量、172×22 合成 XLSX 浏览器步骤全部 skipped。因此当前 HEAD 没有最新的 V3 专项截图，不能说“V3 浏览器验收已通过”。
+3. Eidos #202 的 CI/Human gate 通过，但 Platform vendor 文件与 Platform 的旧源码测试并未同步更新全部测试不变量；CI 的结构断言失败正说明 owner PR PASS 不能替代 vendor 验收。
+4. 原型 #909 仍 Draft、没有部署；生产仍是 main。两者之间的视觉差异必须在真实 Host 页面中逐项比较，不能把原型自带的示例数据或成功提示当作业务事实。
+
+## 4. 方案比较：已采用、排除与适用限制
+
+| 议题 | 已采用方案 | 排除方案与原因 | 适用条件/限制 |
+|---|---|---|---|
+| 桌面宽审核 | Host 对明确的内部路由调用通用 `shouldFocusWorkspaceRoute(path)`，Eidos 仅提供可逆布局能力 | 全站全局隐藏侧栏/强制宽表；将供应商路由写死进 Eidos | 仅在经 Host 明确选择的宽审核页面启用；不能影响其他应用与普通工作台 |
+| 已保存侧栏关闭 | 路由匹配与用户侧栏可见性分开计算；隐藏侧栏仍可获得宽表；没有可恢复侧栏时不显示冗余聚焦按钮 | 把“侧栏已经关闭”当作跳过宽聚焦的理由 | CSS 与实际 Host 页面需通过 1280px Chromium；源码改动已提交，但当前 Platform workflow 先失败，仍待重跑 |
+| 显式恢复导航 | 原侧栏按钮、活动栏和 Ctrl/Cmd+B 的明确操作优先；临时聚焦不覆盖用户偏好 | 只允许新增的聚焦按钮退出；让已有快捷键触发后仍被 CSS 隐藏 | 普通页面仍沿用既有持久化规则；需验证不同侧栏初始状态 |
+| 390px 响应式 | 保留现有 Eidos 手机导航/单列策略，审核数据应呈现可读卡片或经原型认可的手机形式 | 缩小桌面四列表格、横向挤压；通过删除断言来消除 CI 红灯 | 最新真实 Chromium 明确显示表格仍为 table；必须找出根因并验证修复 |
+| CI 失败处理 | 更新过时的结构测试以表达稳定不变量，同时单独修复真实移动端布局 | 仅将源码文本匹配改成更宽松的正则、忽略 390px 失败 | 第一项可能是测试表达过时；第二项是真实 DOM/CSS 结果，二者不能混为一谈 |
+| 同名银行映射 | 首次匹配和 EC 只提供可审核候选；Human 确认且预检成功的 Recipe 才可按原 field ID 复用 | 按标签顺序、首个剩余字段、LLM 置信度自动选定 | 这是前序 M04 已确认决策；本轮不重做、不放宽 |
+| 主体类型 | 按每条真实记录证据确认，不从 SUPPLIER 推断 ORGANIZATION | 把供应商角色当作组织身份 | 真实客户行与身份仍未取得，不得执行真实客户修正 |
+| 分支同步 | 当前先比较分叉提交并制定 bounded 同步策略 | 直接合并或盲目 rebase 51 ahead / 43 behind 的 #1054 | 必须先识别已合并提交、并行工作及最小安全变更；不直接推 main |
+
+## 5. 重要 CI 证据、截图与附件保全
+
+### 当前精确 HEAD 的 CI 状态
+
+- **Eidos #202 @ `f3e2b5ec…`**：CI [39285222302](https://github.com/jiangxng/eidos/actions/runs/39285222302) PASS；Human UI Design Review Gate [39285222230](https://github.com/jiangxng/eidos/actions/runs/39285222230) PASS。PR 仍未合并。
+- **Platform #1054 @ `3845c9d9…`**：Platform CI [39285016324](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39285016324) FAIL，1,029/1,031 tests pass；失败测试为 `tests/app-host/mobile-design-language.test.mjs:68`，期望旧源码字符串 `browserToolbar.append(globalControls)`。
+- **Platform #1054 @ 同一 HEAD**：Real Host Chromium [39285016537](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39285016537) FAIL，4/5 场景通过；390px 供应商列表的 `PHONE_TABLE_SHOULD_REFLOW_TO_CARDS` 失败。后续 V3 专项 Chromium 步骤 skipped。
+- 同一 Platform HEAD 的 Project Continuity、In-Context Import Resume、Experience CI、PA-01B2 Full Isolated Chrome Host Acceptance、Lightweight Host Architecture、PA-01B2 Native Chromium Preflight、Plugin CI 与 Human UI Design Review Gate 等 workflow 当前记录为 success；它们不能抵消上述两个失败。
+
+### 已存在的截图/附件
+
+| 位置 | 日期/对应 HEAD | 内容与等级 |
+|---|---|---|
+| [当前失败 run artifact ID 12201219707](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39285016537/artifacts/12201219707) | 2026-10-19 16:24Z，Platform HEAD `3845c9d9…` | 名称 `bex01-real-host-chromium-evidence`，952,504 bytes、15 files、未过期。**本次只读了 artifact 元数据和日志，尚未下载逐图检查**。V3 专项步骤在该 run 中 skipped，不能假定它含有这些步骤的新截图。 |
+| [历史成功 run artifact ID 12197673105](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39277312473/artifacts/12197673105) | 2026-10-19 15:23Z，较早 HEAD `0ade1040d701f456e362338cadf075e73de6c96a` | 5,986,397 bytes，未过期；历史 Real Host Chromium workflow success。仅用于历史比较，不覆盖最新 HEAD 失败。 |
+| 当前 V3 测试脚本期望生成的截图路径 | 对应 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` | 脚本中包含 `v3-fidelity-workbench-map-1280.png`、`v3-e4-task-overview-desktop.png`、`v3-e6-plan-preview-phone.png`、`v3-eidos-v3-batch-17-review-table-phone.png`、`v3-retained-xlsx-ready-172.png` 等输出名。最新 workflow 在到达 V3 专项步骤前失败，**不能宣称这些文件由最新 run 生成**。 |
+| 原客户参考截图 | 继承前序 M04 handoff 记录 | 原聊天中的四张 PNG 尚未作为可复用的永久 GitHub 附件保存；仅有历史文字观察/位置记录。新窗口若需要像素级签收，必须确认真实附件仍可访问，不能编造截图链接。 |
+
+## 6. 分支、PR 与文件落点
+
+### 实施线（不要在交接文档分支直接修改这些代码）
+
+- Platform 仓库：`jiangxng/EVO-App-Platform`
+- PR：[#1054](https://github.com/jiangxng/EVO-App-Platform/pull/1054)
+- 分支：`feat/bex01-v3-real-fidelity-decision-first-20261019`
+- 本次快照 HEAD：`3845c9d953943a3f962ad298669fc66c46956758`
+- 核心文件：
+  - `vendor/eidos/src/workbench/shell.ts)：路由聚焦、活动栏、Ctrl/Cmd+B 和显式恢复。
+  - `vendor/eidos/src/design-language/productive-workbench-css.ts)：桌面聚焦宽度和移动端隐藏聚焦按钮。
+  - `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py)：1280px 宽度和“原本隐藏侧栏”的独立 Host 回归。
+  - `tests/app-host/mobile-design-language.test.mjs)：当前失败的工具栏结构断言。
+  - `tests/bex01/live_supplier_chromium.py)：当前 390px 手机表格/卡片失败场景。
+  - `docs/ui-design-reviews/bex01-v3-decision-first-live-fidelity-20261019.md)：本分支已有设计决策记录。
+
+### Eidos owner 线
+
+- 仓库：`jiangxng/eidos`
+- PR：[#202](https://github.com/jiangxng/eidos/pull/202)
+- 分支：`feat/workbench-route-scoped-focus-20261019`
+- 本次快照 HEAD：`f3e2b5ec4d90ababa43b343c0008295243a19ca6`
+- 文件：`src/workbench/shell.ts`、`src/design-language/productive-workbench-css.ts`、`tests/workbench/workbench.test.mjs`、`docs/ui-design-reviews/eidos-route-focus-reversible-workbench-20261019.md`。
+- CI 与 Human UI gate 当前均 PASS，但 PR 未合并；合并/同步应先核对其他窗口是否有更新。
+
+### 本交接包分支
+
+- 本文与简短入口在独立文档分支：`docs/bex01-v3-m06-research-window-handoff-20261020`，从 Platform `main@5919e014…` 创建。
+- 不修改旧 M04 入口/索引；不写 `project.status.json`；不直接推 main。
+- 文档 PR/最终提交标识以本分支最新 GitHub 元数据为准，不能把本页创建时的初始提交 SHA 当作最终提交。
+
+## 7. 冲突、未决问题与下一步研究方向
+
+### 已发现的冲突
+
+1. **排队状态与最新结果不同**：上一轮 handoff 仍记录 #202/#1054 queued；当前精确 HEAD 已完成，Eidos 两项 PASS，Platform 两项关键失败。以后续精确 SHA 的 Actions 结果为准。
+2. **历史成功与当前失败并存**：run 39277312473 在较早 HEAD `0ade1040…` 成功；run 39285016537 在较新 HEAD `3845c9d9…` 手机回归失败。不得将前者当作后者的 PASS。
+3. **源代码与旧测试断言不一致**：新通用聚焦按钮已被加入工具栏，但旧测试仍匹配单一 append 字符串。应修正测试不变量而非删除控件。
+4. **CSS 声明与实际手机显示不一致**：CSS 已加载且 cards 容器 display:block，但 table 仍 display:table。需要检查 DOM selector specificity、祖先属性、响应式规则来源和当前分支与 main 的差异；根因尚未确认。
+5. **分支与 main 分叉**：#1054 branch 相对 main ahead 51 / behind 43，merge base `504554d…`。不要假设简单快进/普通 rebase 安全；先审查提交列表和其他窗口变更。
+6. **原型与生产不能混为一谈**：#909 仍 Draft；Railway 仍部署 main；V3 专项最新浏览器步骤 skipped。静态原型、Eidos CI PASS、其他 Host 场景成功都不能代替当前页面视觉签收。
+
+### 仍未解决的任务
+
+- [ ] 更新 `tests/app-host/mobile-design-language.test.mjs` 的过时结构断言，并运行该测试及 Platform CI。
+- [ ] 对比 main 与 #1054 的手机 CSS/DOM，定位 `PHONE_TABLE_SHOULD_REFLOW_TO_CARDS` 根因，保留真实断言，修复后重跑 390px Chromium。
+- [ ] 先制定 #1054 与当前 main 的最小安全同步方案；确认不会覆盖其他窗口提交。
+- [ ] 确认 V3 专项 Chromium 步骤完整执行，取得当前 HEAD 的 1280px/390px 截图并逐项对照 #909。
+- [ ] 逐项核对标题、文件卡片、问题处理区、四列映射、底部操作区、步骤流程、保存/预检/提交状态。
+- [ ] 用户确认 100% V3 高保真后，才开始 M04 原客户 Excel 与授权 Job 的真实验收；未获文件/授权就继续保持 OPEN。
+- [ ] M04 真实证据通过后才进入 M05 完整导入/审计；不提前创建或提交客户数据。
+
+### 外部研究资料的继承边界
+
+本轮没有重新打开飞书、Lark、NN/g、W3C、简道云、伙伴云、畅捷通、WPS 等外部站点，也没有新增搜索摘要。其原始网址、历史阅读日期与等级必须沿用：
+- [M04 详细索引 §3](BEX-01-V3-M04-RESEARCH-DECISION-REFERENCE-INDEX-20261019.md)
+- [2026-10-15 UI 研究索引](BEX-01-UI-RESEARCH-DECISION-REFERENCE-INDEX-20261015.md)
+- [2026-10-15 业务流程研究索引](BEX-01-RESEARCH-DECISION-REFERENCE-INDEX-20261015.md)
+- [#909 前序完整研究索引](https://github.com/jiangxng/EVO-App-Platform/blob/docs/bex01-v2-human-design-review-20261015/docs/plans/foundation-list-experience/BEX-01-UI-V3-SESSION-RESEARCH-INDEX-20261015.md)
+
+以上是历史研究遗产，不可把“旧索引里记录了原文”说成本轮重新阅读了外站原文。
