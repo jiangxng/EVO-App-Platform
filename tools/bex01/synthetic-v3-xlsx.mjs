@@ -97,3 +97,44 @@ export function syntheticV3WorkbookV010(options = {}) {
     synthetic:true
   };
 }
+
+
+// Dedicated visual-parity fixture: synthetic only, never customer data.
+export const SYNTHETIC_V3_VISUAL_REVIEW_HEADERS = Object.freeze([
+  "往来编码","往来名称","主体类型","法定名称","税号 / 纳税识别号",
+  "国家或地区","联系电话","电子邮件","备注","供应商分类","采购区域",
+  "主要联系人","主要联系人职位","主要联系人电话","主要联系人邮箱","主要地址",
+  "默认支付方式","结算方式","默认账期方式","账期天数","开户银行","系统编码"
+]);
+export function syntheticV3VisualReviewWorkbookV010() {
+  const headers=[...SYNTHETIC_V3_VISUAL_REVIEW_HEADERS];
+  const rows=Array.from({length:172},(_,i)=>{
+    const index=i+1,seq=String(index).padStart(4,"0");
+    const missing=SYNTHETIC_V3_MISSING_ROWS.includes(index);
+    const values=[
+      "VIS-"+seq,"V3 Visual Supplier "+seq,missing?"":"ORGANIZATION",
+      "Synthetic Legal Entity "+seq,"TAX-VIS-"+seq,"中国",
+      "1380000"+String(index).padStart(4,"0"),"supplier"+seq+"@example.cn",
+      "Synthetic visual review row "+seq,"常规供应商","华南",
+      "联系人 "+seq,"采购经理","1390000"+String(index).padStart(4,"0"),
+      "contact"+seq+"@example.cn","深圳市南山区科技园 "+seq,
+      "银行转账","月结","月结30天","30","招商银行深圳科技园支行","EXT-"+seq
+    ];
+    return Object.fromEntries(headers.map((column,col)=>[column,values[col]]));
+  });
+  const all=[Object.fromEntries(headers.map(x=>[x,x])),...rows];
+  const xml='<worksheet><sheetData>'+all.map((values,index)=>
+    '<row r="'+(index+1)+'">'+headers.map((header,col)=>{
+      const value=values[header],ref=columnName(col)+(index+1);
+      return '<c r="'+ref+'" t="inlineStr"><is><t>'+escapeXml(value)
+        +'</t></is></c>';
+    }).join("")+'</row>'
+  ).join("")+'</sheetData></worksheet>';
+  const entries=[
+    ["xl/workbook.xml",'<workbook><sheets><sheet name="Visual review" r:id="rId1"/></sheets></workbook>'],
+    ["xl/_rels/workbook.xml.rels",'<Relationships><Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>'],
+    ["xl/worksheets/sheet1.xml",xml]
+  ];
+  return {bytes:storedZip(entries),headers,rows,
+    missingRowNumbers:[...SYNTHETIC_V3_MISSING_ROWS],synthetic:true,productionUsed:false};
+}

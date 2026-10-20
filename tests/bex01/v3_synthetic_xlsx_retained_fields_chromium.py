@@ -666,6 +666,72 @@ with sync_playwright() as pw:
                     full_page=True)
     print("BEX01_V3_XLSX_RETAINED_172_18_BUSINESS_FIELDS_PASS:ISOLATED_HOST",
           flush=True)
+    # Reproduce the three distinct #909 exception classes in the real Host.
+    # This separate synthetic job is never committed and never uses customer data.
+    visual_context=browser.new_context(viewport={"width":1280,"height":900},locale="zh-CN")
+    visual_context.add_init_script("""
+      if(location.origin===%s) {
+        localStorage.setItem("evo.context.id",%s);
+        localStorage.setItem("evo.locale","zh-CN");
+        localStorage.setItem("eidos.workbench.layout",JSON.stringify({
+          contractVersion:"0.1.0",activeActivityId:"apps",
+          sidePanelVisible:true,sidePanelWidth:420,workspaceTarget:"/workspace"
+        }));
+      }
+    """ % (json.dumps(HOST),json.dumps(CTX)))
+    visual_page=visual_context.new_page()
+    visual_route="/data-import/jobs/"+fixture["visualReviewJobId"]+"/map"
+    visual_page.goto(HOST+"/?surface=desktop#"+visual_route,wait_until="domcontentloaded")
+    visual_form=visual_page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+    expect(visual_form).to_be_visible(timeout=30000)
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="matched"] strong')).to_have_text("16")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="proposed"] strong')).to_have_text("4")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    issue_list=visual_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
+    expect(issue_list).to_have_count(3)
+    issue_text=" ".join(issue_list.all_text_contents())
+    for label in ["开户银行","主体类型","系统编码"]:
+        assert label in issue_text,("BEX01_V3_VISUAL_ISSUE_MISSING",label,issue_text)
+    visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
+    visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
+    visual_page.evaluate("""async () => {
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    }""")
+    visual_page.screenshot(path=str(OUT/"v3-prototype-parity-submit-desktop.png"),full_page=False)
+    visual_context.close()
+
+    visual_phone_context=browser.new_context(viewport={"width":390,"height":844},
+      locale="zh-CN",is_mobile=True,has_touch=True)
+    visual_phone_context.add_init_script("""
+      if(location.origin===%s) {
+        localStorage.setItem("evo.context.id",%s);
+        localStorage.setItem("evo.locale","zh-CN");
+        localStorage.setItem("eidos.workbench.layout",JSON.stringify({
+          contractVersion:"0.1.0",activeActivityId:"apps",
+          sidePanelVisible:true,sidePanelWidth:420,workspaceTarget:"/workspace"
+        }));
+      }
+    """ % (json.dumps(HOST),json.dumps(CTX)))
+    visual_phone=visual_phone_context.new_page()
+    visual_phone.goto(HOST+"/?surface=desktop#"+visual_route,wait_until="domcontentloaded")
+    phone_form=visual_phone.locator('form[data-eidos-id="evo-data-import.mapping"]')
+    expect(phone_form).to_be_visible(timeout=30000)
+    expect(phone_form.locator('[data-eidos-form-task-metric-id="matched"] strong')).to_have_text("16")
+    expect(phone_form.locator('[data-eidos-form-task-metric-id="proposed"] strong')).to_have_text("4")
+    expect(phone_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    expect(phone_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
+    expect(phone_issues).to_have_count(3)
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
+    visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
+    phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
+    visual_phone.evaluate("""async () => {
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    }""")
+    visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-submit-phone.png"),full_page=False)
+    visual_phone_context.close()
+
     context.close()
     browser.close()
     api.dispose()
