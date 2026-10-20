@@ -364,5 +364,15 @@
     "tests/protocol/eog-retained-imports.test.mjs": "93c9b62cc3d72b398d4771eecf700fa3f1a607e56c381491aaa6c85cc8a51735",
     ".github/workflows/lightweight-host.yml": "e2ebce4997d44d1f635cb763b2f96dd4355ff3ebc42545da35f5bfb0a3f805b4",
     "tools/lightweight-host-baseline.json": "c446aa8b6797f95efc18eb6da3df680c09d8d12de50e81729bb4f1310e220c09"
+  },
+  "mainSynchronization": {
+    "sha": "ad5ea4932dbabe8289f66289314b43667c154b4a",
+    "changedPaths": [
+      "docs/agent-line/HANDOFF.md",
+      "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md",
+      "docs/agent-line/PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md"
+    ],
+    "productionSourcesChanged": false,
+    "overlap": false
   }
 }
