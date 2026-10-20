@@ -329,3 +329,11 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 - `tests/protocol/data-import-human-experience.test.mjs` 增加精确断言，验证两个步骤的 ID、中文标签与状态。
 - 未更改 Eidos 通用框架职责；此为 Platform 的导入业务流程表达，不把供应商语义写入 Eidos。
 - 新 HEAD 通过后仍须查看真实 Host 截图并由用户视觉签收；CI/Human UI Design Review Gate 不等同于用户签收。
+
+
+## 2026-10-20 续跑 #13：V3 Chromium 步骤条断言跟进
+
+- [Real Host Chromium run 39381443031](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39381443031) 在 `V3 preserve all genuine synthetic XLSX business fields in supplier records` 子步骤失败。日志明确指出测试断言仍期望三项顶层步骤，而 Host 按新决策只渲染两项。
+- 这是测试期望没有随已批准原型对齐变更同步，而不是业务导入失败。此前日志中 V3 Host source audit desktop/phone、row correction desktop/phone、batch constant persist/restore、22-column synthetic XLSX phone review、172-row isolated import 与 bank-field reuse 均已通过；随后仅在旧步骤数量断言处停止。
+- 已在 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` 将顶层步骤数量断言从 3 修正为 2，提交 `0a135314c32fcd0633cedf1ac7dda1ad9be66407`。该 HEAD 的新 CI/Chromium 正在执行，尚不能标记 PASS。
+- 设计依据：#909 的顶层阶段是“选择文件 → 核对并导入”；预检查/Schema 确认/明确提交仍作为内部子流程。拒绝把旧测试断言当作产品需求，也不移除安全步骤。
