@@ -109,6 +109,8 @@ export interface UidlFormReviewTaskV010 {
   }[];
   issuesTitle?: string;
   issuesDescription?: string;
+  /** Opt-in connected visual grouping; defaults to independent numbered cards. */
+  issuesLayout?: "connected";
   /** Short app-owned suffix; Eidos derives the issue count from the list. */
   issuesCountSuffix?: string;
   issues?: {

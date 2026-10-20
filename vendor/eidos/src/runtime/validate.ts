@@ -1118,11 +1118,18 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","issuesCountSuffix","helpText","presentation","footer"]),path,out);
+        "issuesDescription","issues","issuesCountSuffix","issuesLayout","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
+      }
+      if (task.issuesLayout !== undefined
+        && (task.presentation !== "workbench"
+          || task.issuesLayout !== "connected"
+          || !Array.isArray(task.issues) || task.issues.length === 0)) {
+        fail(path+".issuesLayout",
+          "Connected issues need a nonempty opt-in workbench issue list");
       }
       extraKeys(task.subject,new Set(["title","subtitle","statusLabel","statusTone","iconLabel","facts"]),
         path+".subject",out);

@@ -114,3 +114,8 @@
 已逐屏对比 #909 原型桌面/手机长图与最新隔离 Host HEAD `ffca8247...` 截图，确认原型明确用绿色「文件已读取」标签、暖色外框区分「需要处理的 3 个问题」，而真实 Host 先前只有右侧数字用 warning 色，文件状态保持灰底中性色。这不是 #204 三条问题卡边界的争议，属于已有数据语义视觉没有落实。
 
 Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅当存在 statusLabel 时允许；Platform 基于成功 staged 的真实 Job 提供 `positive`，不会凭文件名猜成功；如果没有待处理项，Platform 将 attention metric 从 warning 降回 neutral，防止错误警报。Workbench CSS 使用 Eidos token 的 `color-mix` 仅为 `data-tone=warning` 的指标卡增加边界区分、正向来源 pill 着色；不改变 #204 issue 卡布局、Host 持久化、导航或命令。双端 Chromium 核对真实 tone 属性、computed border 和 status color，另保留协议 negative cases。未做 Human 签收、未测试客户 Excel。
+
+
+### 自动续跑 #06｜原型问题区视觉差异的可选双布局
+
+原型 #909 一体暖色边框＋三条分隔行，#204 则通用独立编号卡片。决定不改 owner Draft、不移除任一语义，而是引入受严格校验的 `reviewTask.issuesLayout="connected"`，只由 Platform 的 BEX 页面选择。Eidos 默认仍单独卡片；connected 保留真实三条独立内容、三个动作、错误行详情及 Host 路由，仅将三条卡视觉连为一框。desktop、390px Chromium 必须检查相邻边界、实际编号、原生链接交互、触控和响应式，Human 最终选择仍 OPEN。

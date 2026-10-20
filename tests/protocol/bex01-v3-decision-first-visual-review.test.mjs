@@ -125,6 +125,20 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.ok(renderToHtml(mapping).includes("<h2>字段对应关系</h2>"));
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     heading:{title:""}}}).ok,false);
+  assert.equal(mapping.reviewTask.issuesLayout,"connected");
+  const continuousMarkup=renderToHtml(mapping);
+  assert.match(continuousMarkup,/data-eidos-form-task-issues data-eidos-task-issues-layout="connected"/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-issues-layout="connected"/);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    issuesLayout:"unknown"}}).ok,false);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    presentation:"decision-first",issuesLayout:"connected"}}).ok,false);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    issues:[],issuesLayout:"connected",issuesCountSuffix:undefined}}).ok,false);
+  const separateMarkup=renderToHtml({...mapping,reviewTask:{...mapping.reviewTask,
+    issuesLayout:undefined}});
+  assert.doesNotMatch(separateMarkup,/data-eidos-task-issues-layout/,
+    "other Eidos workbenches retain their independent issue-card layout");
   assert.equal(mapping.reviewTask.issuesCountSuffix,"项待处理");
   assert.ok(renderToHtml(mapping).includes('data-eidos-task-steps-presentation="workbench"'));
   assert.ok(renderToHtml(mapping).includes('aria-current="step"'));

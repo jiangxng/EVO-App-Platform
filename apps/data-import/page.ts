@@ -977,6 +977,7 @@ export function createDataImportMappingPageV010(input: {
       tone:reviewIssues.length > 0 ? "warning" as const : "neutral" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
+    ...(reviewIssues.length > 0 ? {issuesLayout:"connected" as const} : {}),
     ...(reviewIssues.length > 0
       ? { issuesCountSuffix: zh(input.locale) ? "项待处理" : "pending" }
       : {}),

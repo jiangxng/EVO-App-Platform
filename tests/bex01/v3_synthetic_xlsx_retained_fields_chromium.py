@@ -722,6 +722,16 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-form-task-issue-count]')).to_have_text("3 项待处理")
     issue_list=visual_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     expect(issue_list).to_have_count(3)
+    connected=visual_form.locator('[data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol')
+    expect(connected).to_have_count(1)
+    assert connected.evaluate("""el=>{
+      const nodes=[...el.querySelectorAll(':scope>li')];
+      const first=nodes[0].getBoundingClientRect(),second=nodes[1].getBoundingClientRect();
+      return nodes.length===3 && Math.abs(first.bottom-second.top)<=1.5
+        && getComputedStyle(el).borderTopStyle==='solid'
+        && getComputedStyle(nodes[1]).borderTopStyle==='solid';
+    }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_DESKTOP"
+    visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
     row_issue=issue_list.filter(has_text="3 条记录缺少主体类型")
     row_disclosure=row_issue.locator('[data-eidos-form-task-issue-related]')
     expect(row_disclosure).to_have_count(1)
@@ -830,6 +840,16 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-form-task-issue-count]')).to_have_text("3 项待处理")
     phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     expect(phone_issues).to_have_count(3)
+    phone_connected=phone_form.locator('[data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol')
+    expect(phone_connected).to_have_count(1)
+    assert phone_connected.evaluate("""el=>{
+      const nodes=[...el.querySelectorAll(':scope>li')];
+      return nodes.length===3
+        && Math.abs(nodes[0].getBoundingClientRect().bottom - nodes[1].getBoundingClientRect().top)<=1.5
+        && getComputedStyle(nodes[1]).borderTopStyle==='solid';
+    }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_PHONE"
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_PHONE_CONNECTED_ISSUES_OVERFLOW"
+    visual_phone.screenshot(path=str(OUT/"v3-connected-issues-phone.png"),full_page=False)
     phone_row_issue=phone_issues.filter(has_text="3 条记录缺少主体类型")
     phone_disclosure=phone_row_issue.locator('[data-eidos-form-task-issue-related]')
     expect(phone_disclosure).to_have_count(1)

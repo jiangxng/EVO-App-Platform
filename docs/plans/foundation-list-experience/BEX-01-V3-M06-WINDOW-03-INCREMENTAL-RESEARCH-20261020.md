@@ -113,3 +113,12 @@
 - **拒绝**：不把全部 statusLabel 一律视为成功、不按 XLSX 后缀猜已成功、不复制原型的硬编码数字、不将 CSS 跨越全局普通表单、不覆盖 Eidos #204 issue owner CSS。完全不触碰保存、重置、Agent、文件行列及权限。
 - **验证任务**：新 HEAD 的协议用例检测错误 source tone 和缺失 label 必须拒绝；1280px/390px 真实 Host 断言 source tone 的真实 computed color 与其他灰文案不同、warning 统计卡实际 borderColor 与 neutral 统计卡不同，并保存新 Chromium 画面。此段为实施来源记录，不替代精确 HEAD 的测试结果或 Human 签收。
 - **阶段边界**：#1077 stacked Draft on #1060；M01–M03 DONE、M04/M05/M06 OPEN、总体3/6。#909 连续三问题列表与 Eidos #204 独立编号卡仍待 Human 判定，不提前放宽100%准入。无客户 Excel，不动 Railway/main。
+
+
+## M06 自动续跑 #06｜连续编号问题列表作为 BEX 专用可选布局（2026-10-20）
+
+- **来源事实 R（已读真实原型及隔离 Host 截图）：** #909 [原型 HTML](https://github.com/jiangxng/EVO-App-Platform/blob/af58e0abad880439d54230485305bf2b4e05decc/docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html) 的三条问题属于同一暖色外框，行间用细线分隔，左侧仍每条编号；而 #1077 HEAD `69e1dfdc...` 桌面和 390px 真实 Host 把三条各自作完整带描边、留空的独立编号卡。Eidos owner Draft #204 明确后者是通用 Workbench 默认，属于真正的审美/产品冲突，不应不经确认覆盖其独立 PR。
+- **有限实施判断（可逆）：** Eidos `reviewTask.issuesLayout?: "connected"` 仅接受真实 Workbench 且实际有 issue 的 opt-in。未指定时既有 #204 独立编号卡片样式完全保持。Platform 的 BEX 映射审核页声明 connected；Eidos 渲染轻量区分属性 `data-eidos-task-issues-layout=connected`，CSS 仅合并列表外框、去除 li 间 gap 并保留分隔线，三个编号、每条独立语义 DOM、按钮、逐行更正 links、键盘焦点和对应 Host 路由全部不变。
+- **方案比较：** 直接删除 #204 card CSS 有跨工作流破坏及 owner 冲突，排除；更改实际问题分组/合并内容会丢失三条独立可执行工作流，排除；在 Eidos 中硬编码 BEX 供应商 ID、原型示例字段或固定数量，排除。保留双样式 opt-in 使 Human 可对照签收后选择，不是擅自宣布产品层统一决定。
+- **新验收约束：** protocol 应拒绝 unknown layout、非 Workbench layout、无问题的假 connected；桌面 1280px/390px 真 Host Chromium 检查该属性、真实三个问题 DOM、相邻卡行间的接缝 <=1.5 CSS pixel、容器和分隔线 computed border，手机无横向溢出；保存 `v3-connected-issues-desktop.png`、`v3-connected-issues-phone.png` 并继续测试 165/169/172 真实错误行和 Host 安全动作。具体 PASS 待该 HEAD CI，不事先填造。
+- **状态：** 本轮继续 #1077 stacked Draft → #1060，Eidos #204 未改，main/Railway 未改，Human 视觉正式签收 OPEN，M01–M03 COMPLETE；M04/M05/M06 OPEN，总体3/6。客户原始 XLSX 和 M05 真实业务验收继续禁止启动。
