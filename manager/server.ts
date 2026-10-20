@@ -6223,8 +6223,15 @@ function publishActionRealtimeEvents(
   }
 }
 
+let shuttingDown = false;
 const server = createServer(async (request, response) => {
   try {
+    if (shuttingDown) {
+      response.statusCode = 503;
+      response.setHeader("Connection", "close");
+      response.end("Host shutting down");
+      return;
+    }
     const url = new URL(request.url ?? "/", "http://localhost");
     applyWebSecurityHeaders(response);
     applyWebRevisionHeadersV010(
@@ -10221,7 +10228,6 @@ const port = Number(process.env.PORT ?? 4100);
 await pa05WriteLifecycleHost.attestStartupActivation();
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
 
-let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
