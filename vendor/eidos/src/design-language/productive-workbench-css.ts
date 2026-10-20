@@ -2941,6 +2941,20 @@ form[data-eidos-id] button:hover,
   background:var(--eidos-bg-subtle);border-top:1px solid var(--eidos-border);
   color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
 }
+[data-eidos-form-review-table-toolbar-tools]{
+  display:flex;align-items:center;justify-content:flex-end;
+  flex-wrap:wrap;gap:var(--eidos-space-sm);min-width:0
+}
+[data-eidos-review-table-agent-action]{
+  min-height:var(--eidos-control-normal);border-radius:var(--eidos-radius-md);
+  border:1px solid var(--eidos-border-strong);background:var(--eidos-bg);
+  color:var(--eidos-primary);padding:0 var(--eidos-space-md);
+  font-size:var(--eidos-font-compact);font-weight:600;cursor:pointer
+}
+[data-eidos-review-table-agent-action]:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-review-table-agent-action]:disabled{opacity:.5;cursor:wait}
 [data-eidos-form-review-table-toolbar] label{
   display:flex;
   gap:var(--eidos-space-sm);
@@ -3130,6 +3144,10 @@ form[data-eidos-id] button:hover,
  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
   [data-eidos-form-review-table-toolbar] label{white-space:nowrap;flex-wrap:nowrap}
 @media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar-tools]{width:100%;justify-content:space-between}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-review-table-agent-action]{min-height:44px}
  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
    [data-eidos-form-review-table-toolbar-context]{width:100%}
  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]

@@ -886,7 +886,7 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote","agentActionId"]),p,out);
       for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
         const value=table[key];
         if(value!==undefined && (!nonEmpty(value) || value.length>max)){
@@ -962,7 +962,15 @@ export function validateUidl(
             noMatchesMessage:f.noMatchesMessage,options};
         }
       }
+      if (table.agentActionId !== undefined
+        && (!nonEmpty(table.agentActionId)
+          || table.agentActionId.length > 128)) {
+        out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",p+".agentActionId",
+          "Toolbar agent action requires an existing action ID"));
+      }
       reviewTable={
+        ...(nonEmpty(table.agentActionId) && table.agentActionId.length <= 128
+          ? {agentActionId:table.agentActionId} : {}),
         ...(typeof table.toolbarHint==="string" && table.toolbarHint.trim()
           && table.toolbarHint.length<=240 ? {toolbarHint:table.toolbarHint} : {}),
         ...(typeof table.footnote==="string" && table.footnote.trim()
@@ -1212,6 +1220,12 @@ export function validateUidl(
     });
   }
 
+  if(reviewTable?.agentActionId && !actions.some(action=>
+    action.type === "agent" && action.id === reviewTable.agentActionId)){
+    out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",
+      "$.reviewTable.agentActionId",
+      "Toolbar action must reference a declared Agent action"));
+  }
   const submits = actions.filter(action => action.type === "submit");
   if (submits.length < 1 || submits.length > 3) {
     out.push(d("EIDOS_SUBMIT_CARDINALITY", "$.actions",

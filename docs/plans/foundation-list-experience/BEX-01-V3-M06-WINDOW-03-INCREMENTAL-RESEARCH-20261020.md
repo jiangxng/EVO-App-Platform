@@ -72,3 +72,12 @@
 - **未采用：** 硬编码“7/22”、改动源表数据、为原型自动保存文案绕开 Host 显式保存、直接套用 #909 的案例字段名。#204 独立问题卡仍保留，连续问题框冲突由 Human 决策。
 - **验证目标：** desktop 1280px/phone 390px synthetic isolation，核对真实筛选 6/22→22/22→6/22、指导文本、来源保留底注且不会改动 Host 数据，新增协议测试验证空和超长说明拒绝。具体 CI 与截图须由本 HEAD 实际出具，不预填 PASS。
 - **范围与状态：** #1077 → #1060 stacked Draft，不改 main 或生产。M01–M03 DONE，M04/M05/M06 OPEN，总进度3/6，Human视觉签收仍OPEN。
+
+
+## M06 Window-03 自动续跑 #02（续）｜AI 自动匹配从底栏移入字段决策工具栏（2026-10-20）
+
+- **已读原型事实（R）：** #909 mapping 核对底栏为返回文件／恢复初始选择／预检查并继续三项；#1077 的隔离 Host `v3-prototype-parity-submit-desktop.png` 底栏为这三类动作外加“AI 自动匹配”，造成视觉和心智模型不一致。
+- **业务不变量：** AI 自动匹配是用户明确要求的功能，不能删除，也不能变成模拟按钮。Host 现已有实际 Agent 动作 `ai-auto-map`，携带 `agentCapability=agent.personal`、`importJobId` 和真实上下文；Eidos 页控制器查找 `[data-eidos-agent-action]` 绑定实际事件。
+- **采用设计（判断）：** Eidos `reviewTable.agentActionId` 仅引用原有 agent action；解析契约严格确认 ID 有界且必须是已声明的 Agent action。渲染在同一字段筛选工具栏，底栏只保留原有真实返回、重置、保存并预检；事件仍被页控制器原事件绑定发现，不能复制或发明 Host 动作。Eidos 仍通用，不在基础控件内写 BEX 特有文案。
+- **不采用：** 删除 AI、在 footer 保留重复按钮、将 AI 自动触发或仅写一个没有事件的图标。桌面和 390px 浏览器断言同一 action id 恰有一个按钮、footer 不再包含 AI、移动端可触高度至少44px；不在合成测试里自动触发 Agent 请求以防意外影响独立网络环境。
+- **当前状态：** 此文档记录实施意图；是否 CI PASS 必须单独核对新 commit 精确 HEAD，Human signoff 未完成。#204 独立问题卡仍是待决，与本改动不冲突。

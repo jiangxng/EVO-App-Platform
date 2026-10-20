@@ -206,17 +206,24 @@ export function renderToHtml(document: unknown): string {
     }).join("");
     const count=(model.reviewGroups ?? []).filter(group =>
       !allowed || allowed.includes(group.reviewStatus!.key)).length;
-    const toolbar=filter
+    const toolbarAgent=model.reviewTable?.agentActionId
+      ? model.agentActions.find(action=>action.id===model.reviewTable?.agentActionId)
+      : undefined;
+    const toolbar=filter || toolbarAgent
       ? `<div data-eidos-form-review-table-toolbar>
-          <div data-eidos-form-review-table-toolbar-context>
+          ${filter ? `<div data-eidos-form-review-table-toolbar-context>
             <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span>
             ${model.reviewTable?.toolbarHint ? `<p data-eidos-form-review-table-toolbar-hint>${esc(model.reviewTable.toolbarHint)}</p>` : ""}
-          </div>
-          <label>${esc(filter.label)}
+          </div>` : ""}
+          <div data-eidos-form-review-table-toolbar-tools>
+          ${filter ? `<label>${esc(filter.label)}
           <select data-eidos-form-review-table-filter>${filter.options.map(option =>
             `<option value="${esc(option.id)}"
               data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
-          ).join("")}</select></label></div>`
+          ).join("")}</select></label>` : ""}
+          ${toolbarAgent ? `<button type="button" data-eidos-review-table-agent-action
+            data-eidos-agent-action="${esc(toolbarAgent.id)}">${esc(toolbarAgent.label)}</button>` : ""}
+          </div></div>`
       : "";
     const heading=model.reviewTable?.heading
       ? `<header data-eidos-form-review-table-heading>
@@ -256,6 +263,7 @@ export function renderToHtml(document: unknown): string {
     ? reviewTable : groups
       ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
   const agentActions = model.agentActions
+    .filter(action=>action.id!==model.reviewTable?.agentActionId)
     .map(action =>
       `<button type="button" data-eidos-agent-action="${esc(action.id)}">${esc(action.label)}</button>`
     )

@@ -65,6 +65,8 @@ export interface UidlFormReviewTableV010 {
   /** Optional factual guidance near the live filter count and source-integrity footer. */
   toolbarHint?: string;
   footnote?: string;
+  /** Optional reference to an existing Agent action, rendered beside the mapping filter. */
+  agentActionId?: string;
   columnLabels: { subject: string; evidence: string; decision: string; status: string };
   filter?: {
     label: string;

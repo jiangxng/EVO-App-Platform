@@ -87,3 +87,8 @@
 ### M06 自动续跑 #02：四列表工具栏认知说明与底注
 
 对照 #909 原型，Eidos 通用 `UidlFormReviewTableV010` 在声明时展示 toolbarHint 和 footnote。栏位仍显示真实筛选可见数，不复制静态原型数字；Platform 通过两句短文本分别解释“为什么优先展示部分列”和“排他选择／不导入不删除源数据”。界面文字在 Eidos 转义、校验，不绕开 Host 显式保存。桌面、390px mobile 将增加选择筛选时计数动态变化和底注内容断言，证明是活控件而非截图复制。
+
+
+### 自动续跑 #02：Agent 入口归位字段映射工具栏
+
+原型底部三项主流程操作与真实 Host 四项底部操作存在差异。将原始 `ai-auto-map`（实际 Agent.personal action、带 Host 上下文）按 `reviewTable.agentActionId` 精确引用，在 Eidos 通用字段筛选工具栏显示且底栏不重复显示；页控制器继续按同一 `data-eidos-agent-action` 绑定，严禁发明网络动作。单独契约验证缺失/伪 Agent action 不通过；1280px 和 390px 验证按钮存在唯一、触摸尺寸和 footer 干净。此次展示调整不表明 Agent 模型调用已经实际执行过，业务数据仍需人工预检及提交。

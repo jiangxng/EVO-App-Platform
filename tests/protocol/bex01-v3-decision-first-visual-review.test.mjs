@@ -71,6 +71,17 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
   assert.match(mapping.description,/请核对字段对应关系/);
   assert.ok(mapping.description.length < 80,"mapping first-screen copy should be concise");
+  assert.equal(mapping.reviewTable.agentActionId,"ai-auto-map");
+  const htmlWithAgent=renderToHtml(mapping);
+  assert.match(htmlWithAgent,/data-eidos-review-table-agent-action/);
+  assert.equal((htmlWithAgent.match(/data-eidos-agent-action="ai-auto-map"/g)??[]).length,1,
+    "the existing Host Agent action must have exactly one real button");
+  assert.doesNotMatch(htmlWithAgent.split("<footer data-eidos-form-actions>")[1],
+    /data-eidos-agent-action="ai-auto-map"/,
+    "AI mapping belongs beside mapping decisions rather than extra footer actions");
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    agentActionId:"nonexistent-agent-action"}}).ok,false,
+    "inert toolbar buttons must be rejected rather than faked");
   assert.equal(mapping.reviewTable.heading.title,"字段对应关系");
   assert.match(mapping.reviewTable.toolbarHint,/优先显示需要确认/);
   assert.match(mapping.reviewTable.footnote,/原始文件内容仍会保留/);

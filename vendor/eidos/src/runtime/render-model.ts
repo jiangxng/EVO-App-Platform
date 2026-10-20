@@ -33,6 +33,7 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
           ...(doc.reviewTable.heading ? {heading:{...doc.reviewTable.heading}} : {}),
           ...(doc.reviewTable.toolbarHint ? {toolbarHint:doc.reviewTable.toolbarHint} : {}),
           ...(doc.reviewTable.footnote ? {footnote:doc.reviewTable.footnote} : {}),
+          ...(doc.reviewTable.agentActionId ? {agentActionId:doc.reviewTable.agentActionId} : {}),
           columnLabels: {...doc.reviewTable.columnLabels},
           ...(doc.reviewTable.filter ? { filter: {
             ...doc.reviewTable.filter,

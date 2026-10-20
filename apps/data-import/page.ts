@@ -720,6 +720,7 @@ export function createDataImportMappingPageV010(input: {
   const reviewTable = {
     // V3 compact four-column density uses upstream Eidos #200 semantics.
     presentation: "compact" as const,
+    agentActionId: "ai-auto-map",
     toolbarHint: zh(input.locale)
       ? "优先显示需要确认的来源字段；可切换查看全部原始列。"
       : "Priority source decisions first; switch the filter to inspect all original columns.",

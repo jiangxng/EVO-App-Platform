@@ -720,6 +720,11 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
     expect(visual_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(visual_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
+    toolbar_ai=visual_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
+    expect(toolbar_ai).to_have_count(1)
+    expect(toolbar_ai).to_have_text("AI 自动匹配")
+    expect(visual_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
+    assert toolbar_ai.evaluate("(el)=>el.getAttribute('type')")=="button"
     expect(visual_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
     filter_choice=visual_form.locator('[data-eidos-form-review-table-filter]')
     expected_count=visual_form.locator('[data-eidos-form-review-table-count]')
@@ -785,6 +790,11 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
     expect(phone_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(phone_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
+    phone_ai=phone_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
+    expect(phone_ai).to_have_count(1)
+    expect(phone_ai).to_have_text("AI 自动匹配")
+    assert phone_ai.evaluate("(el)=>el.getBoundingClientRect().height")>=44
+    expect(phone_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
     phone_filter=phone_form.locator('[data-eidos-form-review-table-filter]')
     phone_count=phone_form.locator('[data-eidos-form-review-table-count]')
