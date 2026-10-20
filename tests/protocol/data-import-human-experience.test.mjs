@@ -1018,6 +1018,46 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys,
     ["matched","proposed","attention"],
     "Eidos filters must reference only status values in this authorized Job");
+  const stagedJob=repository.get("enterprise-context:a","batch-proposals");
+  const failedJob={
+    ...stagedJob,
+    state:"DRY_RUN_FAILED",
+    source:{
+      ...stagedJob.source,
+      headers:[...stagedJob.source.headers,"主体类型"],
+      rows:[1,2,3].map(()=>({...source.rows[0],"主体类型":""}))
+    },
+    mapping:[...stagedJob.mapping,{
+      sourceColumn:"主体类型",targetFieldId:"subjectType"
+    }],
+    dryRun:{
+      schemaDigest:"isolated-test-schema",
+      totalRows:3,validRows:0,invalidRows:3,
+      rows:[1,2,3].map(rowNumber=>({
+        rowNumber,ok:false,
+        issues:[{
+          code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+          fieldId:"subjectType",
+          message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+        }]
+      }))
+    }
+  };
+  const failedPage=createDataImportMappingPageV010({
+    job:failedJob,
+    schema:target.describe({contextId:"enterprise-context:a",
+      parameters:{relationshipMode:"SUPPLIER"}}),
+    locale:"zh-CN",canCreateExtension:true
+  });
+  assert.equal(failedPage.reviewTask.metrics.find(x=>x.id==="attention").value,"2",
+    "persisted row validation issues count as attention alongside unresolved mapping columns");
+  const subjectIssue=failedPage.reviewTask.issues.find(x=>x.title==="主体类型");
+  assert.ok(subjectIssue,"returning from a failed dry-run must expose its row issue on mapping review");
+  assert.match(subjectIssue.description,/3 条记录需要处理（第 1、2、3 行）/);
+  assert.equal(subjectIssue.focusGroupId,"map-source-4",
+    "the issue should focus the existing source mapping group, not mutate the mapping");
+  assert.equal(validateUidl(failedPage).ok,true,
+    JSON.stringify(validateUidl(failedPage).diagnostics));
   const mapHtml=renderToHtml(page);
   assert.match(mapHtml,/data-eidos-form-task-overview/);
   assert.match(mapHtml,/data-eidos-form-task-metrics/);
