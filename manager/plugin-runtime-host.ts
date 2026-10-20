@@ -235,6 +235,9 @@ export function createProcessPluginRuntimeHostV010(
   // Keep every forked generation until the ChildProcess "close" event.
   const liveChildren = new Set<RuntimeRecord>();
   const retiring = new Map<string, RuntimeRecord>();
+  // Serializes all in-progress verified starts, including an asynchronous
+  // Sigstore verifier. Prevents duplicate fork for the same package.
+  const starting = new Map<string, Promise<PluginRuntimeStatusV010>>();
   let shuttingDown = false;
   const childEntrypoint = fileURLToPath(
     new URL("./plugin-runtime-process-child.js", import.meta.url)
@@ -341,7 +344,7 @@ export function createProcessPluginRuntimeHostV010(
     }
   }
 
-  async function start(
+  async function startOne(
     pkg: PackageManifestV010,
     installed: InstalledPackageV010
   ): Promise<PluginRuntimeStatusV010> {
@@ -627,6 +630,28 @@ export function createProcessPluginRuntimeHostV010(
     return structuredClone(record.status);
   }
 
+  async function start(
+    pkg: PackageManifestV010,
+    installed: InstalledPackageV010
+  ): Promise<PluginRuntimeStatusV010> {
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+    if (stopping.has(pkg.packageId)) {
+      throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+    }
+    const inFlight = starting.get(pkg.packageId);
+    if (inFlight) return await inFlight;
+    // Reserve the package synchronously before an async verifier can yield.
+    const startPromise = startOne(pkg, installed);
+    starting.set(pkg.packageId, startPromise);
+    try {
+      return await startPromise;
+    } finally {
+      if (starting.get(pkg.packageId) === startPromise) {
+        starting.delete(pkg.packageId);
+      }
+    }
+  }
+
   async function invoke(
     pkg: PackageManifestV010,
     installed: InstalledPackageV010,
@@ -688,21 +713,23 @@ export function createProcessPluginRuntimeHostV010(
   }
 
   async function stop(packageId: string): Promise<void> {
-    // Repeated calls must await the same process exit, even after removing
-    // the runtime from the active map.
     const inFlight = stopping.get(packageId);
     if (inFlight) return await inFlight;
-    const record = runtimes.get(packageId);
-    if (!record) return;
-    runtimes.delete(packageId);
 
+    // Register stop intent before awaiting an asynchronous start. A verifier
+    // still in progress must fail its recheck rather than fork after stop().
     const stopPromise = (async (): Promise<void> => {
-      // Even a previously timed-out child is not confirmed closed until
-      // its own Node close receipt has fired.
-      const stopped = record.closed;
+      let record = runtimes.get(packageId);
+      if (!record) {
+        const pendingStart = starting.get(packageId);
+        if (pendingStart) await pendingStart.catch(() => {});
+        record = runtimes.get(packageId);
+      }
+      if (!record) return;
+      runtimes.delete(packageId);
 
-      // The bounded kill fallback is local process hygiene, not an
-      // independent orchestrator stop receipt.
+      // "close" is an individual LOCAL process completion receipt.
+      const stopped = record.closed;
       const killTimer = setTimeout(() => {
         if (record.child.exitCode === null && record.child.signalCode === null) {
           record.child.kill("SIGKILL");
@@ -713,7 +740,7 @@ export function createProcessPluginRuntimeHostV010(
           try {
             record.child.send({ type: "shutdown" });
           } catch {
-            // An IPC error must not skip the exit wait/kill fallback.
+            // Continue to wait for the child and fall back to SIGKILL.
           }
         }
         await stopped;
@@ -724,15 +751,10 @@ export function createProcessPluginRuntimeHostV010(
         });
       } finally {
         clearTimeout(killTimer);
-        cleanupRecord(
-          record,
-          new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`)
-        );
+        cleanupRecord(record, new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`));
       }
     })();
 
-    // Registered synchronously before the first await, so shutdown can
-    // capture a stop already underway during another lifecycle event.
     stopping.set(packageId, stopPromise);
     try {
       await stopPromise;
@@ -753,12 +775,17 @@ export function createProcessPluginRuntimeHostV010(
       // Close all future start/invoke admission before building a stop
       // snapshot. Include children already removed by a previous stop().
       shuttingDown = true;
+      // A verifier may be pending without a forked child yet. Wait until
+      // those calls observe shutdown and reject before returning.
+      const pendingStarts = [...starting.values()].map(promise =>
+        promise.then(() => undefined, () => undefined)
+      );
       const inFlight = [...stopping.values()];
       const active = [...runtimes.keys()].map(packageId => stop(packageId));
       // This list also includes children removed by invocation timeout,
       // fatal/error cleanup, or another asynchronous lifecycle operation.
       const everyForkedChild = [...liveChildren].map(record => record.closed);
-      await Promise.all([...inFlight, ...active, ...everyForkedChild]);
+      await Promise.all([...pendingStarts, ...inFlight, ...active, ...everyForkedChild]);
     }
   };
 }

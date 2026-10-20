@@ -34,7 +34,7 @@ const entrypoint = fileURLToPath(
   new URL("../fixtures/pa05-k0-delayed-process.mjs", import.meta.url)
 );
 
-function fixturePackage(invocationTimeoutMs = 3000) {
+function fixturePackage(invocationTimeoutMs = 3000, sigstore = false) {
   const pkg = {
     contractVersion: "0.1.0",
     packageId: "pa05-k0-disposable-process",
@@ -71,7 +71,11 @@ function fixturePackage(invocationTimeoutMs = 3000) {
       scope: "PROCESS_ENTRYPOINT",
       digest: sha256DigestV010(readFileSync(entrypoint))
     },
-    provenance: {type: "INTERNAL_CI", reference: "test://pa05-k0-local-only"}
+    provenance: sigstore
+      ? {type: "SIGSTORE_BUNDLE", sigstore: {bundle: {
+        mediaType: "application/vnd.dev.sigstore.bundle.v0.3+json"
+      }}}
+      : {type: "INTERNAL_CI", reference: "test://pa05-k0-local-only"}
   });
   return pkg;
 }
@@ -84,11 +88,12 @@ const installed = () => ({
   grantedPermissions: ["workspace.read"]
 });
 
-function localRuntime() {
+function localRuntime(options = {}) {
   return createProcessPluginRuntimeHostV010({
     storageService: createMemoryPluginStorageService(),
     eventBus: createPluginEventBus(),
-    integrityTrustStore: trustStore
+    integrityTrustStore: trustStore,
+    ...options
   });
 }
 
@@ -211,6 +216,87 @@ test("K0 bounded: a new PROCESS generation cannot precede timed-out child close"
       globalStopCertified: false
     }));
   } finally {
+    await host.shutdown();
+  }
+});
+
+
+test("K0 bounded: concurrent async Sigstore starts reserve exactly one child", {timeout: 12000}, async () => {
+  const pkg = fixturePackage(3000, true);
+  let verifyCount = 0, forks = 0, release;
+  const verifierGate = new Promise(resolve => {release = resolve;});
+  const host = localRuntime({
+    onRuntimeEvent(event) {
+      if (event.type === "PROCESS_STARTING") forks += 1;
+    },
+    async verifyExternalEvidence(manifest) {
+      verifyCount += 1;
+      await verifierGate;
+      return {
+        state: "VERIFIED",
+        packageId: manifest.packageId,
+        evidenceType: "SIGSTORE_BUNDLE",
+        message: "local-only fixture"
+      };
+    }
+  });
+  let first, second;
+  try {
+    first = host.start(pkg, installed());
+    second = host.start(pkg, installed());
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(verifyCount, 1, "a concurrent start must reuse the single verifier");
+    release();
+    const [one, two] = await Promise.all([first, second]);
+    assert.equal(one.status, "READY");
+    assert.equal(two.status, "READY");
+    assert.equal(forks, 1, "a package can have only one starting generation");
+    const child = await host.invoke(pkg, installed(), {method: "pid", input: null});
+    assert.equal(pidAlive(child.pid), true);
+    console.log("PA05_K0_BOUNDED_ASYNC_FORK_SINGLETON=" + JSON.stringify({
+      scope: "isolated-local-child", verifyCount, forks,
+      globalStopCertified: false
+    }));
+  } finally {
+    release();
+    await Promise.allSettled([first, second].filter(Boolean));
+    await host.shutdown();
+  }
+});
+
+test("K0 bounded: stop during pending verifier refuses late fork", {timeout: 12000}, async () => {
+  const pkg = fixturePackage(3000, true);
+  let release, entered, forks = 0;
+  const gate = new Promise(resolve => {release = resolve;});
+  const verifierEntered = new Promise(resolve => {entered = resolve;});
+  const host = localRuntime({
+    onRuntimeEvent(event) {
+      if (event.type === "PROCESS_STARTING") forks += 1;
+    },
+    async verifyExternalEvidence(manifest) {
+      entered();
+      await gate;
+      return {state: "VERIFIED", packageId: manifest.packageId,
+        evidenceType: "SIGSTORE_BUNDLE", message: "local-only fixture"};
+    }
+  });
+  let launching, stopping;
+  try {
+    launching = host.start(pkg, installed());
+    await verifierEntered;
+    stopping = host.stop(pkg.packageId);
+    release();
+    await assert.rejects(launching, /PLUGIN_PROCESS_STOP_IN_PROGRESS/);
+    await stopping;
+    assert.equal(forks, 0);
+    console.log("PA05_K0_BOUNDED_ASYNC_STOP_FENCE=" + JSON.stringify({
+      scope: "isolated-local-child", forks, lateForkDenied: true,
+      globalStopCertified: false
+    }));
+  } finally {
+    release();
+    if (launching) await Promise.allSettled([launching]);
+    if (stopping) await stopping;
     await host.shutdown();
   }
 });
