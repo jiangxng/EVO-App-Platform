@@ -120,6 +120,10 @@ test("K0 NEGATIVE: stop drops map entry before OS child exit; shutdown snapshot 
     await host.shutdown();
     const shutdownReturnedWithChildAlive = pidAlive(pid);
     const shutdownSkippedInFlightStop = !stopSettled;
+    assert.equal(shutdownReturnedWithChildAlive, true);
+    assert.equal(shutdownSkippedInFlightStop, true);
+    await stopPending;
+    assert.equal(stopSettled, true);
     console.log("PA05_K0_NEGATIVE_STOP_SNAPSHOT=" + JSON.stringify({
       scope: "isolated-local-child",
       shutdownReturnedWithChildAlive,
@@ -127,10 +131,6 @@ test("K0 NEGATIVE: stop drops map entry before OS child exit; shutdown snapshot 
       stopFinishedAfterwards: stopSettled,
       globalStopCertified: false
     }));
-    assert.equal(shutdownReturnedWithChildAlive, true);
-    assert.equal(shutdownSkippedInFlightStop, true);
-    await stopPending;
-    assert.equal(stopSettled, true);
   } finally {
     // No deliberate orphan or leaked child even when an assertion fails.
     if (stopPending) await stopPending;
