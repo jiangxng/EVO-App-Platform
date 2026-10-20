@@ -1005,6 +1005,10 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(page.reviewTask.subject.title,"batch-proposals");
   assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
+  assert.deepEqual(page.reviewTask.steps.map(x=>[x.id,x.label,x.state]),[
+    ["source","选择文件","complete"],
+    ["review","核对并导入","current"]
+  ],"the top-level stepper must match the approved two-stage V3 prototype");
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
   assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
   assert.equal(page.reviewTask.issues[0].actionLabel,"核对本列");
