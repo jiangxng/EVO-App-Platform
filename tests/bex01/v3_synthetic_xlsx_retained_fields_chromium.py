@@ -721,7 +721,7 @@ with sync_playwright() as pw:
     for index,number in enumerate([165,169,172]):
         expect(correctable.nth(index)).to_have_text("第 %d 行"%number)
         route=correctable.nth(index).get_attribute("data-eidos-context-route")
-        assert re.search(r"/data-import/jobs/[^/]+/fix/%d/\\d+$"%number,route),(
+        assert re.search(r"/data-import/jobs/[^/]+/fix/%d/\d+$"%number,route),(
             "BEX01_V3_CORRECTION_ROUTE_INVALID",route)
     visual_page.screenshot(path=str(OUT/"v3-issue-real-row-links-desktop.png"),full_page=False)
     correctable.first.click()
