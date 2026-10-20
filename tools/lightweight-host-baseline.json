@@ -44,10 +44,8 @@
     "apps/enterprise-observatory/package.ts -> apps/eog-2d/package.ts [static]",
     "apps/enterprise-observatory/package.ts -> apps/eog-3d/package.ts [static]",
     "apps/eog-2d-designer/agent-tools.ts -> apps/eog-2d-designer/package.ts [static]",
-    "apps/eog-2d-designer/current-2d-editor-agent-tools.ts -> apps/eog-2d-designer/definition-projection-editor.ts [static]",
     "apps/eog-2d-designer/current-2d-editor-agent-tools.ts -> apps/eog-2d-designer/package.ts [static]",
     "apps/eog-2d-designer/definition-persistence.ts -> apps/eog-2d-designer/enterprise-operating-graph-model.ts [static]",
-    "apps/eog-2d-designer/definition-projection-editor.ts -> apps/eog-2d/package.ts [static]",
     "apps/eog-2d-designer/enterprise-operating-graph-actions.ts -> apps/eog-2d-designer/package.ts [static]",
     "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/enterprise-operating-graph-actions.ts [static]",
     "apps/eog-2d-designer/enterprise-operating-graph-page.ts -> apps/eog-2d-designer/inspector-editors.ts [static]",
@@ -259,3 +257,4 @@
     "providers/session/runtime.ts -> providers/session/package.ts [static]"
   ]
 }
+
