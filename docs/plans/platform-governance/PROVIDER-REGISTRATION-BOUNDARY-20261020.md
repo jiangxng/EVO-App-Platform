@@ -109,3 +109,59 @@ R1旧SOP工具身份/资格与冻结例外仍保留；R2 conversationDatabaseUrl
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+## 7. 2026-10-20增量：明文凭据绑定实际请求
+
+基线main `1acd04a8f9bb13082a03d755a81f2227fbf838d4`（#1072）。前批最终head `72eb690069373ed2b2ae8f505962ad759a827a27`，44项CI、186行为/6守卫、四组合310模块/246边见[最终记录](https://github.com/jiangxng/EVO-App-Platform/pull/1072#issuecomment-6283568645)；不是本批测量。过程分支 `fix/governance-llm-request-credentials-20261020`。本批只接续两种原LLM的凭据读取边界，不改Agent/BEX/2D功能或全局状态，不新增Provider/通用加载框架。
+
+### 为什么需要这一层
+
+同步`resolveLlmProvider`及chat/run/thread/async worker需要配置状态、model/provider身份和有效贡献，不需要明文Key。原refresh把`secrets.resolve`提前到启动/设置保存，并把明文捕获到两个原工厂的options闭包。只加启动Feature判断无法保证后续通过Human或直接Agent manager.install启用后立即可用；改同步公共合同会牵动其他专项。因此保留廉价同步登记，复用两个工厂已有的`fetchImpl`注入端口，在真实网络请求边界取得Key，不再让Provider options闭包保留明文。
+
+新增`manager/llm-credential-fetch.ts`是这一对既有Host配置消费者的凭据绑定函数，不是第二套Provider、授权或生命周期框架。构造只捕获引用/回调；原工厂收到非Secret的配置标记，标记只满足原工厂配置校验，实际请求的authorization在fetch端口以真实Key替换，测试显式拒绝标记流出。原消息/工具schema、model、URL、HTTP方法/body、signal/redirect和Provider响应逻辑不改。
+
+### 归属、触发和竞态
+
+| 场景/资源 | 本批行为与责任 |
+|---|---|
+| 启动/发现/设置刷新 | 只读取有效共享Secrets的describe配置元数据和非Secret模型设置，不调用LLM Key resolve；无Key元数据且无legacy env时仍移除runtime。共享安全store的主密钥/密文文件加载保留，不称Host零文件访问 |
+| 未安装/停用 | 请求前检查原有效llm.inference贡献和当前配置版本，不解析Key/不发请求；旧引用不能靠绕过上层路由取得Key。安装/启用不解密，也不需要新异步安装协议 |
+| 实际infer/显式health | 每个请求按原installation Secret reference解析；describe/resolve每次await后复核资格、配置版本、启停epoch和AbortSignal。优先已配置Secret，保留原环境fallback；无Key显式拒绝，无自动重放 |
+| 并发首次调用 | 不建立全局明文/Promise缓存，每个合法请求分别解析一次。没有新连接/定时器/订阅/索引或业务持久化；不是把并发解密当连接工厂重复创建 |
+| 停用后重新启用期间迟到解析 | 原manager生命周期事件仅为这两个owner更新有界整数epoch；即使已重新启用，旧epoch请求也拒绝。后续新请求可恢复，其他插件事件不改变本owner epoch |
+| 设置写入/端点及Key轮换 | 原授权与字段校验之后，在异步Secret写入前使旧配置引用失效并计数阻止发送；计数覆盖并行保存。finally按当前状态刷新元数据并释放，失败也不留下永久门禁；旧端点不会通过旧引用取得新Key |
+| describe/resolve失败、超时 | 保留原合法上下文中的环境兼容fallback；资格/配置/Abort失败不能降级到环境Key。已到期请求不继续后续解密或网络；失败不缓存，之后显式调用可恢复 |
+| 损坏密文/元数据已配置 | 加密元数据不证明可解密。坏Key检测推迟至实际使用/显式探测，不在冷启动解密所有可选Key；UNKNOWN不代表远端健康，错误按原调用/registry渠道显式呈现 |
+
+Host只增加两个owner的配置/启停版本和设置写入计数，属于有界治理元数据，不持有Key或待处理调用。Helper中的明文仅属于单次请求及其Headers；不承诺JS字符串可擦除或网络库不暂存请求头。共享Secrets与主密钥不随单个LLM/UI停用销毁。配置写入失败时，原加密store可能已改内存再落盘失败；本批只保证门禁finally释放及显式重试，不把现有存储当事务回滚。
+
+### 证据与适用限制
+
+新增组件9项：构造/拒绝零解析、并发每请求Key绑定且不改原headers、describe/resolve两阶段的禁用后重启用、配置替换、Abort，以及旧兼容fallback/缺Key/失败恢复。等待由可控Promise屏障完成，不依赖sleep；这些是组件竞态证据，不冒称真实HTTP在途屏障。
+
+扩展原真实Host文件，新增第二项多次重启用例：通过test-only `crypto.createDecipheriv`计数观察实际加密store解密，而非仅断言Key元数据；未安装、停用、启用未用、设置保存、禁用及有效状态重启均0解密，实际并发probe按请求解密。原持久化/删除不复活回归继续运行。fixture只统计次数并校验合成授权头，不输出Key、不替换模块源码或增加生产开关，原TCP出站block保持。
+
+新Host用例还将其独立临时目录的Secrets临时文件位置预建为目录，迫使真实put失败；确认磁盘记录未写、没有解密，修复该测试目录后原显式保存/请求可恢复。没有操作真实凭据、生产存储或部署。
+
+本地新9项+前批12项合计21项通过；后续仅补请求端口缺失检查及Host写失败场景时，新9项定向复测通过，Host/新fixture语法通过。仍为独立固定SHA部分源码+Node24临时擦除，非正式全仓构建，未本地Host/browser；正式npm ci/build、Node22、新旧Host/组件及四组合以本PR最终head CI为准。本批新增一个轻量Host helper，模块数可能增加；静态基线/冷禁入不放宽，不以降低数字代替凭据边界。
+
+原OpenAI无本层infer期限、DeepSeek timer仅覆盖fetch而非response.json，原health的5秒期限现也覆盖其内部凭据等待。读取Provider若不响应signal，其Promise可能在超时后才返回，届时仍拒绝发送；本批不保证取消外部Secrets实现。已发出的网络请求仍遵循原signal/owner合同，不新增跨Host冻结、明文擦除、在途推理回滚或所有Provider停止保证。原registry可能接收较早probe的健康报告，本批不宣称健康结果的跨配置代际认证。
+
+读取复用已完整阅读的启动/交付/装载/治理/Eidos权威；本轮核对同步消费者与Secret接口/原工厂fetch接口、生命周期事件及设置写入局部，新helper/组件/Host测试全文。不声称通读全Host/Agent或实际用户任务。证据：[llm-request-credentials-20261020.json](evidence/llm-request-credentials-20261020.json)；[兼容评审](../../ui-design-reviews/llm-request-credentials-20261020.md)。
+
+### 接续与固定进度
+
+本批对应CI通过后停止追加LLM拆分。下一批回到R3其余memory-intake/EC、semantic/DLP和必要安全Provider的实际构造/调用副作用；复用前批分类口径，不新建第二Provider试点。上述LLM局部验收不关闭R3整体；R1冻结SOP资格、R2配置SQL、R4最终跨层矩阵继续保留。未生产部署。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；LLM请求时凭据解析及竞态保护 | R3其他Provider；R1/R2/R4保留 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
