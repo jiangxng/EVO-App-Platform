@@ -947,6 +947,7 @@ export function createDataImportMappingPageV010(input: {
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
       statusLabel: zh(input.locale) ? "文件已读取" : "File read",
+      statusTone: "positive" as const,
       ...(input.job.source.kind === "XLSX" || input.job.source.kind === "CSV"
         ? { iconLabel: input.job.source.kind } : {}),
       facts: []
@@ -972,7 +973,8 @@ export function createDataImportMappingPageV010(input: {
       value:String(countStatus("ignored"))
     }, {
       id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
-      value:String(reviewIssues.length),tone:"warning" as const
+      value:String(reviewIssues.length),
+      tone:reviewIssues.length > 0 ? "warning" as const : "neutral" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
     ...(reviewIssues.length > 0

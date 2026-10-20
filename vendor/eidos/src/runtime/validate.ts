@@ -1124,12 +1124,19 @@ export function validateUidl(
           || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
       }
-      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","iconLabel","facts"]),
+      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","statusTone","iconLabel","facts"]),
         path+".subject",out);
       if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")
         || (task.subject.statusLabel !== undefined
           && typeof task.subject.statusLabel !== "string")) {
         fail(path+".subject","Subject copy must be text");
+      }
+      if (task.subject.statusTone !== undefined
+        && (typeof task.subject.statusTone !== "string"
+          || !["neutral","positive","warning"].includes(task.subject.statusTone)
+          || !nonEmpty(task.subject.statusLabel))) {
+        fail(path+".subject.statusTone",
+          "Source status tone needs a visible status label and known semantic tone");
       }
       if (task.subject.iconLabel !== undefined
         && (typeof task.subject.iconLabel !== "string"

@@ -131,6 +131,16 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(eidosProductiveWorkbenchCss,/counter-reset:eidos-workbench-step/);
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
     issuesCountSuffix:""}}).ok,false);
+  assert.equal(mapping.reviewTask.subject.statusTone,"positive",
+    "real staged file status must be positive only after source evidence loaded");
+  assert.match(renderToHtml(mapping),/data-eidos-form-task-source-status data-tone="positive">文件已读取/);
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-metric\]\[data-tone="warning"\]/);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    subject:{...mapping.reviewTask.subject,statusTone:"danger"}}}).ok,false,
+    "unknown source status tones must be rejected");
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    subject:{...mapping.reviewTask.subject,statusLabel:undefined}}}).ok,false,
+    "semantic source tone may not appear without a visible status");
   assert.equal(mapping.reviewTask.subject.iconLabel,"XLSX");
   assert.match(renderToHtml(mapping),/data-eidos-form-task-icon aria-hidden="true">XLSX/);
   assert.ok(renderToHtml(mapping).includes('type="button" data-eidos-form-task-back data-eidos-context-route="/data-import"'),

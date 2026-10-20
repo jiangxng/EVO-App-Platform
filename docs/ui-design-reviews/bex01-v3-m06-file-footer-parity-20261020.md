@@ -107,3 +107,10 @@
 ### M06 自动续跑 #04｜从面包屑中移出辅助字段处理工具
 
 对照已读 #909 和最新真实 Host 截图，发现当前面包屑把「集中审核未匹配字段」与「创建企业扩展字段」两个业务操作误写成路径父级，使桌面特别冗长、390px 手机“返回”目标语义错误。修复为：Platform 继续提供原有 Host 路由和授权条件，Eidos 通用 `reviewTable.utilityNavigation` 仅在有相应权限与任务时显示「字段处理工具」原生可展开菜单。无权限不出现，菜单必须 Host 内路由并接受严格校验，原有行内创建入口仍保留。视觉上不修改 #204 的问题卡方案，Human 100% 比对仍 OPEN。
+
+
+### 自动续跑 #05：文件来源状态与警告指标的语义视觉
+
+已逐屏对比 #909 原型桌面/手机长图与最新隔离 Host HEAD `ffca8247...` 截图，确认原型明确用绿色「文件已读取」标签、暖色外框区分「需要处理的 3 个问题」，而真实 Host 先前只有右侧数字用 warning 色，文件状态保持灰底中性色。这不是 #204 三条问题卡边界的争议，属于已有数据语义视觉没有落实。
+
+Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅当存在 statusLabel 时允许；Platform 基于成功 staged 的真实 Job 提供 `positive`，不会凭文件名猜成功；如果没有待处理项，Platform 将 attention metric 从 warning 降回 neutral，防止错误警报。Workbench CSS 使用 Eidos token 的 `color-mix` 仅为 `data-tone=warning` 的指标卡增加边界区分、正向来源 pill 着色；不改变 #204 issue 卡布局、Host 持久化、导航或命令。双端 Chromium 核对真实 tone 属性、computed border 和 status color，另保留协议 negative cases。未做 Human 签收、未测试客户 Excel。

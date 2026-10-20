@@ -96,6 +96,8 @@ export interface UidlFormReviewTaskV010 {
     title: string;
     subtitle?: string;
     statusLabel?: string;
+    /** Optional source status semantics, never inferred from badge copy. */
+    statusTone?: "neutral" | "positive" | "warning";
     /** Decorative source-format label, explicitly supplied by the app. */
     iconLabel?: string;
     facts?: { id: string; label: string; value: string }[];

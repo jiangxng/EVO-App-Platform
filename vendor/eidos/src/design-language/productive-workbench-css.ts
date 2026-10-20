@@ -3211,6 +3211,14 @@ form[data-eidos-id] button:hover,
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-identity][data-eidos-form-task-has-icon="true"]{
   grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--eidos-space-md)
 }
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-source-status][data-tone="positive"]{
+  color:var(--eidos-success);
+  background:color-mix(in srgb,var(--eidos-success) 11%,var(--eidos-bg));
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-source-status][data-tone="warning"]{
+  color:var(--eidos-warning);
+  background:color-mix(in srgb,var(--eidos-warning) 11%,var(--eidos-bg));
+}
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-icon]{
   display:grid;place-items:center;min-width:46px;min-height:46px;
   border-radius:var(--eidos-radius-md);padding:var(--eidos-space-xs);
@@ -3228,6 +3236,10 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
 }
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
   padding:var(--eidos-space-md) var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric][data-tone="warning"]{
+  border-color:color-mix(in srgb,var(--eidos-warning) 33%,var(--eidos-border));
+  background:color-mix(in srgb,var(--eidos-warning) 3%,var(--eidos-bg));
 }
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
   background:var(--eidos-bg);border:1px solid var(--eidos-border);

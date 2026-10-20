@@ -703,6 +703,16 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-form-task-metric-id="proposed"] strong')).to_have_text("4")
     expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
     expect(visual_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    desktop_warning=visual_form.locator('[data-eidos-form-task-metric-id="attention"]')
+    expect(desktop_warning).to_have_attribute("data-tone","warning")
+    assert desktop_warning.evaluate("""el=>getComputedStyle(el).borderColor!==
+      getComputedStyle(document.querySelector('[data-eidos-form-task-metric-id="ignored"]')).borderColor"""),(
+      "BEX01_V3_WARNING_METRIC_LACKS_DISTINCT_BORDER")
+    desktop_file_status=visual_form.locator('[data-eidos-form-task-source-status]')
+    expect(desktop_file_status).to_have_attribute("data-tone","positive")
+    assert desktop_file_status.evaluate("""el=>getComputedStyle(el).color!==
+      getComputedStyle(document.querySelector('[data-eidos-form-task-identity] p')).color"""),(
+      "BEX01_V3_SOURCE_STATUS_NOT_POSITIVE")
     steps=visual_form.locator('[data-eidos-form-task-steps] li')
     expect(steps).to_have_count(2)
     expect(steps.first).to_have_attribute('data-eidos-task-step-state','complete')
@@ -808,6 +818,12 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-form-task-metric-id="proposed"] strong')).to_have_text("4")
     expect(phone_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
     expect(phone_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    phone_warning=phone_form.locator('[data-eidos-form-task-metric-id="attention"]')
+    expect(phone_warning).to_have_attribute("data-tone","warning")
+    assert phone_warning.evaluate("""el=>getComputedStyle(el).borderColor!==
+      getComputedStyle(document.querySelector('[data-eidos-form-task-metric-id="ignored"]')).borderColor"""),(
+      "BEX01_V3_PHONE_WARNING_METRIC_LACKS_DISTINCT_BORDER")
+    expect(phone_form.locator('[data-eidos-form-task-source-status]')).to_have_attribute("data-tone","positive")
     mobile_steps=phone_form.locator('[data-eidos-form-task-steps] li')
     expect(mobile_steps).to_have_count(2)
     expect(mobile_steps.last).to_have_attribute('aria-current','step')
