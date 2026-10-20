@@ -303,3 +303,15 @@ Do not change production start commands, drain settings, production identity, DB
 ### Remaining acceptance boundary
 
 This improves the local Host shutdown contract, but does not prove Railway delivers SIGTERM directly through the configured `npm start` command, establish the actual per-service drain interval, prove organization-wide Worker/caller inventory, or certify production IdP/DBA stop authority. No production service action, config mutation, secret/database access or lock cleanup occurred. K0 remains NOT_SIGNED; production material WRITE remains OFF.
+
+
+## 14. 2026-10-20 — Host shutdown error-path fix: exact-head rerun record
+
+[PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074), branch `agent/pa05-host-shutdown-error-path-20261020`, now at `caccb1b60358b453ef471eaf6abecf1593e4965c`, remains Draft/unmerged/un deployed.
+
+- Latest exact-head CI: **45/45 SUCCESS / 0 failure / 0 cancelled**, including [three-PG18 cross-database reservation run #39378563669](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378563669) and Lightweight Host/J4J process test.
+- The initial attempt of the cross-database job failed at `PA05_E01J2_TIMEOUT:readResult` after about 20.46 seconds against a 20-second IPC wait. Only that failed job was rerun; it passed. Retain both facts for auditability: transient timeout observed, retry succeeded.
+- The fix covers all cleanup failures, request admission closure (503 / Connection: close for existing keep-alive requests), a fail-fast deadline started before cleanup, nonzero exit for incomplete shutdown, and preserving the cooperative lock on unsuccessful exit.
+- The source/CI fix does not certify the actual Railway draining setting, direct Node SIGTERM delivery, the full Worker/caller inventory, the authoritative stop actor, production IdP/DBA, or production material WRITE. No production process was stopped/restarted/scaled/redeployed; no Validator, secret or database access occurred.
+
+Status remains `K0 NOT_SIGNED`; full E01J4, PA05-05 E01–E05 and W06 remain NOT_SIGNED; production material WRITE remains OFF.
