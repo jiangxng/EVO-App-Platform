@@ -337,3 +337,28 @@ M01–M03 工程完成；M04 客户真实数据 OPEN；M05 真实完整导入 OP
 - 这是测试期望没有随已批准原型对齐变更同步，而不是业务导入失败。此前日志中 V3 Host source audit desktop/phone、row correction desktop/phone、batch constant persist/restore、22-column synthetic XLSX phone review、172-row isolated import 与 bank-field reuse 均已通过；随后仅在旧步骤数量断言处停止。
 - 已在 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` 将顶层步骤数量断言从 3 修正为 2，提交 `0a135314c32fcd0633cedf1ac7dda1ad9be66407`。该 HEAD 的新 CI/Chromium 正在执行，尚不能标记 PASS。
 - 设计依据：#909 的顶层阶段是“选择文件 → 核对并导入”；预检查/Schema 确认/明确提交仍作为内部子流程。拒绝把旧测试断言当作产品需求，也不移除安全步骤。
+
+
+## 2026-10-20 续跑 #14：真实 Host 视觉差异证据与当前状态
+
+### R30｜当前真实 Host 浏览器产物
+
+- 来源：[BEX-01 Real Host Chromium Supplier Journey run 39384540028](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540028)，artifact ID `12246513104`，创建于 2026-10-20 07:09 UTC。
+- 状态：**已下载并直接打开截图/报告**。`report.json` 为真实 Host 的隔离合成供应商数据，5/5 场景通过、`browserErrors=[]`；不代表真实客户验收或 Human 视觉签收。
+- 关键截图：`v3-fidelity-workbench-map-1280.png`、`v3-fidelity-workbench-batch-1280.png`、`v3-fidelity-first-viewport-batch-390.png`、`v3-map-row-issues-desktop.png`、`v3-map-row-issues-phone.png`、`v3-e4-map-desktop-submit.png`，以及 `v3-e4-map-desktop-contiguous-00.png` 至 `03.png`。
+- `v3-e4-map-desktop-scroll-manifest.json` 显示 1280×900 下映射页滚动容器高度 2460px，连续覆盖至最后一行与提交操作区；390px 页面宽度与视口一致，无横向溢出。
+
+### R31｜#909 原型对照来源
+
+- 来源：[BEX-01 V2 Prototype Chromium Review run 38704093619](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38704093619)，artifact `bex-v3-in-context-import-open-in-browser`，ID `11957646429`。
+- 状态：**已下载并直接打开原型截图与报告**。`01-desktop-overview.png`、`03-complete-field-table.png` 显示 22 列、16 已匹配、4 待新增、0 不导入、3 项需要处理；异常类型包括开户银行多目标、3 条主体类型缺失、系统编码未选择处理方式。报告将真实客户文件、生产授权、真实导入和 Human 视觉审批标为未验证。
+- 与当前 Host 的关键差异：当前测试数据不是同一映射状态；文件卡片缺少与原型同等级的 XLSX 类型图标/信息层级；当前问题 fixture 只呈现主体类型缺失聚合卡，不能证明三个独立问题类别与动作已经复现；步骤条、底部动作区需要在相同流程状态下核对。
+- 结论：不得把不同 fixture 的截图作 100% 还原证据。先建隔离 synthetic 视觉 fixture，锁定与原型一致的 22 列语义状态，再修正和签收。
+
+### R32｜精确 HEAD 门禁和边界
+
+- Platform `main` 核验值：`eaa5e813b1e86a6460d988c76eb2076512c35127`。候选 HEAD `6049c5875adecadef7b353fbc8861acc5c154ecd` 与 main ahead 36 / behind 0。
+- `6049c587…` 的 Platform CI run `39384540039` PASS，BEX-01 Real Host Chromium run `39384540028` PASS（5/5），In-Context Resume run `39384540118` PASS。
+- 视觉复核附录提交 `107fbceb1c26043bd01ef2791e25068c3f474767` 触发了新一轮 CI；在该 HEAD 上的 Platform CI 与 BEX-01 Real Host Chromium 当时仍在运行，必须按精确 HEAD 刷新状态，不继承前一提交的 PASS。
+- PA-01B2 Full Isolated Chrome Host Acceptance 在 `6049c587…` 失败于普通聊天 transport `MOCK_MODEL_CALL_NOT_SEEN`（7/8）。这是独立 Agent 线；不得改 PA05/PA01 或放宽其断言来换取 BEX-01 通过。
+- PR #1060 继续 Draft、未合并/部署。M04/M05 OPEN，M06 待 Human 视觉签收，总体进度 3/6。不得改 `project.status.json`，不得将 Railway 切换至 release。
