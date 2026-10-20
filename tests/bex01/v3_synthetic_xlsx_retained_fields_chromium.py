@@ -116,7 +116,9 @@ def capture_map_scroll_evidence(page, form, device):
         sweep.append({"frame":index,"scrollTop":actual})
     assert all(sweep[i]["scrollTop"]<=sweep[i+1]["scrollTop"]
       for i in range(len(sweep)-1))
-    assert len(sweep)>=5 and len(sweep)<=25,(device,len(sweep))
+    # Compact V3 shortens rows; retain full scroll-range coverage instead of
+    # requiring the legacy page's minimum frame count.
+    assert 2<=len(sweep)<=25,(device,len(sweep))
     assert all(sweep[i+1]["scrollTop"]-sweep[i]["scrollTop"]<=
       container["viewport"] for i in range(len(sweep)-1))
     sweep_data={"scrollContainer":container,"lastScrollTop":maximum,
@@ -178,6 +180,13 @@ with sync_playwright() as pw:
       if(location.origin===%s) {
         localStorage.setItem("evo.context.id",%s);
         localStorage.setItem("evo.locale","zh-CN");
+        // Start with an explicit saved preference; absence of a stored layout
+        // is not evidence that route focus overwrote a user's preference.
+        localStorage.setItem("eidos.workbench.layout",JSON.stringify({
+          contractVersion:"0.1.0",activeActivityId:"apps",
+          sidePanelVisible:true,sidePanelWidth:420,
+          workspaceTarget:"/workspace"
+        }));
       }
     """ % (json.dumps(HOST),json.dumps(CTX)))
     page=context.new_page()
@@ -188,12 +197,103 @@ with sync_playwright() as pw:
     page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     map_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(map_form).to_be_visible(timeout=30000)
-    expect(map_form.locator('select[name="importJobId"]')).to_have_value(jobid)
-    expect(map_form.locator('select[name="importJobId"] option')).to_have_text(
-        "BEX-SYNTHETIC-RET-172.xlsx")
+    # Exact V3 routes are now wide without changing the saved navigation state.
+    shell=page.locator('[data-eidos-app-host-layout="workbench"]')
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    assert page.locator('[data-eidos-side-panel]').evaluate(
+      "(node) => getComputedStyle(node).display")=="none"
+    wide_width=map_form.evaluate("(node) => Math.round(node.getBoundingClientRect().width)")
+    assert 1120 <= wide_width <= 1220,("v3-wide-review-width",wide_width)
+    focus_toggle=page.locator('[data-eidos-workspace-focus-toggle]')
+    expect(focus_toggle).to_be_visible()
+    expect(focus_toggle).to_have_attribute("aria-pressed","true")
+    saved_layout=page.evaluate("""() => {
+      const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
+      return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
+    }""")
+    focus_toggle.click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    focus_toggle.click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    # Existing workbench keyboard shortcut must also reveal/refocus, without
+    # clobbering the sidebar preference that other applications use.
+    page.keyboard.press("Control+b")
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    page.keyboard.press("Control+b")
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    # Existing activity-strip navigation must remain usable in focused mode.
+    page.locator('[data-eidos-activity-bar] button[data-activity-id="apps"]').click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    focus_toggle.click()
+    expect(shell).to_have_attribute("data-eidos-workspace-focused","true")
+    final_layout=page.evaluate("""() => {
+      const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
+      return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
+    }""")
+    assert final_layout==saved_layout, (
+        "route-focus must not overwrite persisted sidebar preference: "
+        + json.dumps({"saved":saved_layout,"actual":final_layout},ensure_ascii=False))
+    # An independent user may already have the sidebar OFF in saved layout.
+    # The V3 form still gets 1200px, and Ctrl+B must explicitly reveal the
+    # original navigation rather than being overridden by default focus.
+    hidden_context=browser.new_context(
+      viewport={"width":1280,"height":900},locale="zh-CN")
+    hidden_context.add_init_script("""
+      if(location.origin===%s) {
+        localStorage.setItem("evo.context.id",%s);
+        localStorage.setItem("evo.locale","zh-CN");
+        localStorage.setItem("eidos.workbench.layout",JSON.stringify({
+          contractVersion:"0.1.0",activeActivityId:"apps",
+          sidePanelVisible:false,sidePanelWidth:420,
+          workspaceTarget:"/workspace"
+        }));
+      }
+    """ % (json.dumps(HOST),json.dumps(CTX)))
+    hidden_page=hidden_context.new_page()
+    hidden_page.goto(HOST+"/?surface=desktop#"+mapping,
+      wait_until="domcontentloaded")
+    hidden_form=hidden_page.locator('form[data-eidos-id="evo-data-import.mapping"]')
+    expect(hidden_form).to_be_visible(timeout=30000)
+    hidden_shell=hidden_page.locator('[data-eidos-app-host-layout="workbench"]')
+    expect(hidden_shell).to_have_attribute("data-eidos-workspace-focused","true")
+    expect(hidden_page.locator('[data-eidos-workspace-focus-toggle]')).not_to_be_visible()
+    hidden_width=hidden_form.evaluate(
+      "(node) => Math.round(node.getBoundingClientRect().width)")
+    assert 1120<=hidden_width<=1220,("saved-hidden-wide-review",hidden_width)
+    assert hidden_page.evaluate("""() =>
+      JSON.parse(localStorage.getItem("eidos.workbench.layout")).sidePanelVisible
+    """) is False
+    hidden_page.keyboard.press("Control+b")
+    expect(hidden_shell).to_have_attribute("data-eidos-workspace-focused","false")
+    expect(hidden_page.locator('[data-eidos-side-panel]')).to_be_visible()
+    assert hidden_page.evaluate("""() =>
+      JSON.parse(localStorage.getItem("eidos.workbench.layout")).sidePanelVisible
+    """) is True, "explicit Ctrl+B must remain effective"
+    hidden_context.close()
+    expect(map_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
+        'data-eidos-review-table-presentation','compact')
+    # Match the full #909 workflow hierarchy: source and actionable issues
+    # precede decisions; do not force choices ahead of actual business issues.
+    expect(map_form.locator('[data-eidos-task-presentation="workbench"]')).to_be_visible()
+    expect(map_form.locator('[data-eidos-form-task-context]')).to_be_visible()
+    expect(map_form.locator('[data-eidos-form-task-metrics]')).to_be_visible()
+    expect(map_form.locator('[data-eidos-form-task-details]')).to_have_count(0)
+    page.screenshot(path=str(OUT/"v3-fidelity-workbench-map-1280.png"),
+      full_page=False)
+    expect(map_form.get_by_role("heading",name="核对导入数据")).to_be_visible()
+    expect(map_form.locator('input[type="hidden"][name="importJobId"]')).to_have_value(jobid)
+    expect(map_form.locator('select[name="importJobId"]')).to_have_count(0)
+    expect(map_form.locator('[data-eidos-form-task-file-kind]')).to_have_text("XLSX")
     expect(map_form.locator('[data-eidos-form-task-overview]')).to_be_visible()
     expect(map_form.locator('[data-eidos-form-task-metric]')).to_have_count(4)
-    expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(3)
+    expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(2)
+    expect(map_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
+    expect(map_form.locator('[data-eidos-form-actions] button[data-eidos-action="back-to-file"]')).to_have_text("返回文件")
+    expect(map_form.locator('[data-eidos-form-actions] button[data-eidos-action="restore-initial"]')).to_have_text("恢复初始选择")
+    expect(map_form.locator('[data-eidos-form-actions] button[data-eidos-action="review"]')).to_have_text("预检查并继续")
     # Separate evidence view from the scrollable Eidos shell: capture actual E3
     # overview/metrics rather than assuming a mid-table full_page shot includes it.
     map_form.locator('[data-eidos-form-task-overview]').screenshot(
@@ -213,6 +313,13 @@ with sync_playwright() as pw:
     expect(map_filter).to_have_value("needs")
     expect(map_rows.first).to_be_hidden()
     expect(map_rows.nth(4)).to_be_visible()
+    show_all_button=map_form.locator('[data-eidos-review-table-show-all]')
+    expect(show_all_button).to_be_visible()
+    show_all_button.click()
+    expect(map_filter).to_have_value("all")
+    expect(map_form.locator('[data-eidos-form-review-table-count]')).to_contain_text("显示 22 / 22 列")
+    map_filter.select_option("needs")
+    expect(map_rows.first).to_be_hidden()
     expect(map_rows.nth(4)).to_contain_text("synthetic-4-0001")
     expect(map_rows.nth(4).locator('[data-eidos-review-table-evidence]')).not_to_contain_text(
         "synthetic-4-0002")
@@ -226,7 +333,13 @@ with sync_playwright() as pw:
     map_filter.select_option("all")
     expect(map_rows.first).to_be_visible()
     expect(map_rows.first).to_contain_text("往来编码")
-    expect(map_rows.first.locator('select[name="map_0"]')).to_have_value("code")
+    map_zero=map_rows.first.locator('select[name="map_0"]')
+    expect(map_zero).to_have_value("code")
+    map_zero.select_option("__IGNORE__")
+    map_form.locator('[data-eidos-form-actions] button[data-eidos-action="restore-initial"]').click()
+    expect(map_zero).to_have_value("code")
+    map_filter.select_option("all")
+    expect(map_rows.first).to_be_visible()
     # Unambiguous labels remain business-language while submitted option values
     # still carry the original stable schema field ID.
     code_option=map_rows.first.locator('select[name="map_0"] option[value="code"]')
@@ -237,6 +350,12 @@ with sync_playwright() as pw:
         'input[name="sourceEvidence_0"]').input_value()
     map_rows.nth(4).locator('[data-eidos-review-group-detail] summary').click()
     expect(map_rows.nth(4).locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    # The direct single-field create action still exists but is no longer a
+    # repetitive long line below every visible select in compact V3 rows.
+    expect(map_rows.nth(4).locator(
+      '[data-eidos-review-table-evidence] [data-eidos-field-context-link]')).to_be_visible()
+    expect(map_rows.nth(4).locator(
+      '[data-eidos-review-table-choice] [data-eidos-field-context-link]')).to_have_count(0)
     assert "synthetic-4-0002" in map_rows.nth(4).locator(
         'input[name="sourceEvidence_4"]').input_value()
     expect(map_rows.nth(21).locator('select[name="map_21"]')).to_have_value("__IGNORE__")
@@ -253,10 +372,31 @@ with sync_playwright() as pw:
     capture_map_scroll_evidence(page,map_form,"desktop")
     page.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-desktop.png"),full_page=True)
     print("BEX01_V3_E2_ACTUAL_MAP_22_TABLE_ROWS_PASS:DESKTOP",flush=True)
+    # Exiting a focused review route restores the user's regular navigation
+    # without altering persisted layout; a second eligible route re-enters focus.
+    page.goto(HOST+"/?surface=desktop#/workspace",wait_until="domcontentloaded")
+    expect(page.locator('[data-eidos-app-host-layout="workbench"]')).to_have_attribute(
+      "data-eidos-workspace-focused","false")
+    expect(page.locator('[data-eidos-side-panel]')).to_be_visible()
+    assert page.evaluate("""() => {
+      const value=JSON.parse(localStorage.getItem("eidos.workbench.layout")||"{}");
+      return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
+    }""")==saved_layout, (
+      "route exit must not persist a new panel preference")
     batch=reviewed["navigateTo"]
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
+    expect(page.locator('[data-eidos-app-host-layout="workbench"]')).to_have_attribute(
+      "data-eidos-workspace-focused","true")
+    expect(form.locator('[data-eidos-task-presentation="workbench"]')).to_be_visible()
+    expect(form.locator('[data-eidos-form-task-context]')).to_be_visible()
+    expect(form.locator('[data-eidos-form-task-metrics]')).to_be_visible()
+    expect(form.locator('[data-eidos-form-task-details]')).to_have_count(0)
+    page.screenshot(path=str(OUT/"v3-fidelity-workbench-batch-1280.png"),
+      full_page=False)
+    expect(form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
+        'data-eidos-review-table-presentation','compact')
     expect(form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     # V3: this authorized Job maps subjectType from an Excel source column.
@@ -277,8 +417,11 @@ with sync_playwright() as pw:
     first_batch_row=form.locator('[data-eidos-form-review-table-row]').first
     first_choice=first_batch_row.locator('select[name="choice_0"]')
     expect(first_choice).to_have_value("__CREATE__")
+    # Eidos #201: live task counters remain visible while Human choices change.
     proposed_count=form.locator('[data-eidos-form-task-metric-id="proposed"] strong')
     ignored_count=form.locator('[data-eidos-form-task-metric-id="ignored"] strong')
+    expect(proposed_count).to_be_visible()
+    expect(ignored_count).to_be_visible()
     before_proposed=int(proposed_count.inner_text())
     before_ignored=int(ignored_count.inner_text())
     first_choice.select_option("__IGNORE__")
@@ -381,6 +524,9 @@ with sync_playwright() as pw:
     small.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
     mobile_map=small.locator('form[data-eidos-id="evo-data-import.mapping"]')
     expect(mobile_map).to_be_visible(timeout=30000)
+    # Small screens keep the existing Eidos single-column navigation. The
+    # desktop-only route focus toggle must not occupy 390px toolbar space.
+    expect(small.locator('[data-eidos-workspace-focus-toggle]')).not_to_be_visible()
     expect(mobile_map.locator('[data-eidos-form-review-table-row]')).to_have_count(22)
     mobile_filter=mobile_map.locator('[data-eidos-form-review-table-filter]')
     expect(mobile_filter).to_have_value("needs")
@@ -442,6 +588,8 @@ with sync_playwright() as pw:
     small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     mobile_form=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(mobile_form).to_be_visible(timeout=30000)
+    small.screenshot(path=str(OUT/"v3-fidelity-first-viewport-batch-390.png"),
+      full_page=False)
     expect(mobile_form.locator('[data-eidos-form-review-table-row]')).to_have_count(18)
     expect(mobile_form.locator('[data-eidos-review-table-choice] select')).to_have_count(18)
     expect(mobile_form.locator('input[name="subjectTypeSourceNotice"]')).to_be_visible()

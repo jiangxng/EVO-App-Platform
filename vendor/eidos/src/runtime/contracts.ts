@@ -12,7 +12,7 @@ export interface UidlFileValueV010 {
 }
 export interface UidlField {
   key: string; label: string; semanticType: string; control: UidlControl; required: boolean;
-  readOnly?: boolean; initialValue?: UidlOptionValue; unit?: string; options?: UidlOption[];
+  readOnly?: boolean; presentation?: "hidden"; initialValue?: UidlOptionValue; unit?: string; options?: UidlOption[];
   accept?: string[];
   maxBytes?: number;
   validation?: { min?: number; max?: number; pattern?: string };
@@ -26,6 +26,9 @@ export interface UidlAction {
   label: string;
   type: "submit" | "cancel" | "agent";
   command?: string;
+  /** Cancel action may navigate or reset the current form; never executes a Host command. */
+  route?: string;
+  resetForm?: boolean;
   requiresConfirmation?: boolean;
   /**
    * Human-visible instruction for a contextual Agent action.
@@ -56,6 +59,16 @@ export interface UidlFormReviewGroupV010 {
 }
 /** Optional table realization of existing reviewGroups, preserving form field identity. */
 export interface UidlFormReviewTableV010 {
+  /** Opt-in compact Human decision rows; default remains standard. */
+  presentation?: "standard" | "compact";
+  title?: string;
+  description?: string;
+  summaryLabel?: string;
+  showAllLabel?: string;
+  countPrefix?: string;
+  countSuffix?: string;
+  /** Context routes rendered beside the table filter; never submit the Form. */
+  links?: { id: string; label: string; route: string }[];
   columnLabels: { subject: string; evidence: string; decision: string; status: string };
   filter?: {
     label: string;
@@ -77,10 +90,15 @@ export interface UidlFormReviewPlanV010 {
 }
 /** Reusable task context; all facts and issue semantics are Host/app supplied. */
 export interface UidlFormReviewTaskV010 {
+  /** Opt-in native disclosure retaining the complete task evidence. */
+  presentation?: "full" | "decision-first" | "workbench";
   subject: {
     title: string;
     subtitle?: string;
     statusLabel?: string;
+    statusTone?: "neutral" | "positive" | "warning";
+    /** Optional file-type badge for source-file review tasks. */
+    badgeLabel?: string;
     facts?: { id: string; label: string; value: string }[];
   };
   steps?: { id: string; label: string; state: "complete" | "current" | "upcoming" }[];
@@ -125,7 +143,7 @@ export interface FormRenderModelV010 {
   fields: RenderFieldV010[];
   submitAction: { id: string; label: string; requiresConfirmation: boolean };
   submitActions: Array<{ id: string; label: string; command: string; requiresConfirmation: boolean }>;
-  cancelActions: Array<{ id: string; label: string }>;
+  cancelActions: Array<{ id: string; label: string; route?: string; resetForm?: boolean }>;
   agentActions: Array<{
     id: string;
     label: string;

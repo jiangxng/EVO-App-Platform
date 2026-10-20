@@ -275,7 +275,9 @@ test("mapping and review pages keep validation and commit explicit", () => {
     mappingPage.contextNavigation.items.map(item => [item.label, item.route]),
     [["数据导入", "/data-import"], ["字段映射", undefined]]
   );
-  assert.match(mappingPage.description, /先恢复本企业之前的映射/);
+  assert.match(mappingPage.metadata.description, /先恢复本企业之前的映射/,
+    "existing mapping guidance remains available as provenance while the workbench uses the concise prototype description");
+  assert.match(mappingPage.description, /确认字段对应关系，处理数据问题后导入供应商/);
   assert.equal(
     mappingPage.fields.find(field => field.key === "map_0").initialValue,
     "code"
@@ -794,7 +796,8 @@ test("CP-03D EC learns a Human-confirmed field mapping and reuses it across a di
     schema,
     locale: "zh-CN"
   });
-  assert.match(mappingPage.description, /Experience Compiler/);
+  assert.match(mappingPage.reviewTask.helpText, /Experience Compiler/,
+    "Experience Compiler recommendations remain visible in the review workbench");
   assert.equal(
     mappingPage.fields.find(field => field.key === "map_1").initialValue,
     "code"
@@ -975,11 +978,12 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(page.fields.find(x=>x.key==="map_0").initialValue,"code");
   const currentFile=page.fields.find(x=>x.key==="importJobId");
   assert.equal(currentFile.label,"当前文件");
+  assert.equal(currentFile.presentation,"hidden",
+    "the stable Host Job ID must remain in the form payload without a visible selector");
+  assert.equal(currentFile.control,"text");
   assert.equal(currentFile.initialValue,"batch-proposals");
-  assert.equal(currentFile.options[0].value,"batch-proposals",
-    "Host must continue receiving the stable Import Job ID");
-  assert.equal(currentFile.options[0].label,"已保存的导入任务",
-    "technical Job UUID must not be visible in the business-facing option");
+  assert.equal(currentFile.options,undefined,
+    "a hidden Host Job ID must not expose a technical dropdown or alter the selected job");
   assert.equal(page.reviewGroups.length,source.headers.length,
     "actual /map route must group every source column, not just the other batch page");
   assert.equal(validateUidl(page).ok,true,
@@ -1005,10 +1009,15 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal(page.reviewTask.subject.title,"batch-proposals");
   assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
-  assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
-  assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
+  assert.deepEqual(page.reviewTask.metrics.slice(0,3).map(x=>x.value),["1","2","0"]);
+  assert.equal(page.reviewTask.metrics[3].value,String(page.reviewTask.issues.length),
+    "the issue metric must be derived from the actionable issues shown in this actual job");
+  assert.equal(page.reviewTask.issues.length,3);
+  assert.equal(page.reviewTask.issues[0].focusGroupId,"map-source-3");
   assert.equal(page.reviewTask.issues[0].actionLabel,"核对本列");
-  assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
+  assert.ok(page.reviewTask.issues.some(x=>/缺少必填字段映射/.test(x.title)),
+    "required target fields absent from this source are actionable issues, not silently ignored");
+  assert.equal(page.reviewTable.columnLabels.subject,"Excel 列名");
   assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
   assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
   assert.equal(page.reviewTable.filter.selectedId,"needs");
@@ -1024,9 +1033,10 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-form-task-focus="map-source-3"/);
   assert.match(mapHtml,/<table data-eidos-form-review-table/);
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
-  assert.equal((mapHtml.match(/data-eidos-review-table-choice/g)??[]).length,4);
+  assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
-  assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
+  assert.ok(mapHtml.includes("data-eidos-form-review-table-count"));
+  assert.ok(mapHtml.includes("显示 3 / 4 列"));
   assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
@@ -1079,8 +1089,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
       contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
     }),locale:"zh-CN",canCreateExtension:true
   });
-  assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
-    && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
+  assert.ok(completedPage.reviewTable.links.some(x=>x.id==="batch-constant"
+    && x.route.includes("mode=batch")),"saved batch constant remains editable from the review-table tools after all columns mapped");
   assert.match(completedPage.fields.find(x=>x.key==="batchConstantEntry").contextLink.label,
     /查看或修改批次固定值/);
   assert.equal(validateUidl(completedPage).ok,true,

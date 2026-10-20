@@ -179,6 +179,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 [data-side-panel-visible="false"] [data-eidos-workbench-splitter]{display:none}
 
+/* A Host-selected focused workflow is not a permanent user preference.
+   Keep the activity strip visible and allow toolbar navigation restore. */
+@media (min-width:701px){
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-focused="true"]{
+    grid-template-columns:var(--eidos-activity-width) 0 0 minmax(0,1fr)
+  }
+  [data-eidos-workspace-focused="true"] [data-eidos-side-panel],
+  [data-eidos-workspace-focused="true"] [data-eidos-workbench-splitter]{
+    display:none
+  }
+  [data-eidos-workspace-focused="true"] [data-eidos-workspace]{
+    grid-column:2/5
+  }
+  [data-eidos-workspace-focused="true"] form[data-eidos-id]{
+    width:min(var(--eidos-focused-workspace-content-max,1200px),100%)
+  }
+}
+[data-eidos-workspace-focus-toggle]{justify-self:start;min-width:44px;min-height:44px}
+[data-eidos-workspace-focus-toggle][hidden]{display:none!important}
+@media(max-width:700px){
+  [data-eidos-workspace-focus-toggle]{display:none!important}
+}
+
 [data-eidos-workspace]{
   grid-column:4;grid-row:1;min-width:0;min-height:0;
   display:flex;flex-direction:column;overflow:hidden;background:var(--eidos-bg);
@@ -2267,6 +2290,18 @@ body{
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-toolbar]{
   grid-template-columns:minmax(0,1fr);
 }
+[data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-browser-toolbar]{
+  grid-template-columns:auto minmax(0,1fr);
+}
+[data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-global-controls]{
+  grid-column:2;
+}
+@media(max-width:700px){
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-global-controls]{grid-column:1}
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-browser-toolbar]{
+    grid-template-columns:minmax(0,1fr)
+  }
+}
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-address],
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-go],
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-external]{
@@ -3041,8 +3076,123 @@ form[data-eidos-id] button:hover,
  [data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{min-height:44px}
 }
 
+
+/* Generic compact Human review rows; field labels remain screen-reader visible. */
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice-label]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0
+}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] th,
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] td{padding:var(--eidos-space-sm) var(--eidos-space-md)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] [data-eidos-form-field] label{display:block;gap:0;line-height:normal}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] select{min-height:var(--eidos-control-normal)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-count]{order:-1}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-toolbar] label{white-space:nowrap;flex-wrap:nowrap}
+@media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-review-table-choice] select{min-height:44px}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
+}
+
+/* Opt-in Human review workbench: show the original source, the actual counts,
+   and every actionable blocker before choices; never conceal business facts. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+  gap:var(--eidos-space-md);
+  margin-block:var(--eidos-space-section);
+  min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+  justify-content:flex-end;gap:var(--eidos-space-md);min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-identity] strong{
+  font-size:var(--eidos-font-section)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+  grid-template-columns:repeat(4,minmax(0,1fr))
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+  padding:var(--eidos-space-md) var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header h2{
+  color:var(--eidos-fg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>ol{
+  background:var(--eidos-bg-subtle)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-help]{
+  color:var(--eidos-fg-muted)
+}
+@media(max-width:850px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+   justify-content:flex-start;flex-wrap:wrap
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:520px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   gap:var(--eidos-space-sm)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+   padding:var(--eidos-space-sm)
+ }
+}
+
 /* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
 [data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
+/* Eidos: optional Human decision-first task summary. All evidence, issue
+   focus buttons and metrics remain operable inside a native disclosure. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="decision-first"]{
+  gap:var(--eidos-space-xs);margin-block:var(--eidos-space-sm)
+}
+[data-eidos-form-task-details]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);min-width:0
+}
+[data-eidos-form-task-details]>summary{
+  cursor:pointer;min-height:44px;box-sizing:border-box;
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  color:var(--eidos-fg);font-size:var(--eidos-font-compact);
+  overflow-wrap:anywhere
+}
+[data-eidos-form-task-details]>summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-form-task-details]>summary strong{
+  font-weight:650;overflow-wrap:anywhere
+}
+[data-eidos-task-summary-issues]{
+  margin-inline-start:var(--eidos-space-md);
+  font-size:var(--eidos-font-meta);color:var(--eidos-warning)
+}
+[data-eidos-form-task-details-content]{
+  display:grid;gap:var(--eidos-space-md);padding:var(--eidos-space-lg);
+  border-top:1px solid var(--eidos-border);min-width:0
+}
+
 [data-eidos-form-task-steps]{display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-md);padding:0;margin:0;list-style:none;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)}
 [data-eidos-form-task-steps] li{display:flex;gap:var(--eidos-space-sm);align-items:center}
 [data-eidos-form-task-steps] li:before{content:"";width:8px;height:8px;border-radius:50%;border:2px solid var(--eidos-border-strong);background:var(--eidos-bg)}
@@ -3132,4 +3282,116 @@ form[data-eidos-id] button:hover,
   margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
 }
 
+
+/* Reusable file-review workbench hierarchy: source identity, issues, mapping table and explicit actions. */
+[data-eidos-task-steps-heading]{
+  align-self:center;flex:0 0 auto;min-width:0
+}
+[data-eidos-task-steps-heading] [data-eidos-form-task-steps]{
+  justify-content:flex-end;gap:var(--eidos-space-md)
+}
+[data-eidos-form-task-context][data-eidos-form-task-file-context]{
+  grid-template-columns:40px minmax(0,1fr) auto;
+  align-items:center;gap:var(--eidos-space-sm) var(--eidos-space-lg)
+}
+[data-eidos-form-task-file-kind]{
+  grid-column:1;grid-row:1;
+  display:grid;place-items:center;
+  width:40px;min-height:40px;box-sizing:border-box;
+  border-radius:var(--eidos-radius-md);
+  background:var(--eidos-success-bg);color:var(--eidos-success);
+  font-size:var(--eidos-font-meta);font-weight:750;letter-spacing:.01em
+}
+[data-eidos-form-task-file-context] [data-eidos-form-task-identity]{
+  grid-column:2;grid-row:1
+}
+[data-eidos-form-task-file-context] [data-eidos-form-task-source-status]{
+  grid-column:3;grid-row:1;justify-self:end;
+  white-space:nowrap
+}
+[data-eidos-form-task-source-status][data-tone="positive"]{
+  color:var(--eidos-success);
+  background:color-mix(in srgb,var(--eidos-success-bg) 76%,transparent)
+}
+[data-eidos-form-review-table-heading]{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:var(--eidos-space-lg);min-width:0;
+  margin-top:var(--eidos-space-section);margin-bottom:var(--eidos-space-md)
+}
+[data-eidos-form-review-table-heading] h2{
+  margin:0;font-size:var(--eidos-font-body);line-height:1.35;font-weight:650
+}
+[data-eidos-form-review-table-heading] p{
+  margin:4px 0 0;color:var(--eidos-fg-muted);
+  font-size:var(--eidos-font-meta);line-height:1.45
+}
+[data-eidos-form-review-table-summary]{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:var(--eidos-space-md);flex:0 0 auto;
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta)
+}
+[data-eidos-review-table-show-all]{
+  appearance:none;border:0;padding:0;background:transparent;
+  color:var(--eidos-primary);font:inherit;font-weight:650;cursor:pointer
+}
+[data-eidos-review-table-show-all]:hover{text-decoration:underline}
+[data-eidos-form-review-table-toolbar]{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:var(--eidos-space-md)
+}
+[data-eidos-form-review-table-tools]{
+  display:flex;align-items:center;gap:var(--eidos-space-sm);flex-wrap:wrap;min-width:0
+}
+[data-eidos-form-review-table-tools] button{
+  min-height:var(--eidos-control-normal);
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-md);
+  padding:0 var(--eidos-space-md);background:var(--eidos-bg);
+  color:var(--eidos-fg);font:inherit;font-size:var(--eidos-font-compact);
+  cursor:pointer
+}
+[data-eidos-form-review-table-tools] [data-eidos-context-route]{
+  color:var(--eidos-primary);border-color:transparent;background:transparent;font-weight:600
+}
+[data-eidos-form-review-table-tools] [data-eidos-agent-action]{
+  color:var(--eidos-primary);border-color:var(--eidos-border-strong);background:var(--eidos-bg)
+}
+[data-eidos-form-review-table-filter-group]{
+  display:flex;align-items:center;gap:var(--eidos-space-md);min-width:0
+}
+[data-eidos-form-review-table-filter-group] label{
+  display:flex;align-items:center;gap:var(--eidos-space-sm);min-width:0;
+  font-size:var(--eidos-font-compact)
+}
+[data-eidos-form-review-table-filter-group] select{
+  min-height:var(--eidos-control-normal);min-width:132px;
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-md);
+  padding-inline:var(--eidos-space-sm);background:var(--eidos-bg);color:var(--eidos-fg)
+}
+form[data-eidos-task-presentation="workbench"] [data-eidos-form-actions] button{
+  min-height:var(--eidos-control-normal)
+}
+@media(max-width:850px){
+  [data-eidos-form-review-table-heading]{align-items:flex-start;flex-direction:column}
+  [data-eidos-form-review-table-summary]{justify-content:flex-start}
+}
+@media(max-width:700px){
+  [data-eidos-task-steps-heading] [data-eidos-form-task-steps]{justify-content:flex-start;flex-wrap:wrap}
+  [data-eidos-form-task-context][data-eidos-form-task-file-context]{
+    grid-template-columns:40px minmax(0,1fr);gap:var(--eidos-space-sm)
+  }
+  [data-eidos-form-task-file-context] [data-eidos-form-task-source-status]{
+    grid-column:2;grid-row:2;justify-self:start
+  }
+  [data-eidos-form-review-table-toolbar]{align-items:stretch}
+  [data-eidos-form-review-table-tools]{width:100%}
+  [data-eidos-form-review-table-filter-group]{width:100%;justify-content:space-between}
+  [data-eidos-form-review-table-filter-group] label{flex:1 1 auto}
+  [data-eidos-form-review-table-filter-group] select{flex:1;min-width:0}
+  form[data-eidos-task-presentation="workbench"] [data-eidos-form-actions]{
+    display:grid;grid-template-columns:minmax(0,1fr);gap:var(--eidos-space-sm)
+  }
+  form[data-eidos-task-presentation="workbench"] [data-eidos-form-actions] button{
+    width:100%;min-height:var(--eidos-touch-target)
+  }
+}
 `;

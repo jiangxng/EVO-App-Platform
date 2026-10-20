@@ -718,9 +718,38 @@ export function createDataImportMappingPageV010(input: {
     }] : [])
   ];
   const reviewTable = {
+    presentation: "compact" as const,
+    title: zh(input.locale) ? "字段对应关系" : "Field mappings",
+    description: zh(input.locale)
+      ? "系统已保留原有匹配结果。您可以检查、调整，或选择不导入。"
+      : "Existing mappings are preserved. Review, adjust or exclude source columns.",
+    summaryLabel: input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
+    showAllLabel: zh(input.locale) ? "查看全部字段" : "View all fields",
+    countPrefix: zh(input.locale) ? "显示 " : "Showing ",
+    countSuffix: zh(input.locale) ? " 列" : " columns",
+    links: [
+      ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
+        ? [{
+            id: "batch-review",
+            label: zh(input.locale)
+              ? "集中审核 " + unmapped.length + " 个未匹配字段"
+              : "Review " + unmapped.length + " unmatched fields together",
+            route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+          }, {
+            id: "create-extension",
+            label: zh(input.locale) ? "创建企业扩展字段" : "Create enterprise fields",
+            route: objectExtensionImportRouteV010(input.job.importJobId)
+          }]
+        : []),
+      ...(!unmapped.length && canReviewBatchConstant ? [{
+        id: "batch-constant",
+        label: zh(input.locale) ? "核对批次固定值" : "Review batch constant",
+        route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+      }] : [])
+    ],
     columnLabels: {
-      subject: zh(input.locale) ? "来源列名" : "Source column",
-      evidence: zh(input.locale) ? "示例值" : "Examples",
+      subject: zh(input.locale) ? "Excel 列名" : "Excel column",
+      evidence: zh(input.locale) ? "示例值" : "Example value",
       decision: zh(input.locale) ? "对应系统字段" : "Target field",
       status: zh(input.locale) ? "状态" : "Status"
     },
@@ -733,64 +762,217 @@ export function createDataImportMappingPageV010(input: {
       options: filterOptions
     }
   };
-
   const countStatus = (key: string): number =>
     reviewGroups.filter(group => group.reviewStatus.key === key).length;
-  const attentionColumns = reviewGroups.filter(group =>
-    group.reviewStatus.key === "attention"
-      || group.reviewStatus.key === "suggested");
+  const issueCandidates: Array<{
+    id: string; title: string; description?: string;
+    focusGroupId?: string; actionLabel?: string;
+  }> = [];
+  const addIssue = (issue: {
+    id: string; title: string; description?: string;
+    focusGroupId?: string; actionLabel?: string;
+  }) => {
+    if (!issueCandidates.some(existing => existing.id === issue.id)) issueCandidates.push(issue);
+  };
+  const groupBySourceColumn = new Map(reviewGroups.map((group, index) =>
+    [input.job.source.headers[index], group] as const));
+  const constantTargetIds = new Set(input.job.mapping
+    .filter(item => item.transform?.kind === "CONSTANT")
+    .map(item => item.targetFieldId));
+
+  // Derive actionable issues only from the authorized job, schema and actual
+  // source values. No synthetic customer evidence is inserted into the page.
+  for (let index = 0; index < input.job.source.headers.length; index++) {
+    const sourceColumn = input.job.source.headers[index];
+    const group = reviewGroups[index];
+    const candidates = candidatesFor(sourceColumn);
+    const selected = mappingSelectionFor(sourceColumn);
+    if (candidates.length > 1) {
+      addIssue({
+        id: "ambiguous-" + index,
+        title: zh(input.locale)
+          ? sourceColumn + "存在多个对应字段"
+          : sourceColumn + " matches multiple target fields",
+        description: zh(input.locale)
+          ? "同名字段的业务用途可能不同，请先核对候选字段说明。"
+          : "Same-name fields may have different business purposes; compare their descriptions.",
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
+      });
+    }
+    if (metadataLikeColumn(sourceColumn) && !current.has(sourceColumn)
+      && selected !== "__IGNORE__") {
+      addIssue({
+        id: "metadata-" + index,
+        title: zh(input.locale)
+          ? sourceColumn + "尚未选择处理方式"
+          : sourceColumn + " has no handling decision",
+        description: zh(input.locale)
+          ? "请确认是否作为业务字段导入，或明确选择不导入；原始列仍会保留。"
+          : "Choose a business-field mapping or explicitly exclude it; the original column remains preserved.",
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+      });
+    } else if (group.reviewStatus.key === "attention"
+      && !issueCandidates.some(issue => issue.focusGroupId === group.id)) {
+      addIssue({
+        id: "mapping-" + index,
+        title: zh(input.locale)
+          ? sourceColumn + "尚未完成映射处理"
+          : sourceColumn + " still needs a mapping decision",
+        description: group.reviewStatus.label + " · " + group.summary,
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
+      });
+    }
+  }
+
+  const requiredFields = importFields.filter(field => field.required);
+  for (const field of requiredFields) {
+    if (constantTargetIds.has(field.fieldId)) continue;
+    const existingMapping = input.job.mapping.find(item => item.targetFieldId === field.fieldId);
+    const suggestedColumn = input.job.source.headers.find(header =>
+      mappingSelectionFor(header) === field.fieldId);
+    const labelMatchColumn = input.job.source.headers.find(header =>
+      normalizedLabel(header) === normalizedLabel(field.resolvedLabel));
+    const sourceColumn = existingMapping?.sourceColumn ?? suggestedColumn ?? labelMatchColumn;
+    const group = sourceColumn ? groupBySourceColumn.get(sourceColumn) : undefined;
+    if (!sourceColumn) {
+      if (!existingMapping) addIssue({
+        id: "required-map-" + field.fieldId,
+        title: (zh(input.locale) ? "缺少必填字段映射：" : "Required field is unmapped: ")
+          + field.resolvedLabel,
+        description: zh(input.locale)
+          ? "请找到对应来源列并映射到此必填字段；若来源文件没有该字段，请补充后重新上传。"
+          : "Map a source column to this required field, or add it to the source file and upload again."
+      });
+      continue;
+    }
+    const nonemptyCount = input.job.source.rows.filter(row => {
+      const value = row[sourceColumn];
+      return value !== null && value !== undefined && value !== "";
+    }).length;
+    const missingCount = input.job.source.rows.length - nonemptyCount;
+    if (missingCount > 0) {
+      addIssue({
+        id: "required-empty-" + field.fieldId,
+        title: (zh(input.locale) ? missingCount + " 条记录缺少" : missingCount + " rows are missing ")
+          + field.resolvedLabel,
+        description: zh(input.locale)
+          ? "请核对来源列映射，并补齐缺失值后重新预检查。"
+          : "Review the source mapping and supply missing values before validating again.",
+        ...(group ? {
+          focusGroupId: group.id,
+          actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+        } : {})
+      });
+    } else if (!existingMapping && mappingSelectionFor(sourceColumn) !== field.fieldId) {
+      addIssue({
+        id: "required-unmapped-" + field.fieldId,
+        title: (zh(input.locale) ? "必填字段尚未映射：" : "Required field is not mapped: ")
+          + field.resolvedLabel,
+        description: zh(input.locale)
+          ? "来源列“" + sourceColumn + "”当前没有映射到此必填字段。"
+          : "Source column “" + sourceColumn + "” is not mapped to this required field.",
+        ...(group ? {
+          focusGroupId: group.id,
+          actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
+        } : {})
+      });
+    }
+  }
+
+  // Existing Host dry-run issues are aggregated by code and target field.
+  if (input.job.dryRun) {
+    const grouped = new Map<string, {code: string; fieldId?: string; rows: Set<number>; message?: string}>();
+    for (const row of input.job.dryRun.rows) {
+      if (row.ok) continue;
+      for (const issue of row.issues) {
+        const key = issue.code + "|" + (issue.fieldId ?? "");
+        const entry = grouped.get(key) ?? {
+          code: issue.code, fieldId: issue.fieldId, rows: new Set<number>(), message: issue.message
+        };
+        entry.rows.add(row.rowNumber);
+        grouped.set(key, entry);
+      }
+    }
+    let dryRunIndex = 0;
+    for (const issue of grouped.values()) {
+      const field = importFields.find(item => item.fieldId === issue.fieldId);
+      if (field && issueCandidates.some(candidate => candidate.id === "required-empty-" + field.fieldId)) continue;
+      const mapping = input.job.mapping.find(item =>
+        item.targetFieldId === issue.fieldId && item.sourceColumn);
+      const group = mapping?.sourceColumn ? groupBySourceColumn.get(mapping.sourceColumn) : undefined;
+      const fieldName = field?.resolvedLabel ?? issue.fieldId ?? issue.code;
+      const missing = issue.code === "DATA_IMPORT_REQUIRED_VALUE_MISSING";
+      addIssue({
+        id: "dry-run-" + dryRunIndex++,
+        title: missing
+          ? (zh(input.locale) ? issue.rows.size + " 条记录缺少" : issue.rows.size + " rows are missing ") + fieldName
+          : (zh(input.locale) ? issue.rows.size + " 条记录需要处理：" : issue.rows.size + " rows need attention: ") + fieldName,
+        description: issue.message && issue.message !== issue.code
+          ? issue.message
+          : (zh(input.locale) ? "请按预检查结果修正后再次验证。" : "Correct the issue and validate again."),
+        ...(group ? {
+          focusGroupId: group.id,
+          actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+        } : {})
+      });
+    }
+  }
+
   const reviewTask = {
+    presentation: "workbench" as const,
     subject: {
       title: input.job.source.name ?? input.job.importJobId,
-      subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
+      badgeLabel: input.job.source.kind === "XLSX" ? "XLSX"
+        : input.job.source.kind === "CSV" ? "CSV" : "DATA",
+      subtitle: (zh(input.locale) ? "导入文件 · " : "Import file · ")
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
-      statusLabel: zh(input.locale) ? "来源数据已保留" : "Source preserved",
+      statusLabel: zh(input.locale) ? "✓ 文件已读取" : "✓ File read",
+      statusTone: "positive" as const,
       facts: [{
-        id:"records",label:zh(input.locale)?"记录数":"Records",
-        value:String(input.job.source.rows.length)
+        id: "records", label: zh(input.locale) ? "记录数" : "Records",
+        value: String(input.job.source.rows.length)
       }, {
-        id:"columns",label:zh(input.locale)?"来源列数":"Columns",
-        value:String(input.job.source.headers.length)
+        id: "columns", label: zh(input.locale) ? "来源列数" : "Columns",
+        value: String(input.job.source.headers.length)
       }]
     },
     steps: [{
-      id:"source",label:zh(input.locale)?"选择文件":"Choose file",
-      state:"complete" as const
+      id: "source", label: zh(input.locale) ? "选择文件" : "Choose file",
+      state: "complete" as const
     }, {
-      id:"review",label:zh(input.locale)?"核对映射":"Review mapping",
-      state:"current" as const
-    }, {
-      id:"commit",label:zh(input.locale)?"预检查与导入":"Validate & import",
-      state:"upcoming" as const
+      id: "review", label: zh(input.locale) ? "核对并导入" : "Review & import",
+      state: "current" as const
     }],
     metrics: [{
-      id:"matched",label:zh(input.locale)?"已匹配":"Matched",
-      value:String(countStatus("matched")),tone:"positive" as const
+      id: "matched", label: zh(input.locale) ? "已匹配字段" : "Matched fields",
+      value: String(countStatus("matched")), tone: "positive" as const
     }, {
-      id:"proposed",label:zh(input.locale)?"待新增字段":"Proposed fields",
-      value:String(countStatus("proposed"))
+      id: "proposed", label: zh(input.locale) ? "待新增字段" : "Fields to create",
+      value: String(countStatus("proposed"))
     }, {
-      id:"ignored",label:zh(input.locale)?"不导入的列":"Excluded columns",
-      value:String(countStatus("ignored"))
+      id: "ignored", label: zh(input.locale) ? "不导入的列" : "Excluded columns",
+      value: String(countStatus("ignored"))
     }, {
-      id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
-      value:String(attentionColumns.length),tone:"warning" as const
+      id: "attention", label: zh(input.locale) ? "需要处理的问题" : "Issues to resolve",
+      value: String(issueCandidates.length > 12 ? "12+" : issueCandidates.length),
+      tone: "warning" as const
     }],
-    issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
+    issuesTitle: zh(input.locale) ? "需要处理" : "Needs attention",
     issuesDescription: zh(input.locale)
-      ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
-      : "Review only uncertain sources; jump directly to the relevant choice.",
-    issues: attentionColumns.slice(0,12).map(group => ({
-      id:group.id,
-      title:group.title,
-      description:group.reviewStatus.label + " · " + group.summary,
-      focusGroupId:group.id,
-      actionLabel:zh(input.locale)?"核对本列":"Review column"
-    })),
-    helpText:zh(input.locale)
-      ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
-      : "Changes require explicit save and validation; viewing does not commit records."
+      ? "先解决可能影响导入结果的问题。"
+      : "Resolve issues that could affect the import result first.",
+    issues: issueCandidates.slice(0, 12),
+    helpText: [
+      input.job.mappingOrigin === "RECIPE" ? t.recipeAppliedDescription : "",
+      advisoryFields.length > 0 ? t.ecRecommendationDescription : "",
+      zh(input.locale)
+        ? "更改映射后将明确保存并预检查；不会自动提交供应商数据。"
+        : "Mapping changes are saved and validated explicitly; supplier data is never committed automatically."
+    ].filter(Boolean).join(" ")
   };
   return {
     contractVersion: "0.1.1" as const,
@@ -799,40 +981,20 @@ export function createDataImportMappingPageV010(input: {
     reviewGroups,
     reviewTable,
     reviewTask,
-    title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
-    description: input.job.mappingOrigin === "RECIPE"
-      ? t.recipeAppliedDescription
-      : advisoryFields.length > 0
-        ? t.ecRecommendationDescription + " " + t.mappingDescription
-        : t.mappingDescription,
-    contextNavigation: {
-      items: [
-        ...importContextNavigationV010({
-          target: input.target,
-          parameters: input.job.targetParameters,
-          locale: input.locale,
-          step: "mapping"
-        }).items,
-        ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
-          ? [{
-              id:"batch-review",
-              label:zh(input.locale)
-                ? "集中审核 " + unmapped.length + " 个未匹配字段"
-                : "Review " + unmapped.length + " unmatched fields together",
-              route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-            }, {
-              id:"create-extension",
-              label:zh(input.locale)?"创建企业扩展字段（未匹配列）":"Create extension from unmapped columns",
-              route:objectExtensionImportRouteV010(input.job.importJobId)
-            }]
-          : []),
-        ...(!unmapped.length && canReviewBatchConstant ? [{
-          id:"batch-constant",
-          label:zh(input.locale) ? "核对本次导入的批次固定值" : "Review batch constant",
-          route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-        }] : [])
-      ]
-    },
+    title: zh(input.locale) ? "核对导入数据" : "Review import data",
+    description: [
+      input.job.mappingOrigin === "RECIPE" ? t.recipeAppliedDescription
+        : advisoryFields.length > 0 ? t.ecRecommendationDescription : "",
+      zh(input.locale)
+        ? "确认字段对应关系，处理数据问题后导入供应商。"
+        : "Confirm field mappings and resolve data issues before importing suppliers."
+    ].filter(Boolean).join(" "),
+    contextNavigation: importContextNavigationV010({
+      target: input.target,
+      parameters: input.job.targetParameters,
+      locale: input.locale,
+      step: "mapping"
+    }),
     purpose: "execute-command" as const,
     command: {
       code: DATA_IMPORT_REVIEW_COMMAND_V010,
@@ -840,28 +1002,24 @@ export function createDataImportMappingPageV010(input: {
     },
     fields: [{
       key: "importJobId",
-      // Job identity stays the Host command value, never the visible file name.
       label: zh(input.locale) ? "当前文件" : "Current file",
       semanticType: "data-import-job-id",
-      control: "select" as const,
+      control: "text" as const,
+      presentation: "hidden" as const,
       required: true,
-      initialValue: input.job.importJobId,
-      options: [{
-        value: input.job.importJobId,
-        label: input.job.source.name
-          ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
-      }]
+      initialValue: input.job.importJobId
     }, ...(!unmapped.length && canReviewBatchConstant ? [{
-      key:"batchConstantEntry",
-      label:zh(input.locale) ? "本次导入的批次固定值" : "Batch constant for this import",
-      semanticType:"data-import-batch-constant-review-link",
-      control:"text" as const,readOnly:true,required:false,
-      initialValue:zh(input.locale)
+      key: "batchConstantEntry",
+      label: zh(input.locale) ? "本次导入的批次固定值" : "Batch constant for this import",
+      semanticType: "data-import-batch-constant-review-link",
+      control: "text" as const, presentation: "hidden" as const,
+      readOnly: true, required: false,
+      initialValue: zh(input.locale)
         ? "批次值作用于全部记录。仅当来源列未映射主体类型时可人工设置；保存后必须重新预检查。"
         : "A batch value applies to all rows. Confirm explicitly and validate again.",
-      contextLink:{
-        label:zh(input.locale) ? "查看或修改批次固定值" : "Review or edit batch constant",
-        route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
+      contextLink: {
+        label: zh(input.locale) ? "查看或修改批次固定值" : "Review or edit batch constant",
+        route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
       }
     }] : []), ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
       ? [{
@@ -870,9 +1028,8 @@ export function createDataImportMappingPageV010(input: {
             ? "批量字段审核 · 先复用已有映射，可先使用 AI 自动匹配"
             : "Batch field review · reuse prior mappings, optionally ask AI",
           semanticType: "data-import-batch-review-link",
-          control: "text" as const,
-          readOnly: true,
-          required: false,
+          control: "text" as const, presentation: "hidden" as const,
+          readOnly: true, required: false,
           initialValue: zh(input.locale)
             ? "未匹配的来源列已保留。集中审核后一次创建并自动映射，不会自动提交供应商数据。"
             : "Unmatched source values are preserved. Confirm fields together before importing.",
@@ -952,8 +1109,18 @@ export function createDataImportMappingPageV010(input: {
       ];
     }), ...advisoryFields, ...advancedFields],
     actions: [{
+      id: "back-to-file",
+      label: zh(input.locale) ? "返回文件" : "Back to files",
+      type: "cancel" as const,
+      route: DATA_IMPORT_DIRECTORY_ROUTE
+    }, {
+      id: "restore-initial",
+      label: zh(input.locale) ? "恢复初始选择" : "Restore initial choices",
+      type: "cancel" as const,
+      resetForm: true
+    }, {
       id: "review",
-      label: t.validate,
+      label: zh(input.locale) ? "预检查并继续" : "Validate and continue",
       type: "submit" as const,
       command: DATA_IMPORT_REVIEW_COMMAND_V010,
       requiresConfirmation: false
