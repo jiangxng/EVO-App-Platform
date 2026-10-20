@@ -128,9 +128,9 @@ with sync_playwright() as p:
    assert "page=1" in page.url,page.url
    page.locator('[data-eidos-catalog-action="next-page"]').click()
    expect(page.locator('[data-eidos-page-summary]')).to_have_text("51–54 / 54")
-   expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(3)
+   expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(4)
    page.go_back(wait_until="domcontentloaded")
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 53")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 54")
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0003")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
    expect(page.locator('[data-eidos-page-summary]')).to_have_text("1–1 / 1")
@@ -195,7 +195,7 @@ with sync_playwright() as p:
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    # Batch B is now visible beside the original per-column action.
-   expect(mapping_form.locator('> header[data-eidos-page-header] [data-eidos-context-navigation] [data-eidos-context-route*="mode=batch"]')).to_have_count(1)
+   expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(1)
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
