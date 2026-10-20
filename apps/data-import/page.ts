@@ -804,12 +804,10 @@ export function createDataImportMappingPageV010(input: {
     reviewGroups,
     reviewTable,
     reviewTask,
-    title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
-    description: input.job.mappingOrigin === "RECIPE"
-      ? t.recipeAppliedDescription
-      : advisoryFields.length > 0
-        ? t.ecRecommendationDescription + " " + t.mappingDescription
-        : t.mappingDescription,
+    title: zh(input.locale) ? "核对导入数据" : "Review import data",
+    description: zh(input.locale)
+      ? "确认字段对应关系，处理数据问题后导入供应商。"
+      : "Confirm field mappings and resolve data issues before importing suppliers.",
     contextNavigation: {
       items: [
         ...importContextNavigationV010({
@@ -849,6 +847,7 @@ export function createDataImportMappingPageV010(input: {
       label: zh(input.locale) ? "当前文件" : "Current file",
       semanticType: "data-import-job-id",
       control: "select" as const,
+      hidden: true,
       required: true,
       initialValue: input.job.importJobId,
       options: [{
@@ -856,39 +855,7 @@ export function createDataImportMappingPageV010(input: {
         label: input.job.source.name
           ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
       }]
-    }, ...(!unmapped.length && canReviewBatchConstant ? [{
-      key:"batchConstantEntry",
-      label:zh(input.locale) ? "本次导入的批次固定值" : "Batch constant for this import",
-      semanticType:"data-import-batch-constant-review-link",
-      control:"text" as const,readOnly:true,required:false,
-      initialValue:zh(input.locale)
-        ? "批次值作用于全部记录。仅当来源列未映射主体类型时可人工设置；保存后必须重新预检查。"
-        : "A batch value applies to all rows. Confirm explicitly and validate again.",
-      contextLink:{
-        label:zh(input.locale) ? "查看或修改批次固定值" : "Review or edit batch constant",
-        route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-      }
-    }] : []), ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
-      ? [{
-          key: "batchReviewEntry",
-          label: zh(input.locale)
-            ? "批量字段审核 · 先复用已有映射，可先使用 AI 自动匹配"
-            : "Batch field review · reuse prior mappings, optionally ask AI",
-          semanticType: "data-import-batch-review-link",
-          control: "text" as const,
-          readOnly: true,
-          required: false,
-          initialValue: zh(input.locale)
-            ? "未匹配的来源列已保留。集中审核后一次创建并自动映射，不会自动提交供应商数据。"
-            : "Unmatched source values are preserved. Confirm fields together before importing.",
-          contextLink: {
-            label: zh(input.locale)
-              ? "集中审核 " + unmapped.length + " 个未匹配字段"
-              : "Review " + unmapped.length + " unmatched columns together",
-            route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-          }
-        }]
-      : []), ...input.job.source.headers.flatMap((sourceColumn, index) => {
+    } ...input.job.source.headers.flatMap((sourceColumn, index) => {
       const candidates = candidatesFor(sourceColumn);
 
       return [
