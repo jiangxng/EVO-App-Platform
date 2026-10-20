@@ -723,6 +723,7 @@ with sync_playwright() as pw:
         route=correctable.nth(index).get_attribute("data-eidos-context-route")
         assert re.search(r"/data-import/jobs/[^/]+/fix/%d/\d+$"%number,route),(
             "BEX01_V3_CORRECTION_ROUTE_INVALID",route)
+    assert correctable.first.evaluate("(el)=>el.getBoundingClientRect().height")>=32
     visual_page.screenshot(path=str(OUT/"v3-issue-real-row-links-desktop.png"),full_page=False)
     correctable.first.click()
     live_correction=visual_page.locator('form[data-eidos-id="evo-data-import.row-correct"]')
@@ -812,6 +813,8 @@ with sync_playwright() as pw:
     phone_row_buttons=phone_disclosure.locator('[data-eidos-form-task-issue-row]')
     expect(phone_row_buttons).to_have_count(3)
     assert phone_row_buttons.first.evaluate("(el)=>el.getBoundingClientRect().height")>=44
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "BEX01_V3_PHONE_OPEN_ROW_LINKS_OVERFLOW")
     visual_phone.screenshot(path=str(OUT/"v3-issue-real-row-links-phone.png"),full_page=False)
     phone_row_buttons.nth(1).click()
     phone_edit=visual_phone.locator('form[data-eidos-id="evo-data-import.row-correct"]')

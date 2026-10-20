@@ -97,3 +97,8 @@
 ### M06 自动续跑 #03：待处理问题关联真实错误行
 
 对照已读 #909 原型与真实 Host，修复“查看记录”原先只聚焦字段表而不能打开具体异常记录的问题。仅在每条异常行均通过业务层 `dataImportCorrectableSourceV010` 校验时，Workbench 的通用 issue 原生折叠披露真实修正路径，采用已有 Host delegated route；不推断缺失主体身份，不执行 Host 写入。桌面和390px 浏览器需实测三条行链接与实际逐行更正页面，其他 issue 仍保持原字段定位。此更改提升功能实用性但不能替代视觉 Human 100% 签收。
+
+
+### 自动续跑 #03 实际截图复核：展开记录后的紧凑布局
+
+对照真实隔离 Host `v3-issue-real-row-links-desktop.png` 与 `v3-issue-real-row-links-phone.png`（HEAD `7fe5bca1...`，已直接打开），记录跳转真实有效，但三条行号链接原在 issue 卡右侧纵向排列，导致 1280px 大块空白和 390px 长卡片。Eidos 独立编号卡仍沿用 #204；仅在原生 `details[open]` 时将链接放到标题下方的宽栏，用 `flex-wrap` 横向自适应，手机保持 44px 触控高度、检查打开折叠后的无横向溢出。不会更改 Host 路由、记录号码、验证权限或者保存行为。此处仅为 #909 高保真趋近的一项，不能算 Human 签收。

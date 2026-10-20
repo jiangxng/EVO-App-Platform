@@ -3441,8 +3441,19 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary:focus-visible{
   outline:2px solid var(--eidos-focus);outline-offset:2px;
 }
+/* An expanded issue reveals the complete row list underneath its title,
+   rather than leaving a tall empty left column beside vertically stacked links. */
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]
+  li > [data-eidos-form-task-issue-related][open]{
+  grid-column:2 / -1;grid-row:2;justify-self:stretch;width:100%;max-width:none;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related][open] summary{
+  width:max-content;max-width:100%;margin-inline-start:auto;
+}
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links]{
-  display:grid;gap:var(--eidos-space-xs);padding-top:var(--eidos-space-sm);
+  display:flex;flex-wrap:wrap;gap:var(--eidos-space-xs);
+  margin-top:var(--eidos-space-sm);padding:var(--eidos-space-sm);
+  background:var(--eidos-bg-subtle);border-radius:var(--eidos-radius-md);
 }
 [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links] button{
   min-height:var(--eidos-control-normal);white-space:nowrap;
