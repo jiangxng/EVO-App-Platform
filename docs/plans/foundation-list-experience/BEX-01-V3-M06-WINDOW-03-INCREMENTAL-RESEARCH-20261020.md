@@ -17,3 +17,18 @@
 
 ## 接续
 见 [#1077](https://github.com/jiangxng/EVO-App-Platform/pull/1077) 和本次 [UI 设计复核](../../ui-design-reviews/bex01-v3-m06-file-footer-parity-20261020.md)。优先跑新精确 HEAD，实际验证 1280/390 格式图标、返回目录路由、排他映射更改后重置恢复及所有 V3 Chromium steps。其后补足仍缺视觉与信息层级，等待用户签收。M04/M05 禁止提前启动。
+
+
+## Window 03 续跑：精确工程证据与视觉差异（新增于 2026-10-20，不覆盖上面时间点）
+
+**新增 R（直接查 GitHub Actions + 下载并打开 Chromium artifact）**：叠加 PR #1077 HEAD `aed51518697c25da49ac84e490ef846dcfa6dd1b` 的 [Platform CI run 39421803573](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803573)、[BEX Real Host Chromium run 39421803660](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803660)、[In-Context Resume run 39421803492](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803492)、[Human UI Gate run 39421803705](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803705)、[Project Continuity run 39421803508](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803508) 和 [Lightweight Host run 39421803658](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803658) 均 completed/success。Chromium 23 step 的 V3 source audit、row correction、batch subject constant、synthetic 22×172 XLSX 及 retained fields 全部 success，非 skipped。
+
+**新截图长期定位**：[run 39421803660 的 artifact 12264985007](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39421803660/artifacts/12264985007)，ZIP 75 entries；实际打开 `v3-prototype-parity-issues-desktop.png`、`v3-prototype-parity-issues-phone.png`、`v3-file-footer-reset-desktop.png`、`v3-file-footer-reset-phone.png`。桌面包含 XLSX 标记、文件名、172 条／22 列、已读取状态、16／4／0／3 汇总、按银行歧义→主体类型→系统编码排序的 3 问题、四列表和底部四按钮。390px 变为纵向卡片，文件类型和操作按钮可见，截图无横向溢出。浏览器测试实际选择 `map_21=__IGNORE__`、本地重置后恢复、导航到 `#/data-import`，桌面/手机均通过。报告 `report.json` 标记 `actualHost=true`、5/5、`browserErrors=[]`，但仅 isolated synthetic fixture，非真实客户记录。
+
+**仍未签收／已知差异**：原型 #909 文件卡带真实工作表信息；当前 Host 授权的来源对象无可信任工作表名时不可凭合成数据臆造。底部主按钮当前为“保存映射并预检查”，为了真实持久化和安全门禁保留，暂不机械改成原型“预检查并继续”而掩盖保存行为。页面标题／说明长度、问题卡间距、映射默认筛选与行密度仍需完整人工逐图审查。原型本身是设计示意，不能直接复制其假“更改将自动保存”口径。用户 Human 视觉签收继续 **OPEN**；目标仍 100%，不可将上述 PASS 当作完成。
+
+**历史失败闭环**：初始 #1077 `6e21…` 失败的未补 UI 设计复核／错误转义，后已修复；`cd7e51…` 的 Platform CI 唯一失败是该 PR 新测试脚本过度转义导致 JS 正则语法错误 `SyntaxError: Invalid regular expression flags`（不是产品功能失败）；`aed515…` 已把断言改成不歧义的 exact substring，平台 1058 项测试流程通过。所有失败 HEAD 仍可追溯，绝不删除或换用旧 PASS。
+
+**版本治理**：#1077 仍叠加 #1060 的 Draft，不合并、不部署；Railway production 自动跟踪其他窗口的 Platform main，当前发现成功部署 main SHA `102319de812ce65682f0c6ccb1a930e10b4e22d4`，不是此 Draft。Eidos #203/204 等通用 owner 仍需独立协调。M01–M03 COMPLETE，M04/M05/M06 OPEN，**3/6**。无真实 Excel、授权 Job、两开户银行真实 fieldId/用途和三条主体身份的新增证据。
+
+本节记录的精确成功 HEAD 为 `aed515…`；**如本文档自身增量追加生成了更新的 SHA，其新 CI 仍需单独核对**，不能自动迁移旧 PASS。
