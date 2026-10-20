@@ -422,3 +422,52 @@ E04稳定3帧、未观察到本轮几何变化，可信pointerdown命中真实cu
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+## 16. 2026-10-20增量：保留根入口对账与模块求值资源回归
+
+基线main `1f2a7bbd717cca4547d68680a51733966457d41c`（#1063），已用compare确认包含原交接 `42ce894b4129089cbd8a270bd3473f0c93b7657b`。#1063最终head `f72cd4a88033e11e7acba6825978e2fadfab7135` 的44项CI通过，173行为/6守卫、四组合310模块/246静态边，见[最终记录](https://github.com/jiangxng/EVO-App-Platform/pull/1063#issuecomment-6282895640)。以上是历史结果，不是本批实测。过程分支 `test/governance-eog-retained-imports-20261020`；本批只改测试、既有治理CI和本专项文档，没有生产源码、UI、全局状态或部署变更。
+
+### 当前入口账与保留决定
+
+在固定提交的Host顶层value imports中，按EOG、enterprise-observatory、operating-graph、current-2d-editor、definition-projection路径定向对账，共24个直接入口；逐项路径、绑定名、行号、git blob及sha256见[本批证据](evidence/eog-retained-imports-20261020.json)。类型导入不算运行入口，24不是违规数，也不是全Host静态根总数。全部24份本地源码与该提交完整Git tree比对；此前快照写入产生的末尾空行仅在匹配远端blob时归一，不改变远端源码。
+
+| 类别/直接入口数 | 实际触发与副作用 | 决定、归属及退出条件 |
+|---|---|---|
+| 清单、身份、路由/会话合同及授权策略：9 | 清单和常量为数据；会话store工厂只创建空Map，set/get由请求使用。授权策略保留既有规则，不查询业务事实 | 保留廉价登记，空会话状态归Host进程；不拆公共合同或移除安全规则。若将来引入I/O、任务或重型索引，须重新评审并提供资源合同 |
+| 同步共享服务和持久化闭包：8 | graph/SOP已按首次方法调用分别实例化；definition persistence/source、View State/store构造零业务文件访问；业务读取/持久化在get/list/apply等方法发生 | 保留Enterprise Context共同权威和同步合同，graph/view/SOP/Agent/分析Provider复用。不得把某个UI Feature停用当作释放共享事实或清空业务数据的理由；出现独立连接/任务时由资源owner另行管生命周期 |
+| 请求工具登记：4 | graph/SOP/观测/当前编辑器工厂只建描述和闭包，发现只查既有资格、当前会话和候选元数据；execute才使用服务。当前定义投影裁剪已在#1047按需加载 | 保留请求Principal/Context，不增加全局用户缓存。原2D/3D/观测资格保持；**旧SOP工具owner=evo-app-platform、仅Enterprise资格仍为冻结兼容债务**，不是推荐新增方式或本批认证通过 |
+| 观测与inspector resolver闭包：2 | 构造不查询业务；候选检查/解析经有效贡献与现有registry，实际query/inspect在调用阶段 | 保留现有解析机制，不能从import或闭包成立推断所有Provider工厂无副作用；Provider构造、登记和健康探测仍归R3逐类检查 |
+| 条件兼容入口：1 | 模块求值不访问文件；Host调用时对已配置旧路径执行existsSync；存在旧文件才import迁移实现并读取/迁移业务数据；显式preview配置才种子写入 | 保留#1014已验收的共享定义兼容责任及错误/冲突规则。此处**允许有条件启动业务访问**，不得用本批import零访问断言掩盖调用时副作用；未来退休须有旧数据迁移与消费者证据 |
+
+graph model、diagram/definition projection、observatory输入解析等经上述入口传递加载，保留纯校验/转换算法；无需异步代理或新包。原graph page/view/semantic命令（#1061）、SOP四条Human命令（#1063）、当前定义裁剪及3D/各观测页面/命令已经沿既有lazy机制退出冷装配，本批不重复整改。没有发现足以支持再拆生产实现的新资源缺陷；这一判断限于上述定向入口及已有证据，不能外推至所有Agent或Provider。
+
+### 新增保护补的是什么
+
+第12节原构造/发现测试在ESM import完成后才安装资源拦截，不能证明模块求值本身没有副作用。本批新增 `tests/protocol/eog-retained-imports.test.mjs`，分别在4个全新子进程中，在第一个项目import前安装拦截，再动态import上述9/8/6/1组入口；每个入口都检查非空namespace及原生loader实际加载记录，避免ESM缓存掩盖未执行。
+
+拦截枚举的公共fs/fs.promises、TCP connect、HTTP(S)/fetch、global/timers/timers.promises及子进程创建；吞掉异常仍保留attempt并失败。一个独立自检用9个真实ESM故障样例验证同步/异步读、写、TCP、fetch、timer、Promise timer及子进程调用确实被捕获，其中包含读取dist源码的样例。
+
+Node24的原生ESM loader可能通过公共fs.readFileSync读取JS。fixture用原生registerHooks及捕获的读取函数，仅为dist下原样JS提供source；不改写源码、不以路径放行业务调用、不新增生产hook。模块执行看到的是已拦截的公共fs，即使直接读同一个dist文件也被自检捕获。源码装载自身的必要文件读取不算业务I/O；这不是文件系统/VM隔离，也没有声称拦截所有syscall、native addon、Worker或数据库API。
+
+本批仅增强模块求值保护；构造、发现、首次使用、共享隔离和工厂失败恢复复用已有组件测试，真实Host启停/迟到import/持久化/重启复用既有CI。模块import测试不调用兼容迁移函数，也不能单独证明在途WRITE、延迟后台任务、跨Host冻结或ESM卸载。本批没有新资源，不新增dispose；业务停止/恢复仍由原owner及第6～15节合同负责。SOP Designer仍未注册、默认OFF、产品/extraction DEFERRED，不将preserved语料提升为EOG Core产品门禁。
+
+### 验证与接续
+
+本地新增5项（含9个故障样例）及原登记3项/on-use5项，合计13项通过。首次试验在Node24默认loader读取源码时触发fs拦截，按上述原生hook隔离必要装载读取后通过；部分源码快照缺少resolver/compatibility等模块，补齐固定SHA源码后通过。没有修改生产代码来迎合测试。执行于独立 `/workspace/eog-r1-retained-20261020` 固定SHA部分源码快照及既有Node24临时类型擦除dist，不是正式TS build；本地未执行真实Host/browser。正式npm ci/build、Node22标准runner和既有Host/四组合验收由本PR CI给出，最终准确head/run与合并结果以PR收口记录为准。
+
+没有调整静态基线或禁入列表，不能借此放宽现有门禁。本地没有新的四组合模块数量、耗时、RSS或生产收益测量。读取复用前批已完整阅读的启动/LLM/交付、指定治理资料及冻结边界；本轮核对对应规则blob，补读compatibility、resolver、授权及清单全文，Host仅核对根imports、共享创建和请求登记；观测query与Provider resolution按相关函数查阅，未声称通读全Host或Agent。无新增外网研究。
+
+本批完成R1这份定向静态入口的当前对账和保留决定；**R1不整体关闭**，旧SOP身份/资格及其他冻结例外仍明确保留。下一批转入R3：先核对现有OpenAI/DeepSeek wrapper与health probe的工厂和Host登记调用点，区分纯闭包、配置读取、首次网络及必要安全机制，再选有副作用的整改或保留回归；不是第二个Provider试点。R2两处conversationDatabaseUrl触发SQL的owner职责/资格/验收仍未解决，PA05其他成果不能代替；R4最终跨层矩阵仍待R1～R3后汇总。不改其他窗口Agent/BEX/2D状态或替其宣告完成。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；24个保留入口对账与模块求值回归 | R1冻结例外保留；继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
