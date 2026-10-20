@@ -109,3 +109,11 @@ Platform #1054 分支与当前 main 已发生分叉：compare 结果为相对 `m
 - 新 HEAD 为 `895ea758a3f8ba6787f9f96f06155afbf9ff05b9`；Platform CI 与 Real Host Chromium 已重新触发，当前状态待完成，不能沿用上一个 HEAD 的 PASS。
 - 此修正是按 #909 原型源码直接对齐，不是新增需求。下一步等新 HEAD CI/Host Chromium 通过后，下载最新 artifact，检查步骤条与底部操作区截图，再继续收敛问题卡片和文件卡片。
 - 仍未部署/合并；M04/M05 OPEN、M06 OPEN，总体 3/6。
+
+
+## 2026-10-20 续跑 #13：同步修正 V3 浏览器断言
+
+- 两阶段步骤条改动后的 Platform CI 通过，但 Real Host Chromium 在 V3 XLSX 子步骤失败；日志精确显示浏览器断言仍要求 `[data-eidos-form-task-steps] li` 数量为 3，而实际页面正确返回 2。
+- 已修正 `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py` 的步骤数量断言为 2，与 #909 原型一致。没有恢复第三个顶层步骤，也没有移除预检查、Schema 确认或明确提交。
+- 当前候选 HEAD 为 `0a135314c32fcd0633cedf1ac7dda1ad9be66407`。Platform CI、Real Host Chromium、In-Context Resume 等检查已重新触发；状态待完成。不要沿用 `895ea758…` 的 Real Host Chromium failure 或更早 HEAD 的 PASS 作为本 HEAD 最终结果。
+- 下一步等待最新精确 HEAD 的所有适用门禁，重点确认 V3 XLSX 子步骤走完并产出新 artifact。仍未合并/部署；M04/M05 OPEN、M06 OPEN，总体 3/6。
