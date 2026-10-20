@@ -139,13 +139,13 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const fields = [
     { key: "importJobId", label: zh ? "当前文件" : "Current file",
       semanticType: "data-import-job-id", control: "select" as const,
-      required: true, initialValue: job.importJobId,
+      hidden: true, required: true, initialValue: job.importJobId,
       // The stable Job ID is submitted to Host, but the Human sees the file.
       options: [{ value: job.importJobId,
         label: job.source.name ?? (zh ? "已保存的导入任务" : "Saved import task") }] },
     { key: "batchMode", label: zh ? "审核方式" : "Review mode",
       semanticType: "object-extension-batch-mode", control: "select" as const,
-      required: true, initialValue: batchReviewSourceRevisionV010(job),
+      hidden: true, required: true, initialValue: batchReviewSourceRevisionV010(job),
       // Keep the identical Human-visible control. Only the opaque submitted
       // option value carries this page's source identity for Host validation.
       options: [{ value: batchReviewSourceRevisionV010(job),
