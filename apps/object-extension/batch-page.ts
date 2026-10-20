@@ -439,12 +439,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
         : draft
         ? (zh ? "当前审核人的未批准草稿已恢复" : "Your unapproved review draft restored")
         : (zh ? "原始 Excel 已保留" : "Original Excel retained"),
-      facts: [
-        { id: "sourceColumns", label: zh ? "来源列总数" : "Source columns",
-          value: String(job.source.headers.length) },
-        { id: "unmatched", label: zh ? "待集中审核" : "Batch review",
-          value: String(columns.length) }
-      ]
+
     },
     steps: [
       { id: "upload", label: zh ? "选择文件" : "Choose file",
