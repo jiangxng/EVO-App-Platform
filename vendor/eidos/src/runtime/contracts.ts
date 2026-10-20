@@ -60,6 +60,8 @@ export interface UidlFormReviewGroupV010 {
 export interface UidlFormReviewTableV010 {
   /** Opt-in compact Human decision rows; default remains standard. */
   presentation?: "standard" | "compact";
+  /** Optional section context preceding the original decision table. */
+  heading?: { title: string; description?: string };
   columnLabels: { subject: string; evidence: string; decision: string; status: string };
   filter?: {
     label: string;

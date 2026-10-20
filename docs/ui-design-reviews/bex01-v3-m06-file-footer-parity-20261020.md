@@ -67,3 +67,8 @@
 ### 本轮追加 UI 复核：可信工作表信息
 
 调整 `apps/data-import/page.ts` 文件摘要时，文件名与真实来源工作表名仍分层显示，实际 XLSX parser 与 `DataImportSourceV010` 才是唯一受信来源。文件未带名称时只展示可信行列数；不把原型的演示工作表或 synthetic fixture 误当客户证据。业务核对阶段、排他字段映射和 Host 提交完全不变。1280px 桌面和 390px 移动断言核查“工作表：Visual review”，属于隔离 Chromium 证据，不代表已完成人工 100% 视觉签收。
+
+
+### 本轮追加 UI 复核：四列审核区的标题与解释
+
+根据 #909 已读原型，字段审核表应由独立的“字段对应关系”标题和用途说明引导，避免上一段问题卡与下一段可编辑表格在认知上相连。变更 `vendor/eidos/src/runtime/contracts.ts`、`vendor/eidos/src/runtime/validate.ts`、`vendor/eidos/src/runtime/render-model.ts`、`vendor/eidos/src/renderers/html/index.ts`、`vendor/eidos/src/design-language/productive-workbench-css.ts`，增加仅在业务方声明时呈现的通用 heading。文案由 `apps/data-import/page.ts` 给出，安全验证限制标题和说明长度并转义 HTML。四列、选择器、Host 命令与手机响应式保持不变。新增双端 Chromium 断言核验标题，Human 仍 OPEN。

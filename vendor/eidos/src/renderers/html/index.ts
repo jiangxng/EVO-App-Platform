@@ -210,7 +210,13 @@ export function renderToHtml(document: unknown): string {
           ).join("")}</select></label>
           <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span></div>`
       : "";
-    return `<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
+    const heading=model.reviewTable?.heading
+      ? `<header data-eidos-form-review-table-heading>
+          <h2>${esc(model.reviewTable.heading.title)}</h2>
+          ${model.reviewTable.heading.description
+            ? `<p>${esc(model.reviewTable.heading.description)}</p>` : ""}
+        </header>` : "";
+    return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>
         <table data-eidos-form-review-table aria-label="${esc(model.title)}">

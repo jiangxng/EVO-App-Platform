@@ -40,3 +40,10 @@
 - **增量方案：** parser 在原选中的 sheet 标签读取 `name`，存为可选 `source.worksheetName`，`assertDataImportJobV010` 对来源类型、长度和换行校验并保留入库；Host 文件卡仅在来源为 XLSX 且确有此值时显示「工作表：真实名称 · 共 N 条记录 · M 列」。旧 Job/CSV/ROWS 无 worksheetName 时继续原有展示，绝不猜测客户工作表名。
 - **源事实与判断：** #909 原型文件卡含工作表名是已读原文；从真实 `xl/workbook.xml` 获取并存入 Job 是本轮设计判断。不新增采集客户 Excel 的动作。行、列、Recipe 指纹（只使用 headers）、权限、显式提交均保持原契约。
 - **验证任务：** synthetic XLSX workbook 真实首张 sheet 名 `Synthetic`，独立 Host 的 V3 视觉 workbook 的 `name` 为 `Visual review`，协议和 1280px/390px Chromium 都对精确文字断言。新 HEAD 的 CI/截图必须另行核对；此段不宣称完成或 Human 签收。总体 3/6，M04/M05/M06 OPEN。
+
+
+## Window-03 续跑｜四列审核区标题语义（2026-10-20）
+
+- **来源已读原文 R：** #909 HTML 在问题区后单列 section heading「字段对应关系」，并提示保留原有匹配结果；实际 Host 截图中表格上方只显示筛选/可见行数，缺少该层次。本轮未重新访问外部竞品资料。
+- **实现判断：** Eidos 通用 reviewTable 可选 heading {title,description}，Platform 负责业务中文语义。Eidos 校验有界字段，HTML 进行内容转义；缺 heading 的所有既有 Eidos 表格完全沿用旧呈现。不会改变 mapping、源数据、服务权限或提交动作。
+- **验证要求：** 协议测试校验 heading 存在及空标题拒绝；真实隔离 Host 1280/390 截图断言区标题。此项不等于全部原型视觉完成。M01–M03 DONE，M04–M06 OPEN，总进度 3/6。

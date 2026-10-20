@@ -886,7 +886,20 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","heading"]),p,out);
+      if (table.heading !== undefined) {
+        if (!isPlainObject(table.heading)
+          || !nonEmpty(table.heading.title)
+          || table.heading.title.length > 120
+          || table.heading.description !== undefined
+            && (typeof table.heading.description !== "string"
+              || table.heading.description.length > 600)) {
+          out.push(d("EIDOS_REVIEW_TABLE_HEADING_INVALID",p+".heading",
+            "Heading requires a bounded nonempty title and optional description"));
+        } else {
+          extraKeys(table.heading,new Set(["title","description"]),p+".heading",out);
+        }
+      }
       if (table.presentation !== undefined
         && (!nonEmpty(table.presentation)
           || !["standard","compact"].includes(table.presentation))) {
@@ -943,6 +956,14 @@ export function validateUidl(
         }
       }
       reviewTable={
+        ...(isPlainObject(table.heading) && nonEmpty(table.heading.title)
+          && table.heading.title.length <= 120
+          && (table.heading.description === undefined
+            || typeof table.heading.description === "string"
+              && table.heading.description.length <= 600)
+          ? {heading:{title:table.heading.title,
+              ...(typeof table.heading.description === "string"
+                ? {description:table.heading.description} : {})}} : {}),
         ...(table.presentation==="compact" || table.presentation==="standard"
           ? {presentation:table.presentation} : {}),
         columnLabels:{

@@ -2899,6 +2899,20 @@ form[data-eidos-id] button:hover,
  [data-eidos-review-group-fields]{grid-template-columns:minmax(0,1fr)}
 }
 
+/* Optional domain-neutral heading before the E2 decision table. */
+[data-eidos-form-review-table-heading]{
+  display:grid;gap:var(--eidos-space-xs);margin-top:var(--eidos-space-section);
+  min-width:0
+}
+[data-eidos-form-review-table-heading] h2{
+  margin:0;color:var(--eidos-fg);font-size:var(--eidos-font-section)
+}
+[data-eidos-form-review-table-heading] p{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)
+}
+[data-eidos-form-review-table-heading]+[data-eidos-form-review-table-wrap]{
+  margin-top:var(--eidos-space-md)
+}
 /* Eidos E2: domain-neutral editable review table, never a product-specific mapping skin. */
 [data-eidos-form-review-table-wrap]{
   min-width:0;

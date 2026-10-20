@@ -69,6 +69,10 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(eidosProductiveWorkbenchCss,/li::before/);
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列来源/);
   assert.match(batch.reviewTask.subject.subtitle,/\d+ 列待处理/);
+  assert.equal(mapping.reviewTable.heading.title,"字段对应关系");
+  assert.ok(renderToHtml(mapping).includes("<h2>字段对应关系</h2>"));
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    heading:{title:""}}}).ok,false);
   assert.equal(mapping.reviewTask.subject.iconLabel,"XLSX");
   assert.match(renderToHtml(mapping),/data-eidos-form-task-icon aria-hidden="true">XLSX/);
   assert.ok(renderToHtml(mapping).includes('type="button" data-eidos-form-task-back data-eidos-context-route="/data-import"'),
