@@ -128,3 +128,27 @@
 **新窗口下一行动**：继续原 #1057 单 PR，确认最新 HEAD（文档归档可能触发 CI）、复核 45 条 workflow 的取消/通过原因，重跑两条 CANCELLED（如仍属于必须门禁）并审查其真实日志；确认 J4J 28/28/0 skipped 和其他适用检查完整 PASS 后 merge main、删除原工程分支、核对 main push CI 与 Railway 自动部署；**然后**才讨论独立可信生产多 Worker 停机证明/IdP+DBA 凭据治理。没有真实生产凭据、没有自动移锁或发布 material WRITE 的权限。
 
 **本轮未保存到 GitHub 的内容**：原始截图/附件为**无**（未制作）；生产 IdP/DBA/RCA/多 Worker 证据为**尚未获得**，不可补造。此交接文件是原始日志的出处索引和关键字段摘要，不是替代原日志的合规副本。
+
+
+## 7. 最终 HEAD、main CI、Railway 与取消工作流复核（2026-10-20）
+
+本节是合并后直接读取 GitHub / Railway 对象和原始 job log 得到的最终事实；它更新本索引的“当前状态”，但不抹除 §§1–6 中历史时间片。
+
+| 验收项 | 当前可证实事实 | 原始证据与阅读等级 |
+| --- | --- | --- |
+| PR 与提交 | [PR #1057](https://github.com/jiangxng/EVO-App-Platform/pull/1057) MERGED；最后工程 HEAD `1fba63927a80f2e9658b8608bb5a92a9849abcdf`；merge/main SHA `e123924af8bdd1214a4aec6bfaf358c5afb9f445` | **ORIGINAL_CONNECTOR_STATE**；PR 元数据与 main branch API 直接读取 |
+| 最终 PR-head CI | 45/45 checks 全部 SUCCESS | [准确 commit checks](https://github.com/jiangxng/EVO-App-Platform/commit/1fba63927a80f2e9658b8608bb5a92a9849abcdf/checks)，**ORIGINAL_CONNECTOR_STATE** |
+| 最终 PR-head 物理 PostgreSQL18 | [run #39360366722](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39360366722) job `118424890768`：**28 tests / 28 pass / 0 fail / 0 skipped**。原始 marker `PA05_E01J4J_COOPERATING_HOST` 确认独立 Node Host、第二协作 Host 拒绝、在线 Host 阻挡维护、正常退出释放、SIGKILL 和非零退出保留锁、Secrets 未触及；同时明确多 Worker 与生产身份仍 false | **ORIGINAL_CI_LOG**；直接下载并查阅 303 KB job log 的 marker 和 Node reporter summary |
+| 合并后 main CI | 合并 SHA 的 **39/39 checks SUCCESS** | [main commit checks](https://github.com/jiangxng/EVO-App-Platform/commit/e123924af8bdd1214a4aec6bfaf358c5afb9f445/checks)，**ORIGINAL_CONNECTOR_STATE** |
+| 合并后 main PostgreSQL18 | [run #39361578987](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39361578987) job `118428747522`：**28/28 PASS / 0 failed / 0 skipped**，同一 J4J marker 和硬性 grep 门禁实际通过 | **ORIGINAL_CI_LOG**；直接读取主线 push job log |
+| Railway 自动部署 | Ledger Configurator deployment `91ac2596-8e4f-4863-a208-5eca3d5c4931`，`main@e123924...`，SUCCESS；服务 Online，1 running / 0 crashed，0 warnings / 0 critical，no pending work | **ORIGINAL_CONNECTOR_STATE**；Railway 官方连接器直接读取 production environment / deployment |
+| 分支清理 | 原工程分支 `agent/pa05-e01j4j-cooperative-host-lock-20261019` 在合并后 branch search 无结果（已自动删除） | **ORIGINAL_CONNECTOR_STATE**；GitHub branch search 直接读取 |
+| 旧取消 workflow 原因 | [#39281032878](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39281032878)（Memory Review）与 [#39281032769](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39281032769)（Experience P1.3.1）在旧 HEAD `16e00238...` 上结论 CANCELLED。两 workflow 源码均配置 `concurrency.cancel-in-progress: true`，因此同一 ref 的后续 run 可以取消旧 run；但不能仅凭此配置证明这两次的具体取消原因/取消者。旧 job logs 请求当前返回 `BlobNotFound`，未发现可证实 RCA | **ORIGINAL_CONNECTOR_STATE + ORIGINAL_GITHUB_SOURCE**；结论边界为“原因未证实”，不把可能机制写成事实 |
+| 旧 43/45 时间片的处置 | 旧工程 HEAD `16e002...` 的 43 SUCCESS / 2 CANCELLED 仍作为历史记录保留；最终工程 HEAD 45/45 SUCCESS 且 main 39/39 SUCCESS，故旧取消不再阻断合并，不需要按旧 SHA 补跑 | 对准确新 HEAD 的正向 CI 已直接复核；不是推断旧作业成功 |
+
+### 7.1 最终范围与下一项门禁
+
+- J4J 是 **ENGINEERING_BOUNDED_PASS**：同一可信 POSIX 文件命名空间内，自愿 opt-in 的协作 Host 排他；不是分布式锁或全 Worker 停机证明。
+- `multiWorkerGlobalStopCertified=false`、`actualProductionOperatorIdpCertified=false`、`productionMaterialWriteEnabled=false`、`pa05Signed=false` 是实际测试 marker 的显式负值，不得改写为认证通过。
+- 完整 E01J4、PA05-05 E01–E05、W06 仍 NOT_SIGNED；#988/#979/#913 仍 OPEN；production material WRITE OFF；异常退出后的锁不自动清除。
+- 下一项独立门禁是可信多 Worker 停机证明，以及真实生产 Human IdP / Session 撤销、DBA 登录凭据与轮换、CLI/Runbook 和集中审计治理。没有组织授权和真实环境证据时只做契约、方案与隔离负测试。
