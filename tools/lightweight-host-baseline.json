@@ -119,7 +119,6 @@
     "manager/enterprise-operating-graph-agent-tools.ts -> apps/eog-3d-viewer/agent-tools.ts [static]",
     "manager/enterprise-operating-graph-observatory-agent-tools.ts -> apps/enterprise-observatory/agent-tools.ts [static]",
     "manager/enterprise-operating-graph-service.ts -> apps/eog-2d-designer/enterprise-operating-graph-service.ts [static]",
-    "manager/enterprise-operating-graph-sop-actions.ts -> agents/enterprise-agent/package.ts [static]",
     "manager/enterprise-relationship-actions.ts -> providers/enterprise-relationship/package.ts [static]",
     "manager/personal-agent-experience.ts -> agents/enterprise-agent/package.ts [static]",
     "manager/personal-agent-follow-up-actions.ts -> agents/enterprise-agent/package.ts [static]",
