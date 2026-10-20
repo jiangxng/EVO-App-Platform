@@ -279,3 +279,27 @@ Before relying on the shutdown handler for any maintenance/stop attestation, add
 5. a clean path releases only after all required cleanup completes.
 
 Do not change production start commands, drain settings, production identity, DBA credentials, or material WRITE in this task. It is a bounded source/CI improvement, not a K1/K2 global stop proof. K0 remains NOT_SIGNED; external topology, effective drain interval and stop authority remain unresolved.
+
+
+## 18. 2026-10-20 — Shutdown error-path engineering fix
+
+### PR / exact evidence
+
+- [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074), branch `agent/pa05-host-shutdown-error-path-20261020`, head `f38fd18bb007b0af1ae24b337f92cbe19377b5c7`.
+- Status: Draft, unmerged, not deployed.
+- Exact-head CI: **45/45 SUCCESS**, 0 failures, 0 cancelled. Relevant [Lightweight Host run #39377872162](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377872162) passed.
+- Test step reported 200 tests / 200 pass / 0 fail, including:
+  - new injected shutdown-cleanup failures at every declared boundary, multiple failures, and clean completion;
+  - existing real separate Node Host J4J test: second cooperating Host denied, clean SIGTERM exit releases its exact lock, SIGKILL/nonzero exit retains ambiguous lock and blocks restart.
+- No PostgreSQL18 28/28 claim is made for the new head; that earlier PG18 result belongs to its own exact historical HEAD. This run is process-level Host shutdown regression evidence, not a global stop or production identity proof.
+
+### Bounded implementation
+
+- HTTP admission starts closing at shutdown entry; requests on an existing keep-alive connection receive HTTP 503 with `Connection: close`.
+- A referenced 5-second fail-fast timer starts before awaiting resource cleanup.
+- Every declared cleanup step is attempted in order even if earlier steps reject; failures are named and recorded.
+- Process exits nonzero if any cleanup step or HTTP server closure fails. Existing J4J exit hook therefore leaves the cooperative lock for independent review instead of certifying a failed shutdown.
+
+### Remaining acceptance boundary
+
+This improves the local Host shutdown contract, but does not prove Railway delivers SIGTERM directly through the configured `npm start` command, establish the actual per-service drain interval, prove organization-wide Worker/caller inventory, or certify production IdP/DBA stop authority. No production service action, config mutation, secret/database access or lock cleanup occurred. K0 remains NOT_SIGNED; production material WRITE remains OFF.

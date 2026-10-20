@@ -885,3 +885,11 @@ At [`manager/server.ts` exact blob `d1c50cc2c4c52bd251146ce84dfc6acfeca45e53`](h
 **Static finding (not a demonstrated production failure):** if one of the later awaits rejects, the remaining cleanup actions may not be attempted and the code may not reach `server.close()` or schedule its explicit fail-fast timer. This does not release the J4J lock automatically; the lock remains ambiguous until independent review, consistent with fail-closed behavior, but complete shutdown is not proved.
 
 **Follow-up:** an isolated exact-head test should inject rejection at each cleanup boundary and assert subsequent cleanup is attempted, admission closes, shutdown exits nonzero on incomplete cleanup, and the lock is not auto-released. This is a bounded shutdown-correctness task, not authorization to implement K1/K2 production stop authority. No production process was signalled or restarted.
+
+
+**§79 — Host shutdown error-path fix (PR #1074, engineering CI only)**
+
+- PR [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074), branch `agent/pa05-host-shutdown-error-path-20261020`, head `f38fd18bb007b0af1ae24b337f92cbe19377b5c7`, remains Draft/unmerged/not deployed.
+- Exact-head checks: **45/45 SUCCESS**, including [Lightweight Host #39377872162](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377872162). The job ran the new shutdown injected-failure tests and the real separate-Node-Host J4J cooperative-lock lifecycle test; combined test step reports 200/200 pass, 0 fail.
+- Source changes close the request admission path at shutdown start (HTTP 503 / Connection: close on existing keep-alive requests), start a referenced fail-fast deadline before awaiting cleanup, attempt every cleanup step after a rejection, and exit nonzero on any cleanup or HTTP close failure. This preserves the existing rule that a nonzero exit does not release the J4J lock.
+- This does **not** establish a PostgreSQL18 28/28 run against the new source head, production SIGTERM delivery, actual Railway drain interval, organization-wide Worker/caller completeness, production identity or DBA governance. No production service/config/secret/database/lock was touched. Keep K0 NOT_SIGNED and material WRITE OFF.
