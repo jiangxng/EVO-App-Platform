@@ -139,13 +139,13 @@ export function createObjectExtensionBatchImportPageV010(input: {
   const fields = [
     { key: "importJobId", label: zh ? "当前文件" : "Current file",
       semanticType: "data-import-job-id", control: "select" as const,
-      required: true, initialValue: job.importJobId,
+      hidden: true, required: true, initialValue: job.importJobId,
       // The stable Job ID is submitted to Host, but the Human sees the file.
       options: [{ value: job.importJobId,
         label: job.source.name ?? (zh ? "已保存的导入任务" : "Saved import task") }] },
     { key: "batchMode", label: zh ? "审核方式" : "Review mode",
       semanticType: "object-extension-batch-mode", control: "select" as const,
-      required: true, initialValue: batchReviewSourceRevisionV010(job),
+      hidden: true, required: true, initialValue: batchReviewSourceRevisionV010(job),
       // Keep the identical Human-visible control. Only the opaque submitted
       // option value carries this page's source identity for Host validation.
       options: [{ value: batchReviewSourceRevisionV010(job),
@@ -372,6 +372,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
     key === "attention" || key === "proposed" || key === "suggested");
   const handledKeys = statusKeys.filter(key => key === "ignored");
   const reviewTable = {
+    // V3 compact four-column density uses upstream Eidos #200 semantics.
+    presentation: "compact" as const,
     columnLabels: {
       subject: zh ? "来源列名" : "Source column",
       evidence: zh ? "示例值" : "Example",
@@ -424,6 +426,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
     group.reviewStatus.key === "attention"
       || group.reviewStatus.key === "suggested");
   const reviewTask = {
+    // Eidos #196: foreground Human choices; retain provenance on expansion.
+    presentation: "workbench" as const,
     subject: {
       title: job.source.name ?? (zh ? "未完成的导入任务" : "Saved import task"),
       subtitle: (zh ? "集中审核 · " : "Batch review · ") +
@@ -435,12 +439,7 @@ export function createObjectExtensionBatchImportPageV010(input: {
         : draft
         ? (zh ? "当前审核人的未批准草稿已恢复" : "Your unapproved review draft restored")
         : (zh ? "原始 Excel 已保留" : "Original Excel retained"),
-      facts: [
-        { id: "sourceColumns", label: zh ? "来源列总数" : "Source columns",
-          value: String(job.source.headers.length) },
-        { id: "unmatched", label: zh ? "待集中审核" : "Batch review",
-          value: String(columns.length) }
-      ]
+
     },
     steps: [
       { id: "upload", label: zh ? "选择文件" : "Choose file",
