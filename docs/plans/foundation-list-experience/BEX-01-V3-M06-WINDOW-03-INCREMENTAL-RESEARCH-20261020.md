@@ -99,3 +99,8 @@
 - **为何不采用**：不删除集中审核/扩展字段入口；不继续放在面包屑；不在每个字段行重复“批量审核”；不用 fake 路由、不将普通 URL 变成不受 Host 管理的外部链接。
 - **验证要求**：协议检查真实工具路由和隐藏的无权限情况，拒绝重复/不合法路由；真实 Host desktop 1280/phone 390 打开字段处理菜单（新增 `v3-secondary-field-tools-*.png`），确认功能仍可点击进入集中审核页、菜单不会横向溢出，原来字段映射/预检/返回/Reset 保持可用。须以精确 HEAD CI/Chromium 为准，不预称成功。
 - **仓库及状态**：#1077→#1060 stacked Draft，保持 Platform/Eidos 职责边界；Eidos #204 三类独立编号问题卡原样保留，视觉争议继续等待 Human；M01–M03 done，M04/M05/M06 open，总进度3/6。PA Allow 的已知 `MOCK_MODEL_CALL_NOT_SEEN` 属独立门禁，不擅自修改。
+
+
+### M06 自动续跑 #04｜CI 触发确认与不变量复核
+
+在实现提交 `b29b58d40723917f098debe93d59988a13c3b471` 后，GitHub Actions 起初只记录 Project Continuity CI 的 push 运行；尚未出现该 HEAD 的 Platform CI / BEX Real Host Chromium 的 pull_request 工作流。因此不允许沿用上一轮 13/14 或 5/5 验证结论。已核查 BEX 浏览器工作流 `.github/workflows/bex01-real-browser.yml` 监听 `pull_request` 对 `apps/data-import/**`、`vendor/eidos/src/design-language/productive-workbench-css.ts`、`tests/bex01/**` 的变更，本轮确有匹配文件；问题属于 CI 事件触发/可见性，原因未确认。本次用 GitHub Contents API 更新该交接文档，继续观察同步事件；无论结果如何都不得把未执行的门禁写成 PASS，也不可以绕过验证合并。
