@@ -1037,7 +1037,10 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
-  assert.match(page.fields.find(x=>x.key==="batchReviewEntry").contextLink.label,/集中审核/);
+  const batchReviewLink=page.contextNavigation.items.find(x=>x.id==="batch-review");
+  assert.ok(batchReviewLink,"Batch B remains available in the actual context navigation");
+  assert.match(batchReviewLink.label,/集中审核/);
+  assert.match(batchReviewLink.route,/mode=batch/);
   assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
   assert.ok(page.fields.find(x=>x.key==="map_2").options.some(x=>x.value==="__IGNORE__"));
   const review=handlers.find(x=>x.commandCode===DATA_IMPORT_REVIEW_COMMAND_V010);
