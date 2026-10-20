@@ -741,6 +741,77 @@ export function createDataImportMappingPageV010(input: {
   const attentionColumns = reviewGroups.filter(group =>
     group.reviewStatus.key === "attention"
       || group.reviewStatus.key === "suggested");
+  const reviewIssues: {
+    id: string;
+    title: string;
+    description: string;
+    focusGroupId?: string;
+    actionLabel?: string;
+  }[] = attentionColumns.map(group => ({
+    id: group.id,
+    title: group.title,
+    description: group.reviewStatus.label + " · " + group.summary,
+    focusGroupId: group.id,
+    actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+  }));
+
+  // A failed dry-run is durable Host evidence. Surface row-level validation
+  // issues when returning to mapping; never infer business identities from
+  // raw values or execute validation while rendering the page.
+  const rowIssueGroups = new Map<string, {
+    issue: FoundationObjectImportIssueV010;
+    rowNumbers: number[];
+  }>();
+  for (const row of input.job.dryRun?.rows ?? []) {
+    for (const issue of row.issues) {
+      const key = (issue.fieldId ?? "") + "\\u0000" + issue.code;
+      const existing = rowIssueGroups.get(key);
+      if (existing) {
+        if (!existing.rowNumbers.includes(row.rowNumber)) {
+          existing.rowNumbers.push(row.rowNumber);
+        }
+      } else {
+        rowIssueGroups.set(key, { issue, rowNumbers: [row.rowNumber] });
+      }
+    }
+  }
+  for (const [index, rowIssue] of [...rowIssueGroups.values()].entries()) {
+    const sourceMapping = input.job.mapping.find(item =>
+      Boolean(item.sourceColumn) && item.targetFieldId === rowIssue.issue.fieldId);
+    const sourceGroup = sourceMapping?.sourceColumn
+      ? reviewGroups.find(group => group.title === sourceMapping.sourceColumn)
+      : undefined;
+    const field = input.schema.fields.find(item =>
+      item.fieldId === rowIssue.issue.fieldId);
+    const title = field
+      ? localizedTextV010(field.label, input.locale)
+      : rowIssue.issue.fieldId ?? rowIssue.issue.code;
+    const rowNumbers = [...rowIssue.rowNumbers].sort((a, b) => a - b);
+    const visibleRows = rowNumbers.slice(0, 8).join("、")
+      + (rowNumbers.length > 8 ? " 等" : "");
+    const description = (zh(input.locale)
+      ? rowNumbers.length + " 条记录需要处理（第 " + visibleRows + " 行）· "
+      : rowNumbers.length + " row(s) need attention (rows " + visibleRows + ") · ")
+      + importReviewIssueMessageV010({
+        issue: rowIssue.issue, schema: input.schema, locale: input.locale
+      });
+    const existing = sourceGroup
+      ? reviewIssues.find(item => item.focusGroupId === sourceGroup.id)
+      : undefined;
+    if (existing) {
+      existing.description += "；" + description;
+    } else {
+      reviewIssues.push({
+        id: "dry-run-issue-" + index,
+        title,
+        description,
+        ...(sourceGroup ? {
+          focusGroupId: sourceGroup.id,
+          actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+        } : {})
+      });
+    }
+  }
   const reviewTask = {
     // Eidos #196: keep all task context behind an accessible disclosure
     // so real source-row decisions lead the first viewport.
@@ -780,19 +851,13 @@ export function createDataImportMappingPageV010(input: {
       value:String(countStatus("ignored"))
     }, {
       id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
-      value:String(attentionColumns.length),tone:"warning" as const
+      value:String(reviewIssues.length),tone:"warning" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
     issuesDescription: zh(input.locale)
       ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
       : "Review only uncertain sources; jump directly to the relevant choice.",
-    issues: attentionColumns.slice(0,12).map(group => ({
-      id:group.id,
-      title:group.title,
-      description:group.reviewStatus.label + " · " + group.summary,
-      focusGroupId:group.id,
-      actionLabel:zh(input.locale)?"核对本列":"Review column"
-    })),
+    issues: reviewIssues.slice(0,12),
     helpText:zh(input.locale)
       ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
       : "Changes require explicit save and validation; viewing does not commit records."
