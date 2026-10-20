@@ -946,10 +946,10 @@ export function createDataImportMappingPageV010(input: {
         : "Previous confirmed mappings restored. Review before continuing.")
       : advisoryFields.length > 0
         ? (zh(input.locale)
-          ? "系统提供了字段匹配建议，请核对需要处理的问题。"
+          ? "Experience Compiler 已给出字段建议，请人工核对待处理问题。"
           : "Field matching suggestions are available. Review pending issues.")
         : (zh(input.locale)
-          ? "请核对字段对应关系，处理待解决的问题后继续。"
+          ? "先恢复本企业之前的映射；请核对字段对应关系后继续。"
           : "Review field mappings and resolve outstanding issues before continuing."),
     contextNavigation: {
       items: [
