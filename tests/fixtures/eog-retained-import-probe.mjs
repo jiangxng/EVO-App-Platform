@@ -24,6 +24,10 @@ registerHooks({load(url, context, nextLoad) {
 }});
 
 const attempts = [];
+// Reused by directed construction probes after the guarded import completes.
+export function assertNoGuardedResourceAttempts() {
+  assert.deepEqual(attempts, [], 'retained module attempted guarded resource work');
+}
 const block = (object, key, label) => {
   object[key] = () => { attempts.push(label); throw Error('EOG_IMPORT_RESOURCE:' + label); };
 };
@@ -68,5 +72,5 @@ if (mode === 'canary') {
     assert.ok(Object.keys(namespace).length > 0, module + ': empty runtime namespace');
     assert.ok(loaded.has(dist + module), module + ': was not freshly loaded under guard');
   }
-  assert.deepEqual(attempts, [], 'retained EOG module evaluation attempted resource work');
+  assertNoGuardedResourceAttempts();
 }

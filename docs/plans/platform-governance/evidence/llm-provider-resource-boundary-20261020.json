@@ -1,0 +1,140 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-20",
+  "baseline": "36a3ee4ec2385c8e3657d509f382649144f4857d",
+  "branch": "test/governance-llm-provider-resources-20261020",
+  "scope": "A01/R3 existing LLM runtime/probe/registry classification; no new Provider or production implementation",
+  "productionChange": false,
+  "previous": {
+    "pr": 1067,
+    "head": "a2b93625edfe60a863273a4be809af1fc75392d4",
+    "merge": "716a13103574297b30a4a2f3d0d9c91a167972ee",
+    "modulesPerProfile": 310,
+    "staticEdges": 246,
+    "currentMeasurement": false
+  },
+  "mainSincePrevious": {
+    "changedPaths": [
+      "docs/agent-line/HANDOFF.md",
+      "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
+    ],
+    "productionChanged": false
+  },
+  "sourceBlobs": {
+    "manager/server.ts": "dea915b434d5ff1dc15c071cb011464257c9b465",
+    "providers/openai/runtime.ts": "5290283366c3f1c1323497eb306cd6583c790955",
+    "providers/deepseek/runtime.ts": "743a6f822518ba8520eb19e2ff93f34c3ae3dfbf",
+    "providers/openai/package.ts": "78f5865827529fe52babf23b56e0697f7cc0c122",
+    "providers/deepseek/package.ts": "3b0885b274e90e0fb1f83fbfd22b0e6122640c75",
+    "providers/runtime-registry.ts": "13579b0f9b788b03a54b75e397420c829e4735b6",
+    "manager/provider-resolution.ts": "ec5355cf9967a84facbf5aed311007088a173739",
+    "manager/secret-store.ts": "c8836fe748a25f34f7dab1ce73aac3c10340da91",
+    "providers/secrets/runtime.ts": "afbf07ee262b0f770e7d373b6a6a016d136228bc",
+    "tests/protocol/provider-health-resolution.test.mjs": "cf525111a3e7706be7a51f3e77b9bee1a9257c66"
+  },
+  "findings": {
+    "imports": "runtime modules import only types and original manifest identities; guarded pre-import and construction probe covers emitted modules",
+    "factories": "configured synchronous closures; no fetch/timer/pool/client IO at construction",
+    "registry": "replace/setHealthProbe/get/has/getHealth/resolve are passive Map/metadata operations; runHealthProbe is explicit",
+    "inference": "POST on use, concurrent calls independent; no automatic replay; DeepSeek timer wraps fetch only, not response.json; OpenAI has no local inference timer",
+    "health": "explicit GET; per-call 5000ms AbortController timeout, finally cleanup on success/HTTP failure/network throw/abort; registry records UNKNOWN until report, failures UNAVAILABLE",
+    "credentialStartup": "Host awaits both refresh functions on startup and on corresponding settings saves. Effective shared Secrets describe/resolve, optional legacy env put, settings read. No LLM Feature qualification in refresh.",
+    "sharedSecrets": "configured file store construction creates/reads master key and reads encrypted state. describe reads memory, resolve decrypts memory, put/remove persist. Shared Host security responsibility must not be removed for one optional consumer.",
+    "hostProbeRoute": "administration authorization/audit then active descriptor check before runHealthProbe; source evidence only, not a new live HTTP test"
+  },
+  "decision": {
+    "retain": [
+      "existing pure wrapper factories",
+      "synchronous interfaces",
+      "passive registry",
+      "explicit health probe",
+      "shared Secrets authority and original compatibility contract"
+    ],
+    "doNotCertify": [
+      "optional consumer startup credential resolution/migration qualification",
+      "all Provider lifecycle implementations",
+      "old in-flight calls/captured credentials after replacement or remove",
+      "cross-Host freeze/cancellation",
+      "actual API connectivity or production secrets"
+    ]
+  },
+  "tests": {
+    "newFile": "tests/protocol/llm-provider-resource-boundary.test.mjs",
+    "newCases": 5,
+    "constructionFixture": "tests/fixtures/llm-provider-construction-probe.mjs",
+    "resourceGuardReuse": "tests/fixtures/eog-retained-import-probe.mjs: export existing attempt assertion for test-only reuse",
+    "preImportModules": 4,
+    "firstUse": "invalid contract no network/timer; two concurrent infer calls each POST once; explicit failure and next call recovery without replay",
+    "health": "6 explicit modes per original Provider: success,503,401,network throw,abort,success; timer count zero after each; passive getHealth; removed registry no probe",
+    "timers": "controlled synthetic timers invoke actual AbortController callback; verify clearTimeout and requested 5000ms/30000ms budgets; not real wall-clock deadline validation",
+    "existingComplement": {
+      "providerHealthResolution": 2,
+      "eogRetainedImports": 5
+    },
+    "newFramework": false
+  },
+  "local": {
+    "node": "24.19.0",
+    "passed": 12,
+    "newPassed": 5,
+    "existingPassed": 7,
+    "command": "node --test --test-isolation=none tests/protocol/llm-provider-resource-boundary.test.mjs tests/protocol/provider-health-resolution.test.mjs tests/protocol/eog-retained-imports.test.mjs",
+    "workspace": "/workspace/provider-r3-20261020",
+    "method": "isolated pinned partial source snapshot and temporary Node type-erased dist; not formal full TS compilation",
+    "officialBuild": false,
+    "newLiveHost": false,
+    "browser": false,
+    "realNetwork": false
+  },
+  "ci": {
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "newTestsIncluded": 5,
+    "existingAdditionalTests": 2,
+    "statusAtCommit": "pending; final accurate-head CI/run IDs, four-profile measurement and merge in PR closeout",
+    "baselineAllowanceChanged": false
+  },
+  "reading": {
+    "reusedFull": "project rules/bootstrap/LLM/delivery; loading authority; original governance docs and EOG latest §16. Latest changes since #1067 are two Agent documentation paths only.",
+    "thisBatchFull": [
+      "both Provider runtimes",
+      "Provider registry",
+      "shared Secret store/runtime",
+      "new resource tests/fixtures",
+      "original provider-health-resolution tests"
+    ],
+    "partial": [
+      "Host imports/store construction/LLM refresh/Secrets resolver/settings save/explicit health route",
+      "package identities/settings/dependency/provider contribution fields",
+      "existing LLM business tests selected resource/health cases"
+    ],
+    "notClaimed": "whole Host or Agent source, all Provider classes or production configuration"
+  },
+  "limits": [
+    "enumerated public resource API guard, not full syscall/native addon/Worker isolation",
+    "component and stub fetch/timers, not real Host lifecycle/in-flight stop/credential rotation acceptance",
+    "pure closure construction still retains configured credentials/model/baseUrl in memory",
+    "shared Secret store IO and early optional-consumer credential resolution are explicitly separate pending qualification",
+    "no browser/real user/LLM/DB/production verification or deployment"
+  ],
+  "next": [
+    "R3 optional LLM credential refresh qualification/migration/restart contract using existing Secrets and lifecycle mechanisms",
+    "R3 other memory-intake/EC/semantic-DLP/security Provider factories",
+    "R1 frozen SOP qualification exceptions remain open",
+    "R2 Agent configured SQL responsibility and qualification remains open",
+    "R4 final cross-layer matrix remains open"
+  ],
+  "progress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  },
+  "productionDeployment": false,
+  "sha256": {
+    "manager/server.ts": "3a877b4f3f64b2a22eead6dfdde5390333b3a03ccfdac020db99fce1a2fbbe38",
+    "tests/fixtures/eog-retained-import-probe.mjs": "a8ddcaed7ed44c3f8ccfd3108af15a3e7b9c70c4a1c0e5ea40895b751c56eba4",
+    "tests/fixtures/llm-provider-construction-probe.mjs": "e096ce160866133af4f96ad29b2b6fb8a4d1ee4454ca9aef2b2deeb4417a0955",
+    "tests/protocol/llm-provider-resource-boundary.test.mjs": "45c92cd6585ee88563a32359ea82b5d87e9d669800fba425bbe9704afbeca4ba",
+    ".github/workflows/lightweight-host.yml": "3debbf7e021ed0f5ff52dc49256fed9a58c5c37b6f144442afdea8ae04909f67",
+    "tools/lightweight-host-baseline.json": "c446aa8b6797f95efc18eb6da3df680c09d8d12de50e81729bb4f1310e220c09"
+  }
+}
