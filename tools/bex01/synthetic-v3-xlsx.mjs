@@ -104,7 +104,7 @@ export const SYNTHETIC_V3_VISUAL_REVIEW_HEADERS = Object.freeze([
   "往来编码","往来名称","主体类型","法定名称","税号 / 纳税识别号",
   "国家或地区","联系电话","电子邮件","备注","供应商分类","采购区域",
   "主要联系人","主要联系人职位","主要联系人电话","主要联系人邮箱","主要地址",
-  "默认支付方式","结算方式","默认账期方式","账期天数","开户银行","系统编码"
+  "默认付款渠道","结算周期","账期规则","账期上限","开户银行","系统编码"
 ]);
 export function syntheticV3VisualReviewWorkbookV010() {
   const headers=[...SYNTHETIC_V3_VISUAL_REVIEW_HEADERS];
@@ -118,7 +118,7 @@ export function syntheticV3VisualReviewWorkbookV010() {
       "Synthetic visual review row "+seq,"常规供应商","华南",
       "联系人 "+seq,"采购经理","1390000"+String(index).padStart(4,"0"),
       "contact"+seq+"@example.cn","深圳市南山区科技园 "+seq,
-      "银行转账","月结","月结30天","30","招商银行深圳科技园支行","EXT-"+seq
+      "电汇","月结","标准账期","30","招商银行深圳科技园支行","EXT-"+seq
     ];
     return Object.fromEntries(headers.map((column,col)=>[column,values[col]]));
   });

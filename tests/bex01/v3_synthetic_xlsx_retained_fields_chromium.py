@@ -666,6 +666,21 @@ with sync_playwright() as pw:
                     full_page=True)
     print("BEX01_V3_XLSX_RETAINED_172_18_BUSINESS_FIELDS_PASS:ISOLATED_HOST",
           flush=True)
+    # Add a second, synthetic same-label bank field in the identity slot after
+    # the existing supplier-settlement field was created by the prior journey.
+    # This models real ambiguity without changing or overwriting that earlier test.
+    alias_csv=("\u5f00\u6237\u94f6\u884c\u7528\u9014\u5907\u4efd\nSynthetic archive bank\n").encode("utf-8")
+    alias_staged=command("data-import.stage-file",{
+      "targetId":"counterparty.subject",
+      "file":{"name":"BEX-V3-BANK-ALIAS-SYNTHETIC.csv","mediaType":"text/csv",
+        "size":len(alias_csv),"contentBase64":base64.b64encode(alias_csv).decode()},
+      "parameter__relationshipMode":"NONE"})
+    alias_job_id=alias_staged["job"]["importJobId"]
+    alias_created=command("object-extension.definition.create-from-import",{
+      "importJobId":alias_job_id,"sourceColumn":"开户银行用途备份",
+      "label":"开户银行","valueType":"STRING"})
+    assert alias_created.get("definition",{}).get("label",{}).get("default")=="开户银行",alias_created
+
     # Reproduce the three distinct #909 exception classes in the real Host.
     # This separate synthetic job is never committed and never uses customer data.
     visual_context=browser.new_context(viewport={"width":1280,"height":900},locale="zh-CN")
