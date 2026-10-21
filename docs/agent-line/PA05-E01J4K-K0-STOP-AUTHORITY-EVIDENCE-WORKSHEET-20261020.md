@@ -396,3 +396,12 @@
 `R5-01` 最终生效的 draining/overlap 秒数及来源；`R5-02` 实际 image/build PID1→shell/npm→Node→PROCESS child 身份/信号转发；`R5-03` 安全独占非生产观察回执；`R5-04` shutdown budget 与最坏清理时间的正余量；`R5-05` 完整 Worker/caller inventory 及停止责任；`R5-06` DBA、IdP、rotation/audit 责任。当前六项全 **`UNKNOWN/DENY`**。单次本地 `deactivate` 753ms、11 项 Plugin PROCESS、外部单机 /proc 正常停机和 #1074 的 45/45，都不能替代 production grace 与 PID1 的证实。
 
 **安全结论与之前 R1–R8 一致：** Railway 官方默认 0 秒提示**实质性风险**，并非本轮已证实产线配置错误或擅自批准调大秒数。K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 仍 `NOT_SIGNED`，production material WRITE `OFF`；#988/#979/#913 OPEN。无生产配置/重启/服务/Validator/SQL/Secrets 修改或读取，父 Host SIGKILL 不执行。
+
+
+## 22. 2026-10-21 自动续跑 #07 — 没有隔离 Railway 测试环境与只读 PID1 证据
+
+**R5-03 具体新阻塞：** `ORIGINAL_CONNECTED_RAILWAY_LIST_SERVICES_DIRECT_READ_20261021`：当前已连接项目只有 `production` 一个环境（已有五个服务），不存在已确认可用于危险实验的独立 Railway 非生产 environment。Railway 官方 [Sandboxes](https://docs.railway.com/sandboxes) 是可评估的独立 VM 选项，**未创建、未验证、未授权**，且不能在现有 production 下执行试验。先需要组织批准创建隔离非生产空间与外部回收责任，绝不在无独立清理前执行父 Host SIGKILL。
+
+**R5-02 新有限工具：** 原 #1082 Draft `eb4743e8ed34cf3cd748c3f79781d092c62712f4` 中新增只读 Linux `/proc` PID1 祖先链采集；[Platform 原始 job #119030399081](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39541560856/job/119030399081) `1124 total / 1123 PASS / 1 SKIPPED / 0 FAIL`，测试 Runner 观察到 PID1、9 层父链；未读取 cmdline/environ/Secrets/SQL，未发信号。此为 **`NONPROD_PROCFS_ANCESTRY_ONLY_BOUNDED_PASS`**，不能据此断定生产 shell/npm/Node 的 PID1 和 SIGTERM 转发。持续需要 [R5 Operator 证据请求 §5](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md) 的现场脱敏记录。
+
+**R5-01 持续 UNKNOWN：** 官方默认 graceful draining 0 秒，但当前生产生效覆盖值没有来自服务/部署的权威 read；即使外部 Linux Runner 的代码测试全绿，真实生产 shutdown 预算与 Worker/Caller stop/DB session/IdP/DBA 仍未知。因此 K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，WRITE `OFF`，Issues OPEN，不能签 STOP_CONFIRMED。
