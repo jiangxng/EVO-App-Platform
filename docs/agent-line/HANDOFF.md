@@ -1,6 +1,6 @@
 # 独立 Agent 线交接入口
 
-> **2026-10-21 PA05 / K0 最终换窗口交接（非认证签收）：** [短入口](PA05-E01J4K-K0-WINDOW-FINAL-HANDOFF-ENTRY-20261021.md) · [本窗口完整研究来源和决策索引](PA05-E01J4K-K0-WINDOW-FINAL-RESEARCH-REFERENCE-INDEX-20261021.md)。#1071 文档与 #1074/#1081/#1082 工程均 Draft；#1082 单机 PROCESS 9 项真实 CI PASS 仅 \`ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS\`。K0/完整 E01J4/PA05-05 E01–E05/W06 仍 NOT_SIGNED，production material WRITE OFF。恢复时须重新查 main/Railway/准确 SHA 与 CI，不运行生产 Validator、不合并部署、不碰全局其他窗口文件。
+> **2026-10-21 PA05 / K0 最终换窗口交接（非认证签收）：** [短入口](PA05-E01J4K-K0-WINDOW-FINAL-HANDOFF-ENTRY-20261021.md) · [本窗口完整研究来源和决策索引](PA05-E01J4K-K0-WINDOW-FINAL-RESEARCH-REFERENCE-INDEX-20261021.md)。#1071 文档与 #1074/#1081/#1082 工程均 Draft；#1082 单机 PROCESS 9 项真实 CI PASS 仅 `ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`。K0/完整 E01J4/PA05-05 E01–E05/W06 仍 NOT_SIGNED，production material WRITE OFF。恢复时须重新查 main/Railway/准确 SHA 与 CI，不运行生产 Validator、不合并部署、不碰全局其他窗口文件。
 
 
 > **2026-10-20 K0 可操作证据缺口整理（非签收）：** [可信停机证据验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 已新增到 Draft [#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071)。列明 Worker/子进程、外部 Runner/Validator、有效 Railway draining/PID 1、组织 stop authority、SQL 会话、IdP/DBA/审计的采集字段与 DENY 原则。运行时 map 可在 child 真正 exit 前删除条目，因此 map 空不能作为停机收据。本线未变更生产或 #1074，K0、E01J4、PA05-05 E01–E05、W06 仍 NOT_SIGNED，material WRITE OFF。
