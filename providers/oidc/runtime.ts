@@ -172,13 +172,15 @@ async function fetchJsonV010<T>(
   fetchImpl: typeof fetch,
   url: string,
   init: RequestInit | ((signal: AbortSignal) => Promise<RequestInit>) | undefined,
-  errorPrefix: string
+  errorPrefix: string,
+  checkContext?: () => void
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const prepared = typeof init === "function" ? await init(controller.signal) : init;
     controller.signal.throwIfAborted();
+    checkContext?.();
     const response = await fetchImpl(url, {
       ...prepared,
       redirect: "error",
@@ -191,7 +193,10 @@ async function fetchJsonV010<T>(
     if (!response.ok) {
       throw new Error(`${errorPrefix}_HTTP_${response.status}`);
     }
-    return await response.json() as T;
+    const body = await response.json() as T;
+    controller.signal.throwIfAborted();
+    checkContext?.();
+    return body;
   } finally {
     clearTimeout(timeout);
   }
@@ -476,7 +481,8 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
           }
           return {method: "POST", headers, body};
         },
-        "OIDC_TOKEN"
+        "OIDC_TOKEN",
+        () => { checkContext(); transaction.checkContext(); }
       );
       checkContext();
       transaction.checkContext();
