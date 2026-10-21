@@ -21,6 +21,7 @@ import {
 } from "../../dist/apps/data-import/actions.js";
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010
 } from "../../dist/apps/data-import/constants.js";
@@ -349,6 +350,27 @@ test("mapping and review pages keep validation and commit explicit", () => {
       && action.route === "/data-import/jobs/import-human-1/map"
     )
   );
+  const rerun=reviewPage.actions.find(action=>action.id==="rerun");
+  assert.equal(rerun?.command,DATA_IMPORT_DRY_RUN_COMMAND_V010);
+  assert.equal(rerun?.requiresConfirmation,false);
+  assert.deepEqual(rerun?.values,{importJobId:"import-human-1"});
+  const failedPage=createDataImportReviewPageV010({job:{
+    ...job,state:"DRY_RUN_FAILED",dryRun:{
+      schemaDigest:"broken",totalRows:1,validRows:0,invalidRows:1,
+      rows:[{rowNumber:1,ok:false,issues:[{
+        code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+        fieldId:"subjectType",message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+      }]}]
+    }
+  },locale:"zh-CN"});
+  assert.equal(failedPage.actions.find(x=>x.id==="rerun")?.label,"重新预检查");
+  assert.ok(!failedPage.actions.some(x=>x.id==="commit"),
+    "invalid imports must not expose a commit action");
+  const terminalPage=createDataImportReviewPageV010({job:{
+    ...job,state:"COMMITTED"
+  },locale:"zh-CN"});
+  assert.ok(!terminalPage.actions.some(x=>x.id==="rerun"),
+    "completed imports must not be rerun by the review screen");
 });
 
 

@@ -698,6 +698,18 @@ with sync_playwright() as pw:
         expect(review.locator('[data-eidos-catalog-item="row:%d"]'%number)
           ).to_contain_text("主体类型：（空）")
     assert review.locator('[data-eidos-catalog-action="commit"]').count()==0
+    # Approved #909 V3 precheck rerun must use the actual Host validation,
+    # keep three unresolved source values blocked, and never auto-commit.
+    rerun=review.locator('[data-eidos-catalog-action="rerun"]')
+    expect(rerun).to_be_visible()
+    rerun.click()
+    review=page.locator('[data-eidos-id="evo-data-import.review"]')
+    expect(review).to_be_visible(timeout=45000)
+    for number in [165,169,172]:
+        expect(review.locator('[data-eidos-catalog-item="row:%d"]'%number)
+          ).to_contain_text("主体类型：（空）")
+    assert review.locator('[data-eidos-catalog-action="commit"]').count()==0
+    print("BEX01_V3_REAL_PRECHECK_RERUN_STILL_BLOCKS_INVALID_ROWS_PASS",flush=True)
     for number in [165,169,172]:
         el=review.locator('[data-eidos-catalog-item="row:%d"]'%number)
         el.locator('[data-eidos-catalog-action="correct-row:%d"]'%number).click()

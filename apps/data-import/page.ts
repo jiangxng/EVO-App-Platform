@@ -25,6 +25,7 @@ import {
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_ROUTE,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -1251,6 +1252,20 @@ export function createDataImportReviewPageV010(input: {
       route: dataImportMappingRouteV010(job.importJobId)
     }
   ];
+  // Source #909's precheck rerun maps to an authorized Host command.
+  // Never offer repeat validation to committed jobs or skip final approval.
+  if (job.state === "STAGED" || job.state === "DRY_RUN_FAILED"
+    || job.state === "DRY_RUN_READY") {
+    summaryActions.push({
+      id: "rerun",
+      label: zh(input.locale) ? "重新预检查" : "Run validation again",
+      type: "command" as const,
+      command: DATA_IMPORT_DRY_RUN_COMMAND_V010,
+      inputVersion: "0.1.0",
+      requiresConfirmation: false,
+      values: { importJobId: job.importJobId }
+    } as never);
+  }
   if (job.state === "DRY_RUN_READY") {
     summaryActions.push({
       id: "commit",
