@@ -249,3 +249,19 @@
 - 沿用原 K0 → K6 的 fencing epoch / stop attestation / PostgreSQL session / Human IdP / DBA 治理决策；没有新的冲突来源推翻原定路线。无父 Host SIGKILL、生产 Validator、SQL/Secrets、停止、部署、改 draining/trace、异常锁清理和远端分支删除。
 
 **认证状态严格不变：K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`，production material WRITE `OFF`；Issues #988/#979/#913 `OPEN`；四条 PR #1071/#1074/#1081/#1082 均 Draft，不合并或部署。**
+
+
+## 14. 2026-10-21 自动续跑 #03 — Railway 当前 Host/EVO Runtime 有效配置字段只读复核
+
+**证据级别：** `ORIGINAL_CONNECTED_RAILWAY_GET_SERVICE_CONFIG_READ_20261021`，连接的单个项目 `aee4643e-912b-4ca1-ae95-fe4ec64f5601` 的 production `98b8b20c-d791-4073-a11d-bb1f7f0a1cb3`；仅两个服务的**非秘密 config 字段**，未读取 production Variables 值、Secrets/SQL 或日志。
+
+| 具体已连接服务 | 本轮真实只读返回的字段 | 尚不能推导 |
+| --- | --- | --- |
+| Ledger Configurator / Host（`a8622238-480e-4da3-be6f-60fd0f3e18db`） | `source.branch=main`；`deploy.startCommand=npm start`；`deploy.runtime=V2`；`deploy.multiRegionConfig.sfo.numReplicas=1`；`restartPolicyMaxRetries=5`；`healthcheckPath=/health`；`staged=null`；volume `/data` | 实际容器 PID1 是谁、SIGTERM 是否按预期到达 Node/PROCESS children、draining / overlap 生效时长、操作员跨项目 restart/scale 责任 |
+| EVO Runtime（`4ab51d1b-ea96-4c61-8d91-a65547bda049`） | `source.branch=main`（独立 EVO 仓库）；`deploy.startCommand=npm start`；`deploy.runtime=V2`；`sfo.numReplicas=1`；`restartPolicyMaxRetries=5`；`healthcheckPath=/health/ready`；`staged=null` | 同上；不能将 Host 自己的 CI 或副本数视为 EVO Runtime 的完整进程清单 |
+
+本次 `get_service_config` 返回的 `deploy` 字段**没有** `draining` / `overlap` 的明确实际值，筛选的变量**名称**亦无可匹配项。这只能得出 `EFFECTIVE_DRAINING_UNVERIFIED`，**不能断言实际为零或默认值**。服务配置不是正在运行实例 PID/PPID/cgroup 库存，不能用 `staged=null` 冒充没有在途调用者或新进程。
+
+同一窗口控制面只读核验：GitHub main `6bea66e8b7cde970a1f62d440b00d6567aeeca57` 40/40 exact commit checks SUCCESS；Railway Ledger Configurator deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 对应**较旧** `524106df36af45b89d15eebd4c0c4f308b1718fc`，SUCCESS / Online / 1 running / 0 crashed，Railway无 pendingWork。GitHub main 与当前已运行 commit 不一致，**不擅自触发部署，也不能宣称新 main 已在线**。
+
+**R1–R8 仍 UNKNOWN/DENY**：必须由 Railway 授权 Operator 提供 Dashboard 的真实有效 draining/overlap 和受控非生产 PID1/SIGTERM 回执，由组织 Infra/SRE 交付外部 supervisor 清点及停止的全部 Worker/Caller 身份和签收，由 DBA/IdP Owner 交付真实会话/凭据/审计权限。此只读连接器没有提供相关认证证据。K0/E01J4/PA05-05 E01–E05/W06 全部 NOT_SIGNED，material WRITE OFF。
