@@ -2061,6 +2061,9 @@ providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
   checkedAt: new Date().toISOString()
 });
 // Three optional-token consumers only; bounded epochs/counts contain no credentials.
+// One OIDC owner: invalidate login transactions without retaining protocol secrets.
+let oidcContextEpoch = 0;
+let oidcSettingsWrites = 0;
 const memoryCredentialOwners = new Map<string, string>([
   [REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID],
   [REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID],
@@ -2072,6 +2075,9 @@ function invalidateMemoryCredential(providerId: string): void {
   memoryCredentialEpochs.set(providerId, (memoryCredentialEpochs.get(providerId) ?? 0) + 1);
 }
 function invalidateMemoryBinding(capability: string): void {
+  if (capability === IDENTITY_AUTHENTICATION_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    oidcContextEpoch++;
+  }
   if (capability === CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
     invalidateMemoryCredential(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
   }
@@ -2285,6 +2291,9 @@ const manager = createAppManagerService(
   () => new Date(),
   new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),
   event => {
+    if (event.packageId === GENERIC_OIDC_PACKAGE_ID
+        || catalog.get(event.packageId)?.features.some(feature =>
+          feature.providesCapabilities?.includes(IDENTITY_AUTHENTICATION_CAPABILITY))) oidcContextEpoch++;
     const llmProviderId = event.packageId === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
       : event.packageId === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
     if (llmProviderId) llmCredentialEpochs.set(llmProviderId, (llmCredentialEpochs.get(llmProviderId) ?? 0) + 1);
@@ -2920,12 +2929,19 @@ function authenticationFlow() {
   if (!provider) {
     throw new Error("IDENTITY_AUTHENTICATION_PROVIDER_UNAVAILABLE");
   }
+  const oidcEpoch = oidcContextEpoch;
   return createAuthenticationFlowV010({
     provider,
     sessions: managedSessionService,
     publicBaseUrl: authenticationPublicBaseUrl,
     sessionTtlSeconds: authenticationSessionTtlSeconds,
     secureCookie: !authenticationPublicBaseUrl.startsWith("http://localhost"),
+    ...(provider.providerId === GENERIC_OIDC_PROVIDER_ID ? {
+      assertCurrent() {
+        if (oidcContextEpoch !== oidcEpoch || oidcSettingsWrites !== 0
+            || resolveIdentityAuthenticationProvider() !== provider) throw new Error("OIDC_CONTEXT_CHANGED");
+      }
+    } : {}),
     onAuthenticatedPrincipal(principal) {
       const directory = resolveIdentityUserDirectoryProvider();
       if (!directory) {
@@ -3835,7 +3851,11 @@ async function refreshGenericOidcProviderRuntime(): Promise<void> {
   try {
     const result = await configureGenericOidcProviderRuntimeV010({
       settings: settingsStore.getNamespace(GENERIC_OIDC_PACKAGE_ID),
-      secrets: resolveManagedSecretsProvider(),
+      resolveSecrets: resolveManagedSecretsProvider,
+      isCurrent: () => managedSessionEnabled && !!authenticationPublicBaseUrl
+        && oidcSettingsWrites === 0
+        && resolveIdentityAuthenticationProvider()?.providerId === GENERIC_OIDC_PROVIDER_ID,
+      epoch: () => oidcContextEpoch,
       registry: providerRuntimeRegistry
     });
     if (!result.configured) {
@@ -9681,6 +9701,9 @@ const server = createServer(async (request, response) => {
             values
           );
 
+          const oidcWrite = namespace === GENERIC_OIDC_PACKAGE_ID;
+          if (oidcWrite) { oidcContextEpoch++; oidcSettingsWrites++; }
+
           const llmProviderId = namespace === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
             : namespace === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
           if (llmProviderId) {
@@ -9736,7 +9759,9 @@ const server = createServer(async (request, response) => {
               if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
                 await refreshDeepSeekProviderRuntime();
               }
+              if (oidcWrite) await refreshGenericOidcProviderRuntime();
             } finally {
+              if (oidcWrite) oidcSettingsWrites--;
               if (memoryProviderId) {
                 const remaining = (memorySettingsWrites.get(memoryProviderId) ?? 1) - 1;
                 if (remaining) memorySettingsWrites.set(memoryProviderId, remaining);
@@ -9750,9 +9775,6 @@ const server = createServer(async (request, response) => {
             }
           }
 
-          if (namespace === GENERIC_OIDC_PACKAGE_ID) {
-            await refreshGenericOidcProviderRuntime();
-          }
           // All three memory tokens resolve per request; fixed endpoint
           // runtimes and the shared reader do not need rebuilding on save.
 

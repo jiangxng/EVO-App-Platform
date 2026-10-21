@@ -370,7 +370,57 @@ DLP的`createContextMemoryScheduledOperationsV010.runDlp`每次先调用`resolve
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| A01 轻量宿主与按需装载 | 部分完成；session/EVO/OIDC资源分类与失败缓存恢复 | R3资格/配置安装；R1/R2/R4仍开放 |
+| A01 轻量宿主与按需装载 | 部分完成；session/EVO/OIDC资源分类与失败缓存恢复 | 后续见第12节；R1/R2/R4仍开放 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+
+## 12. 增量：OIDC token交换凭据与原登录事务资格
+
+基线main `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`（#1080，已包含原#1020），过程分支 `fix/governance-oidc-request-credentials-20261020`。接续第11节的提前clientSecret解析，不新建认证产品、Provider试点、Agent或UI。#1080的312模块/246边、241行为/6守卫为[历史结果](https://github.com/jiangxng/EVO-App-Platform/pull/1080#issuecomment-6291358197)，不是本批测量。
+
+### 原合同及有界修改
+
+原Host refresh会describe/resolve并捕获明文，即使未安装/停用/未登录。OIDC有state/nonce/PKCE事务，不能直接套P12 Bearer helper。配置重建实例本来就使旧state失效；未配置clientSecret的public client及已配置时client_secret_basic合同保持。
+
+| 层/场景 | 实现与限制 |
+|---|---|
+| configure/registry/begin/discovery/probe | 仅配置登记，不describe/resolve Secret；begin仍执行原discovery/PKCE。共享Secrets密文/主密钥启动加载保留，不称整Host零I/O |
+| 实际token交换 | 原runtime新增可选resolveClientSecret端口，消费state、校验callback/TTL及discovery后才读。原fetchJson 8秒期限覆盖Secret等待、token fetch及正文；signal过期/上下文失效拒绝迟到发送，无新增生产模块/明文或Secret Promise缓存 |
+| Basic/public client | 每交换从当前Secrets describe；明确未配置才不带authorization并发送client_id。缺服务/异常/空值拒绝；resolver的undefined/异常权威，不fallback旧明文。未提供resolver时兼容原独立工厂clientSecret直接注入，IdP Basic支持及JWT校验不变 |
+| 登录事务 | begin捕获仅含registry/current resolver/epoch的复查闭包，存在原临时事务内。complete、Secret各await后、token/JWKS响应后重验；原state单次消费、旧callback拒绝与新登录恢复保持，不自动重放token |
+| Host资格 | 单OIDC owner epoch/写计数，无Secret。OIDC及identity.authenticate贡献包生命周期、Secrets贡献生命周期、auth/Secrets绑定保存/删除、OIDC设置写入均失效旧事务；当前选择须仍为本runtime，managed登录/public base完整。停用再启用或绑定往返不会复活旧等待 |
+| 设置/Secret失败 | 原校验、管理员授权、显式加密put/remove与审计保持。写入前epoch递增/计数，finally重建runtime并释放，覆盖并行/失败；普通保存不解密。不声称原store事务回滚 |
+| Session签发 | authenticationFlow可选assertCurrent，Host仅为generic.oidc接入；Provider返回、目录callback await后及sessions.issue前复查，阻止迟到cookie。其他Provider及logout/revoke保持；OIDC_CONTEXT_CHANGED复用503认证不可用 |
+| 停用/卸载/重启 | 可选OIDC不拥有共享Session/Secrets存储，卸载不删密文；已签发Session仍遵循原撤销/过期合同。原临时state随配置重建/重启丢弃，新登录恢复。已发token可能在IdP消费，拒绝迟到本地签发，不宣称回滚/取消IdP |
+
+无新通用加载/认证框架。EA1B2B第5节“refresh resolve Secret”成为被本增量取代的历史实现事实；最低配置、目录/安装/有效贡献和原生产登录门禁仍适用。
+
+### 验证及读取分级
+
+本地Node24.19固定SHA部分源码+临时类型擦除：新增7组件（逐次Basic轮换/public、坏Secret拒绝/恢复、describe及resolve两阶段失效、begin/complete与token/JWKS迟到、Secret等待期限、目录await后无Session）加原31，38/38通过。Host/fixture及擦除server语法通过。未本地正式npm ci/build、真实Host/browser/数据库。
+
+新增真实Host联合用例用test-only真实crypto.createDecipheriv计数、临时加密文件及既有HTTP设置/绑定/生命周期和/auth/login、/auth/callback；合成RS256 IdP只注入外部fetch，不替换生产源码或Secret服务。覆盖预存密文/未用/保存零解密、停用重启/启用、实际Basic登录/重放无cookie、轮换、失效旧state、在途token绑定往返无cookie、新登录恢复、删除后public及停用重启。Host未模拟Secret Promise竞态；两阶段/Abort及目录await由组件屏障验证。正式Node22/build、Host及原矩阵、本轮四组合须以最终head CI为准，永久结果记PR收口；静态基线/冷禁入不放宽。
+
+完整读取OIDC runtime/host-runtime、认证flow、request-authentication/security、cookie及相关测试；Session store、Secrets/resolver复用已完整读取并核对blob。EA1B2A协议与EA1B2B接线全文本批重读；EA1A、装载架构§11、项目启动/交付/文档/Help及Eidos复用既有阅读。Host局部核对auth resolver/flow/路由、OIDC refresh、设置/绑定与生命周期，不声称通读整个Host/Agent。开放PA05 shutdown PR仍属其owner，本批不覆盖对应段，不改全局状态。无新增外网研究。
+
+证据：[oidc-request-credentials-20261020.json](evidence/oidc-request-credentials-20261020.json)；[兼容评审](../../ui-design-reviews/oidc-request-credentials-20261020.md)。Help无新增字段/步骤，原显式新登录/Secret管理适用；未真实IdP/Human验收或部署，不代关生产登录/A05。
+
+### 下一批及停止条件
+
+本批准确head CI合格后合并，停止追加OIDC拆分。下一批先核对**managed模式关闭但指定Session文件仍启动读取**的资格/必要性，保存配置组合证据后决定最小修正，不拆必要共享安全索引。EVO映射启动写入、配置bootstrap安装权威/退出条件、query/probe期限及OIDC事务容量/过期治理仍在R3。R1冻结SOP、R2原Agent配置SQL责任/资格、R4最终跨层矩阵与A03/A05保持开放。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；OIDC实际交换凭据及事务资格 | R3配置安装/其余资格；R1/R2/R4开放 |
 | A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
 | A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
 | A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |

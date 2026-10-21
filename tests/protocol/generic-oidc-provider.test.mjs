@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
+import {configureGenericOidcProviderRuntimeV010} from '../../dist/providers/oidc/host-runtime.js';
+import {createProviderRuntimeRegistry} from '../../dist/providers/runtime-registry.js';
 
 import {
   createGenericOidcIdentityAuthenticationProviderV010,
@@ -403,5 +405,111 @@ test("failed JWKS fetch consumes the callback; only a new login can retry and au
   await complete(cached);
   assert.equal(jwksCalls, 2, 'successful JWKS stays cached');
   assert.equal(authority.calls.filter(call => call.url.endsWith('/.well-known/openid-configuration')).length, 1);
+});
+
+async function configuredHost(options = {}) {
+  const registry = createProviderRuntimeRegistry();
+  const authority = fakeAuthority({token: nonce => idToken({nonce, exp: Math.floor(Date.now() / 1000) + 600,
+    extra: {iat: Math.floor(Date.now() / 1000)}})});
+  const state = {epoch: 0, active: true, token: 'synthetic-v1', fault: '', describes: 0, resolves: 0};
+  const secrets = {async describe() { state.describes++; if (state.fault === 'describe') throw Error('synthetic-describe-failure');
+      await options.pause?.('describe'); return {configured: state.token !== undefined}; },
+    async resolve() { state.resolves++; if (state.fault === 'resolve') throw Error('synthetic-resolve-failure');
+      await options.pause?.('resolve'); return state.token; }};
+  state.secrets = secrets;
+  await configureGenericOidcProviderRuntimeV010({settings: {issuer, clientId}, registry,
+    resolveSecrets: () => state.secrets, isCurrent: () => state.active, epoch: () => state.epoch,
+    fetchImpl: options.fetchImpl ? (url, init) => options.fetchImpl(url, init, authority) : authority.fetchImpl});
+  const runtime = registry.get(GENERIC_OIDC_PROVIDER_ID);
+  return {state, authority, registry, runtime,
+    begin: () => beginLogin(runtime, authority),
+    complete: authorize => runtime.complete({contractVersion: '0.1.0', callbackUrl:
+      callbackUrl + '?code=synthetic&state=' + encodeURIComponent(authorize.searchParams.get('state'))})};
+}
+
+test('Host OIDC decrypts only at token exchange, rotates per new login and keeps public-client contract', async () => {
+  const host = await configuredHost();
+  const start = await host.begin();
+  await host.registry.runHealthProbe(GENERIC_OIDC_PROVIDER_ID);
+  assert.equal(host.state.describes + host.state.resolves, 0);
+  await assert.rejects(host.runtime.complete({contractVersion: '0.1.0', callbackUrl: callbackUrl + '?state=invalid&code=bad'}), /OIDC_STATE_INVALID/);
+  assert.equal(host.state.describes + host.state.resolves, 0);
+  await host.complete(start);
+  host.state.token = 'synthetic-v2'; await host.complete(await host.begin());
+  host.state.token = undefined; await host.complete(await host.begin());
+  const calls = host.authority.calls.filter(call => call.url === issuer + '/token');
+  assert.equal(calls.length, 3);
+  for (const [i, token] of ['synthetic-v1', 'synthetic-v2'].entries()) {
+    assert.equal(new Headers(calls[i].init.headers).get('authorization'),
+      'Basic ' + Buffer.from(clientId + ':' + token).toString('base64'));
+    assert.equal(new URLSearchParams(calls[i].init.body).has('client_id'), false);
+  }
+  assert.equal(new Headers(calls[2].init.headers).has('authorization'), false);
+  assert.equal(new URLSearchParams(calls[2].init.body).get('client_id'), clientId);
+  assert.equal(host.state.describes, 3); assert.equal(host.state.resolves, 2);
+});
+
+test('Host OIDC missing/corrupt/empty Secrets never downgrade to public client; new login can recover', async () => {
+  for (const fault of ['missing', 'describe', 'resolve', 'empty']) {
+    const host = await configuredHost(); const start = await host.begin();
+    const original = host.state.secrets;
+    if (fault === 'missing') host.state.secrets = undefined;
+    else if (fault === 'empty') host.state.token = '  ';
+    else host.state.fault = fault;
+    await assert.rejects(host.complete(start), /SECRETS_PROVIDER_REQUIRED|synthetic-.*-failure|OIDC_CLIENT_SECRET_EMPTY/);
+    assert.equal(host.authority.calls.filter(call => call.url === issuer + '/token').length, 0);
+    await assert.rejects(host.complete(start), /OIDC_STATE_INVALID/);
+    host.state.secrets = original; host.state.fault = ''; host.state.token = 'synthetic-recovered';
+    assert.equal((await host.complete(await host.begin())).principal.actorType, 'HUMAN');
+  }
+});
+
+for (const stage of ['describe', 'resolve']) test('Host OIDC rejects context changes while waiting for ' + stage, async () => {
+  for (const change of ['epoch-roundtrip', 'disabled', 'secrets-replaced', 'runtime-replaced']) {
+    let enter, release;
+    const entered = new Promise(resolve => {enter = resolve;});
+    const barrier = new Promise(resolve => {release = resolve;});
+    const host = await configuredHost({pause: async step => {if (step === stage) {enter(); await barrier;}}});
+    const start = await host.begin(), pending = host.complete(start);
+    await entered;
+    if (change === 'epoch-roundtrip') {host.state.active = false; host.state.epoch++; host.state.active = true; host.state.epoch++;}
+    if (change === 'disabled') host.state.active = false;
+    if (change === 'secrets-replaced') host.state.secrets = {...host.state.secrets};
+    if (change === 'runtime-replaced') host.registry.replace(GENERIC_OIDC_PROVIDER_ID, {providerId: GENERIC_OIDC_PROVIDER_ID});
+    const rejected = assert.rejects(pending, /OIDC_CONTEXT_CHANGED/); release(); await rejected;
+    assert.equal(host.authority.calls.filter(call => call.url === issuer + '/token').length, 0);
+    if (stage === 'describe') assert.equal(host.state.resolves, 0, 'invalidated metadata cannot trigger decryption');
+  }
+});
+
+test('Host OIDC binds begin/complete to one context and rejects late token/JWKS responses', async () => {
+  const host = await configuredHost(); const start = await host.begin(); host.state.epoch++;
+  await assert.rejects(host.complete(start), /OIDC_CONTEXT_CHANGED/);
+  assert.equal(host.state.resolves, 0);
+  for (const endpoint of ['/token', '/jwks']) {
+    let enter, release;
+    const entered = new Promise(resolve => {enter = resolve;});
+    const barrier = new Promise(resolve => {release = resolve;});
+    const next = await configuredHost({fetchImpl: async (url, init, authority) => {
+      if (String(url) === issuer + endpoint) {enter(); await barrier;}
+      return authority.fetchImpl(url, init);
+    }});
+    const pending = next.complete(await next.begin()); await entered;
+    next.state.epoch++; const rejected = assert.rejects(pending, /OIDC_CONTEXT_CHANGED/); release(); await rejected;
+    if (endpoint === '/token') assert.equal(next.authority.calls.some(call => call.url === issuer + '/jwks'), false);
+  }
+});
+
+test('OIDC token deadline includes Secret wait and prevents late token request after abort', async t => {
+  const active = new Set();
+  t.mock.method(globalThis, 'setTimeout', (callback, delay) => {assert.equal(delay, 8000); const handle = {callback}; active.add(handle); return handle;});
+  t.mock.method(globalThis, 'clearTimeout', handle => assert.equal(active.delete(handle), true));
+  let enter, release;
+  const entered = new Promise(resolve => {enter = resolve;}); const barrier = new Promise(resolve => {release = resolve;});
+  const host = await configuredHost({pause: async stage => {if (stage === 'resolve') {enter(); await barrier;}}});
+  const pending = host.complete(await host.begin()); await entered;
+  assert.equal(active.size, 1); [...active][0].callback();
+  const rejected = assert.rejects(pending, /Abort/); release(); await rejected;
+  assert.equal(active.size, 0); assert.equal(host.authority.calls.some(call => call.url === issuer + '/token'), false);
 });
 
