@@ -44,8 +44,8 @@ async function boot(root, managed = false) {
     });
     return {call, adminToken: profile.bootstrapAdminToken,
       settings: (settings, cookie) => action('app-platform.update-settings', {namespace: packageId, settings}, cookie),
-      bind: (id = providerId, cookie) => action('app-platform.update-provider-binding', {namespace: 'provider-binding:identity.authenticate',
-        settings: {providerId: id, scope: 'SYSTEM', adminToken: profile.bootstrapAdminToken}}, cookie),
+      bind: (id = providerId, cookie, priority = 0) => action('app-platform.update-provider-binding', {namespace: 'provider-binding:identity.authenticate',
+        settings: {providerId: id, scope: 'SYSTEM', priority, adminToken: profile.bootstrapAdminToken}}, cookie),
       lifecycle: async operation => {const result = await call('/v1/' + operation, {packageId, trustApproved: true, approvedPermissions: []});
         assert.equal(result.status, 200, JSON.stringify(result.body));},
       snapshot: () => ipc({kind: 'oidc-credential-snapshot'}),
@@ -91,7 +91,7 @@ test('real Host OIDC keeps unused Secrets encrypted; authenticates on use and re
     const staleResult = await host.call(stale); assert.equal(staleResult.status, 503); assert.equal(staleResult.cookie, null);
     const count = (await host.snapshot()).decryptions;
     const old = await host.begin(); await host.hold(true); const entered = host.held(); const pending = host.call(old); await entered;
-    assert.equal((await host.bind('synthetic-unavailable', cookie)).status, 200);
+    assert.equal((await host.bind(providerId, cookie, 1)).status, 200);
     assert.equal((await host.bind(providerId, cookie)).status, 200);
     await host.hold(false); const late = await pending;
     assert.equal(late.status, 503); assert.equal(late.cookie, null);
