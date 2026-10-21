@@ -3624,4 +3624,47 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
     padding-block:calc(var(--eidos-space-md) + 11px);
   }
 }
+
+/* Opt-in compact phone mapping: put the still-visible source example beside
+   its native source disclosure. Open evidence spans full width, never hides
+   the original record and retains the 44px touch affordance. */
+@media(max-width:700px){
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence]:has(>details){
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;gap:var(--eidos-space-sm);
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence]:has(>details)::before{
+    display:none;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-table-sample]{
+    min-width:0;overflow-wrap:anywhere;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-group-detail]{
+    margin-top:0;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-group-detail][open]{
+    grid-column:1 / -1;width:100%;
+  }
+}
+/* Mobile task footer: the three real Host operations follow the prototype's
+   scan-friendly single column, without pretending changes auto-save. */
+@media(max-width:520px){
+  form[data-eidos-id]:has(
+    [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]
+    + [data-eidos-form-fields] [data-eidos-review-table-presentation="compact"]
+  ) footer[data-eidos-form-actions]{
+    display:flex;flex-direction:column;align-items:stretch;
+  }
+  form[data-eidos-id]:has(
+    [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]
+    + [data-eidos-form-fields] [data-eidos-review-table-presentation="compact"]
+  ) footer[data-eidos-form-actions]>button{
+    width:100%;min-height:44px;flex:0 0 auto;
+  }
+}
 `;

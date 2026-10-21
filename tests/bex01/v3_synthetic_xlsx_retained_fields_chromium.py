@@ -974,6 +974,37 @@ with sync_playwright() as pw:
     assert phone_ai.evaluate("(el)=>el.getBoundingClientRect().height")>=44
     expect(phone_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
+    # Compact mobile source content remains readable while its disclosure
+    # sits on the same visual row; opening restores full-width source detail.
+    phone_evidence=phone_form.locator(
+        '[data-eidos-form-review-table-row]:not([hidden]) '
+        '[data-eidos-review-table-evidence]:has(>details)').first
+    expect(phone_evidence.locator('[data-eidos-review-table-sample]')).to_be_visible()
+    phone_details=phone_evidence.locator('[data-eidos-review-group-detail]')
+    expect(phone_details.locator('summary')).to_be_visible()
+    evidence_rhythm=phone_evidence.evaluate("""el=>{
+      const sample=el.querySelector('[data-eidos-review-table-sample]').getBoundingClientRect();
+      const summary=el.querySelector('details>summary').getBoundingClientRect();
+      const cell=el.getBoundingClientRect();
+      return {cellHeight:Math.round(cell.height),sampleY:Math.round(sample.y),
+        summaryY:Math.round(summary.y),summaryHeight:Math.round(summary.height),
+        xGap:Math.round(summary.left-sample.right)};
+    }""")
+    assert abs(evidence_rhythm["sampleY"]-evidence_rhythm["summaryY"])<=20,(
+        "V3_PHONE_EVIDENCE_SAME_VISUAL_ROW",evidence_rhythm)
+    assert evidence_rhythm["summaryHeight"]>=44 and evidence_rhythm["xGap"]>=0,(
+        "V3_PHONE_SOURCE_DISCLOSURE_TOUCH_AND_NO_OVERLAP",evidence_rhythm)
+    phone_details.locator('summary').click()
+    expect(phone_details).to_have_attribute("open","")
+    assert phone_evidence.evaluate("""el=>{
+      const details=el.querySelector('details');
+      return details.getBoundingClientRect().width>=el.getBoundingClientRect().width-30;
+    }"""),"V3_PHONE_OPEN_SOURCE_FULL_WIDTH"
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "V3_PHONE_OPEN_SOURCE_OVERFLOW")
+    phone_details.locator('summary').click()
+    print("BEX_V3_PHONE_EVIDENCE_RHYTHM="+json.dumps(evidence_rhythm,ensure_ascii=False),flush=True)
+
     phone_filter=phone_form.locator('[data-eidos-form-review-table-filter]')
     phone_count=phone_form.locator('[data-eidos-form-review-table-count]')
     expect(phone_count).to_have_text("6 / 22")
@@ -989,6 +1020,26 @@ with sync_playwright() as pw:
     visual_phone.evaluate("""async () => {
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     }""")
+    phone_footer=phone_form.locator('footer[data-eidos-form-actions]')
+    footer_rhythm=phone_footer.evaluate("""el=>{
+      const items=[el.querySelector('[data-eidos-form-task-back]'),
+        el.querySelector('[data-eidos-form-task-reset]'),el.querySelector('button[type=submit]')];
+      return items.map(item=>{const r=item.getBoundingClientRect();
+        return {x:Math.round(r.x),y:Math.round(r.y),
+          w:Math.round(r.width),h:Math.round(r.height)};});
+    }""")
+    assert len(footer_rhythm)==3 and all(r["h"]>=44 for r in footer_rhythm),(
+        "V3_PHONE_FOOTER_44PX_OPERATIONS",footer_rhythm)
+    assert footer_rhythm[0]["y"]<footer_rhythm[1]["y"]<footer_rhythm[2]["y"],(
+        "V3_PHONE_FOOTER_STACK_ORDER",footer_rhythm)
+    assert max(x["x"] for x in footer_rhythm)-min(x["x"] for x in footer_rhythm)<=2,(
+        "V3_PHONE_FOOTER_SAME_LEFT_EDGE",footer_rhythm)
+    assert max(x["w"] for x in footer_rhythm)-min(x["w"] for x in footer_rhythm)<=2,(
+        "V3_PHONE_FOOTER_EQUAL_WIDTH",footer_rhythm)
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "V3_PHONE_FOOTER_OVERFLOW")
+    print("BEX_V3_PHONE_FOOTER_RHYTHM="+json.dumps(footer_rhythm,ensure_ascii=False),flush=True)
+    visual_phone.screenshot(path=str(OUT/"v3-compact-evidence-and-stacked-footer-phone.png"),full_page=False)
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-submit-phone.png"),full_page=False)
     phone_reset_choice=phone_form.locator('select[name="map_21"]')
     phone_initial=phone_reset_choice.input_value()

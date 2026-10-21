@@ -141,3 +141,12 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 **反向约束**：实际 Host 测试文件名为 `BEX-V3-VISUAL-REVIEW-SYNTHETIC.xlsx`，比原型 `供应商资料_2026年10月.xlsx` 长，故 source 文件卡自身较高不是可用“加 padding”盲修的共因；必须保留真实完整文件名与源状态，绝不截断来源。仅改 Workbench @media(max-width:520px) 的统计卡 `padding-block`、问题 header 计数显示顺序、问题行 `padding-block`。不更改 1280px 桌面布局、移动审核字段证据/44px 操作、权限、显式保存、原始数据及 Eidos 默认其他 presentation。
 
 新增隔离 Host 390px Chromium 对统计卡高度、问题计数位于说明之后、第一条问题高度、无横向溢出的实测断言；同时保存 `v3-prototype-parity-rhythm-phone.png`。如果实测未改善，要检查真正的 computed style 和 DOM，不重复堆 CSS。Human 100% 验收依旧 OPEN，M01–M03 通过、M04–M06 未签收，总 3/6。完整 CI 需以本轮精确 HEAD 为准。
+
+### Window 07｜2026-10-21 手机字段卡证据与真实操作收口
+
+对照 #909 原型 `10-mobile-overview.png` 和 #1086 精确 HEAD `9d3346b3…` 实际 Host `v3-e4-map-phone-contiguous-00..11.png`、`v3-prototype-parity-submit-phone.png`；本批只修**两个互相邻近的手机视觉重复点**，不改已有来源列事实和业务逻辑：
+
+1. compact 表格手机卡片内的“示例值”生成式标题与已显示样本内容重复占用一行；将样本和原生“查看来源样本”折叠入口并排，完整 sample 仍可见，展开详情跨满所在卡片；`summary` 仍满足 44px 触控、没有横向溢出。默认普通 Eidos 表格不变，桌面行高 58px 不变。
+2. 当前 mobile footer 的两项次要 Host 动作并排而原型是单列清晰顺序；仅对 **workbench + compact review table** 的真实 footer 三项（返回文件、恢复初始选择、显式保存并预检）改成等宽纵列、保留可触控高度、真实导航/reset/保存。不得抄原型“自动保存”，实际 Host 仍要求明确保存和预检查。
+
+以上均为 CSS opt-in 渐进展示，不改变 `apps/data-import/page.ts`、协议、字段提交、授权或数据。在原有 synthetic 172 行真实 Host 390px Chromium 增加**几何与交互判别断言**：样本/summary 同行、展开后满宽、触控、不溢出、三按钮高度/宽度/上下顺序，继续覆盖返回/重置和导入完整路径。新截图 `v3-compact-evidence-and-stacked-footer-phone.png`。如果关键断言失败，先定位是否 CSS 选择器/真实 DOM 问题，禁止连续堆叠修复；Human 100% 视觉签收、M04–M06 OPEN，仍 3/6。
