@@ -1,6 +1,6 @@
 # BEX-01 V3 M06｜Window 12 新窗口简短交接入口（2026-10-21）
 
-> **顺序**：先按仓库 [AI-BOOTSTRAP.md](../../../../AI-BOOTSTRAP.md) 读取项目强制启动集，再看**本入口** → [本窗口详细研究资料与决策索引](BEX-01-V3-M06-WINDOW-12-RESEARCH-DECISION-REFERENCE-INDEX-20261021.md) → 相关源码/最新 Actions 与 PR。不要按聊天摘要推断最新 main、合并或生产状态。**本入口是 2026-10-21 核验快照，不自动滚动更新。**
+> **顺序**：先按仓库 [AI-BOOTSTRAP.md](../../../AI-BOOTSTRAP.md) 读取项目强制启动集，再看**本入口** → [本窗口详细研究资料与决策索引](BEX-01-V3-M06-WINDOW-12-RESEARCH-DECISION-REFERENCE-INDEX-20261021.md) → 相关源码/最新 Actions 与 PR。不要按聊天摘要推断最新 main、合并或生产状态。**本入口是 2026-10-21 核验快照，不自动滚动更新。**
 >
 > **owner 边界**：只在现有 BEX Draft [#1086](https://github.com/jiangxng/EVO-App-Platform/pull/1086) 的原分支追加这两份交接文档；不修改全局 `project.status.json`、生成的 `HANDOFF-LATEST.md`、共享核心/业务代码、PA05/EOG/治理的并行文件，不合并 Draft、不碰客户原数据/Railway。既有文档保留原样。
 
