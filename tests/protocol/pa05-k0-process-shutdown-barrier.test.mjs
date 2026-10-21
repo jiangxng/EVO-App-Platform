@@ -34,10 +34,10 @@ const entrypoint = fileURLToPath(
   new URL("../fixtures/pa05-k0-delayed-process.mjs", import.meta.url)
 );
 
-function fixturePackage(invocationTimeoutMs = 3000, sigstore = false) {
+function fixturePackage(invocationTimeoutMs = 3000, sigstore = false, packageId = "pa05-k0-disposable-process") {
   const pkg = {
     contractVersion: "0.1.0",
-    packageId: "pa05-k0-disposable-process",
+    packageId,
     displayName: "PA05 K0 Disposable Process",
     version: "0.1.0",
     type: "RUNTIME_EXTENSION",
@@ -58,8 +58,8 @@ function fixturePackage(invocationTimeoutMs = 3000, sigstore = false) {
     events: {publish: [], subscribe: []},
     features: [{
       contractVersion: "0.1.0",
-      featureId: "pa05-k0-disposable-process.default",
-      packageId: "pa05-k0-disposable-process",
+      featureId: `${packageId}.default`,
+      packageId,
       version: "0.1.0",
       activationScope: "INSTALLATION",
       defaultActivation: true
@@ -80,8 +80,8 @@ function fixturePackage(invocationTimeoutMs = 3000, sigstore = false) {
   return pkg;
 }
 
-const installed = () => ({
-  packageId: "pa05-k0-disposable-process",
+const installed = (packageId = "pa05-k0-disposable-process") => ({
+  packageId,
   version: "0.1.0",
   installedAt: "2026-10-20T00:00:00.000Z",
   trustApproved: true,
@@ -400,5 +400,43 @@ test("K0 bounded: unexpected child IPC disconnect fails pending invocation and r
     }));
   } finally {
     await host.shutdown();
+  }
+});
+
+
+test("K0 bounded: shutdown reaps a child whose activate() never resolves", {timeout: 12000}, async () => {
+  const pkg = fixturePackage(3000, false, "pa05-k0-activate-hang-process");
+  let startupEntered;
+  const startingObserved = new Promise(resolve => { startupEntered = resolve; });
+  const host = localRuntime({
+    onRuntimeEvent(event) {
+      if (event.packageId === pkg.packageId && event.type === "PROCESS_STARTING") startupEntered();
+    }
+  });
+  let pendingStart;
+  try {
+    pendingStart = host.start(pkg, installed(pkg.packageId));
+    // PROCESS_STARTING is synchronous with the startOne() fork sequence;
+    // by the next task turn the disposable child has been registered.
+    await startingObserved;
+    const shutdownSettled = await Promise.race([
+      host.shutdown().then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 3500))
+    ]);
+    assert.equal(shutdownSettled, true, "shutdown must not wait for hung activate()");
+    await assert.rejects(pendingStart, /PLUGIN_PROCESS_EXITED|PLUGIN_PROCESS_ERROR|PLUGIN_PROCESS_FATAL/);
+    assert.equal(host.status(pkg.packageId), undefined);
+    console.log("PA05_K0_BOUNDED_ACTIVATION_SHUTDOWN=" + JSON.stringify({
+      scope: "isolated-local-child",
+      boundedShutdown: shutdownSettled,
+      startupSettledByChildExit: true,
+      noActiveRuntime: true,
+      globalStopCertified: false
+    }));
+  } finally {
+    // Child fixture also self-exits at 5 seconds if Host supervision fails.
+    // Do not kill the parent or intentionally leave an orphan process.
+    await host.shutdown();
+    if (pendingStart) await Promise.allSettled([pendingStart]);
   }
 });
