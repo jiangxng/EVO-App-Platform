@@ -812,7 +812,7 @@ export function createDataImportMappingPageV010(input: {
     },
     filter: {
       label: zh(input.locale) ? "显示" : "Show",
-      selectedId: currentStatusKeys.some(key => attentionKeys.includes(key))
+      selectedId: currentStatusKeys.some(key => attentionKeys.some(attention => attention === key))
         ? "needs" : "all",
       noMatchesMessage: zh(input.locale)
         ? "当前筛选没有需要处理的列。可选择“全部字段”查看原始列。"
