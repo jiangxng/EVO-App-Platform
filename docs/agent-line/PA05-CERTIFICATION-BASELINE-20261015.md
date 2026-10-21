@@ -1060,3 +1060,25 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 **测试证明比上一版严格，认证等级不变：** 工程 Draft [#1082 HEAD `50a7a068259c966dafa86a722aab5d012fb96fd8`](https://github.com/jiangxng/EVO-App-Platform/commit/50a7a068259c966dafa86a722aab5d012fb96fd8) 将测试专用签名回执的 **Ed25519 签名验真提前到受控 JSON claims 解释之前**，新增有效时间范围内“先签后篡改”必因 BAD_SIGNATURE 被拒绝的断言。直接读取 [Platform CI #39536775595 / job #119015279614](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536775595/job/119015279614) 原始日志，**1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL**，含同一组 6 项 synthetic 回执测试、旧 11 项本地 PROCESS 与 2 项只读预检。详见 [接续资料 §12](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。本提交全体 CI 的结束状态必须以该 HEAD 的 check-runs 单独核准，不能引用前一 HEAD 的 5/5。
 
 **唯一可增量认定：** `ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS` 下的密码学与输入拒绝次序进一步正确；不是生产 Supervisor 信任根、全域进程清理或真实 OS 停机收据。生产 K0、完整 E01J4、PA05-05 E01–E05、W06 全部 **`NOT_SIGNED`**；material WRITE **`OFF`**；不运行 parent SIGKILL、生产 Validator/SQL/Secrets，不更改 Railway，不合并 Draft。
+
+
+## 93. PA05-05 / K0 — 2026-10-21 合成多 Worker 停机回执对账十项有界证据
+
+**不是真实多 Worker 环境的生产停机试验。** 原 [Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 新增两个 `tests/` 文件、精确 HEAD `d9be185e3e244bb45fec5f3fab2554c52b04114f`；[Platform CI #39537627482 / job #119017875426](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39537627482/job/119017875426) 的**原始 GitHub Actions job log 已直接读取**，`1121 tests / 1120 PASS / 1 SKIPPED / 0 FAIL`，新增 **10 个离线合成对账用例通过**，保留既有 **11 项本地 Node PROCESS、2 项只读 Supervisor preflight、6 项 synthetic 签名 envelope**。本阶段新增单独标签仅为 `ISOLATED_SYNTHETIC_MULTIWORKER_INVENTORY_RECONCILIATION_TEN_CASE_BOUNDED_PASS`，不能加到真实进程退出数。
+
+对账规则精确检查 `operationId / scopeId / inventoryRevision / fencingEpoch / instanceId / startNonce / supervisorId / keyId`、模拟冻结后新旧实例、逐 Worker 签名退出回执数目和唯一性、模拟三类 caller 的全部拒绝、模拟 DB session 无保护会话、错误信任 key / 时间及本地 replay 缓存原子性。所有通过样本**都是测试声称的完整性和状态**，均未经组织级外部 Owner 独立证明。成功结果依然显式 `independentInventoryCompletenessVerified=false`、`externalStopAuthorityVerified=false`、`realCallerAdmissionVerified=false`、`realDbSessionAbsenceVerified=false`、`globalStopCertified=false`。详细证据、准确来源和未解问题在 [K0 原表 §18](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 与 [2026-10-21 接续研究 §13](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
+
+| 里程碑 | 此次可确认进度 | 安全判定 |
+| --- | --- | --- |
+| J4J 协作 Host 本地排他 | PG18 28/28 PASS 已合并 | `ENGINEERING_BOUNDED_PASS` |
+| #1074 Host shutdown | 45/45 checks 旧 HEAD 通过，当前 Draft 与 main 有冲突 | 未合并部署 |
+| #1081 PROCESS 负面竞态 | 5/5 checks，反例确实复现 | `NEGATIVE_REPRODUCED` |
+| #1082 本地 PROCESS 生命周期 | 原 11 项真实 Node child 有界 PASS | `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS` |
+| #1082 只读 Supervisor 探测 | 2 项真实 CI，但仅 Runner cgroup 提示 | `READ_ONLY_PRECHECK_FAIL_CLOSED` |
+| #1082 合成签名回执 | 6 项测试 Ed25519 scope/epoch/replay | `SYNTHETIC_ENVELOPE_BOUNDED_PASS` |
+| #1082 合成 Worker 对账 | **新增 10 项**仅离线枚举/拒绝测试 | `SYNTHETIC_MULTIWORKER_RECONCILIATION_BOUNDED_PASS` |
+| 可信 K0 全域 stop、所有外部 caller | 无真实独立 Supervisor/组织完整库存、真实 SQL/身份回执 | **`NOT_SIGNED`** |
+| 完整 E01J4、PA05-05 E01–E05、W06 | 生产认证/DBA/IdP/Audit 等仍缺 | **全部 `NOT_SIGNED`** |
+| Production material WRITE | 无变化 | **`OFF`** |
+
+当前不推进生产 K1/K2，不执行 SIGKILL 父 Host/生产 Validator/SQL/Secrets/Stop、无远端分支删除、四 Draft 不合并。Issues #988/#979/#913 全部 OPEN；`project.status.json`、BEX/CP03/Eidos/2D 均未触碰。
