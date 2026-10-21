@@ -706,7 +706,7 @@ with sync_playwright() as pw:
     # Host response and clicking a button on the outgoing precheck page.
     old_review=review.element_handle()
     rerun.click()
-    page.wait_for_function("(el)=>!document.contains(el)",old_review,timeout=45000)
+    page.wait_for_function("(el)=>!document.contains(el)",arg=old_review,timeout=45000)
     review=page.locator('[data-eidos-id="evo-data-import.review"]')
     expect(review).to_be_visible(timeout=45000)
     for number in [165,169,172]:
