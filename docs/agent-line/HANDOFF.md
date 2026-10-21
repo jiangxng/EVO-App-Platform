@@ -1,5 +1,8 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-21 PA05/K0 本窗口新进展（仍未认证签收）：** [实际 main/Railway/十项隔离 PROCESS/远端分支审计记录](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) · [K0 停机证据表 §13](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) · [认证总账 §87](PA05-CERTIFICATION-BASELINE-20261015.md)。本地启动期第十项真实 Node PROCESS 已在 #1082 Draft 精确 SHA 上通过，K0/完整 E01J4/PA05-05 E01–E05/W06 仍 NOT_SIGNED、production material WRITE OFF；九条合并历史分支仅核对 SHA、尚无法远端删除，四条 Draft 不合并、不部署。
+
+
 > **2026-10-21 PA05 / K0 最终换窗口交接（非认证签收）：** [短入口](PA05-E01J4K-K0-WINDOW-FINAL-HANDOFF-ENTRY-20261021.md) · [本窗口完整研究来源和决策索引](PA05-E01J4K-K0-WINDOW-FINAL-RESEARCH-REFERENCE-INDEX-20261021.md)。#1071 文档与 #1074/#1081/#1082 工程均 Draft；#1082 单机 PROCESS 9 项真实 CI PASS 仅 `ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`。K0/完整 E01J4/PA05-05 E01–E05/W06 仍 NOT_SIGNED，production material WRITE OFF。恢复时须重新查 main/Railway/准确 SHA 与 CI，不运行生产 Validator、不合并部署、不碰全局其他窗口文件。
 
 
