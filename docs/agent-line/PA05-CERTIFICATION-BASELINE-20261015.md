@@ -1018,3 +1018,22 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 **状态升级（仅狭窄本地工程）：** `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`。§§87–88 前十项原有证据保留，当前十一项完整范围、源级资料、cgroup/pidfd/subreaper 的新直接原文阅读和独立 supervisor 前置门禁见 [2026-10-21 接续索引 §9](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) / [工作表 §15](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
 
 **原始主目标仍 OPEN：** 父 Host SIGKILL 后独立 supervisor 子孙枚举/强制回收/可信签名，全部 Worker/外部 Caller/freeze 及生产 Railway effective draining/PID1 SIGTERM，DBA PostgreSQL session/role 撤销和实际 Human IdP/MFA/Secrets/Audit Owner 均 `UNVERIFIED`。不得在没有独立清理授权时运行父进程 SIGKILL。#1074 顶层 Host shutdown 仍独立 Draft 当前合并冲突；#1081 负面实验仍 Draft。**K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 均 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 `OPEN`。** 绝不触发生产 Validator、Secrets/SQL、停机/重启/扩缩容、Railway draining 变更、合并 Draft 或覆盖其他窗口工作。
+
+
+## 90. PA05-05 / K0 — 2026-10-21 独立外部 supervisor 预检仅做只读探测与拒绝
+
+**真实 CI、来源等级与限定：** Draft [#1082 HEAD `eb129cc2b156294d34c0a04fb73a6ebbedd4b34f`](https://github.com/jiangxng/EVO-App-Platform/commit/eb129cc2b156294d34c0a04fb73a6ebbedd4b34f) 精确 **5/5 CI SUCCESS**；[Platform run #39535199087/job #119010190494](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39535199087/job/119010190494) **ORIGINAL_ACTIONS_RAW_JOB_LOG_DIRECT_READ_20261021**，测试 **1105 total / 1104 PASS / 1 SKIPPED / 0 FAIL**。原有 **11 项**本地 Node PROCESS 生命周期仍 PASS；新增独立的 **2 项 Supervisor preflight** 只读检测与防伪输入否决，不要混为 13 个可停机用例。实际 GitHub Runner 可读 cgroup v2，当前 cgroup `cgroup.kill` 存在且 `populated=1`，但**专属隔离 cgroup 归属、独立监督者生存期、强制回收能力、超时 TTL 和可信退出签名全部未证明**；即使未经信任的字段全填 true 仍拒绝 `PA05_K0_PARENT_SIGKILL_DENIED`。详情见 [K0 工作表 §16](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 与 [原始来源/方案 §10](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
+
+| 阶段 | 已验证层级 | 当前里程碑 |
+| --- | --- | --- |
+| J4J PG18 Host 协作锁 | 已合并工程真实 28/28 | `ENGINEERING_BOUNDED_PASS` |
+| #1074 顶层 Host shutdown | Draft 45/45 精确 CI，但与新 main 有合并冲突 | `ENGINEERING_BOUNDED_PASS`/ **PR merge dirty** |
+| #1081 PROCESS 负面反例 | Draft 5/5，两个确定性危险状态复现 | **`NEGATIVE_REPRODUCED`** |
+| #1082 PROCESS 局部生命周期 | Draft 11 项真本地 Node child；此 HEAD 5/5 CI | `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS` |
+| #1082 独立 supervisor preflight | Draft 两项无破坏型检测、拒绝全部未经认证真假状态 | `READ_ONLY_HINTS_OBSERVED_AND_FAIL_CLOSED`，**不是 Supervisor READY** |
+| K0 全域 Worker/Runner + stop authority | 外部签名与真实生产 OS/数据库回执未得 | **`NOT_SIGNED`** |
+| 完整 E01J4 | 实际生产 IdP/DBA/credential/跨 Worker 证据未得 | **`NOT_SIGNED`** |
+| PA05-05 E01–E05 / W06 | 原完整认证缺口未关闭 | **`NOT_SIGNED`** |
+| 生产 material WRITE | 继续关闭 | **`OFF`** |
+
+**不能跨越：** cgroup v2 文件存在不等于已验证专属 cgroup / 可写权限 / parent SIGKILL 后子孙回收。OS 信号试验前必须由 Infra 提供独立于目标父 Host 的 supervisor 与专属隔离清理、TTL 兜底、exit receipt，且通过预运行健康检查；当前全部 UNVERIFIED。生产 Railway 有效 draining/PID1、真实 User IdP/MFA、SQL grants/session、DBA role/Secrets/audit 亦未知。#988/#979/#913 OPEN，K0 / E01J4 / PA05-05 E01–E05 / W06 均 NOT_SIGNED；没有生产 Validator、Secrets/SQL、停机/重启/配置、Draft 合并、branch 删除或其他窗口改动。
