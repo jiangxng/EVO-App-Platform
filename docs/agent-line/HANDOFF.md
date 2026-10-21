@@ -1,5 +1,7 @@
 # 独立 Agent 线交接入口
 
+> **2026-10-21 PA05/K0 第十一项独立 PROCESS 本地 CI（非生产签收）：** [K0 接续原始来源 §9](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) · [工作表 §15](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) · [认证总账 §89](PA05-CERTIFICATION-BASELINE-20261015.md)。#1082 原 Draft HEAD `156609a7` **5/5 checks**、Platform 1103/1102 PASS/1 SKIPPED/0 FAIL；第十一项真实非合作 child `deactivate` stop 约 753ms 并完成本地回收，当前等级仅 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`。父 Host SIGKILL 外部 supervisor、生产 Worker inventory/drain/PID1、Human IdP/DBA 等仍 UNVERIFIED；四 Draft 不合并不部署，K0/E01J4/PA05-05 E01–E05/W06 NOT_SIGNED，material WRITE OFF。
+
 > **2026-10-21 PA05/K0 本窗口新进展（仍未认证签收）：** [实际 main/Railway/十项隔离 PROCESS/远端分支审计记录](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) · [K0 停机证据表 §13](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) · [认证总账 §87](PA05-CERTIFICATION-BASELINE-20261015.md)。本地启动期第十项真实 Node PROCESS 已在 #1082 Draft 精确 SHA 上通过，K0/完整 E01J4/PA05-05 E01–E05/W06 仍 NOT_SIGNED、production material WRITE OFF；九条合并历史分支仅核对 SHA、尚无法远端删除，四条 Draft 不合并、不部署。
 
 
