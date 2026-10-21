@@ -94,7 +94,7 @@ def verify_two_same_label_bank_choices(page, form, device):
     },ensure_ascii=False),flush=True)
 
 
-def capture_map_scroll_evidence(page, form, device):
+def capture_map_scroll_evidence(page, form, device, stem="v3-e4-map", visible_only=False):
     """Capture scrollable Eidos shell at each review landmark, not only document height.
 
     page.screenshot(full_page=True) alone stops at the *nested app scroller* and
@@ -103,10 +103,13 @@ def capture_map_scroll_evidence(page, form, device):
     """
     viewport=page.viewport_size
     assert viewport and viewport["width"] in (1280,390),viewport
+    rows=form.locator('[data-eidos-form-review-table-row]:not([hidden])'
+        if visible_only else '[data-eidos-form-review-table-row]')
+    assert rows.count()>0,(device,stem,"NO_VISIBLE_MAPPING_ROWS")
     landmarks=[
       ("overview",form.locator('[data-eidos-form-task-overview]')),
-      ("first-row",form.locator('[data-eidos-form-review-table-row]').first),
-      ("last-row",form.locator('[data-eidos-form-review-table-row]').last),
+      ("first-row",rows.first),
+      ("last-row",rows.last),
       ("submit",form.locator('button[type="submit"]').first)
     ]
     readings=[]
@@ -117,7 +120,7 @@ def capture_map_scroll_evidence(page, form, device):
         assert rect and rect["y"] < viewport["height"] and (
           rect["y"]+rect["height"]>0), (device,name,rect)
         page.screenshot(
-          path=str(OUT/("v3-e4-map-%s-%s.png"%(device,name))),
+          path=str(OUT/("%s-%s-%s.png"%(stem,device,name))),
           full_page=False)
         scroll=element.evaluate("""(el) => {
           const items=[]; let parent=el;
@@ -179,7 +182,7 @@ def capture_map_scroll_evidence(page, form, device):
             () => requestAnimationFrame(resolve)));
         }""")
         page.screenshot(path=str(OUT/(
-          "v3-e4-map-%s-contiguous-%02d.png"%(device,index))),
+          "%s-%s-contiguous-%02d.png"%(stem,device,index))),
           full_page=False)
         sweep.append({"frame":index,"scrollTop":actual})
     assert all(sweep[i]["scrollTop"]<=sweep[i+1]["scrollTop"]
@@ -191,12 +194,15 @@ def capture_map_scroll_evidence(page, form, device):
       container["viewport"] for i in range(len(sweep)-1))
     sweep_data={"scrollContainer":container,"lastScrollTop":maximum,
       "overlapRatio":0.2,"frames":sweep}
-    (OUT/("v3-e4-map-%s-scroll-manifest.json"%device)).write_text(
+    (OUT/("%s-%s-scroll-manifest.json"%(stem,device))).write_text(
       json.dumps({"evidence":"synthetic isolated Host, not production",
         "device":device,"viewport":viewport,"screens":readings,
+        "fixture":"visual-review-16-4-3" if stem=="v3-visual-parity"
+           else "retained-xlsx-4-17-0",
         "continuousSweep":sweep_data},
         ensure_ascii=False,indent=2),encoding="utf8")
-    print("BEX01_E4_FULL_REVIEW_SCROLL_EVIDENCE_PASS:"+device,flush=True)
+    print("BEX01_FULL_REVIEW_SCROLL_EVIDENCE_PASS:"+stem+":"+device
+        +":"+str(len(sweep))+" frames",flush=True)
 
 
 with sync_playwright() as pw:
@@ -910,6 +916,10 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(visual_form.locator('[data-eidos-form-task-back]')).to_have_text("返回文件")
     expect(visual_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
+    # Same 16/4/3 review fixture as #909, not the retained 4/17/0 fixture.
+    assert visual_form.locator('[data-eidos-form-review-table-row]:not([hidden])').count()==6
+    capture_map_scroll_evidence(visual_page,visual_form,"desktop",
+        stem="v3-visual-parity",visible_only=True)
     verify_two_same_label_bank_choices(visual_page,visual_form,"desktop")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
     visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
@@ -1084,6 +1094,9 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(phone_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(phone_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
+    assert phone_form.locator('[data-eidos-form-review-table-row]:not([hidden])').count()==6
+    capture_map_scroll_evidence(visual_phone,phone_form,"phone",
+        stem="v3-visual-parity",visible_only=True)
     verify_two_same_label_bank_choices(visual_phone,phone_form,"phone")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
     phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
