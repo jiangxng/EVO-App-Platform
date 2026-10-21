@@ -39,6 +39,10 @@
       "path": "manager/provider-resolution.ts",
       "gitBlob": "ec5355cf9967a84facbf5aed311007088a173739",
       "read": "reused full, rechecked selection/health/missing branches"
+    },
+    {
+      "path": "tests/agent-line/pa05-host-write-lifecycle.test.mjs",
+      "read": "partial: PA05-04D3 bootstrap inventory and adjacent fail-closed tests"
     }
   ],
   "decision": {
@@ -70,7 +74,8 @@
     "formalBuild": false,
     "realHost": false,
     "browser": false,
-    "database": false
+    "database": false,
+    "targetedPa05BootstrapInventory": true
   },
   "ci": {
     "statusAtCommit": "pending final-head CI; permanent results in PR closeout",
@@ -82,7 +87,9 @@
     "staticBaselineRelaxed": false,
     "coldDenyListRelaxed": false,
     "localModuleMeasurement": false,
-    "priorCountsAreHistorical": true
+    "priorCountsAreHistorical": true,
+    "pa05Inventory": "17 direct calls: 16 INSTALL + 1 ENABLE; journal helper route explicitly asserted; fail-closed adapter unchanged",
+    "firstHeadFailure": "PA05 static inventory expected old 19 direct calls; corrected scoped inventory with additional protected-route assertions; final head must pass"
   },
   "limits": [
     "explicit configuration still overrides offline edits to its declared observation key as original contract",

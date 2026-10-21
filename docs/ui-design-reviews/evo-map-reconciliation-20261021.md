@@ -24,3 +24,4 @@ active但错误Provider选择仍拒绝，无store兜底。写失败保留目标�
 ## 证据与剩余问题
 本地原7项通过，新/改Host、协议及server擦除语法通过；Host共9项与5项manager生命周期文件由最终head CI执行。覆盖启停/卸载/重装/重启、无变零写、配置权威隔离、写失败重试和错误选择拒绝。Help影响：原enable/install后重启，显式配置仍更新；无新UI字段。未部署/Human验收；其余配置资格、R1/R2/R3资源/R4及A03/A05仍开放。
 
+首轮PA05调用清单按旧19处失败；同步为17处并补充map经原journal helper和fail-closed adapter路径断言，不放宽写入保护。完整PA05及新Host用例以最终head CI为准。

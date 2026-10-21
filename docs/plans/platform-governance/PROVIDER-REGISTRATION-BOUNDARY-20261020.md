@@ -567,6 +567,8 @@ enabled=true仍保留原JSON/字段校验、启动失败、INSTALL/ENABLE兼容�
 
 本地Node24.19固定SHA部分源码+临时类型擦除，既有startup journal4+binding所有权3共7/7通过，修改的Host/协议测试及擦除server语法通过；受部分源码依赖限制未本地运行完整manager生命周期文件/真实Host/npm ci/正式build/browser/数据库。正式Node22/build、新/旧Host与生命周期回归、本轮四组合须以最终head CI为准，永久结果记PR收口；基线/冷禁入不放宽。
 
+首轮CI的PA05静态清单仍预期19处直接bootstrap调用；本批map改走原journal helper后实际为17处（16 INSTALL、1 ENABLE）。仅同步该清单，并新增map→journal helper→原fail-closed adapter路径断言；原写入保护、异步准入与启动前attestation不改。局部清单断言本地通过，完整PA05数据库/生命周期用例仍由最终head CI验证。
+
 读取：复用前批全文binding contract/runtime/store/package、startup-defaults、STARTUP-RESTORE及观测协议/治理交接§14并核对blob；本轮补读EVO Ledger application-id合同全文，核实两个不同providerId。Host局部：安装helper、map解析/初始化/resolver/bind、全部直接bind引用；service局部核对factory/install/uninstall，原resolver显式选择/健康/缺失分支。项目规则/启动交付/文档、装载架构§11、Eidos与Help复用已读版本；未声称通读全Host/Agent或排除全部间接第三方消费者。执行连接一次中断后确认文件保留且远程分支未提交再继续，无全局状态或其他窗口段覆盖，无新增外网研究。
 
 [结构化证据](evidence/evo-map-reconciliation-20261021.json)；[兼容评审](../../ui-design-reviews/evo-map-reconciliation-20261021.md)。操作说明：显式true/map不再复活停用/卸载；需原enable/install并重启，原配置变更仍应用；保持startup-defaults.json和state一起备份。无新字段/界面，也无生产部署或Human验收。
