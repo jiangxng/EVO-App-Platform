@@ -408,16 +408,19 @@ test("K0 bounded: shutdown reaps a child observed inside hung activate()", {time
   const pkg = fixturePackage(3000, false, "pa05-k0-activate-hang-process");
   let enteredActivation;
   let activationCalls = 0;
+  let childPid;
   const activationObserved = new Promise(resolve => { enteredActivation = resolve; });
   const underlyingStorage = createMemoryPluginStorageService();
   const storageService = {
     ...underlyingStorage,
-    get(packageId, key) {
-      if (packageId === pkg.packageId && key === "pa05-k0-activation-entered") {
+    set(packageId, key, value) {
+      if (packageId === pkg.packageId && key === "pa05-k0-activation-pid") {
+        assert.ok(Number.isSafeInteger(value) && value > 0);
         activationCalls += 1;
+        childPid = value;
         enteredActivation();
       }
-      return underlyingStorage.get(packageId, key);
+      return underlyingStorage.set(packageId, key, value);
     }
   };
   const host = localRuntime({storageService});
@@ -433,6 +436,7 @@ test("K0 bounded: shutdown reaps a child observed inside hung activate()", {time
     assert.equal(actuallyEntered, true, "child must actually enter activate() via IPC");
     assert.equal(activationCalls, 1);
     assert.equal(host.status(pkg.packageId)?.status, "INACTIVE");
+    assert.equal(pidAlive(childPid), true, "child must be alive during activate()");
     const shutdownSettled = await Promise.race([
       host.shutdown().then(() => true),
       new Promise(resolve => setTimeout(() => resolve(false), 3500))
@@ -440,10 +444,12 @@ test("K0 bounded: shutdown reaps a child observed inside hung activate()", {time
     assert.equal(shutdownSettled, true, "shutdown must not wait for hung activate()");
     await assert.rejects(pendingStart, /PLUGIN_PROCESS_EXITED|PLUGIN_PROCESS_ERROR|PLUGIN_PROCESS_FATAL/);
     assert.equal(host.status(pkg.packageId), undefined);
+    assert.equal(pidAlive(childPid), false, "child must be gone after shutdown");
     console.log("PA05_K0_BOUNDED_ACTIVATION_SHUTDOWN=" + JSON.stringify({
       scope: "isolated-local-child",
       activationEnteredByRealHostIPC: actuallyEntered,
       activationCalls,
+      observedChildPidClosed: true,
       boundedShutdown: shutdownSettled,
       startupSettledByChildExit: true,
       noActiveRuntime: true,
