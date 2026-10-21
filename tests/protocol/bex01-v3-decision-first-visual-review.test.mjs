@@ -87,6 +87,24 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     ...linkTask.issues[0],relatedRoutes:[
       linkTask.issues[0].relatedRoutes[0],linkTask.issues[0].relatedRoutes[0]]
   }]}}).ok,false,"repeated row links must fail closed");
+  // V3 #909: visible status, totals and filter are a live projection of the
+  // unsaved choice. The Host still owns real mapping persistence and approval.
+  const localGroup=mapping.reviewGroups.find(group=>group.title==="供应商编码");
+  assert.equal(localGroup.reviewStatus.key,"matched");
+  assert.equal(localGroup.statusByChoice.code.key,"matched");
+  assert.equal(localGroup.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(localGroup.statusByChoice.__PENDING__.key,"pending");
+  assert.equal(localGroup.statusByChoice.__CREATE__.key,"proposed");
+  assert.equal(validateUidl(mapping).ok,true,"all reachable review choices must validate");
+  const reachable=new Set(mapping.reviewGroups.flatMap(group=>[
+    group.reviewStatus.key,...Object.values(group.statusByChoice).map(s=>s.key)]));
+  const allOption=mapping.reviewTable.filter.options.find(option=>option.id==="all");
+  const needsOption=mapping.reviewTable.filter.options.find(option=>option.id==="needs");
+  assert.ok([...reachable].every(key=>allOption.statusKeys.includes(key)));
+  for(const key of ["attention","pending","proposed","suggested"])
+    assert.ok(needsOption.statusKeys.includes(key),key+" must stay reviewable");
+  assert.match(renderToHtml(mapping),/data-eidos-review-status-by-choice=/);
+  assert.doesNotMatch(renderToHtml(mapping),/localStorage|data-eidos-auto-save/);
   assert.equal(mapping.reviewTable.evidenceLayout,"inline-collapsed");
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     evidenceLayout:"invalid"}}).ok,false);

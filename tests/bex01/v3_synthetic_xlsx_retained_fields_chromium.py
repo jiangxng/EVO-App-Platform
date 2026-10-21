@@ -911,6 +911,27 @@ with sync_playwright() as pw:
     expect(expected_count).to_have_text("22 / 22")
     filter_choice.select_option("needs")
     expect(expected_count).to_have_text("6 / 22")
+    # V3 source JS changed()/render(): only the local Human decision UI
+    # changes immediately; none of these steps executes an import/save.
+    pending_row=visual_form.locator(
+      '[data-eidos-review-table-subject]').filter(
+        has_text="系统编码").locator("xpath=ancestor::tbody")
+    pending_select=pending_row.locator('[data-eidos-review-table-choice] select')
+    expect(pending_select).to_have_value("__PENDING__")
+    pending_select.select_option("__IGNORE__")
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","ignored")
+    expect(pending_row.locator('[data-eidos-review-table-status]')).to_have_text("不导入")
+    expect(expected_count).to_have_text("5 / 22")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("1")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    filter_choice.select_option("all")
+    expect(expected_count).to_have_text("22 / 22")
+    pending_select.select_option("__PENDING__")
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","pending")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    filter_choice.select_option("needs")
+    expect(expected_count).to_have_text("6 / 22")
+    print("BEX01_V3_REAL_MAP_LIVE_CHOICE_COUNTS_FILTER_PASS",flush=True)
     expect(visual_form.locator('[data-eidos-form-review-table-heading] p')).to_contain_text("系统已保留原有匹配结果")
     expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")

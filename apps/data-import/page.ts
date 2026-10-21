@@ -669,6 +669,31 @@ export function createDataImportMappingPageV010(input: {
     };
   };
 
+  // V3 #909 changed()/render() derives presentation immediately from a Human
+  // selection. Reuse Eidos #195 statusByChoice, never mirror the demo's
+  // localStorage, fake save or fake import. Existing targets are only truly
+  // matched after their identity is restored from this authorized Host Job;
+  // new/ambiguous choices remain reviewable until the explicit Host save.
+  const choiceStatusFor = (column: string, value: string) => {
+    const pending = {key: "pending", label: zh(input.locale)
+      ? "需要核对" : "Needs review", tone: "warning" as const};
+    if (value === "__PENDING__") return pending;
+    if (value === "__IGNORE__") return {key: "ignored", label: zh(input.locale)
+      ? "不导入" : "Excluded", tone: "neutral" as const};
+    if (value === "__CREATE__") return metadataLikeColumn(column)
+      ? pending : {key: "proposed", label: zh(input.locale)
+        ? "待新增" : "Proposed", tone: "neutral" as const};
+    const available = importFields.some(field => field.fieldId === value);
+    if (!available) return pending; // A stale fieldId remains visible, never accepted.
+    const restored = current.get(column) === value
+      && candidatesFor(column).length <= 1 && !metadataLikeColumn(column);
+    return restored
+      ? {key: "matched", label: zh(input.locale) ? "已匹配" : "Matched",
+          tone: "positive" as const}
+      : {key: "suggested", label: zh(input.locale)
+          ? "待保存匹配" : "Mapping to save", tone: "neutral" as const};
+  };
+
   const reviewGroups = input.job.source.headers.map((sourceColumn, index) => {
     const candidates = candidatesFor(sourceColumn);
     const target = current.get(sourceColumn);
@@ -681,6 +706,15 @@ export function createDataImportMappingPageV010(input: {
       summary: sourceProfiles[index].summary,
       primaryFieldKey: "map_" + index,
       reviewStatus: reviewStatusFor(sourceColumn),
+      // Only values present in this Job's real select options are enumerated.
+      // Changing a choice updates this local view; no command or save runs.
+      statusByChoice: Object.fromEntries([
+        "__PENDING__", "__IGNORE__",
+        ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
+          ? ["__CREATE__"] : []),
+        ...(unavailable && target ? [target] : []),
+        ...importFields.map(field => field.fieldId)
+      ].map(value => [value, choiceStatusFor(sourceColumn, value)])),
       // One row = one short visible sample, plus complete source preview on demand.
       // Keep original column/row values in the unchanged, durable Import Job.
       detailFieldKeys: [
@@ -697,10 +731,13 @@ export function createDataImportMappingPageV010(input: {
   // Eidos E2 validates each filter status against THIS authorized Job.
   // Do not advertise states absent from the current table: a fresh Job may
   // contain only previously mapped columns, or only unresolved columns.
-  const statusKeys = [...new Set(reviewGroups.map(group =>
-    group.reviewStatus.key))];
+  const statusKeys = [...new Set(reviewGroups.flatMap(group => [
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status => status.key)
+  ]))];
   const attentionKeys = statusKeys.filter(key =>
-    key === "attention" || key === "proposed" || key === "suggested");
+    key === "attention" || key === "pending"
+      || key === "proposed" || key === "suggested");
   const handledKeys = statusKeys.filter(key =>
     key === "matched" || key === "ignored");
   const filterOptions = [
