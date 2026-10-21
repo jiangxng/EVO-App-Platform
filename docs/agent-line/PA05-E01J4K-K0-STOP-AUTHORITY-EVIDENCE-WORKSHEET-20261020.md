@@ -314,3 +314,16 @@
 **当前外部控制面：** 2026-10-21 只读刷新 GitHub `main@524106df36af45b89d15eebd4c0c4f308b1718fc` **40/40 checks SUCCESS**；Railway Host deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` SUCCESS/Online；#1074 独立 Draft PR 当前 GitHub mergeability `dirty`，不触及该 PR 或本项目主线冲突。旧 Ecosystem Certification 10 FAIL 仍是不同 SHA/范围的独立反证。
 
 **结论不变：** `ISOLATED_PROCESS_LIFECYCLE_TEN_CASE_BOUNDED_PASS` 仅限被测本地 PROCESS；K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`、production material WRITE `OFF`，#988/#979/#913 `OPEN`。不合并 Draft、不部署/访问生产 SQL/Secrets/Validator、不改 draining、不清残留锁/历史分支。
+
+
+## 15. 2026-10-21 — 第十一项非合作 deactivate 真实 stop 截止测试（bounded only）
+
+[#1082 本地隔离工程 HEAD `156609a7bf9429fa2e1fcc4ca4e42a7349da1964`](https://github.com/jiangxng/EVO-App-Platform/commit/156609a7bf9429fa2e1fcc4ca4e42a7349da1964) 在不改 production runtime 的前提下，为 disposable PROCESS fixture 增加 `deactivate()` 永久 pending、child 5 秒自退出保险；父 Host 存活且可监督。直接阅读 [Platform CI run #39533283090/job #119004106488](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39533283090/job/119004106488) **原始 job log**（2026-10-21），协议 **1103 total / 1102 PASS / 1 SKIPPED / 0 FAIL**、11 项本地 `PA05_K0_BOUNDED_*` 均有 marker，新 `ok #776`：
+
+```json
+{"scope":"isolated-local-child","nonCooperativeDeactivate":true,"childClosedBeforeFixtureFuse":true,"elapsedMs":753,"globalStopCertified":false}
+```
+
+**来源事实**：该 Linux Runner 一次观察到 `stop()` 等待约 753ms、child PID 实际不存活、之后可正常 `shutdown()`；源码在 stop 后设 750ms 本地 SIGKILL fallback，测试使用 `<3000ms` 有界断言、5 秒自退出保险。**项目判断**：该用例补齐“正常父 Host 下的非合作 deactivate 局部回收”覆盖，但**753ms 不是正式生产超时预算 / SLA**，也无真实容器 PID1/drain、多 Worker/parent SIGKILL 外部回执或生产身份 SQL 证明。扩展原有第十项证据见 [2026-10-21 接续索引 §9](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
+
+**认证持续拒绝：** 此 HEAD 精确 CI 未全绿前仍以已经通过的早期十项为有界已确认；完成后仅可记 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`。R1–R8 UNKNOWN / DENY；K0 / E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`，production material WRITE `OFF`。不启动 parent SIGKILL、不运行生产 Validator/SQL/Secrets、不合并 Draft、不改 Railway/drain、不清异常锁或远端活动分支。
