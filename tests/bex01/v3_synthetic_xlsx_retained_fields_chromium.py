@@ -760,7 +760,11 @@ with sync_playwright() as pw:
     visual_page.screenshot(path=str(OUT/"v3-inline-evidence-measurement-desktop.png"),full_page=False)
     assert row.evaluate('el=>el.getBoundingClientRect().height')<=68,(
       "BEX_V3_DESKTOP_MAPPING_ROW_TOO_TALL")
-    stable=row.locator('[data-eidos-review-group-detail]')
+    # Pin this exact source group: :not([open]) would reselect the next row
+    # immediately after the user expands this one.
+    row_id=row.locator('xpath=..').get_attribute('data-eidos-form-review-table-row')
+    assert row_id, "BEX_V3_STABLE_ROW_ID_REQUIRED"
+    stable=table.locator('[data-eidos-form-review-table-row="'+row_id+'"] [data-eidos-review-group-detail]')
     stable.locator('summary').click()
     expect(stable).to_have_attribute('open','')
     expect(stable.locator('[data-eidos-review-group-fields]')).to_be_visible()
