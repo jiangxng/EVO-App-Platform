@@ -3606,4 +3606,22 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
     padding-block:calc(var(--eidos-space-md) + 15px);
   }
 }
+
+/* Opt-in 390px Human review rhythm, isolated to Workbench presentation.
+   Leave true source filenames, row evidence and mobile 44px controls intact. */
+@media(max-width:520px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+    padding-block:calc(var(--eidos-space-md) + 9px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header{
+    grid-template-columns:minmax(0,1fr);
+    row-gap:var(--eidos-space-sm);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+    grid-column:1;grid-row:3;justify-self:start;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    padding-block:calc(var(--eidos-space-md) + 11px);
+  }
+}
 `;

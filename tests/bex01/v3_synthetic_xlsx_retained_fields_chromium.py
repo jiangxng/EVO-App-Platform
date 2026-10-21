@@ -912,6 +912,31 @@ with sync_playwright() as pw:
     assert phone_collapsed.first.evaluate("el=>getComputedStyle(el).display!=='inline-block'"),(
       "BEX_V3_PHONE_MUST_KEEP_STACKED_EVIDENCE")
     assert phone_collapsed.first.locator('summary').evaluate('el=>el.getBoundingClientRect().height')>=44
+    # #909 phone: metric cards are roughly 86px high, pending count sits
+    # below the explanation and issue actions have useful breathing room.
+    # Do not enlarge genuine filenames or shrink real evidence controls.
+    mobile_rhythm=phone_form.evaluate("""form=>{
+      const metric=form.querySelector('[data-eidos-form-task-metric]');
+      const header=form.querySelector('[data-eidos-form-task-issues]>header');
+      const description=header.querySelector('p');
+      const count=header.querySelector('[data-eidos-form-task-issue-count]');
+      const first=form.querySelector('[data-eidos-form-task-issue]');
+      const card=form.querySelector('[data-eidos-form-task-context]');
+      const box=el=>{const r=el.getBoundingClientRect();
+        return {y:Math.round(r.y),height:Math.round(r.height),bottom:Math.round(r.bottom)};};
+      return {source:box(card),metric:box(metric),firstIssue:box(first),
+        pendingCount:box(count),description:box(description)};
+    }""")
+    assert 80<=mobile_rhythm["metric"]["height"]<=105,(
+        "BEX_V3_MOBILE_STAT_METRIC_RHYTHM",mobile_rhythm)
+    assert mobile_rhythm["pendingCount"]["y"]>=mobile_rhythm["description"]["bottom"]-1,(
+        "BEX_V3_MOBILE_ISSUE_COUNT_MUST_FOLLOW_EXPLANATION",mobile_rhythm)
+    assert mobile_rhythm["firstIssue"]["height"]>=120,(
+        "BEX_V3_MOBILE_ISSUE_CARD_RHYTHM",mobile_rhythm)
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "BEX_V3_MOBILE_RHYTHM_OVERFLOW")
+    print("BEX_V3_MOBILE_RHYTHM="+json.dumps(mobile_rhythm,ensure_ascii=False),flush=True)
+    visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-rhythm-phone.png"),full_page=False)
     visual_phone.screenshot(path=str(OUT/"v3-connected-issues-phone.png"),full_page=False)
     phone_row_issue=phone_issues.filter(has_text="3 条记录缺少主体类型")
     phone_disclosure=phone_row_issue.locator('[data-eidos-form-task-issue-related]')

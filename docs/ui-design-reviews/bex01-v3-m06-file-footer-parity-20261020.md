@@ -133,3 +133,11 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 依据实际查阅的 #909 原型 `03-complete-field-table.png` 与 #1086 已核验 Host `v3-prototype-parity-issues-desktop.png`：原型文件卡约 87px、统计卡约 101px、连续问题行约 86px；Host 原本约 72px、68px、56px。此差距属于 Workbench 上半部组件 padding/gap 的共同根因，不是映射表证据入口的问题。
 
 只在桌面 >=851px 的通用 `data-eidos-task-presentation="workbench"` 中集中调整 context、metric、issue、section gap 四项；保留 390px 手机、真实数据、原生操作、紧凑映射表、权限与保存。真实 synthetic Host Chromium 追加组件几何范围校验和新截图 `v3-prototype-parity-rhythm-desktop.png`；测试不把原型无侧栏的绝对 y 值硬套 Host。若实测不改善，先复核 computed style，禁止连续盲调。完整 CI/Human 门禁仍按最终 HEAD 验证；M04–M06 仍 OPEN，总进度 3/6。
+
+### Window 06｜2026-10-21 手机真实差距分组：统计卡与问题审查节奏
+
+已逐屏对照 #909 的 `10-mobile-overview.png`（390 CSS 视口像素对照）及本 PR 最近 Host `v3-connected-issues-phone.png`。原型手机四项统计卡约 86px，Host 原来约 68px；原型问题计数位于解释之下，Host 原来在标题右侧；原型首条问题行约 130px，Host 约 108px。三者属于通用 review Workbench 的移动阅读节奏，集中调整不改变业务逻辑。
+
+**反向约束**：实际 Host 测试文件名为 `BEX-V3-VISUAL-REVIEW-SYNTHETIC.xlsx`，比原型 `供应商资料_2026年10月.xlsx` 长，故 source 文件卡自身较高不是可用“加 padding”盲修的共因；必须保留真实完整文件名与源状态，绝不截断来源。仅改 Workbench @media(max-width:520px) 的统计卡 `padding-block`、问题 header 计数显示顺序、问题行 `padding-block`。不更改 1280px 桌面布局、移动审核字段证据/44px 操作、权限、显式保存、原始数据及 Eidos 默认其他 presentation。
+
+新增隔离 Host 390px Chromium 对统计卡高度、问题计数位于说明之后、第一条问题高度、无横向溢出的实测断言；同时保存 `v3-prototype-parity-rhythm-phone.png`。如果实测未改善，要检查真正的 computed style 和 DOM，不重复堆 CSS。Human 100% 验收依旧 OPEN，M01–M03 通过、M04–M06 未签收，总 3/6。完整 CI 需以本轮精确 HEAD 为准。
