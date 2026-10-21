@@ -929,11 +929,23 @@ with sync_playwright() as pw:
     filter_choice.select_option("all")
     expect(expected_count).to_have_text("22 / 22")
     pending_select.select_option(initial_metadata_choice)
-    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","pending")
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","attention")
+    expect(pending_row.locator('[data-eidos-review-table-status]')).to_have_text("需要核对")
     expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
     filter_choice.select_option("needs")
     expect(expected_count).to_have_text("6 / 22")
-    print("BEX01_V3_REAL_MAP_LIVE_CHOICE_COUNTS_FILTER_PASS",flush=True)
+    # Reload must derive decisions from the same authorized Import Job:
+    # changing a browser-only choice neither saves a mapping nor approves it.
+    visual_page.goto(HOST+"/?surface=desktop#"+visual_route,wait_until="domcontentloaded")
+    expect(visual_form).to_be_visible(timeout=30000)
+    pending_row=visual_form.locator(
+      '[data-eidos-review-table-subject]').filter(
+        has_text="系统编码").locator("xpath=ancestor::tbody")
+    expect(pending_row.locator('[data-eidos-review-table-choice] select')).to_have_value(
+      initial_metadata_choice)
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","attention")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    print("BEX01_V3_REAL_MAP_LIVE_CHOICE_COUNTS_FILTER_AND_RELOAD_PASS",flush=True)
     expect(visual_form.locator('[data-eidos-form-review-table-heading] p')).to_contain_text("系统已保留原有匹配结果")
     expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")

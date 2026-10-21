@@ -1035,6 +1035,11 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(group=>group.reviewStatus.key),
     ["matched","proposed","proposed","attention"],
     "unsaved choices cannot rewrite the Host-restored initial status");
+  const metadata=page.reviewGroups.find(group=>group.title==="系统编码");
+  assert.equal(metadata.statusByChoice.__CREATE__.key,"attention",
+    "returning from ignore to the original proposed value must restore metadata risk");
+  assert.equal(metadata.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(metadata.statusByChoice.__PENDING__.key,"pending");
   const stagedJob=repository.get("enterprise-context:a","batch-proposals");
   const failedJob={
     ...stagedJob,

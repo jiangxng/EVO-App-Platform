@@ -116,6 +116,15 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.equal(restoredOnly.reviewGroups[0].reviewStatus.key,"matched");
   assert.equal(validateUidl(restoredOnly).ok,true);
 
+  const metadataGroup=mapping.reviewGroups.find(group=>group.title==="系统编码");
+  assert.equal(metadataGroup.reviewStatus.key,"attention");
+  assert.equal(metadataGroup.statusByChoice.__CREATE__.key,"attention",
+    "reselecting an original unverified metadata proposal must restore its Host review status");
+  assert.equal(metadataGroup.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(metadataGroup.statusByChoice.__PENDING__.key,"pending");
+  // The source-preserved proposal is still unsafe to treat as Human-approved.
+  assert.equal(mapping.fields.find(field=>field.key==="map_1").initialValue,"__CREATE__");
+
   assert.equal(mapping.reviewTable.evidenceLayout,"inline-collapsed");
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     evidenceLayout:"invalid"}}).ok,false);

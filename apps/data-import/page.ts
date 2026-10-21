@@ -675,6 +675,10 @@ export function createDataImportMappingPageV010(input: {
   // matched after their identity is restored from this authorized Host Job;
   // new/ambiguous choices remain reviewable until the explicit Host save.
   const choiceStatusFor = (column: string, value: string) => {
+    // Returning to the original Host-restored value must restore its original
+    // review state exactly, including unresolved metadata/ambiguous targets.
+    // These state hints are transient; Host saves/approves only on submit.
+    if (value === mappingSelectionFor(column)) return reviewStatusFor(column);
     const pending = {key: "pending", label: zh(input.locale)
       ? "需要核对" : "Needs review", tone: "warning" as const};
     if (value === "__PENDING__") return pending;
