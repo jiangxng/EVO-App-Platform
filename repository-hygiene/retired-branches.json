@@ -133,6 +133,336 @@
       "name": "docs/pa05-window-recovery-20261015",
       "expectedHeadSha": "d1cc03b6d3bf19869a18f093dcbe1569ab1d5559",
       "reason": "Agent PA05 reconstruction evidence PR #932 merged main@1e3c3875; remote head confirmed exact ancestor of main, zero unique commits, no open PR; safe to retire via manual workflow execute=true."
+    },
+    {
+      "name": "docs/bex01-v3-m03-closed-20261019",
+      "expectedHeadSha": "8936636f2c68434d4568ac60125c744b14fcf9d7",
+      "reason": "Verified merged PR #1032 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/bex01-v3-m04-customer-evidence-gate-recheck-20261019",
+      "expectedHeadSha": "f03ecb083340bd4cb18cd5dcc177e41db56dda17",
+      "reason": "Verified merged PR #1049 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/bex01-v3-m04-research-window-handoff-20261019",
+      "expectedHeadSha": "5c5e540fadd7194d350e1c70443beb3251c6d673",
+      "reason": "Verified merged PR #1048 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/bex01-v3-m04-visual-evidence-recovered-20261019",
+      "expectedHeadSha": "34062ea678c9279548b0a12e7abad225d6c521b7",
+      "reason": "Verified merged PR #1051 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/bex01-v3-window-research-handoff-20261019",
+      "expectedHeadSha": "86b004e6b62be1e2eb2554dc511ac3b7ad79f9a1",
+      "reason": "Verified merged PR #1021 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/governance-a01-closure-review-20261018",
+      "expectedHeadSha": "ae8a25334f4fdd89635ff60a3d05cb5ac2c3f1dc",
+      "reason": "Verified merged PR #1013 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/governance-web-archive-boundary-20261017",
+      "expectedHeadSha": "a1fad7f8b9537a566f0f4aa7035dbf1fa867b8de",
+      "reason": "Verified merged PR #1007 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-d14c5-d14c12-research-decision-handoff-20261016",
+      "expectedHeadSha": "a5fc71ab12d4854875df51ca42223a66e4bdb24f",
+      "reason": "Verified merged PR #974 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j2-j4f-window-research-handoff-20261019",
+      "expectedHeadSha": "a4d258e2927dc57fde96e415233ffd187d0ebde6",
+      "reason": "Verified merged PR #1050 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j4g-production-operator-trust-gate-20261019",
+      "expectedHeadSha": "82f65991aba943dd3319a96790a0284745d1bef7",
+      "reason": "Verified merged PR #1052 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j4j-final-evidence-20261020",
+      "expectedHeadSha": "5bf4c9c6ce59076dcbb91b9dd776b4d4a409b0f7",
+      "reason": "Verified merged PR #1059 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j4k-k0-postmerge-evidence-20261020",
+      "expectedHeadSha": "fe27267af40d14e393e6a6df2965cd3f043fb9c4",
+      "reason": "Verified merged PR #1065 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j4k-k0-topology-evidence-20261020",
+      "expectedHeadSha": "6bcb960b87855a5b91be4d00388a15052c59249c",
+      "reason": "Verified merged PR #1064 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j4k-postmerge-evidence-20261020",
+      "expectedHeadSha": "8fee1e9b4638df44451dcecbdf4752959cbfea7b",
+      "reason": "Verified merged PR #1068 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-e01j4k-trusted-multiworker-stop-20261020",
+      "expectedHeadSha": "991e34f6caa011b05ec99c506919b9d121d7d975",
+      "reason": "Verified merged PR #1062 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "docs/pa05-window-research-handoff-20261019",
+      "expectedHeadSha": "ac2611725611c8a4f47364755b0a26cc51282147",
+      "reason": "Verified merged PR #1022 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "feat/bex01-v3-authorized-batch-review-drafts-20261016",
+      "expectedHeadSha": "d88b6932ed693aa69d177184243fa3d6d30f91a0",
+      "reason": "Verified merged PR #999 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/bex01-m04-ec-ambiguous-bank-advisory-20261019",
+      "expectedHeadSha": "49cabce8a15a4d785acb56ac15519c10b642cf8d",
+      "reason": "Verified merged PR #1037 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/bex01-v3-m04-no-ambiguous-bank-automap-20261019",
+      "expectedHeadSha": "e76c0e514acc1c1a6258d0393f6cfbd7ca015be2",
+      "reason": "Verified merged PR #1033 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-3d-viewer-lazy-20261019",
+      "expectedHeadSha": "a7953f7b9cb3275a2af105a00e8ed88595912a5a",
+      "reason": "Verified merged PR #1016 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-configured-provider-journal-20261021",
+      "expectedHeadSha": "dbf39e4c55745fe6009fccede8fedd7ed66c568e",
+      "reason": "Verified merged PR #1090 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-counterparty-lazy-20261016",
+      "expectedHeadSha": "0902c5e4c24004d6183021fa3621f1fb419eb48f",
+      "reason": "Verified merged PR #975 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-current-editor-crop-lazy-20261019",
+      "expectedHeadSha": "796d22aa7687e9f515c985a0e5977b7e911eb6d4",
+      "reason": "Verified merged PR #1047 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-data-import-lazy-20261017",
+      "expectedHeadSha": "ef6397880c13251fe4d3dcd456d700ec8ab2cfe5",
+      "reason": "Verified merged PR #1003 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-eog-editor-entries-lazy-20261020",
+      "expectedHeadSha": "16be3e4233eb49ea94a96232588110480734703d",
+      "reason": "Verified merged PR #1061 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-eog-service-on-use-20261018",
+      "expectedHeadSha": "e9ee508db2de516d03649d4f09d5a4ee0324d794",
+      "reason": "Verified merged PR #1015 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-eog-startup-compatibility-20261018",
+      "expectedHeadSha": "019f462f6bbd6fbf40d19ef5b56a0c5c41208373",
+      "reason": "Verified merged PR #1014 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-evo-map-reconcile-20261021",
+      "expectedHeadSha": "db70038467bee482f787ab991360422cc07a1dcd",
+      "reason": "Verified merged PR #1088 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-evo-map-startup-20261021",
+      "expectedHeadSha": "7b104d3302dccd0d4648e90ee44d58529a4b836b",
+      "reason": "Verified merged PR #1087 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-extension-access-boundary-20261017",
+      "expectedHeadSha": "86112521cac5dc391b0ece07306f38113a831c9d",
+      "reason": "Verified merged PR #1001 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-extension-import-lazy-20261016",
+      "expectedHeadSha": "bb8a6acd5ddacbf8e0f01580420328da324b9c64",
+      "reason": "Verified merged PR #958 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-extension-lazy-20261017",
+      "expectedHeadSha": "2a062ce33e63428d66b5dfad35a729343fe12510",
+      "reason": "Verified merged PR #1002 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-identity-directory-initialization-20261021",
+      "expectedHeadSha": "387e9d428c1addd793b7e30453abd77aef7c5f72",
+      "reason": "Verified merged PR #1094 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-import-command-targets-20261017",
+      "expectedHeadSha": "96a0aa0efb66ef38aacd123f249e3f2c23fa3331",
+      "reason": "Verified merged PR #1004 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-import-directory-metadata-20261017",
+      "expectedHeadSha": "bd73fcc4f81e2940ad58f56cdd6aa874025fa02c",
+      "reason": "Verified merged PR #1006 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-import-page-targets-20261017",
+      "expectedHeadSha": "a78ba49bb4fc7268845efdf9f8ce998318a4a5d5",
+      "reason": "Verified merged PR #1005 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-llm-legacy-migration-trigger-20261020",
+      "expectedHeadSha": "72eb690069373ed2b2ae8f505962ad759a827a27",
+      "reason": "Verified merged PR #1072 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-llm-metadata-qualification-20261021",
+      "expectedHeadSha": "ee37dbc282d84352e8456e0173f4adb3bc0c8423",
+      "reason": "Verified merged PR #1095 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-llm-request-credentials-20261020",
+      "expectedHeadSha": "c29b3bbc3ab509360bf8f366d01b88b702bbb72a",
+      "reason": "Verified merged PR #1073 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-managed-session-startup-20261021",
+      "expectedHeadSha": "b1eb50507a651096646c2f693a07d0da3eaf336a",
+      "reason": "Verified merged PR #1085 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-memory-request-credentials-20261020",
+      "expectedHeadSha": "e406fa773a1414b0d3ba42d3cdb3c0aedcbd3073",
+      "reason": "Verified merged PR #1078 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-memory-scheduler-demand-20261018",
+      "expectedHeadSha": "67333867d7404d08ce54fdc79459bab2dba714a1",
+      "reason": "Verified merged PR #1010 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-memory-scheduler-exclusive-20261018",
+      "expectedHeadSha": "35c51400b9400f1701b9d68da1713651de3d7559",
+      "reason": "Verified merged PR #1012 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-memory-scheduler-stop-20261018",
+      "expectedHeadSha": "4184ce022b1d90e401b0a8ebdcde43c20edccbe0",
+      "reason": "Verified merged PR #1009 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-observatory-actions-lazy-20261019",
+      "expectedHeadSha": "878f43bcb4af8aad37b381f98968e69bd0b05e76",
+      "reason": "Verified merged PR #1019 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-observatory-surfaces-lazy-20261019",
+      "expectedHeadSha": "0ba423fe388d1493b690d132df396ec6f144d68a",
+      "reason": "Verified merged PR #1018 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-oidc-cache-resource-boundary-20261020",
+      "expectedHeadSha": "8bed9e8129a6bde92d92640e77789407e6511308",
+      "reason": "Verified merged PR #1080 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-oidc-request-credentials-20261020",
+      "expectedHeadSha": "d0bd0ac184ddf9376c4c8eb4164cf50f51a8152a",
+      "reason": "Verified merged PR #1083 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-responsibility-lazy-20261017",
+      "expectedHeadSha": "00459223ff3e4ea398942a7ea210a14d6c38f3ee",
+      "reason": "Verified merged PR #1000 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-secrets-initialization-20261021",
+      "expectedHeadSha": "01cf55cce4a1adf96722cbb3826d76b6dcf9efee",
+      "reason": "Verified merged PR #1093 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-semantic-request-credentials-20261020",
+      "expectedHeadSha": "1afcae851a50535723a62e18b051880a6d71398c",
+      "reason": "Verified merged PR #1079 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-sop-command-loading-20261020",
+      "expectedHeadSha": "f72cd4a88033e11e7acba6825978e2fadfab7135",
+      "reason": "Verified merged PR #1063 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-spatial-observatory-lazy-20261019",
+      "expectedHeadSha": "4596a4c0cbee883ab185fa4d826335edc87a84c9",
+      "reason": "Verified merged PR #1017 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-static-session-boundary-20261021",
+      "expectedHeadSha": "a9169559fbdd182ebcae572c789d891f8800c9ab",
+      "reason": "Verified merged PR #1091 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "fix/governance-web-archive-manifest-20261018",
+      "expectedHeadSha": "29627a31ab0e75f82e2735de91756963e4868a9c",
+      "reason": "Verified merged PR #1008 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/bex01-m04-duplicate-bank-confirmed-recipe-20261019",
+      "expectedHeadSha": "bf04611fc15fd4f3ad233bdfe902a4d25c5c615a",
+      "reason": "Verified merged PR #1039 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/bex01-v3-batch-constant-host-journey-20261016",
+      "expectedHeadSha": "b79ba355d18c7db9f06496ad44f37136166ee1ca",
+      "reason": "Verified merged PR #993 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/bex01-v3-explicit-approval-action-20261019",
+      "expectedHeadSha": "4a556a0cbca700314d7031e6f8f6bc1809392613",
+      "reason": "Verified merged PR #1023 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/bex01-v3-m04-real-stage-bank-identity-20261019",
+      "expectedHeadSha": "f1870c559e2f7d7125cc1f567a5033b67b3e27ed",
+      "reason": "Verified merged PR #1035 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/bex01-v3-stale-review-source-identity-20261019",
+      "expectedHeadSha": "16b5a7935b1bb8fa4139209aff3c47d3ed543094",
+      "reason": "Verified merged PR #1028 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/governance-eog-retained-imports-20261020",
+      "expectedHeadSha": "a2b93625edfe60a863273a4be809af1fc75392d4",
+      "reason": "Verified merged PR #1067 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/governance-eog-static-boundaries-20261019",
+      "expectedHeadSha": "b2918ddfffbd7622c8504902aecdc5e54f81a1d5",
+      "reason": "Verified merged PR #1046 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/governance-llm-provider-resources-20261020",
+      "expectedHeadSha": "8abef0f99ac42e6268193a22dbe44fed485510a1",
+      "reason": "Verified merged PR #1069 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/governance-memory-scheduler-http-20261018",
+      "expectedHeadSha": "f7af8979d1e139346940d870656cc1c629320d22",
+      "reason": "Verified merged PR #1011 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/governance-memory-security-boundary-20261020",
+      "expectedHeadSha": "fde96204bca23fc2e8c41a251d401bc22e5e512d",
+      "reason": "Verified merged PR #1076 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
+    },
+    {
+      "name": "test/governance-view-store-boundary-20261019",
+      "expectedHeadSha": "b60f21a606b40e92182c757a464dadb833ee35c4",
+      "reason": "Verified merged PR #1020 exact HEAD; main ancestor (behind_by=0, merge_base=head) and no open PR reference at main 9a382666ffad515d55422d0ffdb9f4cb7dd64aef on 2026-10-21"
     }
   ]
 }
