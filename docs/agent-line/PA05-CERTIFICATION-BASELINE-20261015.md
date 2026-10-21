@@ -988,3 +988,24 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 - 九条已合并 PA05 历史 docs 分支再次通过精确 SHA 与祖先核验；无合法 delete-ref/dispatch 接口，所以远端删除 **NOT_EXECUTED**，不可冒称已清理；四条活跃 Draft 均保留。
 
 **明确结论不变：K0 `NOT_SIGNED`、完整 E01J4 `NOT_SIGNED`、PA05-05 E01–E05 `NOT_SIGNED`、W06 `NOT_SIGNED`；production material WRITE `OFF`；Issues #988/#979/#913 `OPEN`。不合并四 Draft、不生产部署、不更改 `project.status.json` 或其他窗口工作。**
+
+
+## 88. PA05-05 / K0 — 2026-10-21 第十项真实 activate IPC/PID 正反核验（不签生产）
+
+**原始工程与 CI:** 原 #1082 Draft 分支 HEAD [`96caf490dbb5f6ad697a7388baef90dfca0c2287`](https://github.com/jiangxng/EVO-App-Platform/commit/96caf490dbb5f6ad697a7388baef90dfca0c2287) **5/5 exact-HEAD commit checks SUCCESS**；[Platform run #39532710142/job #119002307849](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39532710142/job/119002307849) 的原始 job log 在 2026-10-21 已直接阅读，**1102 total / 1101 PASS / 1 SKIPPED / 0 FAIL**。十项 K0 bounded local Node child marker 均存在；新增的 `activationEnteredByRealHostIPC=true`、`activationCalls=1`、`observedChildPidClosed=true`，证明 CI 测试在父 Host 存活时**真实观察到子进程进入挂起 activate、进程存活并在 Host shutdown 后退出**。早期只监听 `PROCESS_STARTING` 的初版第十项事件不等价于真实进入 `activate`；本轮已用 scoped Host IPC 回执升级证据精度。详细历史、OS Kernel 原文读级/可选 supervisor+cgroup 方案在 [接续证据 §§7–8](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 和 [K0 工作表 §14](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+**同日当前只读生产控制面：** `main@524106df36af45b89d15eebd4c0c4f308b1718fc` 40/40 SHA checks SUCCESS，Railway Ledger Configurator deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 对应同 SHA、SUCCESS/Online/1 running/0 crashed；这些不是 K0 生产停机和远端 Caller 权威证明，也不能代替旧 Ecosystem schedule 的 10 FAIL。
+
+| 里程碑 / 门禁 | 当前阶段 | 准确结论 |
+| --- | --- | --- |
+| J4J 同 POSIX 协作 Host 锁 | 已合并工程 | `ENGINEERING_BOUNDED_PASS`；非全域 stop |
+| #1074 顶层 Host shutdown | Draft，45/45 checks | 局部 Host 修复；当前 PR mergeability `dirty`，未生产 |
+| #1081 旧 runtime 负面竞态 | Draft，5/5 checks | `ISOLATED_NEGATIVE_REPRODUCED`；不可作为安全合格 |
+| #1082 PROCESS 生命周期 | Draft，本窗口新 HEAD 5/5 checks | `ISOLATED_PROCESS_LIFECYCLE_TEN_CASE_BOUNDED_PASS`；不是父 Host SIGKILL/生产停机 |
+| K0 完整 Worker/caller 停机权威 | 外部 owner 证据未交 | **`NOT_SIGNED`** |
+| 完整 E01J4 | 生产 IdP/DBA/停机与跨存储缺口未关 | **`NOT_SIGNED`** |
+| PA05-05 E01–E05 | 生产 Human/AI Provider 实测尚未签 | **`NOT_SIGNED`** |
+| W06 | 真实生产认证与审计未签 | **`NOT_SIGNED`** |
+| Production material WRITE | 禁用 | **`OFF`** |
+
+**安全决策持续：** 禁止在缺独立 child 回收监督者时测试 parent SIGKILL；不运行生产 Validator、SQL/Secrets、Railway draining 修改、服务停止/重启/扩缩容；不合并四个 Draft，不改 `project.status.json`、BEX/CP03/Eidos/2D，Issues #988/#979/#913 继续 OPEN。九条已合并历史分支仍仅审计，因连接器无 delete-ref/dispatch 无法实际删除；不得宣称清理完成。
