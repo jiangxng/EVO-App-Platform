@@ -70,3 +70,40 @@
 5. **Git/CI:** 四条 Draft 不合并、不触发生产部署；不能关闭旧 Ecosystem 10 FAIL；继续不动 BEX/CP03/Eidos/2D/全局 `project.status.json`。后续合规删除能力就绪仍须再次核 SHA、开放 PR 引用和保护状态。
 
 **本次实际未执行：** 生产 Validator、生产 SQL、生产 Secret 值读取、生产停机/重启/扩缩容、Railway draining/tracing 修改、父 Host SIGKILL、自动孤儿/异常锁清理、分支删除、PR 合并。认证总门禁 **全部 NOT_SIGNED**。
+
+
+## 7. 2026-10-21 — 第二轮继续：真实 activate 入口和子进程 PID 回收证据（修正第十项强度）
+
+**为什么需要再验证：** §3 早期第十项使用 `PROCESS_STARTING` 事件表示 Host 已准备 fork，但此事件发生在子进程实际加载并进入 `activate()` **之前**。先前 5/5 CI 真实通过，**却不能单凭该事件证明曾进入永久 pending 的 activation**。本次是证据覆盖精度修正，不是宣称旧 CI 失败或另开任务分支。
+
+**已实施，原 #1082 Draft 中原地追加：** `tests/fixtures/pa05-k0-delayed-process.mjs` 仅特殊 disposable package 的 `activate(host)` 通过现成 scoped IPC `host.storage.set("pa05-k0-activation-pid", process.pid)` 将真实 child PID 报给测试内存存储；随后永久 pending，且仍有 5 秒 child 自动退出保险。测试侧覆盖 `PluginStorageServiceV010.set` 捕捉 Host 实际收到的 `packageId/key/PID`，与真实 `pidAlive` 读数交叉检查，不需要调试端点或生产代码分叉。
+
+**精确新增提交：** [fixture 3d0a4a5](https://github.com/jiangxng/EVO-App-Platform/commit/3d0a4a5cb712db42df1caa56722952242cf6d719)；[test HEAD 96caf490](https://github.com/jiangxng/EVO-App-Platform/commit/96caf490dbb5f6ad697a7388baef90dfca0c2287)。中间 `724e058` / `36c700c` 使用 `storage.get` 的真实进入握手，但未取得可供 PID 正反核验的回执；保留历史，以下最终精确日志以 `96caf490` 为准。
+
+**原始动作日志已直接读取：** [Platform run #39532710142 / job #119002307849](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39532710142/job/119002307849)，时间 `2026-10-21T02:24:36Z`（UTC），等级 `ORIGINAL_ACTIONS_RAW_LOG_DIRECT_READ_20261021`。完整 `npm run test:platform` 计数为 **1102 total / 1101 PASS / 1 SKIPPED / 0 FAIL**；真实独立 `PA05_K0_BOUNDED_*` marker **10 个**，第十项：
+
+```json
+{"scope":"isolated-local-child","activationEnteredByRealHostIPC":true,"activationCalls":1,"observedChildPidClosed":true,"boundedShutdown":true,"startupSettledByChildExit":true,"noActiveRuntime":true,"globalStopCertified":false}
+```
+
+**证据意义：** 第十项不再只有 parent 侧 PROCESS_STARTING，而确实从 child `activate` 经过 Host IPC 返回了 PID，测试证实 `pidAlive(pid)=true`（shutdown 前）及 `false`（shutdown 后）。仍只有**活着的父 Host、一个 disposable local child、单机 Linux Runner**；不证明 parent SIGKILL 后另一实体可以枚举/回收 child，也不证明任何生产实际 deadline。完整 5/5 commit checks 只有在最新 HEAD 逐项 SUCCESS 后才可另行认定。
+
+## 8. 新查阅的 Linux 原文：外部监督与停止回执的选择条件（2026-10-21）
+
+以下是本窗口 **实际打开原始官方/原始手册页面** 的新增内容，而非沿用先前 OAuth/PG/Lease/NIST 索引或把搜索摘要当原文：
+
+| 标题 / 原始 URL / 位置 | 阅读等级 | 直接原文事实 | 应用于 K0 的判断与适用限制 |
+| --- | --- | --- | --- |
+| [Linux Kernel — Control Group v2](https://docs.kernel.org/admin-guide/cgroup-v2.html), `cgroup.kill`, `cgroup.events populated`, `cgroup.freeze` | `ORIGINAL_KERNEL_DOC_DIRECT_READ_20261021` | 非 root cgroup 的 `cgroup.kill` 接受写 `1`、向所在树进程发 SIGKILL，针对并发 fork 和迁移有明确处理；`cgroup.events populated=0` 意味着该 cgroup 子树不含活进程；freeze 状态不能等价于退出 | **优先候选**用于隔离非生产 supervisor 回收/退出验证；必须在有权限和独占的 *测试 cgroup* 中实施，不能碰共享 runner 的上层 cgroup 或生产服务；只能证明该 cgroup 完整，不证明所有外部 Caller |
+| [Linux man-pages — pidfd_open(2)](https://man7.org/linux/man-pages/man2/pidfd_open.2.html), Description/Notes | `ORIGINAL_MAN_PAGE_DIRECT_READ_20261021` | `pidfd_open` 获取指向内核进程对象的文件描述符，配合 poll/epoll 观察死亡；在满足保留条件的 PID 生命周期中可防止错误进程引用 | **进程级身份候选**，要由受信且存活的外部 supervisor 持有 pidfd；不得把纯 PID 文本文件或 PID 重用窗口当成不可伪造的存活证据 |
+| [Linux man-pages — pidfd_send_signal(2)](https://man7.org/linux/man-pages/man2/pidfd_send_signal.2.html), Description | `ORIGINAL_MAN_PAGE_DIRECT_READ_20261021` | 向 pidfd 所引用进程发送信号；受 PID namespace 可见性限制 | 适合单进程身份安全信号操作的候选，但**一个 pidfd 不涵盖未知子孙进程或所有其他 Worker**，不取代 cgroup 树枚举和外部数据库校验 |
+| [Linux man-pages — PR_SET_CHILD_SUBREAPER(2const)](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html), Description | `ORIGINAL_MAN_PAGE_DIRECT_READ_20261021` | 最近仍存活的祖先 subreaper 可接收孤儿并 wait | **只负责收养/回收退出状态，不自动杀死仍运行的 child**；不能仅设置 subreaper 就宣布 stop |
+| [systemd.kill(5)](https://man7.org/linux/man-pages/man5/systemd.kill.5.html), KillMode | `ORIGINAL_MAN_PAGE_DIRECT_READ_20261021` | `control-group` 与 `mixed` 可管理 unit cgroup 内多进程，`process` 容易遗漏子进程 | 独立监督者设计的对比材料；**没有证据 Railway 当前使用 systemd 或这种 kill mode** |
+
+**已选进一步方案：** K0 的非生产父 Host SIGKILL 证明，先要求在独立隔离 Linux 环境具备 **supervisor 不与 Host 同命运**、隔离 cgroup 的专属所有权、可由 supervisor 验证的完整 child identity/cgroup membership、强制终止能力、`populated=0`/退出回执和失败时自动 TTL 清理；实际能力可由 Infra 选择 cgroup v2 + 外部 pidfd 路线，或由可靠编排器提供同等独立原始证据。避免在普通共享 Runner 上未经隔离直接发起父 Host SIGKILL。SRE/DBA/IdP/Worker 全域生产权威仍必须单独提供。
+
+**当前控制面再次刷新（只读）：** GitHub `main@524106df36af45b89d15eebd4c0c4f308b1718fc` **40/40 exact check-runs SUCCESS**；Railway Host deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 与该 SHA 一致，SUCCESS/Online，1 running/0 crashed；前一次 `0cf816e7...` 现 REMOVED。此时间片的新 main 来自其他主线，不将其绿色提交检查解释为旧全量 schedule 10 FAIL 修复。
+
+**PR 当前合并状态的新增矛盾/风险：** #1074 当前 GitHub PR API `mergeable=false, mergeable_state=dirty`（准确 HEAD `caccb1b6`，未合并），提示该独立 Host shutdown Draft 需要在**原 PR** 合并前收敛冲突；#1081/#1082 为 `behind`（而非均代表冲突）。本轮因用户禁止合并 Draft、不覆盖其他工作线，未擅自修改 #1074 或推进 main。
+
+**总体否决不变：** K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 `OPEN`。无生产 Validator、SQL、Secrets、停止、重启、draining/tracing 修改、SIGKILL 父进程实验或远端分支删除。
