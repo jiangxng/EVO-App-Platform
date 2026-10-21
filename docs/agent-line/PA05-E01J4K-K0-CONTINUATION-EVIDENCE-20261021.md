@@ -124,3 +124,53 @@
 **严格结论：** 唯一一次 CI 的 local stop 观察到 **753ms**，在此用例 `<3000ms` 的测试上限内提前回收 child；源码配置 fallback 750ms，观察值与其预期一致，但单次机器的耗时**不是生产 deadline SLA、不是所有负载下上界、不是 SIGTERM PID1 行为，也不是独立父 Host SIGKILL 回执**。现新增 K0 局部工程等级可在对应提交全部 CI 绿后认定为 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`，不升级 K0 全域认证。
 
 **外部停止权威仍未通过：** 缺受信独立 supervisor 的完整 child/子孙身份与回收；真实 Railway effective drain/overlap、Node PID1 signal、组织全域 worker+Runner、PG backend session/role、Human IdP/DBA/secret broker rotation/revoke/audit。其来源和测试前置门禁见 §§7–8 及旧工作表 R1–R8。四条 Draft 不合并、不部署、不运行生产 Validator/SQL/Secrets/stop/重启；K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`。
+
+
+## 10. 2026-10-21 — 无破坏监督者能力预检：真实 Runner 原始证据 + 默认拒绝
+
+**实施边界：** 在原工程 Draft [#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 追加 **2 个 test-only 文件**，没有改生产 runtime 和 Host shutdown。commit [`0d874d69`](https://github.com/jiangxng/EVO-App-Platform/commit/0d874d69cc9594d836df9117e327e585c49421b2) 增加 `tests/fixtures/pa05-k0-external-supervisor-preflight.mjs`；commit [`eb129cc2`](https://github.com/jiangxng/EVO-App-Platform/commit/eb129cc2b156294d34c0a04fb73a6ebbedd4b34f) 增加 `tests/protocol/pa05-k0-supervisor-preflight.test.mjs`。**此阶段仅能探测当前 Runner 内核/cgroup 可读特征，不承诺/实施外部监督者。** 所有安全关键字段始终 false，`assertK0IndependentSupervisorReady` 恒定抛出 `PA05_K0_PARENT_SIGKILL_DENIED`。即使传入所有 `true` 的未经验证 claims，仍拒绝；没有任何执行 SIGKILL 的函数。
+
+**实际原始 CI 证据：** [Platform workflow run #39535199087 / job #119010190494](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39535199087/job/119010190494)，2026-10-21T02:50:49Z，`ORIGINAL_GITHUB_ACTIONS_JOB_LOG_DIRECT_READ_20261021`，真实 `npm run test:platform` **1105 total / 1104 PASS / 1 SKIPPED / 0 FAIL**。两个 preflight 测试 PASS，既有 11 项 K0 disposable PROCESS 专项仍在同一 job 通过。这两项**不是**第 12/13 项 PROCESS 生命周期测试，应独立定级。
+
+```json
+{
+  "scope": "test-runner-local-readonly",
+  "linux": true,
+  "cgroupV2Detected": true,
+  "ownCgroupLocated": true,
+  "eventsReadable": true,
+  "cgroupKillPresent": true,
+  "observedPopulated": "1",
+  "dedicatedCgroupOwnershipVerified": false,
+  "independentSupervisorLifetimeVerified": false,
+  "childTreeTerminationAuthorityVerified": false,
+  "emergencyReaperAndTtlVerified": false,
+  "independentlySignedExitReceiptVerified": false,
+  "parentSigkillExperimentAuthorized": false,
+  "globalStopCertified": false
+}
+```
+
+第二条 marker：`PA05_K0_EXTERNAL_SUPERVISOR_UNTRUSTED_CLAIMS_DENIED={"scope":"local-test-only","denied":true,"globalStopCertified":false}`。这说明**确实观察到当前 GitHub Runner 具备某些 cgroup v2 可读接口**；不能把 `cgroupKillPresent=true` 与能够安全地创建专属子 cgroup、写入 `cgroup.kill`、回收全部 child、由独立 supervisor 见证甚至生产 Railway 支持相混淆。特别是 `observedPopulated="1"` 只说明**当前 Runner 所在 cgroup 子树有进程**，它不是专属测试 cgroup 的 `populated=0` 外部退出回执。
+
+**局部新工程状态：** `ISOLATED_SUPERVISOR_CAPABILITY_HINTS_READ_ONLY_AND_UNTRUSTED_CLAIMS_DENIED`；#1082 之前的 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS` **不升级**。工程新精确 HEAD `eb129cc2b156294d34c0a04fb73a6ebbedd4b34f` 在上述 CI job SUCCESS 后，其他 workflow check 必须另行确认全绿。
+
+### 10.1 从探测到可安全测试的下一阶段硬门槛
+
+| 证明项 | 接受的后续真实证据 | 本轮状态 |
+| --- | --- | --- |
+| 隔离归属 | Infra 在**非生产** Linux 隔离环境实际创建并标记本次专属 cgroup，提供 owner、mount namespace、进程 PID namespace、唯一 test run id，不允许复用共享 Runner 根 cgroup | UNVERIFIED |
+| 独立 supervisor | 不是受测父 Host 的子生命周期依赖；能够在 Host SIGKILL 后保持运行；向独立审计存储登记 PID + start time 或 pidfd / cgroup 归属 | UNVERIFIED |
+| 清理能力 | 独立 supervisor 可在受信隔离权限内可靠执行组回收；完成后观察 cgroup `populated=0`，错误时仍有独立于目标 Host 的 TTL rescue | UNVERIFIED |
+| 严格实验门禁 | 进入危险测试前，组织明确授权、可撤销准入、可核查剩余时间预算、测试环境与生产严格分离；外部审计签收 | UNVERIFIED |
+| 生产级止写 | 独立于 Linux 本机 OS 的组织全域 Worker/Runner/freeze 清单、SQL backend 复核、IdP/DBA/Secrets/审计权威与 Railway 有效 drain/PID1 | UNVERIFIED |
+
+**方案理由（原始内核资料见 §8）：** 先做不写 cgroup 的内核能力可读性检查，可以确认下一轮应由 SRE 提供的真实前置资源；不能借存在 `cgroup.kill` 就在共享 Runner 直接 SIGKILL 父 Host。**未改变**中央 fencing epoch + 外部 Worker stop receipt + SQL session 二次核查 + Human/DBA 身份链的原 K0→K6 选型。本次没有新的权威外部监督者，也没有带信号的实验。
+
+### 10.2 #1074 merge conflict 的只读源码定位（未修复）
+
+在 GitHub PR API 精确读取 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) `caccb1b6`：`mergeable=false/mergeable_state=dirty`。原始 PR diff 涉及 `.github/workflows/lightweight-host.yml` 单行长测试命令、`manager/server.ts` Host shutdown 段、新 `manager/host-shutdown.ts` 和一份 Host stop 测试。再次读取 `main@6bea66e8b7cde970a1f62d440b00d6567aeeca57` 两份源文件：主线尚无 `host-shutdown.ts` 的 import，仍是旧 shutdown 段，但 lightweight-host workflow 的长期长行**已有其他 owner 新增的测试项**，并行改动不能被 PR #1074 的旧行整体覆盖。
+
+**限定建议而非实施事实：** 修 #1074 时必须保留当前 main 上全部新增 lightweight-host 测试/Host 改动，再附加 J4J / Host shutdown 测试；源码冲突逐段核对主线 import/server handler/stop，重新跑完整对应 CI；不得自动使用旧 PR 文件覆盖 main 的治理成果。本窗口不更改 #1074，也不合并四 Draft。主线与其生产部署的最后校验时间片可不同；单独列证据。
+
+**K0 否决持续：** production material WRITE `OFF`；K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，#988/#979/#913 OPEN；无生产 Validator/SQL/Secrets/停止/扩缩容/draining 或历史分支删除。
