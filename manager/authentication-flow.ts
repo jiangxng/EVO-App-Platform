@@ -63,6 +63,7 @@ export function createAuthenticationFlowV010(input: {
   publicBaseUrl: string;
   sessionTtlSeconds: number;
   secureCookie?: boolean;
+  assertCurrent?: () => void;
   onAuthenticatedPrincipal?: (
     principal: import("../contracts/platform-services.js").PlatformPrincipalV010
   ) => Promise<void> | void;
@@ -97,6 +98,7 @@ export function createAuthenticationFlowV010(input: {
       returnTo?: string;
       locale?: string;
     }): Promise<AuthenticationFlowStartResultV010> {
+      input.assertCurrent?.();
       const returnTo = normalizeAuthenticationReturnToV010(request.returnTo);
       const result = await input.provider.begin({
         contractVersion: "0.1.0",
@@ -104,6 +106,7 @@ export function createAuthenticationFlowV010(input: {
         returnTo,
         ...(request.locale ? { locale: request.locale } : {})
       });
+      input.assertCurrent?.();
       const redirect = new URL(result.redirectUrl);
       if (redirect.protocol !== "https:" && redirect.hostname !== "localhost") {
         throw new Error("AUTHENTICATION_REDIRECT_HTTPS_REQUIRED");
@@ -114,6 +117,7 @@ export function createAuthenticationFlowV010(input: {
     async complete(
       requestCallbackUrl: string
     ): Promise<AuthenticationFlowCompleteResultV010> {
+      input.assertCurrent?.();
       const callback = new URL(requestCallbackUrl);
       if (
         callback.origin !== new URL(publicBaseUrl).origin
@@ -125,10 +129,12 @@ export function createAuthenticationFlowV010(input: {
         contractVersion: "0.1.0",
         callbackUrl: callback.toString()
       });
+      input.assertCurrent?.();
       if (authenticated.principal.actorType !== "HUMAN") {
         throw new Error("AUTHENTICATION_HUMAN_PRINCIPAL_REQUIRED");
       }
       await input.onAuthenticatedPrincipal?.(authenticated.principal);
+      input.assertCurrent?.();
       const issued = input.sessions.issue({
         principal: authenticated.principal,
         ttlSeconds: input.sessionTtlSeconds,
@@ -161,3 +167,4 @@ export function createAuthenticationFlowV010(input: {
     }
   };
 }
+
