@@ -64,8 +64,12 @@ test("K0 synthetic evidence: signed matching offline receipt cannot authorize SI
 test("K0 synthetic evidence: reject forged key, mutated bytes and no pinned key", () => {
   rejectsCode(() => check(envelope(payload(), {key: outsider.privateKey})), "BAD_SIGNATURE");
   const signed = envelope(payload());
-  signed.payloadBytes = Buffer.from(JSON.stringify(payload({instanceId: "attacker-worker"})));
-  rejectsCode(() => check(signed), "SCOPE_MISMATCH_instanceId");
+  // Alter a still-in-window observation after it has been signed.
+  // This must fail cryptographic verification, not merely a scope check.
+  signed.payloadBytes = Buffer.from(JSON.stringify(payload({
+    observedAt: "2026-10-21T02:54:59.000Z"
+  })));
+  rejectsCode(() => check(signed), "BAD_SIGNATURE");
   const noKey = envelope(payload());
   noKey.trustKey = undefined;
   rejectsCode(() => check(noKey), "NO_PINNED_TEST_KEY");
