@@ -1009,3 +1009,12 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 | Production material WRITE | 禁用 | **`OFF`** |
 
 **安全决策持续：** 禁止在缺独立 child 回收监督者时测试 parent SIGKILL；不运行生产 Validator、SQL/Secrets、Railway draining 修改、服务停止/重启/扩缩容；不合并四个 Draft，不改 `project.status.json`、BEX/CP03/Eidos/2D，Issues #988/#979/#913 继续 OPEN。九条已合并历史分支仍仅审计，因连接器无 delete-ref/dispatch 无法实际删除；不得宣称清理完成。
+
+
+## 89. PA05-05 / K0 — 2026-10-21 第十一项非合作 deactivate stop deadline 局部 CI
+
+**完成的工程证据（非生产签收）：** 原独立 Draft [#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 最新 HEAD [`156609a7bf9429fa2e1fcc4ca4e42a7349da1964`](https://github.com/jiangxng/EVO-App-Platform/commit/156609a7bf9429fa2e1fcc4ca4e42a7349da1964) 的 **5/5 exact-HEAD GitHub checks SUCCESS**；[Platform CI run #39533283090/job #119004106488](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39533283090/job/119004106488) 原始日志 2026-10-21 **1103 tests / 1102 PASS / 1 SKIPPED / 0 FAIL**，十一项本地 disposable Node PROCESS `PA05_K0_BOUNDED_*` marker 均输出、全部 `globalStopCertified=false`。新增非合作 `deactivate()` 永不返回时单次 `stop()` 实际耗时 753ms、child PID 已不存在且正常完成 Host shutdown；child 5 秒自退出保险未触发。不是所有机器、实际生产 draining、父 Host SIGKILL、生产 SLA 或全域 Worker stop 实证。
+
+**状态升级（仅狭窄本地工程）：** `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`。§§87–88 前十项原有证据保留，当前十一项完整范围、源级资料、cgroup/pidfd/subreaper 的新直接原文阅读和独立 supervisor 前置门禁见 [2026-10-21 接续索引 §9](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) / [工作表 §15](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+**原始主目标仍 OPEN：** 父 Host SIGKILL 后独立 supervisor 子孙枚举/强制回收/可信签名，全部 Worker/外部 Caller/freeze 及生产 Railway effective draining/PID1 SIGTERM，DBA PostgreSQL session/role 撤销和实际 Human IdP/MFA/Secrets/Audit Owner 均 `UNVERIFIED`。不得在没有独立清理授权时运行父进程 SIGKILL。#1074 顶层 Host shutdown 仍独立 Draft 当前合并冲突；#1081 负面实验仍 Draft。**K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 均 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 `OPEN`。** 绝不触发生产 Validator、Secrets/SQL、停机/重启/扩缩容、Railway draining 变更、合并 Draft 或覆盖其他窗口工作。
