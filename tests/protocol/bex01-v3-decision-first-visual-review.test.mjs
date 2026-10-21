@@ -122,6 +122,15 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     "reselecting an original unverified metadata proposal must restore its Host review status");
   assert.equal(metadataGroup.statusByChoice.__IGNORE__.key,"ignored");
   assert.equal(metadataGroup.statusByChoice.__PENDING__.key,"pending");
+  // "Needs review" includes actual, durable Import Job problems; Eidos must
+  // not replace 3 Host issues with the 1 currently visible table-status row.
+  const issuesMetric=mapping.reviewTask.metrics.find(metric=>metric.id==="attention");
+  assert.equal(issuesMetric.reactive,false);
+  assert.match(renderToHtml(mapping),/data-eidos-form-task-metric-fixed="true"/);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    metrics:mapping.reviewTask.metrics.map(metric=>metric.id==="attention"
+      ? {...metric,reactive:"disabled"} : metric)}}).ok,false,
+    "the generic opt-out must be an explicitly validated boolean");
   // The source-preserved proposal is still unsafe to treat as Human-approved.
   assert.equal(mapping.fields.find(field=>field.key==="map_1").initialValue,"__CREATE__");
 

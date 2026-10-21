@@ -1025,6 +1025,9 @@ export function createDataImportMappingPageV010(input: {
     }, {
       id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
       value:String(reviewIssues.length),
+      // Includes durable dry-run/row findings, not merely row-status counts.
+      // A local selection must never erase these unvalidated Host issues.
+      reactive:false,
       tone:reviewIssues.length > 0 ? "warning" as const : "neutral" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",

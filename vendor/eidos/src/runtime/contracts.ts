@@ -108,6 +108,9 @@ export interface UidlFormReviewTaskV010 {
   metrics?: {
     id: string; label: string; value: string;
     tone?: "neutral" | "positive" | "warning" | "danger";
+    /** Default true for compatible row metrics. False preserves Host-derived
+     * totals (e.g. durable validation issues) during unsaved local choices. */
+    reactive?: boolean;
   }[];
   issuesTitle?: string;
   issuesDescription?: string;

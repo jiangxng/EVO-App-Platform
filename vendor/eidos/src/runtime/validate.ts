@@ -1215,8 +1215,9 @@ export function validateUidl(
         fail(path+".steps","Exactly one step must be current");
       }
       checkIds(task.metrics,path+".metrics",8,(item,at)=>{
-        extraKeys(item,new Set(["id","label","value","tone"]),at,out);
+        extraKeys(item,new Set(["id","label","value","tone","reactive"]),at,out);
         return nonEmpty(item.label) && typeof item.value==="string"
+          && (item.reactive===undefined || typeof item.reactive==="boolean")
           && (item.tone===undefined
             || ["neutral","positive","warning","danger"].includes(item.tone as string));
       });

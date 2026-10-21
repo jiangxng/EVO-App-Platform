@@ -660,12 +660,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       Object.values(statuses).forEach(status => supported.add(status.key));
     }
     const updateCounts = () => {
-      // Only id-matching status metrics opt into reactive counts.
+      // Source/Host issue totals are not equivalent to the count of rows with
+      // the same status key. Explicitly fixed metrics are never recomputed from
+      // unsaved select changes; default behavior remains backwards compatible.
       for (const metric of Array.from(container.querySelectorAll<HTMLElement>(
         "[data-eidos-form-task-metric-id]"
       ))) {
         const key=metric.dataset.eidosFormTaskMetricId;
-        if (!key || !supported.has(key)) continue;
+        if (!key || !supported.has(key)
+          || metric.dataset.eidosFormTaskMetricFixed === "true") continue;
         const value=metric.querySelector<HTMLElement>("strong");
         if(value) value.textContent=String(allRows.filter(row =>
           row.dataset.eidosReviewTableStatusKey===key).length);

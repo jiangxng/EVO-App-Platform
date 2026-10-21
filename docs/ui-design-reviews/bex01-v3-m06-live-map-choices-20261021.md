@@ -30,3 +30,7 @@ Status: UI REVIEW EVIDENCE / Human 100% 待本人签收。Owner PR #1086；原�
 ### 2026-10-21 原型源码对照：撤销本地改选的状态恢复
 
 原型 `changed()/render()/updateIssues()` 显示改选后立即按本次选择更新；真实 Host 的原始系统元数据列可在未保存时先临时标注“不导入”，随后又选回 `__CREATE__`。此时必须返回**原始授权 Job 的 `attention`/「需要核对」**，不能因为 `choiceStatusFor` 的一般分支把它误变为 `pending` 或视为已批准。本轮在 `apps/data-import/page.ts` 先判断“所选值与 Host 恢复值相同”并复用已核验的 `reviewStatusFor`；原始同名目标/不可用目标同理。真实桌面 Chromium 增加 ignore → 原选择 → 状态/汇总恢复 → 整页 reload 的验证，并补协议测试。所有数据仍由 Host Job 持久态提供，不自动写入或消除实际 dry-run 问题。此项测试/CI 需按最终 HEAD 另行确认，不自动升级 Human 签收。
+
+### 2026-10-21 Eidos 实时统计与 Host 问题总数的边界
+
+真实 Chromium 暴露：默认 Eidos #195 的 `updateCounts` 根据同名状态 key 重算所有指标；但本 V3 的 `attention` 数值来自 `reviewIssues.length`（真实歧义 + dry-run 行问题 + 元数据），不等于表格中 `attention` 状态行数。用户临时选择“不导入”后，旧逻辑把 **Host 3 项问题误显示成 1 项**。因此扩展 Eidos generic metric 的 **`reactive?: boolean`（默认保持原有反应式行为）**，仅映射页该 Host 问题数声明 `reactive:false`；其他三项映射字段指标仍实时更新。不篡改 Host 问题数、已批准状态或 issue card 的法定恢复证据；待真实预检查与服务器重新加载才能改变持久化问题事实。补 UIDL 校验（必须布尔值）、渲染标识和真实浏览器的“改选后仍为 3 项”回归。最终 PASS 仅以精确 HEAD CI 为准，不能替代 Human。
