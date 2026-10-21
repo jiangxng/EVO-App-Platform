@@ -107,3 +107,20 @@
 **PR 当前合并状态的新增矛盾/风险：** #1074 当前 GitHub PR API `mergeable=false, mergeable_state=dirty`（准确 HEAD `caccb1b6`，未合并），提示该独立 Host shutdown Draft 需要在**原 PR** 合并前收敛冲突；#1081/#1082 为 `behind`（而非均代表冲突）。本轮因用户禁止合并 Draft、不覆盖其他工作线，未擅自修改 #1074 或推进 main。
 
 **总体否决不变：** K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 `OPEN`。无生产 Validator、SQL、Secrets、停止、重启、draining/tracing 修改、SIGKILL 父进程实验或远端分支删除。
+
+
+## 9. 2026-10-21 — 非合作 deactivate 本地 stop deadline：第十一项真实 CI
+
+**为什么新增：** 旧 #1082 的 timeout kill/reaping 回归关注 invocation timeout，第一项 stop/shutdown overlap 的 child `deactivate` **会在 400ms 返回**。因此并未证明 child `deactivate()` 永久不返回时 Host `stop()` 能否用自己的 750ms SIGKILL fallback 完成本地回收。
+
+**独立工程原分支：** #1082 不另开 PR。只修改已有两项 test-only 文件：`tests/fixtures/pa05-k0-delayed-process.mjs` 在专用 disposable 包 ID `pa05-k0-deactivate-hang-process` 返回 ready 后让 `deactivate()` 永久 pending，另有 child 5s 自退出保险（commit [`98d91fa`](https://github.com/jiangxng/EVO-App-Platform/commit/98d91fa634054ebd79c9b3f9c335e019a319dad0)）；新增正向 test 在真实 Node child 读出 PID、确认原先存活，调用 `stop()`、检测本地用时上界和 PID 不再存活，最后 `shutdown()` 复核（HEAD [`156609a7`](https://github.com/jiangxng/EVO-App-Platform/commit/156609a7bf9429fa2e1fcc4ca4e42a7349da1964)）。没有修改 `manager/plugin-runtime-host.ts` 或顶层 #1074 Host 代码。
+
+**原始 Actions 日志：** [Platform CI #39533283090 / job #119004106488](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39533283090/job/119004106488) 的完整 job log 由本窗口在 2026-10-21 直接读取（等级：`ORIGINAL_ACTIONS_RAW_LOG_DIRECT_READ_20261021`）。`1103 total / 1102 PASS / 1 SKIPPED / 0 FAIL`，十一项 `PA05_K0_BOUNDED_*` marker 全部出现，新 `ok #776`：
+
+```json
+{"scope":"isolated-local-child","nonCooperativeDeactivate":true,"childClosedBeforeFixtureFuse":true,"elapsedMs":753,"globalStopCertified":false}
+```
+
+**严格结论：** 唯一一次 CI 的 local stop 观察到 **753ms**，在此用例 `<3000ms` 的测试上限内提前回收 child；源码配置 fallback 750ms，观察值与其预期一致，但单次机器的耗时**不是生产 deadline SLA、不是所有负载下上界、不是 SIGTERM PID1 行为，也不是独立父 Host SIGKILL 回执**。现新增 K0 局部工程等级可在对应提交全部 CI 绿后认定为 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`，不升级 K0 全域认证。
+
+**外部停止权威仍未通过：** 缺受信独立 supervisor 的完整 child/子孙身份与回收；真实 Railway effective drain/overlap、Node PID1 signal、组织全域 worker+Runner、PG backend session/role、Human IdP/DBA/secret broker rotation/revoke/audit。其来源和测试前置门禁见 §§7–8 及旧工作表 R1–R8。四条 Draft 不合并、不部署、不运行生产 Validator/SQL/Secrets/stop/重启；K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`。
