@@ -215,3 +215,37 @@
 **独立原始 CI：** [Platform run #39536775595 / job #119015279614](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536775595/job/119015279614)，`ORIGINAL_GITHUB_ACTIONS_JOB_LOG_READ_20261021`，新 HEAD **1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL**，6 项 synthetic receipt、11 项本地 PROCESS 和 2 项只读 supervisor preflight 均通过。测试 marker 仍明确：`signatureMatchesSuppliedTestKey=true` **但** `independentSupervisorIdentityVerified=false`、`stopAuthorityVerified=false`、`globalStopCertified=false`、`mayRunParentSigkill=false`。精确 HEAD 的剩余 workflows 需单独确认全部结束。
 
 **与 §11 的关系：** §11 是真实已测试的早期历史快照，不覆盖或伪称其已执行新验签先行规则。以本节新 `50a7a068` 的源码、真实 job log 为当前 test-only 包含的更严格状态。绝不因它推断生产 stop authority、SQL session、Human IdP/DBA credential 已签收。K0/完整 E01J4/PA05-05 E01–E05/W06 仍 `NOT_SIGNED`，WRITE `OFF`。
+
+
+## 13. 2026-10-21 自动续跑 #03 — 离线 Worker 清单与停机回执精确对账
+
+> **证据级别：** `ORIGINAL_GITHUB_SOURCE_COMMITTED_20261021` + `ORIGINAL_GITHUB_ACTIONS_JOB_LOG_DIRECT_READ_20261021`；只是离线合成数据的逻辑一致性验证。不是已经部署的停机服务、真实双 Worker 实验、实际外部 Supervisor 或生产凭据。继承此前 PostgreSQL18/OAuth/Lease/NIST 研究，不重做已验证原文、也不改变 K0→K6 设计。
+
+### 13.1 范围、精确工程提交与原始执行
+
+- 原工程 **Draft [#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082)** 延续，不合并、不部署。添加两个 test-only 文件：[`tests/fixtures/pa05-k0-synthetic-inventory-reconciliation.mjs`](https://github.com/jiangxng/EVO-App-Platform/blob/d9be185e3e244bb45fec5f3fab2554c52b04114f/tests/fixtures/pa05-k0-synthetic-inventory-reconciliation.mjs) commit [`599bafafa9c7ad6da63c96d1c1bf2f4e74d8fd61`](https://github.com/jiangxng/EVO-App-Platform/commit/599bafafa9c7ad6da63c96d1c1bf2f4e74d8fd61)，[`tests/protocol/pa05-k0-synthetic-inventory-reconciliation.test.mjs`](https://github.com/jiangxng/EVO-App-Platform/blob/d9be185e3e244bb45fec5f3fab2554c52b04114f/tests/protocol/pa05-k0-synthetic-inventory-reconciliation.test.mjs)，精确 HEAD [`d9be185e3e244bb45fec5f3fab2554c52b04114f`](https://github.com/jiangxng/EVO-App-Platform/commit/d9be185e3e244bb45fec5f3fab2554c52b04114f)。
+- [Platform CI #39537627482 / job #119017875426](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39537627482/job/119017875426) **原始 job log 已直接读过**，2026-10-21T03:17:09Z：**1121 total / 1120 PASS / 1 SKIPPED / 0 FAIL**；十组新增 `K0 offline reconciliation` subtest 全部 `ok`；同一次 job 包含先前十一项真实本地 Node PROCESS marker。最终 HEAD 的完整 commit check-runs 还须独立判断全绿，不允许仅用 protocol job 代替整个 CI。
+- 测试组合为 **2 个虚构 Worker、3 个虚构外部 caller、临时 Ed25519 测试公钥和内存回执 cache**。完全不生成/停止操作系统进程，不发网络请求、不碰 Railway/生产 SQL/Secrets。
+
+### 13.2 对账方案（仅受限离线 contract test）
+
+要求 synthetic `freeze` 包含相同 `operationId / scopeId / inventoryRevision / fencingEpoch` 及非空、实例身份唯一的 `instanceId / startNonce / supervisorId / keyId`；synthetic `postFreeze` 必须沿用同一快照且 `liveInstances=[]`。停机回执数量及身份严格与冻结快照一对一匹配，并逐个重用 §11–12 已通过的 Ed25519 **签名先于 claims** 检查。caller `DENY` 声明必须覆盖所有测试已知 caller，epoch 一致；synthetic DB session 观察必须与 scope 一致且为 `SYNTHETIC_NO_PROTECTED_SESSIONS`。所有检查完成后才提交本地 replay Set，避免中途拒绝时污染缓存。
+
+以下被显式否决：缺失 / 重复 / 多余或未知 receipt、旧启动 nonce / fencing epoch、重复或空 inventory、声称不完整仍继续、冻结后存活 / 重启实例、冻结快照版本不匹配、未知/重复/遗漏 caller、caller 错 epoch 或返回 ALLOW、模拟 SQL 会话未知或仍在、错误验签公钥、重复 receipt 及半失败后错误消费本地 replay cache。
+
+**真实输出标记**（原始 job log）：
+
+```json
+{"scope":"offline-synthetic-reconciliation-only","locallyConsistentUntrustedFixture":true,"syntheticInstanceCount":2,"syntheticCallerCount":3,"testSignaturesMatched":true,"independentInventoryCompletenessVerified":false,"externalStopAuthorityVerified":false,"realCallerAdmissionVerified":false,"realDbSessionAbsenceVerified":false,"humanAndDbaAuthorityVerified":false,"parentSigkillAuthorized":false,"productionMaterialWriteEnabled":false,"globalStopCertified":false}
+```
+
+另有 `PA05_K0_SYNTHETIC_MULTIWORKER_REPLAY={"transactionalTestCache":true,"localReplayDenied":true,"globalStopCertified":false}`，**只是 test-runner-local 的重放逻辑**。
+
+### 13.3 本轮决策及不可跨越的认证缺口
+
+- 新等级仅 `ISOLATED_SYNTHETIC_MULTIWORKER_INVENTORY_RECONCILIATION_TEN_CASE_BOUNDED_PASS`；十项“对账逻辑”不得计为十项真正 Worker stop。原有 **11 项 local PROCESS**、**2 项只读 Supervisor preflight**、**6 项 synthetic signature envelope** 各保留原标签与范围。
+- `freeze.completeForScope`、`postFreeze.liveInstances=[]`、`callerDecisions=DENY` 和 `dbSessionObservation=SYNTHETIC_NO_PROTECTED_SESSIONS` **都是测试输入中未经组织授权的断言**；即使签名或数据结构均匹配，仍不能证明真实库存完整、实际入口封闭、真实生产 PostgreSQL backend 消失、真实 supervisor 已回收任何进程。输出硬编码保持 `externalStopAuthorityVerified=false`、`realDbSessionAbsenceVerified=false`、`globalStopCertified=false`。
+- 下一真门槛仍是 **Infra/SRE 的实际可信库存授权与专属隔离 Supervisor / OS PID/cgroup/退出回执，重启扩缩容排他；独立 DB session 二次核查；完整外部 caller/Host routes；真实 Human IdP、DBA、凭据轮换和审计责任**。这些均不能通过增加本地 Mock 或自签密钥替代。
+- 沿用原 K0 → K6 的 fencing epoch / stop attestation / PostgreSQL session / Human IdP / DBA 治理决策；没有新的冲突来源推翻原定路线。无父 Host SIGKILL、生产 Validator、SQL/Secrets、停止、部署、改 draining/trace、异常锁清理和远端分支删除。
+
+**认证状态严格不变：K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`，production material WRITE `OFF`；Issues #988/#979/#913 `OPEN`；四条 PR #1071/#1074/#1081/#1082 均 Draft，不合并或部署。**
