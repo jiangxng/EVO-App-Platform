@@ -279,7 +279,11 @@
 - **来源直接证据：** GitHub `list_pr_changed_filenames` + `fetch_pr_file_patch` 当前精确 PR patch，workflow **仅**在 `Isolated installed-disabled module and resource audit` 与 `actions/upload-artifact` 之间新增四行独立测试步骤；原来冲突的长测试行**完全等同 PR base**，因此 main 的新增测试保留给 GitHub 三路合并处理，不在旧 Draft 当前 runner 上执行不存在的 main-only 测试。
 - GitHub 重新计算 PR 精确 `c6d5fca9`：**`mergeable=true`，`mergeable_state=behind`，`draft=true`，`state=open`**，原 `dirty` 已解除。这意味着**文本合并冲突解除**，不是已把新 main 合并进旧 Draft、不是自动部署或生产 stop 认证。仍需当前 HEAD 重新跑完 45 项左右的真实 checks；不可重用旧 HEAD 的 45/45。
 
-### 15.2 新发现、限制和下一步
+### 15.2 新 HEAD 真实 CI 复核与仍然成立的限制
+
+**精确新 HEAD `c6d5fca90ebfc41ffa642dc5af2e756a224ec838` 已 45/45 check-runs SUCCESS**，包括 [Lightweight Host run #39538625109 / job #119021176953](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39538625109/job/119021176953)。**原始 job log 直接读取**（`ORIGINAL_GITHUB_ACTIONS_JOB_LOG_DIRECT_READ_20261021`）：原本 lazy-load 测试步骤 `278 tests / 278 PASS / 0 FAIL`；新增独立 `node --test tests/agent-line/pa05-host-shutdown-error-path.test.mjs tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs` **`5 tests / 5 PASS / 0 FAIL`**。这些日志来自新 SHA，而非错误地复用旧 `caccb1b6` 的 45/45。新增步存在且真正执行，当前 PR GitHub `mergeable=true`、`mergeable_state=behind`、`draft=true`；仍不可签生产 K0 或擅合并。
+
+### 15.3 新发现、限制和下一步
 
 **工程结论：** `HOST_SHUTDOWN_PR_MERGE_CONFLICT_RESOLVED_PENDING_NEW_HEAD_CI`；#1074 仍 Draft/未合并/未生产。这次修复避免两种错误：用旧长行覆盖新 main 的 CI 清单；把 main 新增但当前 Draft 缺失的测试导入旧 Draft 的 CI 造成虚假失败。当前测试步骤依旧只证明旧 Host 本地错误路径，不签生产 PID1/SIGTERM/draining 或 K0 全域停机。
 
