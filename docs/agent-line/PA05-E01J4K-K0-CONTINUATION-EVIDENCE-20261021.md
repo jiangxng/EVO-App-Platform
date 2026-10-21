@@ -174,3 +174,33 @@
 **限定建议而非实施事实：** 修 #1074 时必须保留当前 main 上全部新增 lightweight-host 测试/Host 改动，再附加 J4J / Host shutdown 测试；源码冲突逐段核对主线 import/server handler/stop，重新跑完整对应 CI；不得自动使用旧 PR 文件覆盖 main 的治理成果。本窗口不更改 #1074，也不合并四 Draft。主线与其生产部署的最后校验时间片可不同；单独列证据。
 
 **K0 否决持续：** production material WRITE `OFF`；K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，#988/#979/#913 OPEN；无生产 Validator/SQL/Secrets/停止/扩缩容/draining 或历史分支删除。
+
+
+## 11. 2026-10-21 — 离线签名回执最小契约：真 CI、但无生产信任根
+
+**新增需求与对先前设计的继承：** 依据原 [K0 验收表 §4](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 的 operation / inventory revision / fencing epoch / exact instance / nonce / supervisor identity / exit receipt / time binding 字段，将“只是文件存在或未经证实的 boolean 声明”提升为**可测试的离线证据契约草案**。这不是选择实际编排器，也不是修订中央 epoch + 权威清单 + 外部终止 + DB-session 重查 + Human/DBA 生产认证的既定 K0→K6 路线。
+
+**原 #1082 工程分支增量（新增 test-only 两文件，未改 Host Runtime）：**
+
+- [`7531dca586125cbcee7e8dbecc6f351d65531748`](https://github.com/jiangxng/EVO-App-Platform/commit/7531dca586125cbcee7e8dbecc6f351d65531748) 的 `tests/fixtures/pa05-k0-supervisor-receipt-proof.mjs`：仅接受不超过 4096 字节的特定测试 JSON envelope，以 Node.js Ed25519 验证**原始字节签名**，检查精确字段集、JSON 重复键/非规范字节、关联 `operationId/scopeId/inventoryRevision/fencingEpoch/instanceId/startNonce/supervisorId/keyId`、观测时间不早于 120 秒且非未来、`EXTERNAL_PROCESS_EXIT_OBSERVED` 事件及 `cgroupPopulated="0"`。用调用方给出的本地 `Set` 演示重复 digest 拒绝。没有创建、停止或枚举任何 Worker，也没有碰生产 SQL/Secrets/cgroup。
+- [`358e01e3751c388ca16f3fac5a28ecbba0d63165`](https://github.com/jiangxng/EVO-App-Platform/commit/358e01e3751c388ca16f3fac5a28ecbba0d63165) 的 `tests/protocol/pa05-k0-synthetic-stop-receipt.test.mjs`：每次 Node CI 生成临时 Ed25519 keypair，仅以测试密钥签测试 fixture，验证正向字节签名、伪造签名/未提供信任键、过期/未来时间、操作/epoch/nonce 不匹配、事件或 cgroup 未清空、重复键、额外生产秘密字段、签名长度异常，以及局部重复回执拒绝等 **6 个测试用例**。
+
+**实际原始 GitHub Actions 证据（`ORIGINAL_ACTIONS_RAW_JOB_LOG_READ_20261021`）：** [Platform run #39536229728 / job #119013390883](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536229728/job/119013390883) 于 2026-10-21T03:02:03Z 记录 `ok #779–#784` **六项 synthetic 证据契约测试通过**，`1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL`，既有本地 PROCESS 11 项 marker 与 supervisor preflight 2 项 marker 仍在同一 job 通过。关键原始 JSON：
+
+```json
+{"scope":"offline-synthetic-fixture-only","payloadBoundToExpectedInstance":true,"signatureMatchesSuppliedTestKey":true,"testOnlyReplayCacheChecked":true,"independentSupervisorIdentityVerified":false,"completeInventoryVerified":false,"stopAuthorityVerified":false,"databaseSessionsVerified":false,"productionIdentityVerified":false,"mayRunParentSigkill":false,"productionMaterialWriteEnabled":false,"globalStopCertified":false}
+```
+
+另一日志 `PA05_K0_SYNTHETIC_RECEIPT_REPLAY_DENIED` 为 `{"scope":"offline-fixture","replayDenied":true,"globalStopCertified":false}`。**上述都是测试专用 key、调用方提供的预期 scope 与局部 replay Set，不是经审批的生产 IdP、外部 Supervisor 签名根、持续全域去重账本或真实进程退出证据。** 因而新有界结论只能记 `ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS`，**不加到之前 11 个真实 Node PROCESS 生命周期案例里**。首次读取原始 job 时，HEAD 的其他 check 尚在执行；必须在精确 HEAD 全绿后更新 total checks。
+
+### 11.1 已确认局限与真正能推进 K0 的后续组织证据
+
+| 项目 | 这次离线 fixture 做到什么 | 尚缺且不能代填的真实权威 |
+| --- | --- | --- |
+| 回执结构 | 精确绑定 operation/epoch/instance/start nonce，拒绝错配 | 实际编排器产生的数据、可信 owner 验证过的完整 worker inventory |
+| 签名 | 对本地 Ed25519 fixture 原始 payload 验签 | **独立 attestor trust root、签名 keyId 与物理 supervisor/部署/环境/租户的授权映射、撤销策略和签名密钥控制** |
+| 时效与重放 | 两分钟测试窗口及调用方内存 Set 拒绝重复 payload | 真实可信时钟、持久/跨实例唯一性存储、回执重用/跨操作竞态管理 |
+| 停机退出 | 检查字符串 `event` / `cgroupPopulated` 的签名一致性 | **由独立存活的 Supervisor 真实观察专属 cgroup populated=0、所有子孙退出、签收完整性**；签名正确也可能只签了错误事实 |
+| 完整认证 | 始终返回 stopAuthorityVerified=false 和 globalStopCertified=false | 外部真正父 Host 突然死亡后的受信回收、R1–R8、PostgreSQL SQL session 再观察、IdP/DBA 生产权限及审计双签 |
+
+**不允许改变的决策：** 不将这个 test-only schema 接入生产 Validator / Host / WRITE 路由，也不以自签测试公钥作信任根；不触发父 Host SIGKILL、清锁、部署、Draining 修改、Secrets/SQL 操作。#1071/#1074/#1081/#1082 全部继续 Draft；K0、完整 E01J4、PA05-05 E01–E05、W06 **NOT_SIGNED**；material WRITE **OFF**；#988/#979/#913 继续 OPEN。
