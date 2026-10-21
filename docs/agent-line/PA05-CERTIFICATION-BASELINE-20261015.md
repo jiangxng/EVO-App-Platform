@@ -1093,3 +1093,12 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 **证据索引：** [K0 接续研究 §15](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 与 [K0 工作表 §19](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 记录原 SHA、过渡提交、冲突成因、源代码查询等级及具体避免破坏并行 main 的理由。
 
 **状态分层不变：** 此次只消除 GitHub PR merge conflict，不增加 OS 独立 Supervisor 或生产 stop receipt。#1082 真实本地 PROCESS 11 项有界、2 项只读预检、6 项 synthetic receipt、10 项 synthetic multiworker reconciliation 独立保留原等级。K0/完整 E01J4/PA05-05 E01–E05/W06 均 `NOT_SIGNED`；material WRITE `OFF`；#988/#979/#913 OPEN。禁止合并四 Draft、手动部署、生产 Validator/SQL/Secrets、父 Host SIGKILL、Railway draining/重启或跨工作线改动。
+
+
+## 95. PA05-05 / K0 — 2026-10-21 独立于目标 Host 的真实 OS 进程树观察
+
+原工程 Draft [#1082 HEAD `9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68`](https://github.com/jiangxng/EVO-App-Platform/commit/9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68) **5/5 exact-HEAD checks SUCCESS**，[Platform CI run #39539664240 / job #119024257994](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39539664240/job/119024257994) 原始日志 **1122 tests / 1121 PASS / 1 SKIPPED / 0 FAIL**。不同于先前模拟签名和 Worker inventory，这次新增的 1 项受限真实 Linux 测试让观察者独立于目标 Host 运行，真实读取 `/proc` 的目标 Host、Worker 的 PID/PPID/启动 tick/children，并在**正常 IPC stop** 后独立检查两个 OS 进程已结束。两个 disposable 进程均有明确 5/7 秒 TTL 自退出保险，无父 Host SIGKILL，无生产进程或子孙回收操作。原 marker `PA05_K0_EXTERNAL_OS_TREE_GRACEFUL_OBSERVATION` 返回 `independentCgroupSupervisorVerified=false`、`globalStopCertified=false`、`productionMaterialWriteEnabled=false`；因此新增局部判定 `ISOLATED_EXTERNAL_OS_PROCESS_TREE_GRACEFUL_OBSERVATION_ONE_CASE_BOUNDED_PASS`，**不是全域 stop 证明**。
+
+已有类别分别保留：**11 项本地真实 Plugin PROCESS 生命周期**、**2 项 Supervisor 只读预检**、**6 项离线签名回执**、**10 项 synthetic 多 Worker 对账**，本项额外 **1 项真实单机 /proc 外部观察**。类别不可混计为真实跨 Worker 停机认证。具体新事实、方案限制、来源级别及欠缺的组织 Infra 批准见 [接续研究 §16](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 与 [K0 工作表 §20](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+**所有正式门禁状态不变：** K0 `NOT_SIGNED`、完整 E01J4 `NOT_SIGNED`、PA05-05 E01–E05 `NOT_SIGNED`、W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 OPEN。真实 independent supervisor+cgroup rescue、父 Host SIGKILL 后完整退出回执、Railway effective draining/PID1、全量 Worker/Caller、DBA SQL session / IdP / Secrets / Audit owner 仍 UNVERIFIED。四 Draft 不合并不部署，不运行生产 Validator/SQL，不触碰 Secrets 或异常锁。
