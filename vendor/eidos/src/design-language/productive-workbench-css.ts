@@ -3667,4 +3667,70 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
     width:100%;min-height:44px;flex:0 0 auto;
   }
 }
+
+/* BEX-01 V3 source-of-truth visual palette and canvas: #909's actual HTML
+   :root/.panel/.metric/.issuebox CSS, not measured screenshot dimensions.
+   Scope to the real mapping form; the Host shell, authorizations, save
+   commands, other forms and other Eidos experiences retain their own skin. */
+[data-eidos-workspace-content]:has(form[data-eidos-id="evo-data-import.mapping"]){
+  background:#f5f7fa;
+}
+form[data-eidos-id="evo-data-import.mapping"]{
+  --eidos-fg:#172b44;
+  --eidos-fg-muted:#6a7c91;
+  --eidos-fg-subtle:#718196;
+  --eidos-bg:#ffffff;
+  --eidos-bg-subtle:#f5f7fa;
+  --eidos-bg-hover:#f4f8fc;
+  --eidos-bg-selected:#eaf2fb;
+  --eidos-border:#e3e9ef;
+  --eidos-border-strong:#ced9e4;
+  --eidos-focus:#73aaf4;
+  --eidos-primary:#2563a6;
+  --eidos-primary-hover:#1d538d;
+  --eidos-primary-subtle:#eaf2fb;
+  --eidos-success:#18765a;
+  --eidos-success-bg:#eaf7f1;
+  --eidos-warning:#a66712;
+  --eidos-warning-bg:#fff6e7;
+  --eidos-danger:#b54738;
+  --eidos-danger-bg:#fff1ee;
+  width:min(1200px,100%);
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--eidos-fg);
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-context],
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-metric],
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-wrap]{
+  background:var(--eidos-bg);
+  border:1px solid var(--eidos-border);
+  border-radius:10px;
+  box-shadow:0 2px 9px #13284006;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-metric][data-tone="warning"]{
+  background:#fffdfa;
+  border-color:#e8d9bd;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-icon]{
+  background:#eaf5ed;color:#198354;border-radius:9px;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-source-status][data-tone="positive"]{
+  background:var(--eidos-success-bg);color:var(--eidos-success);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol{
+  border-color:#eddfc6;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-issues] li::before{
+  background:var(--eidos-warning-bg);color:var(--eidos-warning);
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table] thead{
+  background:#f7f9fb;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-footnote]{
+  background:var(--eidos-bg);
+}
 `;
