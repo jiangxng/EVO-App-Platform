@@ -265,3 +265,24 @@
 同一窗口控制面只读核验：GitHub main `6bea66e8b7cde970a1f62d440b00d6567aeeca57` 40/40 exact commit checks SUCCESS；Railway Ledger Configurator deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 对应**较旧** `524106df36af45b89d15eebd4c0c4f308b1718fc`，SUCCESS / Online / 1 running / 0 crashed，Railway无 pendingWork。GitHub main 与当前已运行 commit 不一致，**不擅自触发部署，也不能宣称新 main 已在线**。
 
 **R1–R8 仍 UNKNOWN/DENY**：必须由 Railway 授权 Operator 提供 Dashboard 的真实有效 draining/overlap 和受控非生产 PID1/SIGTERM 回执，由组织 Infra/SRE 交付外部 supervisor 清点及停止的全部 Worker/Caller 身份和签收，由 DBA/IdP Owner 交付真实会话/凭据/审计权限。此只读连接器没有提供相关认证证据。K0/E01J4/PA05-05 E01–E05/W06 全部 NOT_SIGNED，material WRITE OFF。
+
+
+## 15. 2026-10-21 自动续跑 #04 — #1074 合并冲突有界解除及 CI 隔离
+
+**本轮优先解决真实工程阻塞，不重复本地合成测试。** 以原 Draft PR [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 为唯一修改目标。原 HEAD `caccb1b60358b453ef471eaf6abecf1593e4965c` 有 GitHub REST `mergeable=false / mergeable_state=dirty`，尽管精确旧 HEAD 45/45 checks SUCCESS。GitHub `main@6bea66e8b7cde970a1f62d440b00d6567aeeca57` 有其他窗口在 `.github/workflows/lightweight-host.yml` 长测试行新增的测试，不得以旧 PR 整行覆盖。
+
+### 15.1 原因及实际解决
+
+- 使用 GitHub connector 原样读取 `.github/workflows/lightweight-host.yml` 的原 PR base `eaa5e813b1e86a6460d988c76eb2076512c35127`（blob `898ceb27...`）、现 main `6bea66e8`（blob `99aeb01b...`）、旧 Draft 分支（blob `ee38fd44...`）。原 PR 对 workflow 的唯一修改，是在同一条极长的测试命令后追加 PA05 两个 test 路径；main 则同时在该长行添加其他工作线测试。两侧同改一行会冲突。
+- 第一次修正 `390e4a8a17861799b6b3cd302234014c4bc5aa35`：把 workflow 完整切到 main 的版本、另插入独立 PA05 步骤。GitHub 即从 `dirty` 转为 `mergeable=true / behind`，但进一步查询发现该旧 Draft 分支**尚缺**当前 main 的部分新增测试文件（例如 `tests/integration/evo-map-startup-boundary.test.mjs`、`tests/integration/managed-session-startup-boundary.test.mjs`、`tests/integration/oidc-credential-host.test.mjs`）。因此没有把这个过渡提交视为完成。
+- **最终手术式收敛：** commit [`c6d5fca90ebfc41ffa642dc5af2e756a224ec838`](https://github.com/jiangxng/EVO-App-Platform/commit/c6d5fca90ebfc41ffa642dc5af2e756a224ec838)，原 Draft 分支 `agent/pa05-host-shutdown-error-path-20261020`：将工作流恢复到 PR base 的完整非 PA05 原有内容，**仅增加一个独立** `PA05 Host shutdown isolation and cooperative lock` 步骤，单独运行 `tests/agent-line/pa05-host-shutdown-error-path.test.mjs` 和 `tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs`；没有触碰 `manager/server.ts`、`manager/host-shutdown.ts` 或测试文件。
+- **来源直接证据：** GitHub `list_pr_changed_filenames` + `fetch_pr_file_patch` 当前精确 PR patch，workflow **仅**在 `Isolated installed-disabled module and resource audit` 与 `actions/upload-artifact` 之间新增四行独立测试步骤；原来冲突的长测试行**完全等同 PR base**，因此 main 的新增测试保留给 GitHub 三路合并处理，不在旧 Draft 当前 runner 上执行不存在的 main-only 测试。
+- GitHub 重新计算 PR 精确 `c6d5fca9`：**`mergeable=true`，`mergeable_state=behind`，`draft=true`，`state=open`**，原 `dirty` 已解除。这意味着**文本合并冲突解除**，不是已把新 main 合并进旧 Draft、不是自动部署或生产 stop 认证。仍需当前 HEAD 重新跑完 45 项左右的真实 checks；不可重用旧 HEAD 的 45/45。
+
+### 15.2 新发现、限制和下一步
+
+**工程结论：** `HOST_SHUTDOWN_PR_MERGE_CONFLICT_RESOLVED_PENDING_NEW_HEAD_CI`；#1074 仍 Draft/未合并/未生产。这次修复避免两种错误：用旧长行覆盖新 main 的 CI 清单；把 main 新增但当前 Draft 缺失的测试导入旧 Draft 的 CI 造成虚假失败。当前测试步骤依旧只证明旧 Host 本地错误路径，不签生产 PID1/SIGTERM/draining 或 K0 全域停机。
+
+**外部事实没有变：** 本轮 Railway 只读 `environment_status` 显示 Ledger Configurator 1 running/0 crashed，production deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 对应 **`main@524106df36af45b89d15eebd4c0c4f308b1718fc`**，GitHub 当前 `main@6bea66e8b7cde970a1f62d440b00d6567aeeca57` 40/40 exact checks SUCCESS，**生产仍未跟随 main 更新**。#1071 文档旧 HEAD `6e6a9ed4` 7/7 SUCCESS；#1081 `a1e8a094` 5/5；#1082 `d9be185e` 5/5。以上仅对应列出 SHA 的 GitHub API 结果。
+
+**继续保留否决：** K0、完整 E01J4、PA05-05 E01–E05、W06 全 `NOT_SIGNED`；production material WRITE `OFF`；Issues #988/#979/#913 OPEN。R1–R8 的真实组织 Worker inventory、外部 Supervisor 退出收据、Railway effective draining/Node PID1、生产 Human IdP/DBA session/credential/audit owner 无新增真实签收；不得执行父 Host SIGKILL、生产 Validator/Secrets/SQL、Railway 修改、自动残留锁清理。四 Draft 全部保留，不能执行 merge。
