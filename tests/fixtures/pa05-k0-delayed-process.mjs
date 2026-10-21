@@ -17,9 +17,9 @@ export async function invoke(request) {
 export async function activate(host) {
   if (host.packageId !== "pa05-k0-activate-hang-process") return;
   setTimeout(() => process.exit(39), 5000).unref();
-  // Real activation handshake over the existing scoped Host IPC facade.
-  // A test-only storage service can observe that activate() truly ran.
-  await host.storage.get("pa05-k0-activation-entered");
+  // Real activation handshake + OS PID over the existing scoped Host IPC.
+  // The test-only memory store supplies independent pre/post liveness checks.
+  await host.storage.set("pa05-k0-activation-pid", process.pid);
   await new Promise(() => {});
 }
 
