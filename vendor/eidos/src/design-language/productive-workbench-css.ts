@@ -3191,6 +3191,19 @@ form[data-eidos-id] button:hover,
    [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
 }
 
+/* Optional compact desktop evidence only. Open details regain their full width.
+   Default tables and 44px mobile controls preserve existing layout. */
+@media(min-width:701px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open]){
+   display:inline-block;vertical-align:middle;
+   margin:0 0 0 var(--eidos-space-sm);max-width:100%;
+ }
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])>summary{
+   min-height:var(--eidos-control-normal);
+ }
+}
 /* Opt-in Human review workbench: show the original source, the actual counts,
    and every actionable blocker before choices; never conceal business facts. */
 [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{

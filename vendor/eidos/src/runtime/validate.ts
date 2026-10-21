@@ -886,7 +886,7 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","evidenceLayout","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
       for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
         const value=table[key];
         if(value!==undefined && (!nonEmpty(value) || value.length>max)){
@@ -912,6 +912,12 @@ export function validateUidl(
           || !["standard","compact"].includes(table.presentation))) {
         out.push(d("EIDOS_REVIEW_TABLE_PRESENTATION_INVALID",p+".presentation",
           "Review-table presentation must be standard or compact"));
+      }
+      if (table.evidenceLayout !== undefined
+        && (!["stacked","inline-collapsed"].includes(table.evidenceLayout)
+          || table.evidenceLayout==="inline-collapsed" && table.presentation!=="compact")) {
+        out.push(d("EIDOS_REVIEW_TABLE_EVIDENCE_LAYOUT_INVALID",p+".evidenceLayout",
+          "Inline collapsed evidence requires compact presentation"));
       }
       extraKeys(table.columnLabels,
         new Set(["subject","evidence","decision","status"]),p+".columnLabels",out);
@@ -1020,6 +1026,8 @@ export function validateUidl(
                 ? {description:table.heading.description} : {})}} : {}),
         ...(table.presentation==="compact" || table.presentation==="standard"
           ? {presentation:table.presentation} : {}),
+        ...(table.evidenceLayout==="stacked" || table.evidenceLayout==="inline-collapsed"
+          ? {evidenceLayout:table.evidenceLayout} : {}),
         columnLabels:{
           subject:labels.subject,evidence:labels.evidence,
           decision:labels.decision,status:labels.status

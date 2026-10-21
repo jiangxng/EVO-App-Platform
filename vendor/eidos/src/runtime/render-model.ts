@@ -30,6 +30,7 @@ export function toRenderModel(document: unknown): FormRenderModelV010 {
     ...(doc.reviewTable
       ? { reviewTable: {
           ...(doc.reviewTable.presentation ? {presentation:doc.reviewTable.presentation} : {}),
+          ...(doc.reviewTable.evidenceLayout ? {evidenceLayout:doc.reviewTable.evidenceLayout} : {}),
           ...(doc.reviewTable.heading ? {heading:{...doc.reviewTable.heading}} : {}),
           ...(doc.reviewTable.toolbarHint ? {toolbarHint:doc.reviewTable.toolbarHint} : {}),
           ...(doc.reviewTable.footnote ? {footnote:doc.reviewTable.footnote} : {}),

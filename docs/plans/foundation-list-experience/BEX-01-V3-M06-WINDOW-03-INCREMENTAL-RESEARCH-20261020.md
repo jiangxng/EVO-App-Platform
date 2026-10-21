@@ -124,3 +124,12 @@
 - **状态：** 本轮继续 #1077 stacked Draft → #1060，Eidos #204 未改，main/Railway 未改，Human 视觉正式签收 OPEN，M01–M03 COMPLETE；M04/M05/M06 OPEN，总体3/6。客户原始 XLSX 和 M05 真实业务验收继续禁止启动。
 
 **本轮工程审计节点：** connected opt-in 提交 `109c13518eef1c104216d98846379ee186cada84`。本交接尾注属于精确 HEAD 的可复核记录；实际 GitHub CI 和 Chromium 截图须以后续 workflow artifact 核验，勿将 HEAD 已推送当作测试通过。
+
+
+## Window 04｜2026-10-21：四列行密度定向修正
+
+**R 直接证据**：重新下载并阅读 #909 固定源码 `af58e0abad880439d54230485305bf2b4e05decc` 及其 [原型 artifact 11957646429](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38704093619/artifacts/11957646429) 桌面/手机截图；下载并查看 #1077 固定 HEAD `84939fbd01857c8c41172308731c6b687041b065` [真实隔离 Host artifact 12273680796](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39440257993/artifacts/12273680796) 的桌面两图、手机图和 report.json。普通字段行在原型约 55px，Host 中“查看来源及候选字段用途”另占行使其约 73px，表格高度差是真实布局差异，证据按钮仍应保留。
+
+**可逆选择**：在 Eidos 定义严格 `reviewTable.evidenceLayout="inline-collapsed"` 可选属性，默认 `stacked`；BEX 明确选择。仅桌面 701px 起折叠证据与样例同一行，展开仍完整显示真实来源样本／候选用途；390px 仍采用现有独立 44px 披露。简化非歧义行的证据入口文案；保留银行人工决定、Host 显式保存与授权边界。不改 Eidos #204 独立问题卡默认及本 BEX 的 connected opt-in。
+
+**排除**：删掉证据、缩小手机按钮、全局压缩表格、静态复制原型 7/22、自动解决银行字段。新增协议负例、真实 Host Chromium 桌面行高/可展开及手机尺寸断言。该新 HEAD 尚需独立 CI 与截图确认，不把研究或准备提交当成测试 PASS；M04/M05/M06 均 OPEN，3/6，Human 未签收。

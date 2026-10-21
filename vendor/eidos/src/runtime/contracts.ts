@@ -60,6 +60,8 @@ export interface UidlFormReviewGroupV010 {
 export interface UidlFormReviewTableV010 {
   /** Opt-in compact Human decision rows; default remains standard. */
   presentation?: "standard" | "compact";
+  /** Optional wide-screen same-line collapsed evidence; default stacked. */
+  evidenceLayout?: "stacked" | "inline-collapsed";
   /** Optional section context preceding the original decision table. */
   heading?: { title: string; description?: string };
   /** Optional factual guidance near the live filter count and source-integrity footer. */

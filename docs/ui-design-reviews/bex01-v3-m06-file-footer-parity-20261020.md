@@ -119,3 +119,8 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 ### 自动续跑 #06｜原型问题区视觉差异的可选双布局
 
 原型 #909 一体暖色边框＋三条分隔行，#204 则通用独立编号卡片。决定不改 owner Draft、不移除任一语义，而是引入受严格校验的 `reviewTask.issuesLayout="connected"`，只由 Platform 的 BEX 页面选择。Eidos 默认仍单独卡片；connected 保留真实三条独立内容、三个动作、错误行详情及 Host 路由，仅将三条卡视觉连为一框。desktop、390px Chromium 必须检查相邻边界、实际编号、原生链接交互、触控和响应式，Human 最终选择仍 OPEN。
+
+
+### Window 04｜2026-10-21 增量视觉审查
+
+#909 1280px 普通四列表约 55px/行；#1077 隔离 Host 的普通行因另一整行“来源证据”链接约 73px/行。选用 opt-in 仅桌面把折叠披露与样例同排，保留所有真实审核证据和手机 44px 可操作性；展开仍独立完整块。保留默认 Eidos 布局、两个银行字段 Human 选择、显式 Host 保存。新 HEAD CI / Chromium 和新截图尚需实际核验，Human 签收 OPEN，不开放客户 XLSX/M05 提交。

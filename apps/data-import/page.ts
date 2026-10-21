@@ -687,7 +687,8 @@ export function createDataImportMappingPageV010(input: {
       ],
       ...(ambiguous || unavailable ? { defaultExpanded: true } : {}),
       detailsLabel: zh(input.locale)
-        ? "查看来源及候选字段用途" : "Inspect source and field candidates"
+        ? (ambiguous ? "查看来源与候选用途" : "查看来源样本")
+        : (ambiguous ? "Source and candidate uses" : "View source samples")
     };
   });
 
@@ -741,6 +742,8 @@ export function createDataImportMappingPageV010(input: {
   const reviewTable = {
     // V3 compact four-column density uses upstream Eidos #200 semantics.
     presentation: "compact" as const,
+    // Only BEX enables compact desktop evidence; default remains stacked.
+    evidenceLayout: "inline-collapsed" as const,
     ...(utilityNavigationItems.length ? {utilityNavigation:{
       label:zh(input.locale) ? "字段处理工具" : "Field tools",
       items:utilityNavigationItems

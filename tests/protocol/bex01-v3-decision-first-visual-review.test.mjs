@@ -55,6 +55,7 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     assert.doesNotMatch(html,/<label>当前文件<select/);
     assert.doesNotMatch(html,/<label>批量字段审核/);
     assert.match(html,/data-eidos-review-table-presentation="compact"/);
+    assert.match(html,/data-eidos-review-table-evidence-layout="inline-collapsed"/);
     assert.match(html,/data-eidos-review-table-choice-label/,
       "source identity is already the first column; compact select keeps an accessible label");
     assert.match(html,/data-eidos-form-review-table-filter/);
@@ -86,6 +87,13 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     ...linkTask.issues[0],relatedRoutes:[
       linkTask.issues[0].relatedRoutes[0],linkTask.issues[0].relatedRoutes[0]]
   }]}}).ok,false,"repeated row links must fail closed");
+  assert.equal(mapping.reviewTable.evidenceLayout,"inline-collapsed");
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    evidenceLayout:"invalid"}}).ok,false);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    presentation:"standard",evidenceLayout:"inline-collapsed"}}).ok,false);
+  assert.match(renderToHtml({...mapping,reviewTable:{...mapping.reviewTable,
+    evidenceLayout:undefined}}),/data-eidos-review-table-evidence-layout="stacked"/);
   assert.equal(mapping.reviewTable.utilityNavigation.label,"字段处理工具");
   assert.deepEqual(mapping.reviewTable.utilityNavigation.items.map(item=>item.id),
     ["batch-review","create-extension"]);

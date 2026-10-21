@@ -732,6 +732,23 @@ with sync_playwright() as pw:
         && getComputedStyle(nodes[1]).borderTopStyle==='solid';
     }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_DESKTOP"
     visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
+    table=visual_form.locator('[data-eidos-form-review-table-wrap]')
+    expect(table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
+    collapsed=table.locator('[data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
+    assert collapsed.count()>=2, "BEX_V3_COLLAPSED_EVIDENCE_REQUIRED"
+    assert collapsed.first.evaluate("el=>getComputedStyle(el).display==='inline-block'"),(
+      "BEX_V3_DESKTOP_INLINE_EVIDENCE_REQUIRED")
+    row=collapsed.first.locator('xpath=ancestor::tr')
+    assert row.evaluate('el=>el.getBoundingClientRect().height')<=68,(
+      "BEX_V3_DESKTOP_MAPPING_ROW_TOO_TALL")
+    stable=row.locator('[data-eidos-review-group-detail]')
+    stable.locator('summary').click()
+    expect(stable).to_have_attribute('open','')
+    expect(stable.locator('[data-eidos-review-group-fields]')).to_be_visible()
+    stable.locator('summary').click()
+    expect(stable).not_to_have_attribute('open','')
+    table.locator('[data-eidos-form-review-table-row]').first.scroll_into_view_if_needed()
+    visual_page.screenshot(path=str(OUT/"v3-inline-evidence-density-desktop.png"),full_page=False)
     row_issue=issue_list.filter(has_text="3 条记录缺少主体类型")
     row_disclosure=row_issue.locator('[data-eidos-form-task-issue-related]')
     expect(row_disclosure).to_have_count(1)
@@ -849,6 +866,13 @@ with sync_playwright() as pw:
         && getComputedStyle(nodes[1]).borderTopStyle==='solid';
     }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_PHONE"
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_PHONE_CONNECTED_ISSUES_OVERFLOW"
+    phone_table=phone_form.locator('[data-eidos-form-review-table-wrap]')
+    expect(phone_table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
+    phone_collapsed=phone_table.locator('[data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
+    assert phone_collapsed.count()>=2
+    assert phone_collapsed.first.evaluate("el=>getComputedStyle(el).display!=='inline-block'"),(
+      "BEX_V3_PHONE_MUST_KEEP_STACKED_EVIDENCE")
+    assert phone_collapsed.first.locator('summary').evaluate('el=>el.getBoundingClientRect().height')>=44
     visual_phone.screenshot(path=str(OUT/"v3-connected-issues-phone.png"),full_page=False)
     phone_row_issue=phone_issues.filter(has_text="3 条记录缺少主体类型")
     phone_disclosure=phone_row_issue.locator('[data-eidos-form-task-issue-related]')

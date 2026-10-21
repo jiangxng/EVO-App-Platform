@@ -251,7 +251,7 @@ export function renderToHtml(document: unknown): string {
             ? `<p>${esc(model.reviewTable.heading.description)}</p>` : ""}
           ${utilityMenu}
         </header>` : utilityMenu;
-    return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
+    return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}" data-eidos-review-table-evidence-layout="${esc(model.reviewTable?.evidenceLayout ?? "stacked")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>
         <table data-eidos-form-review-table aria-label="${esc(model.title)}">
