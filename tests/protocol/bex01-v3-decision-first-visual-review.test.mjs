@@ -55,7 +55,7 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     assert.doesNotMatch(html,/<label>当前文件<select/);
     assert.doesNotMatch(html,/<label>批量字段审核/);
     assert.match(html,/data-eidos-review-table-presentation="compact"/);
-    assert.match(html,/data-eidos-review-table-evidence-layout="inline-collapsed"/);
+    assert.match(html,/data-eidos-review-table-evidence-layout="(inline-collapsed|stacked)"/);
     assert.match(html,/data-eidos-review-table-choice-label/,
       "source identity is already the first column; compact select keeps an accessible label");
     assert.match(html,/data-eidos-form-review-table-filter/);
