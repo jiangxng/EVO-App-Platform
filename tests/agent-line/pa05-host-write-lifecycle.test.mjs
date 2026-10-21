@@ -344,9 +344,9 @@ test("PA05-04D3 guarded Host bootstrap never installs or enables a WRITE Owner s
   }
 });
 
-test("PA05-04D3 all 17 synchronous Host bootstrap calls use fail-closed adapter before listen", () => {
+test("PA05-04D3 all 12 synchronous Host bootstrap calls use fail-closed adapter before listen", () => {
   const s = readFileSync(new URL("../../manager/server.ts", import.meta.url), "utf8");
-  assert.equal((s.match(/pa05WriteLifecycleHost\.bootstrapActivation\("INSTALL",/g) ?? []).length, 16);
+  assert.equal((s.match(/pa05WriteLifecycleHost\.bootstrapActivation\("INSTALL",/g) ?? []).length, 11);
   assert.equal((s.match(/pa05WriteLifecycleHost\.bootstrapActivation\("ENABLE",/g) ?? []).length, 1);
   const helper = s.slice(s.indexOf("function installBusinessDefaultOnce("), s.indexOf("installBusinessDefaultOnce(BI_WORKBENCH_PACKAGE_ID_V010,"));
   assert.match(helper, /startupDefaults\.apply\(/);
@@ -354,6 +354,15 @@ test("PA05-04D3 all 17 synchronous Host bootstrap calls use fail-closed adapter 
   const mapActivation = s.slice(s.indexOf("if (evoObservatoryApplicationMap.length > 0) {"), s.indexOf("const configuredApplicationRuntimeBindingProvider ="));
   assert.match(mapActivation, /installBusinessDefaultOnce\(APPLICATION_RUNTIME_BINDING_PACKAGE_ID, true, true\)/);
   assert.doesNotMatch(mapActivation, /bootstrapActivation\(/);
+  for (const [config, packageId] of [
+    ["evoObservatoryEnabled", "EVO_RUNTIME_OBSERVATORY_PACKAGE_ID"],
+    ["hostMemoryIntakeConfig", "HOST_MEMORY_INTAKE_PACKAGE_ID"],
+    ["remoteSemanticEndpoint", "REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID"],
+    ["remoteDlpEndpoint", "REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID"],
+    ["experienceCompilerMemoryIntakeConfig", "EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID"]
+  ]) {
+    assert.ok(s.includes(`installBusinessDefaultOnce(${packageId}, Boolean(${config}), true);`));
+  }
   assert.equal((s.match(/manager\.install\(/g) ?? []).length, 0);
   assert.equal((s.match(/manager\.enable\(/g) ?? []).length, 0);
   assert.ok(s.indexOf("await pa05WriteLifecycleHost.attestStartupActivation();")

@@ -590,3 +590,65 @@ enabled=true仍保留原JSON/字段校验、启动失败、INSTALL/ENABLE兼容�
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
 
+
+
+## 16. 2026-10-21增量：五类可选配置Provider的一次安装资格
+
+基线main `4d291fb31f7a5c429b20be14fb48df687c5a1dac`（已包含#1088与#1089规则），分支 `fix/governance-configured-provider-journal-20261021`。#1088的44项CI、278行为/6守卫及312/246属于历史结果，不作本轮测量。
+
+### 同根因批次与边界决定
+
+| 配置入口 / 包 | 原副作用与本批决定 |
+|---|---|
+| EVO enabled / evo-runtime-observatory-provider | 旧启动检查“已配置且未安装”即INSTALL；本批改用原journal，flag只取得首次初始化资格，不覆盖停用/成功初始化后的卸载 |
+| MEMORY_INTAKE_JSON / host-memory-intake-provider | 原内存来源配置自动安装；工厂克隆records、不访问网络/文件。相同一次安装规则；records构造的线性内存成本仍是既有预算待办 |
+| MEMORY_SEMANTIC_URL / remote-context-memory-semantic-provider | 原URL触发自动安装；元数据/闭包登记无请求，业务search才请求。保留原动态reader选择与词法/显式请求合同，只改安装恢复意图 |
+| MEMORY_DLP_URL / remote-context-memory-dlp-provider | 原URL触发自动安装；缺有效classifier时原runDlp明确FAILED/CONTEXT_MEMORY_DLP_PROVIDER_REQUIRED，不写治理分类。本批保留拒绝合同，卸载不等于允许无检查通过 |
+| EC_MEMORY_INTAKE_JSON / experience-compiler-memory-intake-provider | 原配置触发自动安装；配置/evidence闭包与pull分开。原source/evidence选择、提案权威和调度资格不改，卸载后不再自动恢复来源 |
+
+上述五处使用已有`installBusinessDefaultOnce(packageId, Boolean(config), true)`。explicit=true保留原minimal/compatible显式配置首次安装；ready=false不记录“已经完成”，以后配置就绪仍可初始化。旧已安装包（包括inactive）接入原包key，后续卸载被记住。所有安装仍经原PA05 fail-closed adapter；失败重试沿原journal合同，无新文件格式、代理、连接或Provider。
+
+**配置不是持续期望状态控制器。** 已初始化后手动卸载，带原配置重启仍保持未安装；恢复用原install/enable。EVO map仍遵第15节，需重启应用待处理map。卸载不删除共享业务/Secret/调度数据；journal与生命周期state必须一起备份。journal缺失不能重建已卸载事实，本批不发明迁移回执或跨文件事务。
+
+### 剩余启动清单，不一概套用业务规则
+
+| 保留的原直接bootstrap | 原职责、保留范围与待验收 |
+|---|---|
+| External Agent Governance、Enterprise Relationship | 已有Host治理/成员关系基础，供多个消费者共享。本批不改其安装路径或绑定任意UI生命周期；不据此宣称所有资源/卸载资格合格 |
+| Managed Session、Identity Directory、Bearer、Static Session | 可信请求身份、认证与撤销共享权威；A05缺服务拒绝和托管模式不回退合同保持。按安全责任另行核对重启安装资格，不能用本批可选业务结论直接移除 |
+| Static Authorization、Enterprise Context Grant、Enterprise Context | 权限、访问范围与Host配置来源；保留默认拒绝与当前撤销来源，不改为客户端/UI拥有。必要职责不等于全部现实现已验收 |
+| Encrypted Secrets | 已安装Secret消费者的共享保护/兼容迁移；本批不关闭安全基础或改Secret权威，配置/持久化资格仍须独立证据 |
+| 原2D ENABLE迁移 / map绑定初始化 | 两者已经使用原版本化migration或一次安装journal；不重复整改，不覆盖2D窗口或第15节map规则 |
+
+本轮直接调用清单由16 INSTALL+1 ENABLE变为11 INSTALL+1 ENABLE；PA05只同步12处清单，并断言五处配置均经原helper、helper仍调用原adapter、无manager直接安装/启用绕行。安全运行时代码与启动前attestation保持。工厂资源证据复用第8～11节，不把“登记了闭包”误称业务已执行；共享安全存储的既有实际读取仍在其原证据范围。
+
+### 最小验证与交付依据
+
+新增4项真实Host测试（两种启动profile各两项），批量覆盖五包：未配置不安装且不记完成，稍后配置首次安装；实际HTTP disable/enable及uninstall/install；旧已安装inactive包尚无journal key的升级夹具；移除/恢复配置、重启不复活；重复启动journal字节保持；卸载不改已有空记忆文件。fixture在Host求值前拒绝并计数fetch，原probe限制TCP、报告interval；这只验收本批无业务调用/无后台配置场景，不代表所有合法后台工作一律应为零。
+
+原memory-credential Host回归增加DLP/EC实际uninstall后带配置重启，手动触发原调度仍记录DLP缺Provider失败、零解密；显式install后匿名/token使用继续恢复。原既有首次调用、请求期限、凭据竞态、绑定及共享reader回归留CI执行，不另建镜像测试。原journal单测已覆盖未就绪、失败不记完成及重试；不声称本地跑了新Host。
+
+本地Node24.19部分固定SHA快照、临时类型擦除：既有journal4+绑定所有权3共7/7，修改的测试/fixture、擦除server语法和局部PA05清单断言通过。未本地npm ci/正式build、完整Host、数据库或浏览器；由最终准确head CI验证。静态基线/冷禁入不放宽，本轮模块/边/行为数须以永久PR收口证据为准。未部署/Human验收。
+
+读取分级：当前AGENTS、交付规则、新FAST-FEEDBACK规程及装载架构全文；LLM/foundation-map、原项目与Eidos/Help研究复用已读且未变化版本；专项交接§15与A01/CLOSEOUT核对。当前project.status及其生成handoff只读取与当前里程碑/开放门禁/生产基线有关部分，不修改全局状态。Host局部核对全部直接bootstrap、五类配置/registry接线、当前resolver、scheduler资格和原HTTP生命周期；operations局部核对runDlp完整拒绝/分类/批量提交路径；startup-defaults/settings-store全文、旧Host测试/fixture全文。五类runtime和安全适配器复用第8～11节已读资源证据，不声称通读全Host/Agent或审计全部消费者。#1089并行合入后原分支尚无独有提交，已快进对齐，未覆盖其四份规则文件。
+
+[结构化证据](evidence/configured-provider-startup-journal-20261021.json)；[八节兼容评审](../../ui-design-reviews/configured-provider-startup-journal-20261021.md)。
+
+### 路线记录、下一步与停止条件
+
+工作卡：差距是配置使卸载在重启失效；接受基线为#1088与原journal合同；本批**无已记录失败路线**（前批PA05旧计数失败已修复，属于测试清单，不重做）。采用已有journal批量修复共同根因；不采用新配置控制器/懒代理，它们不能表达原手动卸载意图且扩大边界。最小判别是原HTTP卸载后带配置重启仍缺包、DLP继续明确拒绝、显式重装可恢复。若观测到保护回退、状态/数据损坏或公共合同变化，暂停扩批，按对应安全owner重定资格；两轮无进展须按#1089复盘，不继续叠同类补丁。
+
+准确head相关CI通过后合并并停止追加这五类启动重构。下一批优先核对上表10类安全基础启动的必要Host责任、缺服务拒绝及卸载资格；不预设统一搬入journal。EVO query/probe期限、OIDC事务预算与内存来源records预算仍归R3；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层验收及A03/A05继续OPEN，不能代其他窗口完成。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；五类可选配置Provider保留安装意图 | 安全基础职责/资格；R1/R2/R3资源/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |

@@ -2654,19 +2654,7 @@ installBusinessDefaultOnce(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
 const evoObservatoryEnabled =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_ENABLED?.trim().toLowerCase()
   === "true";
-if (
-  evoObservatoryEnabled
-  && !installedAtStartup.some(
-    item => item.packageId === EVO_RUNTIME_OBSERVATORY_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
-    console.log("Activated EVO Runtime Observatory Provider.");
-  } catch (error) {
-    console.error("Failed to activate EVO Runtime Observatory Provider.", error);
-  }
-}
+installBusinessDefaultOnce(EVO_RUNTIME_OBSERVATORY_PACKAGE_ID, Boolean(evoObservatoryEnabled), true);
 if (
   managedSessionEnabled
   && !installedAtStartup.some(item => item.packageId === HOST_MANAGED_SESSION_PACKAGE_ID)
@@ -2711,56 +2699,10 @@ if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATION
   }
 }
 installBusinessDefaultOnce(HOST_CONTEXT_MEMORY_PACKAGE_ID);
-if (
-  hostMemoryIntakeConfig
-  && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_MEMORY_INTAKE_PACKAGE_ID);
-    console.log("Activated Host Memory Intake Provider.");
-  } catch (error) {
-    console.error("Failed to activate Host Memory Intake Provider.", error);
-  }
-}
-if (
-  remoteSemanticEndpoint
-  && !installedAtStartup.some(
-    item => item.packageId === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
-    console.log("Activated Remote Context Memory Semantic Provider.");
-  } catch (error) {
-    console.error("Failed to activate Remote Context Memory Semantic Provider.", error);
-  }
-}
-if (
-  remoteDlpEndpoint
-  && !installedAtStartup.some(
-    item => item.packageId === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
-    console.log("Activated Remote Context Memory DLP Provider.");
-  } catch (error) {
-    console.error("Failed to activate Remote Context Memory DLP Provider.", error);
-  }
-}
-if (
-  experienceCompilerMemoryIntakeConfig
-  && !installedAtStartup.some(
-    item => item.packageId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
-    console.log("Activated Experience Compiler Memory Intake Provider.");
-  } catch (error) {
-    console.error("Failed to activate Experience Compiler Memory Intake Provider.", error);
-  }
-}
+installBusinessDefaultOnce(HOST_MEMORY_INTAKE_PACKAGE_ID, Boolean(hostMemoryIntakeConfig), true);
+installBusinessDefaultOnce(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, Boolean(remoteSemanticEndpoint), true);
+installBusinessDefaultOnce(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, Boolean(remoteDlpEndpoint), true);
+installBusinessDefaultOnce(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, Boolean(experienceCompilerMemoryIntakeConfig), true);
 if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
