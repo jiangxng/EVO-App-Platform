@@ -44,6 +44,12 @@ export function checkK0SyntheticStopReceipt(
   if (!trustKey) deny("NO_PINNED_TEST_KEY");
   if (!expected || typeof expected !== "object") deny("NO_EXPECTED_SCOPE");
   for (const key of EXPECTED_KEYS) if (!nonEmpty(expected[key])) deny("MISSING_EXPECTED_" + key);
+  // Check authenticity before interpreting any attacker-controlled content.
+  // A test key cannot be elevated into a production trust root.
+  let valid = false;
+  try { valid = verifyEd25519(null, payloadBytes, trustKey, signatureBytes); }
+  catch { deny("INVALID_VERIFICATION_KEY"); }
+  if (!valid) deny("BAD_SIGNATURE");
   let body;
   try {
     body = JSON.parse(payloadBytes.toString("utf8"));
@@ -70,12 +76,7 @@ export function checkK0SyntheticStopReceipt(
     || new Date(observed).toISOString() !== body.observedAt
     || !Number.isFinite(now) || observed > now
     || now - observed > MAX_AGE_MS) deny("STALE_OR_FUTURE_OBSERVATION");
-  // A provided test public key is NOT independent proof of who operated
-  // the supervisor: only cryptographic authenticity relative to that key.
-  let valid = false;
-  try { valid = verifyEd25519(null, payloadBytes, trustKey, signatureBytes); }
-  catch { deny("INVALID_VERIFICATION_KEY"); }
-  if (!valid) deny("BAD_SIGNATURE");
+  // Successful test-key verification is not operator identity attestation.
   const digest = createHash("sha256").update(payloadBytes).digest("hex");
   if (usedDigests.has(digest)) deny("LOCAL_REPLAY");
   // The caller may provide a local cache to reject duplicate receipts.
