@@ -267,3 +267,31 @@
 - 仍有更狭窄的局部边界待评估：子进程 `activate()` 永远不发 `ready` 时 `startOne()` 的等待、child spawn error 与 cleanup、极端非合作 child 的终止预算。九项场景不证明所有可能时序已穷举。
 
 **责任隔离：** #1071 文档 Draft；#1074 顶层 Host shutdown Draft；#1081 两项负面复现 Draft；#1082 PROCESS 本地修复 Draft，四者均不得未经授权合并/生产部署。K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`；production material WRITE `OFF`，Issues #988/#979/#913 OPEN。
+
+
+## 13. 2026-10-21 — K0 接续控制面核验、启动期第十项隔离正证据与外部监督门禁
+
+**证据归档：** [2026-10-21 新增接续与来源分级记录](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)；本节为原工作表的增量字段，不覆盖 §§1–12、[2026-10-20 原交接](PA05-E01J4K-K0-WINDOW-RESEARCH-REFERENCE-INDEX-20261020.md)、[2026-10-21 最终交接](PA05-E01J4K-K0-WINDOW-FINAL-RESEARCH-REFERENCE-INDEX-20261021.md)，不构成独立运维停机收据。
+
+**2026-10-21 直接读取的 GitHub/Railway 控制面（不是继承的旧推测）：**
+
+- GitHub 当前 `main@386f267bcc115fd4e64af74724f2a3aa55199878`，同 SHA **40/40 check-runs SUCCESS**。该检查不能抹除旧 [Ecosystem schedule #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) 的 **10 FAIL / 82 SKIPPED**；旧 run 仍 `failure`，范围和 SHA 不同。
+- Railway 已连接生产 Ledger Configurator deployment `0cf816e7-3c09-4837-a192-81a682df55be` 对应 `main@386f267b`，**SUCCESS/Online/1 running/0 crashed**；原交接 deployment `5c88b3df...` 现 `REMOVED`。五服务仅为已连接项目的有限控制面清单。
+- Host 与 EVO Runtime 的 startCommand 均为 `npm start`；生产有效 draining/overlap、真实 PID1→Node SIGTERM、完整组织 Worker/PROCESS 子进程/外部 Runner 与数据库会话及 IdP/DBA/凭据签发仍 **UNVERIFIED**。Railway 返回变量**名称**缺少显式 draining 变量，不等于生产生效值确定为零。
+- 四条 Draft [#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) / [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) / [#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) / [#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 继续隔离；#988/#979/#913 **OPEN**。
+
+**隔离启动期新证据：** #1082 原 Draft 分支在 `6b79d3e3f558a0c46193424edd625700145d19af` 新增第十项一次性 Node PROCESS 测试，子进程特殊 fixture 的 `activate()` 不返回、额外自退出保险 5 秒、父 Host 正常存活；[Platform CI run #39530562128 / job #118995237822](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39530562128/job/118995237822) 的**原始 job log 已直接读取**，`1102 total / 1101 PASS / 1 SKIPPED / 0 FAIL`，该 HEAD **5/5 exact checks SUCCESS**。原日志新 `ok #775` marker：
+
+```json
+{"scope":"isolated-local-child","boundedShutdown":true,"startupSettledByChildExit":true,"noActiveRuntime":true,"globalStopCertified":false}
+```
+
+同一 job 另外九个既有局部测试 marker 均实际出现，共 **10 项**；最新标签只允许 `ISOLATED_PROCESS_LIFECYCLE_TEN_CASE_BOUNDED_PASS`。**不能**把 3500ms 测试断言写为生产 stop deadline，也没有父 Host SIGKILL 及外部 supervisor 的子进程完整退出回执；没有活跃生产 PID 观察或生产运行演练。
+
+**外部监督先决条件（定向新增原文查阅，而非已落地）：** Linux [PR_SET_CHILD_SUBREAPER](https://www.man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html) 可收养/等待孤儿但不能凭此杀掉仍存活 child；[systemd.kill](https://man7.org/linux/man-pages/man5/systemd.kill.5.html) 的 control-group/mixed/process 差异提供可选隔离实验参考，但**不能冒称 Railway 使用 systemd**；[Node child_process 文档](https://github.com/nodejs/node/blob/main/doc/api/child_process.md) 的 `close` 事件仍只是父 Host 活着时的局部退出观察。阅读等级与完整事实/项目判断分界见新增接续记录 §4。
+
+**R1–R8 阻塞持续：** 必须先有组织批准且独立于受测 Host 的监督者、完整 PID/启动时刻/cgroup/namespace 身份枚举、可证明的 TTL 回收和结束凭证，才可能尝试非生产父 Host SIGKILL。生产 draining/PID1、全部 Worker/外部调用者、冻结/停止权威、SQL Session、实际 Human IdP/MFA、凭据轮换与 DBA/审计签名依然未知；UNKNOWN/DENY 不可写成 0/STOP_CONFIRMED。
+
+**历史分支：** 九条已合并 `docs/pa05-*` 过程分支逐条重新比较准确 tip、关联已合并 PR 和 `main@386f267b` 祖先关系，保持可安全退休候选；当前 GitHub 连接器无 delete-ref/branch-delete/workflow-dispatch，且本轮未重扫全部 open PR 引用/保护位，故**远端删除 NOT_EXECUTED**。活动四条 Draft 均不得清理。
+
+**仍然：** K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 均 `NOT_SIGNED`，production material WRITE `OFF`，#988/#979/#913 `OPEN`；未读取生产 Secrets/SQL，未启动生产 Validator，未停机/重启/扩缩容、改 draining 或清锁，未合并 PR。
