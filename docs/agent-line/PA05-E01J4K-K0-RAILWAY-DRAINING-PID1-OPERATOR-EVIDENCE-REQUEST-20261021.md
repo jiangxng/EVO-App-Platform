@@ -146,3 +146,51 @@ query PA05R5ReadOnly($serviceId: String!, $environmentId: String!) {
 只接受 \`serviceId/environmentId/deploymentId/commitSHA/采集UTC时间/来源层优先级/最终两个秒数/独立审核人\` 均明确且互相一致的 R5-01 回执。R5-02 另须真实 image digest/进程身份、信号到达 Node 与 handler 生命周期的可信来源；R5-03 必须先有授权的独立回收能力。若 schema 不支持、查询无权限、Owner 无法出示部署原始设置、配置版本再次变化，停止重复试相同工具并记为 \`UNKNOWN/DENY\`，由拥有控制面的 Owner 补签而不是增加 Mock。
 
 **原有状态原样保留**：R5-01 UNKNOWN、R5-02 UNVERIFIED、R5-03 BLOCKED；K0、完整 E01J4、PA05-05 E01–E05、W06 全部 NOT_SIGNED；production material WRITE OFF；Issues #988/#979/#913 OPEN。四 Draft 不合并不部署、不改 \`project.status.json\` 或其他 owner 文件。
+
+
+## 8. 2026-10-21 续跑 #03 — 官方 Schema 原文复核后的可执行取证校正与版本更替
+
+> **本节校正 §7 的待核 GraphQL 草案，不篡改前次历史记录。** 本次直接读取 Railway 官方 [CLI \`railway api\` 文档](https://docs.railway.com/cli/api) 与 [Public API / Manage Services 原始示例](https://docs.railway.com/integrations/api/manage-services)，级别 \`ORIGINAL_RAILWAY_OFFICIAL_FULL_PAGE_DIRECT_READ_20261021\`。没有本账号授权运行 CLI/GraphQL，故有效 drain/overlap 仍 **UNKNOWN**。**在实际 introspection 前不得把 §7 的 \`ServiceInstance.drainingSeconds/overlapSeconds/builder\` 字段当作已证实存在，不能直接复制执行带这些假定字段的草案。**
+
+### 8.1 操作员只读最小执行单（修正 §7 的假定字段）
+
+1. 经授权的 Railway Operator 在其自身安全终端登录，**不传递 token 或完整 CLI 原始敏感日志**。先运行官方已确认的发现命令：
+   \`\`\`sh
+   railway api search serviceInstance --kind query
+   railway api describe serviceInstance
+   railway api describe ServiceInstance
+   railway api search draining --kind field
+   railway api search overlap --kind field
+   \`\`\`
+   只有该生产 Railway API **实时 schema** 实际返回的字段及其类型，才能进入下一步；不存在则不运行对应字段查询。
+2. 以下只读 \`serviceInstance\` 查询结构和列出的字段，均来自官方 \`Get a service instance\` 示例原文，**不包含未经验证的 drain/overlap**；如现场 Schema 与官方示例不符，以现场结果为准：
+   \`\`\`graphql
+   query PA05R5ServiceInstance($serviceId: String!, $environmentId: String!) {
+     serviceInstance(serviceId: $serviceId, environmentId: $environmentId) {
+       id
+       serviceName
+       startCommand
+       buildCommand
+       latestDeployment { id status createdAt }
+     }
+   }
+   \`\`\`
+   Operator 保存为 \`pa05-r5-readonly.graphql\` 后，按官方 CLI 用法执行：
+   \`\`\`sh
+   railway api --file pa05-r5-readonly.graphql \
+     --raw-var serviceId=a8622238-480e-4da3-be6f-60fd0f3e18db \
+     --raw-var environmentId=98b8b20c-d791-4073-a11d-bb1f7f0a1cb3
+   \`\`\`
+   所有结果仅允许按**已验证的非敏感字段白名单**归档。若发现 \`drainingSeconds/overlapSeconds\` 不在 \`ServiceInstance\`，可继续有界搜索真实字段所属类型/部署快照，但不能假定它们在服务实例中，更不能猜默认 0。
+3. 最终必须由 Operator 打开**目标 deployment 的详情与生效配置来源**，取 *具体 deployment ID + Git SHA + 有效 draining 和 overlap 各自数值/单位 + 原始来源层 + 查验 UTC 时刻 + Owner 审核*。若部署详情未显示，应明确 \`NOT_DISCOVERABLE_WITH_AVAILABLE_READ_PERMISSIONS\`，不得从旧部署快照、默认值、或当前服务变量名反推。
+4. R5-02 仍需独立于 Node 自报的真实 image digest/PID1/PPID/Node shutdown handler 信号回执；普通 \`serviceInstance\` 查询只证明 service 启动配置，**无法证明 PID1 或 SIGTERM 实际到达**。生产不注入信号，缺现场回执则移交经授权的部署等价非生产 R5-03。
+5. R5-03 先审合法独立非生产环境、独占 cgroup/等效容器回收、Supervisor 外部存活/权限、TTL 救援和可信 stop receipt；其中任一缺失，父 Host SIGKILL **禁止**，无需再开发同类本地合成测试。
+
+### 8.2 新版 main、生产构建进行中及失效规则
+
+- GitHub main 已通过并行治理 PR #1091 变更为 \`f831589ec6eea917b6c08fec61db05caab6b8d24\`（上一版为 \`261c468b0f17c34080153a6a24eefcf1cf03a8af\`）。2026-10-21 本轮 Railway 原始控制面查见新 deployment \`b3aea025-655f-41e7-86ca-495c29ef51e7\`，对应此 SHA，但当时仍 **BUILDING / applying**；前一部署 \`41735793-ba80-40c6-9626-e2c8ca7018a0\` 仍 SUCCESS。**不得称 \`f831589\` 已成功上线**；需要运行中部署完成、现场生效版本明确后才接受 R5-01 针对该版本的 Operator 回执。
+- GitHub \`get_pr_info\` 的标准化 \`mergeable=false\` 与原始 \`GET /pulls/{number}\` 的 \`mergeable=true / mergeable_state=behind\` 相互冲突。本次以**具体原始 GitHub Pull Request API 再查得到的 \`mergeable=true/behind\` 记录**为证据，后续新 main 引入冲突时仍须重新取证。#1071、#1074、#1081、#1082 均原样保留 Draft，旧精确 HEAD 分别 7/7、45/45、5/5、5/5 CI SUCCESS；本节新提交后仅以新 HEAD 的 CI 为准。
+- 若 Railway 在 Operator 取证前换了 deployment，旧观测作为历史证据保留，不把其值绑定新 deployment；一份回执只能签其指定且确证的时间片、service、environment、部署身份。
+- **路线止损**：对缺少生产 scope/Schema 字段的接口，不做第 3 次等价猜测；交给 Railway Operator 实际控制面查询。此处没有已记录的失败 API 请求，只是确认**未执行**与 **Schema 尚未验证**，不可写成“实测字段不存在”。
+
+**本轮签收状态保持**：R5-01 \`UNKNOWN\`，R5-02 \`UNVERIFIED\`，R5-03 \`BLOCKED_NO_AUTHORIZED_INDEPENDENT_NONPRODUCTION_SUPERVISOR\`；R5-04–06 仍无生产 Owner 回执。K0/完整 E01J4/PA05-05 E01–E05/W06 \`NOT_SIGNED\`，production material WRITE \`OFF\`，Issues #988/#979/#913 \`OPEN\`。不合并、部署、停止/重启服务、读取 Secrets/SQL、运行 Validator、修改 draining、做 parent Host SIGKILL、删除活动 Draft 或旧分支。
