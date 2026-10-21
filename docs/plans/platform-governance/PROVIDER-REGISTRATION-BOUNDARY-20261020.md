@@ -654,3 +654,60 @@ enabled=true仍保留原JSON/字段校验、启动失败、INSTALL/ENABLE兼容�
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+## 17. 2026-10-21增量：安全基础分类与同步Session拒绝边界
+
+基线main `261c468b0f17c34080153a6a24eefcf1cf03a8af`（#1090），分支 `fix/governance-static-session-boundary-20261021`。复用第8～16节已有资源/凭据研究；#1090的44项CI、282行为/6守卫及312/246是历史数据，不作本轮实测。前批Node24.22 READ恢复失败已有复盘，本轮保留24.21固定基线，不重试旧环境或接管PA05恢复实现。
+
+### 十类基础的归属及保留范围
+
+| 原bootstrap基础 | 实际归属/资源事实与决定 |
+|---|---|
+| External Agent Governance | Host治理授权/应用同意的共享来源。file store工厂只捕获path，snapshot/save才读；不等于所有启动调用都零读。保留原路径，不绑定某个Agent/UI启停，不代原专项完成OAuth/MCP资格 |
+| Managed Session | 可信请求Session，显式启用时原JSONL重放及内存索引属于共享认证责任；关闭模式文件边界见§13。保留，不复制每插件索引 |
+| Identity Directory | 共享身份与撤销权威；Host的file store构造实际读文件，创建路径并非仅受managed flag控制。不能把轻量runtime误称Host零读；保留共享来源，空/无消费者资格仍须实测 |
+| Bearer Session | 预配置令牌参考集成，解析/构造为内存配置，resolve检查当前请求。继续无效凭据拒绝、不可用不回退静态身份；不改A05正式迁移策略 |
+| Static Session | 部署固定身份的开发/受控演示参考，不是正式多用户认证。adapter为克隆/时间检查；本批只补明确配置或当前绑定缺服务时的拒绝，不删除无配置兼容入口 |
+| Static Authorization | Host策略合并及默认拒绝共享机制，adapter检查为内存规则；不能因一个业务插件停用移除保护，原策略/审计不改 |
+| Enterprise Context Grant | 预配置grants加当前治理source，决定可进入哪些企业；工厂捕获回调，查询才snapshot。原撤销可见性/拒绝保持，不与Relationship合包 |
+| Enterprise Context | Host目录配置加共享治理contexts来源，供上下文解析/访问组合；回调不是构造时遍历业务库。业务定义仓库仍按其原独立证据，不借本次目录接线豁免 |
+| Enterprise Relationship | 当前成员关系来源，角色检查与治理功能共享；工厂捕获source，调用snapshot取当前关系。保留两包边界及无关系不授予权限 |
+| Encrypted Secrets | 多消费者共享保护。file store构造实际loadKey/loadState，缺key可生成并写文件，方法resolve才解密。本批保留安全权威，**不把空minimal也创建key认定为已验收的必要例外**；共享Secrets启动资格仍R3待办 |
+
+上述是按直接代码/既有研究作出的归属与有界保留，**不是十类卸载/替换/停止矩阵全部通过**。现有bootstrap对inactive不主动ENABLE；部分基础在配置/必需来源仍在时会重装缺包。STARTUP-RESTORE明确安全基础沿原规则；本批不机械接入业务journal，也不以此宣布全部资格合理。应单独验证保护缺失仍拒绝、共享源当前性及恢复，不能仅为降低模块数删安全服务。原工厂/registry闭包与实际文件访问分开记录。
+
+### 原函数判别与最小修正
+
+Host同步`resolveIdentitySession`在有效描述符为零时直接返回host.compatibility-local，未像请求Session分支那样考虑显式配置/当前绑定。原函数类型擦除隔离探针（非完整Host）六场景证明：明确静态配置、SYSTEM identity.session绑定、default INSTALLATION绑定都回退；无配置及不适用绑定亦回退。
+
+仅在原零描述符分支增加当前配置/绑定要求：hostStaticSession已解析，或identity.session有SYSTEM/default INSTALLATION绑定时抛既有IDENTITY_SESSION_PROVIDER_UNAVAILABLE，沿原映射HTTP503/AUTHENTICATION_UNAVAILABLE。无配置旧演示仍兼容；other INSTALLATION/ENTERPRISE绑定不适用于该Host解析上下文。非零候选仍复用原resolver/健康/绑定/过期判断；有效请求Bearer/Managed仍先解析，不被同步Session条件抢占。
+
+未改变安全基础bootstrap、HTTP生命周期权限合同、Session合同/登录入口、安装状态或Provider选择算法；不增加框架/模块，也不把所有演示改成强制登录。A05仍部分完成。
+
+### 验证与效率实证
+
+新增7项真实Host：无配置兼容；配置静态身份经原HTTP disable→重启仍503，enable恢复，uninstall立即503，显式install恢复；SYSTEM/default绑定缺候选503，两种不适用绑定保持兼容；静态Provider停用时有效Bearer仍为其原主体，无/坏Bearer401。核对contexts与diagnostics两条真实入口不泄露回退主体。复用原求值前fetch计数及TCP隔离fixture，不造测试框架。没有宣称静态包卸载后的重启保留（其原配置bootstrap不改），也不以此替代所有身份/授权生产矩阵。
+
+本地Node24.19部分固定SHA/临时类型擦除：原managed-request-session 8/8，六场景原函数前后断言通过，新测试及server语法通过。隔离函数依赖只模拟零描述符及绑定列表，不冒充真实Host；正式build/新旧Host/数据库/浏览器与四组合交最终准确head CI，未本地运行。静态基线/冷禁入不放宽，本轮模块计数待CI，未部署/Human验收。
+
+为后续持续提效，沿现有FAST-FEEDBACK规程补§10，不新建流程文件：已完整读过且blob未变资料复用；同根因场景先一次列齐，以最小前后对照区分方案；集中提交，最终head保留完整门禁；版本固定与兼容缺口分别记录。**本轮实际收益**是一次探针区分三个拒绝缺口和三个兼容保留场景，不重建认证服务、不重复跑未变journal/绑定所有权测试，不重试前批浮动Node失败。是否一次推送/最终CI通过以实际PR记录为准，不预报节省比例。
+
+读取：当前AGENTS与FAST-FEEDBACK全文；启动/交付/LLM/foundation-map/装载架构及Eidos/Help复用已读且blob未变资料；本轮完整读取STARTUP-RESTORE、SESSION-AND-MEMBERSHIP、Production Identity Session、request-authentication/provider-resolution、enterprise-context runtime、原managed与startup-restart测试。Host局部覆盖十类bootstrap/配置及registry接线、两个Session resolver、contexts/diagnostics与错误映射；external/enterprise governance store仅file工厂，Secrets仅loadKey/loadState/file factory及方法。九类adapter资源复用§8/§11，不声称通读全Host/Agent或核查线上配置/密钥。来源与探针输入输出见[结构化证据](evidence/static-session-fallback-boundary-20261021.json)，操作兼容见[八节记录](../../ui-design-reviews/static-session-fallback-boundary-20261021.md)。
+
+### 下一条最小gate与停止条件
+
+准确head相关CI通过即合并，停止扩充Session模式。下一批优先对**共享Secrets构造访问的资格**作有界判别：空minimal/无Secret消费者、已有消费者、损坏key/state与管理/请求首次使用的实际读写；先决定必要Host责任或按原合同延迟，不为减少数字造懒代理。Identity Directory的独立撤销责任及其余安全基础资格矩阵、EVO期限/OIDC/records预算继续R3。R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层矩阵与A03/A05不代关。若guard影响有效请求身份或需要新权限/安装策略，先停止扩批，回到原合同；两轮无进展按原规程复盘。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；安全基础分类及缺服务拒绝增量 | 共享Secrets资格；R1/R2/R3其余/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成；同步配置/绑定缺服务不回退 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |

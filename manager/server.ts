@@ -3009,6 +3009,16 @@ function resolveContextMemoryEvidenceSourceProvider(): ContextMemoryEvidenceSour
 function resolveIdentitySession(): IdentitySessionV010 {
   const descriptors = manager.listEffectiveServiceProviders(IDENTITY_SESSION_CAPABILITY);
   if (descriptors.length === 0) {
+    // A configured identity source cannot become a different local Principal
+    // merely because its package is inactive or absent.
+    const identityProviderRequired = hostStaticSession !== undefined
+      || providerBindings.list(IDENTITY_SESSION_CAPABILITY).some(binding =>
+        binding.scope === "SYSTEM"
+        || (binding.scope === "INSTALLATION" && binding.scopeId === "default")
+      );
+    if (identityProviderRequired) {
+      throw new Error("IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+    }
     return {
       contractVersion: "0.1.0",
       sessionId: "compatibility-local-session",

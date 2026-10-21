@@ -103,3 +103,5 @@ R3 Provider边界第14节已区分默认journal与直接配置bootstrap，修正
 R3 Provider边界第15节已将EVO map的binding包初始化接入原journal，保留停用/卸载；不可用时延后写入，active错误选择仍拒绝。未变map保持字节/时间戳；显式配置仅控制列出的观测键，原配置变更/身份合同与未列出/Trading Lite键保持。其他配置Provider补装/资格、资源预算及R1/R2/R4仍开放，下一批优先可选配置bootstrap，不代关固定7项。
 
 R3 Provider边界第16节将EVO观测本体、Host内存接入与semantic/DLP/EC五类可选配置安装统一复用原journal，保留停用/卸载及稍后就绪初始化；DLP缺Provider仍失败、不改治理分类。新增双profile真实HTTP/重启回归并加强原DLP/EC调度拒绝；安全基础十类启动职责/资格、资源预算及R1/R2/R4仍OPEN，固定7项保持。
+
+R3 Provider边界第17节已分类十类安全基础：保留共享安全权威，明确索引/身份目录/Secrets真实文件成本与未验资格；补同步Session显式配置/当前绑定缺服务拒绝，不回退兼容身份。下一批优先共享Secrets构造资格；其余安全基础矩阵/资源预算及R1/R2/R4保留，A05亦不整体闭环。
