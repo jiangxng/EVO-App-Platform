@@ -150,3 +150,11 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 2. 当前 mobile footer 的两项次要 Host 动作并排而原型是单列清晰顺序；仅对 **workbench + compact review table** 的真实 footer 三项（返回文件、恢复初始选择、显式保存并预检）改成等宽纵列、保留可触控高度、真实导航/reset/保存。不得抄原型“自动保存”，实际 Host 仍要求明确保存和预检查。
 
 以上均为 CSS opt-in 渐进展示，不改变 `apps/data-import/page.ts`、协议、字段提交、授权或数据。在原有 synthetic 172 行真实 Host 390px Chromium 增加**几何与交互判别断言**：样本/summary 同行、展开后满宽、触控、不溢出、三按钮高度/宽度/上下顺序，继续覆盖返回/重置和导入完整路径。新截图 `v3-compact-evidence-and-stacked-footer-phone.png`。如果关键断言失败，先定位是否 CSS 选择器/真实 DOM 问题，禁止连续堆叠修复；Human 100% 视觉签收、M04–M06 OPEN，仍 3/6。
+
+### Window 09｜2026-10-21 同名开户银行 Human 双目标选择的真实浏览器验证
+
+复核 #1086 精确 HEAD `dca341b145a27247055177491200e0dd0a49e467` 和 synthetic Host 390px 连续滚动 `v3-e4-map-phone-scroll-manifest.json`：10 帧覆盖 5540px scroll 容器，没有发现值得继续纯 CSS 猜测的共同根因。更关键的**未证业务门禁**是：已有测试仅断言“开户银行存在多个对应字段”提示出现，尚未分别验证两个真实 target fieldId 可选、各自用途证据完整、仅改变本地选择以及返回未保存状态。
+
+本轮不改页面结构和业务契约，新增同一真实隔离 Host Chromium fixture 对第 20 列 `开户银行` 的 desktop + 390px touch Chrome Human 审核验收：从同名定义提取恰好两个不同 fieldId，两个下拉项均同时说明中文业务用途与真实 fieldId，展开态 read-only candidate evidence 包含两个 ID；分别选中两个，原始银行样本不变，最后 reset 必须回到 `__PENDING__`；手机再强制 reload，证明并未后台自动保存。新证据截图 `v3-bank-human-choice-{desktop,phone}-{1,2}.png`，所有信息仅来自 synthetic fixture；不得将下拉选值冒充 Human 已确认的业务用途。继续验证 7 类最终 HEAD CI 和真实 Host，Human 签收、真实客户 Excel、M04/M05/M06 不变（3/6）。若现有选项确实无法分辨，则先改业务文案/证据交互，而非继续调整 CSS 间距。
+
+**集成风险**：本 PR 仍叠加 #1077→#1060 Draft；2026-10-21 实时核对 #1060 对最新 main 已 `mergeable=false`，不得用视觉 PASS 代替主线可合并性。后续必须先由拥有者完成 base/main 的安全冲突检查和 PR 收敛，不能因为更换窗口而重建第三套同功能实现。

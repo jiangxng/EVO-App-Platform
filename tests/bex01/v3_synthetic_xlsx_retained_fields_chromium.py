@@ -26,6 +26,68 @@ EXPECTED_BANK="ext_"+hashlib.sha256(
 FIELDS=["企业属性"+str(i) for i in range(1,18)]
 
 
+def verify_two_same_label_bank_choices(page, form, device):
+    """Actual Human selects two distinct real fieldIds; no Host write occurs.
+
+    The synthetic visual fixture gives column 20 two target definitions both
+    named 开户银行. The Job starts unresolved. Selecting by a label alone would
+    lose business meaning, so the real Eidos picker must distinguish both IDs.
+    """
+    row=form.locator('[data-eidos-form-review-table-row="map-source-20"]')
+    expect(row).to_be_visible(timeout=15000)
+    expect(row.locator('[data-eidos-review-table-subject]')).to_have_text("开户银行")
+    picker=row.locator('select[name="map_20"]')
+    expect(picker).to_have_value("__PENDING__")
+    candidates=picker.evaluate("""el=>[...el.options]
+        .filter(o=>o.label.trim().startsWith('开户银行 · '))
+        .map(o=>({fieldId:o.value,label:o.label.trim()}))""")
+    assert len(candidates)==2,("BEX_V3_BANK_TWO_TARGET_CHOICES",device,candidates)
+    ids=[item["fieldId"] for item in candidates]
+    assert len(set(ids))==2 and EXPECTED_BANK in ids,(
+        "BEX_V3_BANK_REAL_DIFFERENT_FIELD_IDS",device,candidates)
+    assert all(item["fieldId"] in item["label"]
+        and "开户银行" in item["label"]
+        and len(item["label"])>len("开户银行 · ")+len(item["fieldId"])
+        for item in candidates),("BEX_V3_BANK_PURPOSE_AND_ID_VISIBLE",device,candidates)
+    evidence=row.locator('input[name="candidateEvidence_20"]')
+    expect(evidence).to_be_visible()
+    full=evidence.input_value()
+    assert all(fieldId in full for fieldId in ids),(
+        "BEX_V3_BANK_CANDIDATE_EVIDENCE_COMPLETE",device,full)
+    source=row.locator('[data-eidos-review-table-sample]')
+    expect(source).to_contain_text("招商银行深圳科技园支行")
+    original=source.inner_text()
+
+    # Deliberately try both legitimate fieldIds. No mapping submission occurs.
+    for index,fieldId in enumerate(ids):
+        picker.select_option(fieldId)
+        expect(picker).to_have_value(fieldId)
+        assert source.inner_text()==original,(
+            "BEX_V3_BANK_SOURCE_MUST_NOT_CHANGE",device,fieldId)
+        row.scroll_into_view_if_needed()
+        page.screenshot(path=str(OUT/(
+            "v3-bank-human-choice-%s-%d.png"%(device,index+1))),
+            full_page=False)
+
+    form.locator('[data-eidos-form-task-reset]').click()
+    expect(picker).to_have_value("__PENDING__")
+    expect(form.locator('[data-eidos-form-review-table-filter]')).to_have_value("needs")
+    expect(row).to_be_visible()
+    if device=="phone":
+        # Stronger no-autosave proof: even after browser navigation, the real
+        # Host restores unresolved state rather than either trial choice.
+        page.reload(wait_until="domcontentloaded")
+        expect(form).to_be_visible(timeout=30000)
+        expect(form.locator(
+            '[data-eidos-form-review-table-row="map-source-20"] '
+            'select[name="map_20"]')).to_have_value("__PENDING__")
+    print("BEX_V3_BANK_HUMAN_TWO_TARGETS_NO_AUTOSAVE_PASS="+json.dumps({
+        "device":device,"fieldIds":ids,"separateChoices":True,
+        "sourcePreserved":True,"resetToPending":True,
+        "reloadNoAutomaticSave":device=="phone"
+    },ensure_ascii=False),flush=True)
+
+
 def capture_map_scroll_evidence(page, form, device):
     """Capture scrollable Eidos shell at each review landmark, not only document height.
 
@@ -842,6 +904,7 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(visual_form.locator('[data-eidos-form-task-back]')).to_have_text("返回文件")
     expect(visual_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
+    verify_two_same_label_bank_choices(visual_page,visual_form,"desktop")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
     visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_page.evaluate("""async () => {
@@ -1015,6 +1078,7 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(phone_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(phone_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
+    verify_two_same_label_bank_choices(visual_phone,phone_form,"phone")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
     phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_phone.evaluate("""async () => {
