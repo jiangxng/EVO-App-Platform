@@ -97,3 +97,5 @@ R3 Provider边界第11节已核对session/EVO/OIDC：保留轻量工厂、同步
 R3 Provider边界第12节已将OIDC clientSecret解析移至原token交换端口；配置/发现/begin/probe不解密，public client保留，配置凭据失败拒绝。原state绑定当前资格/epoch，写入/绑定/启停及迟到响应不签发旧Session；共享Session与Secret授权/审计保持。下一批核对managed关闭但指定文件的读取资格，EVO映射/配置安装、资源预算及R1/R2/R4继续开放。
 
 R3 Provider边界第13节已修正managed=false但显式Session文件仍启动读取的问题：整个显式/派生路径选择受managed开关控制，启用时共享日志重放及持久要求保留；新增真实Host配置组合/坏文件保留/请求内存查询与重启回归。下一批EVO映射启动绑定写入及配置驱动bootstrap资格；R1/R2、R3其余与R4及固定7项保持。
+
+R3 Provider边界第14节已区分默认journal与直接配置bootstrap，修正EVO观测关闭时map仍安装/启用binding包并写入的缺口：off时配置休眠，原文件/持久化inactive保持；显式true原校验/身份/恢复合同保留。true模式重复修复/写入与其余配置资格仍开放，不用显式配置豁免；下一批先定映射权威/迁移/退出条件，R1/R2/R4和固定7项保持。

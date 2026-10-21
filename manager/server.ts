@@ -3499,6 +3499,8 @@ const evoObservatoryEnterpriseMap = (() => {
 const evoObservatoryDefaultEnterpriseCode =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_DEFAULT_ENTERPRISE_CODE?.trim();
 const evoObservatoryApplicationMap = (() => {
+  // A configured map is dormant while its observatory owner is disabled.
+  if (!evoObservatoryEnabled) return [];
   const raw = process.env.APP_PLATFORM_EVO_OBSERVATORY_APPLICATION_MAP_JSON?.trim();
   if (!raw) return [] as Array<{
     enterpriseId: string;
