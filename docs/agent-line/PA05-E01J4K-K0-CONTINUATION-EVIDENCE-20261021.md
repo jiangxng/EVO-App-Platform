@@ -292,3 +292,30 @@
 **外部事实没有变：** 本轮 Railway 只读 `environment_status` 显示 Ledger Configurator 1 running/0 crashed，production deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 对应 **`main@524106df36af45b89d15eebd4c0c4f308b1718fc`**，GitHub 当前 `main@6bea66e8b7cde970a1f62d440b00d6567aeeca57` 40/40 exact checks SUCCESS，**生产仍未跟随 main 更新**。#1071 文档旧 HEAD `6e6a9ed4` 7/7 SUCCESS；#1081 `a1e8a094` 5/5；#1082 `d9be185e` 5/5。以上仅对应列出 SHA 的 GitHub API 结果。
 
 **继续保留否决：** K0、完整 E01J4、PA05-05 E01–E05、W06 全 `NOT_SIGNED`；production material WRITE `OFF`；Issues #988/#979/#913 OPEN。R1–R8 的真实组织 Worker inventory、外部 Supervisor 退出收据、Railway effective draining/Node PID1、生产 Human IdP/DBA session/credential/audit owner 无新增真实签收；不得执行父 Host SIGKILL、生产 Validator/Secrets/SQL、Railway 修改、自动残留锁清理。四 Draft 全部保留，不能执行 merge。
+
+
+## 16. 2026-10-21 自动续跑 #05 — 独立于目标 Host 的真实 Linux /proc 进程树观察
+
+> **最新证据级别：** `ORIGINAL_GITHUB_COMMITTED_SOURCE_20261021` + `ORIGINAL_GITHUB_ACTIONS_JOB_LOG_DIRECT_READ_20261021`。本节新贡献是真实 OS /proc 独立观察，**不是**独立受权 cgroup Supervisor、父 Host SIGKILL 回收或生产 Worker stop 证明。继承 §§1–15 的原始研究，不重复开展 PostgreSQL18/OAuth/Lease/NIST 等已完成阅读。
+
+### 16.1 真实实施与实际执行
+
+- 原工程 Draft [#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 原分支 `agent/pa05-k0-process-runtime-stop-barrier-20261020`，在此前 11 项 PROCESS + 2 项只读 preflight + 6 项签名验证 + 10 项合成 Worker 对账的基础上，**仅增两个 test-only 文件**，没有生产 Runtime/Host 修改。
+- `tests/fixtures/pa05-k0-supervised-os-tree.mjs` commit [`e3f5f667e97c0c310bd65973484df1c35dc72e7f`](https://github.com/jiangxng/EVO-App-Platform/commit/e3f5f667e97c0c310bd65973484df1c35dc72e7f)：在一个隔离 CI Runner 中，模拟目标 Host 启动真实可执行 Node Worker。Worker 有**不依赖父 Host 的 5 秒自退出保险**，Host 有 7 秒保险，并在 stop 请求后等待 Worker close；无 `detached`、不制造新 session/namespace、不杀掉目标 Host、不读生产数据。
+- `tests/protocol/pa05-k0-external-os-tree-observation.test.mjs` commit [`9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68`](https://github.com/jiangxng/EVO-App-Platform/commit/9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68)：**测试观察者运行在目标 Host 进程之外**，在 Host 接到正常 stop 之前，独立从 Linux `/proc/<hostPid>/stat`、`/proc/<workerPid>/stat` 和 `/proc/<hostPid>/task/<hostPid>/children` 查询 PPID/内核启动 tick/子进程关系及存活状态；目标 Host 向观察者报告的 PID 必须与 procfs 独立清单相符。发出正常 IPC stop（非 SIGKILL）后，观察者再次核查这两个准确启动身份的进程已退出。测试还包含受限救援清理：如有异常，仅对启动时刻匹配的 disposable PID 尝试 SIGTERM，两个目标本身也有 TTL 保险。没有父 Host SIGKILL。
+- **原始 CI：** [Platform run #39539664240 / job #119024257994](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39539664240/job/119024257994)，精确 HEAD `9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68`，`ORIGINAL_GITHUB_ACTIONS_RAW_JOB_LOG_DIRECT_READ_20261021`。单独新增 `K0 external OS observer: independently verify two-generation process tree and graceful close` **PASS**；整套 `1122 tests / 1121 PASS / 1 SKIPPED / 0 FAIL`；既有十一项 `PA05_K0_BOUNDED_*` 标记仍在同一 job。原始 marker：
+
+```json
+{"scope":"non-production-single-linux-runner","targetHostSeparateProcess":true,"hostRemainedAliveDuringObservation":true,"childConfirmedByExternalProcfs":true,"workerParentPidMatched":true,"hostAndWorkerStartIdentityObserved":true,"gracefulExitExternallyObserved":true,"noParentSigkillTestPerformed":true,"independentCgroupSupervisorVerified":false,"globalStopCertified":false,"productionMaterialWriteEnabled":false}
+```
+
+**已确认判断：** `ISOLATED_EXTERNAL_OS_PROCESS_TREE_GRACEFUL_OBSERVATION_ONE_CASE_BOUNDED_PASS`。这是迈出纯内存签名/模拟的真实 OS 层一步；观察者与目标 Host 是不同真实 Node 进程，procfs 的父子关系与启动身份未依赖 Host 的自述直接签收。不过它们仍在**同一非生产 Linux CI Runner**；观察者是测试驱动进程，不是由组织授权的独立生命周期编排器。
+
+### 16.2 尚不能替代的外部授权证据
+
+- 本实验没有发生父 Host 异常退出、突然 SIGKILL、IPC 断裂后长时间存活孤儿，也未证明独立 Supervisor 在目标父 Host 死亡后仍有完整子孙枚举/强制回收、专属 cgroup 归属与 `populated=0` 退出回执。两个目标都设 TTL，不可把 TTL 到期/正常关闭签成 OS 可信全域回收。
+- 该 test fixture 的 synthetic Host/Worker **不是**正在生产运行的 Ledger Configurator Plugin Host 的确切真实部署或组织内全部 PROCESS/Runner/浏览器/API caller；不能代表 Railway PID1 / npm SIGTERM/draining/overlap，更不能签真实 DB backend 消失、中央 fencing epoch 或 Human IdP/DBA 凭据与审批。
+- 此项独立于之前 11 项真实局部 Plugin PROCESS 生命周期测试、2 项只读内核预检、6 项合成回执验证、10 项合成 Worker 对账，不称为“12 项生产停机认证”。是否宣布 #1082 精确 HEAD **全部** checks SUCCESS，必须核对该 HEAD 的 5 个 checks 而非只凭 protocol job。
+- 下一步先由 Infra/SRE 在**明确获授权的非生产独占隔离设施**出具 supervisor service identity、target cgroup/namespace 归属、全量已知 PID/start-time，独立于 Host 的 rescue TTL + kill 权限和真实退出回执，才考虑父 Host SIGKILL 注入与超时责任。缺一项仍 `NOT_EXECUTED`；不要在普通共享 Runner 把此正常停机实验直接升级为父 Host SIGKILL。
+
+**K0、完整 E01J4、PA05-05 E01–E05、W06 全部 `NOT_SIGNED`；production material WRITE 仍 `OFF`；#988/#979/#913 OPEN。** 不合并 Draft、不动生产 Validator/SQL/Secrets/draining/部署/停机、不自动清异常锁、不更改其他窗口文件与 `project.status.json`。
