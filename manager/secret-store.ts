@@ -75,9 +75,10 @@ function descriptor(
   };
 }
 
-function loadKey(keyFile: string): Buffer {
-  mkdirSync(dirname(keyFile), { recursive: true });
+function loadKey(keyFile: string, allowCreate: boolean): Buffer {
   if (!existsSync(keyFile)) {
+    if (!allowCreate) throw new Error("SECRETS_MASTER_KEY_MISSING");
+    mkdirSync(dirname(keyFile), { recursive: true });
     const key = randomBytes(32);
     writeFileSync(keyFile, key.toString("base64") + "\n", {
       encoding: "utf8",
@@ -171,10 +172,22 @@ export function createEncryptedFileSecretStoreV010(
   keyFile: string,
   now: () => Date = () => new Date()
 ): SecretStoreV010 {
-  const key = loadKey(keyFile);
-  const state = loadState(filePath);
+  // One synchronous Host-owned snapshot, shared by every consumer. Constructing
+  // or registering the store does not initialize its persistent boundary.
+  let loaded: { key: Buffer; state: PersistedEncryptedSecretsV010 } | undefined;
+  function load() {
+    if (!loaded) {
+      // Publish only a fully validated pair. A failed read can be retried after
+      // repair, and malformed state must not create a new master key.
+      const state = loadState(filePath);
+      const key = loadKey(keyFile, Object.keys(state.records).length === 0);
+      loaded = { key, state };
+    }
+    return loaded;
+  }
 
   function persist(): void {
+    const { state } = load();
     mkdirSync(dirname(filePath), { recursive: true });
     const tmp = filePath + ".tmp";
     writeFileSync(tmp, JSON.stringify(state, null, 2) + "\n", {
@@ -187,6 +200,7 @@ export function createEncryptedFileSecretStoreV010(
   }
 
   function encrypt(reference: SecretReferenceV010, value: string): EncryptedSecretRecordV010 {
+    const { key } = load();
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", key, iv);
     cipher.setAAD(Buffer.from(identity(reference), "utf8"));
@@ -205,6 +219,7 @@ export function createEncryptedFileSecretStoreV010(
   }
 
   function decrypt(reference: SecretReferenceV010, record: EncryptedSecretRecordV010): string {
+    const { key } = load();
     if (record.algorithm !== "aes-256-gcm") throw new Error("SECRET_ALGORITHM_UNSUPPORTED");
     const decipher = createDecipheriv(
       "aes-256-gcm",
@@ -221,10 +236,12 @@ export function createEncryptedFileSecretStoreV010(
 
   return {
     describe(reference) {
-      return descriptor(reference, state.records[identity(reference)]);
+      const id = identity(reference);
+      return descriptor(reference, load().state.records[id]);
     },
     resolve(reference) {
-      const record = state.records[identity(reference)];
+      const id = identity(reference);
+      const record = load().state.records[id];
       if (!record) {
         throw new Error(`SECRET_NOT_FOUND: ${reference.namespace}: ${reference.key}`);
       }
@@ -233,18 +250,20 @@ export function createEncryptedFileSecretStoreV010(
     put(reference, value) {
       const normalized = value.trim();
       if (!normalized) throw new Error("SECRET_VALUE_EMPTY");
+      const id = identity(reference);
       const record = encrypt(reference, normalized);
-      state.records[identity(reference)] = record;
+      load().state.records[id] = record;
       persist();
       return descriptor(reference, record);
     },
     remove(reference) {
-      delete state.records[identity(reference)];
+      const id = identity(reference);
+      delete load().state.records[id];
       persist();
     },
     listMetadata(namespace) {
       const result: SecretDescriptorV010[] = [];
-      for (const [key, record] of Object.entries(state.records)) {
+      for (const [key, record] of Object.entries(load().state.records)) {
         const [secretNamespace, secretKey, scope, scopeId] = key.split("\u0000");
         if (namespace && secretNamespace !== namespace) continue;
         result.push({

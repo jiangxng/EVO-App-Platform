@@ -85,3 +85,26 @@ R1页面/命令后续整改及24个保留入口对账见运行图文档第7～16
 R3后续已在Provider边界第6节移除两处refresh隐式环境Key写入，改由原显式Secret保存路径负责持久化及审计；普通模型保存与删除后refresh不再自动迁移/复活。提前解析/解密、同步消费者资源资格与其他Provider类别仍保留，不能据此关闭R3。
 
 R3 Provider边界第7节已接续LLM明文Key：启动仅describe，原同步选择保持，实际infer/probe通过既有fetchImpl端口解析并复核资格/配置/启停epoch/Abort；设置写入门禁与故障恢复单独验收。共享Secrets启动文件责任及其他Provider、R1/R2/R4不因此关闭；下一批按Provider文档第7节接续其余类别。
+
+R3 Provider边界第8节已接续memory-intake/EC、semantic/DLP及共享identity/grant/relationship/authorization/remote-credential：保留无资源工厂和必要同步安全来源，新增构造/发现、请求期限与共享撤销回归。P12 refresh提前解析可选token已单列待整改，其他Provider和完整消费者资格仍待对账；下一步以第8节为准，R1/R2/R4及固定7项口径保持。
+
+R3 Provider边界第9节已将DLP/EC可选apiToken移至原fetchImpl实际请求边界，保留未配置匿名/读取失败拒绝，增加有效选择、启停/绑定代际、写入计数及Abort保护。semantic提前解密及共享reader同步选择明确保留为下一批；配置自动安装与R1/R2/R4未关闭，固定7项不变。
+
+R3 Provider边界第10节已接续semantic：token复用原请求helper，shared reader逐次调用原同步resolver，缺失/异常不回退旧对象，原直接注入/过滤/排序保持。Host零解密/词法页面与semantic服务合同正向调用分别验收，不新增产品入口或冒称HTTP semantic矩阵。三类P12提前token问题局部收口，配置安装、其他Provider及R1/R2/R4仍待核对，下一批按第10节接续。
+
+R3 Provider边界第11节已核对session/EVO/OIDC：保留轻量工厂、同步共享安全适配及受管认证必要启动索引重放；修复OIDC失败discovery/JWKS Promise永久缓存，保留新登录恢复与旧callback单次消费。构造/发现零资源不代表Host零I/O：OIDC refresh提前Secret解析、managed关闭但指定文件、EVO映射启动写入和配置驱动安装仍开放；query期限/事务预算另记。下一批优先OIDC实际认证事务的凭据/资格边界，R1冻结SOP、R2原Agent配置SQL、R4最终矩阵及固定7项状态保持。
+
+R3 Provider边界第12节已将OIDC clientSecret解析移至原token交换端口；配置/发现/begin/probe不解密，public client保留，配置凭据失败拒绝。原state绑定当前资格/epoch，写入/绑定/启停及迟到响应不签发旧Session；共享Session与Secret授权/审计保持。下一批核对managed关闭但指定文件的读取资格，EVO映射/配置安装、资源预算及R1/R2/R4继续开放。
+
+R3 Provider边界第13节已修正managed=false但显式Session文件仍启动读取的问题：整个显式/派生路径选择受managed开关控制，启用时共享日志重放及持久要求保留；新增真实Host配置组合/坏文件保留/请求内存查询与重启回归。下一批EVO映射启动绑定写入及配置驱动bootstrap资格；R1/R2、R3其余与R4及固定7项保持。
+
+R3 Provider边界第14节已区分默认journal与直接配置bootstrap，修正EVO观测关闭时map仍安装/启用binding包并写入的缺口：off时配置休眠，原文件/持久化inactive保持；显式true原校验/身份/恢复合同保留。true模式重复修复/写入与其余配置资格仍开放，不用显式配置豁免；下一批先定映射权威/迁移/退出条件，R1/R2/R4和固定7项保持。
+
+R3 Provider边界第15节已将EVO map的binding包初始化接入原journal，保留停用/卸载；不可用时延后写入，active错误选择仍拒绝。未变map保持字节/时间戳；显式配置仅控制列出的观测键，原配置变更/身份合同与未列出/Trading Lite键保持。其他配置Provider补装/资格、资源预算及R1/R2/R4仍开放，下一批优先可选配置bootstrap，不代关固定7项。
+
+R3 Provider边界第16节将EVO观测本体、Host内存接入与semantic/DLP/EC五类可选配置安装统一复用原journal，保留停用/卸载及稍后就绪初始化；DLP缺Provider仍失败、不改治理分类。新增双profile真实HTTP/重启回归并加强原DLP/EC调度拒绝；安全基础十类启动职责/资格、资源预算及R1/R2/R4仍OPEN，固定7项保持。
+
+R3 Provider边界第17节已分类十类安全基础：保留共享安全权威，明确索引/身份目录/Secrets真实文件成本与未验资格；补同步Session显式配置/当前绑定缺服务拒绝，不回退兼容身份。下一批优先共享Secrets构造资格；其余安全基础矩阵/资源预算及R1/R2/R4保留，A05亦不整体闭环。
+
+
+R3 Provider边界第18节已把共享Secrets文件初始化放到原同步store首次有效操作，构造/登记零文件访问；坏state不先写key、已有密文缺key拒绝且失败可修复后重试。保留单Host共享快照、有效metadata首次初始化及消费端/管理端既有授权、解密、启停合同；不绑定某个UI插件。新增协议与真实Host最小/首次授权保存/探测恢复/双消费者/重启证据；LLM既有启动metadata调用资格未在本批重构，其余安全基础资格、资源预算及R1/R2/R4仍OPEN。下一批先核对Identity Directory构造读取与独立撤销责任。
