@@ -1102,3 +1102,12 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 已有类别分别保留：**11 项本地真实 Plugin PROCESS 生命周期**、**2 项 Supervisor 只读预检**、**6 项离线签名回执**、**10 项 synthetic 多 Worker 对账**，本项额外 **1 项真实单机 /proc 外部观察**。类别不可混计为真实跨 Worker 停机认证。具体新事实、方案限制、来源级别及欠缺的组织 Infra 批准见 [接续研究 §16](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 与 [K0 工作表 §20](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
 
 **所有正式门禁状态不变：** K0 `NOT_SIGNED`、完整 E01J4 `NOT_SIGNED`、PA05-05 E01–E05 `NOT_SIGNED`、W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 OPEN。真实 independent supervisor+cgroup rescue、父 Host SIGKILL 后完整退出回执、Railway effective draining/PID1、全量 Worker/Caller、DBA SQL session / IdP / Secrets / Audit owner 仍 UNVERIFIED。四 Draft 不合并不部署，不运行生产 Validator/SQL，不触碰 Secrets 或异常锁。
+
+
+## 96. PA05-05 / K0 — 2026-10-21 并行 main/Railway 自动生产快照隔离
+
+原 #1082 Draft 新 real procfs observer 实验通过的 commit `9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68` **5/5 checks SUCCESS**、Platform `1122 total / 1121 PASS / 1 SKIPPED / 0 FAIL`（详细来源 [接续 §16](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)）；新级别仅 `ISOLATED_EXTERNAL_OS_PROCESS_TREE_GRACEFUL_OBSERVATION_ONE_CASE_BOUNDED_PASS`。
+
+**同轮控制面出现重要并行变更：** GitHub main 升级到 `4d291fb31f7a5c429b20be14fb48df687c5a1dac`；Railway Ledger Configurator production deployment `abe8f368-a45f-4a09-aa07-0f8201bf838e` 对应相同 SHA、SUCCESS/Online、1 running/0 crashed；此前 `main@6bea66e8` 的 40/40 checks 不是新 SHA 的检查。此新 SHA 的 GitHub commit check-runs 仅显示 **2/2 SUCCESS**，范围不全等于历史 Platform/Ecosystem 认证。来源 [接续 §17](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。这次 Railway 成功部署是其他并行主线更新，本窗口无部署操作，四条 PA05 Draft 都没有合并或运行生产 Validator。
+
+因此**全局认证状态不提升**：K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 OPEN。用户禁止 parent SIGKILL 无独立回收、无生产 Secrets/SQL/停机/draining/清锁，保持不变。
