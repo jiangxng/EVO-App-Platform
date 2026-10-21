@@ -86,3 +86,10 @@
 - 无新增外部资料，无线上认证验收，无远端仓库推测。用途说明中文均不超过 50 字，其他语言沿用中文 fallback。
 
 本地验证：构建通过；上述 7 个测试文件共 43/43 通过；轻量 Host 门禁通过（297 条历史边），continuity:validate 通过。
+
+
+## 2026-10-21增量：同步静态Session配置/绑定也不得回退
+
+基线main `261c468b0f17c34080153a6a24eefcf1cf03a8af`。安全基础分类发现同步identity.session在零有效描述符时仍返回兼容身份；本批仅增加原hostStaticSession配置与SYSTEM/default INSTALLATION绑定要求，缺服务抛既有IDENTITY_SESSION_PROVIDER_UNAVAILABLE，由原HTTP映射503。无配置演示、不适用作用域与有效请求Bearer优先级保持；不更改三包安装/初始化、正式登录策略或Agent实现。
+
+原函数六场景前后断言和既有managed 8项本地通过；新增7项真实Host覆盖原HTTP启停/卸载/恢复、inactive重启、绑定作用域与Bearer优先级，最终head CI结果见PR收口。证据及局限见[Provider边界第17节](PROVIDER-REGISTRATION-BOUNDARY-20261020.md#17-2026-10-21增量安全基础分类与同步session拒绝边界)。A05仍部分完成，未部署/Human验收，其他入口/正式迁移不代关。
