@@ -1111,3 +1111,21 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 **同轮控制面出现重要并行变更：** GitHub main 升级到 `4d291fb31f7a5c429b20be14fb48df687c5a1dac`；Railway Ledger Configurator production deployment `abe8f368-a45f-4a09-aa07-0f8201bf838e` 对应相同 SHA、SUCCESS/Online、1 running/0 crashed；此前 `main@6bea66e8` 的 40/40 checks 不是新 SHA 的检查。此新 SHA 的 GitHub commit check-runs 仅显示 **2/2 SUCCESS**，范围不全等于历史 Platform/Ecosystem 认证。来源 [接续 §17](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。这次 Railway 成功部署是其他并行主线更新，本窗口无部署操作，四条 PA05 Draft 都没有合并或运行生产 Validator。
 
 因此**全局认证状态不提升**：K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 OPEN。用户禁止 parent SIGKILL 无独立回收、无生产 Secrets/SQL/停机/draining/清锁，保持不变。
+
+
+## 97. PA05-05 / K0 — 2026-10-21 生产默认零 Grace 与 PID1 证据强阻塞
+
+**不同于先前纯 local checks 的新风险：** Railway 官方原始 [Deployments Reference](https://docs.railway.com/deployments/reference)、[Variables Reference](https://docs.railway.com/variables/reference) 明确 SIGTERM→SIGKILL 的 graceful drain **平台默认 0 秒**；[Start Command](https://docs.railway.com/deployments/start-command) 说明 Railpack 通过 shell 启动。生产只读 config（Ledger Configurator）返回 `build.builder=RAILPACK`、`startCommand=npm start`，没有显式生效 `drainingSeconds`；仓库 `package.json` 有 `start=node dist/manager/server.js`，根目录 `Dockerfile` CMD 又直接 Node。**尚无实际 production image/PID1/PPID/信号链或 effective drain 时长原始证据**。请勿将“平台默认 0”冒称为“当前生产已确定是 0”；严格状态为 `R5_DEFAULT_ZERO_RISK_OBSERVED / EFFECTIVE_PRODUCTION_UNVERIFIED`。
+
+本轮创建新的 [R5 Railway Draining / PID1 Operator 证据请求](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md)，列出 R5-01–R5-06 及 Owner、所需脱敏证据、接受条件、先只读再非生产隔离演练的安全顺序。这里没有启动危险测试或调整配置。#1074 Draft `c6d5fca9` 虽 45/45 CI，**生产 main** 的旧 shutdown 5 秒 timer 仍可能在 await 之后才启动，且平台有效宽限尚未知，因此**本地成功不授权 K0**。本论断来自当前已读源码与平台文档，真实 Runtime 行为仍需授权实验。
+
+| 必签的生产门槛 | 本轮证据 | 当前 |
+| --- | --- | --- |
+| R5-01 Railway effective draining / overlap | 官方平台默认 0，但项目生产生效值不明 | `UNVERIFIED / DENY` |
+| R5-02 实际 PID1 / SIGTERM 到 Node/child | Railway config + package + Dockerfile 源级差异 | `UNVERIFIED / DENY` |
+| R5-03 独立 Supervisor/TTL/OS 退出证据 | 非生产单机 /proc 正常退出已经有界 PASS，但没有异常父 Host 回收 | `UNVERIFIED / DENY` |
+| K0 全球 Worker/Caller、SQL session、Human IdP/DBA | 未有组织签名和真实生产原始证明 | `NOT_SIGNED` |
+| **K0 / 完整 E01J4 / PA05-05 E01–E05 / W06** | 无真实全域停机完整证据 | **`NOT_SIGNED`** |
+| **Production material WRITE** | 安全保持关闭 | **`OFF`** |
+
+本轮新增索引 [接续研究 §18](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) / [K0 工作表 §21](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)；#1071/#1074/#1081/#1082 全部 Draft，Issues #988/#979/#913 OPEN。没有改变 `project.status.json`、其他工作线、生产配置和历史认证反证。
