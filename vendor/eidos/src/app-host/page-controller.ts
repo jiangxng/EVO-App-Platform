@@ -630,8 +630,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         (active?.dataset.eidosReviewTableFilterKeys ?? "").split(",").filter(Boolean)
       );
       let visible = 0;
+      const choices = active?.dataset.eidosReviewTableFilterChoices
+        ?.split(",").filter(Boolean);
       for (const row of rows) {
-        const match = keys.has(row.dataset.eidosReviewTableStatusKey ?? "");
+        const selectedValue = row.querySelector<HTMLSelectElement>(
+          "[data-eidos-review-table-choice] select"
+        )?.value;
+        const match = choices
+          ? selectedValue!==undefined && choices.includes(selectedValue)
+          : keys.has(row.dataset.eidosReviewTableStatusKey ?? "");
         row.hidden = !match;
         if (match) visible++;
       }

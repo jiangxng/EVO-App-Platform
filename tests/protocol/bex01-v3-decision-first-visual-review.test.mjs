@@ -100,10 +100,19 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     group.reviewStatus.key,...Object.values(group.statusByChoice).map(s=>s.key)]));
   const allOption=mapping.reviewTable.filter.options.find(option=>option.id==="all");
   const needsOption=mapping.reviewTable.filter.options.find(option=>option.id==="needs");
+  const unmatchedOption=mapping.reviewTable.filter.options.find(option=>option.id==="unmatched");
+  assert.deepEqual(unmatchedOption.choiceValues,["__PENDING__"],
+    "V3 pending filter must match actual source option values, not warning status");
   assert.ok([...reachable].every(key=>allOption.statusKeys.includes(key)));
   for(const key of ["attention","pending","proposed","suggested"])
     assert.ok(needsOption.statusKeys.includes(key),key+" must stay reviewable");
   assert.match(renderToHtml(mapping),/data-eidos-review-status-by-choice=/);
+  assert.match(renderToHtml(mapping),
+    /data-eidos-review-table-filter-choices="__PENDING__"/);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    filter:{...mapping.reviewTable.filter,options:mapping.reviewTable.filter.options.map(option=>
+      option.id==="unmatched" ? {...option,choiceValues:["__NOT_A_REAL_OPTION__"]} : option)}}}).ok,false,
+    "choice-based filters must only refer to real authorized select values");
   assert.doesNotMatch(renderToHtml(mapping),/localStorage|data-eidos-auto-save/);
   const restoredOnly=createDataImportMappingPageV010({job:{
     ...job,source:{...job.source,headers:["供应商编码"]},

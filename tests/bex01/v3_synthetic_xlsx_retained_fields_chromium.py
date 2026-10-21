@@ -927,6 +927,13 @@ with sync_playwright() as pw:
     expect(expected_count).to_have_text("22 / 22")
     filter_choice.select_option("needs")
     expect(expected_count).to_have_text("6 / 22")
+    # The approved V3 third choice filters actual __PENDING__ decisions.
+    filter_choice.select_option("unmatched")
+    prior_unmatched=visual_form.evaluate("""form=>[...form.querySelectorAll(
+      '[data-eidos-form-review-table-row]')].filter(row=>
+      row.querySelector('[data-eidos-review-table-choice] select')?.value==='__PENDING__').length""")
+    expect(expected_count).to_have_text(str(prior_unmatched)+" / 22")
+    filter_choice.select_option("all")
     # V3 source JS changed()/render(): only the local Human decision UI
     # changes immediately; none of these steps executes an import/save.
     pending_row=visual_form.locator(
@@ -936,6 +943,15 @@ with sync_playwright() as pw:
     initial_metadata_choice=pending_select.input_value()
     expect(pending_select).to_have_value("__CREATE__")
     expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","attention")
+    pending_select.select_option("__PENDING__")
+    filter_choice.select_option("unmatched")
+    expect(pending_row).to_be_visible()
+    expect(expected_count).to_have_text(str(prior_unmatched+1)+" / 22")
+    filter_choice.select_option("all")
+    pending_select.select_option(initial_metadata_choice)
+    filter_choice.select_option("unmatched")
+    expect(expected_count).to_have_text(str(prior_unmatched)+" / 22")
+    filter_choice.select_option("needs")
     pending_select.select_option("__IGNORE__")
     expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","ignored")
     expect(pending_row.locator('[data-eidos-review-table-status]')).to_have_text("不导入")

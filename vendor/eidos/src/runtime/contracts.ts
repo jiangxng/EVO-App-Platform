@@ -76,7 +76,10 @@ export interface UidlFormReviewTableV010 {
     label: string;
     selectedId: string;
     noMatchesMessage: string;
-    options: { id: string; label: string; statusKeys: string[] }[];
+    options: { id: string; label: string; statusKeys: string[];
+      /** Filter by current primary select choices, never change form values. */
+      choiceValues?: string[];
+    }[];
   };
 }
 

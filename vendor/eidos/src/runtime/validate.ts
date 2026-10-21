@@ -942,6 +942,11 @@ export function validateUidl(
           const ids = new Set<string>(), options: NonNullable<
             import("./contracts.js").UidlFormReviewTableV010["filter"]
           >["options"] = [];
+          const primaryChoices = new Set(reviewGroups.flatMap(group=>{
+            const field=fields.find(item=>item.key===group.primaryFieldKey);
+            return field?.control==="select"
+              ? (field.options??[]).map(option=>String(option.value)) : [];
+          }));
           let all = false;
           f.options.forEach((raw:unknown,i:number)=>{
             if (!isPlainObject(raw) || !nonEmpty(raw.id) || !raw.id.trim()
@@ -949,17 +954,26 @@ export function validateUidl(
               || !Array.isArray(raw.statusKeys) || raw.statusKeys.length===0
               || raw.statusKeys.some((k:unknown)=>typeof k!=="string"||!keys.has(k))
               || new Set(raw.statusKeys).size!==raw.statusKeys.length
+              || raw.choiceValues!==undefined
+                && (!Array.isArray(raw.choiceValues)
+                  || raw.choiceValues.length===0 || raw.choiceValues.length>12
+                  || raw.choiceValues.some((value:unknown)=>
+                    typeof value!=="string" || !primaryChoices.has(value))
+                  || new Set(raw.choiceValues).size!==raw.choiceValues.length)
               || ids.has(raw.id)) {
               out.push(d("EIDOS_REVIEW_TABLE_FILTER_INVALID",
                 p+".filter.options["+i+"]","Invalid or duplicated filter option"));
               return;
             }
-            extraKeys(raw,new Set(["id","label","statusKeys"]),
+            extraKeys(raw,new Set(["id","label","statusKeys","choiceValues"]),
               p+".filter.options["+i+"]",out);
             ids.add(raw.id);
             const statusKeys = [...raw.statusKeys] as string[];
-            options.push({id:raw.id,label:raw.label,statusKeys});
-            if ([...keys].every(k=>statusKeys.includes(k))) all=true;
+            const choiceValues = raw.choiceValues===undefined
+              ? undefined : [...raw.choiceValues] as string[];
+            options.push({id:raw.id,label:raw.label,statusKeys,
+              ...(choiceValues ? {choiceValues} : {})});
+            if (!choiceValues && [...keys].every(k=>statusKeys.includes(k))) all=true;
           });
           if (!ids.has(f.selectedId) || !all) {
             out.push(d("EIDOS_REVIEW_TABLE_FILTER_ALL_MISSING",p+".filter",

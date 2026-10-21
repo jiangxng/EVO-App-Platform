@@ -760,6 +760,14 @@ export function createDataImportMappingPageV010(input: {
       label: zh(input.locale) ? "全部字段" : "All fields",
       statusKeys
     },
+    // #909 V3: "待处理" matches actual, still undecided source
+    // option values, not every risky or proposed field-status tone.
+    {
+      id: "unmatched",
+      label: zh(input.locale) ? "待处理" : "Pending decision",
+      statusKeys,
+      choiceValues: ["__PENDING__"]
+    },
     ...(handledKeys.length ? [{
       id: "handled",
       label: zh(input.locale) ? "已处理" : "Handled",

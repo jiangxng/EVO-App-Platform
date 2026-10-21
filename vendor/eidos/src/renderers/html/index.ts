@@ -182,6 +182,7 @@ export function renderToHtml(document: unknown): string {
     const filter = model.reviewTable!.filter;
     const selected = filter?.options.find(option => option.id === filter.selectedId);
     const allowed = selected?.statusKeys;
+    const selectedChoices = selected?.choiceValues;
     const tableRows = (model.reviewGroups ?? []).map(group => {
       const status = group.reviewStatus!;
       const primaryField = byKey.get(group.primaryFieldKey)!;
@@ -192,7 +193,9 @@ export function renderToHtml(document: unknown): string {
       const details = group.detailFieldKeys.map(key =>
         renderField(byKey.get(key)!)
       ).join("") + (deferLink ? renderContextLink(primaryField) : "");
-      const visible = !allowed || allowed.includes(status.key);
+      const visible = selectedChoices
+        ? selectedChoices.includes(String(primaryField.initialValue ?? ""))
+        : !allowed || allowed.includes(status.key);
       const planFields=model.reviewPlan?.proposedFields?.find(item=>item.groupId===group.id);
       const planAttrs=planFields
         ? ` data-eidos-plan-label-field="${esc(planFields.labelFieldKey)}" data-eidos-plan-type-field="${esc(planFields.typeFieldKey)}"`
@@ -216,7 +219,9 @@ export function renderToHtml(document: unknown): string {
       </tbody>`;
     }).join("");
     const count=(model.reviewGroups ?? []).filter(group =>
-      !allowed || allowed.includes(group.reviewStatus!.key)).length;
+      selectedChoices
+        ? selectedChoices.includes(String(byKey.get(group.primaryFieldKey)?.initialValue ?? ""))
+        : !allowed || allowed.includes(group.reviewStatus!.key)).length;
     const toolbarAgent=model.reviewTable?.agentActionId
       ? model.agentActions.find(action=>action.id===model.reviewTable?.agentActionId)
       : undefined;
@@ -230,7 +235,8 @@ export function renderToHtml(document: unknown): string {
           ${filter ? `<label>${esc(filter.label)}
           <select data-eidos-form-review-table-filter>${filter.options.map(option =>
             `<option value="${esc(option.id)}"
-              data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
+              data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.choiceValues
+                ? ` data-eidos-review-table-filter-choices="${esc(option.choiceValues.join(","))}"` : ""}${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
           ).join("")}</select></label>` : ""}
           ${toolbarAgent ? `<button type="button" data-eidos-review-table-agent-action
             data-eidos-agent-action="${esc(toolbarAgent.id)}">${esc(toolbarAgent.label)}</button>` : ""}

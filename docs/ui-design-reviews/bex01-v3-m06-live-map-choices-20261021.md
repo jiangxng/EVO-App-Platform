@@ -34,3 +34,8 @@ Status: UI REVIEW EVIDENCE / Human 100% 待本人签收。Owner PR #1086；原�
 ### 2026-10-21 Eidos 实时统计与 Host 问题总数的边界
 
 真实 Chromium 暴露：默认 Eidos #195 的 `updateCounts` 根据同名状态 key 重算所有指标；但本 V3 的 `attention` 数值来自 `reviewIssues.length`（真实歧义 + dry-run 行问题 + 元数据），不等于表格中 `attention` 状态行数。用户临时选择“不导入”后，旧逻辑把 **Host 3 项问题误显示成 1 项**。因此扩展 Eidos generic metric 的 **`reactive?: boolean`（默认保持原有反应式行为）**，仅映射页该 Host 问题数声明 `reactive:false`；其他三项映射字段指标仍实时更新。不篡改 Host 问题数、已批准状态或 issue card 的法定恢复证据；待真实预检查与服务器重新加载才能改变持久化问题事实。补 UIDL 校验（必须布尔值）、渲染标识和真实浏览器的“改选后仍为 3 项”回归。最终 PASS 仅以精确 HEAD CI 为准，不能替代 Human。
+
+
+### 2026-10-21｜原型「待处理」精确字段筛选
+
+按照批准的 #909 V3 HTML/CSS/JS 原型，`tableFilter` 的第三选项「待处理」应匹配 `state.maps[k]==="__PENDING__"`，而不是对所有注意状态一概筛选。此前 Host 真实页仅提供「需要关注/全部字段/已处理」，缺少这一选项。现为 Eidos `reviewTable.filter.options` 增加可选 `choiceValues`，依真实授权 Form primary select 的选中值过滤；映射页以 `["__PENDING__"]` 激活该模式。Validator 严格拒绝未存在于真实字段选项的值；无需新增 Host 命令，不更改 source、数据映射、审批、布局或颜色。协议测试验证安全条件，真实隔离 Chromium 验证待处理数随未保存改选 +1、恢复后 -1。最终是否通过以最新 HEAD CI 为准，Human 全量验收仍未完成。
