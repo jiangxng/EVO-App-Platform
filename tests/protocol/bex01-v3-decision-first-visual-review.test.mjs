@@ -158,14 +158,14 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.match(renderToHtml(mapping),/data-eidos-form-task-source-status data-tone="positive">文件已读取/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-metric\]\[data-tone="warning"\]/);
   // Exact source CSS in V3 #909; color/section fidelity is not a row-height test.
-  assert.match(eidosProductiveWorkbenchCss,/form\\[data-eidos-id="evo-data-import\\.mapping"\\]\\{\\s*--eidos-fg:#172b44;/);
+  assert.ok(eidosProductiveWorkbenchCss.includes('form[data-eidos-id="evo-data-import.mapping"]{\n  --eidos-fg:#172b44;'));
   for(const token of ["--eidos-bg-subtle:#f5f7fa","--eidos-primary:#2563a6",
     "--eidos-success:#18765a","--eidos-warning:#a66712",
     "--eidos-danger:#b54738","--eidos-border:#e3e9ef"]) {
     assert.ok(eidosProductiveWorkbenchCss.includes(token), "V3 prototype palette missing: "+token);
   }
-  assert.match(eidosProductiveWorkbenchCss,/data-eidos-workspace-content\\]:has\\(form\\[data-eidos-id="evo-data-import\\.mapping"\\]\\)/);
-  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-metric\\]\\[data-tone="warning"\\]\\{\\s*background:#fffdfa;/);
+  assert.ok(eidosProductiveWorkbenchCss.includes('[data-eidos-workspace-content]:has(form[data-eidos-id="evo-data-import.mapping"])'));
+  assert.ok(eidosProductiveWorkbenchCss.includes('[data-eidos-form-task-metric][data-tone="warning"]{\n  background:#fffdfa;'));
 
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
     subject:{...mapping.reviewTask.subject,statusTone:"danger"}}}).ok,false,
