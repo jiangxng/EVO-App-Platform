@@ -1,0 +1,97 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-21",
+  "scope": "A01/R3 managed Session file startup qualification",
+  "baseline": "386f267bcc115fd4e64af74724f2a3aa55199878",
+  "branch": "fix/governance-managed-session-startup-20261021",
+  "sources": [
+    {
+      "path": "manager/server.ts",
+      "gitBlob": "51eaba6ae642812c22ec1ad4524f72cbd6fefdb7",
+      "read": "partial: managed flag/path/construction/registration, auth flow/routes and request resolver"
+    },
+    {
+      "path": "manager/identity-session-store.ts",
+      "gitBlob": "94191a265177b613ac24a5d39d0cc85098b465ad",
+      "read": "full/reused full"
+    },
+    {
+      "path": "providers/managed-session/runtime.ts",
+      "gitBlob": "86ac5f50e35d58725fa53f7e3654d31004ecd4e5",
+      "read": "full/reused full"
+    },
+    {
+      "path": "docs/architecture/PRODUCTION-IDENTITY-SESSION-EA1A-v0.1.md",
+      "gitBlob": "5696e97eb08560b37de58c8dd527ee5e52e31e01",
+      "read": "full/reused full"
+    }
+  ],
+  "changes": {
+    "productionFiles": 1,
+    "newProductionModules": 0,
+    "disabledExplicitFileIgnored": true,
+    "enabledExplicitOrDerivedPriorityPreserved": true,
+    "enabledReplayRequired": true,
+    "missingDurabilityStillRejected": true,
+    "sharedSecurityAuthorityPreserved": true,
+    "storeFormatChanged": false,
+    "storedDataModified": false
+  },
+  "local": {
+    "node": "24.19.0",
+    "mode": "pinned partial sources/temporary type erasure",
+    "passed": 25,
+    "managedSession": 8,
+    "authenticationFlow": 12,
+    "resourceBoundary": 5,
+    "newHostFixtureAndServerSyntax": true,
+    "formalBuild": false,
+    "realHost": false,
+    "browser": false,
+    "database": false
+  },
+  "ci": {
+    "statusAtCommit": "pending final-head CI; permanent exact-head results in PR closeout",
+    "newHostCases": 4,
+    "test": "tests/integration/managed-session-startup-boundary.test.mjs",
+    "fixture": "tests/fixtures/managed-session-file-probe.mjs",
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "staticBaselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "priorCountsHistorical": true,
+    "localModuleMeasurement": false
+  },
+  "matrix": [
+    "disabled explicit malformed: target access zero and bytes preserved",
+    "disabled explicit missing: target access zero and file absent",
+    "enabled same malformed: startup rejected and bytes preserved",
+    "enabled explicit: single startup replay, valid identity, revoked/invalid/missing denied, no request replay, real restart",
+    "enabled derived: original priority and single replay, request memory lookup",
+    "enabled without durable paths: startup rejected"
+  ],
+  "limits": [
+    "probe covers exact synthetic Session file fs APIs, not entire Host IO",
+    "no new retention policy or Session authority replacement",
+    "other identity/Secrets files unchanged",
+    "no production deployment/real IdP/browser/Human validation"
+  ],
+  "remaining": [
+    "EVO application map startup binding writes",
+    "configured bootstrap install authority/exit conditions",
+    "EVO query/probe deadlines",
+    "OIDC transaction capacity/expiry policy",
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent SQL qualification/ownership",
+    "R4 final cross-layer matrix",
+    "A03 lookup/idempotent recovery",
+    "A05 production strategy/migration"
+  ],
+  "globalStatusModified": false,
+  "deployment": false,
+  "additionalProviderPilot": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}
