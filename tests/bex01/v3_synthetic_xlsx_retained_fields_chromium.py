@@ -770,7 +770,7 @@ with sync_playwright() as pw:
     expect(stable.locator('[data-eidos-review-group-fields]')).to_be_visible()
     stable.locator('summary').click()
     expect(stable).not_to_have_attribute('open','')
-    table.locator('[data-eidos-form-review-table-row]').first.scroll_into_view_if_needed()
+    table.locator('[data-eidos-form-review-table-row="'+row_id+'"]').scroll_into_view_if_needed()
     visual_page.screenshot(path=str(OUT/"v3-inline-evidence-density-desktop.png"),full_page=False)
     row_issue=issue_list.filter(has_text="3 条记录缺少主体类型")
     row_disclosure=row_issue.locator('[data-eidos-form-task-issue-related]')
