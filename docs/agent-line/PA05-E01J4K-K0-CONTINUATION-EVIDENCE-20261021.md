@@ -328,3 +328,18 @@
 当前该新 SHA 的 GitHub commit check-runs 接口只返回 **2 checks / 2 SUCCESS**，不等同上一版本 `main@6bea66e8` 的 40/40 checks，也不能证明新部署经过相同范围的 Platform/Ecosystem 全量测试；旧 Ecosystem Certification 的 10 FAIL / 82 SKIPPED 独立负证据继续保留。Railway `SUCCESS/Online` 是编排器服务级当前状态，不能证明 K0 stop authority、真实 Operator IdP、子孙回收、SQL session 清理或 production material WRITE 安全可开启。
 
 四条 Draft 仍与 main 隔离：#1071 文档继续 Draft、#1074 `c6d5fca9` 冲突已修复但未合并、#1081 负面证据继续 Draft、#1082 真实 /proc 外部观察继续 Draft（`9b5b62c5` 5/5 checks SUCCESS）。本窗口未写 `project.status.json`，不操作生产实例。K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，production material WRITE `OFF`。
+
+
+## 18. 2026-10-21 自动续跑 #06 — Railway 官方默认零 Draining 与实际 Node PID1 来源冲突
+
+本轮不再重复增加 synthetic stop 测试，改为 **`R5_DOCUMENTED_PLATFORM_DEFAULT_ZERO_AND_RUNTIME_SIGNAL_CHAIN_UNVERIFIED`** 风险确认，并生成 [Railway Operator 可执行证据请求](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md)。
+
+**本轮新增原文（2026-10-21 真正打开，`ORIGINAL_RAILWAY_DOC_FULL_PAGE_READ_20261021`）：** [Railway Deployments Reference / Singleton deploys](https://docs.railway.com/deployments/reference) 说明新版本上线后旧版本收到 SIGTERM，**默认 0 秒 graceful drain 后 SIGKILL**；[Variables Reference / User-provided config](https://docs.railway.com/variables/reference) 明确 `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` 默认 0 秒，`OVERLAP_SECONDS` 默认 0 秒；[Deployment Teardown](https://docs.railway.com/deployments/deployment-teardown) 区分两项语义；[Config as Code / Deployment teardown](https://docs.railway.com/config-as-code/reference) 显示 `deploy.drainingSeconds`、`deploy.overlapSeconds` 和环境覆盖；[Start Command](https://docs.railway.com/deployments/start-command) 明确 Railpack start command 经 shell 执行。**外部平台的默认值**不等于本项目当前实际有效值。
+
+**已直读本项目 GitHub / Railway（`ORIGINAL_GITHUB_SOURCE_AND_CONNECTED_RAILWAY_CONFIG_READ_20261021`）：**
+- GitHub `main@4d291fb31f7a5c429b20be14fb48df687c5a1dac`、`package.json` `start=node dist/manager/server.js`；`Dockerfile` 为 `CMD ["node","dist/manager/server.js"]`。完整 git tree **2359 路径 / not truncated**，无 `railway.json` / `railway.toml` / `.railway/config.json`。两条启动方式的差异必须留作真实部署查询。
+- Ledger Configurator production `get_service_config` **`build.builder=RAILPACK`，`startCommand=npm start`，V2、SFO 1 replica、`staged=null`**，变量名未列 draining/overlap，config.deploy 未列有效秒数。EVO Runtime 独立 service 也显示 `RAILPACK + npm start`，但不能沿用 Host 的结论。**不能声称 PID1=Node 或 drain=0**；需要 Operator 查最终部署镜像/有效值及安全脱敏的真实 PID/PPID/信号链。
+- 当前 main `manager/server.ts` 有 SIGTERM handler，但本次核的 main 中关闭超时 timer 仍在末端 cleanup 之后设置；单个无限 pending cleanup 可以使 timer 迟迟没有注册。独立 #1074 Draft 修复将 shutdown deadline 提前，精确 `c6d5fca9` 45/45 CI SUCCESS，**尚未合并生产**。
+- Ledger Configurator Railway `main@4d291fb3` deployment `abe8f368-a45f-4a09-aa07-0f8201bf838e` SUCCESS/Online、1 running/0 crashed；对应 SHA GitHub commit checks **2/2**，和旧 40/40 不同范围。K0 真实 stop、全域 Worker/Caller、SQL session、IdP/DBA 仍没有签收。
+
+**本轮新增决策不改变既有方案：** 将 R5 的“生效 draining 时间”和“实际 PID1/SIGTERM 转发”拆成两张必须由独立生产 Operator 签收的证据；缺任一或实际 draining=0 **仍 DENY K0**。只有在独立非生产隔离环境验证安全 supervisor 回收之后才能考虑实际信号/故障试验。不得自动修改 production draining（即使建议配置非零），不得执行父 Host SIGKILL、生产 Validator/SQL/Secrets/停机、合并 Draft 或清理异常锁。保留 [本轮 Operator 请求](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md) 中的 owner、R5-01–R5-06、正反证据和阶段顺序。
