@@ -55,16 +55,16 @@ test('EVO mapping/query and reachability probe run only on explicit use and reco
   assert.equal(mappingReads, 3);
 });
 
-test('OIDC configured refresh explicitly reads Secret without starting discovery; absence removes the runtime', async () => {
+test('OIDC configured refresh does not read Secret or start discovery; absence removes the runtime', async () => {
   const registry = createProviderRuntimeRegistry(); let describes = 0, resolves = 0, requests = 0;
   const input = {settings: {issuer: 'https://authority.invalid', clientId: 'synthetic'}, registry,
     fetchImpl: async () => { requests++; throw Error('unexpected-network'); },
     secrets: {describe() { describes++; return {configured: true}; }, resolve() { resolves++; return 'synthetic-secret'; }}};
   assert.equal((await configureGenericOidcProviderRuntimeV010(input)).configured, true);
-  assert.equal(describes, 1); assert.equal(resolves, 1); assert.equal(requests, 0);
+  assert.equal(describes, 0); assert.equal(resolves, 0); assert.equal(requests, 0);
   await configureGenericOidcProviderRuntimeV010({...input, settings: {}});
   assert.equal(registry.has('generic.oidc'), false);
-  assert.equal(describes, 1); assert.equal(resolves, 1); assert.equal(requests, 0);
+  assert.equal(describes, 0); assert.equal(resolves, 0); assert.equal(requests, 0);
 });
 
 test('OIDC discovery deadline includes response body; abort releases timer and new explicit login recovers', async t => {

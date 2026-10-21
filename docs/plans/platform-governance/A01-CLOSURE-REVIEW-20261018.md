@@ -93,3 +93,5 @@ R3 Provider边界第9节已将DLP/EC可选apiToken移至原fetchImpl实际请求
 R3 Provider边界第10节已接续semantic：token复用原请求helper，shared reader逐次调用原同步resolver，缺失/异常不回退旧对象，原直接注入/过滤/排序保持。Host零解密/词法页面与semantic服务合同正向调用分别验收，不新增产品入口或冒称HTTP semantic矩阵。三类P12提前token问题局部收口，配置安装、其他Provider及R1/R2/R4仍待核对，下一批按第10节接续。
 
 R3 Provider边界第11节已核对session/EVO/OIDC：保留轻量工厂、同步共享安全适配及受管认证必要启动索引重放；修复OIDC失败discovery/JWKS Promise永久缓存，保留新登录恢复与旧callback单次消费。构造/发现零资源不代表Host零I/O：OIDC refresh提前Secret解析、managed关闭但指定文件、EVO映射启动写入和配置驱动安装仍开放；query期限/事务预算另记。下一批优先OIDC实际认证事务的凭据/资格边界，R1冻结SOP、R2原Agent配置SQL、R4最终矩阵及固定7项状态保持。
+
+R3 Provider边界第12节已将OIDC clientSecret解析移至原token交换端口；配置/发现/begin/probe不解密，public client保留，配置凭据失败拒绝。原state绑定当前资格/epoch，写入/绑定/启停及迟到响应不签发旧Session；共享Session与Secret授权/审计保持。下一批核对managed关闭但指定文件的读取资格，EVO映射/配置安装、资源预算及R1/R2/R4继续开放。
