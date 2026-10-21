@@ -121,14 +121,20 @@ test('real Host decrypts DLP/EC only at use; settings, lifecycle, failures, bind
     assert.equal((await host.snapshot()).decryptions, 0); await tick(host, root); assert.equal((await host.snapshot()).decryptions, 2);
     for (const provider of providers) await host.lifecycle('uninstall', provider);
     await tick(host, root, 2); assert.equal((await host.snapshot()).decryptions, 2);
+    await host.stop(); host = await boot(root);
+    assert.equal((await host.snapshot()).decryptions, 0);
+    const unavailable = await tick(host, root, 2);
+    assert.ok(unavailable.some(entry => entry.kind === 'DLP_RECLASSIFICATION'
+      && entry.state === 'FAILED' && entry.failureCode === 'CONTEXT_MEMORY_DLP_PROVIDER_REQUIRED'));
+    assert.equal((await host.snapshot()).decryptions, 0, 'configured but removed providers stay unavailable after restart');
     for (const provider of providers) await host.lifecycle('install', provider);
-    assert.equal((await host.snapshot()).decryptions, 2);
+    assert.equal((await host.snapshot()).decryptions, 0);
     for (const provider of providers) assert.equal((await host.settings(provider, {'secret-remove:apiToken': true, adminToken})).status, 200);
     await tick(host, root); sample = await host.snapshot();
-    assert.equal(sample.decryptions, 2); assert.deepEqual(sample.anonymous, {dlp: 1, ec: 1});
+    assert.equal(sample.decryptions, 0); assert.deepEqual(sample.anonymous, {dlp: 1, ec: 1});
     for (const provider of providers) assert.equal((await host.settings(provider, {'secret:apiToken': 'synthetic-' + provider.name + '-v3', adminToken})).status, 200);
     await tick(host, root);
-    assert.equal((await host.snapshot()).decryptions, 4, 'newly saved tokens are used without restart');
+    assert.equal((await host.snapshot()).decryptions, 2, 'newly saved tokens are used without restart');
     assert.deepEqual((await host.snapshot()).revisions, {dlp: 3, ec: 3});
     await host.stop(); host = await boot(root, true); // Add an existing local source for a real binding switch.
     assert.equal((await host.snapshot()).decryptions, 0);
