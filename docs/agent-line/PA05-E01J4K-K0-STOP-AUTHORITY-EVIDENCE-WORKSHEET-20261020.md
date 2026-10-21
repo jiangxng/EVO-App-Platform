@@ -327,3 +327,16 @@
 **来源事实**：该 Linux Runner 一次观察到 `stop()` 等待约 753ms、child PID 实际不存活、之后可正常 `shutdown()`；源码在 stop 后设 750ms 本地 SIGKILL fallback，测试使用 `<3000ms` 有界断言、5 秒自退出保险。**项目判断**：该用例补齐“正常父 Host 下的非合作 deactivate 局部回收”覆盖，但**753ms 不是正式生产超时预算 / SLA**，也无真实容器 PID1/drain、多 Worker/parent SIGKILL 外部回执或生产身份 SQL 证明。扩展原有第十项证据见 [2026-10-21 接续索引 §9](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
 
 **认证持续拒绝：** 此 HEAD 精确 CI 未全绿前仍以已经通过的早期十项为有界已确认；完成后仅可记 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS`。R1–R8 UNKNOWN / DENY；K0 / E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`，production material WRITE `OFF`。不启动 parent SIGKILL、不运行生产 Validator/SQL/Secrets、不合并 Draft、不改 Railway/drain、不清异常锁或远端活动分支。
+
+
+## 16. 2026-10-21 — 独立 supervisor 只读前置检查：cgroup v2 可见≠清理权威
+
+**新增测试与精确 CI：** [#1082 HEAD `eb129cc2b156294d34c0a04fb73a6ebbedd4b34f`](https://github.com/jiangxng/EVO-App-Platform/commit/eb129cc2b156294d34c0a04fb73a6ebbedd4b34f) **5/5 exact commit checks SUCCESS**；[Platform CI #39535199087/job #119010190494](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39535199087/job/119010190494) 原始 job log 本窗口直接读取：**1105 total / 1104 PASS / 1 SKIPPED / 0 FAIL**。新增 `tests/fixtures/pa05-k0-external-supervisor-preflight.mjs`、`tests/protocol/pa05-k0-supervisor-preflight.test.mjs` 是**2 项只读 / 拒绝型 preflight 测试**，不是又通过了两个实际停机用例；原 PROCESS 生命周期保持 **11 项 local bounded PASS**。
+
+- GitHub Runner 实测 `linux=true`，`cgroupV2Detected=true`，`ownCgroupLocated=true`，`eventsReadable=true`，`cgroupKillPresent=true`，`observedPopulated="1"`；并非 Railway 生产配置。
+- 所有真正外部授权/隔离/回收/独立监督/TT L/签名退出回执证据均 `false`；`parentSigkillExperimentAuthorized=false`、`globalStopCertified=false`。使用全部 `true` 的未经认证 claim 仍抛出 `PA05_K0_PARENT_SIGKILL_DENIED`。
+- **实验门槛拒绝的真实原因：** `cgroup.kill` 文件存在仅是可见性，既未确认有写权限，也不能证明正在作用于唯一专属测试 cgroup。当前 `populated=1` 更说明不能把此现有 cgroup 当作“测试 child 已全部退出”回执。安全独立 supervisor 尚未建立，未运行危险 SIGKILL。
+
+新旧来源等级、原始 JSON、所需真正 Infra 证据表和 #1074 冲突原文对照见 [2026-10-21 接续研究记录 §10](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。**新有界结果**：`ISOLATED_SUPERVISOR_CAPABILITY_HINTS_READ_ONLY_AND_UNTRUSTED_CLAIMS_DENIED`；与 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS` 两者均不可升级为可信多 Worker stop。
+
+**K0→K6 不变：** 中央 fencing epoch、外部逐实例/逐 Worker 停机收据、外部 Caller 的受保护入口否决、PG session 重新查询、真实生产 Human/DBA 权威和凭据轮换签名。R1–R8 UNKNOWN/DENY 继续，生产 draining/PID1/OS 独立 supervisor/组织范围清单仍未验证；禁止在未获独立清理保障时运行 parent SIGKILL。K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`；WRITE `OFF`，#988/#979/#913 OPEN。
