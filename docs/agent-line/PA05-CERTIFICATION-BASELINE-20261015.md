@@ -975,3 +975,16 @@ The current [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) H
 **归档标签 `ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`：** 绝不代表 Host 父进程 SIGKILL 后外部 supervisor 的 child 终止、生产 Railway drain、Node PID1 SIGTERM、Human/DBA/PG 权限或跨 Worker fencing 已签。取消 Promise 不等于取消 verifier 自身的远程工作。#1082 是独立未合并 Draft，不同于独立 #1074 顶层 Host shutdown patch。无需重复旧研究，不提交过时结论为线上现状。
 
 K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 继续 OPEN。
+
+
+## 87. PA05-05 / K0 — 2026-10-21 当前控制面、十项局部 PROCESS 与仍未签收的外部停机
+
+**证据等级：DIRECT_GITHUB_AND_RAILWAY_CONNECTOR_READ_20261021 + ORIGINAL_GITHUB_ACTIONS_RAW_LOG_READ_20261021；此节不是生产认证。** 完整事实、准确来源、对照和未决见 [K0 接续研究记录](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 与 [K0 证据表 §13](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)，原 §§62–86 和 2026-10-20/21 旧参考索引保留。
+
+- 当前 GitHub main `386f267bcc115fd4e64af74724f2a3aa55199878`，精确 commit checks **40/40 SUCCESS**；Railway Ledger Configurator deployment `0cf816e7-3c09-4837-a192-81a682df55be` 指向同 SHA，SUCCESS / Online / 1 running / 0 crashed。只读范围仍是一个已连接 Railway 项目；旧 Ecosystem schedule #39393603504 **10 FAIL / 82 SKIPPED** 是不同 SHA/测试范围的独立既有反证，未以主线绿灯销账。
+- Draft #1071 交接 commit `375fa97b` 原 HEAD 7/7，#1074 `caccb1b6` 45/45，#1081 `a1e8a094` 5/5；它们没有合并。#1082 沿原 PR 新增隔离 `activate()` 不返回时的 Host shutdown 真实回归，HEAD `6b79d3e3f558a0c46193424edd625700145d19af` 已 5/5 exact checks SUCCESS，[Platform CI #39530562128 / job #118995237822](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39530562128/job/118995237822) **1102 tests / 1101 PASS / 1 SKIPPED / 0 FAIL**，10 项独立 K0 本地 Node PROCESS marker，全部 `globalStopCertified=false`。
+- 唯一更新的局部工程等级：**`ISOLATED_PROCESS_LIFECYCLE_TEN_CASE_BOUNDED_PASS`**。这是健康父 Host+一次性子进程的测试；无独立 supervisor、父 Host SIGKILL 后全部 child 的外部回收签名、生产 stop deadline 或生产 Node PID1/SIGTERM 收据，不能判为 `STOP_CONFIRMED`。
+- K0 的组织全域 Worker/Caller inventory、冻结/重启/扩缩容 authority、Railway 实际 draining/overlap、OS PID/cgroup 回执、PostgreSQL session 二次核查、真实 Human IdP/MFA/DBA role、凭据 rotation/revocation 和审计签字仍 **UNKNOWN / DENY**。用户禁止在缺独立清理能力下故意遗孤；本轮没有此类测试，没有生产 Validator、Secrets/SQL、停机或配置更改。
+- 九条已合并 PA05 历史 docs 分支再次通过精确 SHA 与祖先核验；无合法 delete-ref/dispatch 接口，所以远端删除 **NOT_EXECUTED**，不可冒称已清理；四条活跃 Draft 均保留。
+
+**明确结论不变：K0 `NOT_SIGNED`、完整 E01J4 `NOT_SIGNED`、PA05-05 E01–E05 `NOT_SIGNED`、W06 `NOT_SIGNED`；production material WRITE `OFF`；Issues #988/#979/#913 `OPEN`。不合并四 Draft、不生产部署、不更改 `project.status.json` 或其他窗口工作。**
