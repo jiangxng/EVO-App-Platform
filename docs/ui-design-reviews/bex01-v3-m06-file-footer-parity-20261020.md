@@ -124,3 +124,6 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 ### Window 04｜2026-10-21 增量视觉审查
 
 #909 1280px 普通四列表约 55px/行；#1077 隔离 Host 的普通行因另一整行“来源证据”链接约 73px/行。选用 opt-in 仅桌面把折叠披露与样例同排，保留所有真实审核证据和手机 44px 可操作性；展开仍独立完整块。保留默认 Eidos 布局、两个银行字段 Human 选择、显式 Host 保存。新 HEAD CI / Chromium 和新截图尚需实际核验，Human 签收 OPEN，不开放客户 XLSX/M05 提交。
+
+
+**Window 04 测量结论修订（2026-10-21）**：真实 Chromium `BEX_V3_DESKTOP_INLINE_ROW_MEASUREMENT` 确认行高 73px 时内层详情/下拉框都只有 36px，原因是紧凑表格的选择器标签继承上下各 12px margin；仅让证据入口同行不足以消除行高。精确范围内桌面紧凑 opt-in `label margin:3px 0`，手机不改；保持全证据、详情展开和单次显式保存。复测仍待精确 HEAD CI，未经 Human 签收。

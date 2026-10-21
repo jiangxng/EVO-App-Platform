@@ -3203,6 +3203,13 @@ form[data-eidos-id] button:hover,
  [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])>summary{
    min-height:var(--eidos-control-normal);
  }
+ /* Native compact choice controls were visually 36px tall, yet inherited
+    12px label margins above and below inflated table rows to 73px.
+    Keep a small breathing space only for this opted-in desktop surface. */
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-choice] [data-eidos-form-field] label{
+   margin:3px 0;
+ }
 }
 /* Opt-in Human review workbench: show the original source, the actual counts,
    and every actionable blocker before choices; never conceal business facts. */

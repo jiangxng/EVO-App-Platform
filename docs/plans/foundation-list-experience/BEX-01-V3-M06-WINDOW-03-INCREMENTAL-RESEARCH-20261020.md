@@ -133,3 +133,6 @@
 **可逆选择**：在 Eidos 定义严格 `reviewTable.evidenceLayout="inline-collapsed"` 可选属性，默认 `stacked`；BEX 明确选择。仅桌面 701px 起折叠证据与样例同一行，展开仍完整显示真实来源样本／候选用途；390px 仍采用现有独立 44px 披露。简化非歧义行的证据入口文案；保留银行人工决定、Host 显式保存与授权边界。不改 Eidos #204 独立问题卡默认及本 BEX 的 connected opt-in。
 
 **排除**：删掉证据、缩小手机按钮、全局压缩表格、静态复制原型 7/22、自动解决银行字段。新增协议负例、真实 Host Chromium 桌面行高/可展开及手机尺寸断言。该新 HEAD 尚需独立 CI 与截图确认，不把研究或准备提交当成测试 PASS；M04/M05/M06 均 OPEN，3/6，Human 未签收。
+
+
+**2026-10-21 Window 04 测量修订 R**：首次真实 Host 回归在 `ad6e097fa1aa3ddcd7ea39a527ebc9b1c9249914` 因桌面行高断言失败；测量 run [39531930203](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39531930203) 以及补充测量 run [39532250864](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39532250864) 显示首条可见普通行恰为 73px，内部详情和选择器各 36px，选择器 `label` 的 computed margins **12px 上/12px 下**；因此仅改 `details` 为 inline 未收敛行高。工程修正：在 701px 起、**只有** `compact+inline-collapsed` 时，将选择器标签 margin 改为 3px 上/下，保持 36px 选择器及原样的 Eidos 默认/手机。此为当前实证补充，原来的 73px 观察没有被隐匿；新版 HEAD Chromium 截图/行高门禁仍须执行，不能宣称已过。
