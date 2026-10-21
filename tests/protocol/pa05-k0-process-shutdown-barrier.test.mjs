@@ -404,21 +404,35 @@ test("K0 bounded: unexpected child IPC disconnect fails pending invocation and r
 });
 
 
-test("K0 bounded: shutdown reaps a child whose activate() never resolves", {timeout: 12000}, async () => {
+test("K0 bounded: shutdown reaps a child observed inside hung activate()", {timeout: 12000}, async () => {
   const pkg = fixturePackage(3000, false, "pa05-k0-activate-hang-process");
-  let startupEntered;
-  const startingObserved = new Promise(resolve => { startupEntered = resolve; });
-  const host = localRuntime({
-    onRuntimeEvent(event) {
-      if (event.packageId === pkg.packageId && event.type === "PROCESS_STARTING") startupEntered();
+  let enteredActivation;
+  let activationCalls = 0;
+  const activationObserved = new Promise(resolve => { enteredActivation = resolve; });
+  const underlyingStorage = createMemoryPluginStorageService();
+  const storageService = {
+    ...underlyingStorage,
+    get(packageId, key) {
+      if (packageId === pkg.packageId && key === "pa05-k0-activation-entered") {
+        activationCalls += 1;
+        enteredActivation();
+      }
+      return underlyingStorage.get(packageId, key);
     }
-  });
+  };
+  const host = localRuntime({storageService});
   let pendingStart;
   try {
     pendingStart = host.start(pkg, installed(pkg.packageId));
-    // PROCESS_STARTING is synchronous with the startOne() fork sequence;
-    // by the next task turn the disposable child has been registered.
-    await startingObserved;
+    // Unlike PROCESS_STARTING, scoped IPC proves the child imported the module
+    // and began activate(). No ready event is sent while activate() hangs.
+    const actuallyEntered = await Promise.race([
+      activationObserved.then(() => true),
+      new Promise(resolve => setTimeout(() => resolve(false), 3000))
+    ]);
+    assert.equal(actuallyEntered, true, "child must actually enter activate() via IPC");
+    assert.equal(activationCalls, 1);
+    assert.equal(host.status(pkg.packageId)?.status, "INACTIVE");
     const shutdownSettled = await Promise.race([
       host.shutdown().then(() => true),
       new Promise(resolve => setTimeout(() => resolve(false), 3500))
@@ -428,14 +442,16 @@ test("K0 bounded: shutdown reaps a child whose activate() never resolves", {time
     assert.equal(host.status(pkg.packageId), undefined);
     console.log("PA05_K0_BOUNDED_ACTIVATION_SHUTDOWN=" + JSON.stringify({
       scope: "isolated-local-child",
+      activationEnteredByRealHostIPC: actuallyEntered,
+      activationCalls,
       boundedShutdown: shutdownSettled,
       startupSettledByChildExit: true,
       noActiveRuntime: true,
       globalStopCertified: false
     }));
   } finally {
-    // Child fixture also self-exits at 5 seconds if Host supervision fails.
-    // Do not kill the parent or intentionally leave an orphan process.
+    // The test deliberately retains its live parent; independent self-exit
+    // inside the fixture is a second cleanup fuse, not parent-SIGKILL proof.
     await host.shutdown();
     if (pendingStart) await Promise.allSettled([pendingStart]);
   }
