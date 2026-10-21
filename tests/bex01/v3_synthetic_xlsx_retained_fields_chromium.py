@@ -734,7 +734,7 @@ with sync_playwright() as pw:
     visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
     table=visual_form.locator('[data-eidos-form-review-table-wrap]')
     expect(table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
-    collapsed=table.locator('[data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
+    collapsed=table.locator('[data-eidos-form-review-table-row]:not([hidden]) [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
     assert collapsed.count()>=2, "BEX_V3_COLLAPSED_EVIDENCE_REQUIRED"
     assert collapsed.first.evaluate("el=>getComputedStyle(el).display==='inline-block'"),(
       "BEX_V3_DESKTOP_INLINE_EVIDENCE_REQUIRED")
@@ -868,7 +868,7 @@ with sync_playwright() as pw:
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_PHONE_CONNECTED_ISSUES_OVERFLOW"
     phone_table=phone_form.locator('[data-eidos-form-review-table-wrap]')
     expect(phone_table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
-    phone_collapsed=phone_table.locator('[data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
+    phone_collapsed=phone_table.locator('[data-eidos-form-review-table-row]:not([hidden]) [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
     assert phone_collapsed.count()>=2
     assert phone_collapsed.first.evaluate("el=>getComputedStyle(el).display!=='inline-block'"),(
       "BEX_V3_PHONE_MUST_KEEP_STACKED_EVIDENCE")
