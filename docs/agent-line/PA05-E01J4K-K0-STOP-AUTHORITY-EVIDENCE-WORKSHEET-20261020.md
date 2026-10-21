@@ -377,3 +377,12 @@
 **新 HEAD CI 已逐项复核：** `c6d5fca90ebfc41ffa642dc5af2e756a224ec838` **45/45 exact-HEAD checks SUCCESS**；[Lightweight Host 原始 job #119021176953](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39538625109/job/119021176953) 的原 lazy-load **278/278 PASS**，新增独立 PA05 shutdown/J4J step **5/5 PASS**，无失败；与旧 `caccb1b6` 45/45 为不同 HEAD 独立证据。不因 mergeable=true 授权合并；此处修复的是 GitHub 文件合并，不是 K0 生产 Worker/Caller stop、实际 PID1/SIGTERM、Railway draining、DBA/IdP、凭据撤销或 SQL 会话停机回执，R1–R8 未改变。
 
 **原总否决维持：** K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`；production material WRITE `OFF`；#988/#979/#913 OPEN。四条 Draft 不合并、无生产操作、没有父 Host SIGKILL 或异常锁清理；9 条历史 docs 分支仅审计未删除。
+
+
+## 20. 2026-10-21 自动续跑 #05 — 真实外部 procfs 进程树观察（无父 Host SIGKILL）
+
+**相对旧模拟对账的新增真实 OS 证据：** [#1082 工程 HEAD `9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68`](https://github.com/jiangxng/EVO-App-Platform/commit/9b5b62c58ccad63b4d781eb5f4c4be63e69a5a68) **5/5 exact-HEAD checks SUCCESS**，新增一项非生产 Linux **外部进程树**真测试：[Platform CI run #39539664240/job #119024257994](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39539664240/job/119024257994) 原始 job log 已直接读取，`1122 total / 1121 PASS / 1 SKIPPED / 0 FAIL`，既有十一项本地 Plugin PROCESS marker 保留。本测试中目标 Host 和 Worker 是不同的真实 Node 进程，第三个（测试观察者）在目标 Host 之外读取 Linux `/proc/pid/stat` 进程启动 tick、Worker PPID、Host 内核 children 清单，真实对上被观测 Worker，且在向**仍存活**的 Host 发送**正常 IPC stop** 后验证精确启动身份对应的 Host / Worker 都退出。主进程非 SIGKILL；Host、Worker 内部各有独立 7/5 秒救援自退出 fuse，观察者也在 failure path 对准确 start tick 的临时进程做受控 SIGTERM 救援。原 marker `PA05_K0_EXTERNAL_OS_TREE_GRACEFUL_OBSERVATION` 明确 `childConfirmedByExternalProcfs=true`、`workerParentPidMatched=true`、`gracefulExitExternallyObserved=true`，同时 `noParentSigkillTestPerformed=true`、`independentCgroupSupervisorVerified=false`、`globalStopCertified=false`。
+
+**只允许的新有界标签：** `ISOLATED_EXTERNAL_OS_PROCESS_TREE_GRACEFUL_OBSERVATION_ONE_CASE_BOUNDED_PASS`。此步骤不是独立授权的 Infra Supervisor；不证明父 Host 突然失踪后监督者存活与子孙回收、不证明独占 cgroup `populated=0`、Railway PID1/draining、生产全量 Worker/Caller 或真实 DB/IdP/DBA 权威。和原先 **11 项 Plugin PROCESS / 2 项 Supervisor 只读探测 / 6 项合成签名回执 / 10 项合成多 Worker 对账** 单独计量；不得拼接成“30 项真实生产停机”。
+
+完整测试源码、真实 job marker、前置安全设计及来源层级见 [2026-10-21 接续研究 §16](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。R1–R8 仍 UNKNOWN/DENY，K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`，Issues #988/#979/#913 OPEN。未进行父 Host SIGKILL、生产 Validator/SQL/Secrets、停止/重启/配置更改、PR 合并或分支删除。
