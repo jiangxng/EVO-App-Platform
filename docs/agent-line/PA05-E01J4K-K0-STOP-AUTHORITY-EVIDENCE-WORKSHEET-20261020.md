@@ -351,3 +351,16 @@
 **清晰区分：** 一个临时 CI Ed25519 签名即使验证通过，也不能证明签署人是组织批准的 Supervisor，不能证明 event 声明是真的 OS 退出事实，更不等于所有 Worker 已枚举/冻结/撤销 SQL session。调用方传进来的 test key 与本地 Set 是 mock trust/replay，不是线上 IdP、持久审计或集群 fencing。新增唯一工程标签为 `ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS`，绝不能记为 “17 项 PROCESS stop 测试” 或 K0 PASS。详细实施决策与来源级别 [接续研究 §11](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
 
 **R1–R8 继续 UNKNOWN/DENY**：真实编排器/独立监督者、公钥或 X.509 信任锚管理、独占 cgroup/子孙回收权威与实时 OS 回执、跨实例唯一性、Railway draining/PID1、Worker+Runner 完整性、DB session、实际 Human IdP/DBA/凭据轮换和审计原始证明均未出现；缺一不可解封。没有运行父 Host SIGKILL，未读取生产 Secrets/SQL、未运行 Validator、未改部署或停机配置；K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`、production material WRITE `OFF`。
+
+
+## 18. 2026-10-21 — 合成多 Worker 冻结快照与逐实例停机回执严格对账
+
+**新增 test-only 证据（不改变 K0 签收）：** 原 [#1082 Draft 工程 HEAD `d9be185e3e244bb45fec5f3fab2554c52b04114f`](https://github.com/jiangxng/EVO-App-Platform/commit/d9be185e3e244bb45fec5f3fab2554c52b04114f) 新增两份 `tests/` 内离线 fixture / test；[Platform CI #39537627482 / job #119017875426](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39537627482/job/119017875426) **2026-10-21 原始日志已直接读取**，`1121 total / 1120 PASS / 1 SKIPPED / 0 FAIL`，其中 **十项新合成 Worker 对账测试**通过，既有本地 PROCESS 11 项继续通过。精确 commit check-runs 的全绿需另查，不能用 protocol job 单独代替。
+
+**规则覆盖：** 将 test-only `freeze` 的 `operationId/scopeId/inventoryRevision/fencingEpoch` 与各 `instanceId/startNonce/supervisorId/keyId` 建立**唯一一一关系**，签名 envelope 与每个被冻结实例精确绑定；模拟后的 `postFreeze` 不得出现任何 live/restarted instance，模拟已知 caller 必须全部 DENY 且 epoch 正确，合成 DB session 标记必须同时对应 scope / revision / epoch；重复回执、漏收/错收、旧 nonce、错 epoch、不明 caller/允许访问、模拟 SQL session 未消失、非法签名及 replay 一律拒绝。replay `Set` 只有完成**全部**合成检查才写入，避免部分失败污染离线测试缓存。
+
+**原始 marker：** `PA05_K0_SYNTHETIC_MULTIWORKER_RECONCILIATION` 包含 `locallyConsistentUntrustedFixture=true`、`syntheticInstanceCount=2`、`syntheticCallerCount=3`，同时 `independentInventoryCompletenessVerified=false`、`externalStopAuthorityVerified=false`、`realCallerAdmissionVerified=false`、`realDbSessionAbsenceVerified=false`、`humanAndDbaAuthorityVerified=false`、`parentSigkillAuthorized=false`、`productionMaterialWriteEnabled=false`、`globalStopCertified=false`。另有本地重放拒绝 marker。
+
+**不误报：** 2 个 Worker、3 个 caller 和所有“完整/关闭”字段仅是**测试数据**；测试公钥自己生成，缺真正的外部身份授权、库存完整性、实际 stop 观察和数据库后台会话证据。故新增 `ISOLATED_SYNTHETIC_MULTIWORKER_INVENTORY_RECONCILIATION_TEN_CASE_BOUNDED_PASS` 不能记为十个真实 Worker 已停机，更不能提升 K0。完整来源和适用限度在 [2026-10-21 接续研究 §13](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
+
+**R1–R8 与既有否决均继续：** K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`，production material WRITE `OFF`；#988/#979/#913 `OPEN`。外部 Infra/SRE Supervisor + 独占 cgroup / PID1 / Railway effective draining、完整组织 Worker/Runner/Caller 清单、实际 PostgreSQL session 与 Human/DBA/Secrets/audit 仍未验证。不运行生产 Validator、SQL/Secrets、父 Host SIGKILL、draining 变更或部署；不清历史分支。
