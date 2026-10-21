@@ -914,7 +914,8 @@ export function validateUidl(
           "Review-table presentation must be standard or compact"));
       }
       if (table.evidenceLayout !== undefined
-        && (!["stacked","inline-collapsed"].includes(table.evidenceLayout)
+        && (typeof table.evidenceLayout !== "string"
+          || !["stacked","inline-collapsed"].includes(table.evidenceLayout)
           || table.evidenceLayout==="inline-collapsed" && table.presentation!=="compact")) {
         out.push(d("EIDOS_REVIEW_TABLE_EVIDENCE_LAYOUT_INVALID",p+".evidenceLayout",
           "Inline collapsed evidence requires compact presentation"));
