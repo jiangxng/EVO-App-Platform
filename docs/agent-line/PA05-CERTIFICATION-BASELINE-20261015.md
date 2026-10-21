@@ -1037,3 +1037,19 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 | 生产 material WRITE | 继续关闭 | **`OFF`** |
 
 **不能跨越：** cgroup v2 文件存在不等于已验证专属 cgroup / 可写权限 / parent SIGKILL 后子孙回收。OS 信号试验前必须由 Infra 提供独立于目标父 Host 的 supervisor 与专属隔离清理、TTL 兜底、exit receipt，且通过预运行健康检查；当前全部 UNVERIFIED。生产 Railway 有效 draining/PID1、真实 User IdP/MFA、SQL grants/session、DBA role/Secrets/audit 亦未知。#988/#979/#913 OPEN，K0 / E01J4 / PA05-05 E01–E05 / W06 均 NOT_SIGNED；没有生产 Validator、Secrets/SQL、停机/重启/配置、Draft 合并、branch 删除或其他窗口改动。
+
+
+## 91. PA05-05 / K0 — 2026-10-21 合成离线回执签名六项有界 CI
+
+**范围独立于真实停止：** 原 Draft [#1082 最新工程 HEAD `358e01e3751c388ca16f3fac5a28ecbba0d63165`](https://github.com/jiangxng/EVO-App-Platform/commit/358e01e3751c388ca16f3fac5a28ecbba0d63165) 仅新添 `tests/fixtures/pa05-k0-supervisor-receipt-proof.mjs` 与 `tests/protocol/pa05-k0-synthetic-stop-receipt.test.mjs`。真实 [Platform CI #39536229728 / job #119013390883](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536229728/job/119013390883) 原始日志已读：**1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL**；在原 11 项真实本地 Node PROCESS 和 2 项 Supervisor 只读预检之外，通过 6 项 synthetic stop receipt 字节签名/绑定/无效/重放拒绝测试。新结果：**`ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS`**，不能与 11 项真实进程合计为真实 stop 用例。调用方提供临时 test-only Ed25519 公钥、scope、局部 Set 不能提供生产信任根或真实 Supervisor、生产 Worker 完整清单、SQL session 和 Human/DBA auth。即使签名相符，测试仍强制 `stopAuthorityVerified=false` / `mayRunParentSigkill=false` / `globalStopCertified=false`，不向外开功能入口。详细真实日志字段、六类测试、正反证据和所缺组织权威见 [K0 原表 §17](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 及 [新研究 §11](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
+
+| 门禁 | 本轮有界进展 | 当前认证 |
+| --- | --- | --- |
+| #1082 局部 PROCESS 子进程生命周期 | 原 11 项 local Linux Node child | `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS` |
+| #1082 独立 Supervisor cgroup 预检 | 2 项只读/冒充声明拒绝 | `READ_ONLY_PRECHECK_FAIL_CLOSED`，非独立 supervisor |
+| #1082 合成 stop receipt | 6 项离线签名与 scope/epoch/replay 检查 | `ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS`，非实际回执 |
+| 外部完整 K0 Stop Authority | 缺独立编排器身份/Worker 清单/父 Host SIGKILL 回收/数据库会话复核 | **`NOT_SIGNED`** |
+| 完整 E01J4 / PA05-05 E01–E05 / W06 | 缺真实生产身份、DBA、凭据及外部 stop 证据 | **全部 `NOT_SIGNED`** |
+| Production material WRITE | 不更改 | **`OFF`** |
+
+**仍保留：** J4J 28/28 PG18 `ENGINEERING_BOUNDED_PASS`；#1074 45/45 CI 但与 main 存在 `dirty` 合并冲突，#1081 的负面反例是负证据；旧 Ecosystem schedule 10 FAIL / 82 SKIPPED 不因新增绿色 CI 被擦除。四条 Draft 全部独立未合并未部署；#988/#979/#913 OPEN；无父 Host SIGKILL、生产 Validator/SQL/Secrets、停机/重启、Railway draining 或分支删除。
