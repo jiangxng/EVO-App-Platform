@@ -105,6 +105,17 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     assert.ok(needsOption.statusKeys.includes(key),key+" must stay reviewable");
   assert.match(renderToHtml(mapping),/data-eidos-review-status-by-choice=/);
   assert.doesNotMatch(renderToHtml(mapping),/localStorage|data-eidos-auto-save/);
+  const restoredOnly=createDataImportMappingPageV010({job:{
+    ...job,source:{...job.source,headers:["供应商编码"]},
+    ignoredSourceColumns:[]
+  },schema,locale:"zh-CN",canCreateExtension:true});
+  assert.equal(restoredOnly.reviewTable.filter.selectedId,"all",
+    "a fully matched Job must not start in an empty attention-only view");
+  assert.ok(restoredOnly.reviewTable.filter.options.some(x=>x.id==="needs"),
+    "available future Human changes may still be filtered deliberately");
+  assert.equal(restoredOnly.reviewGroups[0].reviewStatus.key,"matched");
+  assert.equal(validateUidl(restoredOnly).ok,true);
+
   assert.equal(mapping.reviewTable.evidenceLayout,"inline-collapsed");
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     evidenceLayout:"invalid"}}).ok,false);

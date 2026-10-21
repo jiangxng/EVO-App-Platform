@@ -1022,9 +1022,19 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(x=>x.reviewStatus.key),
     ["matched","proposed","proposed","attention"],
     "Host-restored mapping, new definition and metadata exceptions must remain distinct");
-  assert.deepEqual(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys,
-    ["matched","proposed","attention"],
-    "Eidos filters must reference only status values in this authorized Job");
+  const reachableStatuses=new Set(page.reviewGroups.flatMap(group=>[
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status=>status.key)
+  ]));
+  assert.deepEqual(
+    new Set(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys),
+    reachableStatuses,
+    "All must retain current and reachable statuses for this authorized Job");
+  assert.equal(page.reviewTable.filter.selectedId,"needs",
+    "actual unresolved/created columns should determine the initial filter");
+  assert.deepEqual(page.reviewGroups.map(group=>group.reviewStatus.key),
+    ["matched","proposed","proposed","attention"],
+    "unsaved choices cannot rewrite the Host-restored initial status");
   const stagedJob=repository.get("enterprise-context:a","batch-proposals");
   const failedJob={
     ...stagedJob,

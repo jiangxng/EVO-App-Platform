@@ -731,6 +731,10 @@ export function createDataImportMappingPageV010(input: {
   // Eidos E2 validates each filter status against THIS authorized Job.
   // Do not advertise states absent from the current table: a fresh Job may
   // contain only previously mapped columns, or only unresolved columns.
+  // Reachable statuses inform filter choices, not the initial filter.
+  // A fully handled Job must open on ALL rather than an empty attention view.
+  const currentStatusKeys = [...new Set(reviewGroups.map(group =>
+    group.reviewStatus.key))];
   const statusKeys = [...new Set(reviewGroups.flatMap(group => [
     group.reviewStatus.key,
     ...Object.values(group.statusByChoice).map(status => status.key)
@@ -808,7 +812,8 @@ export function createDataImportMappingPageV010(input: {
     },
     filter: {
       label: zh(input.locale) ? "显示" : "Show",
-      selectedId: attentionKeys.length ? "needs" : "all",
+      selectedId: currentStatusKeys.some(key => attentionKeys.includes(key))
+        ? "needs" : "all",
       noMatchesMessage: zh(input.locale)
         ? "当前筛选没有需要处理的列。可选择“全部字段”查看原始列。"
         : "No matching columns. Choose All fields to inspect the source.",
