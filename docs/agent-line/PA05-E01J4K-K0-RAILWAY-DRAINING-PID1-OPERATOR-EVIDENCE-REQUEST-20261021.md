@@ -64,3 +64,28 @@
 - [GitHub Actions Platform run #39541560856 / job #119030399081](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39541560856/job/119030399081) `ORIGINAL_ACTIONS_JOB_LOG_DIRECT_READ_20261021`：**1124 total / 1123 PASS / 1 SKIPPED / 0 FAIL**，新增两项纯只读观测/错误参数拒绝通过，`PA05_K0_R5_PID1_READONLY_OBSERVATION` 记录 `chainLength=9`、`pid1Identified=true`、`runtimeSigtermDelivered=false`、`globalStopCertified=false`；这是 GitHub Runner 观察值，不是 Railway 产线 process chain。该精确 HEAD 的其他 checks 要另核全绿。
 
 **R5-01/R5-02 判定没有升级**：`effective draining/overlap` 的部署级生效值未从 Railway connector 返回；Railpack + npm start 的生产源配置明确，但实际 PID1、shell/npm/Node 身份与 SIGTERM 传播必须由 Operator 提供脱敏现场证明。**R5-03 更新为 `BLOCKED: NO_AUTHORIZED_ISOLATED_RAILWAY_NONPROD_ENVIRONMENT`**，先获合法隔离环境+独立回收能力，再考虑中断实验。K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，production material WRITE `OFF`。
+
+
+## 6. 2026-10-21 新窗口接续 — R5-01→02→03 只读再核与效率换路（非签收）
+
+> **事实冻结时间片：2026-10-21，新窗口连接器直接只读结果。** 原交接入口、研究索引与既有 §§1–5 保留；本节只附加此前未记录的*本次重新读取*与开发路径选择。不宣布 R5 取得 Owner 签收，不访问生产 variable values/Secrets、SQL、runtime logs 或 PID 现场，不修改 Railway/生产/主线、不运行 Validator/父 Host SIGKILL。
+
+### 6.1 本轮直接读取的控制面原始事实（与文献默认值分开）
+
+- **R5-01 / CONNECTED_RAILWAY_DIRECT_READ_20261021**：在已连接的 project `aee4643e-912b-4ca1-ae95-fe4ec64f5601`、production environment `98b8b20c-d791-4073-a11d-bb1f7f0a1cb3`，`describe_service` 与 `get_service_config` 一致返回 Ledger Configurator `a8622238-480e-4da3-be6f-60fd0f3e18db`：`build.builder=RAILPACK`，`build.buildCommand=npm ci && npm run build`，`deploy.startCommand=npm start`，`runtime=V2`，SFO 1 replica，`staged=null`。部署 `abe8f368-a45f-4a09-aa07-0f8201bf838e` 对应 main SHA `4d291fb31f7a5c429b20be14fb48df687c5a1dac`，SUCCESS/Online，1 running、0 crashed、0 warning/critical、无 pendingWork。已读接口未包含 `drainingSeconds` 或 `overlapSeconds` 最终生效值，变量名列表也没有对应键，但**变量缺席不等于实际上为 0**。
+- **R5-02 / EXACT_GITHUB_MAIN_SOURCE_DIRECT_READ_20261021**：同一 main SHA 的 `package.json` 定义 `start=node dist/manager/server.js`，仓库 `Dockerfile` 采用 exec-form `CMD ["node","dist/manager/server.js"]`；生产配置却是 `RAILPACK + npm start`。在 `manager/server.ts` 第 10276–10311 行附近，`process.once("SIGTERM", ...)` 注册 Node handler；现行 main 的 5 秒 fallback 定时器位于多段 `await` 和 `processRuntimeHost.shutdown()` **之后**，在卡住的前置 await 上可能无法注册。后句是源码静态风险判断，不是现网停止事件的发生证据；#1074 Draft 修正仍未进入生产。本轮未获得真实 image digest、PID1/PPID/shell/npm/Node 进程身份或可信 SIGTERM 抵达事件；**R5-02 仍 UNVERIFIED**。
+- **R5-03 / CONNECTED_RAILWAY_PROJECT_SCOPE_DIRECT_READ_20261021**：`list_services` 再次返回该项目只有 `production` 一个 environment、五服务；`list_projects` 进一步只返回当前账号可见的**一个 Railway project**（EVO Ledger Runtime MVP），即当前连接范围内没有另一个可确认的已存在专属非生产项目。这**不证明组织在其他账号/云上没有设施**；不得自行创建或复制生产数据。当前 Railway 连接器未提供 Sandbox create/exec/destroy 动作。独立测试环境及 Supervisor/专属 cgroup/TTL 独立回收仍 **BLOCKED/NOT_VERIFIED**。
+- **精确 GitHub 控制面**：main `4d291fb31f7a5c429b20be14fb48df687c5a1dac`；该提交 check-runs 本次返回 **3 条成功记录，其中 continuity 重复，独立 check 名仅 2 个**，不能当作完整 Ecosystem 检查。四条 Draft 的最新 HEAD 均与交接一致：#1071 `cb71fb1d75d3410a30b33ab480e8455fd4f69001` 为 7/7；#1074 `c6d5fca90ebfc41ffa642dc5af2e756a224ec838` 为 45/45；#1081 `a1e8a0941ff5b796816aaea0904b89533191a239` 为 5/5；#1082 `eb4743e8ed34cf3cd748c3f79781d092c62712f4` 为 5/5；均 `draft=true/open/mergeable=true`，不是已合并/已部署。Issues #988/#979/#913 原始状态均 `OPEN`。旧 Ecosystem 10 FAIL/82 SKIPPED 继续保留，未以无关绿色 check 抵销。
+- **新增本轮官方文档查询级别**：通过 Railway 官方文档搜索接口，仅返回 [Deployment Teardown — Draining time](https://docs.railway.com/deployments/deployment-teardown#draining-time) 的**搜索章节摘要**，指向 Settings pane、config as code 和 `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`。等级为 `SEARCH_SNIPPET_ONLY_20261021`，不是本窗口重新阅读全页；此前交接 §1/原研究索引已记录其 `ORIGINAL_DIRECT_ARCHIVED_20261021`，两种阅读时间片不可合并成“本次原文已读”。
+
+### 6.2 不重复造测试的选择、替代与止损
+
+| 当前最小真实 gate | 首选执行路线 | 可行替代与换路条件 | 没有 Owner 原始事实时的结论 |
+| --- | --- | --- | --- |
+| R5-01 production effective drain + overlap | Infra/Railway Operator **只读**核对该 deployment 的 Settings 生效值、所有覆盖来源和查验时刻，提供脱敏签收 | 若现有连接器仍不给最终秒数，**不再重复调相同 API**；改由具权限的 Operator 提供设置导出或签名查看回执 | `UNKNOWN/DENY`，不能从默认 0 或变量名缺席推断生产值 |
+| R5-02 PID1/image/SIGTERM | 由同一 Operator 交付 image digest、实际 shell/npm/Node/PROCESS 父链及 Node handler 收到 SIGTERM 的可信外部证据 | 如果不适合直接在生产触发信号，只收集正常历史部署的可信已有事件与 read-only 构建证据；信号动态验证移至 R5-03 经授权的部署等价非生产设施 | `UNVERIFIED`，不能用 Dockerfile CMD 或 GitHub Runner PID1 替代 |
+| R5-03 独立监督实验 | Infra 授权**无生产数据**的独立环境，先核 Supervisor 进程生命周期、专属 cgroup/等效编排器、枚举权限、TTL 强制回收与外部可信回执 | 比较独立 Railway 非生产项目/环境、经授权 Sandbox 或其他独占 Linux VM；任一候选不能证明 Host 死后仍能独立回收，立即停止该路线，退回设计级/无破坏 preflight | `BLOCKED`；不建生产 Sandbox、不做 parent SIGKILL |
+
+**进度/提效复盘（工程判断，非来源事实）：** 既有 11 项本地 PROCESS + 2 项 preflight + 6 项 synthetic receipt + 10 项 synthetic inventory + 1 项真实 /proc 正常退出 + 2 项 PID1 只读测试足以支持当前局部研发状态。继续为相同缺口堆合成用例只会增加 PR/CI 成本，不会关闭 R5-01/02/03 的独立 Owner 认证门禁。下一轮按项目 [快速反馈与路线止损规程](../governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md)执行：先提交**一份合并的 R5-01/02 只读取证请求**，以部署 ID+时间戳+来源为最小回执；R5-03 先判环境/救援能力，缺失即停止危险实验设计；每两轮无新增决定性证据即写四行“假设/事实/选择/下一次验证”，转向拥有证据的 owner，而非重复远程 CI。仅在实改代码时做受影响 L0/L1 → 最终 HEAD required L2 → 独立 L3，绝不降安全门槛。
+
+**本轮门禁未升级：** R5-01 `UNKNOWN`、R5-02 `UNVERIFIED`、R5-03 `BLOCKED`，R5-04–06 `UNVERIFIED`；K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`，production material WRITE `OFF`，Issues #988/#979/#913 `OPEN`。四条 Draft 不合并、不部署、活动分支不删除；九条旧已合并历史分支此次未清理。
