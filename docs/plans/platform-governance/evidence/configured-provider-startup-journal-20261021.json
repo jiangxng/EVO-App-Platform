@@ -73,12 +73,36 @@
     "baselineRelaxed": false,
     "coldDenyListRelaxed": false,
     "localModuleMeasurement": false,
-    "previousCountsAreHistorical": true
+    "previousCountsAreHistorical": true,
+    "isolatedReadRecovery": {
+      "firstHead": "45c053407566f645d0fea4f25de4d69345bbb91c",
+      "run": 39542536115,
+      "failedJobs": [
+        119033305775,
+        119034972474
+      ],
+      "error": "PA05_E01J2_TIMEOUT:readResult after backend termination",
+      "failedEnvironmentNode": "24.22.0",
+      "testsAtFailure": 24,
+      "passAtFailure": 23,
+      "priorGreen": {
+        "head": "db70038467bee482f787ab991360422cc07a1dcd",
+        "run": 39534571081,
+        "job": 119008120522,
+        "node": "24.21.0",
+        "tests": 28,
+        "pass": 28
+      },
+      "decision": "pin this workflow to prior certified Node24.21.0; all tests/limits/PG environment unchanged",
+      "causalityNotProven": true,
+      "node2422Compatibility": "OPEN under original PA05 owner",
+      "stopIfStillFails": true
+    }
   },
   "continuity": {
     "mainMoved": "#1089 merged while branch had no unique commits; fast-forwarded before commit",
     "ruleRead": "docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md full",
-    "failedApproach": "none recorded for current batch",
+    "failedApproach": "same-head transient retry failed twice; stop repeating; inspect baseline runtime drift and test Node24.21.0 pin",
     "alternative": "no new desired-state controller/lazy proxy; existing journal expresses lifecycle intent",
     "pivot": "protected fallback, state/data corruption or public contract change requires owner qualification before expanding; two ineffective rounds require reassessment"
   },
