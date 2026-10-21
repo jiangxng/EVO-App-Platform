@@ -1053,3 +1053,10 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 | Production material WRITE | 不更改 | **`OFF`** |
 
 **仍保留：** J4J 28/28 PG18 `ENGINEERING_BOUNDED_PASS`；#1074 45/45 CI 但与 main 存在 `dirty` 合并冲突，#1081 的负面反例是负证据；旧 Ecosystem schedule 10 FAIL / 82 SKIPPED 不因新增绿色 CI 被擦除。四条 Draft 全部独立未合并未部署；#988/#979/#913 OPEN；无父 Host SIGKILL、生产 Validator/SQL/Secrets、停机/重启、Railway draining 或分支删除。
+
+
+## 92. PA05-05 / K0 — 2026-10-21 回执签名先行加固及精确测试证据
+
+**测试证明比上一版严格，认证等级不变：** 工程 Draft [#1082 HEAD `50a7a068259c966dafa86a722aab5d012fb96fd8`](https://github.com/jiangxng/EVO-App-Platform/commit/50a7a068259c966dafa86a722aab5d012fb96fd8) 将测试专用签名回执的 **Ed25519 签名验真提前到受控 JSON claims 解释之前**，新增有效时间范围内“先签后篡改”必因 BAD_SIGNATURE 被拒绝的断言。直接读取 [Platform CI #39536775595 / job #119015279614](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536775595/job/119015279614) 原始日志，**1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL**，含同一组 6 项 synthetic 回执测试、旧 11 项本地 PROCESS 与 2 项只读预检。详见 [接续资料 §12](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。本提交全体 CI 的结束状态必须以该 HEAD 的 check-runs 单独核准，不能引用前一 HEAD 的 5/5。
+
+**唯一可增量认定：** `ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS` 下的密码学与输入拒绝次序进一步正确；不是生产 Supervisor 信任根、全域进程清理或真实 OS 停机收据。生产 K0、完整 E01J4、PA05-05 E01–E05、W06 全部 **`NOT_SIGNED`**；material WRITE **`OFF`**；不运行 parent SIGKILL、生产 Validator/SQL/Secrets，不更改 Railway，不合并 Draft。
