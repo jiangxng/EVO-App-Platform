@@ -386,3 +386,13 @@
 **只允许的新有界标签：** `ISOLATED_EXTERNAL_OS_PROCESS_TREE_GRACEFUL_OBSERVATION_ONE_CASE_BOUNDED_PASS`。此步骤不是独立授权的 Infra Supervisor；不证明父 Host 突然失踪后监督者存活与子孙回收、不证明独占 cgroup `populated=0`、Railway PID1/draining、生产全量 Worker/Caller 或真实 DB/IdP/DBA 权威。和原先 **11 项 Plugin PROCESS / 2 项 Supervisor 只读探测 / 6 项合成签名回执 / 10 项合成多 Worker 对账** 单独计量；不得拼接成“30 项真实生产停机”。
 
 完整测试源码、真实 job marker、前置安全设计及来源层级见 [2026-10-21 接续研究 §16](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。R1–R8 仍 UNKNOWN/DENY，K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`，Issues #988/#979/#913 OPEN。未进行父 Host SIGKILL、生产 Validator/SQL/Secrets、停止/重启/配置更改、PR 合并或分支删除。
+
+
+## 21. 2026-10-21 自动续跑 #06 — Railway 默认 0 秒风险与当前有效值未签收
+
+**新一手来源与项目配置交叉核查：** Railway 官方 [Deployments Reference](https://docs.railway.com/deployments/reference) 直接写明 SIGTERM→SIGKILL 的默认 drain grace **0 秒**，[Variables Reference](https://docs.railway.com/variables/reference) 同样写明 `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` 默认为 0，[Start Command](https://docs.railway.com/deployments/start-command) 说明 Railpack 启动命令经 shell。当前用户授权的 production Railway `get_service_config` 显示 Host `builder=RAILPACK`、`startCommand=npm start`，`deploy` **没有明确 `drainingSeconds` 字段**，变量名称表未显示 draining/overlap；代码 `package.json` 则把 `npm start` 指向 Node，仓库 Dockerfile 使用 exec form Node CMD。**因此实际 production 有效 draining、PID1 和信号转发均 `UNVERIFIED`，不能将平台默认值当作现场证据。**
+
+**操作员需补齐的具体对象**及严格 Owner 原始凭证已经集中写入 [K0 R5 Railway Draining/PID1 Operator 证据请求](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md)：
+`R5-01` 最终生效的 draining/overlap 秒数及来源；`R5-02` 实际 image/build PID1→shell/npm→Node→PROCESS child 身份/信号转发；`R5-03` 安全独占非生产观察回执；`R5-04` shutdown budget 与最坏清理时间的正余量；`R5-05` 完整 Worker/caller inventory 及停止责任；`R5-06` DBA、IdP、rotation/audit 责任。当前六项全 **`UNKNOWN/DENY`**。单次本地 `deactivate` 753ms、11 项 Plugin PROCESS、外部单机 /proc 正常停机和 #1074 的 45/45，都不能替代 production grace 与 PID1 的证实。
+
+**安全结论与之前 R1–R8 一致：** Railway 官方默认 0 秒提示**实质性风险**，并非本轮已证实产线配置错误或擅自批准调大秒数。K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 仍 `NOT_SIGNED`，production material WRITE `OFF`；#988/#979/#913 OPEN。无生产配置/重启/服务/Validator/SQL/Secrets 修改或读取，父 Host SIGKILL 不执行。
