@@ -281,6 +281,8 @@
 
 ### 15.2 新 HEAD 真实 CI 复核与仍然成立的限制
 
+**自动合并预演原始文件核验（无 merge 动作）：** 用 GitHub `fetch_file(ref=refs/pull/1074/merge)` 直接读取 GitHub 生成的 #1074 merge preview 的 `.github/workflows/lightweight-host.yml`，blob **`5b117bf8d699d80a6c1605af97380f8aef9f0235`**（全文 5520 字符）。该虚拟合并文件同时包含主线增加的 `tests/integration/oidc-credential-host.test.mjs` 和 `tests/integration/evo-map-startup-boundary.test.mjs`，以及 PA05 独立 `PA05 Host shutdown isolation and cooperative lock` 步骤及两份 Host/J4J tests。**已直接验证 GitHub 三路合并预演不会丢失这些双方测试**，不是仅凭推测；此 ref 为 GitHub 虚拟合并结果，**并未向 main 写入或部署**。如果日后 main 再前进，此证据仍只是当前 preview 快照，需重新读取。
+
 **精确新 HEAD `c6d5fca90ebfc41ffa642dc5af2e756a224ec838` 已 45/45 check-runs SUCCESS**，包括 [Lightweight Host run #39538625109 / job #119021176953](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39538625109/job/119021176953)。**原始 job log 直接读取**（`ORIGINAL_GITHUB_ACTIONS_JOB_LOG_DIRECT_READ_20261021`）：原本 lazy-load 测试步骤 `278 tests / 278 PASS / 0 FAIL`；新增独立 `node --test tests/agent-line/pa05-host-shutdown-error-path.test.mjs tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs` **`5 tests / 5 PASS / 0 FAIL`**。这些日志来自新 SHA，而非错误地复用旧 `caccb1b6` 的 45/45。新增步存在且真正执行，当前 PR GitHub `mergeable=true`、`mergeable_state=behind`、`draft=true`；仍不可签生产 K0 或擅合并。
 
 ### 15.3 新发现、限制和下一步
