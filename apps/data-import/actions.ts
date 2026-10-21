@@ -742,12 +742,10 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          // Refresh the same Host review route using new validation evidence.
-          result: JSON.parse(JSON.stringify({
-            contractVersion: "0.1.0",
-            navigateTo: dataImportReviewRouteV010(job.importJobId),
-            job: actorVisibleJobV010(job,context.principal.subjectId)
-          })) as JsonValue
+          // Browser Shell already refreshes the mounted review page on
+          // successful Host commands. Do not also navigate to the same route:
+          // duplicate render races can break the next row-correction click.
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
