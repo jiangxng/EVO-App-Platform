@@ -88,23 +88,33 @@ export function createMemoryIdentityUserDirectoryStoreV010(
 export function createFileIdentityUserDirectoryStoreV010(
   path: string
 ): IdentityUserDirectoryStoreV010 {
-  let current = emptySnapshot();
-  try {
-    const raw = readFileSync(path, "utf8");
-    current = JSON.parse(raw) as IdentityUserDirectorySnapshotV010;
-    validateSnapshot(current);
-  } catch (error) {
-    if (
-      !(error instanceof Error)
-      || !("code" in error)
-      || (error as NodeJS.ErrnoException).code !== "ENOENT"
-    ) {
-      throw error;
+  // This Host-owned directory also serves offline delegated authority. Keep one
+  // shared synchronous snapshot, but do not read it merely to register a runtime.
+  let current: IdentityUserDirectorySnapshotV010 | undefined;
+  function load(): IdentityUserDirectorySnapshotV010 {
+    if (current === undefined) {
+      let next = emptySnapshot();
+      try {
+        next = JSON.parse(readFileSync(path, "utf8")) as IdentityUserDirectorySnapshotV010;
+        validateSnapshot(next);
+      } catch (error) {
+        if (
+          !(error instanceof Error)
+          || !("code" in error)
+          || (error as NodeJS.ErrnoException).code !== "ENOENT"
+        ) {
+          throw error;
+        }
+      }
+      // Failed validation/read never publishes an empty or partial snapshot.
+      current = next;
     }
+    return current;
   }
 
   function persist(next: IdentityUserDirectorySnapshotV010): void {
     validateSnapshot(next);
+    load(); // Preserve validation of existing data even when save is the first call.
     mkdirSync(dirname(path), { recursive: true });
     const temp = path + ".tmp";
     writeFileSync(temp, JSON.stringify(next, null, 2) + "\n", "utf8");
@@ -113,7 +123,7 @@ export function createFileIdentityUserDirectoryStoreV010(
   }
 
   return {
-    snapshot: () => clone(current),
+    snapshot: () => clone(load()),
     save: persist
   };
 }

@@ -743,3 +743,37 @@ Host同步`resolveIdentitySession`在有效描述符为零时直接返回host.co
 下一条最小gate：**Identity Directory构造文件读取与独立撤销责任**，区分空minimal/managed配置/现存目录、管理与请求首用，先判必要共享Host职责再决定保留或修正。R3的LLM发现metadata调用资格、其余安全基础矩阵、EVO期限/OIDC事务及records预算继续OPEN；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层验收及A03/A05不代关。固定7项仍4闭环、3部分完成。
 
 证据：[结构化记录](evidence/secrets-initialization-boundary-20261021.json)。
+
+
+## 19. Identity Directory构造与独立撤销来源（2026-10-21）
+
+基线main `192b1948a4f5856ba97cb0a15a0d7d50e12e3830`（#1093，包含原#1020）；分支`fix/governance-identity-directory-initialization-20261021`。本批继续A01/R3，目标是未使用共享目录时不因工厂构造读取文件，原独立安全责任不变。复用§17/18分类及已全读未变的启动/交付/架构资料，没有重复外网研究或Secrets整改。
+
+### 原合同、最小判别与决定
+
+完整读取原目录EA-3B1权威、store和runtime：identity.user-directory是浏览器Session之外的当前Human来源，离线委托仍要查询ACTIVE状态；不能用managed=false直接改成memory/忽略已有DISABLED数据。Host仅为runtime注册便构造file store，原factory此时readFileSync/JSON/校验，即使无合法业务调用也读。原blob `29183fc3ae7e11fddc01574da296b076ca3541a1`的Node24.19类型擦除三场景实测：missing/valid/malformed构造均读1次；missing不写文件，malformed构造即报错。它不是本地真实Host或生产测量。
+
+选择在**原file store内部**首次snapshot/有效save加载并校验共享同步快照，成功后才发布；只把ENOENT作为空目录，其他读/校验错误传播，修复后下次调用可重试。首次save必须先校验当前文件再做原temp/rename，避免把原“构造拒绝坏文件”的防线漏掉。写入仍在rename成功后更新current，写失败保留原内存快照。没有懒代理/异步接口/第二份存储或新安装策略，server/bootstrap、Provider选择及Agent代码不改。
+
+保留共享安全来源：认证先recordAuthenticatedPrincipal再issue Session；同Host多消费者共享终止性DISABLED与IdP绑定，禁用不因再登录复活。原委托resolver每次读取当前directory provider，缺失/禁用不得授予权；文件异常抛错也不转空目录或放行。同步读取不创建连接/订阅/timer，只有原records内存快照；成功加载后的外部文件编辑不自动刷新，跨进程撤销传播/多写者并发并非本批新增保证。
+
+未采用按UI/Session插件启停销毁或flag关闭目录，因为会切断离线委托的当前Human权威；未保留无消费者的eager read，因为它对独立撤销责任无必要且可由首次合法调用取得相同快照。本批不重做登录、Agent委托或生产认证策略。
+
+### 验证分层与可保留证据
+
+- 本地Node24.19部分固定SHA/临时类型擦除：目录13项（原5+新8）、原authentication-flow12、managed-request-session8，共33/33，0fail/0skip。目录覆盖构造/adapter/probe登记及非法输入零文件访问；首次读取一次、clone隔离、多消费者共享禁用及重启；三类坏state snapshot/save/record/disable均不覆盖、修复重试；EACCES不转空目录；真实file store+原认证流/Session服务在读坏文件或落盘失败时零新增Session，修复成功、目录持久化先于Session、禁用后仍拒绝。认证Provider为合成合同fixture，此为组件组合证据，非真实IdP/HTTP登录。
+- 新增4项真实Host由最终head CI验证：missing/corrupt各覆盖compatible(managed=false)与minimal(managed=true)、显式/派生路径，无调用时零目标访问，缺文件不创建；两种profile首次授权health用坏文件均UNAVAILABLE且不覆盖，修复为DISABLED记录后原Host恢复，单快照复用；真实HTTP disable/enable与inactive restart不读目录，重新启用首次probe读一次、保留原禁用记录且不重写。managed=false手工安装目录仍可服务，证明独立来源没有被flag清空。
+- Lightweight加入目录协议、新Host及既有effective-delegated-authority 9项（文件不改，复用当前权限交集/禁用/生命周期拒绝）；既有OIDC真实Host与目录独立CI保持。未新增第二Provider试点/Agent功能，未声称这9项是新实现或目录落盘后的外部委托全链路认证。
+- 本地只跑33项可靠定向测试和新增脚本语法，未跑正式npm build、真实Host、数据库、浏览器；模块数字等本轮CI出结果再记PR收尾，不借用#1093的312/246。基线/禁入门禁不放宽，未部署、未用真实用户数据或做Human验收。
+
+读取范围：本轮完整目录权威、store/runtime、原目录协议、目录CI与authentication-flow源码；Host局部目录路径/registry/managed bootstrap、authenticationFlow回调、externalAgent依赖resolver；external-agent-delegated-access源码全文，仅用于核对当前目录依赖/拒绝边界，不改其实现；既有delegated测试读取fixture/主要授权与禁用场景，未声称全文审计所有Agent/OAuth。启动/LLM/foundation-map/交付/FAST-FEEDBACK及架构治理原资料复用完整阅读且hash未变记录；新§18全文及其最终PR收尾核对。
+
+### 效率、限制与下一条gate
+
+本批没有已记录失败修复轮次；沿FAST-FEEDBACK§10一次列齐路径/profile/首次读写/坏数据/授权/共享/恢复矩阵，用原3场景判别再集中原store修改与33项验证。未重试前批Node24.22 isolated READ恢复旧失败，PA05原owner兼容缺口及24.21固定CI保留；不以本批未触发该workflow冒称重测。最终推送次数/CI/合并/清理以PR永久收尾为准。
+
+本批只收窄目录构造触发点，不表示所有安全基础装载/停止矩阵通过，也不将当前文件快照升级为跨进程实时权威。损坏目录现在允许未使用的Host启动，实际调用仍失败；health仍走原UNAVAILABLE映射，不能把启动存活写成认证成功。若首次调用丢失撤销、save覆盖坏文件或提前签发Session，立即停止扩批；两轮无改进按原四行止损规程复盘。
+
+下一批最小gate：**LLM启动metadata调用者资格与首次安装恢复合同**，区分LLM未装/停用、仅Secrets已装、已有持久Key、环境临时Key及首次安装恢复；先确认原同步发现为何读取，再决定必要保留或最小修正，不能为去掉启动读取而造成安装后无runtime。R3其余安全基础资格、EVO期限/OIDC事务与records预算继续；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层验收及A03/A05不代关。固定7项仍4闭环、3部分完成。
+
+[结构化证据](evidence/identity-directory-initialization-20261021.json)。

@@ -108,3 +108,6 @@ R3 Provider边界第17节已分类十类安全基础：保留共享安全权威�
 
 
 R3 Provider边界第18节已把共享Secrets文件初始化放到原同步store首次有效操作，构造/登记零文件访问；坏state不先写key、已有密文缺key拒绝且失败可修复后重试。保留单Host共享快照、有效metadata首次初始化及消费端/管理端既有授权、解密、启停合同；不绑定某个UI插件。新增协议与真实Host最小/首次授权保存/探测恢复/双消费者/重启证据；LLM既有启动metadata调用资格未在本批重构，其余安全基础资格、资源预算及R1/R2/R4仍OPEN。下一批先核对Identity Directory构造读取与独立撤销责任。
+
+
+R3 Provider边界第19节已将Identity Directory构造读取延至原同步snapshot/有效save，首次save仍先校验旧数据，坏文件或读取失败不发布空快照、不覆盖且可修复后重试。保留离线委托独立身份来源、共享终止性禁用、写目录先于签发Session及原进程快照；不按managed开关删保护。新增协议与双profile/显式派生路径/探测修复/停用重启Host回归，未新增Agent/认证功能。下一批核对LLM启动metadata调用者资格与首次安装恢复合同；R1/R2/R3其余预算/R4和固定7项保持开放。
