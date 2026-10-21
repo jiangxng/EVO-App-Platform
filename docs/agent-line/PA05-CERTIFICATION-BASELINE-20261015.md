@@ -1088,6 +1088,8 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 
 **已实施工程（不是合并）：** 原 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 旧 HEAD `caccb1b6` 虽 45/45 checks SUCCESS，却和 main 的 `.github/workflows/lightweight-host.yml` 长测试行冲突，GitHub `dirty`。本轮原 Draft 精确 commit [`c6d5fca90ebfc41ffa642dc5af2e756a224ec838`](https://github.com/jiangxng/EVO-App-Platform/commit/c6d5fca90ebfc41ffa642dc5af2e756a224ec838) 将 workflow 恢复 PR 共同基线的测试清单，并仅增独立 Host shutdown/J4J test step；GitHub 原始 PR patch 已核只增四行。**GitHub `mergeable=true, mergeable_state=behind`，消除 `dirty`**，同时保留 main 新增其他 Owner CI 测试在未来三路合并中的位置。工程 Host shutdown 源码与测试未被本轮改写，PR 继续 **Draft / OPEN / NOT_MERGED / NOT_DEPLOYED**。新 HEAD `c6d5fca90ebfc41ffa642dc5af2e756a224ec838` 已直接核验 **45/45 exact-HEAD check-runs SUCCESS**，并读取 [Lightweight Host 原始日志](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39538625109/job/119021176953)：原 lazy-load 278/278 PASS；新增 PA05 shutdown/J4J 独立测试 5/5 PASS。两次 HEAD 的 45/45 是不同运行的独立证据；本次新 CI 已完成而非 pending。
 
+**无副作用合并预演交叉验证：** GitHub `refs/pull/1074/merge` 当前虚拟 merge workflow blob `5b117bf8d699d80a6c1605af97380f8aef9f0235` 已直接读取，确认主线 OIDC/EVO 测试路径与 PR 独立 PA05 Host/J4J 测试步骤共同存在；没有执行合并，仍是 Draft。
+
 **证据索引：** [K0 接续研究 §15](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 与 [K0 工作表 §19](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 记录原 SHA、过渡提交、冲突成因、源代码查询等级及具体避免破坏并行 main 的理由。
 
 **状态分层不变：** 此次只消除 GitHub PR merge conflict，不增加 OS 独立 Supervisor 或生产 stop receipt。#1082 真实本地 PROCESS 11 项有界、2 项只读预检、6 项 synthetic receipt、10 项 synthetic multiworker reconciliation 独立保留原等级。K0/完整 E01J4/PA05-05 E01–E05/W06 均 `NOT_SIGNED`；material WRITE `OFF`；#988/#979/#913 OPEN。禁止合并四 Draft、手动部署、生产 Validator/SQL/Secrets、父 Host SIGKILL、Railway draining/重启或跨工作线改动。
