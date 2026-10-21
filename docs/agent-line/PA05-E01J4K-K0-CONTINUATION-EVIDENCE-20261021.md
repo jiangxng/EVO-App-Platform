@@ -343,3 +343,14 @@
 - Ledger Configurator Railway `main@4d291fb3` deployment `abe8f368-a45f-4a09-aa07-0f8201bf838e` SUCCESS/Online、1 running/0 crashed；对应 SHA GitHub commit checks **2/2**，和旧 40/40 不同范围。K0 真实 stop、全域 Worker/Caller、SQL session、IdP/DBA 仍没有签收。
 
 **本轮新增决策不改变既有方案：** 将 R5 的“生效 draining 时间”和“实际 PID1/SIGTERM 转发”拆成两张必须由独立生产 Operator 签收的证据；缺任一或实际 draining=0 **仍 DENY K0**。只有在独立非生产隔离环境验证安全 supervisor 回收之后才能考虑实际信号/故障试验。不得自动修改 production draining（即使建议配置非零），不得执行父 Host SIGKILL、生产 Validator/SQL/Secrets/停机、合并 Draft 或清理异常锁。保留 [本轮 Operator 请求](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md) 中的 owner、R5-01–R5-06、正反证据和阶段顺序。
+
+
+## 19. 2026-10-21 自动续跑 #07 — 实际隔离环境缺口和 PID1 只读探针
+
+**真实连接器负证据：** Railway project `aee4643e-912b-4ca1-ae95-fe4ec64f5601` 的 `list_services` 在 2026-10-21 实际仅返回一个 environment `production`，五个既有服务，没有独立已授权的 Railway staging/test environment。故 R5-03 在该项目是 `BLOCKED_NO_SAFE_NONPROD_ENVIRONMENT`，不能把生产环境当可放心实验平台。未执行创建、部署或任何生产 Sandbox 操作。
+
+**本轮已读新增官方原文：** [Railway Sandboxes](https://docs.railway.com/sandboxes) 提供隔离 Linux VM、生命周期 destroy/idle TTL、超时后进程组信号处理及连接中断时结果可能未知的具体约束；[Sandbox quickstart](https://docs.railway.com/sandboxes/quickstart) 是使用参考。可作为经组织明确批准之后**独立非生产环境**的候选工具，但尚无真实使用结果，当前已连接 Railway MCP 不具备 Sandbox create/exec/destroy 接口，不能冒充已验收独立 supervisor，更不允许在 production environment 使用。
+
+**已实施可复用纯只读 PID1 进程链探针：** 原工程 Draft #1082 在 `eb4743e8ed34cf3cd748c3f79781d092c62712f4` 添加 `tests/fixtures/pa05-k0-runtime-process-ancestry-readonly.mjs`、`tests/protocol/pa05-k0-runtime-process-ancestry-readonly.test.mjs`。受控读取 `/proc/<pid>/stat`、`comm` 和 PID1，最多 16 层（允许调用时上限 32）；**不读取 cmdline/environ/Secrets/SQL，不发任何信号**，不证明 shell 或 npm 转发 SIGTERM。真实 [Platform run #39541560856/job #119030399081](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39541560856/job/119030399081) **原始 job log 直接读取**，1124 total / 1123 PASS / 1 SKIPPED / 0 FAIL；2 项新增测例通过：测试 Runner 父链 9 层、PID1 可读取、所有生产认证标记 false，已成功拒绝非法 PID/深度；旧 PROCESS 11 marker 全出现。本证据级别 `NONPRODUCTION_GITHUB_RUNNER_PROCFS_OBSERVATION_BOUNDED_PASS`；不增加真实 PROCESS stop 用例数，也**不是生产 PID1 证据**。完整 Owner 和证据接收项见 [R5 Operator 请求 §5](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md)。
+
+**安全路线没有改变：** R5-01 effective production draining 未知；R5-02 真实 Node SIGTERM receipt 未知；R5-03 无已授权隔离环境和独立 cleanup。继续避免“更多 mock 取代真实签收”；申请独立非生产设施后，由 Infra/SRE 先证明外部 supervisor、进程清单与 TTL 回收，再安排真实异常停止实验。K0/E01J4/PA05-05 E01–E05/W06 NOT_SIGNED、production material WRITE OFF、#988/#979/#913 OPEN；四 Draft 不合并不部署。
