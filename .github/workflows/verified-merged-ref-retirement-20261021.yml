@@ -1,0 +1,92 @@
+name: One-Time Verified Merged Branch Retirement 2026-10-21
+
+on:
+  push:
+    branches:
+      - chore/verified-merged-ref-retirement-20261021
+    paths:
+      - .github/workflows/verified-merged-ref-retirement-20261021.yml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: verified-merged-branch-retirement-20261021
+  cancel-in-progress: false
+
+jobs:
+  verified-retirement:
+    if: github.repository == 'jiangxng/EVO-App-Platform' && github.ref == 'refs/heads/chore/verified-merged-ref-retirement-20261021'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Audit 66 exact, already-merged, unreferenced branch heads
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo} = context.repo;
+            const EXECUTE = false;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform'
+              ||context.eventName!=='push'
+              ||context.ref!=='refs/heads/chore/verified-merged-ref-retirement-20261021')
+              throw new Error('Unexpected execution authority');
+            const content=(await github.rest.repos.getContent({
+              owner,repo,path:'repository-hygiene/retired-branches.json',ref:context.sha
+            })).data;
+            if(Array.isArray(content)||content.type!=='file')throw new Error('Missing manifest');
+            const manifest=JSON.parse(Buffer.from(content.content,'base64').toString('utf8'));
+            const targets=(manifest.retiredBranches??[]).filter(x=>
+              typeof x.reason==='string' && x.reason.startsWith('Verified merged PR #')
+            );
+            if(targets.length!==66)throw new Error('Expected 66 new candidates, got '+targets.length);
+            const open=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            if(open.length>=100)throw new Error('Unbounded open PR set');
+            const active=new Set(['main']);
+            for(const p of open){
+              active.add(p.base.ref);
+              if(p.head.repo?.full_name===owner+'/'+repo)active.add(p.head.ref);
+            }
+            const names=new Set();
+            const outcome={eligible:[],deleted:[],skipped:[],execute:EXECUTE};
+            for(const x of targets){
+              const name=x.name,expected=x.expectedHeadSha;
+              if(typeof name!=='string'||!name||names.has(name)
+                || !/^[a-f0-9]{40}$/i.test(expected??'')
+                ||name==='main')throw new Error('Invalid or duplicate candidate');
+              names.add(name);
+              if(active.has(name)){outcome.skipped.push({name,reason:'ACTIVE_PR'});continue;}
+              const prNum=Number(x.reason.match(/^Verified merged PR #(\d+)\b/)?.[1]);
+              if(!Number.isInteger(prNum))throw new Error('Missing merged PR proof for '+name);
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:prNum})).data;
+              if(!pr.merged||pr.base.ref!=='main'
+                ||pr.head.repo?.full_name!==owner+'/'+repo
+                ||pr.head.ref!==name||pr.head.sha!==expected){
+                outcome.skipped.push({name,reason:'PR_PROOF_CHANGED'});continue;
+              }
+              let ref;
+              try{ref=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data;}
+              catch(e){if(e.status===404){outcome.skipped.push({name,reason:'ABSENT'});continue;}throw e;}
+              if(ref.object.sha!==expected){outcome.skipped.push({name,reason:'HEAD_MOVED'});continue;}
+              const b=(await github.rest.repos.getBranch({owner,repo,branch:name})).data;
+              if(b.protected){outcome.skipped.push({name,reason:'PROTECTED'});continue;}
+              const compare=(await github.rest.repos.compareCommits({
+                owner,repo,base:expected,head:'main'
+              })).data;
+              if(compare.behind_by!==0||compare.merge_base_commit?.sha!==expected){
+                outcome.skipped.push({name,reason:'NOT_MAIN_ANCESTOR'});continue;
+              }
+              if(!EXECUTE){outcome.eligible.push(name);core.info('AUDIT_ELIGIBLE '+name+' @ '+expected);continue;}
+              const latest=(await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;
+              if(latest!==expected){outcome.skipped.push({name,reason:'RACED'});continue;}
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+name});
+              outcome.deleted.push(name);
+              core.info('DELETED '+name+' @ '+expected);
+            }
+            core.info('RETIREMENT_RESULT='+JSON.stringify({
+              execute:EXECUTE,eligible:outcome.eligible.length,
+              deleted:outcome.deleted.length,skipped:outcome.skipped
+            }));
+            await core.summary.addHeading('Verified Merged Branch Retirement — '+(EXECUTE?'DELETE':'AUDIT'))
+              .addCodeBlock(JSON.stringify(outcome,null,2),'json').write();
+            if(outcome.skipped.length)core.warning(outcome.skipped.length+' candidates skipped safely');
