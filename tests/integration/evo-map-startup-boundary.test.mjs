@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import {fork} from 'node:child_process';
 import {createPersonalAgentExperienceProfileV010} from '../../dist/manager/local-experience-profile.js';
+import {createEnterpriseApplicationRuntimeBindingProviderV010} from '../../dist/providers/application-runtime-binding/runtime.js';
+import {createFileEnterpriseApplicationRuntimeBindingStoreV010} from '../../dist/providers/application-runtime-binding/store.js';
 
 const bindingPackage = 'evo-application-runtime-binding-provider';
 const bindingFeature = bindingPackage + '.default';
@@ -33,6 +35,12 @@ async function boot(root, {enabled, profile = 'compatible', mapping = map('synth
   assert.equal(sample.blockedOutbound, 0);
   return {
     state: () => JSON.parse(fs.readFileSync(stateFile, 'utf8')),
+    async lifecycle(operation) {
+      const response = await fetch(`http://127.0.0.1:${sample.port}/v1/${operation}`, {method: 'POST',
+        headers: {'content-type': 'application/json'}, body: JSON.stringify({packageId: bindingPackage,
+          trustApproved: true, approvedPermissions: []}), signal: AbortSignal.timeout(10000)});
+      const body = await response.json(); assert.equal(response.status, 200, JSON.stringify(body));
+    },
     snapshot: () => new Promise((resolve, reject) => {
       const id = crypto.randomUUID(); const timer = setTimeout(() => {child.off('message', receive); reject(Error('EVO_MAP_SNAPSHOT_TIMEOUT'));}, 5000);
       const receive = message => {if (message.id === id) {clearTimeout(timer); child.off('message', receive); resolve(message);}};
@@ -64,7 +72,7 @@ test('disabled EVO map does not parse malformed dormant configuration', {timeout
   } finally {await host?.stop?.(); fs.rmSync(root, {recursive: true, force: true});}
 });
 
-test('EVO map becomes dormant without changing persisted binding/disabled state; explicit enable retains existing bootstrap semantics', {timeout: 60000}, async () => {
+test('EVO map preserves inactive binding state across off/on and applies pending configuration after explicit enable/restart', {timeout: 60000}, async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-map-restart-')); let host;
   const file = path.join(root, 'application-bindings.json'), stateFile = path.join(root, 'state.json');
   try {
@@ -89,6 +97,14 @@ test('EVO map becomes dormant without changing persisted binding/disabled state;
     await host.stop(); host = undefined;
     host = await boot(root, {enabled: true, mapping: map('synthetic-runtime-v2')});
     assert.equal(host.failure, undefined, host.stderr);
+    assert.equal(host.state().activeFeatures.some(item => item.featureId === bindingFeature), false);
+    assert.deepEqual(fs.readFileSync(file), original);
+    assert.deepEqual((await host.snapshot()).writes, []);
+    await host.lifecycle('enable');
+    assert.deepEqual((await host.snapshot()).writes, [], 'lifecycle enable alone does not run startup mapping writes');
+    await host.stop(); host = undefined;
+    host = await boot(root, {enabled: true, mapping: map('synthetic-runtime-v2')});
+    assert.equal(host.failure, undefined, host.stderr);
     assert.ok(host.state().activeFeatures.some(item => item.featureId === bindingFeature));
     const restored = JSON.parse(fs.readFileSync(file, 'utf8')).bindings[0];
     assert.equal(restored.bindingId, first.bindingId); assert.equal(restored.createdAt, first.createdAt);
@@ -103,5 +119,86 @@ test('enabled EVO map still rejects malformed configuration before creating a bi
     const failed = await boot(root, {enabled: true, mapping: '{invalid-evo-map'});
     assert.equal(failed.failure, true); assert.notEqual(failed.code, 0); assert.match(failed.stderr, /SyntaxError/);
     assert.equal(fs.existsSync(path.join(root, 'application-bindings.json')), false);
+  } finally {fs.rmSync(root, {recursive: true, force: true});}
+});
+
+test('enabled EVO map is idempotent and explicit configuration owns only listed observation keys', {timeout: 60000}, async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-map-idempotent-')); let host;
+  const file = path.join(root, 'application-bindings.json');
+  try {
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    const first = fs.readFileSync(file); await host.stop(); host = undefined;
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    assert.deepEqual((await host.snapshot()).writes, []); assert.deepEqual(fs.readFileSync(file), first);
+    await host.stop(); host = undefined;
+    const provider = createEnterpriseApplicationRuntimeBindingProviderV010({store: createFileEnterpriseApplicationRuntimeBindingStoreV010(file)});
+    const shared = provider.bind({enterpriseId: 'synthetic-enterprise', hostApplicationRefId: 'synthetic-host-app',
+      runtimeProviderId: 'evo-ledger-runtime', runtimeApplicationId: 'synthetic-ledger-target'});
+    const unlisted = provider.bind({enterpriseId: 'synthetic-enterprise', hostApplicationRefId: 'unlisted-app',
+      runtimeProviderId: 'evo.runtime-observatory', runtimeApplicationId: 'synthetic-unlisted-target'});
+    const original = JSON.parse(first).bindings[0];
+    provider.bind({enterpriseId: 'synthetic-enterprise', hostApplicationRefId: 'synthetic-host-app',
+      runtimeProviderId: 'evo.runtime-observatory', runtimeApplicationId: 'synthetic-external-edit'});
+    host = await boot(root, {enabled: true, mapping: map('synthetic-runtime-v2')});
+    assert.equal(host.failure, undefined, host.stderr);
+    const next = JSON.parse(fs.readFileSync(file)).bindings;
+    const changed = next.find(item => item.bindingId === original.bindingId);
+    assert.equal(changed.runtimeApplicationId, 'synthetic-runtime-v2'); assert.equal(changed.createdAt, original.createdAt);
+    assert.deepEqual(next.find(item => item.bindingId === shared.bindingId), shared);
+    assert.deepEqual(next.find(item => item.bindingId === unlisted.bindingId), unlisted);
+    assert.deepEqual((await host.snapshot()).writes, ['writeFileSync', 'renameSync']);
+    assert.equal((await host.snapshot()).requests, 0);
+  } finally {await host?.stop?.(); fs.rmSync(root, {recursive: true, force: true});}
+});
+
+test('enabled EVO map remembers HTTP uninstall and resumes only after explicit install/restart', {timeout: 60000}, async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-map-removed-')); let host;
+  const file = path.join(root, 'application-bindings.json');
+  try {
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    const original = fs.readFileSync(file);
+    await host.lifecycle('uninstall'); await host.stop(); host = undefined;
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    assert.equal(host.state().installedPackages.some(item => item.packageId === bindingPackage), false);
+    assert.deepEqual((await host.snapshot()).writes, []); assert.deepEqual(fs.readFileSync(file), original);
+    await host.lifecycle('install'); await host.stop(); host = undefined;
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    assert.ok(host.state().activeFeatures.some(item => item.featureId === bindingFeature));
+    assert.deepEqual((await host.snapshot()).writes, []); assert.deepEqual(fs.readFileSync(file), original);
+    assert.equal((await host.snapshot()).requests, 0);
+  } finally {await host?.stop?.(); fs.rmSync(root, {recursive: true, force: true});}
+});
+
+test('EVO mapping write failure preserves target and retries through the existing installed provider', {timeout: 60000}, async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-map-write-retry-')); let host;
+  const file = path.join(root, 'application-bindings.json');
+  try {
+    fs.mkdirSync(file + '.tmp');
+    const failed = await boot(root, {enabled: true});
+    assert.equal(failed.failure, true); assert.notEqual(failed.code, 0); assert.match(failed.stderr, /EISDIR/);
+    assert.equal(fs.existsSync(file), false);
+    fs.rmdirSync(file + '.tmp');
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    assert.equal(JSON.parse(fs.readFileSync(file)).bindings[0].runtimeApplicationId, 'synthetic-runtime-v1');
+    const original = fs.readFileSync(file); await host.stop(); host = undefined;
+    host = await boot(root, {enabled: true}); assert.equal(host.failure, undefined, host.stderr);
+    assert.deepEqual((await host.snapshot()).writes, []); assert.deepEqual(fs.readFileSync(file), original);
+  } finally {await host?.stop?.(); fs.rmSync(root, {recursive: true, force: true});}
+});
+
+test('active but unavailable explicit Binding Provider selection still fails closed without store fallback', {timeout: 30000}, async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-map-bad-selection-'));
+  const file = path.join(root, 'application-bindings.json');
+  try {
+    const provider = createEnterpriseApplicationRuntimeBindingProviderV010({store: createFileEnterpriseApplicationRuntimeBindingStoreV010(file)});
+    provider.bind({enterpriseId: 'synthetic-enterprise', hostApplicationRefId: 'synthetic-host-app',
+      runtimeProviderId: 'evo.runtime-observatory', runtimeApplicationId: 'synthetic-original'});
+    const original = fs.readFileSync(file);
+    fs.writeFileSync(path.join(root, 'provider-bindings.json'), JSON.stringify({contractVersion: '0.1.0', bindings: [{
+      contractVersion: '0.1.0', capability: 'enterprise.application-runtime-binding', providerId: 'synthetic-unavailable',
+      scope: 'INSTALLATION', scopeId: 'default'}]}));
+    const failed = await boot(root, {enabled: true});
+    assert.equal(failed.failure, true); assert.match(failed.stderr, /PROVIDER_BINDING_UNAVAILABLE/);
+    assert.deepEqual(fs.readFileSync(file), original);
   } finally {fs.rmSync(root, {recursive: true, force: true});}
 });

@@ -520,7 +520,68 @@ enabled=true仍保留原JSON/字段校验、启动失败、INSTALL/ENABLE兼容�
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| A01 轻量宿主与按需装载 | 部分完成；EVO off模式映射不执行业务 | true模式映射/配置安装；R1/R2/R3其余/R4 |
+| A01 轻量宿主与按需装载 | 部分完成；EVO off模式映射不执行业务 | 后续见第15节；R1/R2/R3其余/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+
+## 15. 2026-10-21增量：EVO映射的安装意图与配置权威
+
+基线main `05773af81b6d9fc3efc2515184ed35a4150aa0f8`（#1087，包含原#1020），过程分支 `fix/governance-evo-map-reconcile-20261021`。复用第14节off模式保护，不新增Provider、Agent/EVO业务或UI。#1087的44项CI、269行为/6守卫、312模块/246边属于[历史结果](https://github.com/jiangxng/EVO-App-Platform/pull/1087#issuecomment-6306416011)，不是本轮实测。
+
+### 权威与兼容决定
+
+必须区分“包是否允许运行”和“已有效Provider如何解释显式部署配置”：
+
+| 事实/权威 | 决定及范围 |
+|---|---|
+| 生命周期及启动安装 | STARTUP-RESTORE与原startup-defaults明确一次初始化、已安装不复活inactive、成功后卸载不补装。旧map的ENABLE/INSTALL循环违背这一已记录治理原则；旧源码片段测试只证明历史修复存在，不构成持续强制启用的权威 |
+| 显式观测映射 | 保留原部署配置对明确列出的enterpriseId+hostApplicationRefId+evo.runtime-observatory键的目标控制。原bind合同允许目标更新、保留bindingId/createdAt；本批不把配置变更改成无效，也不引入新的业务编辑入口 |
+| 共享绑定其他写入 | 已读全部Host直接bind调用：map使用evo.runtime-observatory；Trading Lite使用已核对常量evo-ledger-runtime，且仅在无绑定时创建。原generic store以三元键隔离、同企业/runtime下目标唯一。未列出的观测键及其他runtime/企业都保留 |
+| 冲突与退出条件 | 显式配置仍会覆盖它声明键的离线/外部修改，这是原合同的限定保留，**不是将持久文件所有键让给配置**。未来若增加Human/其他owner对同一观测键的正式编辑或替换Provider，须重新决定优先级/迁移/冲突，不能继续引用本次直接消费者证据豁免 |
+| 数据与安装journal | journal只记录包初始化完成，不记录“全部映射成功”。保存原命名空间/包key，无新receipt/配置hash框架；映射写入失败仍可在已安装Provider上重试。journal须和生命周期状态一起备份，丢失历史记录不能推断此前卸载意图 |
+
+### 有界实现
+
+| 场景 | 本批行为与限制 |
+|---|---|
+| 首次显式true+map | 复用installBusinessDefaultOnce(bindingPackage,true,true)，所以minimal也可按显式配置首次安装；成功/既有安装记录原journal，不新建迁移系统。Host私有helper仅返回原结果或FAILED，其他调用者忽略返回、行为不改 |
+| 已停用/已卸载 | journal保留生命周期选择，不再bootstrap ENABLE。包inactive/absent时打印映射延后，跳过原store写入；明确执行原enable/install并重启后才应用待处理部署map，不在请求或启用回调中偷偷写数据 |
+| 失败与选择 | 首次初始化失败仍抛APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED，失败不记完成。包active但resolver配置错误/不可用仍原异常拒绝，无registry/store兜底。坏map仍原校验拒绝，不因暂时inactive忽略错误 |
+| 已有效且配置未变 | 按原resolver.resolve比较对应目标，相同则不调用bind，保持updatedAt和文件字节，避免每次启动原子重写。仅适用于Host配置播种，generic Provider.bind显式命令合同不改 |
+| 配置变更/新增 | 仍调用原bind，保留bindingId/createdAt、更新目标；未列出的行深度保持，不删除已移出配置的历史映射。原唯一性/坏数据/写失败校验保持；没有跨条目/跨Host事务或自动回滚承诺 |
+
+这完成第14节列出的本地map循环自动复活和未变配置重写问题，并保存原显式配置的有界权威理由。**其他配置bootstrap、通用binding启动snapshot读取及完整平台资格仍未闭环。** 观测包本体的flag缺席自动安装、P12等配置重启补装仍须后续分类/整改，不能借本批binding包的journal接入宣告全部配置合格。
+
+### 回归与证据分级
+
+更新原5项Host用例中的off/on恢复：true后仍保持历史inactive，显式HTTP enable本身不写map，重启才应用待处理配置。新增4项Host：原配置多次启动零写且字节不变；通过原Provider API准备冲突/共享键后，显式配置仅更新声明观测键、保持身份和未列出/Trading Lite键；实际HTTP uninstall后重启不补装，显式install+重启恢复；目标.tmp写失败后不覆盖目标、修复后重试及随后幂等；active但显式错误Provider绑定仍拒绝、原文件保留。前两类组合在同一幂等/权威用例，新增数仍为4，完整Host文件共9项。
+
+原绑定生命周期最后一项“源码含ENABLE片段”改为真实manager+原journal保留inactive/卸载与显式重装回归，保留原explicit enable能力测试；该5项文件加入Lightweight CI。新增内容使用原测试fixture记录target/.tmp写与fetch，未加生产开关/源码替换。历史inactive升级仍有持久化夹具，uninstall/install和后续enable使用原HTTP接口，证据分别描述。
+
+本地Node24.19固定SHA部分源码+临时类型擦除，既有startup journal4+binding所有权3共7/7通过，修改的Host/协议测试及擦除server语法通过；受部分源码依赖限制未本地运行完整manager生命周期文件/真实Host/npm ci/正式build/browser/数据库。正式Node22/build、新/旧Host与生命周期回归、本轮四组合须以最终head CI为准，永久结果记PR收口；基线/冷禁入不放宽。
+
+首轮CI的PA05静态清单仍预期19处直接bootstrap调用；本批map改走原journal helper后实际为17处（16 INSTALL、1 ENABLE）。仅同步该清单，并新增map→journal helper→原fail-closed adapter路径断言；原写入保护、异步准入与启动前attestation不改。局部清单断言本地通过，完整PA05数据库/生命周期用例仍由最终head CI验证。
+
+读取：复用前批全文binding contract/runtime/store/package、startup-defaults、STARTUP-RESTORE及观测协议/治理交接§14并核对blob；本轮补读EVO Ledger application-id合同全文，核实两个不同providerId。Host局部：安装helper、map解析/初始化/resolver/bind、全部直接bind引用；service局部核对factory/install/uninstall，原resolver显式选择/健康/缺失分支。项目规则/启动交付/文档、装载架构§11、Eidos与Help复用已读版本；未声称通读全Host/Agent或排除全部间接第三方消费者。执行连接一次中断后确认文件保留且远程分支未提交再继续，无全局状态或其他窗口段覆盖，无新增外网研究。
+
+[结构化证据](evidence/evo-map-reconciliation-20261021.json)；[兼容评审](../../ui-design-reviews/evo-map-reconciliation-20261021.md)。操作说明：显式true/map不再复活停用/卸载；需原enable/install并重启，原配置变更仍应用；保持startup-defaults.json和state一起备份。无新字段/界面，也无生产部署或Human验收。
+
+### 下一批与停止条件
+
+准确head CI合格后合并，停止追加本地映射重构。下一批汇总其余**可选配置Provider重启补装与卸载资格**（EVO观测本体、P12等），复用已有journal/当前请求资格回归，安全基础按其独立职责保留，不把全部配置统一改成一种机制。EVO query/probe期限、OIDC事务预算继续归R3；R1冻结SOP、R2原Agent配置SQL责任/资格、R4最终跨层矩阵及A03/A05不代关。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；map初始化保留生命周期、重复写入消除 | 其余可选配置Provider资格；R1/R2/R3资源/R4 |
 | A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
 | A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
 | A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
