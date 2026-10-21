@@ -1129,3 +1129,21 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 | **Production material WRITE** | 安全保持关闭 | **`OFF`** |
 
 本轮新增索引 [接续研究 §18](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) / [K0 工作表 §21](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)；#1071/#1074/#1081/#1082 全部 Draft，Issues #988/#979/#913 OPEN。没有改变 `project.status.json`、其他工作线、生产配置和历史认证反证。
+
+
+## 98. PA05-05 / K0 — 2026-10-21 隔离非生产环境缺失和 PID1 只读取证工具
+
+**本轮真正的新发现不是更多模拟停机 PASS，而是 R5-03 的阻塞源被确认：** 用户已连接 Railway 项目只返回 `production` 一个环境，没有已确认的独立 staging/test 供 Supervisor 故障注入。Railway [Sandboxes](https://docs.railway.com/sandboxes) 是官方隔离 VM 候选，可在未来获合法授权的**非生产环境**评估外部控制与 TTL，但当前没有创建、更没有退出可信认证。
+
+原 #1082 Draft `eb4743e8ed34cf3cd748c3f79781d092c62712f4` 新增只读 procfs PID1 ancestry 工具与两项 CI 测试：[Platform run #39541560856/job #119030399081](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39541560856/job/119030399081) 原日志为 `1124 total / 1123 PASS / 1 SKIPPED / 0 FAIL`、新增 2/2，GitHub Runner 的 `chainLength=9`、`pid1Identified=true`、`globalStopCertified=false`。**仅记录非生产 Runner 的祖先链，不证明生产 PID1/SIGTERM 或实际 Railway grace 值。** 不计入之前 11 项真实 Plugin PROCESS 生命周期或 1 项 /proc 正常停止。
+
+| 新增/既有外部门禁 | 当前精确结论 |
+| --- | --- |
+| R5-01 生产 effective grace / overlap | `UNVERIFIED`；官方默认 0 秒只作风险提示 |
+| R5-02 生产 Node PID1/SIGTERM 路径 | `UNVERIFIED`；仅非生产 procfs 只读证据 |
+| R5-03 安全隔离 Supervisor 故障试验 | `BLOCKED`；当前已连接 Railway 项目没有非生产 environment/受权独立回收设施 |
+| K0 全域 Worker/Caller、SQL session、Human IdP/DBA/Audit | `NOT_SIGNED` |
+| 完整 E01J4、PA05-05 E01–E05、W06 | `NOT_SIGNED` |
+| Production material WRITE | `OFF` |
+
+详情 [续跑证据 §19](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)、[K0 停机工作表 §22](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[R5 Operator 证据请求 §5](PA05-E01J4K-K0-RAILWAY-DRAINING-PID1-OPERATOR-EVIDENCE-REQUEST-20261021.md)。**不得**未经用户明确授权在生产新建 sandbox/环境、修改 draining、杀进程、读取 Secrets/SQL、部署或合并四 Draft。
