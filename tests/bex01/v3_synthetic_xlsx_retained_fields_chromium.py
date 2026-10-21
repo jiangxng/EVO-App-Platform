@@ -739,6 +739,19 @@ with sync_playwright() as pw:
     assert collapsed.first.evaluate("el=>getComputedStyle(el).display==='inline-block'"),(
       "BEX_V3_DESKTOP_INLINE_EVIDENCE_REQUIRED")
     row=collapsed.first.locator('xpath=ancestor::tr')
+    print("BEX_V3_DESKTOP_INLINE_ROW_MEASUREMENT="+json.dumps(row.evaluate("""el=>{
+      const td=el.querySelector('[data-eidos-review-table-evidence]');
+      const details=td.querySelector('details'), summary=details.querySelector('summary');
+      const sample=td.querySelector('[data-eidos-review-table-sample]');
+      const target=el.querySelector('[data-eidos-review-table-choice] select');
+      const info=e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return {
+        h:r.height,w:r.width,x:r.x,y:r.y,display:s.display,
+        lineHeight:s.lineHeight,paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,
+        verticalAlign:s.verticalAlign,marginTop:s.marginTop,marginBottom:s.marginBottom};};
+      return {row:info(el),cell:info(td),details:info(details),
+        summary:info(summary),sample:info(sample),target:info(target),title:el.querySelector('th')?.textContent};
+    }"""),ensure_ascii=False),flush=True)
+    visual_page.screenshot(path=str(OUT/"v3-inline-evidence-measurement-desktop.png"),full_page=False)
     assert row.evaluate('el=>el.getBoundingClientRect().height')<=68,(
       "BEX_V3_DESKTOP_MAPPING_ROW_TOO_TALL")
     stable=row.locator('[data-eidos-review-group-detail]')
