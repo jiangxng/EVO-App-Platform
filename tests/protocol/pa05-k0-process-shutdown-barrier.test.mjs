@@ -462,3 +462,32 @@ test("K0 bounded: shutdown reaps a child observed inside hung activate()", {time
     if (pendingStart) await Promise.allSettled([pendingStart]);
   }
 });
+
+
+test("K0 bounded: non-cooperative deactivate is force-closed before local stop deadline", {timeout: 12000}, async () => {
+  const pkg = fixturePackage(3000, false, "pa05-k0-deactivate-hang-process");
+  const host = localRuntime();
+  let pid;
+  try {
+    pid = (await host.invoke(pkg, installed(pkg.packageId), {method: "pid", input: null})).pid;
+    assert.equal(pidAlive(pid), true);
+    const startedAt = Date.now();
+    // The test fixture never resolves deactivate(). The child also has an
+    // independent 5s self-exit fuse, but the Host must close it much earlier.
+    await host.stop(pkg.packageId);
+    const elapsedMs = Date.now() - startedAt;
+    assert.ok(elapsedMs < 3000, "Host must reap hung child before fixture self-exit");
+    assert.equal(pidAlive(pid), false, "child must no longer exist after stop()");
+    await host.shutdown();
+    assert.equal(host.status(pkg.packageId), undefined);
+    console.log("PA05_K0_BOUNDED_DEACTIVATE_DEADLINE=" + JSON.stringify({
+      scope: "isolated-local-child",
+      nonCooperativeDeactivate: true,
+      childClosedBeforeFixtureFuse: true,
+      elapsedMs,
+      globalStopCertified: false
+    }));
+  } finally {
+    await host.shutdown();
+  }
+});
