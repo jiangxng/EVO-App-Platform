@@ -1084,7 +1084,7 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
   assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
-  assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
+  assert.match(mapHtml,/data-eidos-review-table-status-key="matched"[^>]* hidden/,\n    "a matched row stays hidden in needs even when opt-in state metadata is present");
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
   assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);
