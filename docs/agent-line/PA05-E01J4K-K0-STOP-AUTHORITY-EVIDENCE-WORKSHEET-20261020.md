@@ -340,3 +340,14 @@
 新旧来源等级、原始 JSON、所需真正 Infra 证据表和 #1074 冲突原文对照见 [2026-10-21 接续研究记录 §10](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。**新有界结果**：`ISOLATED_SUPERVISOR_CAPABILITY_HINTS_READ_ONLY_AND_UNTRUSTED_CLAIMS_DENIED`；与 `ISOLATED_PROCESS_LIFECYCLE_ELEVEN_CASE_BOUNDED_PASS` 两者均不可升级为可信多 Worker stop。
 
 **K0→K6 不变：** 中央 fencing epoch、外部逐实例/逐 Worker 停机收据、外部 Caller 的受保护入口否决、PG session 重新查询、真实生产 Human/DBA 权威和凭据轮换签名。R1–R8 UNKNOWN/DENY 继续，生产 draining/PID1/OS 独立 supervisor/组织范围清单仍未验证；禁止在未获独立清理保障时运行 parent SIGKILL。K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`；WRITE `OFF`，#988/#979/#913 OPEN。
+
+
+## 17. 2026-10-21 — 合成签名回执绑定检查：六项离线有界 CI
+
+**精确工程 HEAD 与真实原始日志：** [#1082 `358e01e3751c388ca16f3fac5a28ecbba0d63165`](https://github.com/jiangxng/EVO-App-Platform/commit/358e01e3751c388ca16f3fac5a28ecbba0d63165)，[Platform CI #39536229728 / job #119013390883](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536229728/job/119013390883) 已直接读取 2026-10-21 原始 job log（`ORIGINAL_ACTIONS_RAW_JOB_LOG_READ_20261021`）：`1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL`，新增 **6 项合成 envelope 签名和严格身份绑定**测试 `ok #779–#784`，既有 PROCESS **11 项**及 Supervisor 只读 preflight **2 项**均保留同次 PASS。新增两个文件都在 `tests/`，无生产代码或服务操作。
+
+验证了回执完整性和**相对测试提供的 scope 与测试公钥**的匹配、错 key、错 operation/epoch/instance/nonce、过时/未来、重复键/额外字段/错误 cgroup 状态、局部 replay Set 拒绝。原日志 `PA05_K0_SYNTHETIC_RECEIPT_CRYPTO_BOUND` 显示 `signatureMatchesSuppliedTestKey=true`、`payloadBoundToExpectedInstance=true`，但 `independentSupervisorIdentityVerified=false`、`stopAuthorityVerified=false`、`completeInventoryVerified=false`、`databaseSessionsVerified=false`、`productionIdentityVerified=false`、`mayRunParentSigkill=false`、`globalStopCertified=false`；**以上字段不是生产签收证据**。
+
+**清晰区分：** 一个临时 CI Ed25519 签名即使验证通过，也不能证明签署人是组织批准的 Supervisor，不能证明 event 声明是真的 OS 退出事实，更不等于所有 Worker 已枚举/冻结/撤销 SQL session。调用方传进来的 test key 与本地 Set 是 mock trust/replay，不是线上 IdP、持久审计或集群 fencing。新增唯一工程标签为 `ISOLATED_SYNTHETIC_RECEIPT_ENVELOPE_SIX_CASE_BOUNDED_PASS`，绝不能记为 “17 项 PROCESS stop 测试” 或 K0 PASS。详细实施决策与来源级别 [接续研究 §11](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。
+
+**R1–R8 继续 UNKNOWN/DENY**：真实编排器/独立监督者、公钥或 X.509 信任锚管理、独占 cgroup/子孙回收权威与实时 OS 回执、跨实例唯一性、Railway draining/PID1、Worker+Runner 完整性、DB session、实际 Human IdP/DBA/凭据轮换和审计原始证明均未出现；缺一不可解封。没有运行父 Host SIGKILL，未读取生产 Secrets/SQL、未运行 Validator、未改部署或停机配置；K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`、production material WRITE `OFF`。
