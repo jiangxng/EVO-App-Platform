@@ -558,13 +558,15 @@ export function createDataImportMappingPageV010(input: {
   };
   const fieldLabel = new Map(importFields.map(field => [
     field.fieldId,
-    // Value always remains the real fieldId; show its technical identity only
-    // when identical business labels require a Human choice between candidates.
+    // Values remain real fieldIds. For duplicate business labels, put the
+    // distinct stable identity BEFORE any optional purpose text: on 390px
+    // controls, appending it last made both selected choices look identical.
+    // A missing verified purpose stays visibly unresolved; never invent it.
     field.resolvedLabel
       + (candidatesFor(field.resolvedLabel).length > 1
-        ? " · " + (field.resolvedDescription?.trim()
-          || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
-          + " · " + field.fieldId
+        ? " · " + field.fieldId
+          + " · " + (field.resolvedDescription?.trim()
+            || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
         : "")
   ] as const));
   const advisoryFields = input.job.mapping
@@ -798,8 +800,8 @@ export function createDataImportMappingPageV010(input: {
           ? group.title + "存在多个对应字段"
           : group.title + " has multiple target fields",
         description: zh(input.locale)
-          ? "请确认这列数据应写入哪个业务字段。"
-          : "Confirm which business field should receive this source column.",
+          ? "同名目标字段可能用途不同。请核对字段编号与可信业务用途；无法确认时不要提交。"
+          : "Same-name target fields can serve different purposes. Check the field ID and verified purpose; do not submit if uncertain.",
         focusGroupId: group.id,
         actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
       };

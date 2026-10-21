@@ -158,3 +158,9 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 本轮不改页面结构和业务契约，新增同一真实隔离 Host Chromium fixture 对第 20 列 `开户银行` 的 desktop + 390px touch Chrome Human 审核验收：从同名定义提取恰好两个不同 fieldId，两个下拉项均同时说明中文业务用途与真实 fieldId，展开态 read-only candidate evidence 包含两个 ID；分别选中两个，原始银行样本不变，最后 reset 必须回到 `__PENDING__`；手机再强制 reload，证明并未后台自动保存。新证据截图 `v3-bank-human-choice-{desktop,phone}-{1,2}.png`，所有信息仅来自 synthetic fixture；不得将下拉选值冒充 Human 已确认的业务用途。继续验证 7 类最终 HEAD CI 和真实 Host，Human 签收、真实客户 Excel、M04/M05/M06 不变（3/6）。若现有选项确实无法分辨，则先改业务文案/证据交互，而非继续调整 CSS 间距。
 
 **集成风险**：本 PR 仍叠加 #1077→#1060 Draft；2026-10-21 实时核对 #1060 对最新 main 已 `mergeable=false`，不得用视觉 PASS 代替主线可合并性。后续必须先由拥有者完成 base/main 的安全冲突检查和 PR 收敛，不能因为更换窗口而重建第三套同功能实现。
+
+### Window 09 实测反证与有界修复｜手机下拉选中项不可直观看清不同 fieldId
+
+首轮精确 HEAD `4f6f972edc05d4ab57af011c4c1737f9f796d7aa` 的 Chromium 7/7 PASS，日志证明两项真实 fieldId `ext_f12edb430f8c67dd` 与 `ext_7932cf289595ef82` 都能选择、reset 恢复 `__PENDING__`、手机 reload 不隐式保存。但**亲自打开**同一 run artifact `v3-bank-human-choice-phone-1.png/2.png` 后，发现两个选中项都只显示“开户银行 · 业务用途待核对 · ext_…”，**区别信息被窄屏截断**；此处是实际 Human 可读性未过关，而不是选择控件功能失败，不能把前次 7/7 当本项最终验收。
+
+因此仅在 `apps/data-import/page.ts` 的同名字段分支将选项改为「开户银行 · **真实 fieldId** · 可信用途或‘业务用途待核对’」，业务用途不存在时仍明确 unresolved，不猜测/伪造任何银行功能。相应问题卡加入「核对字段编号和可信用途；无法确认不要提交」说明。测试补强前 18 字符即可区分、ID 在描述之前、没有假造用途。Host 安全、source evidence、提交值、现有唯一名称的显示和手机 CSS 全不变。本轮最终 HEAD 必须重跑真实 Host Chromium 以及完整相关 CI，重看两张同名银行选中态截图。完成视为候选**视觉可区分**，不等同于真实业务用途确认、M04/M05/M06 Human 签收或生产。

@@ -45,10 +45,16 @@ def verify_two_same_label_bank_choices(page, form, device):
     ids=[item["fieldId"] for item in candidates]
     assert len(set(ids))==2 and EXPECTED_BANK in ids,(
         "BEX_V3_BANK_REAL_DIFFERENT_FIELD_IDS",device,candidates)
-    assert all(item["fieldId"] in item["label"]
-        and "开户银行" in item["label"]
-        and len(item["label"])>len("开户银行 · ")+len(item["fieldId"])
-        for item in candidates),("BEX_V3_BANK_PURPOSE_AND_ID_VISIBLE",device,candidates)
+    assert all(item["label"].startswith("开户银行 · "+item["fieldId"]+" · ")
+        for item in candidates),("BEX_V3_BANK_FIELD_ID_MUST_PRECEDE_UNVERIFIED_PURPOSE",device,candidates)
+    # Actual Chromium screenshot previously showed truncated indistinguishable
+    # selected text on 390px. Differentiate before the first 18 characters.
+    assert len({item["label"][:18] for item in candidates})==2,(
+        "BEX_V3_BANK_EARLY_VISIBLE_ID_DIFFERENCE",device,candidates)
+    assert all("业务用途待核对" in item["label"] for item in candidates),(
+        "BEX_V3_BANK_MUST_NOT_INVENT_PURPOSE",device,candidates)
+    expect(form.locator('[data-eidos-form-task-issues]')).to_contain_text(
+        "无法确认时不要提交")
     evidence=row.locator('input[name="candidateEvidence_20"]')
     expect(evidence).to_be_visible()
     full=evidence.input_value()
