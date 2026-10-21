@@ -51,3 +51,16 @@
 关联 [K0 总工作表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)、[K0 本窗口持续研究索引](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)、[认证总账](PA05-CERTIFICATION-BASELINE-20261015.md) 和 [Agent HANDOFF](HANDOFF.md)。所有官方链接为**本轮 2026-10-21 已打开的原文**，不是仅查看摘要。源事实、工程判断、生产 Owner 待证事实必须分栏保留。
 
 本轮并未读取生产 secret 值、SQL、deployment logs/SSH/PID1 现场、未进行生产 Validator/停机/重启/扩容、未触碰 Railway draining/overlap、未改变 `project.status.json`、未操作其他 BEX/CP03/Eidos/2D 工作线，也未删除九条历史 PA05 docs 分支。
+
+
+## 5. 2026-10-21 自动续跑 #07 — 环境隔离与 PID1 取证工具现状
+
+**R5-03 最新真实控制面负证据（`ORIGINAL_CONNECTED_RAILWAY_LIST_SERVICES_DIRECT_READ_20261021`）：** 用户已连接 Railway project `aee4643e-912b-4ca1-ae95-fe4ec64f5601` 由 `list_services` 返回的 environments **只有 `production`**（`98b8b20c-d791-4073-a11d-bb1f7f0a1cb3`）；其下五服务为 Ledger Configurator、EVO Runtime、Postgres、Experience Compiler、App Host Validator。因此**当前这个项目没有可确认的专属 staging/test Railway environment**。不把当前 production 直接拿来试 SIGTERM 父进程故障，也不在生产环境内创建 Sandbox/临时副本/数据库连接。创建受控非生产环境需要组织授权，未得到前仍 `NO_SAFE_RAILWAY_TEST_ENVIRONMENT_CONFIRMED`。
+
+**新的可选非生产设施资料（2026-10-21 实际打开原文）：** [Railway Sandboxes](https://docs.railway.com/sandboxes) / [Create your first sandbox](https://docs.railway.com/sandboxes/quickstart) 说明沙箱是独立 Linux VM、有环境归属、空闲超时、`destroy`，其命令超时路径对进程组发 TERM 并在 5 秒后可升级 KILL，但官方仍说明连接中断等状态可能未知、必须核独立控制面收尾。**来源事实不等于当前项目已经启用或已授权此设施**。因现有连接器无 Sandbox 操作，未创建、未收费、未运行任何沙箱。对 K0 而言它只是比“无外部清理机制的共享 Runner”更适合评估的**候选隔离平台**；任何生产环境 Sandbox 都不在本次授权范围。
+
+**R5-02 新非生产取证工具（2026-10-21 直接读取真实 CI）：** 原工程 Draft [#1082 commit `eb4743e8ed34cf3cd748c3f79781d092c62712f4`](https://github.com/jiangxng/EVO-App-Platform/commit/eb4743e8ed34cf3cd748c3f79781d092c62712f4) 新添 `tests/fixtures/pa05-k0-runtime-process-ancestry-readonly.mjs` / `tests/protocol/pa05-k0-runtime-process-ancestry-readonly.test.mjs`。只查询受控 PID 的 `/proc/<pid>/stat`、`comm` 和 PID1，不访问 `cmdline/environ/fd`、不发信号或创建进程、不读取 SQL/Secrets。它记录 PID/PPID/startTicks、受限 comm 类别、父链终止原因和 PID1 身份，所有 `runtimeSigtermDelivered/effectiveRailwayDrainingVerified/productionOperatorAttestationPresent/globalStopCertified` 均为 false。注意 `comm=node` 不能区分 npm 的 Node 进程与业务 Node：**仍需可信生产 Operator 授权进程身份和 signal receipt**。仅支持已授权非生产环境；不可当作已取得生产 PID1。
+
+- [GitHub Actions Platform run #39541560856 / job #119030399081](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39541560856/job/119030399081) `ORIGINAL_ACTIONS_JOB_LOG_DIRECT_READ_20261021`：**1124 total / 1123 PASS / 1 SKIPPED / 0 FAIL**，新增两项纯只读观测/错误参数拒绝通过，`PA05_K0_R5_PID1_READONLY_OBSERVATION` 记录 `chainLength=9`、`pid1Identified=true`、`runtimeSigtermDelivered=false`、`globalStopCertified=false`；这是 GitHub Runner 观察值，不是 Railway 产线 process chain。该精确 HEAD 的其他 checks 要另核全绿。
+
+**R5-01/R5-02 判定没有升级**：`effective draining/overlap` 的部署级生效值未从 Railway connector 返回；Railpack + npm start 的生产源配置明确，但实际 PID1、shell/npm/Node 身份与 SIGTERM 传播必须由 Operator 提供脱敏现场证明。**R5-03 更新为 `BLOCKED: NO_AUTHORIZED_ISOLATED_RAILWAY_NONPROD_ENVIRONMENT`**，先获合法隔离环境+独立回收能力，再考虑中断实验。K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，production material WRITE `OFF`。
