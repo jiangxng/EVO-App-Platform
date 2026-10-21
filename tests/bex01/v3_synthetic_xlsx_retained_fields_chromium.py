@@ -749,7 +749,13 @@ with sync_playwright() as pw:
         lineHeight:s.lineHeight,paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,
         verticalAlign:s.verticalAlign,marginTop:s.marginTop,marginBottom:s.marginBottom};};
       return {row:info(el),cell:info(td),details:info(details),
-        summary:info(summary),sample:info(sample),target:info(target),title:el.querySelector('th')?.textContent};
+        summary:info(summary),sample:info(sample),target:info(target),
+        field:info(target.closest('[data-eidos-form-field]')),
+        label:info(target.closest('label')),
+        choiceCell:info(target.closest('td')),
+        th:info(el.querySelector('th')),
+        statusCell:info(el.querySelector('[data-eidos-review-table-status]')),
+        title:el.querySelector('th')?.textContent};
     }"""),ensure_ascii=False),flush=True)
     visual_page.screenshot(path=str(OUT/"v3-inline-evidence-measurement-desktop.png"),full_page=False)
     assert row.evaluate('el=>el.getBoundingClientRect().height')<=68,(
