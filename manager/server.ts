@@ -2595,7 +2595,7 @@ async function resolveBiWorkbenchRuntimeV010() {
 const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
   ? createFileSettingsStore(join(dirname(lifecycleStateFile), "startup-defaults.json"))
   : createMemorySettingsStore());
-function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false): void {
+function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false) {
   if (startupProfile === "minimal" && !explicit) return;
   try {
     const result = startupDefaults.apply({
@@ -2605,8 +2605,10 @@ function installBusinessDefaultOnce(packageId: string, ready = true, explicit = 
       install() { pa05WriteLifecycleHost.bootstrapActivation("INSTALL", packageId); }
     });
     if (result === "INSTALLED") console.log("Installed first-run business default", packageId);
+    return result;
   } catch (error) {
     console.error("Failed to initialize business default", packageId, error);
+    return "FAILED" as const;
   }
 }
 
@@ -3544,24 +3546,11 @@ const evoObservatoryApplicationMap = (() => {
   }
   return result;
 })();
-if (
-  evoObservatoryApplicationMap.length > 0
-  && !manager.getSnapshot().activeFeatures.some(
-    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
-  )
-) {
-  try {
-    const installed = manager.getSnapshot().installedPackages.some(
-      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
-    );
-    if (installed) {
-      pa05WriteLifecycleHost.bootstrapActivation("ENABLE", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    } else {
-      pa05WriteLifecycleHost.bootstrapActivation("INSTALL", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    }
-    console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
-  } catch (error) {
-    console.error("Failed to activate Application Runtime Binding Provider.", error);
+if (evoObservatoryApplicationMap.length > 0) {
+  // Explicit configuration may initialize once, never revive a persisted
+  // disable/uninstall choice. Reuse the existing Host-owned startup journal.
+  if (installBusinessDefaultOnce(APPLICATION_RUNTIME_BINDING_PACKAGE_ID, true, true) === "FAILED") {
+    throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
   }
 }
 const configuredApplicationRuntimeBindingProvider =
@@ -3572,15 +3561,26 @@ if (
   evoObservatoryApplicationMap.length > 0
   && !configuredApplicationRuntimeBindingProvider
 ) {
-  throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+  if (manager.getSnapshot().activeFeatures.some(
+    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
+  )) {
+    // An active but unresolvable selection is still a configuration error.
+    throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+  }
+  console.log("Configured EVO application mappings deferred: Runtime Binding package is inactive or absent.");
 }
-for (const mapping of evoObservatoryApplicationMap) {
-  configuredApplicationRuntimeBindingProvider!.bind({
-    enterpriseId: mapping.enterpriseId,
-    hostApplicationRefId: mapping.hostApplicationRefId,
-    runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
-    runtimeApplicationId: mapping.runtimeApplicationId
-  });
+if (configuredApplicationRuntimeBindingProvider) {
+  for (const mapping of evoObservatoryApplicationMap) {
+    const key = {
+      enterpriseId: mapping.enterpriseId,
+      hostApplicationRefId: mapping.hostApplicationRefId,
+      runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID
+    };
+    // Explicit map entries own only these observation keys. Keep unchanged
+    // bindings (including timestamps) and all unlisted/shared keys intact.
+    if (configuredApplicationRuntimeBindingProvider.resolve(key)?.runtimeApplicationId === mapping.runtimeApplicationId) continue;
+    configuredApplicationRuntimeBindingProvider.bind({ ...key, runtimeApplicationId: mapping.runtimeApplicationId });
+  }
 }
 const evoRuntimeRevisionIntervalMs = Number(
   process.env.APP_PLATFORM_EVO_RUNTIME_REVISION_INTERVAL_MS?.trim() || "15000"
