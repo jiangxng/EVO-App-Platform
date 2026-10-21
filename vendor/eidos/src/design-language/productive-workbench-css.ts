@@ -3589,4 +3589,21 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
   [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol>li+li{
   border-top:1px solid var(--eidos-border);
 }
+
+/* Desktop workbench source, summary and issue hierarchy. Keep mobile density
+   and the independently governed compact evidence table unchanged. */
+@media(min-width:851px){
+  [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+    gap:24px;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+    padding-block:calc(var(--eidos-space-lg) + 7px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+    padding-block:calc(var(--eidos-space-md) + 15px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    padding-block:calc(var(--eidos-space-md) + 15px);
+  }
+}
 `;

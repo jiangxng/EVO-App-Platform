@@ -127,3 +127,9 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 
 
 **Window 04 测量结论修订（2026-10-21）**：真实 Chromium `BEX_V3_DESKTOP_INLINE_ROW_MEASUREMENT` 确认行高 73px 时内层详情/下拉框都只有 36px，原因是紧凑表格的选择器标签继承上下各 12px margin；仅让证据入口同行不足以消除行高。精确范围内桌面紧凑 opt-in `label margin:3px 0`，手机不改；保持全证据、详情展开和单次显式保存。复测仍待精确 HEAD CI，未经 Human 签收。
+
+### Window 05｜2026-10-21 同根因集中修复：桌面任务纵向节奏
+
+依据实际查阅的 #909 原型 `03-complete-field-table.png` 与 #1086 已核验 Host `v3-prototype-parity-issues-desktop.png`：原型文件卡约 87px、统计卡约 101px、连续问题行约 86px；Host 原本约 72px、68px、56px。此差距属于 Workbench 上半部组件 padding/gap 的共同根因，不是映射表证据入口的问题。
+
+只在桌面 >=851px 的通用 `data-eidos-task-presentation="workbench"` 中集中调整 context、metric、issue、section gap 四项；保留 390px 手机、真实数据、原生操作、紧凑映射表、权限与保存。真实 synthetic Host Chromium 追加组件几何范围校验和新截图 `v3-prototype-parity-rhythm-desktop.png`；测试不把原型无侧栏的绝对 y 值硬套 Host。若实测不改善，先复核 computed style，禁止连续盲调。完整 CI/Human 门禁仍按最终 HEAD 验证；M04–M06 仍 OPEN，总进度 3/6。

@@ -731,6 +731,22 @@ with sync_playwright() as pw:
         && getComputedStyle(el).borderTopStyle==='solid'
         && getComputedStyle(nodes[1]).borderTopStyle==='solid';
     }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_DESKTOP"
+    # Compare component rhythm with #909 prototype, not Host chrome absolute y.
+    desktop_rhythm=visual_form.evaluate("""form=>{
+      const box=s=>{const el=form.querySelector(s);if(!el)return null;
+        const r=el.getBoundingClientRect();return {y:Math.round(r.y),height:Math.round(r.height)};};
+      return {source:box('[data-eidos-form-task-context]'),
+        metric:box('[data-eidos-form-task-metric]'),
+        issues:[...form.querySelectorAll('[data-eidos-form-task-issue]')]
+          .map(el=>Math.round(el.getBoundingClientRect().height)),
+        mapping:box('[data-eidos-form-review-table-heading]')};
+    }""")
+    assert desktop_rhythm["source"] and 80<=desktop_rhythm["source"]["height"]<=110,("V3_SOURCE_RHYTHM",desktop_rhythm)
+    assert desktop_rhythm["metric"] and 85<=desktop_rhythm["metric"]["height"]<=125,("V3_METRIC_RHYTHM",desktop_rhythm)
+    assert len(desktop_rhythm["issues"])==3 and all(74<=h<=115 for h in desktop_rhythm["issues"]),("V3_ISSUE_RHYTHM",desktop_rhythm)
+    assert desktop_rhythm["mapping"] and desktop_rhythm["mapping"]["y"]>700,("V3_MAPPING_CROWDING",desktop_rhythm)
+    print("BEX_V3_DESKTOP_RHYTHM="+json.dumps(desktop_rhythm,ensure_ascii=False),flush=True)
+    visual_page.screenshot(path=str(OUT/"v3-prototype-parity-rhythm-desktop.png"),full_page=False)
     visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
     table=visual_form.locator('[data-eidos-form-review-table-wrap]')
     expect(table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
