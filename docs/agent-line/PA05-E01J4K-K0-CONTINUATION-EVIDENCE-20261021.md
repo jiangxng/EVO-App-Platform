@@ -319,3 +319,12 @@
 - 下一步先由 Infra/SRE 在**明确获授权的非生产独占隔离设施**出具 supervisor service identity、target cgroup/namespace 归属、全量已知 PID/start-time，独立于 Host 的 rescue TTL + kill 权限和真实退出回执，才考虑父 Host SIGKILL 注入与超时责任。缺一项仍 `NOT_EXECUTED`；不要在普通共享 Runner 把此正常停机实验直接升级为父 Host SIGKILL。
 
 **K0、完整 E01J4、PA05-05 E01–E05、W06 全部 `NOT_SIGNED`；production material WRITE 仍 `OFF`；#988/#979/#913 OPEN。** 不合并 Draft、不动生产 Validator/SQL/Secrets/draining/部署/停机、不自动清异常锁、不更改其他窗口文件与 `project.status.json`。
+
+
+## 17. 2026-10-21 自动续跑 #05 — 并行 main 与 Railway 生产部署新快照
+
+**只读控制面快照（与本 Draft 工作无因果授权关系）：** GitHub main 自本窗口起点 `6bea66e8b7cde970a1f62d440b00d6567aeeca57` 再次由其他并行工作推进至 **`4d291fb31f7a5c429b20be14fb48df687c5a1dac`**。Railway 连接项目的 Ledger Configurator production 最新 deployment **`abe8f368-a45f-4a09-aa07-0f8201bf838e`** 对应同一新 SHA，`SUCCESS / Online`、1 running / 0 crashed / 0 warning，旧 `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` 变为 REMOVED。来源等级 `ORIGINAL_CONNECTED_GITHUB_BRANCH_AND_CHECK_RUNS_READ_20261021` / `ORIGINAL_CONNECTED_RAILWAY_ENVIRONMENT_STATUS_AND_DEPLOYMENT_READ_20261021`。**本窗口没有手动创建部署、重启或改变服务配置**，它是外部并行主线变更后的已观测状态。
+
+当前该新 SHA 的 GitHub commit check-runs 接口只返回 **2 checks / 2 SUCCESS**，不等同上一版本 `main@6bea66e8` 的 40/40 checks，也不能证明新部署经过相同范围的 Platform/Ecosystem 全量测试；旧 Ecosystem Certification 的 10 FAIL / 82 SKIPPED 独立负证据继续保留。Railway `SUCCESS/Online` 是编排器服务级当前状态，不能证明 K0 stop authority、真实 Operator IdP、子孙回收、SQL session 清理或 production material WRITE 安全可开启。
+
+四条 Draft 仍与 main 隔离：#1071 文档继续 Draft、#1074 `c6d5fca9` 冲突已修复但未合并、#1081 负面证据继续 Draft、#1082 真实 /proc 外部观察继续 Draft（`9b5b62c5` 5/5 checks SUCCESS）。本窗口未写 `project.status.json`，不操作生产实例。K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，production material WRITE `OFF`。
