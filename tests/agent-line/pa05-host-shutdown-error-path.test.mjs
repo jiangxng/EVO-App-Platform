@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {rejectHostShutdownRequestV010, runHostShutdownStepsV010} from "../../dist/manager/host-shutdown.js";
 
 const names = [
@@ -69,4 +70,29 @@ test("Host shutdown admission rejects requests and closes keep-alive", () => {
   assert.equal(response.statusCode, 503);
   assert.equal(response.headers.Connection, "close");
   assert.equal(response.body, "Host shutting down");
+});
+test("Host shutdown deadline is armed before the first awaited cleanup and fails closed", () => {
+  // Static wiring guard over the actual Host entrypoint. This is deliberately
+  // not evidence that Railway routes a platform signal to Node PID1.
+  const source = readFileSync(new URL("../../manager/server.ts", import.meta.url), "utf8");
+  const begin = source.indexOf("async function shutdown(signal: string)");
+  const handler = source.indexOf('process.once("SIGTERM"', begin);
+  assert.ok(begin >= 0 && handler > begin, "actual SIGTERM shutdown entrypoint missing");
+  const shutdown = source.slice(begin, handler);
+
+  assert.match(shutdown, /if \(shuttingDown\) return;\s*shuttingDown = true;/);
+  const deadline = shutdown.indexOf("const shutdownDeadline = setTimeout(");
+  const serverClose = shutdown.indexOf("const serverClosed = new Promise");
+  const firstAwait = shutdown.search(/\bawait\s/);
+  assert.ok(deadline >= 0 && serverClose > deadline && firstAwait > serverClose,
+    "deadline and HTTP listener closure must be armed before any awaited cleanup");
+
+  const timer = shutdown.slice(deadline, serverClose);
+  assert.match(timer, /process\.exit\(1\)/, "a hung cleanup must never exit cleanly");
+  assert.doesNotMatch(timer, /\.unref\(\)/, "deadline must remain referenced");
+  assert.match(shutdown, /const cleanup = await runHostShutdownStepsV010\(/);
+  assert.match(shutdown, /\{name: "Process runtime Host", run: \(\) => processRuntimeHost\.shutdown\(\)\}/);
+  assert.match(shutdown, /const closed = await serverClosed;/);
+  assert.match(shutdown, /clearTimeout\(shutdownDeadline\)/);
+  assert.match(shutdown, /process\.exit\(cleanup\.ok && closed\.ok \? 0 : 1\)/);
 });
