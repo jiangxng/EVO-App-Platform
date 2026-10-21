@@ -295,3 +295,22 @@
 **历史分支：** 九条已合并 `docs/pa05-*` 过程分支逐条重新比较准确 tip、关联已合并 PR 和 `main@386f267b` 祖先关系，保持可安全退休候选；当前 GitHub 连接器无 delete-ref/branch-delete/workflow-dispatch，且本轮未重扫全部 open PR 引用/保护位，故**远端删除 NOT_EXECUTED**。活动四条 Draft 均不得清理。
 
 **仍然：** K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 均 `NOT_SIGNED`，production material WRITE `OFF`，#988/#979/#913 `OPEN`；未读取生产 Secrets/SQL，未启动生产 Validator，未停机/重启/扩缩容、改 draining 或清锁，未合并 PR。
+
+
+## 14. 2026-10-21 — 第十项真实激活 IPC/PID 正反验证与独立 supervisor 候选（非生产签收）
+
+**准确日志及阅读等级：** [#1082 工程 HEAD `96caf490dbb5f6ad697a7388baef90dfca0c2287`](https://github.com/jiangxng/EVO-App-Platform/commit/96caf490dbb5f6ad697a7388baef90dfca0c2287)；[Platform CI #39532710142 / job #119002307849](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39532710142/job/119002307849) **`ORIGINAL_ACTIONS_RAW_LOG_DIRECT_READ_20261021`**，`1102 tests / 1101 PASS / 1 SKIPPED / 0 FAIL`，10 个 `PA05_K0_BOUNDED_*` marker 均出现。第十项正式增强了初版 §13 的薄弱时序证据：**真实 child `activate(host)` 发送 scoped Host storage IPC，报告自身 PID；测试实测退出前 PID alive、Host shutdown 后 PID absent**。原 marker：
+
+```json
+{"scope":"isolated-local-child","activationEnteredByRealHostIPC":true,"activationCalls":1,"observedChildPidClosed":true,"boundedShutdown":true,"startupSettledByChildExit":true,"noActiveRuntime":true,"globalStopCertified":false}
+```
+
+**边界：** 局部测试有父 Host 存活与 child 5 秒 self-exit 保险；`boundedShutdown` 为 CI 有限时间断言，不是生产 deadline，更不是 parent SIGKILL 后子孙全域清理。准确演进、原始来源网址、为何修正 PROCESS_STARTING-only 证据及方案比较见[本轮接续索引 §§7–8](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md)。**如未证实精确 HEAD 5/5，不能提前记所有工作流均绿**。
+
+**新增并已实际打开的原始外部来源：** [Linux cgroup v2 Kernel 官方](https://docs.kernel.org/admin-guide/cgroup-v2.html) `cgroup.kill` 和 `cgroup.events populated`；[pidfd_open(2)](https://man7.org/linux/man-pages/man2/pidfd_open.2.html)、[pidfd_send_signal(2)](https://man7.org/linux/man-pages/man2/pidfd_send_signal.2.html)、[PR_SET_CHILD_SUBREAPER](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html)、[systemd.kill(5)](https://man7.org/linux/man-pages/man5/systemd.kill.5.html)。适用性由 K0 设计归纳，**不能把 Kernel/systemd 的可用接口推断成 Railway 当前确实已配置/可用。**
+
+**R1–R8 门禁继续 DENY：** 测试前必须由独立 Supervisor 自证其身份、隔离 cgroup 与进程树枚举、真实可终止和 TTL 清理能力，才能做 parent SIGKILL；本轮未执行。生产有效 draining/npm PID1、完整 Worker/外部 Runner、真实 PostgreSQL session/role、IdP/MFA/DBA/Secret/audit owner 仍 UNVERIFIED，`STOP_CONFIRMED` 不签发。
+
+**当前外部控制面：** 2026-10-21 只读刷新 GitHub `main@524106df36af45b89d15eebd4c0c4f308b1718fc` **40/40 checks SUCCESS**；Railway Host deployment `35d45d8d-d44c-4bce-a51c-9cd36b9405f2` SUCCESS/Online；#1074 独立 Draft PR 当前 GitHub mergeability `dirty`，不触及该 PR 或本项目主线冲突。旧 Ecosystem Certification 10 FAIL 仍是不同 SHA/范围的独立反证。
+
+**结论不变：** `ISOLATED_PROCESS_LIFECYCLE_TEN_CASE_BOUNDED_PASS` 仅限被测本地 PROCESS；K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 `NOT_SIGNED`、production material WRITE `OFF`，#988/#979/#913 `OPEN`。不合并 Draft、不部署/访问生产 SQL/Secrets/Validator、不改 draining、不清残留锁/历史分支。
