@@ -469,7 +469,58 @@ DLP的`createContextMemoryScheduledOperationsV010.runDlp`每次先调用`resolve
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| A01 轻量宿主与按需装载 | 部分完成；关闭managed时目标Session文件零访问 | EVO映射/配置安装；R1/R2/R3其余/R4 |
+| A01 轻量宿主与按需装载 | 部分完成；关闭managed时目标Session文件零访问 | 后续见第14节；R1/R2/R3其余/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+
+## 14. 2026-10-21增量：关闭EVO观测时映射配置保持休眠
+
+基线main `524106df36af45b89d15eebd4c0c4f308b1718fc`（#1085，包含原#1020），过程分支 `fix/governance-evo-map-startup-20261021`。#1085的44项CI、264行为/6守卫、312模块/246边是[历史结果](https://github.com/jiangxng/EVO-App-Platform/pull/1085#issuecomment-6306253112)，不是本轮实测。不新增EVO业务/Provider/Agent/UI。
+
+### 启动副作用和职责对账
+
+| 路径 | 已读源码事实 | 本批决定与尚未关闭的条件 |
+|---|---|---|
+| 通用binding store/runtime | file factory仅闭包；snapshot/get/put才read，bind每次put并更新时间/原子写文件。绑定以enterprise+hostAppRef+runtimeProvider为键，bindingId/createdAt不可替换，runtime身份不能在企业内重复 | 保留同步共享Provider与原格式/身份校验。不能把工厂零I/O扩为Host零访问：默认安装检查snapshot仍可能读文件；不是本批关闭目标 |
+| 存量通用绑定默认安装 | installBusinessDefaultOnce仅compatible执行；原startup journal记录已安装/已成功，保留以后停用/卸载，失败重试。minimal在函数内返回，但实参snapshot已先求值 | 复用原一次机制，不改snapshot恢复责任、不让本批清空数据；minimal的潜在读资格仍需后续资源矩阵，不从安装少推断零I/O |
+| EVO应用map旧路径 | 即使APP_PLATFORM_EVO_OBSERVATORY_ENABLED未设/false，仍parse map、INSTALL或ENABLE通用binding包、resolve并逐条bind写入；EVO观测runtime/bridge自身却只在enabled=true创建 | **本批修正这一不一致**：关闭观测时在map解析前直接返回空列表。compatible/minimal均不由休眠map装包/启用/写绑定，坏休眠map也不阻塞启动。共享存量文件及其他消费者保持 |
+| EVO显式enabled=true +map | 原配置路径会安装/修复binding包并bind；运行时查询随后通过原有效Provider resolver.resolve读取映射。每次启动可能改updatedAt及覆盖同键runtimeApplicationId | 本批保留原正向合同并验证，但**不认定完整治理合格**：repair可能覆盖主动停用，重复写入的配置/业务权威、迁移及退出条件仍需下一批。没有用“显式配置”自动豁免 |
+| 其余配置bootstrap | managed/static/Bearer及授权、EC/P12等按配置/包缺席走直接bootstrap；EVO flag亦有直接安装。它们不都经过默认journal；Secrets有另一次性migrate | 分类不等于实施闭环。安全必需、兼容初始化、配置持续驱动需分开；不能仅因有URL就宣告未安装/停用矩阵合格，也不把本批扩成全配置框架 |
+
+原binding消费者中Host直接引用：EVO配置播种、EVO观测resolveApplicationId、Trading Lite按需resolve/bind。后两者继续通过原有效贡献/绑定resolver，共享store不绑定可选观测UI生命周期。通用包缺席/停用时registry对象本身不能绕过资格。未审查所有插件间接消费者，代码索引空结果不是“不存在”的证明。
+
+### 修正的范围与兼容
+
+生产只在原evoObservatoryApplicationMap IIFE入口增加原flag判断，无新模块/懒代理/通用配置框架。**以前只写map、没有启用观测，也可能播种；现在必须显式enabled=true才应用map。** 配置仍保留作以后启用，不删除/迁移/回滚文件。generic存量默认迁移和别的业务对同一binding Provider的使用不变，因此关闭观测并不意味着卸载通用包或Host零I/O。
+
+enabled=true仍保留原JSON/字段校验、启动失败、INSTALL/ENABLE兼容修复和绑定身份更新；坏map不被改为空成功。不添加远端请求，revision bridge仍按已有兴趣/订阅合同管理。本批只关闭“owner开关关闭但其配置执行业务”的局部问题；true模式主动停用/卸载及业务覆盖仍开放，不能凭正向回归将它们改称合理架构。
+
+### 验证、来源与操作说明
+
+新增5项真实Host：compatible未设flag与minimal明确false携带有效map不装两包/不创建目标绑定文件；false坏JSON正常启动；true→false→true三进程中，关闭期间原绑定字节及持久化inactive状态保持、零目标写入，重新显式启用后原bootstrap修复/映射更新且bindingId/createdAt保持；true坏JSON仍失败且不创建绑定文件。inactive场景用持久化夹具模拟历史状态，**不是公开生命周期API依赖/授权证明**。test-only fixture求值前观察原目标binding文件及.tmp写/rename并阻断关闭模式意外写，计数/拒绝fetch；不替换生产源码。文件读取仍可能来自原通用默认检查，测试不称零read。
+
+本地Node24.19固定SHA部分源码+临时类型擦除，既有startup journal 4项和binding所有权3项，共7/7通过；新Host/fixture及擦除server语法通过。未本地正式npm ci/build、真实Host/browser/数据库。正式Node22/build、新Host、既有生命周期/身份回归和本轮四组合以最终head CI为准，永久结果记PR收口；静态基线/冷禁入不放宽。
+
+完整读取：binding contract/runtime/store/package、相关activation/lifecycle/physical ownership测试、startup-defaults源码与测试/真实重启测试、STARTUP-RESTORE和Observatory Provider Protocol全文。Host局部核对共享store构造、默认journal/配置bootstrap、map解析/激活/写入、runtime注册及全部resolveApplicationRuntimeBindingProvider引用；EVO观测runtime/bridge复用前批全文。复用已读项目启动/交付/文档、装载架构§11、Eidos与Help权威并核对当前版本，Provider交接至§13保持。没有新增外网研究或改全局状态，PA05/BEX/2D原段不覆盖。
+
+[结构化证据](evidence/evo-map-startup-boundary-20261021.json)；[兼容评审](../../ui-design-reviews/evo-map-startup-boundary-20261021.md)。操作说明：沿用现有enabled开关，不新增字段；要应用EVO观测map须显式启用。原Help搜索本地为部分源码，远程代码搜索未返回匹配，不能据此保证全仓无旧说明；本节与兼容记录明确记录配置行为变化。未生产部署或Human验收。
+
+### 下一批与停止条件
+
+准确head CI合格后合并，停止追加off模式重构。下一批优先处理**enabled=true时map重复修复/写入、与持久化停用及绑定权威的冲突**，复用原journal/Provider合同，先决定配置更新、一次迁移及原持久化事实的优先级，再实施有界兼容修正；不要仅为减少启动写入删掉旧映射恢复。其余配置bootstrap、EVO query/probe期限、OIDC事务预算留R3；R1冻结SOP、R2原Agent配置SQL、R4最终跨层矩阵及A03/A05继续开放。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；EVO off模式映射不执行业务 | true模式映射/配置安装；R1/R2/R3其余/R4 |
 | A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
 | A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
 | A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
