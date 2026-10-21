@@ -204,3 +204,14 @@
 | 完整认证 | 始终返回 stopAuthorityVerified=false 和 globalStopCertified=false | 外部真正父 Host 突然死亡后的受信回收、R1–R8、PostgreSQL SQL session 再观察、IdP/DBA 生产权限及审计双签 |
 
 **不允许改变的决策：** 不将这个 test-only schema 接入生产 Validator / Host / WRITE 路由，也不以自签测试公钥作信任根；不触发父 Host SIGKILL、清锁、部署、Draining 修改、Secrets/SQL 操作。#1071/#1074/#1081/#1082 全部继续 Draft；K0、完整 E01J4、PA05-05 E01–E05、W06 **NOT_SIGNED**；material WRITE **OFF**；#988/#979/#913 继续 OPEN。
+
+
+## 12. 2026-10-21 — 回执验签顺序加固：签名先于 claims 解释
+
+**为什么加固：** §11 首版离线 verifier 对期望 scope 做了字段比较后才验签，因此“篡改后仍能解析的回执”有机会先被具体字段拒绝，未能独立证明签名层拒绝篡改。按安全分层原则继续在 #1082 原 Draft 内精确收敛，不增加生产功能，也不改变签名回执只是测试证据的等级。
+
+**真实工程增量：** [`761f4877433ab6d01c73329ad4aa9a764b450a05`](https://github.com/jiangxng/EVO-App-Platform/commit/761f4877433ab6d01c73329ad4aa9a764b450a05) 将 Node Ed25519 `verify(null, payloadBytes, testPublicKey, signatureBytes)` 提前到解析/解释 signed JSON 的**所有 claims 之前**，仍先检验输入长度；[最终测试提交 `50a7a068259c966dafa86a722aab5d012fb96fd8`](https://github.com/jiangxng/EVO-App-Platform/commit/50a7a068259c966dafa86a722aab5d012fb96fd8) 把已签名的 `observedAt` 改为仍在允许时间窗内的不同值，确保因 `BAD_SIGNATURE` 而被拒绝。六项测试数量不变，没有新建真实 Supervisor 或生产密钥。
+
+**独立原始 CI：** [Platform run #39536775595 / job #119015279614](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39536775595/job/119015279614)，`ORIGINAL_GITHUB_ACTIONS_JOB_LOG_READ_20261021`，新 HEAD **1111 total / 1110 PASS / 1 SKIPPED / 0 FAIL**，6 项 synthetic receipt、11 项本地 PROCESS 和 2 项只读 supervisor preflight 均通过。测试 marker 仍明确：`signatureMatchesSuppliedTestKey=true` **但** `independentSupervisorIdentityVerified=false`、`stopAuthorityVerified=false`、`globalStopCertified=false`、`mayRunParentSigkill=false`。精确 HEAD 的剩余 workflows 需单独确认全部结束。
+
+**与 §11 的关系：** §11 是真实已测试的早期历史快照，不覆盖或伪称其已执行新验签先行规则。以本节新 `50a7a068` 的源码、真实 job log 为当前 test-only 包含的更严格状态。绝不因它推断生产 stop authority、SQL session、Human IdP/DBA credential 已签收。K0/完整 E01J4/PA05-05 E01–E05/W06 仍 `NOT_SIGNED`，WRITE `OFF`。
