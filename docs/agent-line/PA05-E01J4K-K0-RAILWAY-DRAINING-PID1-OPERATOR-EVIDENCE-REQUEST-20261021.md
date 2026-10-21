@@ -89,3 +89,60 @@
 **进度/提效复盘（工程判断，非来源事实）：** 既有 11 项本地 PROCESS + 2 项 preflight + 6 项 synthetic receipt + 10 项 synthetic inventory + 1 项真实 /proc 正常退出 + 2 项 PID1 只读测试足以支持当前局部研发状态。继续为相同缺口堆合成用例只会增加 PR/CI 成本，不会关闭 R5-01/02/03 的独立 Owner 认证门禁。下一轮按项目 [快速反馈与路线止损规程](../governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md)执行：先提交**一份合并的 R5-01/02 只读取证请求**，以部署 ID+时间戳+来源为最小回执；R5-03 先判环境/救援能力，缺失即停止危险实验设计；每两轮无新增决定性证据即写四行“假设/事实/选择/下一次验证”，转向拥有证据的 owner，而非重复远程 CI。仅在实改代码时做受影响 L0/L1 → 最终 HEAD required L2 → 独立 L3，绝不降安全门槛。
 
 **本轮门禁未升级：** R5-01 `UNKNOWN`、R5-02 `UNVERIFIED`、R5-03 `BLOCKED`，R5-04–06 `UNVERIFIED`；K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`，production material WRITE `OFF`，Issues #988/#979/#913 `OPEN`。四条 Draft 不合并、不部署、活动分支不删除；九条旧已合并历史分支此次未清理。
+
+
+## 7. 2026-10-21 续跑 #02 — R5-01 发现受信 Operator 最小只读取数途径；新 main 部署隔离
+
+> **证据等级区分**：Railway 官方 CLI / API / Config 文档本轮确实打开正文，记为 \`ORIGINAL_DIRECT_READ_20261021\`；第三方 Railway GraphQL 字段表只是 \`THIRD_PARTY_REFERENCE_UNCONFIRMED\`；生产真实配置数值仍 \`NOT_VERIFIED / OPERATOR_REQUIRED\`。本轮没有实际运行带认证的 Railway CLI / API，没有读取 token、变量值、runtime command line、SQL/Secrets 或部署日志，没有生产动作。既有 R5-01/02/03 门禁不能升级。
+
+### 7.1 本轮新生效版本与精确代码范围
+
+- \`main@261c468b0f17c34080153a6a24eefcf1cf03a8af\` 已由其他 owner 的 [PR #1090](https://github.com/jiangxng/EVO-App-Platform/pull/1090) 合并推进。Railway production Ledger Configurator 现行为 deployment \`41735793-ba80-40c6-9626-e2c8ca7018a0\`，SUCCESS / Online，1 running / 0 crashed，旧 \`abe8f368-a45f-4a09-aa07-0f8201bf838e\` 已变 REMOVED。配置仍 \`RAILPACK + npm start\`，\`staged=null\`，生产有效 draining/overlap 值尚未由现有 MCP 字段提供。此部署不是 PA05 Draft。
+- GitHub 本轮实际读取新 main 提交文件 diff：#1090 对 \`manager/server.ts\` 仅修改几个可选 Provider 的启动安装逻辑（另有 CI/测试变更），没有触及 shutdown 序列。**在新 main 精确源码再次确认**：\`process.once("SIGTERM")\` 存在，但 \`async shutdown()\` 的 5 秒兜底定时器仍在多个 \`await\` 与 \`processRuntimeHost.shutdown()\` *之后*才注册。因此存在前段异步清理长时间不结束导致内部限时机制未启动的源码风险；不代表已观察到生产停机事故，#1074 仍独立 Draft、未部署。
+- 四 PA05 Draft 原有精确 HEAD 在本轮再核：#1071 \`d1faddeddc0a5f9b016150bf44bbec8eefa6987f\` 的 **7/7 SUCCESS**；#1074 \`c6d5fca90ebfc41ffa642dc5af2e756a224ec838\` 45/45；#1081 \`a1e8a0941ff5b796816aaea0904b89533191a239\` 5/5；#1082 \`eb4743e8ed34cf3cd748c3f79781d092c62712f4\` 5/5。均 Draft、未合并，提交新内容后 #1071 的新 HEAD 仍须重新核。
+
+### 7.2 从“重复查连接器”转成一次性 Operator 原始回执
+
+新增确认的 Railway **已读官方原文**：
+- [Railway CLI — api](https://docs.railway.com/cli/api)（2026-10-21；“Search the schema / Describe a type or field / Execute a query”）：授权用户可对**实时** GraphQL schema 使用 \`railway api search\` 与 \`railway api describe\`，再执行指定 \`query\`。这是官方能力，但**本聊天当前连接器没有对应的任意 GraphQL 只读执行动作**，故未执行。
+- [Manage Services with the Public API](https://docs.railway.com/integrations/api/manage-services)（2026-10-21；“Get a service instance”）：原文公开 \`serviceInstance(serviceId,environmentId)\` 两参数的 \`query\` 示例，允许读取特定环境的 service 配置。该示例未直接列出 draining/overlap，故需实时 schema 确认字段存在，不硬编码宣称已可用。
+- [Using Config as Code](https://docs.railway.com/config-as-code)（2026-10-21；“Understanding config source”）：**该 deployment 的详情页会显示它实际部署时的配置项及来源标记**；代码覆盖 dashboard 时，dashboard 的设置面板不自动反映代码值。因此只有 service 实例配置不足以证明精确部署快照，必须按 deployment 二次对照。
+- [Deployment Teardown](https://docs.railway.com/deployments/deployment-teardown)（本窗口再次打开原文）：draining/overlap 在 service Settings、代码配置与变量渠道可配置；这些渠道需由 Operator 与精确部署的原始快照对齐。
+- **新增将来配置风险而非本阶段任务**：[Railway Config as Code](https://docs.railway.com/config-as-code) 明示 \`railway.json/railway.toml\` 旧方式已废弃、既有服务使用截至 **2026-12-01**；官方推荐 [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) 的 \`.railway/railway.ts\`。不能为 R5 快速核验而新写已废弃的 railway.json，也没有在本线创建 IaC 配置。
+
+**受权 Railway Operator 一次执行的只读发现命令（没有生产数据查询、无需把任何 token 贴到聊天/PR）：**
+
+\`\`\`sh
+railway api search serviceInstance --kind query
+railway api describe serviceInstance
+railway api describe ServiceInstance
+railway api describe ServiceInstance.drainingSeconds
+railway api describe ServiceInstance.overlapSeconds
+\`\`\`
+
+在上面两个字段确实存在且参数结构符合官方 \`serviceInstance\` 示例的条件下，Operator 可以评估以下**仅指定非秘密字段**的 query；如实时 schema 不匹配，必须调整或放弃，不得执行任何 mutation：
+
+\`\`\`graphql
+query PA05R5ReadOnly($serviceId: String!, $environmentId: String!) {
+  serviceInstance(serviceId: $serviceId, environmentId: $environmentId) {
+    id
+    serviceName
+    drainingSeconds
+    overlapSeconds
+    startCommand
+    builder
+    latestDeployment { id status createdAt }
+  }
+}
+\`\`\`
+
+- 指定 \`serviceId=a8622238-480e-4da3-be6f-60fd0f3e18db\`、\`environmentId=98b8b20c-d791-4073-a11d-bb1f7f0a1cb3\`，不进行 service/env 隐式选择；用 \`railway api --file <query.graphql> --raw-var serviceId=<...> --raw-var environmentId=<...>\` 在 Operator 本地执行，**仅将上面白名单字段、查验时刻、操作者身份/权限角色引用和去敏证据回传**。
+- \`serviceInstance\` 若返回两个秒数，仅能先证明**该时间点的服务实例属性**；必须同时由 Operator 查看 deployment **\`41735793-ba80-40c6-9626-e2c8ca7018a0\` 的 deployment details / 有效设置源**，比较 source/environment/service/variable overlay 是否一致，再由有权 Owner 说明“这次部署实际生效的 seconds 数值与来源”。缺少该 deployment 级证明则仍 \`EFFECTIVE_DRAINING_UNVERIFIED\`。
+- **R5-02 不顺手偷偷执行停机/部署实验**。可由 Infra Operator 只读取 image/build identity 与安全 \`PID/PPID/comm/startTick\` 元数据（不读 \`cmdline/environ/fd\`），并交已有真实信号生命周期证据；如果没有可复核的 SIGTERM→Node handler 回执，保留 \`UNVERIFIED\`，转非生产 R5-03 验证。任何命令执行须遵守其生产权限规则，未授权即停止。
+- **R5-03 保持 BLOCKED**：当前账号 \`list_projects\` 仅见该一个项目，该项目 \`list_services\` 仅见 production 一环境；不能因此断定组织其他账户/云上无设施。独占非生产环境、独立 Supervisor、专属 cgroup/等效强制回收与 TTL 验收都未取得，禁止 parent Host SIGKILL 故障注入。
+
+### 7.3 接收格式与退出条件
+
+只接受 \`serviceId/environmentId/deploymentId/commitSHA/采集UTC时间/来源层优先级/最终两个秒数/独立审核人\` 均明确且互相一致的 R5-01 回执。R5-02 另须真实 image digest/进程身份、信号到达 Node 与 handler 生命周期的可信来源；R5-03 必须先有授权的独立回收能力。若 schema 不支持、查询无权限、Owner 无法出示部署原始设置、配置版本再次变化，停止重复试相同工具并记为 \`UNKNOWN/DENY\`，由拥有控制面的 Owner 补签而不是增加 Mock。
+
+**原有状态原样保留**：R5-01 UNKNOWN、R5-02 UNVERIFIED、R5-03 BLOCKED；K0、完整 E01J4、PA05-05 E01–E05、W06 全部 NOT_SIGNED；production material WRITE OFF；Issues #988/#979/#913 OPEN。四 Draft 不合并不部署、不改 \`project.status.json\` 或其他 owner 文件。
