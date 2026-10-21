@@ -711,3 +711,35 @@ Host同步`resolveIdentitySession`在有效描述符为零时直接返回host.co
 | A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
 | A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+## 18. 共享Secrets构造与首次初始化边界（2026-10-21）
+
+基线：main `f831589ec6eea917b6c08fec61db05caab6b8d24`（#1091），包含原#1020；本批分支`fix/governance-secrets-initialization-20261021`。复用§17十类分类及已读未变的架构/启动权威。目标是空Host不因构造共享Secrets产生密钥文件，保护已有密文和原消费者合同；不新建加载框架、不改公共同步接口/Provider选择/安装策略。
+
+### 判别、决定与边界
+
+- **改前实测**：Node24.19、精确原blob `c8836fe748a25f34f7dab1ce73aac3c10340da91`类型擦除后执行，空路径构造即创建key；坏state也先创建key后报JSON错误；坏key构造报SECRETS_MASTER_KEY_INVALID。此为原store局部实验，非本地真实Host或生产观测。
+- **选择**：在原encrypted file store内部延后加载一个共享state/key快照至首次有效方法（describe/resolve/put/remove/listMetadata）。同步加载无await，不产生第二套实例/代理/Promise；完全验证后才发布快照，初始化失败可在文件修复后显式重试。先验证state，再读/创建key；已有records而缺key明确SECRETS_MASTER_KEY_MISSING，不生成不可解密的替代key。
+- **保留**：多插件共用同一Host实例；首次metadata或经授权health probe仍可初始化空边界并创建0600 master key，但不写encrypted state、不解密。put/remove继续原显式持久化；Secret删除不是插件停用副作用。已成功初始化后仍是原进程快照，外部文件变更不自动刷新；格式有效但错误的key直到resolve的GCM校验才报错，metadata不证明凭据可用。
+- **未采用**：按一个UI插件启停销毁/复制SecretStore会破坏其他消费者；增加通用懒代理或异步公共合同无必要。构造 eager 保留无法解释空minimal写key。只挪key加载而缓存半成品state会阻止修复后重试，故完整pair一次发布。
+- **启动调用限制**：Host仍按原LLM refresh取得metadata，包括有效Secrets服务存在时的原发现接线；本批没有重构该调用者资格，不能把整个Host或所有“已装未用”都写成零文件访问。新增断言覆盖空minimal/无Secret消费者；既有消费者启动metadata读取保留并核对一次共享读取、零解密/重写。
+- **失败/授权**：未装Provider/未授权管理请求不初始化目标文件；坏state/key不得覆写。空文件可在首次有效操作创建key属于原持久边界合同。初始化不再在工厂构造处抛错，错误交原方法调用者：原health映射UNAVAILABLE、Secret保存拒绝、memory/OIDC凭据失败拒绝保持；LLM既有显式环境fallback合同亦不改，不将它误写成所有消费者统一拒绝。损坏文件的冷Host可存活不代表受保护调用成功。
+
+### 验证、CI及适用预算
+
+本地Node24.19部分固定SHA快照，临时类型擦除原store：Secrets 11项（原4+新7）、LLM请求helper 9项、memory请求helper 9项，共29/29。新断言包括求值后构造/登记及非法scope/空值零文件/随机访问，首次同步初始化、双namespace/作用域隔离、并发微任务共享key、原snapshot语义、0600、三类坏state所有方法不覆盖/不创建key、坏/缺key恢复及格式有效错误key的GCM失败。首次加载失败不缓存，成功加载不增加连接/订阅/定时器；只保留原key与records快照，记录数量/跨进程写入预算未在本批新增承诺。
+
+新增4项真实Host测试由最终准确head CI执行：空minimal缺路径/坏文件分别两次重启零目标访问；未授权及缺Provider探测拒绝且零访问；首次授权探测坏state不写key、原Host修复恢复；首次授权双消费者保存、审计无明文、停用/卸载单消费者保留数据、重启共享state/key各读一次且零解密/重写。复用原LLM/memory/OIDC请求凭据与生命周期回归，证明既有请求端口未被绕过。新增协议和Host均纳入Lightweight；Secrets专属CI本来已运行原协议文件，本批不删门禁/不改基线/不重跑未变journal研究。
+
+本地只做可可靠执行的29项与新测试语法；未跑正式npm build、真实Host、数据库或浏览器。最终CI/四组合实测、合并SHA及分支清理写PR永久收尾。没有本地模块测量，不把#1091的312/246或历史#1019的336/255写成本批实测；没有生产部署/Human验收。
+
+### 来源、提效与下一步
+
+完整新读：manager/secret-store.ts、providers/secrets/runtime.ts、providers/secrets/package.ts、原Secrets协议与专属workflow、PLATFORM-SECRETS-v0.1；Host局部仅Secrets路径/registry/迁移、两类LLM refresh、管理保存/审计及health路由，registry probe错误映射。此前全读且blob未变的启动/交付/LLM/foundation-map/装载架构与治理材料复用；不声称通读全Host或其余安全基础。顺带纠正Secrets架构§9的旧环境Key“自动迁移”表述，与已合并#1072无隐式put实现一致，无新增迁移。
+
+效率：一次列齐空/坏state/坏key/缺key/错误key/首次操作/共享/恢复矩阵，以原3场景小探针定位，再集中实现和29项定向检查。未重试前批Node24.22 isolated READ恢复失败；原PA05 owner兼容缺口保持，crossdb仍固定24.21。最终推送次数及CI以PR事实记录，不预报节省比例。若方法同步性、已有凭据读取或授权回归失败，停止扩批回到原公共合同；两轮无效按FAST-FEEDBACK复盘。
+
+下一条最小gate：**Identity Directory构造文件读取与独立撤销责任**，区分空minimal/managed配置/现存目录、管理与请求首用，先判必要共享Host职责再决定保留或修正。R3的LLM发现metadata调用资格、其余安全基础矩阵、EVO期限/OIDC事务及records预算继续OPEN；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层验收及A03/A05不代关。固定7项仍4闭环、3部分完成。
+
+证据：[结构化记录](evidence/secrets-initialization-boundary-20261021.json)。
