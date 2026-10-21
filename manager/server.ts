@@ -1237,10 +1237,10 @@ if (
   throw new Error("AUTHENTICATION_SESSION_TTL_INVALID");
 }
 const managedSessionStateFile =
-  process.env.APP_PLATFORM_MANAGED_SESSION_FILE?.trim()
-  || (managedSessionEnabled && lifecycleStateFile
-    ? join(dirname(lifecycleStateFile), "identity-sessions.jsonl")
-    : undefined);
+  managedSessionEnabled
+    ? process.env.APP_PLATFORM_MANAGED_SESSION_FILE?.trim()
+      || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "identity-sessions.jsonl") : undefined)
+    : undefined;
 if (managedSessionEnabled && !managedSessionStateFile) {
   throw new Error(
     "IDENTITY_SESSION_DURABLE_STORE_REQUIRED: configure APP_PLATFORM_MANAGED_SESSION_FILE or APP_PLATFORM_STATE_FILE"

@@ -420,7 +420,56 @@ DLP的`createContextMemoryScheduledOperationsV010.runDlp`每次先调用`resolve
 
 | 验收项目 | 当前状态 | 下一步 |
 |---|---|---|
-| A01 轻量宿主与按需装载 | 部分完成；OIDC实际交换凭据及事务资格 | R3配置安装/其余资格；R1/R2/R4开放 |
+| A01 轻量宿主与按需装载 | 部分完成；OIDC实际交换凭据及事务资格 | 后续见第13节；R1/R2/R4开放 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移及其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+
+
+## 13. 2026-10-21增量：managed Session文件的启动资格
+
+基线main `386f267bcc115fd4e64af74724f2a3aa55199878`（#1083，包含原#1020），过程分支 `fix/governance-managed-session-startup-20261021`。第12节的OIDC已合并，本批不重复凭据/事务修正。#1083的45项CI、260行为/6守卫和312模块/246边是[历史记录](https://github.com/jiangxng/EVO-App-Platform/pull/1083#issuecomment-6306037504)，不能当成本轮实测。
+
+### 已确认的来源与决定
+
+原server的managedSessionStateFile表达式把显式APP_PLATFORM_MANAGED_SESSION_FILE放在managed开关之外，关闭模式仍创建JSONL store并重放；仅默认派生路径受开关限制。JSONL factory构造有exists/read/parse，service随即list/materialize，所以这不是仅有静态import或轻量闭包。EA1A §3明确managed默认关闭，§6/§11只在启用时要求共享日志重放和持久路径；未找到关闭模式必须读取此业务文件的独立Host职责。
+
+本批只把整个显式/派生路径选择置于原managedSessionEnabled判断内：关闭时继续创建原空内存event store/service，不读取/新建/清空指定Session文件；启用时显式路径优先、否则lifecycle目录派生，缺两者仍拒绝启动。保持原JSONL事件语义、token hash索引、期限/撤销/轮换、Cookie/Bearer合同及请求内存查询。不增加懒代理、新框架、Provider或UI步骤，也不让某个UI包拥有共享会话安全状态。
+
+| 配置/行为 | 本批验收与保留 |
+|---|---|
+| managed=false +显式坏/缺文件 | 目标Session文件零exists/read/open/write/append等探针访问，坏字节保持，缺文件不创建；原/auth/session仍404，不悄悄开启托管认证 |
+| managed=true +同一坏文件 | 保持原IDENTITY_SESSION_EVENT_INVALID并拒绝启动，不忽略坏数据、不覆盖、不静态回退 |
+| managed=true +显式/派生好文件 | 启动读取并物化一次；有效Bearer正确主体，撤销/错误/缺凭据401；HTTP查询不再读/append日志，文件字节不变；显式路径真实进程重启仍恢复同一Session |
+| managed=true +无显式/生命周期路径 | 保持IDENTITY_SESSION_DURABLE_STORE_REQUIRED，禁止退为空内存“成功” |
+| 共享安全资源 | 启用模式重放属于必要认证职责保留；store/service不绑定OIDC或单个UI启停，原logout/revoke/rotate及已签发Session合同由既有回归保护 |
+
+这是关闭模式错误文件访问的局部闭环，不改变正式环境策略、A05迁移或已有Session数据保留规则。未调整identity-user-directory、Secrets及其他Host安全文件，不称Host零I/O。
+
+### 验证分级与读取
+
+新增4项真实Host用例，test-only fixture在Host求值前只拦截目标合成Session文件的fs入口，关闭模式记录并拒绝任何访问；启用模式记录真实原始读取，其他Host存储与native loader保持。用独立临时目录、原service生成仅存hash的ISSUED/REVOKED事件、原HTTP/auth/session验证恢复和拒绝；没有生产开关、源码替换或新方法执行API。正式Node22结果以准确head CI为准。fixture不宣称拦截所有可能的文件/网络副作用，只保护本批具体store入口。
+
+本地Node24.19固定SHA部分源码+临时类型擦除，复用managed-request-session 8项、authentication-flow 12项和resource-boundary 5项，共25/25通过；新Host/fixture与擦除server语法通过。未本地正式npm ci/build、真实Host/browser/数据库。CI增加这4项Host用例，复用原OIDC联合回归/其他会话CI；本轮四组合与完整结果永久保存PR收口评论，不放宽静态基线/冷禁入。
+
+完整重读EA1A、identity-session-store、managed-request-session与新增测试；复用已读装载架构§11、项目规则/交付/文档、Eidos与Help权威并核对blob；Provider交接至§12及#1083证据复用当前main版本。Host只读mode/path/store/service、Provider登记、auth路由/flow及request resolver，全部引用搜索没有其他managed service直接消费者，不声称通读整个Host/Agent。开放PA05 shutdown PR保留其原段，未修改全局状态或其他窗口文件。无新增外网研究。
+
+证据：[managed-session-startup-boundary-20261021.json](evidence/managed-session-startup-boundary-20261021.json)；[兼容记录](../../ui-design-reviews/managed-session-startup-boundary-20261021.md)。Help没有新增配置字段/操作步骤：关闭即不启用，启用仍需持久路径；未生产部署或Human验收。
+
+### 下一批及停止条件
+
+本批准确head CI合格后合并，停止追加共享Session重构。下一批核对EVO application-map引发binding安装/启用/写入的启动职责，以及配置驱动bootstrap与默认安装journal的边界、退出条件；先保存来源与消费者证据，再决定有界整改。不代其他owner扩展EVO业务。R3的EVO query/probe期限、OIDC事务容量/过期策略及其余资格，R1冻结SOP、R2原Agent配置SQL责任/资格、R4最终跨层矩阵仍开放；A03/A05保持。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；关闭managed时目标Session文件零访问 | EVO映射/配置安装；R1/R2/R3其余/R4 |
 | A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
 | A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
 | A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
