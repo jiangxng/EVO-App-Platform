@@ -1082,3 +1082,12 @@ K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`；production materi
 | Production material WRITE | 无变化 | **`OFF`** |
 
 当前不推进生产 K1/K2，不执行 SIGKILL 父 Host/生产 Validator/SQL/Secrets/Stop、无远端分支删除、四 Draft 不合并。Issues #988/#979/#913 全部 OPEN；`project.status.json`、BEX/CP03/Eidos/2D 均未触碰。
+
+
+## 94. PA05-05 / K0 — 2026-10-21 #1074 Host shutdown Draft 合并冲突收敛
+
+**已实施工程（不是合并）：** 原 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 旧 HEAD `caccb1b6` 虽 45/45 checks SUCCESS，却和 main 的 `.github/workflows/lightweight-host.yml` 长测试行冲突，GitHub `dirty`。本轮原 Draft 精确 commit [`c6d5fca90ebfc41ffa642dc5af2e756a224ec838`](https://github.com/jiangxng/EVO-App-Platform/commit/c6d5fca90ebfc41ffa642dc5af2e756a224ec838) 将 workflow 恢复 PR 共同基线的测试清单，并仅增独立 Host shutdown/J4J test step；GitHub 原始 PR patch 已核只增四行。**GitHub `mergeable=true, mergeable_state=behind`，消除 `dirty`**，同时保留 main 新增其他 Owner CI 测试在未来三路合并中的位置。工程 Host shutdown 源码与测试未被本轮改写，PR 继续 **Draft / OPEN / NOT_MERGED / NOT_DEPLOYED**。新 HEAD 的完整 CI 须另外核验；旧 45/45 不得冒名代替新 SHA。
+
+**证据索引：** [K0 接续研究 §15](PA05-E01J4K-K0-CONTINUATION-EVIDENCE-20261021.md) 与 [K0 工作表 §19](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 记录原 SHA、过渡提交、冲突成因、源代码查询等级及具体避免破坏并行 main 的理由。
+
+**状态分层不变：** 此次只消除 GitHub PR merge conflict，不增加 OS 独立 Supervisor 或生产 stop receipt。#1082 真实本地 PROCESS 11 项有界、2 项只读预检、6 项 synthetic receipt、10 项 synthetic multiworker reconciliation 独立保留原等级。K0/完整 E01J4/PA05-05 E01–E05/W06 均 `NOT_SIGNED`；material WRITE `OFF`；#988/#979/#913 OPEN。禁止合并四 Draft、手动部署、生产 Validator/SQL/Secrets、父 Host SIGKILL、Railway draining/重启或跨工作线改动。
