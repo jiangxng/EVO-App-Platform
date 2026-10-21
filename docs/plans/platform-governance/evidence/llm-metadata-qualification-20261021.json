@@ -1,0 +1,230 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-21",
+  "baseline": "4e21fa8d0380168f9da0ae8a364020da1b9a3f90",
+  "branch": "fix/governance-llm-metadata-qualification-20261021",
+  "scope": "A01/R3 existing OpenAI/DeepSeek metadata qualification and first effective activation recovery",
+  "change": {
+    "source": "manager/server.ts",
+    "beforeBlob": "396d56dddfa982d2f871bbfa3af48348c1388b06",
+    "afterBlob": "dc97978a226a44188e2925b35a20cbae05c41456",
+    "newProductionModules": 0,
+    "publicContractsChanged": false,
+    "pa05AdapterAndManagerChanged": false,
+    "agentFeatureChanged": false,
+    "currentEffectiveDescriptorRequiredBeforeDescribe": true,
+    "existingLifecycleCallbackReusesRefresh": true,
+    "sharedSecretsSourceChangeRecalculates": true,
+    "originalRevisionRejectsLatePreparation": true,
+    "noImplicitEnvironmentKeyPersistence": true
+  },
+  "originalFunctionProbe": {
+    "node": "v24.19.0",
+    "mode": "original extracted private refresh and lifecycle fragment; mocked descriptor/metadata/registry/factories, not Host",
+    "assertedScenarios": 16,
+    "report": [
+      {
+        "version": "before",
+        "name": "uninstalled-persisted",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "before",
+        "name": "inactive-legacy",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "before",
+        "name": "no-secrets",
+        "metadataReads": 0,
+        "registered": 0
+      },
+      {
+        "version": "before",
+        "name": "active-cold",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "before",
+        "name": "first-activation",
+        "metadataReads": 0,
+        "registered": 0
+      },
+      {
+        "version": "before",
+        "name": "restored-secrets",
+        "metadataReads": 0,
+        "registered": 0
+      },
+      {
+        "version": "before",
+        "name": "late-stop",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "before",
+        "name": "read-failure-repair",
+        "metadataReads": 2,
+        "registered": 0
+      },
+      {
+        "version": "after",
+        "name": "uninstalled-persisted",
+        "metadataReads": 0,
+        "registered": 0
+      },
+      {
+        "version": "after",
+        "name": "inactive-legacy",
+        "metadataReads": 0,
+        "registered": 0
+      },
+      {
+        "version": "after",
+        "name": "no-secrets",
+        "metadataReads": 0,
+        "registered": 0
+      },
+      {
+        "version": "after",
+        "name": "active-cold",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "after",
+        "name": "first-activation",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "after",
+        "name": "restored-secrets",
+        "metadataReads": 2,
+        "registered": 2
+      },
+      {
+        "version": "after",
+        "name": "late-stop",
+        "metadataReads": 2,
+        "registered": 0
+      },
+      {
+        "version": "after",
+        "name": "read-failure-repair",
+        "metadataReads": 4,
+        "registered": 2
+      }
+    ]
+  },
+  "local": {
+    "node": "24.19.0",
+    "mode": "partial fixed-SHA/temporary type erasure",
+    "tests": {
+      "isolatedOriginalRefreshLifecycle": 8,
+      "originalLlmCredentialFetch": 9,
+      "total": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    "serverTypeErasureSyntax": true,
+    "modifiedScriptsSyntax": true,
+    "formalBuild": false,
+    "realHost": false,
+    "database": false,
+    "browser": false
+  },
+  "ci": {
+    "statusAtCommit": "pending exact final-head CI; permanent results in PR closeout",
+    "hostFile": "tests/integration/llm-credential-persistence-host.test.mjs",
+    "newHostCases": 4,
+    "existingHostCasesRetained": 2,
+    "newIsolatedCases": 8,
+    "baselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "priorModuleCountsHistoricalOnly": true,
+    "pa05Node2421PinRetained": true
+  },
+  "hostMatrix": [
+    "compatible/minimal first install persisted Keys without Settings or restart",
+    "inactive and uninstalled LLMs with active shared Secrets: zero target file access on cold restart",
+    "concurrent enable, v1 install and Action reinstall recover both existing LLMs",
+    "shared Secrets alone plus legacy environment Keys: missing/corrupt state/key dormant across restart",
+    "actual probe decrypts and sends synthetic request only on use; ciphertext/key unchanged",
+    "existing unauthorized Secret save compares activation-time key and access counts; zero state writes before authorized save"
+  ],
+  "readScopes": [
+    {
+      "path": "manager/server.ts",
+      "read": "partial LLM refresh/resolve, lifecycle callback, Settings and install/enable Host routes"
+    },
+    {
+      "path": "manager/service.ts",
+      "read": "partial state-before-event install/enable/disable/upgrade and effective descriptors; unchanged"
+    },
+    {
+      "path": "manager/agent-plugin-write-host-lifecycle.ts",
+      "read": "partial admitActivation/apply; unchanged"
+    },
+    {
+      "path": "manager/llm-credential-fetch.ts",
+      "read": "full/reused unchanged"
+    },
+    {
+      "path": "tests/integration/llm-credential-persistence-host.test.mjs",
+      "read": "full before extension"
+    },
+    {
+      "path": "tests/fixtures/llm-credential-fetch-probe.mjs",
+      "read": "full"
+    },
+    {
+      "path": "tests/fixtures/secrets-file-access-probe.mjs",
+      "read": "full before root-directory observation option"
+    },
+    {
+      "path": "tests/integration/secrets-initialization-host.test.mjs",
+      "read": "full/reused; authorization assertion records legitimate activation metadata key phase"
+    }
+  ],
+  "efficiency": {
+    "authority": "FAST-FEEDBACK section10",
+    "originalSixteenCaseProbeBeforeFinalValidation": true,
+    "reuseOnlyFullyReadUnchangedBlobs": true,
+    "noRepeatedExternalResearch": true,
+    "localHarnessFailure": "TS parser rejected top-level return; wrapped parsed function, no product workaround or remote push",
+    "localSetupFailure": "nonexistent new workdir before copy; corrected execution directory",
+    "failedPriorRouteNotRetried": "PA05 isolated READ Node24.22; original owner OPEN"
+  },
+  "limits": [
+    "isolated private source fragment/factory ports are mocked, not full Host",
+    "effective active LLM metadata may initialize/read persistent boundary; no claim of whole-Host zero IO",
+    "initial empty master key may be created by valid activation metadata, as original first-method contract",
+    "Host built-in Secrets metadata synchronous; arbitrary future asynchronous source not promised instant activation readiness",
+    "existing environment fallback/request contracts preserved; no new provider pilot",
+    "remaining foundation matrix, resource budgets, R2/R4 not closed"
+  ],
+  "remaining": [
+    "EVO Runtime Observatory query/probe deadlines/body Abort/concurrency/recovery",
+    "R3 OIDC transactions and records budgets",
+    "R3 other security foundation qualification",
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent configured SQL responsibility/qualification",
+    "R4 final cross-layer acceptance",
+    "A03 authority lookup/idempotent recovery",
+    "A05 production strategy/migration"
+  ],
+  "globalStatusModified": false,
+  "productionDeployment": false,
+  "additionalProviderPilot": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

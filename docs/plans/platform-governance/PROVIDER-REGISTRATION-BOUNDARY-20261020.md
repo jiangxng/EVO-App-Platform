@@ -777,3 +777,37 @@ Host同步`resolveIdentitySession`在有效描述符为零时直接返回host.co
 下一批最小gate：**LLM启动metadata调用者资格与首次安装恢复合同**，区分LLM未装/停用、仅Secrets已装、已有持久Key、环境临时Key及首次安装恢复；先确认原同步发现为何读取，再决定必要保留或最小修正，不能为去掉启动读取而造成安装后无runtime。R3其余安全基础资格、EVO期限/OIDC事务与records预算继续；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层验收及A03/A05不代关。固定7项仍4闭环、3部分完成。
 
 [结构化证据](evidence/identity-directory-initialization-20261021.json)。
+
+
+## 20. LLM metadata读取资格与首次有效激活恢复（2026-10-21）
+
+基线main `4e21fa8d0380168f9da0ae8a364020da1b9a3f90`（#1094，包含原#1020）；分支`fix/governance-llm-metadata-qualification-20261021`。本批继续A01/R3：SecretStore首次初始化已在§18修正，目录已在§19修正，不重做两处工厂。当前缺口是两类LLM refresh在包未装/停用时仍调用Secrets.describe；该调用可令原共享store读文件/空边界建key。不能把无解密误称零文件副作用。
+
+### 最小判别、替代与实际选择
+
+原refresh仅在启动/Settings保存时调用，原生命周期事件只更新请求credential epoch，没有准备runtime。原函数+生命周期局部代码的Node24.19类型擦除探针（描述符/metadata/registry/工厂端口模拟，非Host）前后16场景证明：原未装持久Key或inactive环境Key各describe两次且预建两个runtime；单独激活/恢复Shared Secrets事件不准备runtime；一次pending refresh后stop仍可登记迟到runtime（旧请求仍有epoch防线，不声称已发生出站）。原active冷启动两次metadata、无Secrets零读取属于保留对照。
+
+单独加未装guard会失去原预创建带来的首次安装恢复；把缺Key也登记为可用runtime会改变原同步选择/拒绝合同；新增懒代理/通用框架或改Agent resolver无依据。因此在原Host两处refresh增加当前有效llm.inference描述符资格，检查在Secrets解析之前；未有效即移除原registry runtime并结束。当前有效的冷启动/Settings仍按原metadata配置登记，不提前解密。
+
+沿**现有公共生命周期回调**调用原refresh，LLM包生命周期变化时复用原请求epoch，再重新准备/移除；Secrets来源生命周期变化时也重算两类LLM。manager在保存安装/Feature状态后发事件，Host异步生命周期admitActivation保持原调用路径/权限与PA05门禁；本批没有修改manager/service、PA05 adapter或Agent代码，没有新增生命周期写入口/安装策略。同步Host encrypted Secrets的metadata在原事件处理轮内取得，既有await型Host生命周期入口之后可用；未来任意异步替换来源不承诺瞬时就绪，也不做第二Provider试点。原refresh revision对每次准备递增，停用后新guard同步移除并使旧await失效；不把迟到准备发布成当前runtime。
+
+多插件仍共享SecretStore，来源与LLM停用都不删除密文或销毁其他消费者权威。实际infer/probe保留原fetchImpl请求凭据、当前资格/配置epoch/Abort和环境临时fallback，不隐式put环境Key。有效激活可能由metadata初始化空master key，属于§18原首个有效方法合同；metadata仍不写encrypted state/不解密。
+
+### 验证与兼容调整
+
+- 本地Node24.19部分固定SHA/临时类型擦除：原函数前后16场景断言；新增8项原refresh/生命周期片段隔离回归+原请求helper9项，共17/17、0fail/0skip；server类型擦除语法及修改脚本语法通过。八项覆盖未装持久Key、inactive环境Key、无Secrets、active冷准备、首次激活、来源恢复、pending准备后stop及读失败修复。片段测试执行原函数，但依赖端口模拟，不能替代真实Host/Agent/数据库认证。
+- 扩展既有LLM真实Host测试文件/原helper，复用原synthetic endpoint和Shared Secrets求值前探针，新增4项：compatible/minimal各覆盖新Host首次安装持久Key直接probe成功、inactive/卸载后仅Secrets有效启动零目标访问、并发enable、原/v1与Action重装恢复，密文/key字节保持且每个实际请求解密；另2项覆盖仅Secrets有效、环境Key仍在、missing/corrupt文件启动零目标访问/零出站。新case最终head CI执行，本地没有声称跑Host。
+- 原Secrets首次保存Host回归相应明确阶段：在有效LLM激活后的当前key状态上比较未授权变更前后字节/访问完全相同，encrypted state仍不存在；不再把“激活从未做metadata”当作授权合同。原未授权403、目标访问不增加、无密文/无明文/审计、双消费者持久化断言保留，未降低安全门禁。共享根目录与其他Host store同目录时，复用探针只观测精确目标文件，避免把其他store的mkdir误计为Secrets；原嵌套目录用例继续观测目录。
+- 原LLM已有2项Host、Secrets 4项、请求凭据与scope/生命周期/故障恢复等原门禁仍运行。新8项纳入Lightweight；正式npm build/Host/数据库/浏览器与全量相关门禁交最终准确head CI，不借用#1094的330行为或312/246模块数字。
+
+读取：本轮复核server局部两类refresh、同步resolveLlmProvider、公共生命周期回调、管理Settings/安装启用Action及/v1路径；manager/service仅install/enable/disable/upgrade发事件和描述符相关段，PA05 adapter仅admitActivation/apply边界（两文件均不改）；原LLM请求helper、Host credential fixture、Secrets文件探针及两个既有Host测试完整；§18/19及前批收尾复用。既有工厂零资源/请求期限、公共同步选择与Eidos权威复用已读未变证据，不重新研究或声称读完全Host/Agent。
+
+### 提效、失败记录与下一条gate
+
+先识别“只加guard会破坏恢复”的共同根因，再以16个最小前后场景确认原回调路径，合批修改两处refresh及一个既有回调，没有添加框架/第二Provider。临时本地探针第一次被TypeScript模块解析器拒绝顶层return，改为函数包装后通过；这属于测试脚本语法，未用产品补丁解决，未把失败脚本推CI。另有新目录创建前指定workdir导致一次执行请求失败，纠正执行目录，无产品影响。无重复外网研究，未重试旧Node24.22 isolated READ失败，原owner兼容OPEN及24.21 pin保持。最终提交/CI/合并/清理写PR永久收尾。
+
+若首装/启用后缺runtime、未授权值写入、无效LLM仍读文件或迟到准备覆盖当前状态，停止扩批按原合同修正；两轮同类无进展先按FAST-FEEDBACK四行复盘。当前资格对两类参考LLM有界，不代表全部Provider/安全基础矩阵关闭；有效LLM启动metadata仍是同步配置准备，调用本身可能读现有共享文件，不能写成全Host零I/O。未来异步Secrets就绪、第三方Provider替换与跨进程读取仍按各自合同另验。
+
+下一条最小gate：**EVO Runtime Observatory实际请求期限与清理**，先复核原query/probe、并发、挂起响应体/Abort、失败恢复与停止责任，再决定保留或最小修正；不新增观测业务功能。R3的OIDC事务/records预算、其余安全基础资格继续OPEN；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层及A03/A05不代关。固定7项仍4闭环、3部分完成。
+
+[结构化证据](evidence/llm-metadata-qualification-20261021.json)；[八节操作兼容记录](../../ui-design-reviews/llm-metadata-qualification-20261021.md)。

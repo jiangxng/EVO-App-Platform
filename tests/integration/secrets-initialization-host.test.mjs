@@ -103,9 +103,12 @@ test('first authorized save shares one key across consumers; lifecycle and resta
     host = await boot(root); assert.deepEqual((await host.counts()).accesses, []);
     for (const packageId of packages) await host.lifecycle('install', packageId);
     const before = await host.counts();
+    const initializedKey = fs.existsSync(files.key) ? fs.readFileSync(files.key) : undefined;
     const denied = await host.settings(packages[0], {'secret:apiKey': 'synthetic-denied'}, false);
     assert.equal(denied.status, 403); assert.deepEqual((await host.counts()).accesses, before.accesses);
-    assert.equal(fs.existsSync(files.key), false);
+    assert.deepEqual(fs.existsSync(files.key) ? fs.readFileSync(files.key) : undefined, initializedKey,
+      'denied Secret mutation must not initialize or modify the boundary');
+    assert.equal(fs.existsSync(files.state), false, 'activation metadata may initialize key, never encrypted state');
     const saved = await Promise.all(packages.map((packageId, i) => host.settings(packageId, {'secret:apiKey': 'synthetic-saved-' + i})));
     for (const result of saved) {assert.equal(result.status, 200, JSON.stringify(result.body)); assert.equal(result.body.ok, true); assert.equal(JSON.stringify(result.body).includes('synthetic-saved-'), false);}
     const key = fs.readFileSync(files.key), state = fs.readFileSync(files.state);

@@ -111,3 +111,6 @@ R3 Provider边界第18节已把共享Secrets文件初始化放到原同步store�
 
 
 R3 Provider边界第19节已将Identity Directory构造读取延至原同步snapshot/有效save，首次save仍先校验旧数据，坏文件或读取失败不发布空快照、不覆盖且可修复后重试。保留离线委托独立身份来源、共享终止性禁用、写目录先于签发Session及原进程快照；不按managed开关删保护。新增协议与双profile/显式派生路径/探测修复/停用重启Host回归，未新增Agent/认证功能。下一批核对LLM启动metadata调用者资格与首次安装恢复合同；R1/R2/R3其余预算/R4和固定7项保持开放。
+
+
+R3 Provider边界第20节已将两类LLM metadata限定为当前有效Provider，未装/停用即使Secrets有效或有环境Key也不读取；沿原公共生命周期回调准备现有runtime，保留首次安装/启用/卸载重装可用，Shared Secrets恢复亦重算，不改同步选择合同或PA05实现。原revision阻止迟到准备，解密仍在请求端口。新增原函数/真实Host资格与恢复回归；下一批核对EVO观测请求期限、Abort/响应体清理与失败恢复；OIDC事务/records预算及R1/R2/R3其余/R4不代关。
