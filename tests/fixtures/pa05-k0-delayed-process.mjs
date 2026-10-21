@@ -11,6 +11,15 @@ export async function invoke(request) {
   throw new Error("PA05_K0_FIXTURE_UNSUPPORTED_METHOD");
 }
 
+// Only the explicitly named disposable startup-negative case hangs.
+// Self-exit is an extra cleanup fuse; the parent Host remains alive to
+// supervise and reap the child during the test. Never simulate parent SIGKILL.
+export async function activate(host) {
+  if (host.packageId !== "pa05-k0-activate-hang-process") return;
+  setTimeout(() => process.exit(39), 5000).unref();
+  await new Promise(() => {});
+}
+
 export async function deactivate() {
   // Hold the child alive long enough to inspect the stop()/shutdown() overlap.
   // Less than the production runtime's 750 ms local SIGKILL fallback.
