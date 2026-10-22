@@ -53,3 +53,14 @@
 - [详尽原始网址/访问等级/冲突表与截图索引](BEX-01-V3-M06-WINDOW-14-RAILWAY-RESEARCH-DECISION-REFERENCE-INDEX-20261022.md)。
 - ChatGPT 旧会话用户图：**image(20261022-043214).png**（Railway 插件已连截图）、**image(20261022-050015).png**（Chrome status.railway.com ERR_CONNECTION_CLOSED）。文件在对话/Library 会话侧，**未随本文上传 GitHub**。
 - 2026-10-15 Library **EVO-供应商导入-高保真体验版-V3.html** 及体验包、2026-10-21 Library 的 **BEX-01-M06-Human-验收对照包** 是历史独立文件；本轮没把私有附件复制到仓库。原型主参考仍为 #909 GitHub 固定文件。
+
+
+## 七、Window 15 更新（2026-10-22：本轮实时核验）
+
+- **最新 GitHub main**：23e391730c7606f3933fb31e8ffcb53c704aa191；3/3 当前 check-runs success。#1060/#1077/#1086/#1100 再确认全部 merged；#909 与 #1111 仍是 Open Draft。
+- **Railway 当前**：production 的五服务及原持久卷均存在，Ledger Configurator Online、Source 仍指向 GitHub main，原有服务域名未变。最新 SUCCESS deployment 5cfce97b-9745-4e62-9b64-d2b1e0a2eedf 关联 **eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff**，并非新 main。
+- **新构建实际重试**：Railway 明确拒绝，返回 **Deploys have been paused due to an upstream issue**。后续再次读部署/待提交配置，无新 deployment、无 staged patch；未重用旧镜像、未创建新服务。
+- **安全核查**：Railway 官方 10/22 搜索正文说明 GitHub tokens 被重置，需要账户 Owner 在 Account Settings 核查重连、Railway GitHub App 仓库权限、Source/Autodeploy 与 Workspace Audit Logs。Railway MCP 无权限验证这些控制台门禁。项目无 Buckets；Postgres 当前无 Railway 公网 TCP Proxy。已盘点跨服务数据库变量名，但不是消费者连接串完整依赖分析；OAuth 隐藏变量值；未读取/轮换 secrets、数据库或数据卷。
+- **健康和业务**：公开 health HTTP 成功不可验证；不把 API 显示 Online 当作公网功能、Eidos/插件、M06 Human PASS。M04/M05/M06 独立 OPEN。
+- **资料等级及新增证据**：见 [详细研究索引第 8 节](BEX-01-V3-M06-WINDOW-14-RAILWAY-RESEARCH-DECISION-REFERENCE-INDEX-20261022.md)；Railway/GitHub 本次接口是 RM，官方博客从搜索正文获取仍为 S，账户 UI 安全审计与外网验收是 D。不得把搜索摘要升格成全文原文。
+- **下步**：Owner 确认安全审计/GitHub 重连和凭据处置依赖 → Railway 恢复构建 → 重新核验当时 main、真正 build → SUCCESS/commit/health/Eidos/插件/V3 分层验收。#1111 保持 Draft、不合并、不清理；旧四条过程分支已经清理，无需重复。
