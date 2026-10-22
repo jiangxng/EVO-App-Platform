@@ -3772,7 +3772,7 @@ form[data-eidos-id="evo-data-import.mapping"]
   [data-eidos-form-task-issue-page]>summary{
   cursor:pointer;padding:var(--eidos-space-md) var(--eidos-space-lg);
   min-height:44px;box-sizing:border-box;
-  display:flex;align-items:center;
+  display:list-item;list-style-position:inside;
   color:var(--eidos-primary);font-weight:var(--eidos-weight-semibold);
 }
 [data-eidos-task-presentation="workbench"]

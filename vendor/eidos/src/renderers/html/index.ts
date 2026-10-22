@@ -119,7 +119,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
       const items=issueRows.slice(start,start+12);
       return `<details data-eidos-form-task-issue-page>
         <summary>${esc((start+1)+"–"+(start+items.length)+" / "+issueRows.length)}</summary>
-        <ol start="${start+1}">${items.map(renderIssue).join("")}</ol>
+        <ol start="${start+1}" style="counter-reset:eidos-workbench-issue ${start}">${items.map(renderIssue).join("")}</ol>
       </details>`;
     }).join("")
     : "";

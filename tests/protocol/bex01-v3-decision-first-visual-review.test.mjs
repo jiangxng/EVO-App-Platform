@@ -307,7 +307,9 @@ test("V3 workbench retains all 29 Host issues in native twelve-item pages",()=>{
   assert.match(html,/data-eidos-form-task-issue="map-source-28"/,
     "the final source issue must remain directly navigable");
   assert.match(html,/data-eidos-form-task-focus="map-source-28"/);
-  assert.match(html,/<ol start="25">/);
+  assert.match(html,/<ol start="25" style="counter-reset:eidos-workbench-issue 24">/);
+  assert.match(eidosProductiveWorkbenchCss,/display:list-item;list-style-position:inside/,
+    "Native expand marker must remain visible and keyboard discoverable");
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issue-page/);
   assert.equal(validateUidl({...doc,reviewTask:{
     ...doc.reviewTask,issuesPageSize:13
