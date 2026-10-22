@@ -20,6 +20,8 @@ export interface GenericOidcProviderOptionsV010 {
   now?: () => Date;
   randomBytesImpl?: (size: number) => Buffer;
   transactionTtlSeconds?: number;
+  /** Retained, unconsumed login states per runtime; does not evict live logins. */
+  maxPendingTransactions?: number;
 }
 
 interface OidcDiscoveryDocumentV010 {
@@ -218,6 +220,10 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
   if (!Number.isFinite(transactionTtlSeconds) || transactionTtlSeconds <= 0) {
     throw new Error("OIDC_TRANSACTION_TTL_INVALID");
   }
+  const maxPendingTransactions = options.maxPendingTransactions ?? 1000;
+  if (!Number.isSafeInteger(maxPendingTransactions) || maxPendingTransactions < 1) {
+    throw new Error("OIDC_TRANSACTION_LIMIT_INVALID");
+  }
 
   const scopeSet = new Set(
     (options.scopes ?? "openid profile email")
@@ -231,6 +237,14 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
   const transactions = new Map<string, OidcLoginTransactionV010>();
   let discoveryCache: Promise<OidcDiscoveryDocumentV010> | undefined;
   let jwksCache: Promise<JwkSetV010> | undefined;
+
+  function pruneExpiredTransactions(nowMs: number): void {
+    for (const [state, transaction] of transactions) {
+      if (nowMs - transaction.createdAtMs > transactionTtlSeconds * 1000) {
+        transactions.delete(state);
+      }
+    }
+  }
 
   async function discover(): Promise<OidcDiscoveryDocumentV010> {
     discoveryCache ??= (async () => {
@@ -383,6 +397,13 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
         input.callbackUrl,
         "OIDC_CALLBACK_HTTPS_REQUIRED"
       );
+      const createdAtMs = now().getTime();
+      pruneExpiredTransactions(createdAtMs);
+      // No await between admission and insertion: concurrent begins cannot
+      // overbook the retained-state budget after shared discovery resolves.
+      if (transactions.size >= maxPendingTransactions) {
+        throw new Error("OIDC_TRANSACTION_LIMIT_REACHED");
+      }
       const state = randomBase64Url(32, randomBytesImpl);
       const nonce = randomBase64Url(32, randomBytesImpl);
       const codeVerifier = randomBase64Url(32, randomBytesImpl);
@@ -394,7 +415,7 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
         codeVerifier,
         callbackUrl,
         returnTo: input.returnTo,
-        createdAtMs: now().getTime(),
+        createdAtMs,
         checkContext
       });
 
@@ -419,17 +440,20 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
       checkContext();
       const callbackUrl = new URL(input.callbackUrl);
       const providerError = callbackUrl.searchParams.get("error");
+      const state = callbackUrl.searchParams.get("state")?.trim();
+      const code = callbackUrl.searchParams.get("code")?.trim();
+      const transaction = state ? transactions.get(state) : undefined;
+      if (state) transactions.delete(state);
+      pruneExpiredTransactions(now().getTime());
+      // Error and malformed callbacks also consume a presented known state.
+      // None of these failure paths may replay it into a token exchange.
       if (providerError) {
         throw new Error(`OIDC_AUTHORIZATION_ERROR:${providerError}`);
       }
 
-      const state = callbackUrl.searchParams.get("state")?.trim();
-      const code = callbackUrl.searchParams.get("code")?.trim();
       if (!state) throw new Error("OIDC_STATE_REQUIRED");
       if (!code) throw new Error("OIDC_AUTHORIZATION_CODE_REQUIRED");
 
-      const transaction = transactions.get(state);
-      transactions.delete(state);
       if (!transaction) throw new Error("OIDC_STATE_INVALID");
       transaction.checkContext();
       if (transaction.callbackUrl !== callbackUrl.origin + callbackUrl.pathname) {

@@ -1045,9 +1045,16 @@ export function createDataImportMappingPageV010(input: {
       ? { issuesCountSuffix: zh(input.locale) ? "项待处理" : "pending" }
       : {}),
     issuesDescription: zh(input.locale)
-      ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
-      : "Review only uncertain sources; jump directly to the relevant choice.",
-    issues: reviewIssues.slice(0,12),
+      ? (reviewIssues.length > 12
+        ? "优先显示前 12 项，其余按每组 12 项展开；可定位来源列或查看已授权的行纠错入口。"
+        : "只显示需要人工判断的来源列；可直接跳到对应的字段选择。")
+      : (reviewIssues.length > 12
+        ? "First 12 tasks are shown; expand groups of 12 for the rest. Source and authorized row links remain available."
+        : "Review only uncertain sources; jump directly to the relevant choice."),
+    ...(reviewIssues.length > 12 ? { issuesPageSize:12 as const } : {}),
+    // No silent task loss: if a job exceeds the bounded Eidos catalog,
+    // validation fails closed rather than concealing unreviewed issues.
+    issues: reviewIssues,
     helpText:zh(input.locale)
       ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
       : "Changes require explicit save and validation; viewing does not commit records.",

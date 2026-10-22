@@ -3733,4 +3733,70 @@ form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table] the
 form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-footnote]{
   background:var(--eidos-bg);
 }
+/* V3 #909 status chips: preserve native table cells and scoped Eidos semantics.
+   Changing a choice updates the existing row status key; no Host mutation. */
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-review-table-status-badge]{
+  display:inline-block;max-width:100%;box-sizing:border-box;
+  padding:2px 8px;border-radius:4px;white-space:normal;
+  background:#f0f3f6;color:var(--eidos-fg-muted);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="matched"]
+  [data-eidos-review-table-status-badge]{
+  color:#18765a;background:#eaf7f1;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="proposed"]
+  [data-eidos-review-table-status-badge]{
+  color:#2b65aa;background:#eef5fd;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row]:is([data-eidos-review-table-status-key="pending"],
+    [data-eidos-review-table-status-key="attention"],
+    [data-eidos-review-table-status-key="suggested"])
+  [data-eidos-review-table-status-badge]{
+  color:#a66712;background:#fff6e7;
+}
+
+
+/* Optional bounded issue pages: native details retain every Host issue while
+   keeping the source-aligned twelve-decision first page. No JS or auto-save. */
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]{
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  margin-top:var(--eidos-space-sm);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>summary{
+  cursor:pointer;padding:var(--eidos-space-md) var(--eidos-space-lg);
+  min-height:44px;box-sizing:border-box;
+  display:list-item;list-style-position:inside;
+  color:var(--eidos-primary);font-weight:var(--eidos-weight-semibold);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>summary:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>ol{
+  list-style:none;display:grid;gap:var(--eidos-space-sm);
+  margin:0;padding:var(--eidos-space-sm);
+  counter-reset:eidos-workbench-issue;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page] li{
+  display:grid;grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:start;gap:var(--eidos-space-md);
+  border:1px solid color-mix(in srgb,var(--eidos-warning) 30%,var(--eidos-border));
+  border-radius:var(--eidos-radius-lg);background:var(--eidos-bg);
+  counter-increment:eidos-workbench-issue;
+}
+@media(max-width:520px){
+  [data-eidos-task-presentation="workbench"]
+    [data-eidos-form-task-issue-page] li{
+    grid-template-columns:28px minmax(0,1fr);gap:var(--eidos-space-sm);
+  }
+}
 `;

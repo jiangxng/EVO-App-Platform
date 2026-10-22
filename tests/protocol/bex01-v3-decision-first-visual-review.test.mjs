@@ -191,6 +191,18 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     heading:{title:""}}}).ok,false);
   assert.equal(mapping.reviewTask.issuesLayout,"connected");
   const continuousMarkup=renderToHtml(mapping);
+  // #909 uses filled state tags, not unadorned colored table-cell text.
+  // Keep semantic status keys on the same native Eidos rows for live choice updates.
+  assert.match(continuousMarkup,/data-eidos-review-table-status-badge/);
+  assert.match(continuousMarkup,/data-eidos-review-table-status-badge>不导入|data-eidos-review-table-status-badge>需要核对|data-eidos-review-table-status-badge>待新增/);
+  for(const key of ["matched","proposed","pending","attention","suggested"]){
+    assert.ok(eidosProductiveWorkbenchCss.includes('data-eidos-review-table-status-key="'+key+'"'),
+      "V3 source status chip style missing for "+key);
+  }
+  for(const color of ["#f0f3f6","#2b65aa","#eef5fd","#fff6e7","#eaf7f1"]){
+    assert.ok(eidosProductiveWorkbenchCss.includes(color),
+      "V3 source status chip palette missing "+color);
+  }
   assert.match(continuousMarkup,/data-eidos-form-task-issues data-eidos-task-issues-layout="connected"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-issues-layout="connected"/);
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
@@ -266,4 +278,57 @@ test("Eidos disclosure is opt-in; unknown modes fail closed",()=>{
   const full=renderToHtml(ordinary);
   assert.doesNotMatch(full,/data-eidos-task-presentation="decision-first"/);
   assert.match(full,/data-eidos-form-task-overview/);
+});
+
+
+test("V3 workbench retains all 29 Host issues in native twelve-item pages",()=>{
+  const headers=Array.from({length:29},(_,i)=>"来源待核对列-"+String(i+1));
+  const sourceJob={...job,source:{...job.source,headers,
+    rows:[Object.fromEntries(headers.map((key,i)=>[key,"值"+i]))]},
+    mapping:[],ignoredSourceColumns:[]};
+  const schema={fields:[{
+    fieldId:"code",resolvedLabel:"供应商编码",readable:true,writable:true,
+    surfaces:["IMPORT"],valueType:"STRING",required:true,semanticType:"counterparty-code"
+  }]};
+  const doc=createDataImportMappingPageV010({
+    job:sourceJob,schema,locale:"zh-CN",canCreateExtension:false
+  });
+  assert.equal(doc.reviewTask.metrics.find(item=>item.id==="attention").value,"29");
+  assert.equal(doc.reviewTask.issues.length,29,
+    "Host issue catalog must not discard tasks after the twelfth");
+  assert.equal(doc.reviewTask.issuesPageSize,12);
+  const result=validateUidl(doc);
+  assert.equal(result.ok,true,JSON.stringify(result.diagnostics));
+  const html=renderToHtml(doc);
+  assert.match(html,/data-eidos-form-task-issue-count[^>]*>29 项待处理/);
+  assert.equal((html.match(/data-eidos-form-task-issue-page>/g)??[]).length,2);
+  assert.match(html,/13–24 \/ 29/);
+  assert.match(html,/25–29 \/ 29/);
+  assert.match(html,/data-eidos-form-task-issue="map-source-28"/,
+    "the final source issue must remain directly navigable");
+  assert.match(html,/data-eidos-form-task-focus="map-source-28"/);
+  assert.match(html,/<ol start="25" style="counter-reset:eidos-workbench-issue 24">/);
+  assert.match(eidosProductiveWorkbenchCss,/display:list-item;list-style-position:inside/,
+    "Native expand marker must remain visible and keyboard discoverable");
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issue-page/);
+  assert.equal(validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,issuesPageSize:13
+  }}).ok,false,"only the opt-in bounded twelve-item pages are valid");
+  assert.equal(validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,issuesPageSize:undefined
+  }}).ok,false,"legacy forms must retain the twelve-issue cap");
+  assert.equal(validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,presentation:"full"
+  }}).ok,false,"only the workbench can opt into issue pagination");
+  const overLimit=Array.from({length:4097},(_,i)=>({
+    id:"item-"+i,title:"Safe issue "+i
+  }));
+  const invalid=validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,issues:overLimit
+  }});
+  assert.equal(invalid.ok,false);
+  assert.ok(invalid.diagnostics.some(item=>
+    item.path==="$.reviewTask.issues"
+    && item.message.includes("bounded")),
+    "bounded Eidos contract must fail closed beyond 4096, not truncate");
 });

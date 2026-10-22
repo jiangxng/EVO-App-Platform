@@ -695,7 +695,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       const cell=row.querySelector<HTMLElement>("[data-eidos-review-table-status]");
       if (!cell) return;
       row.dataset.eidosReviewTableStatusKey=status.key;
-      cell.textContent=status.label;
+      const badge=cell.querySelector<HTMLElement>("[data-eidos-review-table-status-badge]");
+      if (badge) badge.textContent=status.label;
+      else cell.textContent=status.label;
       cell.dataset.tone=status.tone ?? "neutral";
       updateCounts();
       if (reviewTableFilter) {
