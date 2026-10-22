@@ -2,6 +2,8 @@
 
 对所有修改导航、配色、页面、业务表单、列表、按钮、移动体验、提示文案、Agent 交互入口的 LLM **必须先执行界面设计检查**。不能先做页面再事后补几句 UX 口号。
 
+**可编辑原型源码优先（Owner 2026-10-21）**：如果用户已认可的界面原型有可读取的 HTML/CSS/JS、组件或样式/交互代码，在任何截图或视觉猜测之前先取得版本固定的原型源码，直接核对 DOM 层级/功能事件/状态、媒体查询、色板和交互预期。截图只是实现后的浏览器/人审检查，不作为反推已有 CSS/JS 的主要开发手段。验收分为功能、布局、颜色三个独立 100% 目标；响应式允许合理自适应，不要求跨视口像素和行高一样；demo 假保存/假业务数据/假调用不得取代 Host 真实操作。按 [项目工作流 §5](../docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md) 与 [快速反馈规程 §5](../docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md) 复用已有证据并集中修改，不重复做图片推断与微调。
+
 **先读完整权威（不得只读搜索片段）：** Eidos `docs/product/EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md`、`EIDOS-HUMAN-UI-DESIGN-REVIEW-CHECKLIST-v1.0.md`；依任务继续读 Navigation & IA、Productive Design Language、Business Office Visual Language（颜色）、Mobile、Icon、Eidos tokens。现有研究索引：`EIDOS-VISUAL-COGNITIVE-RESEARCH-REFERENCE-INDEX-v1.0.md`；业务专项按其交接索引复用，不重复做旧研究。
 
 **检查顺序不可跳过：**

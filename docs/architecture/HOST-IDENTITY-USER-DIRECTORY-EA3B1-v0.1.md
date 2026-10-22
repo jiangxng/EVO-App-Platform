@@ -192,6 +192,10 @@ APP_PLATFORM_IDENTITY_USER_DIRECTORY_FILE
 
 File persistence uses atomic temporary-file replacement.
 
+The file-store factory and runtime/probe registration do not access the directory file. The first synchronous `snapshot()` or valid `save()` loads and validates one Host-owned snapshot; a first `save()` must validate existing data before replacement. Only `ENOENT` means an empty directory. Invalid JSON/schema and other read failures propagate without publishing an empty snapshot or overwriting the file; a later explicit call can retry after repair. Successful initialization retains the original process-local snapshot contract: external file edits require Host restart, while in-process service updates share the same current state.
+
+This directory is independent of the managed browser Session flag. A configured path alone is not a read trigger; authenticated principal recording, current delegated-authority lookup or an authorized management/health call is. Disabling a consumer must not discard the shared directory or revive a disabled Human. This does not add a live filesystem refresh, multi-writer authority, account reactivation or new authentication mode. See [governance qualification §19](../plans/platform-governance/PROVIDER-REGISTRATION-BOUNDARY-20261020.md#19-identity-directory构造与独立撤销来源2026-10-21).
+
 ## 9. Package / Provider model
 
 Package:

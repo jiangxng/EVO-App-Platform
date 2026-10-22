@@ -47,6 +47,9 @@ export function genericOidcClientSecretReferenceV010(): SecretReferenceV010 {
 export async function configureGenericOidcProviderRuntimeV010(input: {
   settings: Record<string, SettingValueV010>;
   secrets?: ManagedSecretsProviderV010;
+  resolveSecrets?: () => ManagedSecretsProviderV010 | undefined;
+  isCurrent?: () => boolean;
+  epoch?: () => number;
   registry: ProviderRuntimeRegistry;
   fetchImpl?: typeof fetch;
 }): Promise<GenericOidcRuntimeConfigurationResultV010> {
@@ -70,29 +73,48 @@ export async function configureGenericOidcProviderRuntimeV010(input: {
     };
   }
 
-  let clientSecret: string | undefined;
-  if (input.secrets) {
-    const reference = genericOidcClientSecretReferenceV010();
-    const status = await input.secrets.describe(reference);
-    if (status.configured) {
-      const value = (await input.secrets.resolve(reference)).trim();
-      if (!value) throw new Error("OIDC_CLIENT_SECRET_EMPTY");
-      clientSecret = value;
-    }
-  }
-
+  let runtime: IdentityAuthenticationProviderV010;
+  const resolveSecrets = input.resolveSecrets ?? (() => input.secrets);
   const scopes = stringSetting(input.settings, "scopes");
   const options: GenericOidcProviderOptionsV010 = {
     issuer,
     clientId,
-    ...(clientSecret ? { clientSecret } : {}),
+    captureContext() {
+      const epoch = input.epoch?.();
+      return () => {
+        if (input.registry.get(GENERIC_OIDC_PROVIDER_ID) !== runtime
+            || input.isCurrent?.() === false || input.epoch?.() !== epoch) {
+          throw new Error("OIDC_CONTEXT_CHANGED");
+        }
+      };
+    },
+    async resolveClientSecret(signal, checkContext) {
+      checkContext();
+      signal.throwIfAborted();
+      const secrets = resolveSecrets();
+      if (!secrets) throw new Error("SECRETS_PROVIDER_REQUIRED");
+      const reference = genericOidcClientSecretReferenceV010();
+      const check = () => {
+        checkContext();
+        signal.throwIfAborted();
+        if (resolveSecrets() !== secrets) throw new Error("OIDC_CONTEXT_CHANGED");
+      };
+      const status = await secrets.describe(reference);
+      check();
+      if (!status.configured) return undefined;
+      const value = (await secrets.resolve(reference)).trim();
+      check();
+      if (!value) throw new Error("OIDC_CLIENT_SECRET_EMPTY");
+      return value;
+    },
     ...(scopes ? { scopes } : {}),
     ...(input.fetchImpl ? { fetchImpl: input.fetchImpl } : {})
   };
 
+  runtime = createGenericOidcIdentityAuthenticationProviderV010(options);
   input.registry.replace<IdentityAuthenticationProviderV010>(
     GENERIC_OIDC_PROVIDER_ID,
-    createGenericOidcIdentityAuthenticationProviderV010(options)
+    runtime
   );
   input.registry.setHealthProbe(
     GENERIC_OIDC_PROVIDER_ID,
@@ -111,3 +133,4 @@ export async function configureGenericOidcProviderRuntimeV010(input: {
     reason: "READY"
   };
 }
+
