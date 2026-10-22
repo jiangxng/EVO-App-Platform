@@ -10,3 +10,7 @@ Approved #909 HTML: \`af58e0abad880439d54230485305bf2b4e05decc\`, Git blob \`9f5
 - **截图**：\`v3-locked-prototype-1280px.png\`、\`v3-real-host-1280px.png\`、\`v3-locked-prototype-390px.png\`、\`v3-real-host-390px.png\`；同一 artifact 内还包括 \`v3-prototype-host-human-review.html\` 并排阅览页及 \`v3-prototype-host-parity-observation.json\` 数字观测。
 - **Human 仍必须分别签署**：功能、布局、颜色每轴各自 100%。源原型的模拟自动保存、模拟成功和非 Host 外壳不得复制为生产行为；真实授权审批路由分步保留。截图程序并不会替用户签收，也不使用客户原始数据。
 - **边界**：如 CI 红灯先核实运行日志与固定原型资源可达性，不做无关修补；只在本 Draft 分支提交。不影响另一个主线窗口。M04、M05、M06 保持 OPEN，阶段总计 3/6；不得 merge main / Railway deploy。
+
+## 首轮失败证据与原因判定
+- 首轮 `ae85472` 的真实 Chromium 失败于测试的错误假设 `attention==2`。当前真实页面还有 `suggested` 或 `pending` 来源列；Host 保留三项问题还包括 3 行主体类型校验，不应简单等同于“黄色状态行的数目”。源原型哈希下载已经通过。
+- 仅修正 **测试断言的语义**：matched/proposed 继续精确检查 16/4；所有 attention/pending/suggested 合计 2 列且每类警告标签均为原型颜色；Host 固定问题数仍独立要求 3。保留截图、撤销、权限和业务 UI 不变。不得以这次测试更正宣称人工完成验收。

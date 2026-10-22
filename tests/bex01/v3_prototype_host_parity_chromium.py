@@ -21,7 +21,12 @@ REFERENCE_BLOB="9f57e9320eb527786ff7b737be27777eba6f8a92"
 EXPECTED_STATUS={
   "matched":(16,"rgb(234, 247, 241)","rgb(24, 118, 90)"),
   "proposed":(4,"rgb(238, 245, 253)","rgb(43, 101, 170)"),
-  "attention":(2,"rgb(255, 246, 231)","rgb(166, 103, 18)")
+  # The Host can distinguish pending vs suggested vs attention. The three
+  # durable task issues include row errors and MUST NOT be equated to yellow
+  # table rows. All three source-risk states share the pinned warning palette.
+  "attention":(None,"rgb(255, 246, 231)","rgb(166, 103, 18)"),
+  "pending":(None,"rgb(255, 246, 231)","rgb(166, 103, 18)"),
+  "suggested":(None,"rgb(255, 246, 231)","rgb(166, 103, 18)")
 }
 observations={"reference":{"commit":"af58e0abad880439d54230485305bf2b4e05decc",
    "blob":REFERENCE_BLOB,"demoOnly":True},
@@ -109,18 +114,28 @@ with sync_playwright() as pw:
         for key,(expected_count,bg,fg) in EXPECTED_STATUS.items():
             matching=form.locator(
                 f'[data-eidos-form-review-table-row][data-eidos-review-table-status-key="{key}"]')
-            assert matching.count()==expected_count,(key,matching.count())
+            count=matching.count()
+            if expected_count is not None:
+                assert count==expected_count,(key,count)
+            if count==0:
+                continue
             badge=matching.first.locator('[data-eidos-review-table-status-badge]')
             expect(badge).to_be_visible()
-            swatches[key]={"count":matching.count(),"background":color(badge,"backgroundColor"),
+            swatches[key]={"count":count,"background":color(badge,"backgroundColor"),
                 "text":color(badge,"color")}
             assert swatches[key]["background"]==bg,(key,swatches[key],bg)
             assert swatches[key]["text"]==fg,(key,swatches[key],fg)
+        risk_rows=sum(swatches.get(key,{}).get("count",0)
+            for key in ("attention","pending","suggested"))
+        assert risk_rows==2,("Two undecided SOURCE columns, not three durable issues",swatches)
+        assert sum(item["count"] for item in swatches.values())==22,swatches
 
         # Verify an actual unsaved Human choice changes only the local view,
         # and reset restores it without running a Host action or preflight.
         bank=form.locator('[data-eidos-form-review-table-row="map-source-20"]')
         expect(bank.locator('select[name="map_20"]')).to_have_value("__PENDING__")
+        original_bank_tone=bank.get_attribute("data-eidos-review-table-status-key")
+        assert original_bank_tone in ("attention","pending","suggested"),original_bank_tone
         bank.locator('select[name="map_20"]').select_option("__IGNORE__")
         expect(bank).to_have_attribute("data-eidos-review-table-status-key","ignored")
         assert color(bank.locator('[data-eidos-review-table-status-badge]'),
@@ -129,7 +144,7 @@ with sync_playwright() as pw:
             '[data-eidos-form-task-metric-id="attention"] strong').inner_text()=="3"
         form.locator('[data-eidos-form-task-reset]').click()
         expect(bank.locator('select[name="map_20"]')).to_have_value("__PENDING__")
-        expect(bank).to_have_attribute("data-eidos-review-table-status-key","attention")
+        expect(bank).to_have_attribute("data-eidos-review-table-status-key",original_bank_tone)
         assert post_actions==[],post_actions
 
         # The actual platform app provides a governed Host shell, not the
