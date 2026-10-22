@@ -35,6 +35,7 @@ export function requestAuthenticationHttpFailureV010(
   if (
     message === "IDENTITY_AUTHENTICATION_PROVIDER_UNAVAILABLE"
     || message === "OIDC_CONTEXT_CHANGED"
+    || message === "OIDC_TRANSACTION_LIMIT_REACHED"
     || message === "AUTHENTICATION_PUBLIC_BASE_URL_REQUIRED"
     || message === "AUTHENTICATION_PUBLIC_BASE_URL_HTTPS_REQUIRED"
     || message === "AUTHENTICATION_REDIRECT_HTTPS_REQUIRED"

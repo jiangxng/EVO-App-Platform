@@ -811,3 +811,110 @@ Host同步`resolveIdentitySession`在有效描述符为零时直接返回host.co
 下一条最小gate：**EVO Runtime Observatory实际请求期限与清理**，先复核原query/probe、并发、挂起响应体/Abort、失败恢复与停止责任，再决定保留或最小修正；不新增观测业务功能。R3的OIDC事务/records预算、其余安全基础资格继续OPEN；R1冻结SOP身份/资格、R2原Agent配置SQL责任/资格、R4最终跨层及A03/A05不代关。固定7项仍4闭环、3部分完成。
 
 [结构化证据](evidence/llm-metadata-qualification-20261021.json)；[八节操作兼容记录](../../ui-design-reviews/llm-metadata-qualification-20261021.md)。
+
+
+## 21. EVO观测实际请求总期限、响应体清理与恢复（2026-10-22）
+
+基线main `eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff`，已确认包含原#1020及#1095；过程分支`fix/governance-evo-request-budget-20261022`。#1096已清理此前本专项44个合并分支；不重复删除或把并行清理记为本批代码成果。本批继续A01/R3，不扩展观测业务、第二Provider、UI或Agent功能。
+
+### 最小差距、选择与保留
+
+原EVO runtime blob `fa3e20e1e513c4089ddeb46967518f7a27184e36`：构造只是fetch/config闭包，被动登记只存Map，保留静态工厂，不增懒代理/通用框架。query才依次GET企业映射、POST目标观测及可选轨迹；probe才GET readiness，均无本层timer/AbortSignal。原函数注入fetch的2场景探针确认query正文与probe响应头挂起时都无timer/signal且仍pending；人工释放后完成。该探针不是真实Host/远端EVO或生产证据。
+
+在**原Provider文件内**增加私有请求期限包装，不改变公共0.2.0 query合同、映射/指标/事实校验、同步resolver或Host安装策略。默认每次query共用一个8000ms总预算，覆盖企业解析、全部目标及轨迹的headers/json；不随目标重置。每次显式probe有独立8000ms预算。新增工厂可选timeoutMs仅为调用者/测试端口，不新增环境或Settings；非法范围在构造期纯校验。与只给fetch响应头加timer相比，此路线同时覆盖正文且不会让N目标获得N倍预算。
+
+原生fetch收到AbortSignal，超时原因`EVO_OBSERVATORY_REQUEST_TIMEOUT`；每次JSON读取后及返回前复核中断，迟到正文不触发下一阶段、不返回部分facts。成功、HTTP/网络/解析/事实校验失败和timeout都在finally清timer并abort，释放未读响应体。readiness原合同只看HTTP状态，保留HEALTHY/UNAVAILABLE；不等待其无约定正文，立即abort未读body。registry原显式probe发布UNAVAILABLE，下一次有权限显式probe成功恢复，无后台轮询/自动重试/静默换Provider。
+
+### 所有权与停止边界
+
+| 对象/触发 | 决定及实际资源 | 停止/恢复责任与限制 |
+|---|---|---|
+| 清单、工厂、被动registry/resolver | 轻量常量或无资源闭包；保留。构造不fetch、不建timer/store/连接池 | 不绑定任一观测UI插件的启停，不增加dispose。此前构造guard继续验证 |
+| 显式query | 每次独立controller+一个总期限timer；按原路径读取业务，目标顺序与事实合同不变 | 完成/失败/超时释放本次资源；新显式调用可恢复，无共享失败Promise或自动重放 |
+| 显式readiness probe | 每次独立controller+timer，仅请求HTTP状态 | 无权限/无有效贡献仍由原Host管理入口拒绝；本批未改入口。未结束body被abort，健康缓存仍由原registry管理 |
+| 停用、旧引用与Host shutdown | 原有效描述符消失时resolver不再给新调用选择；已经admit的query仍持旧引用 | 公共合同没有stop/cancel参数：**不承诺停用立即中断、旧引用全面失效或Host统一drain**。本批让在途读取在自身期限清理，不为去掉闭包把共享Host状态销毁；完整跨层停止验收仍属R4 |
+
+期限依赖原生或遵守AbortSignal的fetch。注入一个永不响应abort的自定义fetch不能据此宣称硬终止；同步CPU工作亦不可被Node timer抢占。原生fetch的共享keep-alive池不是本Provider新增/拥有的连接池，本批不宣称清空全局socket或全平台零资源。8秒是本层默认读预算，不推断远端执行/业务完整性或跨两个observeWindow的统一SLA。
+
+### 分层验证与证据
+
+- 本地Node24.19部分固定SHA快照、临时TypeScript类型擦除dist：**41/41，0fail/0skip**。新增协议20项，覆盖三阶段headers/body六种timeout、总预算/默认与自定义值、非法值/缺映射、并发2 query+probe隔离、四类失败/恢复、迟到正文、原resolver停止新选择及registry health恢复；后两者是原组件+模拟有效描述符组合，不冒充真实Host生命周期HTTP。
+- 新增原生HTTP9项：本地loopback合成服务+实际global fetch，三阶段headers/body挂起超时、下一次query恢复、probe headers超时恢复、200/503未结束body释放。每个挂起response验证socket关闭，原查询每阶段只发一次；不是实际EVO部署/数据库。500ms测试端口缩短等待，默认8000ms由可控timer协议验证。
+- 原preserved事实映射5项、session/OIDC/EVO资源5项、Provider health2项保持；新协议20+HTTP9及原事实5加入现有Lightweight，基线/禁入列表不放宽。Help影响为既有`evo.provider.health`英/中文同步追加期限、错误码与显式恢复说明，无导航/视觉源变化。
+- 默认沙箱首次原生HTTP执行因listen EPERM全部未进入业务；取得最小network权限后原脚本9项及最终41项通过，没有改产品/跳过断言解决环境。没有正式本地npm build、真实Host、数据库、浏览器或生产测试；准确最终head CI及四组合实测、合并/清理在PR永久收尾。不得把#1095的312/246写成本地或本批实测。
+
+读取范围：新完整EVO runtime/package、原公共query合同及Observatory runtime合同、registry、相关新测试和既有事实5项；Host局部配置登记/health入口及原Observatory resolver、observeWindow query调用边界，未通读全Host。复用此前完整且blob不变的装载架构、EOG第6～16节与#1020证据、Provider§11及§20、固定7项/A01材料；新main开发规则仅补读变更及关联段。Help架构按§1–2/9–11/15–18相关段局部读取，两篇现有Help文章完整；不声称审计全部Help系统。未开展外网研究。
+
+### 提效、停止条件与下一步
+
+沿FAST-FEEDBACK：先用两个原函数探针确认共同根因，一次列齐三阶段/并发/错误/恢复，再在一个原文件合批修正，先25项协议+保留映射，再9项原生网络及最终41项；不拆工厂、不改Host/Agent，不重复旧LLM/Secrets/目录整改。资料读取曾有错猜路径404与一次大参数写文件失败，已改为先查当前tree及只传必要小文件；它们是资料工具问题，无产品补丁/远程重试。无连续两轮无效产品修复；若两轮CI/脚本环境失败或核心指标不改善，第三轮前按原四行规则复盘。
+
+停止条件：本批实际HTTP期限/正文释放与原事实合同在最终head CI通过后合并收尾；不顺手扩展通用请求框架。若误删事实、未中断原生请求、并发串扰或失败后不可恢复，回到此原合同最小复现，不降低原断言。8秒可能拒绝原本最终成功的慢查询，这是有意的有限资源策略；实际吞吐/超大响应字节与输入预算不在本批宣称通过。
+
+下一条最小gate：**原OIDC待处理登录事务的数量/期限及managed Session records预算**，先查原清理时点、并发、过期/失败恢复和独立安全持久责任，选择有界保留/修正；不做新认证产品或Agent功能。其余安全基础资格与EVO停止/跨层仍保留。R1冻结SOP身份/资格、R2原Agent配置触发SQL职责/资格、R3其余及R4最终跨层验收均OPEN；A03权威结果/幂等恢复与A05正式策略/迁移不代关。PA05旧Node24.22 isolated READ兼容失败未重试/未修复，CrossDB原24.21 pin保持，其他PA05绿灯不代关原责任。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；EVO请求期限本批增量 | OIDC事务/records预算；R1/R2/R3其余/R4 |
+| A02 安装声明与实际执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式环境策略与兼容迁移 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口仍在A01 |
+| A07 个人/企业上下文边界 | 已闭环、原Agent专项 | 本专项无需进一步操作，原owner验收其实施 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 原剩余责任逐项验收，未部署 |
+
+[结构化证据](evidence/evo-observatory-request-budget-20261022.json)。
+
+
+## 22. OIDC临时登录事务容量与Session持久证据保留（2026-10-22）
+
+基线main `ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95`（#1098，包含原#1020）；分支`fix/governance-oidc-transaction-budget-20261022`。上一批准确head CI/清理见[#1098永久收尾](https://github.com/jiangxng/EVO-App-Platform/pull/1098#issuecomment-6330884384)，不重做EVO期限。main启动/交付规则blob未变，复用已读；开放BEX/PA05工作线不动。本批只推进A01/R3既有OIDC临时状态，不新增认证产品或接管Agent。
+
+### 原始差距、判别与有界选择
+
+原OIDC runtime blob `cbc017156dbabd29fc98795d8841f923e3f09c1f`：begin向Map保留state/nonce/PKCE verifier/回调与资格闭包；TTL默认600秒，但仅complete命中该state后判过期，无其他清理/数量上限。IdP error或缺授权码在delete之前抛错，原失败回调state还能带code进入token交换。3场景原函数+注入fetch/clock/random探针验证：请求limit2的第三个begin仍被接受（原无此选项）、error后同state仍到换票、超过TTL后新begin不回收旧state。没有实际IdP/Host/生产调用。
+
+EA-1B2A§3要求临时state单次消费、restart重新登录；它不是耐久Session撤销记录。本批在原runtime内增加私有prune与数量检查，默认**每runtime最多1000个未消费state**，保留原600秒TTL及其精确边界（age==TTL仍有效，age>TTL过期）。begin在shared discovery后同步清过期、检查并写入，无await插空；满额拒绝新begin `OIDC_TRANSACTION_LIMIT_REACHED`，不为新请求挤掉有效旧登录、不创建新的state/nonce/verifier。1000是参考实现的有限状态容量策略，不是实测吞吐或安全公平保证；工厂可选maxPendingTransactions供组合/测试覆盖，不加环境/Settings/公共认证接口。
+
+complete对presented known state先消费，再处理IdP error/缺code；无state/未知state不消费其他有效登录。回调入口活动也清理其他过期条目；若本次expired state还存在，仍给原OIDC_TRANSACTION_EXPIRED；已被之前活动回收则STATE_INVALID，均不换票/签发Session。保留原PKCE/nonce/issuer/audience/签名校验、Secret实际换票读取、当前资格复核与原8秒网络期限。原request-authentication只新增容量错误→503 AUTHENTICATION_UNAVAILABLE的既有映射，不暴露协议秘密、不改Host路由或权限。
+
+选择活动时清理+拒绝新增，而非TTL后台timer、LRU挤掉活跃登录、持久化协议秘密或新通用框架：Map至多1000，即使无后续活动保留过期对象也有限；下一次合法活动可回收恢复。构造仍纯校验/闭包，无timer/文件/出站；不绑定某个UI的启停。数量不包含已消费后在途的token/JWKS请求，不承诺总并发、精确字节/heap、按人公平或抗请求洪泛；这些不能用本批PASS替代。停用/配置代际仍按§12拒绝旧回调，未重构生命周期。
+
+### 共享受管Session：保留决定与仍开放预算
+
+EA-1A§5/6/11明确签发/撤销/轮换事件是append-only持久证据，启动重放建立共享sessionId/tokenHash索引，请求只查内存。当前store实读源码显示records及事件数组没有数量/字节上限；过期/撤销只影响resolveToken，get/list及重启历史仍保留。文档“bounded lifecycle evidence”不能冒充实现了数值预算。
+
+因此**不套用OIDC 1000条上限，不裁剪日志、不删撤销记录、不按认证UI停用销毁共享服务**。新增原JSONL组件回归保护expired/revoked保持get/list与重放证据、两种credential持续拒绝、返回clone隔离、读取不重写且磁盘无raw token。此为必要保留决定；Session日志增长、重放成本、归档/压缩/多进程权威仍OPEN，需要独立明确保留与恢复合同，不能把retention决策写成资源预算已完成。Host memory-intake的配置records是另一条原预算待办，本批未测也未代关。
+
+### 验证、提效及证据分层
+
+- 本地Node24.19固定SHA部分源码/临时类型擦除：**57/57、0fail/0skip**。原OIDC协议16+新10=26、原Host配置5、authentication-flow12、managed Session8+保留回归1=9、原session/OIDC/EVO资源5。新10覆盖默认1000饱和/最旧仍成功、25并发限2、非法值零分配、过期全部回收、TTL边界、expired callback、error/缺code消费与恢复、unknown/stateless error不影响其他state、同state并发仅一次换票。IdP为合成协议fixture，非真实认证。
+- 新增1项真实Host验收到**既有**oidc-credential-host文件/原helper：25并发分40批填满默认1000，1001请求503/无location/无Cookie/零token及解密；error消费与replay均不签发；新登录恢复而另一最早有效state仍能完成并唯一签发；重启拒绝未完成旧state但已有Session Cookie仍有效、原JSONL字节保持。该项本地只查语法，最终head CI执行；不声称本地正式build/Host/浏览器/数据库或真实IdP。
+- 既有OIDC专属CI自动覆盖原协议文件；Lightweight已有OIDC协议/Host，另加入managed-request-session保留回归。原静态基线、deny列表、协议/授权断言不放宽。Help同稳定ID的en/zh-CN补容量拒绝/等待与新登录说明；无视觉/导航源变更，无Human本人验收声明。
+- 本批没有失败产品/CI路线；复用上轮已知沙箱及部分快照限制，不再无效尝试本地Host或新网络命令。先3场景原函数判别，再集中两个生产文件和同根因回归，最终一次合并相关验证；正式CI/四组合/合并与分支精确清理写永久PR收尾，不以#1098的312/246当本轮实测。旧Node24.22 isolated READ失败未重试/未修复，原PA05兼容责任与24.21 pin保持。
+
+新完整相关权威：EA-1B2A OIDC、EA-1B2B Host wiring、EA-1A Session；其中历史wiring的旧Secret描述由当前§12实现/证据补充，不照搬回生产。源码复核OIDC begin/complete/TTL/Map与JWT/fetchJson、完整Session store及request-authentication；Host只读auth/login、callback/session及错误映射相关段，未通读全Host。原OIDC协议读fixture/认证与资格/失败恢复场景、managed协议和Host fixture/helper；不把测试绿当全文安全审计。项目规则/当前治理/A01/装载架构及既有研究复用未变blob与已读范围，未重复外网研究。
+
+### 下一步与停止条件
+
+本批准确head相关CI通过后合并/清理，不继续加认证功能。若满额挤掉有效登录、过期/失败state能换票、拒绝仍签发Session或永久凭据丢失，回到上述最小合同修正；两轮无实效/脚本环境失败时第三轮前按FAST-FEEDBACK四行复盘。没有生产部署或真实客户数据操作。
+
+下一条最小gate：**原host-memory-intake配置records的构造成本/条目与字节预算、当前资格和首次消费**，先区分Host配置边界与必要共享权威，再决定有界保留或整改，不新增第二来源试点/Agent记忆功能。R3的Session持久retention/预算、其余安全基础资格及EVO统一停止限制仍OPEN；R1冻结SOP身份/资格、R2原Agent配置SQL职责/资格、R4最终跨层、A03权威结果/幂等恢复与A05正式策略/迁移不代关。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；OIDC临时事务本批增量 | memory-intake records；Session预算与R1/R2/R3其余/R4 |
+| A02 安装声明与实际执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略与兼容迁移 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口仍计A01 |
+| A07 个人/企业上下文边界 | 已闭环、原Agent专项 | 本专项无需进一步操作，原owner验收其实施 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 原剩余责任逐项验收，未部署 |
+
+[结构化证据](evidence/oidc-transaction-budget-20261022.json)。

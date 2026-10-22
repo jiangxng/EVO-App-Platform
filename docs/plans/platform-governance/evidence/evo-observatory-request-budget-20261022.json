@@ -1,0 +1,98 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-22",
+  "baseline": "eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff",
+  "branch": "fix/governance-evo-request-budget-20261022",
+  "scope": "A01/R3 existing EVO Runtime Observatory request budgets and response cleanup",
+  "change": {
+    "source": "providers/evo-runtime-observatory/runtime.ts",
+    "beforeBlob": "fa3e20e1e513c4089ddeb46967518f7a27184e36",
+    "afterBlob": "00b937b23133defb4ea3724c0d5de0c8f8d1ff6f",
+    "defaultBudgetMs": 8000,
+    "scopeOfQueryBudget": "one enterprise resolution + all targets + optional trace read, through response JSON",
+    "oneControllerAndTimerPerCall": true,
+    "constructionCreatesResources": false,
+    "noAutomaticRetry": true,
+    "noPublicQueryContractChange": true,
+    "noHostOrAgentProductionChange": true,
+    "noGeneralFrameworkOrLazyProxy": true
+  },
+  "beforeProbe": {
+    "node": "v24.19.0",
+    "sourceBlob": "fa3e20e1e513c4089ddeb46967518f7a27184e36",
+    "kind": "original-provider-with-injected-fetch-not-Host",
+    "rows": [
+      {
+        "phase": "query-body",
+        "timers": 0,
+        "hasSignal": false,
+        "settled": false
+      },
+      {
+        "phase": "probe-headers",
+        "timers": 0,
+        "hasSignal": false,
+        "settled": false
+      }
+    ]
+  },
+  "localValidation": {
+    "node": "v24.19.0",
+    "build": "partial fixed-SHA snapshot; stripTypeScriptTypes only, not formal npm build",
+    "newProtocolTests": 20,
+    "newNativeHttpTests": 9,
+    "preservedFactMappingTests": 5,
+    "existingSessionObservatoryTests": 5,
+    "existingProviderHealthTests": 2,
+    "totalPassed": 41,
+    "failed": 0,
+    "skipped": 0,
+    "nativeHttp": "actual global fetch and loopback synthetic HTTP, not actual EVO or Host",
+    "nativeHttpBudgetMs": 500,
+    "nativeHttpChecks": "hanging headers/body at enterprise, observations and traces; socket closure; explicit recovery; readiness timeout and unfinished 200/503 body cleanup",
+    "localEnvironmentFailure": "initial default-sandbox listen EPERM; same script passed with scoped network permission, no production correction/skip",
+    "commands": [
+      "node --test --test-isolation=none tests/protocol/evo-observatory-request-budget.test.mjs tests/integration/evo-observatory-request-budget.test.mjs tests/preserved/evo-runtime-observatory-provider.preserved.mjs tests/protocol/session-observatory-resource-boundary.test.mjs tests/protocol/provider-health-resolution.test.mjs",
+      "node --check dist/providers/evo-runtime-observatory/runtime.js"
+    ]
+  },
+  "ownership": {
+    "queryAndProbe": "per-call deadline/controller; no shared request state; no resource-backed synchronous service added",
+    "effectiveSelection": "original resolver refuses new selection without effective descriptors; component fixture only",
+    "alreadyAdmittedQuery": "retains original reference until completion/failure/own deadline; no immediate lifecycle cancel guarantee",
+    "sharedGlobalFetchPool": "not created/owned/disposed by this Provider",
+    "customFetch": "must honor AbortSignal; noncooperative injected implementation and synchronous CPU cannot be forcibly preempted"
+  },
+  "helpImpact": {
+    "id": "evo.provider.health",
+    "locales": [
+      "en",
+      "zh-CN"
+    ],
+    "errorCode": "EVO_OBSERVATORY_REQUEST_TIMEOUT",
+    "uiSourceChanged": false
+  },
+  "ci": {
+    "atCommit": "pending; exact-head checks, native HTTP and four-combination measurements to be recorded in permanent PR closeout",
+    "baselineOrDenyListRelaxed": false,
+    "historical1095MetricsReusedAsCurrent": false
+  },
+  "remaining": [
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent configured SQL responsibility/qualification",
+    "R3 OIDC pending transactions, managed records budgets and other safety-foundation qualification",
+    "EVO lifecycle immediate cancel/Host drain not provided by current public contract",
+    "R4 final cross-layer acceptance",
+    "A03 authoritative result lookup/idempotent recovery",
+    "A05 production strategy/compatibility migration",
+    "PA05 Node24.22 isolated READ recovery compatibility remains original owner OPEN; CrossDB pinned24.21 unchanged"
+  ],
+  "next": "Inspect existing OIDC pending login transaction and managed Session records budgets before deciding bounded retention/correction",
+  "deployment": "not executed",
+  "humanAcceptance": "not claimed",
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}
