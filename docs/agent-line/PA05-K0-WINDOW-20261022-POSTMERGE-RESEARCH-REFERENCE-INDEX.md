@@ -105,3 +105,20 @@
 6. **会话防重复：** 新窗口首先读取**本索引 + 简短入口 + 当前 main**。以已合入 PR 和实际日志为主，不从历史“4 Draft”“不许合并”段落推导当前开发任务。
 
 **结论：** PA05 的这一轮工程任务“可复核地结束”，外部认证尾项“可追踪地保留”。没有必要再恢复已删工程分支或延后开始 PA06 的独立非生产工作。
+
+
+## 9. 2026-10-22 新窗口接续｜合并后 GitHub/Railway 只读复核（不改变认证结论）
+
+> **只读快照，不是 Operator 签收。** 原始结果已经追加在 [#1092 当次证据评论](https://github.com/jiangxng/EVO-App-Platform/issues/1092#issuecomment-6338734141)；此节供下个窗口直接接续。时间窗口：2026-10-22；动态事实下一次必须重新读取。
+
+| 证据项 | 本窗口直接读到的原始事实 | 判定/边界 |
+| --- | --- | --- |
+| GitHub refs/PR | `main@23e391730c7606f3933fb31e8ffcb53c704aa191`；#1104 merged `3bb68a6a6b2dcb11f1e10a9456a33e90f3440a85`；#1112 merged `802f2c1eb17bdddaf69dc57f4b2d969382416131`；#1113 merged 于当前 main；#1104 merge SHA 是当前 main 的祖先（HEAD 超前 8 提交） | **GitHub API / PR metadata / compare 直接读取**；工程不重复开发，历史旧 Draft 不复活 |
+| 分支 | GitHub `search_branches` 精确查询旧 `pa05-k0-consolidated-engineering-20261022` 返回 0；上窗口已保存 Workflow 原始 `DELETED_VERIFIED_MERGED_AGENT_BRANCH` 收据 | **当前 API 直接查询 + 既有原始日志遗产**；不要重建 |
+| Railway 运行版本 | 同一 Ledger Configurator production service 的最新 `SUCCESS/Online` deployment 仍为 `5cfce97b-9745-4e62-9b64-d2b1e0a2eedf`，commit `eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff`；2026-10-21T06:41:48.220Z 创建；1/1 running、0 crashed、无 pending work。接入源是 `EVO-App-Platform/main`，`RAILPACK` + `npm start`，`staged=null` | **Railway 连接器 describe_service / describe_environment / list_deployments / environment_status 直接读取**，但**旧部署在线**；未观测到本次 #1104 修复已上线 |
+| 精确版本差异 | GitHub compare `eef6774...23e3917` 为 `ahead_by=257 / behind_by=0` | 当前 main 比**当前在线 SHA** 超前 257 提交（不是“257 次应部署”），原因未知；不能擅自 redeploy |
+| 生产 R5 | `R5-01=UNKNOWN`：实际 deployment 的有效 draining/overlap 值与来源仍缺；`R5-02=PRODUCTION_UNVERIFIED`：真实 image/PID1/SIGTERM 回执仍缺；`R5-03=BLOCKED`：受权非生产 Supervisor/TTL/cgroup 与独立停止证明仍缺 | **原 #1092 门禁继续适用**；`K0/W06/PA05-05=NOT_SIGNED`、`production material WRITE=OFF` |
+
+**来源等级不提升：** 上表 GitHub 与 Railway 数据为本次 API 直接读取；本次**没有重新打开** Railway 官方网页。因此 §2 中“已读原文 / 仅搜索摘要 / 待验证”的既有分级保持原样，不能把历史引用称为“本次已读”。“官网默认 drain 0”、“`npm start` 可能拦截信号”仍是**一般资料**，不是这个在线部署的生效证明。未得直接证据的自动部署开关、Webhook 触发和滞后原因一律为 **UNKNOWN**。
+
+**路线决定：** 不重新研究/实现 #1104、不恢复旧 PA05 分支；继续在同一 [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 收集与**最新真实 deployment** 绑定的 R5-01/R5-02 安全脱敏 Operator 回执。独立 R5-03 须另行批准非生产设施及独立回收权威；不以在线健康/CI 合格代替 K0。此次没有进行 Railway 重启、部署、信号、SQL、Secrets 或生产配置写入，没有编辑 `project.status.json`、BEX/CP03、Eidos 或 2D。文档 PR 合入后按既有 SHA-pinned Branch Hygiene 工作流退休临时文档分支。
