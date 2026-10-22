@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-22",
+  "repository": "jiangxng/EVO-App-Platform",
+  "baseline": "df7078f988385fd3da033bb300423a3ccaf620e8",
+  "authorization": "User requested auditing remaining branch owners/status and cleaning abandoned refs; preserve unique work with exact archive tags, retain all open PR heads/bases.",
+  "cleanupBranch": "chore/repository-unowned-ref-retirement-20261022",
+  "scopeFiles": [
+    ".github/workflows/repository-unowned-ref-retirement-20261022.yml",
+    "repository-hygiene/unowned-refs-20261022.json",
+    "tools/unowned-ref-retirement-20261022.cjs",
+    "tests/protocol/unowned-ref-retirement-20261022.test.mjs"
+  ],
+  "targets": [
+    {
+      "name": "chore/verified-merged-ref-retirement-20261021",
+      "sha": "52e23806fbcd126e2901bf8ab5aa841841d60c59",
+      "uniqueCommits": 1,
+      "historicalOwner": "Repository engineering/workflow workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "archive",
+      "tag": "archive/retired-20261022/chore/verified-merged-ref-retirement-20261021",
+      "decision": "Preserve complete original commit/tree/history with a lightweight tag; delete only the working branch. This does not merge or certify its implementation.",
+      "prProof": {
+        "pr": 1096,
+        "head": "bd8ecc9eb2d87b230956fb887834e02caef37abc",
+        "merged": true,
+        "merge": "5159c863945879771541e580c40f0eb2e408519d"
+      }
+    },
+    {
+      "name": "docs/fast-feedback-pivot-workflow-20261021",
+      "sha": "1cf75f4e4ad74e7e31985dd618c084ebd79469cf",
+      "uniqueCommits": 2,
+      "historicalOwner": "Repository engineering/workflow workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "merged-snapshot",
+      "pr": 1089,
+      "merge": "4d291fb31f7a5c429b20be14fb48df687c5a1dac",
+      "files": [
+        {
+          "path": "AGENTS.md",
+          "sha": "f369fd1b2f684ddd64d03af77bf60e8263a6817a"
+        },
+        {
+          "path": "AI-BOOTSTRAP.md",
+          "sha": "a377cdfa0ae4442b8c5cf11c2df4a665ec2ac068"
+        },
+        {
+          "path": "docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md",
+          "sha": "21601f2bd0eb6fb1fa45e296eb2bb7268384aeb1"
+        },
+        {
+          "path": "docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md",
+          "sha": "e9831978ee510a78b134823f85a7f43189f1fb10"
+        }
+      ],
+      "decision": "Merged exact PR head; all changed source blobs match accepted merge snapshot. Squash history is not direct ancestry."
+    },
+    {
+      "name": "docs/prototype-source-first-fidelity-delivery-20261021",
+      "sha": "a9ff24615c5a1101a13e4f80691d899deeb774bf",
+      "uniqueCommits": 2,
+      "historicalOwner": "Repository engineering/workflow workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "merged-snapshot",
+      "pr": 1097,
+      "merge": "eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff",
+      "files": [
+        {
+          "path": ".clinerules/03-human-ui-design-review.md",
+          "sha": "86ff0e53708ba9938ae594904178c1ccb94d7fe6"
+        },
+        {
+          "path": "AI-BOOTSTRAP.md",
+          "sha": "9df0bfdc7812d34849407b17b220b56e8ba5afaa"
+        },
+        {
+          "path": "LLM.md",
+          "sha": "5fd2a9cfb00239c949d560c33af66a5bbd8dd59c"
+        },
+        {
+          "path": "docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md",
+          "sha": "8eddb152484fd9e73d986bacd7f2c85d67cd86a1"
+        },
+        {
+          "path": "docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md",
+          "sha": "393f3ee508c2337429365ba946066bd7c92b3b6d"
+        }
+      ],
+      "decision": "Merged exact PR head; all changed source blobs match accepted merge snapshot. Squash history is not direct ancestry."
+    },
+    {
+      "name": "feat/bex01-e3-real-map-task-overview-20261016",
+      "sha": "e0a3bbf6a670aff9c643f0ea0a978f45d4daac76",
+      "uniqueCommits": 2,
+      "historicalOwner": "BEX-01 workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "archive",
+      "tag": "archive/retired-20261022/feat/bex01-e3-real-map-task-overview-20261016",
+      "decision": "Preserve complete original commit/tree/history with a lightweight tag; delete only the working branch. This does not merge or certify its implementation.",
+      "noPrExpected": true
+    },
+    {
+      "name": "feat/bex01-resume-pending-import-20261015",
+      "sha": "6733d7cc9011474337e8b60070fbc63854983ed9",
+      "uniqueCommits": 5,
+      "historicalOwner": "BEX-01 workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "merged-snapshot",
+      "pr": 921,
+      "merge": "1695d4ab31985ba88f723d5dc4954dacc1677317",
+      "files": [
+        {
+          "path": ".github/workflows/bex01-in-context-resume.yml",
+          "sha": "4a673df1da630091a331d17f79b6309dcff3f5ed"
+        },
+        {
+          "path": "apps/data-import/page.ts",
+          "sha": "6843cda81ba4fbaf2afcd2453093d49544d4406b"
+        },
+        {
+          "path": "docs/ui-design-reviews/bex01-in-context-resume-20261015.md",
+          "sha": "e645326128aebed3c2e8b371462aed507129f088"
+        },
+        {
+          "path": "tests/protocol/bex01-in-context-resume.test.mjs",
+          "sha": "c39ae9c4e4aad13d44a3535b782488a85432b96a"
+        }
+      ],
+      "decision": "Merged exact PR head; all changed source blobs match accepted merge snapshot. Squash history is not direct ancestry."
+    },
+    {
+      "name": "feat/bex01-v3-batch-four-column-review-20261016",
+      "sha": "50e2fac22186d67b2f744da353dae2914e7a9b29",
+      "uniqueCommits": 6,
+      "historicalOwner": "BEX-01 workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "archive",
+      "tag": "archive/retired-20261022/feat/bex01-v3-batch-four-column-review-20261016",
+      "decision": "Preserve complete original commit/tree/history with a lightweight tag; delete only the working branch. This does not merge or certify its implementation.",
+      "prProof": {
+        "pr": 987,
+        "head": "50e2fac22186d67b2f744da353dae2914e7a9b29",
+        "merged": false,
+        "merge": null
+      },
+      "supersededBy": 984
+    },
+    {
+      "name": "feat/bex01-v3-eidos-live-field-review-status-20261016",
+      "sha": "1f5ec1a9171391847bf4e9794e0e10964b53d08c",
+      "uniqueCommits": 0,
+      "historicalOwner": "BEX-01 workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "ancestor",
+      "decision": "Exact branch head is already an ancestor of main; no unique commits."
+    },
+    {
+      "name": "feat/bex01-v3-review-workbench-fidelity-20261020",
+      "sha": "07608117964350895cef893e423e5d78745c080d",
+      "uniqueCommits": 1,
+      "historicalOwner": "BEX-01 workline",
+      "currentOwnerEvidence": "No open PR head/base reference at audit; no current task assignee recorded. Historical author/owner is not asserted absent.",
+      "mode": "archive",
+      "tag": "archive/retired-20261022/feat/bex01-v3-review-workbench-fidelity-20261020",
+      "decision": "Preserve complete original commit/tree/history with a lightweight tag; delete only the working branch. This does not merge or certify its implementation.",
+      "noPrExpected": true
+    }
+  ],
+  "retained": [
+    {
+      "branch": "agent/pa05-k0-consolidated-engineering-20261022",
+      "head": "35b7f1e9d385d58a93302b7b6290e0a6c242683c",
+      "pr": 1104,
+      "draft": true,
+      "owner": "Agent/PA05 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "docs/bex01-v3-m06-window03-research-handoff-20261021",
+      "head": "4ab6e0b222bb1a22e59d3c5c76cd07d889e74d5d",
+      "pr": 1084,
+      "draft": true,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "docs/bex01-v3-m06-window02-research-handoff-20261020",
+      "head": "32d30b5685760d12d01fc7304cd2eeee9bb433ce",
+      "pr": 1075,
+      "draft": false,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "feat/bex01-v3-prototype-align-current-main-20261020",
+      "head": "3af9cc251f095207774baebbfd3d6a5c00620f5e",
+      "pr": 1070,
+      "draft": true,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "feat/bex01-v3-review-workbench-fidelity-mainline-20261020",
+      "head": "7a60d6966a977432b54ad1bbed1ad335bc2dc364",
+      "pr": 1066,
+      "draft": true,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "docs/bex01-v3-m06-research-window-handoff-20261020",
+      "head": "1e03d120770462190818528b657e72c3e9d76a3a",
+      "pr": 1058,
+      "draft": false,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "feat/bex01-v3-real-fidelity-decision-first-20261019",
+      "head": "3845c9d953943a3f962ad298669fc66c46956758",
+      "pr": 1054,
+      "draft": true,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "docs/bex01-v2-human-design-review-20261015",
+      "head": "af58e0abad880439d54230485305bf2b4e05decc",
+      "pr": 909,
+      "draft": true,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "docs/bex01-batch-extension-review-20261015",
+      "head": "93a2d543a98c24985f066ed34c2db72451bb0e11",
+      "pr": 878,
+      "draft": false,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    },
+    {
+      "branch": "docs/bex01-cp03-extension-handoff-20261014",
+      "head": "08c48d682d5a3795e23593c0b3bb11edd7b6cc20",
+      "pr": 846,
+      "draft": true,
+      "owner": "BEX-01 workline",
+      "assignees": [],
+      "decision": "Retain open PR; empty assignees does not establish ownerless work."
+    }
+  ],
+  "limitations": [
+    "Owner resolution is based on actual PR/continuation records, not a claim to have contacted another window.",
+    "Merged-snapshot evidence is at the accepted merge commit; later main edits are not overwritten.",
+    "Archival does not mark unmerged BEX/PA05 work complete and does not close any open PR.",
+    "Fresh runtime checks and atomic SHA leases are required; any moved/protected/active reference aborts cleanup."
+  ],
+  "historicalReferences": [
+    {
+      "pr": 987,
+      "reason": "Closed explicitly as superseded by merged #984"
+    },
+    {
+      "pr": 1096,
+      "reason": "Post-merge branch has one unmerged cleanup workflow commit; archive it rather than claim already merged."
+    },
+    {
+      "path": "docs/plans/foundation-list-experience/BEX-01-V3-M06-WINDOW-13-HANDOFF-ENTRY-20261022.md",
+      "reading": "Full 42-line historical snapshot; old Draft pointers superseded by fresh PR API"
+    }
+  ],
+  "initialAuditBaseline": "b2f4f37b57eb5c7d9d44554f2e40077465445257",
+  "concurrentUpdate": {
+    "commit": "df7078f988385fd3da033bb300423a3ccaf620e8",
+    "files": [
+      "docs/agent-line/HANDOFF.md",
+      "docs/agent-line/PA05-PHASED-ENGINEERING-CLOSEOUT-20261022.md"
+    ],
+    "note": "Agent stage-close #1108 merged independently during audit; not counted as our cleanup. Latest open PR set is retained."
+  },
+  "toolRouteNote": "假设：GitHub连接器可直接读取待创建归档tag。\n事实：带斜杠ref路径与tags集合均被连接器路由拒绝；未获得tag存在/缺失证据。\n选择：停止猜测端点，使用PR只读Actions的标准Octokit getRef做审计；执行端以空SHA lease要求tag原先不存在。\n下一次验证：只读audit核对四个tag未占用，main上原子创建tag并删除对应branch后复核。"
+}
