@@ -117,3 +117,323 @@ This section supersedes only the earlier main/deployment snapshot in §1; it doe
 - Read-only Railway configuration recheck found no staged changes, Host configured for one SFO replica, and no effective draining interval exposed in the service config response. The current Host variable-name list omits the PA05 E01D/J4D/J4J opt-in flags and dedicated J4D DB URL/schema/Host ID. No variable values were read.
 - **Still unresolved:** whether infrastructure outside the connected Railway project exists; live PROCESS child inventory and per-child exit receipts; authority to freeze/restart/scale every instance; effective Railway drain interval; EVO Runtime database grants and Validator route scope; approved production Human IdP issuer/audience/revocation SLA; least-privilege DBA and secrets broker/rotation; durable audit sink and named signers.
 - No production stop/restart/scale/redeploy, Validator run, secret read, database query, stale-lock cleanup, or identity/DBA configuration change occurred. K0 remains NOT_SIGNED and production material WRITE remains OFF.
+
+
+## 10. 2026-10-20 — Account-scoped orchestration and external caller recheck
+
+### Directly observed through the connected Railway account
+
+- Current source snapshot: `main@2735edb72f2b44297466cbd53feda3892f84385b`.
+- Account-level project inventory: one personal workspace (`jiangxing's Projects`) and one accessible project (`EVO Ledger Runtime MVP`).
+- Project webhooks: **0**.
+- Environment: five services; no pending deployment work; no reported service issues. This is the connected account/project view only and is not an organization-wide cloud inventory.
+- Validator service: `restartPolicyType=NEVER`, 0 running / 0 crashed / 1 configured replica, last deployment SUCCESS on 2026-10-08. Its variable-name inventory exposes only `DATABASE_URL`; no values were read.
+
+### Validator command evidence and ceiling
+
+The current service configuration contains `./run.sh` with an embedded script. Decoding the command locally for inspection (without running it) confirms requests to Host `/v1/actions` for `app-platform.plan-install` and `app-platform.install-package`, targeting `evo-ledger-runtime-configurator`. The configured script contains no Authorization header and no `evo-purchase-attention` target. This is a re-runnable external lifecycle-capable caller to include in the authority inventory, **not** evidence of a currently running persistent Worker or a proven unauthenticated production exploit. No production HTTP request was sent and the Validator was not executed.
+
+### What this does not prove
+
+- The connected Railway account has one accessible project, but that does not prove the user/organization has no other Railway workspace/account, cloud provider, external runner, queue consumer, scheduler or service with network/credential access to Host lifecycle routes.
+- A previous local Docker Compose validation guide is not evidence that an API/Worker stack is deployed in production.
+- No explicit user/organization decision has been found confirming Railway as the sole production orchestrator or naming the authoritative stop actor.
+
+**Status remains:** `PLATFORM_TOPOLOGY_PARTIALLY_OBSERVED / COMPLETE_WORKER_INVENTORY_NOT_SIGNED / PRODUCTION_AUTHORITY_DECISIONS_REQUIRED`. Do not begin K1/K2 production-facing implementation until the organization confirms the complete topology and stop authority. Full E01J4, PA05-05 E01–E05 and W06 remain NOT_SIGNED; production material WRITE stays OFF. No production service action, Validator execution, secret read or configuration change occurred.
+
+
+## 11. 2026-10-20 — Deployed process and caller inventory (read-only)
+
+### Visible Railway production topology
+
+| Service | Deployed configuration | What the evidence supports |
+| --- | --- | --- |
+| EVO Runtime | `npm start` → `node dist/apps/api/src/main.js` at EVO main `d5ce051325c4572c7a5fd713560d7d7d06e4b401` | API process only. Repo separately defines `start:worker` and a local Compose Worker, but no Worker service exists in this connected Railway project. |
+| Postgres | PostgreSQL 18 service + persistent volume | Database service, not a Worker. |
+| Experience Compiler | `Dockerfile.api` → `uvicorn ec.api:app` at EC main `5f06a6224b6ffe434a9a3c0793b0384943121ac9` | API process only; no dedicated Worker/Cron service. |
+| Ledger Configurator | `npm start` → `node dist/manager/server.js` at Platform main `2735edb72f2b44297466cbd53feda3892f84385b` | Single Host service, one configured/running replica. It has in-process background-capable modules; current source defaults make the context-memory scheduler interval `0`, optional Agent async read worker `OFF`, and J4J lock `OFF`. The corresponding env var names are absent from the production variable-name list. |
+| Ledger Configurator App Host Validator | One-shot function, `restartPolicyType=NEVER`; 0 running / 0 crashed / 1 configured replica; last SUCCESS deployment 2026-10-08 | Not a persistent Worker. Its embedded script is lifecycle-capable: it POSTs `app-platform.plan-install` and `app-platform.install-package` to Host `/v1/actions`, targeting `evo-ledger-runtime-configurator`, with no Authorization header. It was not executed. |
+
+The environment has no Cron-configured service, no project webhooks, no TCP proxies and no staged changes. The connected account shows one personal workspace and one project; this is not proof that no other account, cloud, runner, queue consumer or service exists outside this scope.
+
+### Bounded Host HTTP-log observation
+
+The returned Host HTTP log sample contains 501 entries, including 10 `POST /v1/actions` calls. All 10 displayed a browser user-agent. The log view provides no request body, so the commands, consent context and complete caller identity cannot be inferred. This sample is not a full historical audit and does not prove absence of external callers.
+
+### Source-grade links
+
+- [EVO package.json](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/package.json) — `start` is API; `start:worker` is a separate entry point.
+- [EVO worker main](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/apps/worker/src/main.ts) — drains posting work for active enterprises and publishes outbox batches.
+- [EVO Docker Compose](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/docker-compose.yml) — local validation topology with a distinct Worker; not production deployment proof.
+- [Experience Compiler API Dockerfile](https://github.com/jiangxng/Experience-Compiler/blob/5f06a6224b6ffe434a9a3c0793b0384943121ac9/Dockerfile.api) — API process.
+- [Platform package.json](https://github.com/jiangxng/EVO-App-Platform/blob/2735edb72f2b44297466cbd53feda3892f84385b/package.json) — `start` maps to Host server.
+- [Platform manager/server.ts](https://github.com/jiangxng/EVO-App-Platform/blob/2735edb72f2b44297466cbd53feda3892f84385b/manager/server.ts) and [cooperative lock implementation](https://github.com/jiangxng/EVO-App-Platform/blob/2735edb72f2b44297466cbd53feda3892f84385b/manager/pa05-read-owner-cooperative-host-lock.ts) — scheduler/async worker/J4J defaults and opt-in lock boundary.
+
+### Consequence for J4J / K0
+
+- J4J remains **ENGINEERING_BOUNDED_PASS** from isolated exact-HEAD CI, but the production flag is absent and the source default is `OFF`; no production Host lock is claimed to be held.
+- The Validator is a known lifecycle-capable caller whose route authorization still needs source-grade coverage. Issue #988 remains OPEN; do not rerun it against production.
+- A separate production EVO Worker is **not observed in the connected Railway project**. Whether one exists elsewhere, and who can stop all real Writers/Workers, remain unresolved. This evidence narrows the connected-project scope but cannot certify the organization-wide topology.
+
+No production service action, Validator execution, secret read, database query, stale-lock cleanup, identity/DBA change or configuration mutation occurred. Status remains `PLATFORM_TOPOLOGY_PARTIALLY_OBSERVED / COMPLETE_WORKER_INVENTORY_NOT_SIGNED / PRODUCTION_AUTHORITY_DECISIONS_REQUIRED`; full E01J4, PA05-05 E01–E05 and W06 remain NOT_SIGNED; production material WRITE remains OFF.
+
+
+## 12. 2026-10-20 — Post-main / post-deployment confirmation
+
+This K0 documentation PR remained Draft and unmerged while main advanced to `1acd04a8f9bb13082a03d755a81f2227fbf838d4` through unrelated [PR #1072](https://github.com/jiangxng/EVO-App-Platform/pull/1072). Railway subsequently reported Host deployment `5fd9bc96-b282-4c0b-b336-d425695b1c52` SUCCESS / Online, 1 running / 0 crashed, no reported issues and no pending work. This PR did not cause that deployment.
+
+The latest read-only environment recheck remains five services, no dedicated Worker or Cron service, no staged changes, no project webhooks, no TCP proxies and no buckets. EVO and Experience Compiler main remain at `d5ce051325c4572c7a5fd713560d7d7d06e4b401` and `5f06a6224b6ffe434a9a3c0793b0384943121ac9`. Host variable names still omit the J4J lock, optional async read-worker and context-memory schedule flags; current source defaults remain `OFF`, `OFF` and `0`. Validator remains `restartPolicyType=NEVER`, 0 running / 1 configured replica, last SUCCESS 2026-10-08, and was not run.
+
+**K0 remains NOT_SIGNED.** No evidence has been added for an organization-wide Worker inventory, external caller inventory, effective drain budget or authoritative stop actor. No production mutation, Validator execution, secret/DB read, stale-lock cleanup, identity/DBA change or configuration mutation occurred.
+
+
+## 13. 2026-10-20 — Official Railway shutdown/drain evidence
+
+### Original sources read
+
+| Title / original URL | Read status / key source facts | Project use and limits |
+| --- | --- | --- |
+| [Railway — Deployment Teardown, “Draining time”](https://docs.railway.com/deployments/deployment-teardown#draining-time) | Original page fetched/read 2026-10-20. Once the new deployment is active, the previous deployment receives `SIGTERM` and is forcefully stopped with `SIGKILL` after the configured graceful-shutdown interval. The interval can be set in service Settings, config-as-code, or `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`. | Defines the platform shutdown sequence and configuration locations. Does not reveal this project's actual Settings-pane value. |
+| [Railway — Deployments reference, “Singleton deploys”](https://docs.railway.com/deployments/reference#singleton-deploys) | Original page fetched/read 2026-10-20. Default graceful shutdown is 0 seconds; Railway says it does not send other signals. | The default is a conservative assumption, not proof that a service has no Settings-pane override. |
+| [Railway — Variables Reference, user-provided configuration variables](https://docs.railway.com/variables/reference#user-provided-configuration-variables) | Original page fetched/read 2026-10-20. `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` controls the SIGTERM-to-SIGKILL buffer; documented default 0. | Host and EVO Runtime variable-name lists omit this variable. Postgres lists it, but its value was not read and is not evidence for Host/EVO. |
+| [Railway — NodeJS SIGTERM Handling](https://docs.railway.com/deployments/troubleshooting/nodejs-sigterm-handling) | Original page fetched/read 2026-10-20. Starting Node through npm/yarn/pnpm may leave the package manager as main process and intercept the signal; recommendation is to start Node directly. | Host and EVO Runtime use `npm start`. Therefore direct delivery of SIGTERM to the Node application and clean lock release are not proven. |
+
+### Source facts versus project assessment
+
+- **Source facts:** documented Railway default drain time is 0 seconds; the old deployment gets SIGTERM then SIGKILL; start-command process topology can affect signal handling.
+- **Project facts:** current Railway start commands for EVO Runtime and Ledger Configurator are `npm start`; neither visible variable-name list includes `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`; service config returned by the connector does not expose a Settings-pane override. Postgres has a variable of that name, but no value was read. No production service config was modified.
+- **Assessment:** effective drain duration and whether Node receives SIGTERM directly remain **unverified**. Plan conservatively as if no graceful-drain budget is guaranteed until an authorized operator confirms the per-service Settings/config value and an isolated shutdown test verifies process behavior. This is not a claim that the actual Settings-pane value is definitely 0.
+
+### Gate impact
+
+K0 remains NOT_SIGNED. Do not treat successful deployment, a timer expiry, the current single replica, or J4J's opt-in POSIX lock as proof of graceful termination or global Worker stop. No production setting/start command was changed; any such change requires explicit authorization and a separate exact-HEAD validation plan.
+
+
+## 14. GitHub Actions: bounded production-caller inventory
+
+At Platform `main@eaa5e813b1e86a6460d988c76eb2076512c35127`, the `.github/workflows` directory contained 153 workflow files. All 153 were content-scanned for explicit live Railway host/configuration patterns; 10 workflow files explicitly target the production host and were source-reviewed with their referenced scripts. This does not cover dynamically constructed URLs, other repositories/accounts, or the whole GitHub organization.
+
+### Verified production callers
+
+- [Browser lifecycle workflow](https://github.com/jiangxng/EVO-App-Platform/blob/b5ccbddc4501555207f9795fac48781c18451317/.github/workflows/browser-lifecycle-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/202b190c6687149d3b9485147d280899a19507de/tools/browser-lifecycle-production-proof.mjs): manual and path-filtered PR; opens live Enterprise Agent; observes `POST /v1/actions` and `/v1/events`; does not construct a direct action body. Page-generated POSTs may occur; request bodies are not captured.
+- [Web version skew/RUM workflow](https://github.com/jiangxng/EVO-App-Platform/blob/70f9ceba123162836d4e1b175627de95a6c4f52e/.github/workflows/web-version-skew-rum-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/b6e75a0e2ed3d9739fb61bb70f2c9aa23d9513b1/tools/web-version-skew-rum-production-proof.mjs): manual and path-filtered PR; GET health/diagnostics/assets; explicitly POSTs a synthetic sample to `/v1/web-performance` with no Authorization header in the script. This is a production telemetry write, distinct from governed business WRITE.
+- [Web security delivery](https://github.com/jiangxng/EVO-App-Platform/blob/653a237a116376a0364f1f034505c0b1956d2ee6/.github/workflows/web-security-delivery-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/60038a36a7f840ccd45ce28e4c146d7669a2d959/tools/web-security-delivery-production-proof.mjs): manual, path-filtered PR and path-filtered main push; live root/CSS/cache requests and browser observe route; no direct business/lifecycle mutation in the inspected harness.
+- [Mobile task inbox](https://github.com/jiangxng/EVO-App-Platform/blob/bd47d8b17cb4424be1d16a9503025e054d569bf1/.github/workflows/mobile-task-inbox-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/395cdd67dfb3e1d96cbc09290218e18d1fb4399e/tools/mobile-task-inbox-production-proof.mjs): manual, path-filtered PR and path-filtered main push; live browser route and DOM/cold/warm check; no direct lifecycle request in harness; frontend requests remain possible.
+- [EOG Mobile READ](https://github.com/jiangxng/EVO-App-Platform/blob/756e65e81332653dffe42e8799e6be7abebbc73d/.github/workflows/eog-mobile-read-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/bf0c45a4c00227e3cecae21ab0de28752a11e497/tools/eog-mobile-read-production-proof.mjs): manual, path-filtered PR and path-filtered main push; live EOG route; records browser-generated `POST /v1/actions` counts/statuses but does not construct those request bodies.
+- [Mobile review](https://github.com/jiangxng/EVO-App-Platform/blob/4be107b242ed7c57ed12da5a362ba33a2b9fe39e/.github/workflows/mobile-review-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/66709c9a32aa7d582d62f2239fdc020dd7ba217f/tools/mobile-review-production-proof.mjs): manual, path-filtered PR and path-filtered main push; live Agent memory review queue and DOM/cold/warm checks; no direct lifecycle request in harness; frontend requests remain possible.
+- [Real Browser RUM Budget Proof](https://github.com/jiangxng/EVO-App-Platform/blob/ab5db08667f68233a7b80af81443a7e85f3265ea/.github/workflows/real-browser-rum-budget-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/0e003248b666c1b7413b73e27bc62069d6e4769c/tools/real-browser-rum-budget-proof.mjs): manual, path-filtered PR, and path-filtered main push (push also watches three browser/web performance runtime files); live desktop/mobile pages wait for the client RUM reporter to flush one sample and verify it via diagnostics. The harness does not directly POST, but the browser page generates a production telemetry write.
+- [Web delivery](https://github.com/jiangxng/EVO-App-Platform/blob/b9d84eaba86747c78657260ee7bb901f9139dc9c/.github/workflows/web-delivery-production-proof.yml): manual and path-filtered PR; GET/conditional GET of root and asset paths.
+- [Surface browser](https://github.com/jiangxng/EVO-App-Platform/blob/3263adb9cede0b0b323066e7e290c40d97dad309/.github/workflows/surface-production-browser-proof.yml): manual and path-filtered PR; headless live Surface navigation and `/v1/events` observation.
+- [Surface scoped loading](https://github.com/jiangxng/EVO-App-Platform/blob/9f353776e02e8efa33835a2d038ac5107d2cf093/.github/workflows/surface-scoped-loading-production-proof.yml) + [script](https://github.com/jiangxng/EVO-App-Platform/blob/7e19492d34ac4a434cee2cdc4fc60c5d67ddb0f2/tools/browser-surface-network-proof.mjs): manual and path-filtered PR; live browser network measurements; no direct lifecycle mutation found in harness, but app-generated requests are not fully ruled out.
+
+Five reviewed workflows include `push: main` triggers additionally path-filtered; four watch their own workflow/script, and the Real Browser RUM Budget Proof also watches three browser/web performance runtime files; they do not run on every main push. All listed probes include manual dispatch and path-filtered PR triggers. The reviewed YAML does not declare a protected GitHub Environment approval gate; repository-level environment rules were not inspected.
+
+### Related repositories reviewed
+
+- [EVO workflows at pinned main](https://github.com/jiangxng/EVO/tree/d5ce051325c4572c7a5fd713560d7d7d06e4b401/.github/workflows): CI and branch hygiene.
+- [Experience Compiler workflows at pinned main](https://github.com/jiangxng/Experience-Compiler/tree/5f06a6224b6ffe434a9a3c0793b0384943121ac9/.github/workflows): CI and legacy-ref retirement.
+- Eidos workflow directory: CI, branch hygiene, legacy-ref retirement and UI review.
+
+No separate production deploy/Worker workflow was found in these reviewed files. This is not proof that no other repository, account, cloud or external orchestration exists.
+
+### Decision
+
+GitHub-hosted runners are transient external production callers and must be included in the K0 caller inventory; they are not evidence of a persistent queue Worker. RUM POST is an explicit telemetry write. Browser-generated `/v1/actions` requests require payload/authorization/side-effect evidence before being classified harmless. The complete external caller inventory and authoritative stop actor remain NOT_SIGNED.
+
+No workflow was dispatched and no production HTTP request was made during this source audit.
+
+
+## 15. Current main / Railway deployment recheck
+
+While this documentation PR remained Draft and unmerged, main advanced to `eaa5e813b1e86a6460d988c76eb2076512c35127` via unrelated [PR #1073](https://github.com/jiangxng/EVO-App-Platform/pull/1073). Railway deployed that commit to Ledger Configurator as `e5c56ed8-aac9-4177-bc83-9f01b07ad9b9`, SUCCESS / Online, 1 running / 0 crashed, zero reported warnings/criticals, no pending work. All five connected services currently report latest deployment SUCCESS; no staged changes exist. This PR did not cause the deployment.
+
+The current Host and EVO Runtime still use `npm start`, one configured replica each. Neither visible variable-name inventory includes `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`. Host variable names still omit the J4J lock, optional Agent async worker and context-memory schedule flags; source defaults remain `OFF`, `OFF`, and `0`. No variable values were read. Validator remains `restartPolicyType=NEVER`, was not executed, and its configured script still contains Host `POST /v1/actions` plan-install/install-package calls without an Authorization header.
+
+**K0 remains NOT_SIGNED.** The current recheck does not prove organization-wide Worker inventory, external caller completeness, effective drain time, or authoritative global stop control. No production action or configuration mutation occurred.
+
+
+## 16. Host shutdown-handler source evidence
+
+Current main `manager/server.ts` at [exact blob](https://github.com/jiangxng/EVO-App-Platform/blob/d1c50cc2c4c52bd251146ce84dfc6acfeca45e53/manager/server.ts) registers one-time SIGTERM/SIGINT handlers. The shutdown function disposes the context-memory schedule driver, awaits scheduler stop, stops managed runtimes, closes optional Agent async workers/Owner and the PA05 lifecycle Host, shuts down the process runtime Host, closes the HTTP server, and schedules a 5-second fail-fast exit.
+
+**Source fact:** a graceful shutdown routine exists. **Remaining gap:** production still uses `npm start`, and effective Railway draining time is not exposed by the current configuration response. The source code does not prove direct SIGTERM delivery or completion before SIGKILL. No production process was signalled or restarted.
+
+
+## 17. 2026-10-20 — Shutdown error-path static finding
+
+### Exact source read
+- [`manager/server.ts` at blob `d1c50cc2c4c52bd251146ce84dfc6acfeca45e53`](https://github.com/jiangxng/EVO-App-Platform/blob/d1c50cc2c4c52bd251146ce84dfc6acfeca45e53/manager/server.ts), lines 10224–10259.
+
+### Observation
+The shutdown routine has local error handling around Context Memory scheduler stop and a grouped set of managed-runtime stops. Later operations are awaited sequentially without equivalent local catches: optional Agent async reader, optional Agent async read worker, optional PA-02 Object Extension Owner, PA05 write-lifecycle Host close, and process runtime Host shutdown. The call to `server.close()` and creation of the 5-second fail-fast timer occur only after those awaits.
+
+### Assessment / limitation
+A rejected close/shutdown promise can short-circuit subsequent cleanup and keep the routine from reaching HTTP server closure and its explicit fail-fast timer. This is a **static source-level risk**, not a reproduced runtime failure. The cooperative lock is released only on clean process exit; an abnormal path must retain the lock for independent Human review. This remains fail-closed but does not provide a per-resource stop receipt.
+
+### Safe next engineering task
+Before relying on the shutdown handler for any maintenance/stop attestation, add disposable exact-head tests that inject a rejection at every cleanup boundary and assert:
+1. every remaining cleanup action is attempted;
+2. HTTP admission is closed even if a resource cleanup fails;
+3. shutdown exits nonzero on incomplete cleanup;
+4. J4J lock release is not attempted on failed shutdown; and
+5. a clean path releases only after all required cleanup completes.
+
+Do not change production start commands, drain settings, production identity, DBA credentials, or material WRITE in this task. It is a bounded source/CI improvement, not a K1/K2 global stop proof. K0 remains NOT_SIGNED; external topology, effective drain interval and stop authority remain unresolved.
+
+
+## 18. 2026-10-20 — Shutdown error-path engineering fix
+
+### PR / exact evidence
+
+- [PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074), branch `agent/pa05-host-shutdown-error-path-20261020`, head `f38fd18bb007b0af1ae24b337f92cbe19377b5c7`.
+- Status: Draft, unmerged, not deployed.
+- Exact-head CI: **45/45 SUCCESS**, 0 failures, 0 cancelled. Relevant [Lightweight Host run #39377872162](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39377872162) passed.
+- Test step reported 200 tests / 200 pass / 0 fail, including:
+  - new injected shutdown-cleanup failures at every declared boundary, multiple failures, and clean completion;
+  - existing real separate Node Host J4J test: second cooperating Host denied, clean SIGTERM exit releases its exact lock, SIGKILL/nonzero exit retains ambiguous lock and blocks restart.
+- No PostgreSQL18 28/28 claim is made for the new head; that earlier PG18 result belongs to its own exact historical HEAD. This run is process-level Host shutdown regression evidence, not a global stop or production identity proof.
+
+### Bounded implementation
+
+- HTTP admission starts closing at shutdown entry; requests on an existing keep-alive connection receive HTTP 503 with `Connection: close`.
+- A referenced 5-second fail-fast timer starts before awaiting resource cleanup.
+- Every declared cleanup step is attempted in order even if earlier steps reject; failures are named and recorded.
+- Process exits nonzero if any cleanup step or HTTP server closure fails. Existing J4J exit hook therefore leaves the cooperative lock for independent review instead of certifying a failed shutdown.
+
+### Remaining acceptance boundary
+
+This improves the local Host shutdown contract, but does not prove Railway delivers SIGTERM directly through the configured `npm start` command, establish the actual per-service drain interval, prove organization-wide Worker/caller inventory, or certify production IdP/DBA stop authority. No production service action, config mutation, secret/database access or lock cleanup occurred. K0 remains NOT_SIGNED; production material WRITE remains OFF.
+
+
+## 14. 2026-10-20 — Host shutdown error-path fix: exact-head rerun record
+
+[PR #1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074), branch `agent/pa05-host-shutdown-error-path-20261020`, now at `caccb1b60358b453ef471eaf6abecf1593e4965c`, remains Draft/unmerged/un deployed.
+
+- Latest exact-head CI: **45/45 SUCCESS / 0 failure / 0 cancelled**, including [three-PG18 cross-database reservation run #39378563669](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378563669) and Lightweight Host/J4J process test.
+- The initial attempt of the cross-database job failed at `PA05_E01J2_TIMEOUT:readResult` after about 20.46 seconds against a 20-second IPC wait. Only that failed job was rerun; it passed. Retain both facts for auditability: transient timeout observed, retry succeeded.
+- The fix covers all cleanup failures, request admission closure (503 / Connection: close for existing keep-alive requests), a fail-fast deadline started before cleanup, nonzero exit for incomplete shutdown, and preserving the cooperative lock on unsuccessful exit.
+- The source/CI fix does not certify the actual Railway draining setting, direct Node SIGTERM delivery, the full Worker/caller inventory, the authoritative stop actor, production IdP/DBA, or production material WRITE. No production process was stopped/restarted/scaled/redeployed; no Validator, secret or database access occurred.
+
+Status remains `K0 NOT_SIGNED`; full E01J4, PA05-05 E01–E05 and W06 remain NOT_SIGNED; production material WRITE remains OFF.
+
+
+## 14. 2026-10-20 — Current PR #1074 exact-HEAD evidence
+
+Current head `caccb1b60358b453ef471eaf6abecf1593e4965c`, base `main@eaa5e813b1e86a6460d988c76eb2076512c35127`: **45/45 applicable GitHub Actions SUCCESS**. [Lightweight Host run #39378563738](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39378563738) reports **201 tests / 201 pass / 0 fail**, including `pa05-host-shutdown-error-path.test.mjs` and `pa05-e01j4j-cooperative-host-pg.test.mjs`. This supersedes the earlier 200-test count recorded above; both are different exact runs.
+
+The reviewed shutdown patch closes HTTP admission before asynchronous cleanup, adds a referenced five-second fail-fast deadline, attempts all cleanup steps despite individual rejection, and exits nonzero on cleanup or listener-close failure so J4J preserves its lock on ambiguous shutdown. It is source/CI improvement only: the configured Railway draining interval and signal delivery remain unverified, J4J remains OFF by default and absent from the current Host variable-name list, and no global Worker inventory/stop authority is signed. PR #1074 remains Draft/unmerged/un-deployed.
+
+
+## 19. 2026-10-20 — New-window production/CI refresh and bounded process inventory
+
+**Evidence class: ORIGINAL_CONNECTOR_READ_THIS_WINDOW / SOURCE_GROUNDED / K0 NOT_SIGNED.** The previous §15 snapshot is historical; this section records a later read-only observation and does not change any accepted safety gate.
+
+### Accurate GitHub and Railway revision
+
+- GitHub [main branch](https://api.github.com/repos/jiangxng/EVO-App-Platform/branches/main) now points to `102319de812ce65682f0c6ccb1a930e10b4e22d4`, advanced by unrelated [PR #1076](https://github.com/jiangxng/EVO-App-Platform/pull/1076). Its [exact-head check-runs](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/102319de812ce65682f0c6ccb1a930e10b4e22d4/check-runs) show **3/3 success** (Platform protocol-and-core, lightweight-host, continuity). These *are not* the full scheduled Ecosystem Certification suite.
+- Railway connected project `aee4643e-912b-4ca1-ae95-fe4ec64f5601` / production environment `98b8b20c-d791-4073-a11d-bb1f7f0a1cb3`: Ledger Configurator newest deployment `dffc4413-07e5-4302-95ac-adcf737fbdfb`, **SUCCESS / Online**, exact deployed commit `102319de812ce65682f0c6ccb1a930e10b4e22d4`, one running and zero crashed replicas. Prior deployment `e5c56ed8-aac9-4177-bc83-9f01b07ad9b9` is now `REMOVED`. These are deployment lifecycle facts, **not** per-Worker termination receipts.
+- All five services remain present, no separately configured Cron service, no pending staged work, one configured Host and EVO Runtime replica each; Validator remains configured one-shot with **0 running**. Connected-project scope only. The present evidence does not assert full organizational topology, complete active child-process/PID inventory or fully enumerated GitHub-hosted/browser external callers.
+- PR [#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) at archived HEAD `bd5945c0bbd0d1c3b5522bc94a7e915c617d9fea`: **7/7 exact-HEAD check-runs SUCCESS**; PR [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) at `caccb1b60358b453ef471eaf6abecf1593e4965c`: **45/45 SUCCESS**, 201/201 Lightweight Host tests as previously recorded. Both remain separate **Draft / unmerged**; any checks on the *new* documentation commit must be re-read at its own SHA.
+- Outstanding main negative evidence remains [scheduled Ecosystem Certification #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) on `eaa5e813...`: **1815 total / 1723 pass / 10 fail / 82 skipped**. No newer full-suite run was found among the latest 30 main workflow runs in this read. The later 3/3 main push does not prove these failures were fixed. Independent open issues [#988](https://github.com/jiangxng/EVO-App-Platform/issues/988), [#979](https://github.com/jiangxng/EVO-App-Platform/issues/979) and [#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) were directly rechecked: all **OPEN**.
+
+### Draining, executable entrypoint and process-stop chain
+
+- **Actual Railway config read** via `describe_service`: Ledger Configurator and EVO Runtime both have live `deploy.startCommand = npm start`, one SFO replica each. There is no `drainingSeconds`/equivalent effective override in the exposed service config, no staged change, and neither visible variable-name list contains `RAILWAY_DEPLOYMENT_DRAINING_SECONDS`; the Railway Settings-pane effective teardown value remains **NOT_VERIFIED**, not proven zero.
+- **New precise source read:** Platform [`package.json` at current main](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/package.json) maps `npm start` to `node dist/manager/server.js`. This proves the script ultimately starts Node, **but not** that it is the container's PID 1 or directly receives Railway SIGTERM through the npm wrapper.
+- Current main [`manager/server.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/manager/server.ts) registers SIGTERM/SIGINT handlers and calls `processRuntimeHost.shutdown()` before HTTP listener close. Current main `plugin-runtime-host.ts` uses `fork()` for optional PROCESS children and a 750 ms SIGKILL fallback. Neither source establishes an externally verified termination receipt for each child when the parent is killed; live child PID/process-start nonce and current package inventory remain unknown.
+- Railway official [Deployment Teardown](https://docs.railway.com/deployments/deployment-teardown) and [NodeJS SIGTERM Handling](https://docs.railway.com/deployments/troubleshooting/nodejs-sigterm-handling) were **opened as original Markdown again** on 2026-10-20. Official facts: SIGTERM then configurable drain before SIGKILL; npm/yarn/pnpm wrapper may intercept signals, and direct Node startup is recommended. Prior [variables-reference default 0 seconds](https://docs.railway.com/variables/reference#user-provided-configuration-variables) remains an **inherited previously read original**, not a current effective-setting observation. Do not change the production start command or drain time without explicit production change approval and an isolated signal test.
+
+### Consequence / bounded next gate
+
+Require organization attestation of (1) all account/cloud/Runner/queue/manual callers and protected entrypoints, (2) every live Host and plugin child identity and responsible external supervisor, (3) exact effective per-service drain/overlap and direct SIGTERM PID delivery, (4) restart/scale freeze ownership, and (5) independently reconciled PG sessions and Human IdP/DBA/credential/audit owners. Until those exist, `STOP_CONFIRMED` must be refused; K0, complete E01J4, PA05-05 E01–E05 and W06 remain **NOT_SIGNED**; production material WRITE remains **OFF**. No service, secret, database, deployment, Validator or stale lock was touched in this inspection.
+
+
+## 20. 2026-10-20 K0 可信停机独立验收表（未签收）
+
+- [K0 可信停机证据验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 作为本记录的 **UNSIGNED_OPERATOR_EVIDENCE_WORKSHEET**：为基础设施/Host/Plugin Runtime/编排/IdP/DBA/审计 Owner 列明组织范围、实时进程与 PID/nonce、外部调用者、扩缩容冻结、Railway 有效 drain、可信逐实例退出、SQL session re-query 的准确证据字段及 DENY 条件。**不是可执行生产操作 Runbook**。
+- 2026-10-20 GitHub [当前 `manager/plugin-runtime-host.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/manager/plugin-runtime-host.ts) **已读源码**第 643–677 行：`stop(packageId)` 在本机等待 child `exit` 之前先删除 `runtimes` map 记录，再发 IPC shutdown，有 750ms SIGKILL fallback，`exit` 后 emit `PROCESS_STOPPED`。**来源事实：** map 删除早于退出；**工程判断：** map 空或本机 Host 日志都不能替代受信外部枚举/回执，父进程异常退出不能据此签全局停机。没有生产子进程/信号复现实测。
+- 已复核的 [Web Version Skew/RUM workflow](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/.github/workflows/web-version-skew-rum-production-proof.yml) 和 [脚本](https://github.com/jiangxng/EVO-App-Platform/blob/102319de812ce65682f0c6ccb1a930e10b4e22d4/tools/web-version-skew-rum-production-proof.mjs) 已经列在此前 §14；此次仅按原文复核 POST `/v1/web-performance` 为遥测写入，**不是新发现**，不能重复计入覆盖。瞬时外部调用者不要求全球停掉每个浏览器，但必须独立证明受保护入口/SQL 拒绝与进程停机完整性。
+
+**安全结论不变：** K0、完整 E01J4、PA05-05 E01–E05、W06 均 `NOT_SIGNED`，production material WRITE `OFF`。无生产 Validator/SQL/Secret/部署/重启/停机/清锁操作。
+
+
+## 21. 2026-10-20 — 另一个工作线合并后的版本更新（只读）
+
+**本次时点不是新 K0 签收：** 在新 K0 证据表已建立后，[main](https://github.com/jiangxng/EVO-App-Platform/commit/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1) 随不相关治理 [PR #1078](https://github.com/jiangxng/EVO-App-Platform/pull/1078) 推进到 `6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1`。原始 GitHub 精确 HEAD [40/40 检查](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/check-runs) SUCCESS；这些是该 SHA 的实际 checks，不是早先 schedule `test:all` 的相同范围。较早 [Ecosystem Certification #39393603504](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39393603504) `1815/1723 pass/10 fail/82 skipped` 仍是独立已存负证据，不能据 40/40 推断已经修复其 10 失败。
+
+Railway 生产 Host [部署](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) `002dc2d8-3fd5-42d2-88d5-8386c268b5e1` 对应新 main，`SUCCESS / Online / 1 running / 0 crashed`。之前 `dffc4413-07e5-4302-95ac-adcf737fbdfb` 对应 `102319de...` 已标记 `REMOVED`。新部署并**未**合入 #1074 Host shutdown Draft，不提供真实全域进程停止、draining 或 SIGTERM 传播回执。
+
+已创建的 [K0 未签收验收表](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md) 继续以固定 `102319de...` 源码作为所读取的**明确历史基线**；未来在 K0 实际签收前必须再基于生效新源码核实相关实现、权限与 PID，不能由旧文件日期推断最新运行源码恒等。PR #1071 前一文档 HEAD `249fa43b6da7d68279fed488e96e923d7c35e857` **7/7 exact-HEAD checks SUCCESS**；追加本节后又会产生一个新 HEAD，应单独核验。
+
+所有 K0、完整 E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED`，production material WRITE `OFF`；无主动生产操作。
+
+
+## 22. 2026-10-20 — 新部署 shutdown 源码精确对照（只读，不是生产停机测试）
+
+基于 [两次 main 的精确差异](https://github.com/jiangxng/EVO-App-Platform/compare/102319de812ce65682f0c6ccb1a930e10b4e22d4...6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1)，#1078 确实修改了 `manager/server.ts`（新 blob `019b42a97aca18403245bf8480978638eacb65e5`），但通过直接读取**旧/new 两份源码原文**，从 `let shuttingDown = false;` 至 SIGTERM/SIGINT 处理器的整个 1449 字符末尾片段 **逐字一致**：仍按序关闭 runtime、随后 `server.close()`、再设置 5 秒 fail-fast。独立 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 的 attempt-all/admission-close 修复**并未**随 [#1078 main](https://github.com/jiangxng/EVO-App-Platform/commit/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1) 部署。此处只是静态源码对照，不是 Railway SIGTERM 已送达或异常退出的生产复现。
+
+**保持拒绝门禁：** 有效 Railway draining、container PID 1/npm 信号传播、实际 child stop receipt、组织身份与 SQL 会话均未认证；K0 NOT_SIGNED、production material WRITE OFF。原先 Ecosystem schedule 10 FAIL 保留独立反证。
+
+
+## 23. 2026-10-20 — 生产生效 Host 受保护入口静态核查
+
+基于 [当前部署 `main@6fc8fac5...` 的 `manager/server.ts`](https://github.com/jiangxng/EVO-App-Platform/blob/6fc8fac5b7e78b4e0e1886ee26a4b0b75b3253b1/manager/server.ts) **直接已读原始源码**，新增完整实例化审阅点：[K0 停机证据验收表 §6](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。源码存在 E01D 默认 OFF 的特定 Host 管理员注册入口（第 6982–7073 行）；E01F 覆盖五个直接 HTTP 生命周期变更路由（10105–10219）及 `/v1/actions` 中五类 `app-platform.*-package` Action（9421–9452、9819–10063）；DISABLE/UNINSTALL J4D SQL-fenced 路径（3363–3415）默认 OFF，只有明确 opt-in 和独立 SQL authority 参数才组装。静态 auth 校验包含 bootstrap 管理员 + Authorization Provider，但**不等于真实生产 Human/DBA 身份与实际调用拒绝的运行证明**。独立 `*/plan` 路由已定位，底层规划函数副作用未重新审计。
+
+从 K0 出发，**变更入口源码覆盖 ≠ 全部实际调用者枚举 ≠ 全域准入/停机**。当前 connected Railway 变量名未显示 E01D/J4D/J4J opt-in，不能据此签数据库直接角色、外部维护工具、Runner 或重启竞态均已封闭。未发生产请求、未执行 Validator、未变更任何生产开关/权限/Secret/DB。K0、E01J4、PA05-05 E01–E05/W06 `NOT_SIGNED`；production WRITE `OFF`。
+
+
+## 24. 2026-10-20 — 多 Worker 证明再细化：异步 stop 与 shutdown 快照竞态
+
+**静态源码原文已经读到：** 当前 `main@91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa` 的 [plugin-runtime-host.ts](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/plugin-runtime-host.ts) `stop()` 先删除 runtime map 再等待子进程 `exit`（646–666）；`shutdown()` 只对当前 map keys 快照等待（687–689）。[server.ts](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/manager/server.ts) 的生命周期事件无等待发起 `void processRuntimeHost.stop`（约 2311–2312）。`start()/invoke()` 源码中无该类自带的 shutdown admission flag（331–434、591）。
+
+**独立工程推导：** 一个已从 map 删除却尚未退出的 child 可能不在 shutdown 时的 map 快照中；另一个并发的 `start()` 也需要显式准入冻结，否则单次清单无法证明停止集封闭。**不是实际生产异常或隔离测试已经触发的事实**；须在安全的独立环境做定向竞态/异常关闭回归。实际完整负面案例和证据等级在 [K0 验收表 §7](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+**新版部署/CI 快照：** 与本轮源码对应的 [main `91ffb9bd...`](https://github.com/jiangxng/EVO-App-Platform/commit/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa) 为其他治理线 PR #1079 合并，已通过 **39/39 此 SHA 的 GitHub commit checks**；Railway Host deployment `9aa54df8-26ca-43aa-a598-9b547f276a5c` 已标记 `SUCCESS`，前一个 `6fc8fac5...` deploy 为 `REMOVED`。主线两次 `manager/server.ts` 的管理员鉴权、E01D PA05 registration、Action 前置目标包权限、直接 HTTP 生命周期 mutations 以及 shutdown 段均在**各自精准截取段逐字相同**；不能据此推断全文件所有行为相同。独立 [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) 仍未部署，先前定时全套测试 10 FAIL 的负证据仍保留。
+
+保持 K0、E01J4、PA05-05 E01–E05、W06 `NOT_SIGNED` 与 material WRITE `OFF`。本次没有生产 HTTP、Validator、SQL/Secret 查询、进程停止/重启、扩缩容或清锁。
+
+
+## 25. 2026-10-20 — Test coverage and tracing evidence separate from global shutdown
+
+Current GitHub [main@91ffb9bd](https://github.com/jiangxng/EVO-App-Platform/commit/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa), [K0 document PR #1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071) prior head `30886a61860d28b29fcdb04ed5d6998b03d36d03` **7/7 checks SUCCESS**; [#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074) remains an independent Draft. No newly merged PA05 shutdown engineering.
+
+**Test scope established from files:** [PROCESS host protocol test](https://github.com/jiangxng/EVO-App-Platform/blob/91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa/tests/protocol/process-runtime-host.test.mjs) tests expected child invoke/permission/isolation and timeout/crash restart, but lacks a deterministic stop/shutdown overlap or fork-after-shutdown case. [#1074 error-path test](https://github.com/jiangxng/EVO-App-Platform/blob/caccb1b60358b453ef471eaf6abecf1593e4965c/tests/agent-line/pa05-host-shutdown-error-path.test.mjs) tests Host step cleanup and HTTP admission refusal; does not cover the separate `plugin-runtime-host.ts` in-memory child registry race from §24. This is a **coverage finding**, not a reproduced failure. Complete evidence and proposed bounded owner split: [K0 worksheet §8](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md).
+
+**Railway controls now independently read:** `get_tracing` for all 5 connected project services returned tracing/auto-instrumentation **disabled**, `list_webhooks` 0, Host `list_tcp_proxies` 0 (2026-10-20, original connector values). No tracing-based caller completeness can be certified; HTTP, Runner, private networking, SQL sessions and organizational external sources remain unproven. Do not activate tracing, read production logs, access Secrets, run Validator or issue production test requests.
+
+**Decision:** Keep K0 global stop proof **NOT_SIGNED**, complete E01J4/PA05-05 E01–E05/W06 **NOT_SIGNED**, production material WRITE **OFF**. No branch, production or operator identity/DB changes.
+
+
+## 26. 2026-10-20 — K0 PROCESS 子进程竞态从“静态风险”升级为隔离实证反面证据
+
+[独立 Draft #1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081) 在 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 上单独新增 disposable PROCESS fixture 和 `tests/protocol/pa05-k0-process-shutdown-negative.test.mjs`；第一个真实 CI HEAD `6eeb01b01c680d1e0c90999c5a79fcc6776493c0` 的 [Platform CI #39426909610 / job #118641659592](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39426909610/job/118641659592) **原始日志已读**，明确输出 `shutdownReturnedWithChildAlive=true`、`shutdownSkippedInFlightStop=true` 与 `spawnedAfterShutdown=true`，两个子测试 **ok #759/#760**；该 job 1087 tests / 1086 passed / 0 failed / 1 skipped，旧 HEAD 5/5 exact checks SUCCESS。**判定：`ISOLATED_PROCESS_RACE_REPRODUCED`；不是生产 SIGTERM 复现，不是多 Worker stop receipt，更不等于工程安全修复。** 原始 JSON、日期、来源等级与代码输出时点的小修正见 [K0 工作表 §9](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+新生产时间片：另一个治理 [PR #1080](https://github.com/jiangxng/EVO-App-Platform/pull/1080) 推动 main 至 `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9`，其 **4/4 commit checks SUCCESS**，Railway Host deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` `SUCCESS`，当前 environment status 显示 Host Online / 1 running / 0 crashed；旧 `91ffb9bd...` 的 deploy `9aa54df8-26ca-43aa-a598-9b547f276a5c` 当前列表标为 `CRASHED`，但该状态**不是现有生产发生故障的证明，也没有日志定位其原因**。这不是 PA05 #1074/#1081 合并上线。
+
+**安全动作严格未发生：** 没有生产运行图、数据库、HTTP、Validator、Secrets、停机、重启、排空设置、解锁或 WRITE 变更。#1071、#1074、#1081 均应保持 Draft，K0/完整 E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`，material WRITE `OFF`。
+
+
+## 27. 2026-10-20 — 独立 PROCESS stop barrier 正向 CI（仅单 Host 有界）
+
+接续 [§26 的隔离真实负面反例](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)：独立 [Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 已以 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 单独实施局部 PROCESS stop barrier，工程 HEAD `41b4fec7f153fe1df2df671a6f6030bd36d2b167`，准确原始 [Platform CI #39428680055 / job #118647684472](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39428680055/job/118647684472) 于 2026-10-20T13:15:11Z 显示两个真 Node child 正向回归 `ok #759/#760`。`shutdownReturnedWithChildAlive=false`、`shutdownSkippedInFlightStop=false`、`postShutdownForkDenied=true`，整次协议 CI `1087 / 1086 pass / 0 fail / 1 skipped`，该 HEAD **5/5 exact-head checks SUCCESS**。**`ISOLATED_PROCESS_STOP_BARRIER_BOUNDED_PASS`，不代表 K0 可信全域停机。**
+
+**剩余工程反面风险必须显式保留：** 在 `invoke` timeout 时删 map / 发 SIGKILL、child error/exit、同 package 多代 child 的完整终止跟踪仍未有单独确定性专项回归；#1082 的 `stopping` 记录聚焦通过 `stop()` 的在途 promise，并不天然列举所有已被 timeout 路径删除但 OS exit 尚未到来的子进程；不能把这次正向 CI 升级为所有本地 Child 的完整停机保证。具体需求与精确原文见 [工作表 §10](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。
+
+#1071 文档、#1074 Host 顶层错误清理和 #1081 负面测试、#1082 局部修复四条均 **Draft / 未合并 / 未部署**；生产仅保有外部治理线 main/Railway 的历史部署版本。不进行生产 Validator、生产停机、配置/Secret/DB 查询、清锁或 material WRITE。所有 K0/E01J4/PA05-05 E01–E05/W06 `NOT_SIGNED`。
+
+
+## 28. 2026-10-20 — K0 PROCESS 本地超时、代际与异步验证关闭屏障有界正向实测
+
+独立 [Draft PR #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 完成第二轮 `main@ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` 派生的局部 PROCESS 修复，但**未合并/未部署**：
+
+1. [`c1e03419...`](https://github.com/jiangxng/EVO-App-Platform/commit/c1e0341951e00c9965780190e203ccfd2fa5a22d) 保留实际已 fork 子进程直至 OS `close`，timeout/SIGKILL 不能从 active map 消失就视为停止；新一代等待旧一代 close，shutdown 统一等待；[原始 CI #39430410538 / job #118653676285](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39430410538/job/118653676285) **5/5 checks，1089/1088 pass/1 skipped，0 fail**；本地新增 `ok #761/#762`。
+2. [最新 `12dcfa1a...`](https://github.com/jiangxng/EVO-App-Platform/commit/12dcfa1aec30e32247a865fe7c44267350e2f237) 串行同包异步 verifier 准入、提前登记 stop 意图、关闭过程中等待 pending starts；[原始 CI #39431045554 / job #118655876047](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39431045554/job/118655876047) **5/5 checks、1091/1090 pass/1 skipped、0 fail**。六项本地 child 回归 `ok #759–#764`；新增 `verifyCount=1/forks=1` 与 `stop during verifier forks=0/lateForkDenied=true`。
+
+**限度和否决：** `ISOLATED_PROCESS_LIFECYCLE_BOUNDED_PASS` 仅指单 Host 的六项指定时序。闭锁时本地 ChildProcess `close` 不是外部编排权威证明；无生产 SIGTERM/PID1 测试，无组织全域实例签收、生产 Human/DBA/session/audit。四个关联 PR #1071/#1074/#1081/#1082 均仍 Draft 未入 main/Railway。完整证据、来源等级、下步负面覆盖见 [K0 工作表 §11](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。**K0 与所有原签收门禁 `NOT_SIGNED`，production material WRITE `OFF`。**
+
+
+## 29. 2026-10-20 — 续跑 #07 的本地 verifier/IPC 关闭证据（不替代生产权威）
+
+[独立 Draft #1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 工程 HEAD `c15ce1f5225272b26d14f5b564a2a6b9f0582270` 新增本地 verifier Promise 取消准入和 IPC disconnect child cleanup。 [Platform CI #39432525667 / job #118660946764](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39432525667/job/118660946764) 已读 **原始完整日志**：`ok #759–#767` 九项 disposable 本地 Node PROCESS 测试全部通过，1094 total/1093 pass/1 skipped/0 fail；新增 `boundedShutdown=true/lateForks=0`、`boundedStop=true/lateForks=0`、`disconnectedChildClosed=true`。此处 **`ISOLATED_PROCESS_LIFECYCLE_NINE_CASE_BOUNDED_PASS`**，不表示外部 verifier 已被终止，更不证明 production multi-Worker `STOP_CONFIRMED`。
+
+此次只读 main/Railway 保持 `ae704ad731e1e7e6a9eec9a1ca2722f7d4244ce9` / deployment `5c88b3df-8a6c-4225-976d-cc2ccda97d9e` SUCCESS、Ledger Configurator 1 running/0 crashed。#1071/#1074/#1081/#1082 均仍 Draft/未合并/未生产部署。父 Host 突然死亡后的真实 child 回收/签名回执、生产 draining/PID1 信号链、全组织 Worker/外部 Runner/SQL backend/IdP/DBA 仍未被此本地测试签收。没有任何生产 Validator、stop/restart、SQL/Secrets、配置修改或异常锁回收。完整证据在 [K0 验收表 §12](PA05-E01J4K-K0-STOP-AUTHORITY-EVIDENCE-WORKSHEET-20261020.md)。

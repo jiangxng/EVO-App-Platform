@@ -108,3 +108,18 @@ R3 Provider边界第17节已分类十类安全基础：保留共享安全权威�
 
 
 R3 Provider边界第18节已把共享Secrets文件初始化放到原同步store首次有效操作，构造/登记零文件访问；坏state不先写key、已有密文缺key拒绝且失败可修复后重试。保留单Host共享快照、有效metadata首次初始化及消费端/管理端既有授权、解密、启停合同；不绑定某个UI插件。新增协议与真实Host最小/首次授权保存/探测恢复/双消费者/重启证据；LLM既有启动metadata调用资格未在本批重构，其余安全基础资格、资源预算及R1/R2/R4仍OPEN。下一批先核对Identity Directory构造读取与独立撤销责任。
+
+
+R3 Provider边界第19节已将Identity Directory构造读取延至原同步snapshot/有效save，首次save仍先校验旧数据，坏文件或读取失败不发布空快照、不覆盖且可修复后重试。保留离线委托独立身份来源、共享终止性禁用、写目录先于签发Session及原进程快照；不按managed开关删保护。新增协议与双profile/显式派生路径/探测修复/停用重启Host回归，未新增Agent/认证功能。下一批核对LLM启动metadata调用者资格与首次安装恢复合同；R1/R2/R3其余预算/R4和固定7项保持开放。
+
+
+R3 Provider边界第20节已将两类LLM metadata限定为当前有效Provider，未装/停用即使Secrets有效或有环境Key也不读取；沿原公共生命周期回调准备现有runtime，保留首次安装/启用/卸载重装可用，Shared Secrets恢复亦重算，不改同步选择合同或PA05实现。原revision阻止迟到准备，解密仍在请求端口。新增原函数/真实Host资格与恢复回归；下一批核对EVO观测请求期限、Abort/响应体清理与失败恢复；OIDC事务/records预算及R1/R2/R3其余/R4不代关。
+
+
+R3 Provider边界第21节已给原EVO观测query/probe补独立总期限，覆盖响应头/正文并finally清理、释放readiness未读body；构造闭包保留，原映射/事实合同及有效选择不改。新增原生HTTP/并发/故障恢复回归；公共合同无立即stop/cancel，完整停止矩阵仍保留。下一批核对OIDC待处理事务及managed Session records预算；R1/R2/R3其余/R4及固定7项4闭环3部分完成保持。
+
+
+R3 Provider边界第22节已限制原OIDC未消费临时state默认1000、活动时清过期，失败回调消费并保持原单次换票/资格；满额拒绝新增而不挤掉有效登录，原HTTP映射503。受管Session仍保留独立append-only撤销/过期证据，新增重放保护但无数值预算/压缩承诺。下一批核对host-memory-intake配置records预算/资格；Session持久预算、R1/R2/R3其余/R4与固定7项4闭环3部分完成不变。
+
+
+R3 Provider边界第23节给原Host Memory Intake参考配置补raw128KiB/1000条/规范化records512KiB预算，clone前拒绝，保留同步快照、来源/Context/分页及Human治理合同。保留有界配置预校验，inactive仍校验/构造，不冒称零CPU或全平台资格通过；新增双profile预算拒绝/原数据保留/修复不复活Host回归。下一批核对共享Session日志重放预算与必要权威，R1/R2/R3其余/R4及固定7项4闭环3部分完成不变。

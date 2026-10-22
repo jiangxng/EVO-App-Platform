@@ -48,6 +48,15 @@ For the task's **current** owner PR, review its latest head SHA, base/dependenci
 
 Two consecutive attempts without measurable progress (or two CI failures caused by test harness/selector/environment) trigger the runbook's short four-line reassessment before a third similar patch. Persist this reassessment as a **small incremental PR comment or task-scoped handoff**, not a separate sprawling retrospective. The work may change branches or split owners only under the existing delivery rules. Keep exact HEAD CI and Human/production gates unchanged.
 
+## 认可原型源码优先（Owner 2026-10-21）
+
+**凡目标 UI 已提供可读取的、经用户确认的交互式原型源文件（HTML/CSS/JS 等），先读取并固定原型的文件路径、Git ref/blob 和源代码，直接按 DOM、样式变量/颜色、事件与状态机整理功能/布局/颜色的完整差异，再决定如何在真实 Host/Eidos 中实现。** 截图仅用于改后真实浏览器/手机和 Human 的最终校验，不得因截图易取就绕过现有原型源码、反复猜 CSS/行高/像素。
+
+- 按 [开发工作流 §5](docs/architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md#5-认可原型源码优先的高保真交付) 和 [快速反馈规程 §5](docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md)；界面工作另按 [Human UI 检查规则](.clinerules/03-human-ui-design-review.md)。
+- 三个独立验收维度：**功能 100%（真实可操作）、布局 100%（结构/阅读顺序/控件/响应式意图）、颜色 100%（批准的颜色与状态语义）**；响应式允许设备差异，不要求不同分辨率行高和逐像素尺寸相同。
+- 原型里 demo 的 localStorage、模拟数据、假提交/权限不构成 Host 生产语义；必须通过真实契约/授权/预检/保存。若原型与业务真实性或 Eidos 通用权威冲突，列出并解决冲突，不可假装达标、擅自改共享主题或降低原目标。
+- 新窗口先复用上个 owner PR 的**已读原型源码、差异索引、失效尝试**，只检查新变更，不重新根据截图猜测已提供源码的设计。
+
 ## Continuation rule
 
 Before proposing or implementing work, answer these from repository evidence:
