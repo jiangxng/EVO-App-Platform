@@ -14,10 +14,11 @@
     "packageIds": ["evo-app-platform", "host-context-memory-provider", "remote-context-memory-dlp-provider"],
     "featureIds": ["evo-memory-governance.system"],
     "capabilities": ["context.memory.governance", "context.memory.dlp-classification", "context.memory.semantic-retrieval"],
-    "commands": ["context.memory.retention-policy.set", "context.memory.legal-hold.set"]
+    "commands": ["context.memory.retention-policy.set", "context.memory.legal-hold.set"],
+    "errorCodes": ["MEMORY_INTAKE_CONFIG_TOO_LARGE", "MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED", "MEMORY_INTAKE_RECORD_BYTES_EXCEEDED"]
   },
   "related": ["evo.personal-agent.world-model", "evo.provider.health", "evo.secrets.configure-provider-credential"],
-  "lastReviewedAt": "2026-09-27"
+  "lastReviewedAt": "2026-10-22"
 }
 ---
 Context Memory 本体始终保持 immutable。保留策略、隐私分类与 Legal Hold 都是独立的 append-only 治理证据。
@@ -64,3 +65,9 @@ DLP 分类遵循：
 ## Enterprise 权限
 
 Enterprise 的 Retention Policy 与 Legal Hold 修改仅允许 active OWNER / ADMIN，并同时要求 Human action、显式 confirmation 与 `authorization.check` ALLOW。
+
+## 参考 Host 接入配置预算
+
+`APP_PLATFORM_MEMORY_INTAKE_JSON` 是参考来源种子，原始 UTF-8 JSON 最多 128 KiB，记录最多 1000 条，规范化记录 JSON 总计最多 512 KiB（逐条 UTF-8 字节之和）。空白和元数据也计入字节预算。超过预算会以 `MEMORY_INTAKE_CONFIG_TOO_LARGE`、`MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED` 或 `MEMORY_INTAKE_RECORD_BYTES_EXCEEDED` 拒绝启动，不会静默截断记录。修正来源配置后按正常交付流程重启。已配置但停用的包也会校验；修正输入不会重新激活该包。
+
+这些限制保留原快照、来源信任、Context 过滤与分页合同。仅配置来源不会接入记录、接受 Proposal 或覆盖 durable Memory。上限只约束此参考 Host 来源，不是所有来源适配器或 Memory/Session 历史的通用上限。

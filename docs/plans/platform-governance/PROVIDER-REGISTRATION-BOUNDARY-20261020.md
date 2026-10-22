@@ -918,3 +918,62 @@ EA-1A§5/6/11明确签发/撤销/轮换事件是append-only持久证据，启动
 | 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 原剩余责任逐项验收，未部署 |
 
 [结构化证据](evidence/oidc-transaction-budget-20261022.json)。
+
+
+## 23. Host Memory Intake配置与快照容量预算（2026-10-22）
+
+基线main `4495b0f5d2b52ada81286f585e649ac0fe692826`（包含#1101及原#1020；提交前并入仅新增两份Agent交接文档的#1099，相关源码/规则未变）。分支`fix/governance-memory-intake-budget-20261022`；上一批最终CI/限制见[#1101永久收尾](https://github.com/jiangxng/EVO-App-Platform/pull/1101#issuecomment-6331577753)。其过程分支仍存在，head `fad5559569a078e6f4dd73de29625b1f1959b451`；本批重新核实，未重复提交前次中断的清理审批。BEX/PA05活动工作线、全局状态和生产不动。
+
+### 实际成本与最小判别
+
+原runtime blob `cc99e70b1a248321e89c8002e23d1f3f5349f195`完整读取：工厂不创建文件/连接/定时器，源码已在§8分类；但parse会JSON.parse/校验全部records，adapter构造按条structuredClone，evidence-source亦克隆元数据。它不是“轻量常量”，也不能把零外部I/O写成零内存成本。Host在启动2017附近即解析/登记，早于2712附近的原一次性安装journal；已停用/卸载但留配置仍会校验并建立进程快照。
+
+原模块3项判别：1001记录可接受；131282字节raw JSON可接受；构造后、首次pull前修改入参不影响原快照（这是需保留的正向合同）。审阅再发现规范化的共用sourceId复制放大：原1000条/101050字节raw，经规范化逐条JSON共2229890字节，仍可构造复制。新增原模块/修改模块前后探针证实修正后明确拒绝该放大输入。探针均为Node24.19原函数+合成配置，不是实际Host/Agent/生产测量。
+
+### 有界修正与保留决定
+
+仅改原Provider runtime：
+
+| 边界 | 新预算/行为 | 保留及限制 |
+|---|---|---|
+| 原始Host JSON | 最多128KiB UTF-8，包括空白、元数据和未知字段；超过时在trim/JSON.parse之前拒绝MEMORY_INTAKE_CONFIG_TOO_LARGE | 正常空配置、schema/source/记录校验不变；不截断、不自动丢记录 |
+| 配置记录 | 最多1000条，先计数再逐条模型校验；超限MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED | 来源身份、trust、重复ID、Context、confidence及证据规范化保持 |
+| 规范化记录快照 | 每条record JSON的UTF-8字节之和最多512KiB；包含重复sourceId等展开成本，超限MEMORY_INTAKE_RECORD_BYTES_EXCEEDED | parser规范化后检查；typed adapter直接入参也在clone之前检查count/record bytes，不能绕过。raw128KiB只适用JSON入口，非所有程序对象的统一字节合同 |
+| 构造与被动登记 | 保留同步private snapshot及轻量元数据/健康闭包；不加懒代理、后台清理或新框架 | 延迟首次clone会让构造后外部修改改变首次结果，缺乏依据。已有原始/规范化/条目预算控制参考配置成本；不是heap精确上限或性能SLA |
+| 实际pull | 仍在有效选择/使用时读取快照，按Host传入Context过滤，原默认50/max500分页与cursor保持 | 不访问业务存储、不写Proposal/Memory，不把信任级别当内容真理；page/metadata返回clone隔离 |
+
+这些是**原参考Host配置来源**的预算，不给EC/所有SourceAdapter或durable Memory/Session施加新通用上限。两个provider共享同一配置来源合同，不绑定一个UI插件启停。Host原resolver每次从有效贡献与binding选择source/evidence；调度也依原当前资格，Human intake仍经确认/授权，SERVICE定时操作仍只能产生Pending Proposal。未改这些生产实现、安装journal、权限或Agent语义。
+
+明确保留：配置仍在journal前校验，inactive保留配置也校验/构造有界快照，超预算将拒绝Host启动，修正后保留inactive状态。**不声称未装/停用零CPU/零clone**，也不宣称任意旧进程内引用已失效。它是有界参考配置兼容决定，不能由此关闭全平台资格/R4。配置不是持久业务权威；预算失败不覆盖原Memory、journal或旧已注册组件快照，修正输入后经原重启/显式替换恢复。超大真实来源需由其owner沿已有分页合同处理，不在本批建设第二Provider。
+
+### 验证与证据分层
+
+- 本地Node24.19部分快照/临时类型擦除：**21/21、0fail/0skip**，新预算/快照协议11+原memory/security资源10。覆盖UTF-8 ASCII/中文128KiB精确边界及下一字节在JSON.parse前拒绝；超大空白/坏正文；1000/1001及直接入参clone前拒绝；512KiB规范化字节精确边界/下一字节与共用ID放大；首次使用前突变、双消费者/page与metadata clone隔离；Personal/Enterprise隔离、满1000记录全分页、原非法输入/来源拒绝、旧快照保留与新配置恢复。原资源guard仍验证构造/发现零枚举外部资源，不当作零内存证据。
+- 复用既有configured-provider-startup-journal Host helper，新增双profile各1项（共2项）：1000条有效配置启动且不写原Memory/不出站，真实HTTP停用后重启保持inactive；1001条、raw小但规范化放大的配置均拒绝启动且Memory/journal字节保持；修复输入不复活包，原enable恢复且不自动接入记录。本地只查语法，最终准确head CI执行；不是新Agent功能或实际业务数据验收。
+- Lightweight纳入新协议，原Host已在其中；Host Memory Intake专属CI增加新协议及其路径，复用原intake/proposal/governance检查，不放宽基线/deny列表/原断言。预算组件只验证来源与读取；Human确认、授权及Pending→Accept仍由原完整相关CI回归，不冒称本地跑过缺失依赖的完整Memory业务测试。
+- Help既有evo.memory.governance的en/zh-CN同步补三项预算、三个错误码、修复/停用保持说明；无视觉/导航源变更，无Human本人验收声明。准确head CI、四组合实测、合并/分支状态写永久PR收尾，不把#1101的312/246当成本轮测量。
+
+### 提效、读取与下一步
+
+复用未变的启动/交付/FAST-FEEDBACK、A01/固定表、EOG与Provider历史研究，只核对最新main、owner收尾及相关源码；本批完整读取memory-intake runtime/package与P1.1 intake权威，Host局部解析/登记/journal/source/evidence resolver与调度资格段，intake-service/actions及旧协议按调用/确认/授权/去重相关段局部读取，不声称审计全Host/全部Agent。原Memory Intake专属workflow、startup Host helper及资源guard相关fixture已读。没有新增外网研究；未重试旧PA05 Node24.22 READ失败，24.21 pin和原owner兼容责任保持。
+
+原始预算+来源ID展开为同根因一批：先最小判别，审阅补放大前后探针，再一起修正，未提前推送小补丁/失败脚本。最终本地仅跑可靠的21项与语法，不重复已知部分快照/沙箱下的真实Host失败。没有两轮无实效产品修复；若发生两轮同类失败，第三轮前按原四行规程复盘。若预算静默截断、改变原快照或Context隔离、破坏Human确认/授权或坏配置覆盖旧数据，停止扩批回到原合同修正。
+
+已核实仓库Branch Hygiene关闭PR时仅自动清理指定Agent命名，通用退休需workflow_dispatch；当前连接器无delete/dispatch工具，不为本批改全局清理策略或伪装Agent分支名。前次CLI清理调用被中断，本批不重复该审批；若收尾仍无法执行删除，须在PR留本分支准确head及#1101待清理准确head，不声称已删除。未部署、无真实客户数据操作。
+
+下一条最小gate：**共享受管Session日志重放的读取预算与失败恢复**，先核对文件尺寸/事件数和必要独立安全责任，保留全部签发/撤销历史，不预设截断/自动压缩。R3其余安全基础资格/存量持久预算、R1冻结SOP身份/资格、R2原Agent配置SQL职责/资格、R4最终跨层以及A03/A05仍OPEN；本批只给参考配置和snapshot划容量边界。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；参考intake配置本批增量 | Session重放预算；R1/R2/R3其余/R4 |
+| A02 安装声明与实际执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略与兼容迁移 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口仍计A01 |
+| A07 个人/企业上下文边界 | 已闭环、原Agent专项 | 本专项无需进一步操作，原owner验收其实施 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 原剩余责任逐项验收，未部署 |
+
+[结构化证据](evidence/memory-intake-config-budget-20261022.json)。

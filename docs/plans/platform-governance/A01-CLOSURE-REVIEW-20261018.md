@@ -120,3 +120,6 @@ R3 Provider边界第21节已给原EVO观测query/probe补独立总期限，覆�
 
 
 R3 Provider边界第22节已限制原OIDC未消费临时state默认1000、活动时清过期，失败回调消费并保持原单次换票/资格；满额拒绝新增而不挤掉有效登录，原HTTP映射503。受管Session仍保留独立append-only撤销/过期证据，新增重放保护但无数值预算/压缩承诺。下一批核对host-memory-intake配置records预算/资格；Session持久预算、R1/R2/R3其余/R4与固定7项4闭环3部分完成不变。
+
+
+R3 Provider边界第23节给原Host Memory Intake参考配置补raw128KiB/1000条/规范化records512KiB预算，clone前拒绝，保留同步快照、来源/Context/分页及Human治理合同。保留有界配置预校验，inactive仍校验/构造，不冒称零CPU或全平台资格通过；新增双profile预算拒绝/原数据保留/修复不复活Host回归。下一批核对共享Session日志重放预算与必要权威，R1/R2/R3其余/R4及固定7项4闭环3部分完成不变。
