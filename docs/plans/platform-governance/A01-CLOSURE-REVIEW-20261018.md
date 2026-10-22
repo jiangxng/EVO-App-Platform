@@ -117,3 +117,6 @@ R3 Provider边界第20节已将两类LLM metadata限定为当前有效Provider�
 
 
 R3 Provider边界第21节已给原EVO观测query/probe补独立总期限，覆盖响应头/正文并finally清理、释放readiness未读body；构造闭包保留，原映射/事实合同及有效选择不改。新增原生HTTP/并发/故障恢复回归；公共合同无立即stop/cancel，完整停止矩阵仍保留。下一批核对OIDC待处理事务及managed Session records预算；R1/R2/R3其余/R4及固定7项4闭环3部分完成保持。
+
+
+R3 Provider边界第22节已限制原OIDC未消费临时state默认1000、活动时清过期，失败回调消费并保持原单次换票/资格；满额拒绝新增而不挤掉有效登录，原HTTP映射503。受管Session仍保留独立append-only撤销/过期证据，新增重放保护但无数值预算/压缩承诺。下一批核对host-memory-intake配置records预算/资格；Session持久预算、R1/R2/R3其余/R4与固定7项4闭环3部分完成不变。
