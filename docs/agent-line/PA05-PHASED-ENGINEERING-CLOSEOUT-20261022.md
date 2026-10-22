@@ -51,3 +51,9 @@
 - **工程：** 整合候选 #1104 原封保留；45/45 精确头 CI 是局部工程证据，**不是**生产认证。
 - **外部验收：** #1092 保持 `OPEN / NOT_SIGNED`，直到真实合格外部证据和明确签署。
 - **主线：** 无 `project.status.json`、全局 roadmap 或生成 handoff 权限变更；本文件只在 `docs/agent-line/` 为 PA05 专项提供新的入口和决策记录。
+
+## 2026-10-22 追加决定：开发阶段工程合并授权（不改变生产认证）
+
+项目负责人在阶段收口之后进一步明确：“合并吧，我们是插件模式开发、目前还在开发阶段，不想太多分支，防止跨窗口重复开发”。因此把本文件前述“#1104 保留 Draft、禁止合入”重新分类为**当时的历史审查状态**，而非永久阻断主线工程合并的有效规则。新执行决策：允许 [PR #1104](https://github.com/jiangxng/EVO-App-Platform/pull/1104) 在与最新 main 同步且准确最终 HEAD CI 通过后正式合并；仅该工程代码范围获授权，后续状态以 GitHub PR 原始合并记录为准。
+
+注意：Railway 服务在名为 production 的环境下挂接 GitHub `main`，合并有触发既有自动部署的可能；**没有授权修改部署配置、重启/停机、开启 material WRITE 或将运行成功误认作 K0 验收**。原 [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 继续 OPEN，R5-01 UNKNOWN、R5-02 PRODUCTION_UNVERIFIED、R5-03 BLOCKED，PA05 完整认证与 W06 保持 NOT_SIGNED。不得重做已经封存的原始工程研究。

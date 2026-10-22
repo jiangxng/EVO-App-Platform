@@ -14,6 +14,7 @@ import type { EnterpriseOperatingGraphAnalysisProviderV020 } from "../contracts/
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
 import { acquirePa05CooperativeHostStateLockV010 } from "./pa05-read-owner-cooperative-host-lock.js";
+import { rejectHostShutdownRequestV010, runHostShutdownStepsV010 } from "./host-shutdown.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
@@ -6237,8 +6238,10 @@ function publishActionRealtimeEvents(
   }
 }
 
+let shuttingDown = false;
 const server = createServer(async (request, response) => {
   try {
+    if (rejectHostShutdownRequestV010(shuttingDown, response)) return;
     const url = new URL(request.url ?? "/", "http://localhost");
     applyWebSecurityHeaders(response);
     applyWebRevisionHeadersV010(
@@ -10242,39 +10245,54 @@ const port = Number(process.env.PORT ?? 4100);
 await pa05WriteLifecycleHost.attestStartupActivation();
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
 
-let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
-  evoRuntimeRevisionBridge?.dispose();
-  contextMemoryScheduleDriver.dispose();
-  let shutdownFailed = false;
-  try {
-    await contextMemoryScheduler.stop();
-  } catch (error) {
-    shutdownFailed = true;
-    console.error("Context Memory scheduler shutdown incomplete", error);
-  }
-  try {
-    await bottleneckRuntime.stop();
-    await counterpartyRuntimeHost.stop();
-    await responsibilityRuntimeHost.stop();
-    await dataImportRuntimeHost.stop();
-    await Promise.all([extensionManagement.stop(), counterpartyExtensionDefinitions.stop(),
-      counterpartyExtensionValues.stop(), itemExtensionDefinitions.stop(),
-      itemExtensionValues.stop(), warehouseExtensionValues.stop()]);
-  } catch (error) {
-    shutdownFailed = true;
-    console.error("Managed runtime shutdown incomplete", error);
-  }
-  await optionalAgentAsyncRunReader?.close();
-  await optionalAgentAsyncReadWorker?.close();
-  await optionalPa02ObjectExtensionOwner?.close();
-  await pa05WriteLifecycleHost.close();
-  await processRuntimeHost.shutdown();
-  server.close(() => process.exit(shutdownFailed ? 1 : 0));
-  setTimeout(() => process.exit(1), 5000).unref();
+
+  // Close admission immediately. Keep the deadline referenced so a hung
+  // cleanup promise cannot let Node exit zero and release the J4J lock.
+  const shutdownDeadline = setTimeout(() => {
+    console.error("Host shutdown deadline exceeded");
+    process.exit(1);
+  }, 5000);
+  const serverClosed = new Promise<{ok: boolean; error?: unknown}>(resolve => {
+    try {
+      server.close(error => resolve(error ? {ok: false, error} : {ok: true}));
+    } catch (error) {
+      resolve({ok: false, error});
+    }
+  });
+
+  const cleanup = await runHostShutdownStepsV010([
+    {name: "EVO Runtime revision bridge", run: () => evoRuntimeRevisionBridge?.dispose()},
+    {name: "Context Memory schedule driver", run: () => contextMemoryScheduleDriver.dispose()},
+    {name: "Context Memory scheduler", run: () => contextMemoryScheduler.stop()},
+    {name: "Bottleneck runtime", run: () => bottleneckRuntime.stop()},
+    {name: "Counterparty runtime", run: () => counterpartyRuntimeHost.stop()},
+    {name: "Responsibility runtime", run: () => responsibilityRuntimeHost.stop()},
+    {name: "Data import runtime", run: () => dataImportRuntimeHost.stop()},
+    {name: "Extension management", run: () => extensionManagement.stop()},
+    {name: "Counterparty extension definitions", run: () => counterpartyExtensionDefinitions.stop()},
+    {name: "Counterparty extension values", run: () => counterpartyExtensionValues.stop()},
+    {name: "Item extension definitions", run: () => itemExtensionDefinitions.stop()},
+    {name: "Item extension values", run: () => itemExtensionValues.stop()},
+    {name: "Warehouse extension values", run: () => warehouseExtensionValues.stop()},
+    {name: "Agent async run reader", run: () => optionalAgentAsyncRunReader?.close()},
+    {name: "Agent async read worker", run: () => optionalAgentAsyncReadWorker?.close()},
+    {name: "PA-02 Object Extension Owner", run: () => optionalPa02ObjectExtensionOwner?.close()},
+    {name: "PA05 write lifecycle Host", run: () => pa05WriteLifecycleHost.close()},
+    {name: "Process runtime Host", run: () => processRuntimeHost.shutdown()}
+  ], (name, error) => {
+    console.error(`Host shutdown incomplete: ${name}`, error);
+  });
+
+  const closed = await serverClosed;
+  clearTimeout(shutdownDeadline);
+  if (!closed.ok) console.error("HTTP server shutdown incomplete", closed.error);
+  // Any incomplete cleanup or server-close failure exits nonzero. The J4J
+  // exit hook consequently preserves the lock for independent review.
+  process.exit(cleanup.ok && closed.ok ? 0 : 1);
 }
 
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
