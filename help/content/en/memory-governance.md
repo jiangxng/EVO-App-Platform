@@ -14,10 +14,11 @@
     "packageIds": ["evo-app-platform", "host-context-memory-provider", "remote-context-memory-dlp-provider"],
     "featureIds": ["evo-memory-governance.system"],
     "capabilities": ["context.memory.governance", "context.memory.dlp-classification", "context.memory.semantic-retrieval"],
-    "commands": ["context.memory.retention-policy.set", "context.memory.legal-hold.set"]
+    "commands": ["context.memory.retention-policy.set", "context.memory.legal-hold.set"],
+    "errorCodes": ["MEMORY_INTAKE_CONFIG_TOO_LARGE", "MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED", "MEMORY_INTAKE_RECORD_BYTES_EXCEEDED"]
   },
   "related": ["evo.personal-agent.world-model", "evo.provider.health", "evo.secrets.configure-provider-credential"],
-  "lastReviewedAt": "2026-09-27"
+  "lastReviewedAt": "2026-10-22"
 }
 ---
 Context Memory records stay immutable. Retention, privacy classification and Legal Hold are separate append-only governance evidence.
@@ -64,3 +65,9 @@ Scheduled intake runs as a service actor and may only create Pending Proposals. 
 ## Enterprise authority
 
 Enterprise retention policy and Legal Hold changes require an active OWNER or ADMIN relationship, Human action, explicit confirmation and an `authorization.check` ALLOW decision.
+
+## Reference Host intake configuration budget
+
+`APP_PLATFORM_MEMORY_INTAKE_JSON` is a reference source seed, limited to 128 KiB of raw UTF-8 JSON, 1000 records, and 512 KiB of canonical record JSON (the sum of individual UTF-8 sizes). Whitespace and metadata count toward the byte budget. Oversized input fails startup with `MEMORY_INTAKE_CONFIG_TOO_LARGE`, `MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED` or `MEMORY_INTAKE_RECORD_BYTES_EXCEEDED`; records are never silently truncated. Correct the source configuration and restart through the normal delivery process. Validation also applies when the configured package is inactive; correcting input does not reactivate it.
+
+These limits preserve existing snapshots, source trust, Context filtering and paged pulls. Configuration alone does not ingest records, accept a Proposal or overwrite durable Memory. They apply to this reference Host source, not all source adapters or durable Memory/Session history.
