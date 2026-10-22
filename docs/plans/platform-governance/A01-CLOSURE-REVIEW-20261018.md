@@ -114,3 +114,6 @@ R3 Provider边界第19节已将Identity Directory构造读取延至原同步snap
 
 
 R3 Provider边界第20节已将两类LLM metadata限定为当前有效Provider，未装/停用即使Secrets有效或有环境Key也不读取；沿原公共生命周期回调准备现有runtime，保留首次安装/启用/卸载重装可用，Shared Secrets恢复亦重算，不改同步选择合同或PA05实现。原revision阻止迟到准备，解密仍在请求端口。新增原函数/真实Host资格与恢复回归；下一批核对EVO观测请求期限、Abort/响应体清理与失败恢复；OIDC事务/records预算及R1/R2/R3其余/R4不代关。
+
+
+R3 Provider边界第21节已给原EVO观测query/probe补独立总期限，覆盖响应头/正文并finally清理、释放readiness未读body；构造闭包保留，原映射/事实合同及有效选择不改。新增原生HTTP/并发/故障恢复回归；公共合同无立即stop/cancel，完整停止矩阵仍保留。下一批核对OIDC待处理事务及managed Session records预算；R1/R2/R3其余/R4及固定7项4闭环3部分完成保持。
