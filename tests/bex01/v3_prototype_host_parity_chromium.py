@@ -133,17 +133,22 @@ with sync_playwright() as pw:
         # Verify an actual unsaved Human choice changes only the local view,
         # and reset restores it without running a Host action or preflight.
         bank=form.locator('[data-eidos-form-review-table-row="map-source-20"]')
-        expect(bank.locator('select[name="map_20"]')).to_have_value("__PENDING__")
+        bank_select=bank.locator('select[name="map_20"]')
+        original_bank_target=bank_select.input_value()
+        # The Host may have already approved an enterprise extension field.
+        # Its real ext_* ID is authoritative; never hardcode __PENDING__ or
+        # infer a customer bank-field identity from a demo fixture.
+        assert original_bank_target and original_bank_target!="__IGNORE__"
         original_bank_tone=bank.get_attribute("data-eidos-review-table-status-key")
-        assert original_bank_tone in ("attention","pending","suggested"),original_bank_tone
-        bank.locator('select[name="map_20"]').select_option("__IGNORE__")
+        assert original_bank_tone in ("attention","pending","suggested","matched"),original_bank_tone
+        bank_select.select_option("__IGNORE__")
         expect(bank).to_have_attribute("data-eidos-review-table-status-key","ignored")
         assert color(bank.locator('[data-eidos-review-table-status-badge]'),
                      "backgroundColor")=="rgb(240, 243, 246)"
         assert metrics.locator(
             '[data-eidos-form-task-metric-id="attention"] strong').inner_text()=="3"
         form.locator('[data-eidos-form-task-reset]').click()
-        expect(bank.locator('select[name="map_20"]')).to_have_value("__PENDING__")
+        expect(bank_select).to_have_value(original_bank_target)
         expect(bank).to_have_attribute("data-eidos-review-table-status-key",original_bank_tone)
         assert post_actions==[],post_actions
 
