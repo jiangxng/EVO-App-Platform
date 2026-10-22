@@ -1,5 +1,7 @@
 # 独立 Agent 线交接入口
 
+> **PA05 阶段性收口决定（2026-10-22，优先阅读）：** [PA05 工程阶段收口／外部认证保留清单](PA05-PHASED-ENGINEERING-CLOSEOUT-20261022.md)。截至本记录，#1104 是唯一保留的 **OPEN Draft 工程整合候选**，原准确头 45/45 CI 成功但**未合入 main**；旧过程分支已有删除收据。**PA05 完整认证与 K0/W06 仍 NOT_SIGNED、#1092 外部 Operator 门禁 OPEN、生产 material WRITE OFF**。本声明仅结束已完成工程轮次，不改动原阶段建设路线、正式验收标准或生产权限；Railway 恢复后从 #1092 续接，而非重复研究。
+
 > **2026-10-21 PA05/K0 WINDOW-09 本次只读新证据（优先于 WINDOW-08 历史生产快照）：** [GitHub/Railway 实时核验、精确 CI、远端分支 SHA-pinned 退休审计及 #1092 Owner 缺口](PA05-E01J4K-K0-WINDOW-09-LIVE-STATE-BRANCH-AUDIT-20261021.md)。main 和 Railway 在本窗口检查期间从 4e21fa8d/7e794aba 前进至 9a382666/963dd693；此前 30 条标记退休分支均已不在远端；另有 9 条已合并 PA05 文档分支通过 exact HEAD/祖先验证，但**本窗口没有 delete-ref/手动 workflow_dispatch 入口，未实际删除**。四活动 Draft 保留、K0 NOT_SIGNED / production material WRITE OFF。
 
 > **2026-10-21 PA05/K0 WINDOW-08 最新接续入口（优先于下方 WINDOW-07 历史快照）：** [短交接](PA05-E01J4K-K0-WINDOW-08-CONTINUATION-HANDOFF-ENTRY-20261021.md) → [资料与决策索引](PA05-E01J4K-K0-WINDOW-08-CONTINUATION-RESEARCH-REFERENCE-INDEX-20261021.md)。续跑新成果：#1074 顶层 Host shutdown 45/45 CI 且残留顺序清理缺口明确；#1081 仅负例证据、不能合并；#1082 11 项局部 PROCESS 有界通过但无联合生产验收；#1092 汇总 Railway R5-01/02、独立 R5-03 与 GitHub Actions 外部 Caller 取证请求。K0/E01J4/PA05-05/W06 **NOT_SIGNED**、production material WRITE **OFF**。所有版本/部署 ID 为历史时点，重入必须只读刷新。四 Draft 不合并、不部署。
