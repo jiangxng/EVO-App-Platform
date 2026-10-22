@@ -64,8 +64,10 @@ function input(field: RenderFieldV010): string {
 }
 
 function renderReviewTaskSteps(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
-  return task.steps?.length ? `<ol data-eidos-form-task-steps>
-    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
+  return task.steps?.length ? `<ol data-eidos-form-task-steps${task.presentation === "workbench"
+      ? ' data-eidos-task-steps-presentation="workbench"' : ""}>
+    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}"${step.state === "current"
+      ? ' aria-current="step"' : ""}>${esc(step.label)}</li>`).join("")}
   </ol>` : "";
 }
 
@@ -75,9 +77,12 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
     `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
   ).join("");
   const context=`<section data-eidos-form-task-context>
-    <div data-eidos-form-task-identity><strong>${esc(subject.title)}</strong>
-      ${subject.subtitle ? `<p>${esc(subject.subtitle)}</p>` : ""}</div>
-    ${subject.statusLabel ? `<span data-eidos-form-task-source-status>${esc(subject.statusLabel)}</span>` : ""}
+    <div data-eidos-form-task-identity${subject.iconLabel ? ' data-eidos-form-task-has-icon="true"' : ""}>
+      ${subject.iconLabel ? `<span data-eidos-form-task-icon aria-hidden="true">${esc(subject.iconLabel)}</span>` : ""}
+      <div data-eidos-form-task-copy><strong>${esc(subject.title)}</strong>
+      ${subject.subtitle ? `<p>${esc(subject.subtitle)}</p>` : ""}</div></div>
+    ${subject.statusLabel ? `<span data-eidos-form-task-source-status${subject.statusTone
+      ? ` data-tone="${esc(subject.statusTone)}"` : ""}>${esc(subject.statusLabel)}</span>` : ""}
     ${facts ? `<dl data-eidos-form-task-facts>${facts}</dl>` : ""}
   </section>`;
   const steps=renderReviewTaskSteps(task);
@@ -87,13 +92,24 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
       data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
       <span>${esc(metric.label)}</span></div>`).join("")}
   </section>` : "";
-  const issues=task.issues?.length ? `<section data-eidos-form-task-issues>
+  const issues=task.issues?.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
+    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
     <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
-    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}</header>
+    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
+    ${task.presentation === "workbench" && task.issuesCountSuffix
+      ? `<span data-eidos-form-task-issue-count aria-label="${esc(task.issues.length + " " + task.issuesCountSuffix)}">${esc(task.issues.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
     <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
       <div><strong>${esc(issue.title)}</strong>
       ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>
-      ${issue.focusGroupId ? `<button type="button"
+      ${issue.relatedRoutes?.length
+        ? `<details data-eidos-form-task-issue-related>
+            <summary>${esc(issue.actionLabel ?? "View records")}</summary>
+            <div data-eidos-form-task-issue-related-links>${issue.relatedRoutes.map(link=>
+              `<button type="button" data-eidos-form-task-issue-row
+                data-eidos-context-route="${esc(link.route)}">${esc(link.label)}</button>`
+              ).join("")}</div>
+          </details>`
+        : issue.focusGroupId ? `<button type="button"
         data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
     </li>`).join("")}</ol>
   </section>` : "";
@@ -200,15 +216,42 @@ export function renderToHtml(document: unknown): string {
     }).join("");
     const count=(model.reviewGroups ?? []).filter(group =>
       !allowed || allowed.includes(group.reviewStatus!.key)).length;
-    const toolbar=filter
-      ? `<div data-eidos-form-review-table-toolbar><label>${esc(filter.label)}
+    const toolbarAgent=model.reviewTable?.agentActionId
+      ? model.agentActions.find(action=>action.id===model.reviewTable?.agentActionId)
+      : undefined;
+    const toolbar=filter || toolbarAgent
+      ? `<div data-eidos-form-review-table-toolbar>
+          ${filter ? `<div data-eidos-form-review-table-toolbar-context>
+            <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span>
+            ${model.reviewTable?.toolbarHint ? `<p data-eidos-form-review-table-toolbar-hint>${esc(model.reviewTable.toolbarHint)}</p>` : ""}
+          </div>` : ""}
+          <div data-eidos-form-review-table-toolbar-tools>
+          ${filter ? `<label>${esc(filter.label)}
           <select data-eidos-form-review-table-filter>${filter.options.map(option =>
             `<option value="${esc(option.id)}"
               data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
-          ).join("")}</select></label>
-          <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span></div>`
+          ).join("")}</select></label>` : ""}
+          ${toolbarAgent ? `<button type="button" data-eidos-review-table-agent-action
+            data-eidos-agent-action="${esc(toolbarAgent.id)}">${esc(toolbarAgent.label)}</button>` : ""}
+          </div></div>`
       : "";
-    return `<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
+    const utilities=model.reviewTable?.utilityNavigation;
+    const utilityMenu=utilities
+      ? `<details data-eidos-form-review-table-utility-nav>
+          <summary>${esc(utilities.label)}</summary>
+          <div data-eidos-form-review-table-utility-links>${utilities.items.map(item=>
+            `<button type="button" data-eidos-form-review-table-utility-id="${esc(item.id)}"
+              data-eidos-context-route="${esc(item.route)}">${esc(item.label)}</button>`
+          ).join("")}</div>
+        </details>` : "";
+    const heading=model.reviewTable?.heading
+      ? `<header data-eidos-form-review-table-heading>
+          <h2>${esc(model.reviewTable.heading.title)}</h2>
+          ${model.reviewTable.heading.description
+            ? `<p>${esc(model.reviewTable.heading.description)}</p>` : ""}
+          ${utilityMenu}
+        </header>` : utilityMenu;
+    return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>
         <table data-eidos-form-review-table aria-label="${esc(model.title)}">
@@ -220,6 +263,7 @@ export function renderToHtml(document: unknown): string {
         </table>
       </div>
       ${filter ? `<p data-eidos-form-review-table-empty${count ? " hidden" : ""}>${esc(filter.noMatchesMessage)}</p>` : ""}
+      ${model.reviewTable?.footnote ? `<p data-eidos-form-review-table-footnote>${esc(model.reviewTable.footnote)}</p>` : ""}
       </section>`;
   })() : "";
   const preview=model.reviewPlan ? `<section data-eidos-form-review-plan
@@ -239,10 +283,18 @@ export function renderToHtml(document: unknown): string {
     ? reviewTable : groups
       ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
   const agentActions = model.agentActions
+    .filter(action=>action.id!==model.reviewTable?.agentActionId)
     .map(action =>
       `<button type="button" data-eidos-agent-action="${esc(action.id)}">${esc(action.label)}</button>`
     )
     .join("");
+  const footer=model.reviewTask?.presentation === "workbench" ? model.reviewTask.footer : undefined;
+  const footerNavigation=footer?.back
+    ? `<button type="button" data-eidos-form-task-back data-eidos-context-route="${esc(footer.back.route)}">${esc(footer.back.label)}</button>` : "";
+  const footerReset=footer?.resetLabel
+    ? `<button type="reset" data-eidos-form-task-reset>${esc(footer.resetLabel)}</button>` : "";
+  const footerHint=footer?.saveHint
+    ? `<span data-eidos-form-task-save-hint>${esc(footer.saveHint)}</span>` : "";
   const cancels = model.cancelActions
     .map(action =>
       `<button type="button" data-eidos-action="${esc(action.id)}">${esc(action.label)}</button>`
@@ -264,6 +316,7 @@ ${taskOverview}
 <div data-eidos-form-fields>${fields}</div>
 ${preview}
 <footer data-eidos-form-actions>
+${footerHint}${footerNavigation}${footerReset}
 ${model.submitActions.map((action,index)=>`<button type="submit" data-eidos-action="${esc(action.id)}" data-eidos-declared-command="${esc(action.command)}"${index===0 ? ` data-eidos-primary="true"` : ""}>${esc(action.label)}</button>`).join("")}
 ${agentActions}${cancels}
 </footer>

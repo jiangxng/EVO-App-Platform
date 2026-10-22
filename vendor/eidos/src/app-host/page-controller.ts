@@ -2613,6 +2613,39 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       refreshExclusiveOptions();
     }
 
+    // An opt-in reset restores only unsaved form controls to the Host-loaded
+    // snapshot. It never calls ActionHost or rewrites persisted Import Job data.
+    if (doc.reviewTask?.presentation === "workbench"
+      && doc.reviewTask.footer?.resetLabel
+      && form.querySelector("[data-eidos-form-task-reset]")) {
+      let restoring = false;
+      const resetToLoadedSnapshot = (event: Event) => {
+        if (restoring) return;
+        event.preventDefault();
+        for (const group of exclusiveGroups.values()) {
+          for (const item of group) {
+            item.select.replaceChildren(...item.originals.map(option =>
+              option.cloneNode(true) as HTMLOptionElement));
+          }
+        }
+        restoring = true;
+        try { form.reset(); } finally { restoring = false; }
+        refreshExclusiveOptions();
+        for (const field of doc.fields) {
+          if (field.control !== "select" || field.hidden) continue;
+          const select = form.elements.namedItem(field.key);
+          if (select instanceof HTMLSelectElement) {
+            select.dispatchEvent(new Event("change", {bubbles:true}));
+          }
+        }
+        if (reviewTableFilter) {
+          reviewTableFilter.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      };
+      form.addEventListener("reset",resetToLoadedSnapshot);
+      listeners.push(()=>form.removeEventListener("reset",resetToLoadedSnapshot));
+    }
+
     const actionStatus = document.createElement("div");
     actionStatus.setAttribute("data-eidos-action-status", "");
     actionStatus.setAttribute("role", "status");
