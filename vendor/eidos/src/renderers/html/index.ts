@@ -93,13 +93,12 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
       data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
       <span>${esc(metric.label)}</span></div>`).join("")}
   </section>` : "";
-  const issues=task.issues?.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
-    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
-    <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
-    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
-    ${task.presentation === "workbench" && task.issuesCountSuffix
-      ? `<span data-eidos-form-task-issue-count aria-label="${esc(task.issues.length + " " + task.issuesCountSuffix)}">${esc(task.issues.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
-    <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
+  // Preserve the complete, validated issue catalog. Native disclosure
+  // groups keep the first twelve decisions visible and the rest keyboard
+  // accessible without invoking a Host command or silently truncating rows.
+  const issueRows=task.issues ?? [];
+  const renderIssue=(issue: NonNullable<typeof task.issues>[number]): string =>
+    `<li data-eidos-form-task-issue="${esc(issue.id)}">
       <div><strong>${esc(issue.title)}</strong>
       ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>
       ${issue.relatedRoutes?.length
@@ -112,7 +111,26 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
           </details>`
         : issue.focusGroupId ? `<button type="button"
         data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
-    </li>`).join("")}</ol>
+    </li>`;
+  const firstPageSize=task.issuesPageSize ?? issueRows.length;
+  const extraIssuePages=task.issuesPageSize===12
+    ? Array.from({length:Math.ceil(issueRows.length/12)-1},(_,pageIndex)=>{
+      const start=(pageIndex+1)*12;
+      const items=issueRows.slice(start,start+12);
+      return `<details data-eidos-form-task-issue-page>
+        <summary>${esc((start+1)+"–"+(start+items.length)+" / "+issueRows.length)}</summary>
+        <ol start="${start+1}">${items.map(renderIssue).join("")}</ol>
+      </details>`;
+    }).join("")
+    : "";
+  const issues=issueRows.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
+    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
+    <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
+    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
+    ${task.presentation === "workbench" && task.issuesCountSuffix
+      ? `<span data-eidos-form-task-issue-count aria-label="${esc(issueRows.length + " " + task.issuesCountSuffix)}">${esc(issueRows.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
+    <ol>${issueRows.slice(0,firstPageSize).map(renderIssue).join("")}</ol>
+    ${extraIssuePages}
   </section>` : "";
   const help=task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : "";
   if(task.presentation === "decision-first") {

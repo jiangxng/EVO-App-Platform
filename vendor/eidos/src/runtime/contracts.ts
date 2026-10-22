@@ -121,6 +121,8 @@ export interface UidlFormReviewTaskV010 {
   issuesLayout?: "connected";
   /** Short app-owned suffix; Eidos derives the issue count from the list. */
   issuesCountSuffix?: string;
+  /** Opt-in native issue-page disclosure, twelve per page; no Host mutation. */
+  issuesPageSize?: 12;
   issues?: {
     id: string;
     title: string;

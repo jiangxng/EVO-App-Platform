@@ -1141,11 +1141,19 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","issuesCountSuffix","issuesLayout","helpText","presentation","footer"]),path,out);
+        "issuesDescription","issues","issuesCountSuffix","issuesLayout","issuesPageSize","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
+      }
+      if (task.issuesPageSize !== undefined
+        && (task.presentation !== "workbench"
+          || task.issuesPageSize !== 12
+          || !Array.isArray(task.issues)
+          || task.issues.length === 0)) {
+        fail(path+".issuesPageSize",
+          "Issue pagination requires a nonempty workbench list in groups of twelve");
       }
       if (task.issuesLayout !== undefined
         && (task.presentation !== "workbench"
@@ -1235,7 +1243,10 @@ export function validateUidl(
           && (item.tone===undefined
             || ["neutral","positive","warning","danger"].includes(item.tone as string));
       });
-      checkIds(task.issues,path+".issues",12,(item,at)=>{
+      // Existing workbenches remain capped at 12. Opt-in pages may retain
+      // the full issue catalog up to a bounded 4096 entries; above this,
+      // validation must fail instead of silently dropping outstanding tasks.
+      checkIds(task.issues,path+".issues",task.issuesPageSize===12?4096:12,(item,at)=>{
         extraKeys(item,new Set(["id","title","description",
           "focusGroupId","actionLabel","relatedRoutes"]),at,out);
         return nonEmpty(item.title)
