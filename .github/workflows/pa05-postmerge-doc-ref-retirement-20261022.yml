@@ -1,0 +1,91 @@
+name: PA05 postmerge research handoff ref retirement (2026-10-22)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pa05-postmerge-doc-ref-retirement-20261022.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/pa05-postmerge-doc-ref-retirement-20261022.yml
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  verify-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify exact merged PA05 handoff doc head and retire its ref
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            if(owner!=='jiangxng'||repo!=='EVO-App-Platform')throw Error('Unexpected repo');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(!execute&&context.eventName!=='pull_request')throw Error('Unexpected trigger');
+            const workflow='.github/workflows/pa05-postmerge-doc-ref-retirement-20261022.yml';
+            const cleanup='chore/pa05-postmerge-doc-ref-retirement-20261022';
+            const targets=[
+              {pr:1112,name:'docs/pa05-postmerge-research-handoff-20261022',sha:'65d832917491758a86bfe426b00adecc18aabc71'}
+            ];
+            const full=owner+'/'+repo;
+            const get=async name=>{
+              try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}
+            };
+            const main=(await github.rest.repos.getBranch({owner,repo,branch:'main'})).data.commit.sha;
+            const cmp=async (base,head)=>{
+              const r=(await github.rest.repos.compareCommits({owner,repo,base,head})).data;
+              if(r.behind_by!==0||r.merge_base_commit?.sha!==base)
+                throw Error('Required commit not an ancestor of '+head+': '+base);
+            };
+            const reserved=async()=>{
+              const prs=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+              const refs=new Set(['main']);
+              for(const p of prs){refs.add(p.base.ref);if(p.head.repo?.full_name===full)refs.add(p.head.ref);}
+              return refs;
+            };
+            if(!execute){
+              const p=context.payload.pull_request;
+              if(p.head.ref!==cleanup||p.base.ref!=='main'||p.head.repo?.full_name!==full)
+                throw Error('Unexpected cleanup PR identity');
+              const files=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:p.number,per_page:100});
+              if(files.length!==1||files[0].filename!==workflow)
+                throw Error('Cleanup PR must change only its own one-time workflow');
+            }
+            const auditHead=execute?main:context.payload.pull_request.head.sha;
+            const seen=new Set();
+            for(const target of targets){
+              if(seen.has(target.name))throw Error('Duplicate target');
+              seen.add(target.name);
+              const p=(await github.rest.pulls.get({owner,repo,pull_number:target.pr})).data;
+              if(!p.merged||p.base.ref!=='main'||p.head.repo?.full_name!==full||
+                 p.head.ref!==target.name||p.head.sha!==target.sha||!p.merge_commit_sha)
+                throw Error('Merged PR proof changed for '+target.name);
+              await cmp(p.merge_commit_sha,main);
+              await cmp(target.sha,auditHead);
+              const head=await get(target.name);
+              if(head===null){core.info('ALREADY_ABSENT '+target.name);continue;}
+              if(head!==target.sha)throw Error('Moved target ref '+target.name);
+              if((await reserved()).has(target.name))throw Error('Open PR references '+target.name);
+              const branch=(await github.rest.repos.getBranch({owner,repo,branch:target.name})).data;
+              if(branch.protected)throw Error('Protected branch '+target.name);
+              if(!execute){core.info('AUDIT_ELIGIBLE '+target.name+' @ '+target.sha);continue;}
+              if(await get(target.name)!==target.sha||(await reserved()).has(target.name))
+                throw Error('Raced target ref '+target.name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+target.name});
+              core.info('DELETED_PA05_POSTMERGE_DOC_REF '+target.name+' @ '+target.sha);
+            }
+            if(!execute){core.info('AUDIT_ONLY_PA05_POSTMERGE_DOC');return;}
+            const closed=await github.paginate(github.rest.pulls.list,{owner,repo,head:owner+':'+cleanup,state:'closed',per_page:100});
+            const own=closed.find(p=>p.merged_at&&p.base.ref==='main'&&p.head.ref===cleanup&&p.head.repo?.full_name===full);
+            if(!own)throw Error('Cleanup PR not verified as merged');
+            await cmp(own.head.sha,main);
+            if(await get(cleanup)!==own.head.sha||(await reserved()).has(cleanup))
+              throw Error('Cleanup source ref moved or still active');
+            const info=(await github.rest.repos.getBranch({owner,repo,branch:cleanup})).data;
+            if(info.protected)throw Error('Cleanup source is protected');
+            if(await get(cleanup)!==own.head.sha)throw Error('Cleanup ref raced');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+cleanup});
+            core.info('DELETED_OWN_PA05_CLEANUP_SOURCE '+cleanup+' @ '+own.head.sha);
+            core.info('PA05_POSTMERGE_DOC_REF_RETIREMENT_COMPLETE');
