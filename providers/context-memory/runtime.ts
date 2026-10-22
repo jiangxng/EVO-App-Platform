@@ -337,6 +337,7 @@ export function createHostContextMemoryReaderV010(
   options: {
     governance?: ContextMemoryGovernanceProviderV010;
     semanticRetriever?: ContextMemorySemanticRetrieverV010;
+    resolveSemanticRetriever?: () => ContextMemorySemanticRetrieverV010 | undefined;
     canonicalization?: {
       listActiveForContext(context: ContextMemoryReadRequestV010["context"]): Array<{
         duplicateMemoryId: string;
@@ -411,11 +412,16 @@ export function createHostContextMemoryReaderV010(
       if (!query) {
         throw new Error("CONTEXT_MEMORY_SEMANTIC_QUERY_REQUIRED");
       }
-      if (!options.semanticRetriever) {
+      // A supplied resolver is authoritative, including absence/failure. Never
+      // fall back to a previously captured runtime after lifecycle/binding loss.
+      const semanticRetriever = options.resolveSemanticRetriever
+        ? options.resolveSemanticRetriever()
+        : options.semanticRetriever;
+      if (!semanticRetriever) {
         throw new Error(`CONTEXT_MEMORY_RETRIEVAL_STRATEGY_UNSUPPORTED: ${strategy}`);
       }
 
-      const semantic = await options.semanticRetriever.search({
+      const semantic = await semanticRetriever.search({
         contractVersion: "0.1.0",
         context: structuredClone(input.context),
         query,
@@ -515,3 +521,4 @@ export function createHostContextMemoryHealthProbeV010(
     message: `Host Context Memory store contains ${store.snapshot().items.length} immutable record(s).`
   });
 }
+

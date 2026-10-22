@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -232,4 +232,24 @@ test("request authentication maps absence/conflict to 401 and provider outage to
     requestAuthenticationHttpFailureV010(new Error("UNRELATED")),
     undefined
   );
+});
+
+
+test('expired and revoked Session evidence survives reads and JSONL replay without restoring credentials', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'evo-session-evidence-')), path = join(dir, 'sessions.jsonl');
+  t.after(() => rmSync(dir, {recursive: true, force: true}));
+  let time = Date.parse('2026-09-30T08:00:00Z'), index = 0, id = 0;
+  const store = createJsonlManagedIdentitySessionEventStoreV010(path);
+  const service = createManagedIdentitySessionServiceV010({store, now: () => new Date(time),
+    token: () => ['synthetic-expiring-evidence', 'synthetic-revoked-evidence'][index++], id: () => String(++id)});
+  const expired = service.issue({principal, ttlSeconds: 1}), revoked = service.issue({principal, ttlSeconds: 3600});
+  assert.equal(service.revoke(revoked.session.sessionId, 'LOGOUT'), true); time += 2000;
+  const disk = readFileSync(path, 'utf8');
+  for (const current of [service, createManagedIdentitySessionServiceV010({store: createJsonlManagedIdentitySessionEventStoreV010(path), now: () => new Date(time)})]) {
+    assert.equal(current.resolveToken(expired.token), undefined); assert.equal(current.resolveToken(revoked.token), undefined);
+    assert.equal(current.list().length, 2); assert.equal(current.get(revoked.session.sessionId).revokeReason, 'LOGOUT');
+    assert.equal(current.get(expired.session.sessionId).session.expiresAt, expired.session.expiresAt);
+    current.list()[0].session.principal.subjectId = 'changed-copy'; assert.equal(current.get(expired.session.sessionId).session.principal.subjectId, 'alice');
+  }
+  assert.equal(readFileSync(path, 'utf8'), disk); assert.equal(disk.includes(expired.token) || disk.includes(revoked.token), false);
 });
