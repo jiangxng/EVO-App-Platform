@@ -122,3 +122,27 @@ PG18 真实 Session / backend 消失、Railway 有效 draining/overlap、Linux P
 | 本轮交接本身 | 本文件 + 配套 ENTRY，独立 `docs/pa05-e01j4k-k0-window10-cleanup-handoff-20261022` 分支 | 创建 Draft PR，**只新增两文件**，不得覆盖 `docs/agent-line/HANDOFF.md`、`project.status.json` 或 `docs/roadmap/HANDOFF-LATEST.md`，不自动合并。 |
 
 **最终统一规则：** 只把“原始证据确实支持的事实”写为已完成；当前分支清理“结果已成” ≠ “本对话执行 66 次删除”；当前 PA05 安全停机“工程局部通过” ≠ “K0/生产签收”。
+
+## 7. WINDOW-11 接续核验增量（2026-10-22，非 K0 签收）
+
+> **证据等级：** 下列仅为本次通过已连接 GitHub 工具直接读取的原始 JSON、工作流 YAML 与 Actions job log（DIRECT_GITHUB_ORIGINAL / DIRECT_CI_RAW_LOG）；“未找到删除者”仅限已检查范围，不能证明其它 GitHub API、CLI、人员或审计系统未曾执行删除。WINDOW-08/09 的外部研究仍为 PRIOR_INDEX_ONLY。
+
+### 7.1 GitHub 当前状态（WINDOW-11 精确时间片，不覆盖 WINDOW-10 原快照）
+
+- [main 原始 ref](https://api.github.com/repos/jiangxng/EVO-App-Platform/git/ref/heads/main) 再读为 `ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95`（此次与交接末次一致；不宣称未来不变）。
+- [branches 当前列表](https://api.github.com/repos/jiangxng/EVO-App-Platform/branches?per_page=100&page=1)：**28** 条远端分支；[OPEN PR 原始列表](https://api.github.com/repos/jiangxng/EVO-App-Platform/pulls?state=open&per_page=100&page=1)：**18** 个开放 PR，其 head/base 连同 main 合并为 **19** 个不同预留 ref，剩余 **9** 条不被该预留集合占用。数量较 WINDOW-10 最终 27/16 增加；其中 [#1099](https://github.com/jiangxng/EVO-App-Platform/pull/1099) 本交接和 [#1100](https://github.com/jiangxng/EVO-App-Platform/pull/1100) 均为 OPEN Draft；**PR 非占用不等于分支可删除**。
+- [main 退休清单](https://github.com/jiangxng/EVO-App-Platform/blob/ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95/repository-hygiene/retired-branches.json) 实读仍为 **96 项、78 SHA-pinned、66 条新添 Verified merged PR 记录**；与本次 28 条远端分支按名称交集核验：**66/66 ABSENT**。不再次执行删除。
+- 9 条非 OPEN PR 预留 ref 按当前实际名称为：`chore/verified-merged-ref-retirement-20261021`、`docs/fast-feedback-pivot-workflow-20261021`、`docs/prototype-source-first-fidelity-delivery-20261021`、`feat/bex01-e3-real-map-task-overview-20261016`、`feat/bex01-resume-pending-import-20261015`、`feat/bex01-v3-batch-four-column-review-20261016`、`feat/bex01-v3-eidos-live-field-review-status-20261016`、`feat/bex01-v3-review-workbench-fidelity-20261020`、`fix/governance-oidc-transaction-budget-20261022`。后一名称不同于 WINDOW-10 的 `fix/governance-evo-request-budget-20261022`，只记录最新存在的 ref，不无证断言是同一分支重命名。
+- [#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071)、[#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074)、[#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081)、[#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 均在当前 OPEN PR 原始列表中并仍为 Draft。[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 原始 Issue 仍 OPEN、可见 2 条旧评论；未获得新的 Operator 签收。Railway 生产部署 **本次没有读取**。K0/完整 E01J4/PA05-05 E01–E05/W06 NOT_SIGNED；production material WRITE OFF。
+
+### 7.2 定向寻找“真正发出 DELETE”的执行收据
+
+- 再读 [Run #39558345948 / job #119083359962](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39558345948/job/119083359962) 原始日志：`execute=false, eligible=0, deleted=0, skipped=66`，其跳过明细 **65 ABSENT + 1 PR_PROOF_CHANGED**；与 WINDOW-10 一致，不将 success 解释为 DELETE。
+- 新增原始负证据：[Branch Hygiene 运行 #39556063751](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39556063751) 对应 #1096 merge 后的 job **#119075990896**；[运行 #39557023257](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39557023257) 对应 #1097 merge 后的 job **#119079062090**。两份 **已读取原始 job log**，均实打 `SKIP_NOT_APPLICABLE`，而非 `DELETED_VERIFIED_MERGED_AGENT_BRANCH`。两次 job SUCCESS 不构成 66 次删除凭据。
+- [仓库 Actions 原始 runs 列表](https://api.github.com/repos/jiangxng/EVO-App-Platform/actions/runs?per_page=100&page=1) 经分页检索 **1–14 页、1,400 条**，所覆盖时间范围约为 2026-10-22T02:13Z 至 2026-10-21T02:27Z；对 run 名称中 retirement / prune / hygiene 等关键词与 06:32–06:54 时间段做了查找，**没有由此获得 66 条的实际 DELETE 收据**。该查找并未逐篇下载 1,400 份 job 原始日志，不能推出其它 workflow 或 CLI 未执行删除。
+- 通过 [Actions workflow_dispatch 筛选](https://api.github.com/repos/jiangxng/EVO-App-Platform/actions/runs?event=workflow_dispatch&per_page=100&page=1) 原始 JSON 再读到 repo 可见历史 **total_count=2**，两条均早于 2026-10-19；没有 2026-10-21 的 `workflow_dispatch` run。这里不排除 `push`、外部 CLI/API 或其它独立执行路径。
+- 直接查阅 [.github/workflows/branch-hygiene.yml](https://github.com/jiangxng/EVO-App-Platform/blob/ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95/.github/workflows/branch-hygiene.yml)、[bex01-retire-verified-branches.yml](https://github.com/jiangxng/EVO-App-Platform/blob/ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95/.github/workflows/bex01-retire-verified-branches.yml)、[prune-merged-inactive-branches.yml](https://github.com/jiangxng/EVO-App-Platform/blob/ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95/.github/workflows/prune-merged-inactive-branches.yml) 全文：仓库已有受保护/祖先/HEAD 再校验的执行机制，无需重复开发。后者为广域清理动作，不应绕开 Owner 和本线 fail-closed 原则擅自触发。
+
+### 7.3 本窗口决策与下一步范围
+
+**仅核验与归档；删除操作 0 次，创建新清理器 0 个，合并 PR 0 个。** 66 条已 ABSENT、不重删。9 条非开放 PR 占用 refs 仍由各自 Owner 负责，尤其 BEX、治理及 #1096 原工作分支；没有重新审成完整新候选，因而不执行删除。#1099 继续 Draft；仅在其既有独立 docs 分支更新本交接文档，**不触碰** `project.status.json`、`docs/roadmap/HANDOFF-LATEST.md`、`docs/agent-line/HANDOFF.md` 或 Railway/Secrets/SQL。证据缺口仍为实际删除执行者/独立原始 DELETE 收据；若要再追溯，优先具审计权限的 GitHub audit-log ref deletion 与明确 `DELETED` 的 job 原日志，避免广泛重复旧研究。
