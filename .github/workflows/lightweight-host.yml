@@ -42,6 +42,8 @@ jobs:
         run: node tools/lightweight-host-benchmark.mjs artifacts/lightweight-host-baseline.json
       - name: Isolated installed-disabled module and resource audit
         run: node tools/plugin-loading-audit.mjs artifacts/plugin-loading-audit.json
+      - name: PA05 Host shutdown isolation and cooperative lock
+        run: node --test tests/agent-line/pa05-host-shutdown-error-path.test.mjs tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: lightweight-host-baseline
