@@ -1,5 +1,13 @@
 # PA05 阶段性收口决定｜工程建设与本地验收归档（2026-10-22）
 
+## 最终合并实证（2026-10-22；**本节优先于下方历史 Draft 状态**）
+
+- 项目负责人明确批准在插件化开发阶段将 PA05 已完成的工程源码合并 main，而不等生产安全认证；[PR #1104](https://github.com/jiangxng/EVO-App-Platform/pull/1104) **MERGED**，main 合并提交 `3bb68a6a6b2dcb11f1e10a9456a33e90f3440a85`；准确最终 PR HEAD `08ab0c14c38891bdfd81f83a0f1df3b9306c2655` 的 **46/46 GitHub checks SUCCESS**。此前“#1104 OPEN Draft / DO_NOT_MERGE”仅为合并前历史快照，**不再是当前状态**。
+- [Branch Hygiene Run #39756394843](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39756394843) job `119749355229` 原始日志 `DELETED_VERIFIED_MERGED_AGENT_BRANCH agent/pa05-k0-consolidated-engineering-20261022 @ 08ab0c14...`；远端复查 PA05 工程过程分支为 **0**，未合并 PA05 工程 PR 为 **0**。以前关闭未合并的 #1074/#1081/#1082 只作为研究/负面测试溯源，不应重新打开。
+- **注意部署差异：** 合并后只读 Railway 仍报告 Ledger Configurator 在线单实例的最新 SUCCESS deployment 为 `5cfce97b-9745-4e62-9b64-d2b1e0a2eedf` / 旧 commit `eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff`；**没有观察到 #1104 对应的新部署**。此为当时快照，不能作为未来持续部署状态证明，不主动干预共享在线服务。
+- **仍不可签收：** [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) `OPEN`，R5-01 UNKNOWN、R5-02 PRODUCTION_UNVERIFIED、R5-03 BLOCKED；正式 K0/E01J4/PA05-05/W06 `NOT_SIGNED`，生产 material WRITE `OFF`。工程合并不等于全球 Worker 安全停止、Railway PID1/SIGTERM 链路或独立 Supervisor 验收。
+- **执行恢复原则：** 新窗口从已合并 `main` 代码继续，不重新构建 PA05 Host/PROCESS 修复、不开重复工程 PR；仅针对尚未实证的外部 Operator/DBA/IdP/隔离 Supervisor 门禁继续调查及分层验收，不改动 BEX/CP/Eidos 主线。
+
 > **Document class:** PA05_STAGE_CLOSEOUT_DECISION / AGENT_LINE_ONLY / OWNER_REQUESTED
 >
 > **Decision:** `PA05_ENGINEERING_SLICE = CLOSED_AND_ARCHIVED`；`PA05_FULL_CERTIFICATION = NOT_SIGNED`；`K0_PRODUCTION_GATE = BLOCKED_EXTERNAL_EVIDENCE`。
