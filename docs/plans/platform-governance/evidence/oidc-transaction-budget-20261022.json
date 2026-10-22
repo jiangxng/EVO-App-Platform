@@ -1,0 +1,106 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-22",
+  "baseline": "ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95",
+  "branch": "fix/governance-oidc-transaction-budget-20261022",
+  "scope": "A01/R3 original OIDC ephemeral transaction entry budget and durable managed Session evidence retention",
+  "production": [
+    {
+      "path": "providers/oidc/runtime.ts",
+      "beforeBlob": "cbc017156dbabd29fc98795d8841f923e3f09c1f",
+      "afterBlob": "eb18a9088b771fa3697cebd864052015c2c79332"
+    },
+    {
+      "path": "manager/request-authentication.ts",
+      "beforeBlob": "337ae7e93ae1f0e13395b5c4682e88d54a1aaa73",
+      "afterBlob": "b7eba23993861b69a8a8d6258ba4a7697914ff80"
+    }
+  ],
+  "policy": {
+    "defaultMaxRetainedStatesPerRuntime": 1000,
+    "existingDefaultTtlSeconds": 600,
+    "preservedTtlBoundary": "age == TTL valid; age > TTL expired",
+    "cleanup": "activity at begin/complete; no background timers",
+    "saturation": "reject new login; never evict live state; no fresh protocol random allocation",
+    "http": "503 AUTHENTICATION_UNAVAILABLE through existing error mapper",
+    "failureCallback": "known state consumed on IdP error or missing authorization code; no token exchange/replay",
+    "concurrency": "admission and insertion synchronous after shared discovery",
+    "noPublicAuthenticationContractOrHostRouteChange": true,
+    "notIncluded": [
+      "in-flight token/JWKS concurrency",
+      "total retained bytes/heap",
+      "per-Human fairness",
+      "request flooding protection",
+      "managed Session durable retention/compaction budget"
+    ]
+  },
+  "beforeProbe": {
+    "node": "v24.19.0",
+    "sourceBlob": "cbc017156dbabd29fc98795d8841f923e3f09c1f",
+    "kind": "original Provider plus injected fetch/clock/random; not Host or actual IdP",
+    "observations": {
+      "thirdBeginWithRequestedLimit2": "accepted; option not implemented",
+      "errorCallbackState": "still usable for token exchange",
+      "expiredStateAfterNewBegin": "retained; only rejected as expired on callback"
+    },
+    "networkCalls": 4
+  },
+  "managedSessionDecision": {
+    "source": "manager/identity-session-store.ts",
+    "blob": "94191a265177b613ac24a5d39d0cc85098b465ad",
+    "productionChanged": false,
+    "retention": "preserve issued/expired/revoked lifecycle evidence and startup replay; not UI-owned",
+    "numericBudgetImplemented": false,
+    "regression": "JSONL reads/replay preserve expired/revoked get/list, deny credentials, clone isolation, no file rewrite/raw token"
+  },
+  "localValidation": {
+    "node": "v24.19.0",
+    "mode": "partial fixed-SHA snapshot and stripTypeScriptTypes; injected synthetic authority, real crypto/JSONL; not formal npm build or Host",
+    "totalPassed": 57,
+    "failed": 0,
+    "skipped": 0,
+    "newOidcProtocol": 10,
+    "newManagedEvidence": 1,
+    "existingTests": 46,
+    "newHostTest": "syntax only locally; 1000 pending starts/503/zero Session, cancellation/replay/fresh recovery and restart/session independence to run in exact-head CI",
+    "command": "node --test --test-isolation=none tests/protocol/generic-oidc-provider.test.mjs tests/protocol/generic-oidc-host-runtime.test.mjs tests/protocol/managed-request-session.test.mjs tests/protocol/authentication-flow.test.mjs tests/protocol/session-observatory-resource-boundary.test.mjs"
+  },
+  "help": {
+    "id": "evo.authorization.authentication-vs-authorization",
+    "locales": [
+      "en",
+      "zh-CN"
+    ],
+    "uiVisualSourceChanged": false
+  },
+  "ci": {
+    "atCommit": "pending; final exact-head tests, four profiles, merge and retirement recorded in permanent PR closeout",
+    "baselineOrDenyListRelaxed": false,
+    "previous1098MetricsNotCurrent": true
+  },
+  "efficiency": {
+    "originalBehaviorProbeScenarios": 3,
+    "newProductFailedAttempts": 0,
+    "newExternalResearch": false,
+    "knownLocalHostSandboxAttemptRepeated": false,
+    "priorPa05Node2422ReadFailureRetriedOrFixed": false
+  },
+  "next": "Inspect existing host-memory-intake configured records construction/entry-byte budgets and current qualification before bounded retention/correction",
+  "remaining": [
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent configured SQL responsibility/qualification",
+    "R3 managed Session durable retention/budgets; memory-intake records; other safety foundations",
+    "EVO immediate lifecycle cancel/Host drain not provided by public query contract",
+    "R4 final cross-layer acceptance",
+    "A03 authoritative lookup/idempotent recovery",
+    "A05 production strategy/compatibility migration",
+    "PA05 original-owner Node24.22 isolated READ compatibility OPEN; CrossDB pinned24.21 unchanged"
+  ],
+  "deployed": false,
+  "humanAcceptanceClaimed": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

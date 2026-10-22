@@ -13,6 +13,7 @@ on:
       - "manager/context-memory-authority.ts"
       - "manager/server.ts"
       - "tests/protocol/context-memory-intake.test.mjs"
+      - "tests/protocol/memory-intake-config-budget.test.mjs"
       - "tests/protocol/context-memory-proposal-review.test.mjs"
       - "tests/protocol/context-memory-governance.test.mjs"
       - "package.json"
@@ -28,6 +29,7 @@ on:
       - "manager/context-memory-authority.ts"
       - "manager/server.ts"
       - "tests/protocol/context-memory-intake.test.mjs"
+      - "tests/protocol/memory-intake-config-budget.test.mjs"
       - "tests/protocol/context-memory-proposal-review.test.mjs"
       - "tests/protocol/context-memory-governance.test.mjs"
       - "package.json"
@@ -47,3 +49,4 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run test:plugin:host-memory-intake-provider
+      - run: node --test tests/protocol/memory-intake-config-budget.test.mjs

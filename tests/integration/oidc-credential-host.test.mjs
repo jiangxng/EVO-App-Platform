@@ -106,3 +106,37 @@ test('real Host OIDC keeps unused Secrets encrypted; authenticates on use and re
     assert.ok(!fs.readFileSync(path.join(root, 'secrets.enc.json'), 'utf8').includes('synthetic-oidc'));
   } finally {await host?.stop(); fs.rmSync(root, {recursive: true, force: true});}
 });
+
+test('real Host OIDC bounds pending logins, returns 503 without issuing a Session and recovers after consumption/restart', {timeout: 120000}, async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'oidc-pending-budget-')); let host;
+  const sessions = path.join(root, 'identity-sessions.jsonl');
+  try {
+    host = await boot(root); await host.lifecycle('install');
+    assert.equal((await host.settings({issuer, clientId: 'synthetic-client'})).status, 200);
+    assert.equal((await host.bind()).status, 200); await host.stop(); host = await boot(root, true);
+    const callbacks = [];
+    // Bound the fixture's own concurrency, while filling the production default.
+    for (let batch = 0; batch < 40; batch++) callbacks.push(...await Promise.all(Array.from({length: 25}, () => host.begin())));
+    assert.equal(callbacks.length, 1000);
+    const full = await host.call('/auth/login');
+    assert.equal(full.status, 503); assert.equal(full.body.code, 'AUTHENTICATION_UNAVAILABLE');
+    assert.equal(full.cookie, null); assert.equal(full.location, null);
+    const before = await host.snapshot(); assert.equal(before.requests, 1); assert.equal(before.tokens, 0); assert.equal(before.decryptions, 0);
+    assert.equal(fs.existsSync(sessions), false);
+    const deniedUrl = new URL(callbacks[0], 'https://oidc-host.invalid'); deniedUrl.searchParams.delete('code'); deniedUrl.searchParams.set('error', 'access_denied');
+    const denied = await host.call(deniedUrl.pathname + deniedUrl.search); assert.notEqual(denied.status, 303); assert.equal(denied.cookie, null);
+    const replay = await host.call(callbacks[0]); assert.notEqual(replay.status, 303); assert.equal(replay.cookie, null);
+    assert.equal((await host.snapshot()).tokens, 0); assert.equal(fs.existsSync(sessions), false);
+    await host.begin(); assert.equal((await host.call('/auth/login')).status, 503);
+    // Capacity rejection and an unrelated cancellation must preserve this live state.
+    const completed = await host.call(callbacks[1]); assert.equal(completed.status, 303, JSON.stringify(completed.body));
+    assert.match(completed.cookie, /^__Host-evo_session=/); const cookie = completed.cookie.split(';')[0];
+    assert.equal((await host.snapshot()).tokens, 1); const durable = fs.readFileSync(sessions, 'utf8');
+    assert.equal(durable.trim().split('\n').length, 1); assert.equal(durable.includes(cookie.slice(cookie.indexOf('=') + 1)), false);
+    await host.stop(); host = await boot(root, true);
+    const stale = await host.call(callbacks[2]); assert.notEqual(stale.status, 303); assert.equal(stale.cookie, null);
+    assert.equal((await host.snapshot()).tokens, 0); assert.equal(fs.readFileSync(sessions, 'utf8'), durable);
+    assert.equal((await host.call('/auth/session', undefined, cookie)).status, 200, 'durable Session is independent of ephemeral login states');
+    await host.begin(); assert.equal(fs.readFileSync(sessions, 'utf8'), durable);
+  } finally {await host?.stop(); fs.rmSync(root, {recursive: true, force: true});}
+});

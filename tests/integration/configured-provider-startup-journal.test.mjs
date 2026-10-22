@@ -30,11 +30,11 @@ function assertPackages(host, state) {
     assert.equal(snapshot.activeFeatures.some(item => item.packageId === packageId), state === 'active', packageId);
   }
 }
-async function boot(root, profile, configured = true) {
+async function boot(root, profile, configured = true, overrides = {}) {
   const env = createPersonalAgentExperienceProfileV010({PATH: process.env.PATH, NODE_ENV: 'test', PORT: '0',
     APP_PLATFORM_STATE_FILE: path.join(root, 'state.json'), APP_PLATFORM_STARTUP_PROFILE: profile,
     APP_PLATFORM_MANAGED_SESSION_ENABLED: String(profile === 'minimal'), APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS: '0',
-    ...(configured ? configuration : {})}).environment;
+    ...(configured ? configuration : {}), ...overrides}).environment;
   const child = fork(path.resolve('dist/manager/server.js'), [], {execArgv: [
     '--import', path.resolve('tools/plugin-loading-audit-probe.mjs'),
     '--import', path.resolve('tests/fixtures/configured-provider-startup-probe.mjs')], env,
@@ -121,3 +121,36 @@ for (const profile of ['compatible', 'minimal']) {
     } finally {await host?.stop(); fs.rmSync(root, {recursive: true, force: true});}
   });
 }
+
+const boundedMemoryConfiguration = count => JSON.stringify({contractVersion: '0.1.0',
+  source: {sourceId: 'bounded-reference', sourceType: 'DOCUMENT', trustLevel: 'DECLARED'},
+  records: Array.from({length: count}, (_, i) => ({sourceRecordId: String(i),
+    context: {kind: 'PERSONAL', contextId: 'p'}, kind: 'FACT', summary: 's'}))});
+
+for (const profile of ['compatible', 'minimal']) test('reference memory record budget rejects before intake, preserves inactive journal and recovers in ' + profile, {timeout: 120000}, async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-intake-budget-')); let host;
+  const memoryFile = path.join(root, 'context-memory.json'), original = JSON.stringify({contractVersion: '0.1.0', items: []});
+  const within = {APP_PLATFORM_MEMORY_INTAKE_JSON: boundedMemoryConfiguration(1000)};
+  const excessive = {APP_PLATFORM_MEMORY_INTAKE_JSON: boundedMemoryConfiguration(1001)};
+  const amplified = JSON.parse(within.APP_PLATFORM_MEMORY_INTAKE_JSON);
+  amplified.source.sourceId = 's'.repeat(2048);
+  const amplifiedInput = {APP_PLATFORM_MEMORY_INTAKE_JSON: JSON.stringify(amplified)};
+  assert.ok(Buffer.byteLength(excessive.APP_PLATFORM_MEMORY_INTAKE_JSON) < 128 * 1024, 'fixture isolates record count from bytes/OS env limits');
+  assert.ok(Buffer.byteLength(amplifiedInput.APP_PLATFORM_MEMORY_INTAKE_JSON) < 128 * 1024);
+  try {
+    fs.writeFileSync(memoryFile, original);
+    host = await boot(root, profile, true, within); assertPackages(host, 'active');
+    assert.equal((await host.snapshot()).requests, 0); assert.equal(fs.readFileSync(memoryFile, 'utf8'), original);
+    await host.lifecycle('disable'); assertPackages(host, 'inactive'); await host.stop(); host = undefined;
+    const recorded = fs.readFileSync(journalFile(root));
+    host = await boot(root, profile, true, within); assertPackages(host, 'inactive');
+    assert.deepEqual(fs.readFileSync(journalFile(root)), recorded); await host.stop(); host = undefined;
+    // Configuration validation precedes package bootstrap, including inactive state.
+    await assert.rejects(boot(root, profile, true, excessive), /MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED/);
+    await assert.rejects(boot(root, profile, true, amplifiedInput), /MEMORY_INTAKE_RECORD_BYTES_EXCEEDED/);
+    assert.equal(fs.readFileSync(memoryFile, 'utf8'), original); assert.deepEqual(fs.readFileSync(journalFile(root)), recorded);
+    host = await boot(root, profile, true, within); assertPackages(host, 'inactive');
+    await host.lifecycle('enable'); assertPackages(host, 'active');
+    assert.deepEqual(fs.readFileSync(journalFile(root)), recorded); assert.equal(fs.readFileSync(memoryFile, 'utf8'), original);
+  } finally {await host?.stop(); fs.rmSync(root, {recursive: true, force: true});}
+});
