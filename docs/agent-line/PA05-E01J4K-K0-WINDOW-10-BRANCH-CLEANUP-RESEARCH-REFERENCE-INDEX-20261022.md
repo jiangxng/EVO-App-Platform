@@ -146,3 +146,38 @@ PG18 真实 Session / backend 消失、Railway 有效 draining/overlap、Linux P
 ### 7.3 本窗口决策与下一步范围
 
 **仅核验与归档；删除操作 0 次，创建新清理器 0 个，合并 PR 0 个。** 66 条已 ABSENT、不重删。9 条非开放 PR 占用 refs 仍由各自 Owner 负责，尤其 BEX、治理及 #1096 原工作分支；没有重新审成完整新候选，因而不执行删除。#1099 继续 Draft；仅在其既有独立 docs 分支更新本交接文档，**不触碰** `project.status.json`、`docs/roadmap/HANDOFF-LATEST.md`、`docs/agent-line/HANDOFF.md` 或 Railway/Secrets/SQL。证据缺口仍为实际删除执行者/独立原始 DELETE 收据；若要再追溯，优先具审计权限的 GitHub audit-log ref deletion 与明确 `DELETED` 的 job 原日志，避免广泛重复旧研究。
+
+## 8. WINDOW-11 / M09–M11：剩余 9 条分支复核与不误删收口（2026-10-22）
+
+**证据等级**：下列数字直接来自本轮连接 GitHub 的 live main ref、完整 28 条 branches 列表、18 条 OPEN PR 列表、按分支名查询的 PR REST 原始 JSON、9 次 `compare_commits(base=branchHead, head=main)` 返回，以及 GitHub Actions 的 Job 原始日志；是 **DIRECT_GITHUB_ORIGINAL** / **DIRECT_CI_RAW_LOG**。没有将旧研究索引、CI SUCCESS 或自身判断视为实际删除事实。
+
+### 8.1 当前主线和逐条结果
+
+- [main ref](https://api.github.com/repos/jiangxng/EVO-App-Platform/git/ref/heads/main) 已从 WINDOW-11 前段 `ee9cc39cb50329e38a653ffa54ae52f8e3e4fa95` 继续推进到 **`2811789dd7df7e5deb90ac8c772811b82d71820f`**，即 [PR #1101](https://github.com/jiangxng/EVO-App-Platform/pull/1101) 的 merge SHA；下表是此精确 main 时间片下的 compare 结果。
+- 远端 **28 branches**，**18 OPEN PR**，head/base + main 的 **19 distinct reserved ref**，余下 **9** 条目前无 OPEN PR 引用。原退休清单仍有 **96** 条，其中 66 条新增的精确已合并记录全部 **ABSENT (66/66)**；不重删。
+- `behind_by` 使用 **base=分支 HEAD SHA，head=main SHA**：`behind_by>0` 表示该分支有未被 main 祖先图吸收的提交；不能因为原 PR merged 或工作内容重叠而删除。零值仍需合并 PR 证明、Owner/活动保护、当前 ref 不漂移和执行前二次核验。
+
+| 当前非预留 branch | 当前 HEAD | 关联 PR（REST 原文） | compare `behind_by` / `merge_base` | 本线处理 |
+| --- | --- | --- | --- | --- |
+| `chore/verified-merged-ref-retirement-20261021` | `52e23806fbcd126e2901bf8ab5aa841841d60c59` | [#1096](https://github.com/jiangxng/EVO-App-Platform/pull/1096) MERGED，PR head **`bd8ecc9...`** 与当前 ref 不同 | **1**；`bd8ecc9...` | **HOLD**；一次性审计追加提交未进 main，不用旧 pin |
+| `docs/fast-feedback-pivot-workflow-20261021` | `1cf75f4e4ad74e7e31985dd618c084ebd79469cf` | [#1089](https://github.com/jiangxng/EVO-App-Platform/pull/1089) MERGED、head 匹配 | **2**；`6bea66e...` | **HOLD**；仍有独有提交 |
+| `docs/prototype-source-first-fidelity-delivery-20261021` | `a9ff24615c5a1101a13e4f80691d899deeb774bf` | [#1097](https://github.com/jiangxng/EVO-App-Platform/pull/1097) MERGED、head 匹配 | **2**；`5159c86...` | **HOLD**；不能将 PR 合并等同当前 head 祖先 |
+| `feat/bex01-e3-real-map-task-overview-20261016` | `e0a3bbf6a670aff9c643f0ea0a978f45d4daac76` | 按精确 head 名称检索无 PR | **2**；`66f29a9...` | **HOLD**；未吸收、Owner/BEX |
+| `feat/bex01-resume-pending-import-20261015` | `6733d7cc9011474337e8b60070fbc63854983ed9` | [#921](https://github.com/jiangxng/EVO-App-Platform/pull/921) MERGED、head 匹配 | **5**；`7cc5ba3...` | **HOLD**；旧结论重新验证仍不满足祖先门禁 |
+| `feat/bex01-v3-batch-four-column-review-20261016` | `50e2fac22186d67b2f744da353dae2914e7a9b29` | [#987](https://github.com/jiangxng/EVO-App-Platform/pull/987) CLOSED **UNMERGED**，说明被 #984 supersede | **6**；`3395fe2...` | **HOLD**；PR 未合并，内容重叠不构成精确删除许可 |
+| `feat/bex01-v3-eidos-live-field-review-status-20261016` | `1f5ec1a9171391847bf4e9794e0e10964b53d08c` | 按精确 head 名称检索无 PR | **0**；merge base = 当前 HEAD | **HOLD**；虽为 main 祖先，仍无已合并 PR 的精确证明，BEX Owner 未签退 |
+| `feat/bex01-v3-review-workbench-fidelity-20261020` | `07608117964350895cef893e423e5d78745c080d` | 按精确 head 名称检索无 PR | **1**；`71d63ce...` | **HOLD**；未吸收，BEX Owner |
+| `fix/governance-oidc-transaction-budget-20261022` | `fad5559569a078e6f4dd73de29625b1f1959b451` | [#1101](https://github.com/jiangxng/EVO-App-Platform/pull/1101) **2026-10-22T02:28:40Z MERGED**，精确 PR head 匹配，merge SHA=`2811789...` | **0**；merge base = 当前 HEAD | **HOLD / 技术候选**；本轮可证 PR+祖先，但属于刚合并的并行治理 Owner 分支，未取得独立退休授权，不接管 |
+
+**重要解释**：7 条 `behind_by>0`；另外 2 条 `behind_by=0`，但一条没有可证 PR，另一条是刚合并的跨窗口治理分支。本轮没有经 Owner 与安全门禁共同确认的 **可执行目标（0）**。本表中的 HOLD 是本线 fail-closed 决策，不是 GitHub 官方要求“不准删”。
+
+### 8.2 使用既有工作流的边界与近期执行收据
+
+- [Branch Hygiene workflow 原文](https://github.com/jiangxng/EVO-App-Platform/blob/2811789dd7df7e5deb90ac8c772811b82d71820f/.github/workflows/branch-hygiene.yml) 已实现 SHA pin、开放 PR head/base 保护、祖先检查和执行前二次 getRef；[BEX 专项工作流](https://github.com/jiangxng/EVO-App-Platform/blob/2811789dd7df7e5deb90ac8c772811b82d71820f/.github/workflows/bex01-retire-verified-branches.yml) 与 [全域 prune](https://github.com/jiangxng/EVO-App-Platform/blob/2811789dd7df7e5deb90ac8c772811b82d71820f/.github/workflows/prune-merged-inactive-branches.yml) 已存在。**不建新工具**，也不通过广域 prune 意外处理其它 Owner 分支。
+- [#1101 merge 后 Branch Hygiene run #39711586400](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39711586400) job **#119603927782** 原始日志明确 `2026-10-22T02:28:48Z SKIP_NOT_APPLICABLE`；虽然 job SUCCESS，这个运行没有删除刚合并的治理分支，也不是清理 66 条的 DELETE 收据。
+- 本轮 **没有调用删除、workflow dispatch、移动 ref、更新生产**。当前会话可用的 GitHub 动作没有明确 `git.deleteRef` / `workflow_dispatch` 调用；但本轮本就没有合格的跨 Owner 删除目标，不绕过现有动作边界触发风险更高的工作流。不得以“插件权限策略改变”作为推测解释。
+- `M09=9/9 已核验`，`M10=0 个已获许可目标、未执行删除（按规则不触发）`，`M11=再次复核 28 remote refs / 18 OPEN PR / 66 ABSENT，删除结果 0`。若后续 Owner 给出明确签退，仅按 **新 main、新 PR 预留、新 HEAD / SHA 与日志** 通过已有工作流执行，并保存真正 `DELETED` 的原始 Job 收据。
+
+### 8.3 PA05/K0 约束与范围
+
+[#1071](https://github.com/jiangxng/EVO-App-Platform/pull/1071)、[#1074](https://github.com/jiangxng/EVO-App-Platform/pull/1074)、[#1081](https://github.com/jiangxng/EVO-App-Platform/pull/1081)、[#1082](https://github.com/jiangxng/EVO-App-Platform/pull/1082) 仍 OPEN Draft。[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) OPEN，没有新增生产 Operator 原始签收。Railway/Secrets/SQL 均未访问或改变；K0、完整 E01J4、PA05-05 E01–E05、W06 仍 **NOT_SIGNED**，production material WRITE **OFF**。只更新 [交接 Draft #1099](https://github.com/jiangxng/EVO-App-Platform/pull/1099) 原两份文档，不合并、不另建 PR、不动全局权威文件。
