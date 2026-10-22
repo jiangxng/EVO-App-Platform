@@ -214,7 +214,7 @@ export function renderToHtml(document: unknown): string {
           </td>
           <td data-eidos-review-table-choice data-heading="${esc(columns.decision)}">${primary}</td>
           <td data-eidos-review-table-status data-tone="${esc(status.tone ?? "neutral")}"
-            data-heading="${esc(columns.status)}">${esc(status.label)}</td>
+            data-heading="${esc(columns.status)}"><span data-eidos-review-table-status-badge>${esc(status.label)}</span></td>
         </tr>
       </tbody>`;
     }).join("");

@@ -191,6 +191,18 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     heading:{title:""}}}).ok,false);
   assert.equal(mapping.reviewTask.issuesLayout,"connected");
   const continuousMarkup=renderToHtml(mapping);
+  // #909 uses filled state tags, not unadorned colored table-cell text.
+  // Keep semantic status keys on the same native Eidos rows for live choice updates.
+  assert.match(continuousMarkup,/data-eidos-review-table-status-badge/);
+  assert.match(continuousMarkup,/data-eidos-review-table-status-badge>不导入|data-eidos-review-table-status-badge>需要核对|data-eidos-review-table-status-badge>待新增/);
+  for(const key of ["matched","proposed","pending","attention","suggested"]){
+    assert.ok(eidosProductiveWorkbenchCss.includes('data-eidos-review-table-status-key="'+key+'"'),
+      "V3 source status chip style missing for "+key);
+  }
+  for(const color of ["#f0f3f6","#2b65aa","#eef5fd","#fff6e7","#eaf7f1"]){
+    assert.ok(eidosProductiveWorkbenchCss.includes(color),
+      "V3 source status chip palette missing "+color);
+  }
   assert.match(continuousMarkup,/data-eidos-form-task-issues data-eidos-task-issues-layout="connected"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-issues-layout="connected"/);
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,

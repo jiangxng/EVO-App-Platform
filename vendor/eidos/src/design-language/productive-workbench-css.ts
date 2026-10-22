@@ -3733,4 +3733,28 @@ form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table] the
 form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-footnote]{
   background:var(--eidos-bg);
 }
+/* V3 #909 status chips: preserve native table cells and scoped Eidos semantics.
+   Changing a choice updates the existing row status key; no Host mutation. */
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-review-table-status-badge]{
+  display:inline-block;max-width:100%;box-sizing:border-box;
+  padding:2px 8px;border-radius:4px;white-space:normal;
+  background:#f0f3f6;color:var(--eidos-fg-muted);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="matched"]
+  [data-eidos-review-table-status-badge]{
+  color:#18765a;background:#eaf7f1;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="proposed"]
+  [data-eidos-review-table-status-badge]{
+  color:#2b65aa;background:#eef5fd;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row]:is([data-eidos-review-table-status-key="pending"],
+    [data-eidos-review-table-status-key="attention"],
+    [data-eidos-review-table-status-key="suggested"])
+  [data-eidos-review-table-status-badge]{
+  color:#a66712;background:#fff6e7;
+}
 `;
