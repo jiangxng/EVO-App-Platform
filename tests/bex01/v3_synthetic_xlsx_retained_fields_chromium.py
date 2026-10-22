@@ -26,7 +26,75 @@ EXPECTED_BANK="ext_"+hashlib.sha256(
 FIELDS=["企业属性"+str(i) for i in range(1,18)]
 
 
-def capture_map_scroll_evidence(page, form, device):
+def verify_two_same_label_bank_choices(page, form, device):
+    """Actual Human selects two distinct real fieldIds; no Host write occurs.
+
+    The synthetic visual fixture gives column 20 two target definitions both
+    named 开户银行. The Job starts unresolved. Selecting by a label alone would
+    lose business meaning, so the real Eidos picker must distinguish both IDs.
+    """
+    row=form.locator('[data-eidos-form-review-table-row="map-source-20"]')
+    expect(row).to_be_visible(timeout=15000)
+    expect(row.locator('[data-eidos-review-table-subject]')).to_have_text("开户银行")
+    picker=row.locator('select[name="map_20"]')
+    expect(picker).to_have_value("__PENDING__")
+    candidates=picker.evaluate("""el=>[...el.options]
+        .filter(o=>o.label.trim().startsWith('开户银行 · '))
+        .map(o=>({fieldId:o.value,label:o.label.trim()}))""")
+    assert len(candidates)==2,("BEX_V3_BANK_TWO_TARGET_CHOICES",device,candidates)
+    ids=[item["fieldId"] for item in candidates]
+    assert len(set(ids))==2 and EXPECTED_BANK in ids,(
+        "BEX_V3_BANK_REAL_DIFFERENT_FIELD_IDS",device,candidates)
+    assert all(item["label"].startswith("开户银行 · "+item["fieldId"]+" · ")
+        for item in candidates),("BEX_V3_BANK_FIELD_ID_MUST_PRECEDE_UNVERIFIED_PURPOSE",device,candidates)
+    # Actual Chromium screenshot previously showed truncated indistinguishable
+    # selected text on 390px. Differentiate before the first 18 characters.
+    assert len({item["label"][:18] for item in candidates})==2,(
+        "BEX_V3_BANK_EARLY_VISIBLE_ID_DIFFERENCE",device,candidates)
+    assert all("业务用途待核对" in item["label"] for item in candidates),(
+        "BEX_V3_BANK_MUST_NOT_INVENT_PURPOSE",device,candidates)
+    expect(form.locator('[data-eidos-form-task-issues]')).to_contain_text(
+        "无法确认时不要提交")
+    evidence=row.locator('input[name="candidateEvidence_20"]')
+    expect(evidence).to_be_visible()
+    full=evidence.input_value()
+    assert all(fieldId in full for fieldId in ids),(
+        "BEX_V3_BANK_CANDIDATE_EVIDENCE_COMPLETE",device,full)
+    source=row.locator('[data-eidos-review-table-sample]')
+    expect(source).to_contain_text("招商银行深圳科技园支行")
+    original=source.inner_text()
+
+    # Deliberately try both legitimate fieldIds. No mapping submission occurs.
+    for index,fieldId in enumerate(ids):
+        picker.select_option(fieldId)
+        expect(picker).to_have_value(fieldId)
+        assert source.inner_text()==original,(
+            "BEX_V3_BANK_SOURCE_MUST_NOT_CHANGE",device,fieldId)
+        row.scroll_into_view_if_needed()
+        page.screenshot(path=str(OUT/(
+            "v3-bank-human-choice-%s-%d.png"%(device,index+1))),
+            full_page=False)
+
+    form.locator('[data-eidos-form-task-reset]').click()
+    expect(picker).to_have_value("__PENDING__")
+    expect(form.locator('[data-eidos-form-review-table-filter]')).to_have_value("needs")
+    expect(row).to_be_visible()
+    if device=="phone":
+        # Stronger no-autosave proof: even after browser navigation, the real
+        # Host restores unresolved state rather than either trial choice.
+        page.reload(wait_until="domcontentloaded")
+        expect(form).to_be_visible(timeout=30000)
+        expect(form.locator(
+            '[data-eidos-form-review-table-row="map-source-20"] '
+            'select[name="map_20"]')).to_have_value("__PENDING__")
+    print("BEX_V3_BANK_HUMAN_TWO_TARGETS_NO_AUTOSAVE_PASS="+json.dumps({
+        "device":device,"fieldIds":ids,"separateChoices":True,
+        "sourcePreserved":True,"resetToPending":True,
+        "reloadNoAutomaticSave":device=="phone"
+    },ensure_ascii=False),flush=True)
+
+
+def capture_map_scroll_evidence(page, form, device, stem="v3-e4-map", visible_only=False):
     """Capture scrollable Eidos shell at each review landmark, not only document height.
 
     page.screenshot(full_page=True) alone stops at the *nested app scroller* and
@@ -35,10 +103,13 @@ def capture_map_scroll_evidence(page, form, device):
     """
     viewport=page.viewport_size
     assert viewport and viewport["width"] in (1280,390),viewport
+    rows=form.locator('[data-eidos-form-review-table-row]:not([hidden])'
+        if visible_only else '[data-eidos-form-review-table-row]')
+    assert rows.count()>0,(device,stem,"NO_VISIBLE_MAPPING_ROWS")
     landmarks=[
       ("overview",form.locator('[data-eidos-form-task-overview]')),
-      ("first-row",form.locator('[data-eidos-form-review-table-row]').first),
-      ("last-row",form.locator('[data-eidos-form-review-table-row]').last),
+      ("first-row",rows.first),
+      ("last-row",rows.last),
       ("submit",form.locator('button[type="submit"]').first)
     ]
     readings=[]
@@ -49,7 +120,7 @@ def capture_map_scroll_evidence(page, form, device):
         assert rect and rect["y"] < viewport["height"] and (
           rect["y"]+rect["height"]>0), (device,name,rect)
         page.screenshot(
-          path=str(OUT/("v3-e4-map-%s-%s.png"%(device,name))),
+          path=str(OUT/("%s-%s-%s.png"%(stem,device,name))),
           full_page=False)
         scroll=element.evaluate("""(el) => {
           const items=[]; let parent=el;
@@ -111,7 +182,7 @@ def capture_map_scroll_evidence(page, form, device):
             () => requestAnimationFrame(resolve)));
         }""")
         page.screenshot(path=str(OUT/(
-          "v3-e4-map-%s-contiguous-%02d.png"%(device,index))),
+          "%s-%s-contiguous-%02d.png"%(stem,device,index))),
           full_page=False)
         sweep.append({"frame":index,"scrollTop":actual})
     assert all(sweep[i]["scrollTop"]<=sweep[i+1]["scrollTop"]
@@ -123,12 +194,15 @@ def capture_map_scroll_evidence(page, form, device):
       container["viewport"] for i in range(len(sweep)-1))
     sweep_data={"scrollContainer":container,"lastScrollTop":maximum,
       "overlapRatio":0.2,"frames":sweep}
-    (OUT/("v3-e4-map-%s-scroll-manifest.json"%device)).write_text(
+    (OUT/("%s-%s-scroll-manifest.json"%(stem,device))).write_text(
       json.dumps({"evidence":"synthetic isolated Host, not production",
         "device":device,"viewport":viewport,"screens":readings,
+        "fixture":"visual-review-16-4-3" if stem=="v3-visual-parity"
+           else "retained-xlsx-4-17-0",
         "continuousSweep":sweep_data},
         ensure_ascii=False,indent=2),encoding="utf8")
-    print("BEX01_E4_FULL_REVIEW_SCROLL_EVIDENCE_PASS:"+device,flush=True)
+    print("BEX01_FULL_REVIEW_SCROLL_EVIDENCE_PASS:"+stem+":"+device
+        +":"+str(len(sweep))+" frames",flush=True)
 
 
 with sync_playwright() as pw:
@@ -624,6 +698,22 @@ with sync_playwright() as pw:
         expect(review.locator('[data-eidos-catalog-item="row:%d"]'%number)
           ).to_contain_text("主体类型：（空）")
     assert review.locator('[data-eidos-catalog-action="commit"]').count()==0
+    # Approved #909 V3 precheck rerun must use the actual Host validation,
+    # keep three unresolved source values blocked, and never auto-commit.
+    rerun=review.locator('[data-eidos-catalog-action="rerun"]')
+    expect(rerun).to_be_visible()
+    # Wait for the real single Shell re-mount instead of racing its async
+    # Host response and clicking a button on the outgoing precheck page.
+    old_review=review.element_handle()
+    rerun.click()
+    page.wait_for_function("(el)=>!document.contains(el)",arg=old_review,timeout=45000)
+    review=page.locator('[data-eidos-id="evo-data-import.review"]')
+    expect(review).to_be_visible(timeout=45000)
+    for number in [165,169,172]:
+        expect(review.locator('[data-eidos-catalog-item="row:%d"]'%number)
+          ).to_contain_text("主体类型：（空）")
+    assert review.locator('[data-eidos-catalog-action="commit"]').count()==0
+    print("BEX01_V3_REAL_PRECHECK_RERUN_STILL_BLOCKS_INVALID_ROWS_PASS",flush=True)
     for number in [165,169,172]:
         el=review.locator('[data-eidos-catalog-item="row:%d"]'%number)
         el.locator('[data-eidos-catalog-action="correct-row:%d"]'%number).click()
@@ -731,7 +821,63 @@ with sync_playwright() as pw:
         && getComputedStyle(el).borderTopStyle==='solid'
         && getComputedStyle(nodes[1]).borderTopStyle==='solid';
     }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_DESKTOP"
+    # Compare component rhythm with #909 prototype, not Host chrome absolute y.
+    desktop_rhythm=visual_form.evaluate("""form=>{
+      const box=s=>{const el=form.querySelector(s);if(!el)return null;
+        const r=el.getBoundingClientRect();return {y:Math.round(r.y),height:Math.round(r.height)};};
+      return {source:box('[data-eidos-form-task-context]'),
+        metric:box('[data-eidos-form-task-metric]'),
+        issues:[...form.querySelectorAll('[data-eidos-form-task-issue]')]
+          .map(el=>Math.round(el.getBoundingClientRect().height)),
+        mapping:box('[data-eidos-form-review-table-heading]')};
+    }""")
+    assert desktop_rhythm["source"] and 80<=desktop_rhythm["source"]["height"]<=110,("V3_SOURCE_RHYTHM",desktop_rhythm)
+    assert desktop_rhythm["metric"] and 85<=desktop_rhythm["metric"]["height"]<=125,("V3_METRIC_RHYTHM",desktop_rhythm)
+    assert len(desktop_rhythm["issues"])==3 and all(74<=h<=115 for h in desktop_rhythm["issues"]),("V3_ISSUE_RHYTHM",desktop_rhythm)
+    assert desktop_rhythm["mapping"] and desktop_rhythm["mapping"]["y"]>700,("V3_MAPPING_CROWDING",desktop_rhythm)
+    print("BEX_V3_DESKTOP_RHYTHM="+json.dumps(desktop_rhythm,ensure_ascii=False),flush=True)
+    visual_page.screenshot(path=str(OUT/"v3-prototype-parity-rhythm-desktop.png"),full_page=False)
     visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
+    table=visual_form.locator('[data-eidos-form-review-table-wrap]')
+    expect(table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
+    collapsed=table.locator('[data-eidos-form-review-table-row]:not([hidden]) [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
+    assert collapsed.count()>=2, "BEX_V3_COLLAPSED_EVIDENCE_REQUIRED"
+    assert collapsed.first.evaluate("el=>getComputedStyle(el).display==='inline-block'"),(
+      "BEX_V3_DESKTOP_INLINE_EVIDENCE_REQUIRED")
+    row=collapsed.first.locator('xpath=ancestor::tr')
+    print("BEX_V3_DESKTOP_INLINE_ROW_MEASUREMENT="+json.dumps(row.evaluate("""el=>{
+      const td=el.querySelector('[data-eidos-review-table-evidence]');
+      const details=td.querySelector('details'), summary=details.querySelector('summary');
+      const sample=td.querySelector('[data-eidos-review-table-sample]');
+      const target=el.querySelector('[data-eidos-review-table-choice] select');
+      const info=e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return {
+        h:r.height,w:r.width,x:r.x,y:r.y,display:s.display,
+        lineHeight:s.lineHeight,paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,
+        verticalAlign:s.verticalAlign,marginTop:s.marginTop,marginBottom:s.marginBottom};};
+      return {row:info(el),cell:info(td),details:info(details),
+        summary:info(summary),sample:info(sample),target:info(target),
+        field:info(target.closest('[data-eidos-form-field]')),
+        label:info(target.closest('label')),
+        choiceCell:info(target.closest('td')),
+        th:info(el.querySelector('th')),
+        statusCell:info(el.querySelector('[data-eidos-review-table-status]')),
+        title:el.querySelector('th')?.textContent};
+    }"""),ensure_ascii=False),flush=True)
+    visual_page.screenshot(path=str(OUT/"v3-inline-evidence-measurement-desktop.png"),full_page=False)
+    assert row.evaluate('el=>el.getBoundingClientRect().height')<=68,(
+      "BEX_V3_DESKTOP_MAPPING_ROW_TOO_TALL")
+    # Pin this exact source group: :not([open]) would reselect the next row
+    # immediately after the user expands this one.
+    row_id=row.locator('xpath=..').get_attribute('data-eidos-form-review-table-row')
+    assert row_id, "BEX_V3_STABLE_ROW_ID_REQUIRED"
+    stable=table.locator('[data-eidos-form-review-table-row="'+row_id+'"] [data-eidos-review-group-detail]')
+    stable.locator('summary').click()
+    expect(stable).to_have_attribute('open','')
+    expect(stable.locator('[data-eidos-review-group-fields]')).to_be_visible()
+    stable.locator('summary').click()
+    expect(stable).not_to_have_attribute('open','')
+    table.locator('[data-eidos-form-review-table-row="'+row_id+'"]').scroll_into_view_if_needed()
+    visual_page.screenshot(path=str(OUT/"v3-inline-evidence-density-desktop.png"),full_page=False)
     row_issue=issue_list.filter(has_text="3 条记录缺少主体类型")
     row_disclosure=row_issue.locator('[data-eidos-form-task-issue-related]')
     expect(row_disclosure).to_have_count(1)
@@ -781,11 +927,67 @@ with sync_playwright() as pw:
     expect(expected_count).to_have_text("22 / 22")
     filter_choice.select_option("needs")
     expect(expected_count).to_have_text("6 / 22")
+    # The approved V3 third choice filters actual __PENDING__ decisions.
+    filter_choice.select_option("unmatched")
+    prior_unmatched=visual_form.evaluate("""form=>[...form.querySelectorAll(
+      '[data-eidos-form-review-table-row]')].filter(row=>
+      row.querySelector('[data-eidos-review-table-choice] select')?.value==='__PENDING__').length""")
+    expect(expected_count).to_have_text(str(prior_unmatched)+" / 22")
+    filter_choice.select_option("all")
+    # V3 source JS changed()/render(): only the local Human decision UI
+    # changes immediately; none of these steps executes an import/save.
+    pending_row=visual_form.locator(
+      '[data-eidos-review-table-subject]').filter(
+        has_text="系统编码").locator("xpath=ancestor::tbody")
+    pending_select=pending_row.locator('[data-eidos-review-table-choice] select')
+    initial_metadata_choice=pending_select.input_value()
+    expect(pending_select).to_have_value("__CREATE__")
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","attention")
+    pending_select.select_option("__PENDING__")
+    filter_choice.select_option("unmatched")
+    expect(pending_row).to_be_visible()
+    expect(expected_count).to_have_text(str(prior_unmatched+1)+" / 22")
+    filter_choice.select_option("all")
+    pending_select.select_option(initial_metadata_choice)
+    filter_choice.select_option("unmatched")
+    expect(expected_count).to_have_text(str(prior_unmatched)+" / 22")
+    filter_choice.select_option("needs")
+    pending_select.select_option("__IGNORE__")
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","ignored")
+    expect(pending_row.locator('[data-eidos-review-table-status]')).to_have_text("不导入")
+    expect(expected_count).to_have_text("5 / 22")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("1")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    filter_choice.select_option("all")
+    expect(expected_count).to_have_text("22 / 22")
+    pending_select.select_option(initial_metadata_choice)
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","attention")
+    expect(pending_row.locator('[data-eidos-review-table-status]')).to_have_text("需要核对")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    filter_choice.select_option("needs")
+    expect(expected_count).to_have_text("6 / 22")
+    # Reload must derive decisions from the same authorized Import Job:
+    # changing a browser-only choice neither saves a mapping nor approves it.
+    visual_page.goto(HOST+"/?surface=desktop#"+visual_route,wait_until="domcontentloaded")
+    expect(visual_form).to_be_visible(timeout=30000)
+    pending_row=visual_form.locator(
+      '[data-eidos-review-table-subject]').filter(
+        has_text="系统编码").locator("xpath=ancestor::tbody")
+    expect(pending_row.locator('[data-eidos-review-table-choice] select')).to_have_value(
+      initial_metadata_choice)
+    expect(pending_row).to_have_attribute("data-eidos-review-table-status-key","attention")
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    print("BEX01_V3_REAL_MAP_LIVE_CHOICE_COUNTS_FILTER_AND_RELOAD_PASS",flush=True)
     expect(visual_form.locator('[data-eidos-form-review-table-heading] p')).to_contain_text("系统已保留原有匹配结果")
     expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(visual_form.locator('[data-eidos-form-task-back]')).to_have_text("返回文件")
     expect(visual_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
+    # Same 16/4/3 review fixture as #909, not the retained 4/17/0 fixture.
+    assert visual_form.locator('[data-eidos-form-review-table-row]:not([hidden])').count()==6
+    capture_map_scroll_evidence(visual_page,visual_form,"desktop",
+        stem="v3-visual-parity",visible_only=True)
+    verify_two_same_label_bank_choices(visual_page,visual_form,"desktop")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
     visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_page.evaluate("""async () => {
@@ -849,6 +1051,38 @@ with sync_playwright() as pw:
         && getComputedStyle(nodes[1]).borderTopStyle==='solid';
     }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_PHONE"
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_PHONE_CONNECTED_ISSUES_OVERFLOW"
+    phone_table=phone_form.locator('[data-eidos-form-review-table-wrap]')
+    expect(phone_table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
+    phone_collapsed=phone_table.locator('[data-eidos-form-review-table-row]:not([hidden]) [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
+    assert phone_collapsed.count()>=2
+    assert phone_collapsed.first.evaluate("el=>getComputedStyle(el).display!=='inline-block'"),(
+      "BEX_V3_PHONE_MUST_KEEP_STACKED_EVIDENCE")
+    assert phone_collapsed.first.locator('summary').evaluate('el=>el.getBoundingClientRect().height')>=44
+    # #909 phone: metric cards are roughly 86px high, pending count sits
+    # below the explanation and issue actions have useful breathing room.
+    # Do not enlarge genuine filenames or shrink real evidence controls.
+    mobile_rhythm=phone_form.evaluate("""form=>{
+      const metric=form.querySelector('[data-eidos-form-task-metric]');
+      const header=form.querySelector('[data-eidos-form-task-issues]>header');
+      const description=header.querySelector('p');
+      const count=header.querySelector('[data-eidos-form-task-issue-count]');
+      const first=form.querySelector('[data-eidos-form-task-issue]');
+      const card=form.querySelector('[data-eidos-form-task-context]');
+      const box=el=>{const r=el.getBoundingClientRect();
+        return {y:Math.round(r.y),height:Math.round(r.height),bottom:Math.round(r.bottom)};};
+      return {source:box(card),metric:box(metric),firstIssue:box(first),
+        pendingCount:box(count),description:box(description)};
+    }""")
+    assert 80<=mobile_rhythm["metric"]["height"]<=105,(
+        "BEX_V3_MOBILE_STAT_METRIC_RHYTHM",mobile_rhythm)
+    assert mobile_rhythm["pendingCount"]["y"]>=mobile_rhythm["description"]["bottom"]-1,(
+        "BEX_V3_MOBILE_ISSUE_COUNT_MUST_FOLLOW_EXPLANATION",mobile_rhythm)
+    assert mobile_rhythm["firstIssue"]["height"]>=120,(
+        "BEX_V3_MOBILE_ISSUE_CARD_RHYTHM",mobile_rhythm)
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "BEX_V3_MOBILE_RHYTHM_OVERFLOW")
+    print("BEX_V3_MOBILE_RHYTHM="+json.dumps(mobile_rhythm,ensure_ascii=False),flush=True)
+    visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-rhythm-phone.png"),full_page=False)
     visual_phone.screenshot(path=str(OUT/"v3-connected-issues-phone.png"),full_page=False)
     phone_row_issue=phone_issues.filter(has_text="3 条记录缺少主体类型")
     phone_disclosure=phone_row_issue.locator('[data-eidos-form-task-issue-related]')
@@ -886,6 +1120,37 @@ with sync_playwright() as pw:
     assert phone_ai.evaluate("(el)=>el.getBoundingClientRect().height")>=44
     expect(phone_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
+    # Compact mobile source content remains readable while its disclosure
+    # sits on the same visual row; opening restores full-width source detail.
+    phone_evidence=phone_form.locator(
+        '[data-eidos-form-review-table-row]:not([hidden]) '
+        '[data-eidos-review-table-evidence]:has(>details)').first
+    expect(phone_evidence.locator('[data-eidos-review-table-sample]')).to_be_visible()
+    phone_details=phone_evidence.locator('[data-eidos-review-group-detail]')
+    expect(phone_details.locator('summary')).to_be_visible()
+    evidence_rhythm=phone_evidence.evaluate("""el=>{
+      const sample=el.querySelector('[data-eidos-review-table-sample]').getBoundingClientRect();
+      const summary=el.querySelector('details>summary').getBoundingClientRect();
+      const cell=el.getBoundingClientRect();
+      return {cellHeight:Math.round(cell.height),sampleY:Math.round(sample.y),
+        summaryY:Math.round(summary.y),summaryHeight:Math.round(summary.height),
+        xGap:Math.round(summary.left-sample.right)};
+    }""")
+    assert abs(evidence_rhythm["sampleY"]-evidence_rhythm["summaryY"])<=20,(
+        "V3_PHONE_EVIDENCE_SAME_VISUAL_ROW",evidence_rhythm)
+    assert evidence_rhythm["summaryHeight"]>=44 and evidence_rhythm["xGap"]>=0,(
+        "V3_PHONE_SOURCE_DISCLOSURE_TOUCH_AND_NO_OVERLAP",evidence_rhythm)
+    phone_details.locator('summary').click()
+    expect(phone_details).to_have_attribute("open","")
+    assert phone_evidence.evaluate("""el=>{
+      const details=el.querySelector('details');
+      return details.getBoundingClientRect().width>=el.getBoundingClientRect().width-30;
+    }"""),"V3_PHONE_OPEN_SOURCE_FULL_WIDTH"
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "V3_PHONE_OPEN_SOURCE_OVERFLOW")
+    phone_details.locator('summary').click()
+    print("BEX_V3_PHONE_EVIDENCE_RHYTHM="+json.dumps(evidence_rhythm,ensure_ascii=False),flush=True)
+
     phone_filter=phone_form.locator('[data-eidos-form-review-table-filter]')
     phone_count=phone_form.locator('[data-eidos-form-review-table-count]')
     expect(phone_count).to_have_text("6 / 22")
@@ -896,11 +1161,35 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
     expect(phone_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
     expect(phone_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
+    assert phone_form.locator('[data-eidos-form-review-table-row]:not([hidden])').count()==6
+    capture_map_scroll_evidence(visual_phone,phone_form,"phone",
+        stem="v3-visual-parity",visible_only=True)
+    verify_two_same_label_bank_choices(visual_phone,phone_form,"phone")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
     phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_phone.evaluate("""async () => {
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     }""")
+    phone_footer=phone_form.locator('footer[data-eidos-form-actions]')
+    footer_rhythm=phone_footer.evaluate("""el=>{
+      const items=[el.querySelector('[data-eidos-form-task-back]'),
+        el.querySelector('[data-eidos-form-task-reset]'),el.querySelector('button[type=submit]')];
+      return items.map(item=>{const r=item.getBoundingClientRect();
+        return {x:Math.round(r.x),y:Math.round(r.y),
+          w:Math.round(r.width),h:Math.round(r.height)};});
+    }""")
+    assert len(footer_rhythm)==3 and all(r["h"]>=44 for r in footer_rhythm),(
+        "V3_PHONE_FOOTER_44PX_OPERATIONS",footer_rhythm)
+    assert footer_rhythm[0]["y"]<footer_rhythm[1]["y"]<footer_rhythm[2]["y"],(
+        "V3_PHONE_FOOTER_STACK_ORDER",footer_rhythm)
+    assert max(x["x"] for x in footer_rhythm)-min(x["x"] for x in footer_rhythm)<=2,(
+        "V3_PHONE_FOOTER_SAME_LEFT_EDGE",footer_rhythm)
+    assert max(x["w"] for x in footer_rhythm)-min(x["w"] for x in footer_rhythm)<=2,(
+        "V3_PHONE_FOOTER_EQUAL_WIDTH",footer_rhythm)
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "V3_PHONE_FOOTER_OVERFLOW")
+    print("BEX_V3_PHONE_FOOTER_RHYTHM="+json.dumps(footer_rhythm,ensure_ascii=False),flush=True)
+    visual_phone.screenshot(path=str(OUT/"v3-compact-evidence-and-stacked-footer-phone.png"),full_page=False)
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-submit-phone.png"),full_page=False)
     phone_reset_choice=phone_form.locator('select[name="map_21"]')
     phone_initial=phone_reset_choice.input_value()

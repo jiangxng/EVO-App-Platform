@@ -21,6 +21,7 @@ import {
 } from "../../dist/apps/data-import/actions.js";
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010
 } from "../../dist/apps/data-import/constants.js";
@@ -349,6 +350,27 @@ test("mapping and review pages keep validation and commit explicit", () => {
       && action.route === "/data-import/jobs/import-human-1/map"
     )
   );
+  const rerun=reviewPage.actions.find(action=>action.id==="rerun");
+  assert.equal(rerun?.command,DATA_IMPORT_DRY_RUN_COMMAND_V010);
+  assert.equal(rerun?.requiresConfirmation,false);
+  assert.deepEqual(rerun?.values,{importJobId:"import-human-1"});
+  const failedPage=createDataImportReviewPageV010({job:{
+    ...job,state:"DRY_RUN_FAILED",dryRun:{
+      schemaDigest:"broken",totalRows:1,validRows:0,invalidRows:1,
+      rows:[{rowNumber:1,ok:false,issues:[{
+        code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+        fieldId:"subjectType",message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+      }]}]
+    }
+  },locale:"zh-CN"});
+  assert.equal(failedPage.actions.find(x=>x.id==="rerun")?.label,"重新预检查");
+  assert.ok(!failedPage.actions.some(x=>x.id==="commit"),
+    "invalid imports must not expose a commit action");
+  const terminalPage=createDataImportReviewPageV010({job:{
+    ...job,state:"COMMITTED"
+  },locale:"zh-CN"});
+  assert.ok(!terminalPage.actions.some(x=>x.id==="rerun"),
+    "completed imports must not be rerun by the review screen");
 });
 
 
@@ -1022,9 +1044,24 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(x=>x.reviewStatus.key),
     ["matched","proposed","proposed","attention"],
     "Host-restored mapping, new definition and metadata exceptions must remain distinct");
-  assert.deepEqual(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys,
-    ["matched","proposed","attention"],
-    "Eidos filters must reference only status values in this authorized Job");
+  const reachableStatuses=new Set(page.reviewGroups.flatMap(group=>[
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status=>status.key)
+  ]));
+  assert.deepEqual(
+    new Set(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys),
+    reachableStatuses,
+    "All must retain current and reachable statuses for this authorized Job");
+  assert.equal(page.reviewTable.filter.selectedId,"needs",
+    "actual unresolved/created columns should determine the initial filter");
+  assert.deepEqual(page.reviewGroups.map(group=>group.reviewStatus.key),
+    ["matched","proposed","proposed","attention"],
+    "unsaved choices cannot rewrite the Host-restored initial status");
+  const metadata=page.reviewGroups.find(group=>group.title==="系统编码");
+  assert.equal(metadata.statusByChoice.__CREATE__.key,"attention",
+    "returning from ignore to the original proposed value must restore metadata risk");
+  assert.equal(metadata.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(metadata.statusByChoice.__PENDING__.key,"pending");
   const stagedJob=repository.get("enterprise-context:a","batch-proposals");
   const failedJob={
     ...stagedJob,
@@ -1074,7 +1111,8 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
   assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
-  assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
+  assert.match(mapHtml,/data-eidos-review-table-status-key="matched"[^>]* hidden/,
+    "a matched row stays hidden in needs even when opt-in state metadata is present");
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
   assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);

@@ -60,6 +60,8 @@ export interface UidlFormReviewGroupV010 {
 export interface UidlFormReviewTableV010 {
   /** Opt-in compact Human decision rows; default remains standard. */
   presentation?: "standard" | "compact";
+  /** Optional wide-screen same-line collapsed evidence; default stacked. */
+  evidenceLayout?: "stacked" | "inline-collapsed";
   /** Optional section context preceding the original decision table. */
   heading?: { title: string; description?: string };
   /** Optional factual guidance near the live filter count and source-integrity footer. */
@@ -74,7 +76,10 @@ export interface UidlFormReviewTableV010 {
     label: string;
     selectedId: string;
     noMatchesMessage: string;
-    options: { id: string; label: string; statusKeys: string[] }[];
+    options: { id: string; label: string; statusKeys: string[];
+      /** Filter by current primary select choices, never change form values. */
+      choiceValues?: string[];
+    }[];
   };
 }
 
@@ -106,6 +111,9 @@ export interface UidlFormReviewTaskV010 {
   metrics?: {
     id: string; label: string; value: string;
     tone?: "neutral" | "positive" | "warning" | "danger";
+    /** Default true for compatible row metrics. False preserves Host-derived
+     * totals (e.g. durable validation issues) during unsaved local choices. */
+    reactive?: boolean;
   }[];
   issuesTitle?: string;
   issuesDescription?: string;
@@ -113,6 +121,8 @@ export interface UidlFormReviewTaskV010 {
   issuesLayout?: "connected";
   /** Short app-owned suffix; Eidos derives the issue count from the list. */
   issuesCountSuffix?: string;
+  /** Opt-in native issue-page disclosure, twelve per page; no Host mutation. */
+  issuesPageSize?: 12;
   issues?: {
     id: string;
     title: string;

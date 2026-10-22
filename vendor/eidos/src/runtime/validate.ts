@@ -886,7 +886,7 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","evidenceLayout","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
       for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
         const value=table[key];
         if(value!==undefined && (!nonEmpty(value) || value.length>max)){
@@ -913,6 +913,13 @@ export function validateUidl(
         out.push(d("EIDOS_REVIEW_TABLE_PRESENTATION_INVALID",p+".presentation",
           "Review-table presentation must be standard or compact"));
       }
+      if (table.evidenceLayout !== undefined
+        && (typeof table.evidenceLayout !== "string"
+          || !["stacked","inline-collapsed"].includes(table.evidenceLayout)
+          || table.evidenceLayout==="inline-collapsed" && table.presentation!=="compact")) {
+        out.push(d("EIDOS_REVIEW_TABLE_EVIDENCE_LAYOUT_INVALID",p+".evidenceLayout",
+          "Inline collapsed evidence requires compact presentation"));
+      }
       extraKeys(table.columnLabels,
         new Set(["subject","evidence","decision","status"]),p+".columnLabels",out);
       const labels = table.columnLabels as Record<"subject"|"evidence"|"decision"|"status",string>;
@@ -935,6 +942,11 @@ export function validateUidl(
           const ids = new Set<string>(), options: NonNullable<
             import("./contracts.js").UidlFormReviewTableV010["filter"]
           >["options"] = [];
+          const primaryChoices = new Set(reviewGroups.flatMap(group=>{
+            const field=fields.find(item=>item.key===group.primaryFieldKey);
+            return field?.control==="select"
+              ? (field.options??[]).map(option=>String(option.value)) : [];
+          }));
           let all = false;
           f.options.forEach((raw:unknown,i:number)=>{
             if (!isPlainObject(raw) || !nonEmpty(raw.id) || !raw.id.trim()
@@ -942,17 +954,26 @@ export function validateUidl(
               || !Array.isArray(raw.statusKeys) || raw.statusKeys.length===0
               || raw.statusKeys.some((k:unknown)=>typeof k!=="string"||!keys.has(k))
               || new Set(raw.statusKeys).size!==raw.statusKeys.length
+              || raw.choiceValues!==undefined
+                && (!Array.isArray(raw.choiceValues)
+                  || raw.choiceValues.length===0 || raw.choiceValues.length>12
+                  || raw.choiceValues.some((value:unknown)=>
+                    typeof value!=="string" || !primaryChoices.has(value))
+                  || new Set(raw.choiceValues).size!==raw.choiceValues.length)
               || ids.has(raw.id)) {
               out.push(d("EIDOS_REVIEW_TABLE_FILTER_INVALID",
                 p+".filter.options["+i+"]","Invalid or duplicated filter option"));
               return;
             }
-            extraKeys(raw,new Set(["id","label","statusKeys"]),
+            extraKeys(raw,new Set(["id","label","statusKeys","choiceValues"]),
               p+".filter.options["+i+"]",out);
             ids.add(raw.id);
             const statusKeys = [...raw.statusKeys] as string[];
-            options.push({id:raw.id,label:raw.label,statusKeys});
-            if ([...keys].every(k=>statusKeys.includes(k))) all=true;
+            const choiceValues = raw.choiceValues===undefined
+              ? undefined : [...raw.choiceValues] as string[];
+            options.push({id:raw.id,label:raw.label,statusKeys,
+              ...(choiceValues ? {choiceValues} : {})});
+            if (!choiceValues && [...keys].every(k=>statusKeys.includes(k))) all=true;
           });
           if (!ids.has(f.selectedId) || !all) {
             out.push(d("EIDOS_REVIEW_TABLE_FILTER_ALL_MISSING",p+".filter",
@@ -1020,6 +1041,8 @@ export function validateUidl(
                 ? {description:table.heading.description} : {})}} : {}),
         ...(table.presentation==="compact" || table.presentation==="standard"
           ? {presentation:table.presentation} : {}),
+        ...(table.evidenceLayout==="stacked" || table.evidenceLayout==="inline-collapsed"
+          ? {evidenceLayout:table.evidenceLayout} : {}),
         columnLabels:{
           subject:labels.subject,evidence:labels.evidence,
           decision:labels.decision,status:labels.status
@@ -1118,11 +1141,19 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","issuesCountSuffix","issuesLayout","helpText","presentation","footer"]),path,out);
+        "issuesDescription","issues","issuesCountSuffix","issuesLayout","issuesPageSize","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
+      }
+      if (task.issuesPageSize !== undefined
+        && (task.presentation !== "workbench"
+          || task.issuesPageSize !== 12
+          || !Array.isArray(task.issues)
+          || task.issues.length === 0)) {
+        fail(path+".issuesPageSize",
+          "Issue pagination requires a nonempty workbench list in groups of twelve");
       }
       if (task.issuesLayout !== undefined
         && (task.presentation !== "workbench"
@@ -1206,12 +1237,16 @@ export function validateUidl(
         fail(path+".steps","Exactly one step must be current");
       }
       checkIds(task.metrics,path+".metrics",8,(item,at)=>{
-        extraKeys(item,new Set(["id","label","value","tone"]),at,out);
+        extraKeys(item,new Set(["id","label","value","tone","reactive"]),at,out);
         return nonEmpty(item.label) && typeof item.value==="string"
+          && (item.reactive===undefined || typeof item.reactive==="boolean")
           && (item.tone===undefined
             || ["neutral","positive","warning","danger"].includes(item.tone as string));
       });
-      checkIds(task.issues,path+".issues",12,(item,at)=>{
+      // Existing workbenches remain capped at 12. Opt-in pages may retain
+      // the full issue catalog up to a bounded 4096 entries; above this,
+      // validation must fail instead of silently dropping outstanding tasks.
+      checkIds(task.issues,path+".issues",task.issuesPageSize===12?4096:12,(item,at)=>{
         extraKeys(item,new Set(["id","title","description",
           "focusGroupId","actionLabel","relatedRoutes"]),at,out);
         return nonEmpty(item.title)

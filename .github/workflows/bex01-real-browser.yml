@@ -61,6 +61,13 @@ jobs:
         run: python tests/bex01/v3_batch_constant_host_chromium.py
       - name: V3 synthetic 22-column 172-row actual XLSX through Host and Chromium
         run: python tests/bex01/v3_synthetic_xlsx_172_chromium.py
+      - name: V3 approved prototype vs real Host 1280px and 390px visual evidence
+        run: |
+          curl --fail --location --show-error --silent --retry 3 --connect-timeout 10 --max-time 60 \
+            https://raw.githubusercontent.com/jiangxng/EVO-App-Platform/af58e0abad880439d54230485305bf2b4e05decc/docs/plans/foundation-list-experience/BEX-01-IMPORT-V3-IN-CONTEXT-HIGH-FIDELITY-20261015.html \
+            --output artifacts/bex01-browser/approved-v3-prototype.html
+          test "$(git hash-object artifacts/bex01-browser/approved-v3-prototype.html)" = "9f57e9320eb527786ff7b737be27777eba6f8a92"
+          python tests/bex01/v3_prototype_host_parity_chromium.py
       - name: V3 preserve all genuine synthetic XLSX business fields in supplier records
         run: python tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py
       - if: failure()

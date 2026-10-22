@@ -3191,6 +3191,26 @@ form[data-eidos-id] button:hover,
    [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
 }
 
+/* Optional compact desktop evidence only. Open details regain their full width.
+   Default tables and 44px mobile controls preserve existing layout. */
+@media(min-width:701px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open]){
+   display:inline-block;vertical-align:middle;
+   margin:0 0 0 var(--eidos-space-sm);max-width:100%;
+ }
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])>summary{
+   min-height:var(--eidos-control-normal);
+ }
+ /* Native compact choice controls were visually 36px tall, yet inherited
+    12px label margins above and below inflated table rows to 73px.
+    Keep a small breathing space only for this opted-in desktop surface. */
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-choice] [data-eidos-form-field] label{
+   margin:3px 0;
+ }
+}
 /* Opt-in Human review workbench: show the original source, the actual counts,
    and every actionable blocker before choices; never conceal business facts. */
 [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
@@ -3568,5 +3588,215 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
 [data-eidos-task-presentation="workbench"]
   [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol>li+li{
   border-top:1px solid var(--eidos-border);
+}
+
+/* Desktop workbench source, summary and issue hierarchy. Keep mobile density
+   and the independently governed compact evidence table unchanged. */
+@media(min-width:851px){
+  [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+    gap:24px;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+    padding-block:calc(var(--eidos-space-lg) + 7px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+    padding-block:calc(var(--eidos-space-md) + 15px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    padding-block:calc(var(--eidos-space-md) + 15px);
+  }
+}
+
+/* Opt-in 390px Human review rhythm, isolated to Workbench presentation.
+   Leave true source filenames, row evidence and mobile 44px controls intact. */
+@media(max-width:520px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+    padding-block:calc(var(--eidos-space-md) + 9px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header{
+    grid-template-columns:minmax(0,1fr);
+    row-gap:var(--eidos-space-sm);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+    grid-column:1;grid-row:3;justify-self:start;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    padding-block:calc(var(--eidos-space-md) + 11px);
+  }
+}
+
+/* Opt-in compact phone mapping: put the still-visible source example beside
+   its native source disclosure. Open evidence spans full width, never hides
+   the original record and retains the 44px touch affordance. */
+@media(max-width:700px){
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence]:has(>details){
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;gap:var(--eidos-space-sm);
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence]:has(>details)::before{
+    display:none;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-table-sample]{
+    min-width:0;overflow-wrap:anywhere;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-group-detail]{
+    margin-top:0;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-group-detail][open]{
+    grid-column:1 / -1;width:100%;
+  }
+}
+/* Mobile task footer: the three real Host operations follow the prototype's
+   scan-friendly single column, without pretending changes auto-save. */
+@media(max-width:520px){
+  form[data-eidos-id]:has(
+    [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]
+    + [data-eidos-form-fields] [data-eidos-review-table-presentation="compact"]
+  ) footer[data-eidos-form-actions]{
+    display:flex;flex-direction:column;align-items:stretch;
+  }
+  form[data-eidos-id]:has(
+    [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]
+    + [data-eidos-form-fields] [data-eidos-review-table-presentation="compact"]
+  ) footer[data-eidos-form-actions]>button{
+    width:100%;min-height:44px;flex:0 0 auto;
+  }
+}
+
+/* BEX-01 V3 source-of-truth visual palette and canvas: #909's actual HTML
+   :root/.panel/.metric/.issuebox CSS, not measured screenshot dimensions.
+   Scope to the real mapping form; the Host shell, authorizations, save
+   commands, other forms and other Eidos experiences retain their own skin. */
+[data-eidos-workspace-content]:has(form[data-eidos-id="evo-data-import.mapping"]){
+  background:#f5f7fa;
+}
+form[data-eidos-id="evo-data-import.mapping"]{
+  --eidos-fg:#172b44;
+  --eidos-fg-muted:#6a7c91;
+  --eidos-fg-subtle:#718196;
+  --eidos-bg:#ffffff;
+  --eidos-bg-subtle:#f5f7fa;
+  --eidos-bg-hover:#f4f8fc;
+  --eidos-bg-selected:#eaf2fb;
+  --eidos-border:#e3e9ef;
+  --eidos-border-strong:#ced9e4;
+  --eidos-focus:#73aaf4;
+  --eidos-primary:#2563a6;
+  --eidos-primary-hover:#1d538d;
+  --eidos-primary-subtle:#eaf2fb;
+  --eidos-success:#18765a;
+  --eidos-success-bg:#eaf7f1;
+  --eidos-warning:#a66712;
+  --eidos-warning-bg:#fff6e7;
+  --eidos-danger:#b54738;
+  --eidos-danger-bg:#fff1ee;
+  width:min(1200px,100%);
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--eidos-fg);
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-context],
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-metric],
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-wrap]{
+  background:var(--eidos-bg);
+  border:1px solid var(--eidos-border);
+  border-radius:10px;
+  box-shadow:0 2px 9px #13284006;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-metric][data-tone="warning"]{
+  background:#fffdfa;
+  border-color:#e8d9bd;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-icon]{
+  background:#eaf5ed;color:#198354;border-radius:9px;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-source-status][data-tone="positive"]{
+  background:var(--eidos-success-bg);color:var(--eidos-success);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol{
+  border-color:#eddfc6;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-issues] li::before{
+  background:var(--eidos-warning-bg);color:var(--eidos-warning);
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table] thead{
+  background:#f7f9fb;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-footnote]{
+  background:var(--eidos-bg);
+}
+/* V3 #909 status chips: preserve native table cells and scoped Eidos semantics.
+   Changing a choice updates the existing row status key; no Host mutation. */
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-review-table-status-badge]{
+  display:inline-block;max-width:100%;box-sizing:border-box;
+  padding:2px 8px;border-radius:4px;white-space:normal;
+  background:#f0f3f6;color:var(--eidos-fg-muted);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="matched"]
+  [data-eidos-review-table-status-badge]{
+  color:#18765a;background:#eaf7f1;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="proposed"]
+  [data-eidos-review-table-status-badge]{
+  color:#2b65aa;background:#eef5fd;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row]:is([data-eidos-review-table-status-key="pending"],
+    [data-eidos-review-table-status-key="attention"],
+    [data-eidos-review-table-status-key="suggested"])
+  [data-eidos-review-table-status-badge]{
+  color:#a66712;background:#fff6e7;
+}
+
+
+/* Optional bounded issue pages: native details retain every Host issue while
+   keeping the source-aligned twelve-decision first page. No JS or auto-save. */
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]{
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  margin-top:var(--eidos-space-sm);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>summary{
+  cursor:pointer;padding:var(--eidos-space-md) var(--eidos-space-lg);
+  min-height:44px;box-sizing:border-box;
+  display:list-item;list-style-position:inside;
+  color:var(--eidos-primary);font-weight:var(--eidos-weight-semibold);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>summary:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>ol{
+  list-style:none;display:grid;gap:var(--eidos-space-sm);
+  margin:0;padding:var(--eidos-space-sm);
+  counter-reset:eidos-workbench-issue;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page] li{
+  display:grid;grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:start;gap:var(--eidos-space-md);
+  border:1px solid color-mix(in srgb,var(--eidos-warning) 30%,var(--eidos-border));
+  border-radius:var(--eidos-radius-lg);background:var(--eidos-bg);
+  counter-increment:eidos-workbench-issue;
+}
+@media(max-width:520px){
+  [data-eidos-task-presentation="workbench"]
+    [data-eidos-form-task-issue-page] li{
+    grid-template-columns:28px minmax(0,1fr);gap:var(--eidos-space-sm);
+  }
 }
 `;
