@@ -1,0 +1,159 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-21",
+  "baseline": "192b1948a4f5856ba97cb0a15a0d7d50e12e3830",
+  "branch": "fix/governance-identity-directory-initialization-20261021",
+  "scope": "A01/R3 shared Identity Directory constructor and first valid snapshot/save",
+  "change": {
+    "source": "manager/identity-user-directory-store.ts",
+    "beforeBlob": "29183fc3ae7e11fddc01574da296b076ca3541a1",
+    "afterBlob": "fdf893170c8d4a78c55cfd302a24cad73e43944d",
+    "newProductionModules": 0,
+    "publicContractsChanged": false,
+    "serverAndBootstrapChanged": false,
+    "factoryFileAccess": 0,
+    "initialization": "first synchronous snapshot/valid save; save validates existing file before replacement",
+    "onlyMissingMeansEmpty": "ENOENT",
+    "failedLoadPublishesNothing": true,
+    "successRetainsOriginalProcessSnapshot": true,
+    "independentOfManagedBrowserSessionFlag": true,
+    "sharedTerminalDisablement": true
+  },
+  "beforeLocalProbe": {
+    "node": "v24.19.0",
+    "sourceBlob": "29183fc3ae7e11fddc01574da296b076ca3541a1",
+    "mode": "original type-erased store, not Host",
+    "results": [
+      {
+        "mode": "missing",
+        "constructorReads": 1,
+        "constructorError": null,
+        "fileCreated": false
+      },
+      {
+        "mode": "valid",
+        "constructorReads": 1,
+        "constructorError": null,
+        "fileCreated": false
+      },
+      {
+        "mode": "malformed",
+        "constructorReads": 1,
+        "constructorError": "Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+        "fileCreated": false
+      }
+    ]
+  },
+  "local": {
+    "node": "24.19.0",
+    "mode": "partial fixed-SHA/temporary type erasure",
+    "tests": {
+      "directoryProtocol": 13,
+      "newDirectoryCases": 8,
+      "authenticationFlow": 12,
+      "managedRequestSession": 8,
+      "total": 33,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0
+    },
+    "newHostAndFixtureSyntax": true,
+    "formalBuild": false,
+    "realHost": false,
+    "database": false,
+    "browser": false,
+    "authenticationTransactionEvidence": "original file store + original authentication flow + real in-memory Session service; synthetic authentication Provider, not IdP/HTTP"
+  },
+  "ci": {
+    "statusAtCommit": "pending exact final-head CI; permanent results in PR closeout",
+    "hostFile": "tests/integration/identity-directory-initialization-host.test.mjs",
+    "newHostCases": 4,
+    "directoryAndDelegatedTestsAddedToLightweight": true,
+    "unmodifiedDelegatedTests": 9,
+    "dedicatedDirectoryCIAlreadyIncludesProtocolFile": true,
+    "baselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "priorModuleCountsHistoricalOnly": true,
+    "pa05Node2421PinRetained": true
+  },
+  "hostMatrix": [
+    "missing/corrupt directories: compatible/minimal and explicit/derived paths, zero dormant target access",
+    "denied health requests do not initialize",
+    "managed=false manually installed directory still serves shared disabled identity",
+    "first authorized probe corrupt file UNAVAILABLE without overwrite; same Host repairs/retries",
+    "HTTP disable/enable/inactive restart preserves directory; inactive probe no read",
+    "first successful snapshot read once, repeated probes share it and never rewrite"
+  ],
+  "readScopes": [
+    {
+      "path": "manager/identity-user-directory-store.ts",
+      "read": "full"
+    },
+    {
+      "path": "providers/identity-directory/runtime.ts",
+      "read": "full"
+    },
+    {
+      "path": "docs/architecture/HOST-IDENTITY-USER-DIRECTORY-EA3B1-v0.1.md",
+      "read": "full"
+    },
+    {
+      "path": "tests/protocol/identity-user-directory.test.mjs (baseline)",
+      "read": "full"
+    },
+    {
+      "path": ".github/workflows/plugin-host-identity-user-directory-provider.yml",
+      "read": "full"
+    },
+    {
+      "path": "manager/authentication-flow.ts",
+      "read": "full"
+    },
+    {
+      "path": "manager/external-agent-delegated-access.ts",
+      "read": "full"
+    },
+    {
+      "path": "manager/server.ts",
+      "read": "partial directory paths/registry/managed bootstrap; authentication callback; external-agent dependency resolver"
+    },
+    {
+      "path": "tests/external-agent/effective-delegated-authority.test.mjs",
+      "read": "partial fixture and primary authorization/disable/lifecycle cases; unmodified existing regression"
+    }
+  ],
+  "efficiency": {
+    "authority": "FAST-FEEDBACK section10",
+    "originalThreeCaseProbeBeforeBatchedImplementation": true,
+    "reuseOnlyAlreadyFullyReadUnchangedBlobs": true,
+    "noRepeatedExternalResearch": true,
+    "failedRoutes": "none in this batch; retain prior PA05 Node24.22 READ recovery gap, no old environment retry",
+    "pivot": "lost revocation/overwritten corrupt file/early Session issue; stop and reassess"
+  },
+  "limits": [
+    "factory errors move to first method; an unused corrupt file does not block Host boot",
+    "original successful process-local snapshot, not live filesystem refresh or multi-writer authority",
+    "no new authentication/Agent/Provider feature",
+    "component authentication fixture is not real IdP/HTTP acceptance",
+    "delegated read errors propagate, no fallback to empty/allow; no new whole external-agent HTTP certification",
+    "remaining foundation matrix and budgets not certified"
+  ],
+  "remaining": [
+    "LLM startup metadata caller qualification and first-install runtime recovery contract",
+    "R3 remaining foundation resource/lifecycle qualification",
+    "EVO deadlines/OIDC transactions/records budgets",
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent configured SQL responsibility/qualification",
+    "R4 final cross-layer acceptance",
+    "A03 authority lookup/idempotent recovery",
+    "A05 production strategy/migration"
+  ],
+  "globalStatusModified": false,
+  "productionDeployment": false,
+  "additionalProviderPilot": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

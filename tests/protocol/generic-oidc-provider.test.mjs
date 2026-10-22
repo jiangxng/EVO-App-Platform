@@ -513,3 +513,99 @@ test('OIDC token deadline includes Secret wait and prevents late token request a
   assert.equal(active.size, 0); assert.equal(host.authority.calls.some(call => call.url === issuer + '/token'), false);
 });
 
+
+function transactionBudgetFixture(overrides = {}) {
+  const authority = fakeAuthority(); let time = Date.parse('2026-09-30T09:00:00.000Z'), generated = 0;
+  const runtime = provider(authority, {maxPendingTransactions: 2, now: () => new Date(time),
+    randomBytesImpl(size) {const bytes = Buffer.alloc(size); bytes.writeUInt32BE(++generated); return bytes;}, ...overrides});
+  return {runtime, authority, advance(ms) {time += ms;}, generated: () => generated,
+    begin: () => beginLogin(runtime, authority),
+    complete(start, parameters = {code: 'synthetic-code'}) {
+      authority.captureAuthorization(String(start));
+      const url = new URL(callbackUrl); url.searchParams.set('state', start.searchParams.get('state'));
+      for (const [key, value] of Object.entries(parameters)) url.searchParams.set(key, value);
+      return runtime.complete({contractVersion: '0.1.0', callbackUrl: url.toString()});
+    }};
+}
+
+test('OIDC default pending-state budget is 1000 and saturation preserves the oldest live login', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: undefined});
+  const live = await Promise.all(Array.from({length: 1000}, () => f.begin()));
+  const generated = f.generated(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  assert.equal(f.generated(), generated, 'saturation must not allocate protocol secrets');
+  assert.equal(f.authority.calls.length, 1, 'discovery is shared; saturation performs no token exchange');
+  assert.equal((await f.complete(live[0])).principal.subjectId.endsWith(':subject-123'), true);
+  await f.begin(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+});
+
+test('OIDC concurrent starts cannot overbook a custom budget after shared discovery', async () => {
+  const f = transactionBudgetFixture();
+  const results = await Promise.allSettled(Array.from({length: 25}, () => f.begin()));
+  const accepted = results.filter(r => r.status === 'fulfilled'), rejected = results.filter(r => r.status === 'rejected');
+  assert.equal(accepted.length, 2); assert.equal(rejected.length, 23);
+  assert.ok(rejected.every(r => r.reason.message === 'OIDC_TRANSACTION_LIMIT_REACHED'));
+  assert.equal(f.generated(), 6); assert.equal(f.authority.calls.length, 1);
+  assert.equal((await f.complete(accepted[0].value)).principal.actorType, 'HUMAN');
+  await f.begin(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+});
+
+test('OIDC invalid pending-state limits fail before discovery or random allocation', () => {
+  const authority = fakeAuthority(); let generated = 0;
+  for (const maxPendingTransactions of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => provider(authority, {maxPendingTransactions, randomBytesImpl() {generated++; throw Error('unexpected-random');}}), /OIDC_TRANSACTION_LIMIT_INVALID/);
+  }
+  assert.equal(generated, 0); assert.equal(authority.calls.length, 0);
+});
+
+test('OIDC activity prunes all expired abandoned states without background timers', async t => {
+  t.mock.method(globalThis, 'setInterval', () => {throw Error('unexpected-background-cleanup');});
+  const f = transactionBudgetFixture({transactionTtlSeconds: 1});
+  const first = await f.begin(), second = await f.begin(); f.advance(1001);
+  const fresh = await f.begin(); await f.begin(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  for (const old of [first, second]) await assert.rejects(f.complete(old), /OIDC_STATE_INVALID/);
+  assert.equal(f.authority.calls.length, 1);
+  assert.equal((await f.complete(fresh)).principal.actorType, 'HUMAN');
+});
+
+test('OIDC retains original inclusive TTL boundary and never evicts a live state for a newer login', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1, transactionTtlSeconds: 1});
+  const first = await f.begin(); f.advance(1000);
+  await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  assert.equal((await f.complete(first)).principal.actorType, 'HUMAN');
+  await f.begin();
+});
+
+test('OIDC expired callback consumes its state, keeps original expiry error and frees capacity', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1, transactionTtlSeconds: 1});
+  const first = await f.begin(); f.advance(1001);
+  await assert.rejects(f.complete(first), /OIDC_TRANSACTION_EXPIRED/);
+  await assert.rejects(f.complete(first), /OIDC_STATE_INVALID/);
+  assert.equal(f.authority.calls.length, 1); await f.begin();
+});
+
+for (const [parameters, expected] of [[{error: 'access_denied'}, /OIDC_AUTHORIZATION_ERROR:access_denied/], [{}, /OIDC_AUTHORIZATION_CODE_REQUIRED/]]) {
+  test('OIDC ' + (parameters.error ? 'denied' : 'missing-code') + ' callback consumes known state without token exchange and permits a fresh login', async () => {
+    const f = transactionBudgetFixture({maxPendingTransactions: 1}); const first = await f.begin();
+    await assert.rejects(f.complete(first, parameters), expected);
+    await assert.rejects(f.complete(first), /OIDC_STATE_INVALID/);
+    assert.equal(f.authority.calls.length, 1);
+    const fresh = await f.begin(); assert.equal((await f.complete(fresh)).principal.actorType, 'HUMAN');
+  });
+}
+
+test('OIDC unknown-state or stateless error does not consume unrelated live transactions', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1}); const first = await f.begin();
+  for (const suffix of ['?state=unknown&error=access_denied', '?error=access_denied']) {
+    await assert.rejects(f.runtime.complete({contractVersion: '0.1.0', callbackUrl: callbackUrl + suffix}), /OIDC_AUTHORIZATION_ERROR/);
+  }
+  await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  assert.equal((await f.complete(first)).principal.actorType, 'HUMAN');
+});
+
+test('OIDC concurrent callbacks can consume a retained state only once', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1}); const first = await f.begin();
+  const results = await Promise.allSettled([f.complete(first), f.complete(first)]);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  assert.equal(results.find(r => r.status === 'rejected').reason.message, 'OIDC_STATE_INVALID');
+  assert.equal(f.authority.calls.filter(c => c.url.endsWith('/token')).length, 1); await f.begin();
+});

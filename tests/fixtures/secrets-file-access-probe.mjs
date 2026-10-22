@@ -7,7 +7,9 @@ import {syncBuiltinESMExports} from 'node:module';
 const state = resolve(process.env.APP_PLATFORM_SECRETS_FILE);
 const key = resolve(process.env.APP_PLATFORM_SECRETS_KEY_FILE);
 const targets = new Map([[state, 'state'], [state + '.tmp', 'temporary-state'], [key, 'key']]);
-const directories = new Set([dirname(state), dirname(key)]);
+// Colocated lifecycle stores share their directory; root-directory operations
+// cannot be attributed to Secrets in that layout. Nested tests keep observation.
+const directories = new Set(process.env.TEST_SECRETS_IGNORE_DIRECTORY === 'true' ? [] : [dirname(state), dirname(key)]);
 const accesses = []; let decryptions = 0;
 function label(value, directory = false) {
   try {

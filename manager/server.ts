@@ -2296,11 +2296,21 @@ const manager = createAppManagerService(
           feature.providesCapabilities?.includes(IDENTITY_AUTHENTICATION_CAPABILITY))) oidcContextEpoch++;
     const llmProviderId = event.packageId === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
       : event.packageId === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
-    if (llmProviderId) llmCredentialEpochs.set(llmProviderId, (llmCredentialEpochs.get(llmProviderId) ?? 0) + 1);
+    if (llmProviderId) {
+      llmCredentialEpochs.set(llmProviderId, (llmCredentialEpochs.get(llmProviderId) ?? 0) + 1);
+      // Prepare only currently effective LLMs after the lifecycle state change.
+      // The original refresh revision rejects late preparation after stop.
+      const refresh = llmProviderId === OPENAI_LLM_PROVIDER_ID
+        ? refreshOpenAiProviderRuntime : refreshDeepSeekProviderRuntime;
+      void refresh().catch(error => console.error("LLM lifecycle preparation failed.", error));
+    }
     const memoryProviderId = memoryCredentialOwners.get(event.packageId);
     if (memoryProviderId) invalidateMemoryCredential(memoryProviderId);
     if (catalog.get(event.packageId)?.features.some(feature => feature.providesCapabilities?.includes(SECRETS_RESOLVE_CAPABILITY))) {
       invalidateMemoryBinding(SECRETS_RESOLVE_CAPABILITY);
+      // A restored shared Secrets source may make an effective LLM usable.
+      void refreshOpenAiProviderRuntime().catch(error => console.error("OpenAI Secrets-source preparation failed.", error));
+      void refreshDeepSeekProviderRuntime().catch(error => console.error("DeepSeek Secrets-source preparation failed.", error));
     }
     refreshContextMemorySchedule();
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
@@ -3679,6 +3689,10 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
   const reference = openAiApiKeyReference();
   const revision = (llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) ?? 0) + 1;
   llmConfigurationEpochs.set(OPENAI_LLM_PROVIDER_ID, revision);
+  if (!manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === OPENAI_LLM_PROVIDER_ID)) {
+    providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
+    return;
+  }
   let configured = false;
   try {
     const secrets = resolveManagedSecretsProvider();
@@ -3747,6 +3761,10 @@ async function refreshDeepSeekProviderRuntime(): Promise<void> {
   const reference = deepSeekApiKeyReference();
   const revision = (llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0) + 1;
   llmConfigurationEpochs.set(DEEPSEEK_LLM_PROVIDER_ID, revision);
+  if (!manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === DEEPSEEK_LLM_PROVIDER_ID)) {
+    providerRuntimeRegistry.remove(DEEPSEEK_LLM_PROVIDER_ID);
+    return;
+  }
   let configured = false;
   try {
     const secrets = resolveManagedSecretsProvider();
