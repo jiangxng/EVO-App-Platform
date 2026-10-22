@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
+import {configureGenericOidcProviderRuntimeV010} from '../../dist/providers/oidc/host-runtime.js';
+import {createProviderRuntimeRegistry} from '../../dist/providers/runtime-registry.js';
 
 import {
   createGenericOidcIdentityAuthenticationProviderV010,
@@ -405,3 +407,205 @@ test("failed JWKS fetch consumes the callback; only a new login can retry and au
   assert.equal(authority.calls.filter(call => call.url.endsWith('/.well-known/openid-configuration')).length, 1);
 });
 
+async function configuredHost(options = {}) {
+  const registry = createProviderRuntimeRegistry();
+  const authority = fakeAuthority({token: nonce => idToken({nonce, exp: Math.floor(Date.now() / 1000) + 600,
+    extra: {iat: Math.floor(Date.now() / 1000)}})});
+  const state = {epoch: 0, active: true, token: 'synthetic-v1', fault: '', describes: 0, resolves: 0};
+  const secrets = {async describe() { state.describes++; if (state.fault === 'describe') throw Error('synthetic-describe-failure');
+      await options.pause?.('describe'); return {configured: state.token !== undefined}; },
+    async resolve() { state.resolves++; if (state.fault === 'resolve') throw Error('synthetic-resolve-failure');
+      await options.pause?.('resolve'); return state.token; }};
+  state.secrets = secrets;
+  await configureGenericOidcProviderRuntimeV010({settings: {issuer, clientId}, registry,
+    resolveSecrets: () => state.secrets, isCurrent: () => state.active, epoch: () => state.epoch,
+    fetchImpl: options.fetchImpl ? (url, init) => options.fetchImpl(url, init, authority) : authority.fetchImpl});
+  const runtime = registry.get(GENERIC_OIDC_PROVIDER_ID);
+  return {state, authority, registry, runtime,
+    begin: () => beginLogin(runtime, authority),
+    complete: authorize => runtime.complete({contractVersion: '0.1.0', callbackUrl:
+      callbackUrl + '?code=synthetic&state=' + encodeURIComponent(authorize.searchParams.get('state'))})};
+}
+
+test('Host OIDC decrypts only at token exchange, rotates per new login and keeps public-client contract', async () => {
+  const host = await configuredHost();
+  const start = await host.begin();
+  await host.registry.runHealthProbe(GENERIC_OIDC_PROVIDER_ID);
+  assert.equal(host.state.describes + host.state.resolves, 0);
+  await assert.rejects(host.runtime.complete({contractVersion: '0.1.0', callbackUrl: callbackUrl + '?state=invalid&code=bad'}), /OIDC_STATE_INVALID/);
+  assert.equal(host.state.describes + host.state.resolves, 0);
+  await host.complete(start);
+  host.state.token = 'synthetic-v2'; await host.complete(await host.begin());
+  host.state.token = undefined; await host.complete(await host.begin());
+  const calls = host.authority.calls.filter(call => call.url === issuer + '/token');
+  assert.equal(calls.length, 3);
+  for (const [i, token] of ['synthetic-v1', 'synthetic-v2'].entries()) {
+    assert.equal(new Headers(calls[i].init.headers).get('authorization'),
+      'Basic ' + Buffer.from(clientId + ':' + token).toString('base64'));
+    assert.equal(new URLSearchParams(calls[i].init.body).has('client_id'), false);
+  }
+  assert.equal(new Headers(calls[2].init.headers).has('authorization'), false);
+  assert.equal(new URLSearchParams(calls[2].init.body).get('client_id'), clientId);
+  assert.equal(host.state.describes, 3); assert.equal(host.state.resolves, 2);
+});
+
+test('Host OIDC missing/corrupt/empty Secrets never downgrade to public client; new login can recover', async () => {
+  for (const fault of ['missing', 'describe', 'resolve', 'empty']) {
+    const host = await configuredHost(); const start = await host.begin();
+    const original = host.state.secrets;
+    if (fault === 'missing') host.state.secrets = undefined;
+    else if (fault === 'empty') host.state.token = '  ';
+    else host.state.fault = fault;
+    await assert.rejects(host.complete(start), /SECRETS_PROVIDER_REQUIRED|synthetic-.*-failure|OIDC_CLIENT_SECRET_EMPTY/);
+    assert.equal(host.authority.calls.filter(call => call.url === issuer + '/token').length, 0);
+    await assert.rejects(host.complete(start), /OIDC_STATE_INVALID/);
+    host.state.secrets = original; host.state.fault = ''; host.state.token = 'synthetic-recovered';
+    assert.equal((await host.complete(await host.begin())).principal.actorType, 'HUMAN');
+  }
+});
+
+for (const stage of ['describe', 'resolve']) test('Host OIDC rejects context changes while waiting for ' + stage, async () => {
+  for (const change of ['epoch-roundtrip', 'disabled', 'secrets-replaced', 'runtime-replaced']) {
+    let enter, release;
+    const entered = new Promise(resolve => {enter = resolve;});
+    const barrier = new Promise(resolve => {release = resolve;});
+    const host = await configuredHost({pause: async step => {if (step === stage) {enter(); await barrier;}}});
+    const start = await host.begin(), pending = host.complete(start);
+    await entered;
+    if (change === 'epoch-roundtrip') {host.state.active = false; host.state.epoch++; host.state.active = true; host.state.epoch++;}
+    if (change === 'disabled') host.state.active = false;
+    if (change === 'secrets-replaced') host.state.secrets = {...host.state.secrets};
+    if (change === 'runtime-replaced') host.registry.replace(GENERIC_OIDC_PROVIDER_ID, {providerId: GENERIC_OIDC_PROVIDER_ID});
+    const rejected = assert.rejects(pending, /OIDC_CONTEXT_CHANGED/); release(); await rejected;
+    assert.equal(host.authority.calls.filter(call => call.url === issuer + '/token').length, 0);
+    if (stage === 'describe') assert.equal(host.state.resolves, 0, 'invalidated metadata cannot trigger decryption');
+  }
+});
+
+test('Host OIDC binds begin/complete to one context and rejects late token/JWKS responses', async () => {
+  const host = await configuredHost(); const start = await host.begin(); host.state.epoch++;
+  await assert.rejects(host.complete(start), /OIDC_CONTEXT_CHANGED/);
+  assert.equal(host.state.resolves, 0);
+  for (const endpoint of ['/token', '/jwks']) {
+    let enter, release;
+    const entered = new Promise(resolve => {enter = resolve;});
+    const barrier = new Promise(resolve => {release = resolve;});
+    const next = await configuredHost({fetchImpl: async (url, init, authority) => {
+      if (String(url) === issuer + endpoint) {enter(); await barrier;}
+      return authority.fetchImpl(url, init);
+    }});
+    const pending = next.complete(await next.begin()); await entered;
+    next.state.epoch++; const rejected = assert.rejects(pending, /OIDC_CONTEXT_CHANGED/); release(); await rejected;
+    if (endpoint === '/token') assert.equal(next.authority.calls.some(call => call.url === issuer + '/jwks'), false);
+  }
+});
+
+test('OIDC token deadline includes Secret wait and prevents late token request after abort', async t => {
+  const active = new Set();
+  t.mock.method(globalThis, 'setTimeout', (callback, delay) => {assert.equal(delay, 8000); const handle = {callback}; active.add(handle); return handle;});
+  t.mock.method(globalThis, 'clearTimeout', handle => assert.equal(active.delete(handle), true));
+  let enter, release;
+  const entered = new Promise(resolve => {enter = resolve;}); const barrier = new Promise(resolve => {release = resolve;});
+  const host = await configuredHost({pause: async stage => {if (stage === 'resolve') {enter(); await barrier;}}});
+  const pending = host.complete(await host.begin()); await entered;
+  assert.equal(active.size, 1); [...active][0].callback();
+  const rejected = assert.rejects(pending, /Abort/); release(); await rejected;
+  assert.equal(active.size, 0); assert.equal(host.authority.calls.some(call => call.url === issuer + '/token'), false);
+});
+
+
+function transactionBudgetFixture(overrides = {}) {
+  const authority = fakeAuthority(); let time = Date.parse('2026-09-30T09:00:00.000Z'), generated = 0;
+  const runtime = provider(authority, {maxPendingTransactions: 2, now: () => new Date(time),
+    randomBytesImpl(size) {const bytes = Buffer.alloc(size); bytes.writeUInt32BE(++generated); return bytes;}, ...overrides});
+  return {runtime, authority, advance(ms) {time += ms;}, generated: () => generated,
+    begin: () => beginLogin(runtime, authority),
+    complete(start, parameters = {code: 'synthetic-code'}) {
+      authority.captureAuthorization(String(start));
+      const url = new URL(callbackUrl); url.searchParams.set('state', start.searchParams.get('state'));
+      for (const [key, value] of Object.entries(parameters)) url.searchParams.set(key, value);
+      return runtime.complete({contractVersion: '0.1.0', callbackUrl: url.toString()});
+    }};
+}
+
+test('OIDC default pending-state budget is 1000 and saturation preserves the oldest live login', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: undefined});
+  const live = await Promise.all(Array.from({length: 1000}, () => f.begin()));
+  const generated = f.generated(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  assert.equal(f.generated(), generated, 'saturation must not allocate protocol secrets');
+  assert.equal(f.authority.calls.length, 1, 'discovery is shared; saturation performs no token exchange');
+  assert.equal((await f.complete(live[0])).principal.subjectId.endsWith(':subject-123'), true);
+  await f.begin(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+});
+
+test('OIDC concurrent starts cannot overbook a custom budget after shared discovery', async () => {
+  const f = transactionBudgetFixture();
+  const results = await Promise.allSettled(Array.from({length: 25}, () => f.begin()));
+  const accepted = results.filter(r => r.status === 'fulfilled'), rejected = results.filter(r => r.status === 'rejected');
+  assert.equal(accepted.length, 2); assert.equal(rejected.length, 23);
+  assert.ok(rejected.every(r => r.reason.message === 'OIDC_TRANSACTION_LIMIT_REACHED'));
+  assert.equal(f.generated(), 6); assert.equal(f.authority.calls.length, 1);
+  assert.equal((await f.complete(accepted[0].value)).principal.actorType, 'HUMAN');
+  await f.begin(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+});
+
+test('OIDC invalid pending-state limits fail before discovery or random allocation', () => {
+  const authority = fakeAuthority(); let generated = 0;
+  for (const maxPendingTransactions of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => provider(authority, {maxPendingTransactions, randomBytesImpl() {generated++; throw Error('unexpected-random');}}), /OIDC_TRANSACTION_LIMIT_INVALID/);
+  }
+  assert.equal(generated, 0); assert.equal(authority.calls.length, 0);
+});
+
+test('OIDC activity prunes all expired abandoned states without background timers', async t => {
+  t.mock.method(globalThis, 'setInterval', () => {throw Error('unexpected-background-cleanup');});
+  const f = transactionBudgetFixture({transactionTtlSeconds: 1});
+  const first = await f.begin(), second = await f.begin(); f.advance(1001);
+  const fresh = await f.begin(); await f.begin(); await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  for (const old of [first, second]) await assert.rejects(f.complete(old), /OIDC_STATE_INVALID/);
+  assert.equal(f.authority.calls.length, 1);
+  assert.equal((await f.complete(fresh)).principal.actorType, 'HUMAN');
+});
+
+test('OIDC retains original inclusive TTL boundary and never evicts a live state for a newer login', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1, transactionTtlSeconds: 1});
+  const first = await f.begin(); f.advance(1000);
+  await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  assert.equal((await f.complete(first)).principal.actorType, 'HUMAN');
+  await f.begin();
+});
+
+test('OIDC expired callback consumes its state, keeps original expiry error and frees capacity', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1, transactionTtlSeconds: 1});
+  const first = await f.begin(); f.advance(1001);
+  await assert.rejects(f.complete(first), /OIDC_TRANSACTION_EXPIRED/);
+  await assert.rejects(f.complete(first), /OIDC_STATE_INVALID/);
+  assert.equal(f.authority.calls.length, 1); await f.begin();
+});
+
+for (const [parameters, expected] of [[{error: 'access_denied'}, /OIDC_AUTHORIZATION_ERROR:access_denied/], [{}, /OIDC_AUTHORIZATION_CODE_REQUIRED/]]) {
+  test('OIDC ' + (parameters.error ? 'denied' : 'missing-code') + ' callback consumes known state without token exchange and permits a fresh login', async () => {
+    const f = transactionBudgetFixture({maxPendingTransactions: 1}); const first = await f.begin();
+    await assert.rejects(f.complete(first, parameters), expected);
+    await assert.rejects(f.complete(first), /OIDC_STATE_INVALID/);
+    assert.equal(f.authority.calls.length, 1);
+    const fresh = await f.begin(); assert.equal((await f.complete(fresh)).principal.actorType, 'HUMAN');
+  });
+}
+
+test('OIDC unknown-state or stateless error does not consume unrelated live transactions', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1}); const first = await f.begin();
+  for (const suffix of ['?state=unknown&error=access_denied', '?error=access_denied']) {
+    await assert.rejects(f.runtime.complete({contractVersion: '0.1.0', callbackUrl: callbackUrl + suffix}), /OIDC_AUTHORIZATION_ERROR/);
+  }
+  await assert.rejects(f.begin(), /OIDC_TRANSACTION_LIMIT_REACHED/);
+  assert.equal((await f.complete(first)).principal.actorType, 'HUMAN');
+});
+
+test('OIDC concurrent callbacks can consume a retained state only once', async () => {
+  const f = transactionBudgetFixture({maxPendingTransactions: 1}); const first = await f.begin();
+  const results = await Promise.allSettled([f.complete(first), f.complete(first)]);
+  assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
+  assert.equal(results.find(r => r.status === 'rejected').reason.message, 'OIDC_STATE_INVALID');
+  assert.equal(f.authority.calls.filter(c => c.url.endsWith('/token')).length, 1); await f.begin();
+});
