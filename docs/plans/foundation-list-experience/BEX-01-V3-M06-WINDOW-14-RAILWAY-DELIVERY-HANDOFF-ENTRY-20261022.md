@@ -64,3 +64,6 @@
 - **健康和业务**：公开 health HTTP 成功不可验证；不把 API 显示 Online 当作公网功能、Eidos/插件、M06 Human PASS。M04/M05/M06 独立 OPEN。
 - **资料等级及新增证据**：见 [详细研究索引第 8 节](BEX-01-V3-M06-WINDOW-14-RAILWAY-RESEARCH-DECISION-REFERENCE-INDEX-20261022.md)；Railway/GitHub 本次接口是 RM，官方博客从搜索正文获取仍为 S，账户 UI 安全审计与外网验收是 D。不得把搜索摘要升格成全文原文。
 - **下步**：Owner 确认安全审计/GitHub 重连和凭据处置依赖 → Railway 恢复构建 → 重新核验当时 main、真正 build → SUCCESS/commit/health/Eidos/插件/V3 分层验收。#1111 保持 Draft、不合并、不清理；旧四条过程分支已经清理，无需重复。
+
+
+**末尾时间差更正：** 本次维护 PR #1111 期间，其他窗口将 PR #1114 合入 main；最后核验 main 已是 **5faf7f44c2a370d6372b00dd248a0bf382be1d26**。上文 23e39173 是先前时点快照；新 build 必须先重新查最新 main，不可固定 23e39173 作为未来目标。
