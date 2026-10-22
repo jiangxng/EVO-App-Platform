@@ -284,7 +284,7 @@ test("BEX V3 real Host batch route uses an Eidos four-column decision table with
   assert.equal(page.reviewGroups[0].defaultExpanded,false);
   const html=renderToHtml(page);
   assert.equal((html.match(/data-eidos-form-review-table-row="source-/g)??[]).length,5);
-  assert.equal((html.match(/data-eidos-review-table-choice/g)??[]).length,5);
+  assert.equal((html.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,5);
   assert.equal((html.match(/data-eidos-review-group-detail/g)??[]).length,5);
   assert.match(html,/data-eidos-form-review-table-filter/);
   assert.match(html,/data-eidos-form-task-overview/);

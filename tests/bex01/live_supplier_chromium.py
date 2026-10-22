@@ -50,14 +50,37 @@ with sync_playwright() as p:
     }
     const cards=el?.querySelector('[data-eidos-catalog-items]');
     const table=el?.querySelector('[data-eidos-catalog-table]');
+    const tableWrap=el?.querySelector('[data-eidos-catalog-table-wrap]');
     const cssLink=document.querySelector('link[rel="stylesheet"]');
     const cssResponse=cssLink?await fetch(cssLink.href):null;
     const cssBody=cssResponse?await cssResponse.text():"";
     const mark=cssBody.indexOf("data-eidos-catalog-has-table");
+    const tableWrapRules=[];
+    const collectRules=rules=>{
+      for(const rule of rules){
+        if(rule.cssRules) collectRules(rule.cssRules);
+        if(rule.selectorText?.includes("data-eidos-catalog-table-wrap")){
+          let matches=false;
+          try{matches=Boolean(tableWrap?.matches(rule.selectorText));}catch{}
+          tableWrapRules.push({selector:rule.selectorText,display:rule.style?.display??null,
+            media:rule.parentRule?.conditionText??null,matches});
+        }
+      }
+    };
+    for(const sheet of document.styleSheets){try{collectRules(sheet.cssRules)}catch{}}
+    const mobileRule=cssBody.lastIndexOf("data-eidos-catalog-table-wrap");
     return {innerWidth:innerWidth,pathname:location.pathname,hash:location.hash,
+      phoneMediaMatches:matchMedia("(max-width:700px)").matches,
       cssStatus:cssResponse?.status,cssLength:cssBody.length,
       cssHasTableRule:mark>=0,cssRuleExcerpt:mark>=0?cssBody.slice(mark-45,mark+105):null,
+      cssMobileTableRuleExcerpt:mobileRule>=0?cssBody.slice(Math.max(0,mobileRule-60),mobileRule+180):null,
       mobileSurface:document.querySelector("[data-mobile-surface]")?.getAttribute("data-mobile-surface"),
+      rootTableFlag:el?.getAttribute("data-eidos-catalog-has-table"),
+      tableWrapFound:Boolean(tableWrap),
+      tableWrapWithinRoot:Boolean(el&&tableWrap&&el.contains(tableWrap)),
+      tableWrapDisplay:tableWrap?getComputedStyle(tableWrap).display:null,
+      tableWrapInlineDisplay:tableWrap?.style.display||null,
+      tableWrapRules,
       cardsDisplay:cards?getComputedStyle(cards).display:null,
       tableDisplay:table?getComputedStyle(table).display:null,
       styleSheets:[...document.styleSheets].map(x=>x.href).slice(0,10),parents:trace};
@@ -100,21 +123,21 @@ with sync_playwright() as p:
    next_button=page.locator('[data-eidos-catalog-action="next-page"]')
    expect(next_button).to_be_visible()
    next_button.click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 53")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 54")
    expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(25)
    assert "page=1" in page.url,page.url
    page.locator('[data-eidos-catalog-action="next-page"]').click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("51–53 / 53")
-   expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(3)
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("51–54 / 54")
+   expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(4)
    page.go_back(wait_until="domcontentloaded")
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 53")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 54")
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0003")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
    expect(page.locator('[data-eidos-page-summary]')).to_have_text("1–1 / 1")
    expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1)
    assert "search=Supplier" in page.url,page.url
    page.screenshot(path=str(OUT/"desktop-supplier-filter.png"),full_page=True)
-   return {"table":True,"pages":[25,25,3],"backRestoresPage":True,"serverSearch":True}
+   return {"table":True,"pages":[25,25,4],"backRestoresPage":True,"serverSearch":True}
   finally: context.close()
  run("desktop-live-Host-search-page-and-browser-back",desktop)
  def failed_precheck_navigation():
@@ -143,8 +166,33 @@ with sync_playwright() as p:
    # Same safe workspace exit is present from field mapping.
    mapping_route="/data-import/jobs/"+bad_id+"/map"
    page.goto(HOST+"/?surface=desktop#"+mapping_route,wait_until="domcontentloaded")
-   expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=20000)
+   mapping_form=page.locator('[data-eidos-id="evo-data-import.mapping"]')
+   expect(mapping_form).to_be_visible(timeout=20000)
    assert page.locator('[data-eidos-context-route="'+route+'"]').count()==1
+   # A failed dry-run is already persisted Host evidence. The mapping page
+   # must surface the three missing subjectType rows before the user edits.
+   issue_panel=mapping_form.locator('[data-eidos-form-task-issues]')
+   expect(issue_panel).to_be_visible()
+   expect(issue_panel).to_contain_text("主体类型")
+   expect(issue_panel).to_contain_text("3 条记录缺少主体类型")
+   expect(issue_panel).to_contain_text("第 1、2、3 行")
+   focus_issue=issue_panel.locator('[data-eidos-form-task-focus="map-source-2"]')
+   expect(focus_issue).to_be_visible()
+   page.screenshot(path=str(OUT/"v3-map-row-issues-desktop.png"),full_page=True)
+   phone_context=make_context(390,844,True)
+   try:
+    phone_page=phone_context.new_page()
+    phone_page.goto(HOST+"/?surface=desktop#"+mapping_route,wait_until="domcontentloaded")
+    phone_form=phone_page.locator('[data-eidos-id="evo-data-import.mapping"]')
+    expect(phone_form).to_be_visible(timeout=20000)
+    phone_issue_panel=phone_form.locator('[data-eidos-form-task-issues]')
+    expect(phone_issue_panel).to_be_visible()
+    expect(phone_issue_panel).to_contain_text("3 条记录缺少主体类型")
+    expect(phone_issue_panel).to_contain_text("第 1、2、3 行")
+    expect(phone_page.locator("html")).to_have_js_property("scrollWidth",390)
+    phone_page.screenshot(path=str(OUT/"v3-map-row-issues-phone.png"),full_page=True)
+   finally:
+    phone_context.close()
    # The upload step also retains the originating business workspace.
    upload="/data-import/new/counterparty.subject?parameter__relationshipMode=SUPPLIER"
    page.goto(HOST+"/?surface=desktop#"+upload,wait_until="domcontentloaded")
@@ -172,11 +220,16 @@ with sync_playwright() as p:
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
    # Batch B is now visible beside the original per-column action.
-   expect(mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="mode=batch"]')).to_have_count(1)
+   expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(1)
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
      "/object-extensions/from-import?job="+job+"&column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C")
+   # In generic Eidos compact ReviewTable, source-bound actions are available
+   # in that same source row's accessible evidence disclosure.
+   bank_row=mapping_form.locator('[data-eidos-form-review-table-row="map-source-3"]')
+   bank_row.locator('[data-eidos-review-group-detail] summary').click()
+   expect(inline.first).to_be_visible()
    inline.first.click()
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
@@ -347,7 +400,7 @@ with sync_playwright() as p:
    control=page.locator('[data-eidos-catalog-server-search] input[name="search"]')
    assert control.bounding_box()["height"] >= 44, "PHONE_SEARCH_TOUCH_TARGET"
    page.locator('[data-eidos-catalog-action="next-page"]').click()
-   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 55")
+   expect(page.locator('[data-eidos-page-summary]')).to_have_text("26–50 / 56")
    expect(cards).to_have_count(25)
    page.locator('[data-eidos-catalog-server-search] input[name="search"]').fill("Supplier 0053")
    page.locator('[data-eidos-catalog-server-search] button[type="submit"]').click()
@@ -365,7 +418,7 @@ with sync_playwright() as p:
  browser.close()
 report={"checkedAtUtc":datetime.now(timezone.utc).isoformat(),
  "browser":"Headless Chromium "+version,
- "actualHost":True,"data":"disposable isolated fixture, 53 committed supplier rows",
+ "actualHost":True,"data":"disposable isolated fixture, 54 committed supplier rows",
  "device":"desktop plus touch-enabled 390px Chromium mobile emulation",
  "notProven":["iOS Safari","physical Android Chrome","real weak-network/mobile keyboard"],
  "passed":sum(i["result"]=="PASS" for i in checks),

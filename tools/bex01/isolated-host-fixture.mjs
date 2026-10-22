@@ -4,7 +4,7 @@
  * Reuses the same host+install+import commands as existing PA-01 browser proof.
  */
 import assert from "node:assert/strict";
-import { syntheticV3WorkbookV010 } from "./synthetic-v3-xlsx.mjs";
+import { syntheticV3WorkbookV010, syntheticV3VisualReviewWorkbookV010 } from "./synthetic-v3-xlsx.mjs";
 import { spawn } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -89,7 +89,7 @@ try{
    assert.ok(outcome.value.snapshot?.installedPackages?.some(x=>x.packageId===packageId),"BEX01_INSTALL_FAILED_"+packageId);
  }
  const lines=["往来编码,往来名称,主体类型"];
- for(let index=1;index<=53;index++){
+ for(let index=1;index<=54;index++){
   const no=String(index).padStart(4,"0");
   lines.push("S"+no+",Supplier "+no+",ORGANIZATION");
  }
@@ -211,21 +211,60 @@ try{
  assert.equal(retainedXlsx.rows.length,172);
  assert.equal(retainedXlsx.headers.length,22);
  writeFileSync(join(artifact,"synthetic-retained-fields.xlsx"),retainedXlsx.bytes);
+ // Dedicated #909 parity fixture: 16 valid existing targets, four proposals,
+ // two unresolved source columns, and three durable subjectType row issues.
+ const visual=syntheticV3VisualReviewWorkbookV010();
+ assert.equal(visual.headers.length,22);
+ assert.equal(visual.rows.length,172);
+ const visualStaged=await execute("data-import.stage-file",{
+   targetId:"counterparty.subject",
+   file:{name:"BEX-V3-VISUAL-REVIEW-SYNTHETIC.xlsx",
+     mediaType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+     size:visual.bytes.length,contentBase64:visual.bytes.toString("base64")},
+   parameter__relationshipMode:"SUPPLIER"
+ },contextId);
+ const visualReviewJobId=visualStaged?.job?.importJobId;
+ assert.ok(visualReviewJobId,"BEX01_VISUAL_REVIEW_JOB_MISSING");
+ assert.deepEqual(visualStaged.job.source.headers,visual.headers);
+ const visualChoices={importJobId:visualReviewJobId,
+   map_0:"code",map_1:"displayName",map_2:"subjectType",
+   map_3:"legalName",map_4:"taxIdentifier",map_5:"countryOrRegion",
+   map_6:"phone",map_7:"email",map_8:"notes",
+   map_9:"supplierClassification",map_10:"procurementRegion",
+   map_11:"primaryContactName",map_12:"primaryContactTitle",
+   map_13:"primaryContactPhone",map_14:"primaryContactEmail",
+   map_15:"primaryAddressLine1",
+   map_16:"__CREATE__",map_17:"__CREATE__",map_18:"__CREATE__",map_19:"__CREATE__",
+   map_20:"__PENDING__",map_21:"__PENDING__"};
+ const visualMapping=await execute("data-import.review",visualChoices,contextId);
+ assert.ok(visualMapping?.navigateTo?.includes("mode=batch"),
+   "BEX01_VISUAL_REVIEW_PROPOSALS_NOT_RETAINED");
+ const visualDryRun=await execute("data-import.dry-run",{
+   importJobId:visualReviewJobId
+ },contextId);
+ assert.equal(visualDryRun?.job?.state,"DRY_RUN_FAILED");
+ assert.equal(visualDryRun?.job?.dryRun?.invalidRows,3);
+ assert.deepEqual(visualDryRun.job.ignoredSourceColumns??[],[]);
+ console.log("BEX01_V3_VISUAL_REVIEW_FIXTURE_READY="+JSON.stringify({
+   jobId:visualReviewJobId,columns:22,rows:172,matched:16,proposed:4,
+   ignored:0,issueClasses:["bank target unresolved","3 subjectType rows missing","system code unresolved"],
+   synthetic:true,productionUsed:false
+ }));
  const query=new URLSearchParams({source:COUNTERPARTY_SUPPLIERS_PAGE_SOURCE,
    route:COUNTERPARTY_SUPPLIERS_ROUTE+"?page=0&pageSize=25"});
  const first=await request("/v1/experience-pages?"+query.toString(),"GET",undefined,contextId);
  assert.equal(first.status,200,JSON.stringify(first.value).slice(0,1800));
  assert.equal(first.value.table?.rows?.length,25,"BEX01_FIRST_PAGE_NOT_BOUNDED");
- assert.equal(first.value.table?.pageInfo?.total,53,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
+ assert.equal(first.value.table?.pageInfo?.total,54,"BEX01_NOT_ALL_SUPPLIERS_IMPORTED");
  assert.ok(first.value.actions?.some(x=>x.id==="import"),"BEX01_IMPORT_ENTRY_MISSING");
  const fixture={hostUrl,contextId,jobId,failedJobId,extensionJobId,batchJobId,
    syntheticXlsxJobId:syntheticJobId,syntheticXlsxRows:172,syntheticXlsxColumns:22,
-   syntheticXlsxMissingRows:synthetic.missingRowNumbers,
+   syntheticXlsxMissingRows:synthetic.missingRowNumbers,visualReviewJobId,visualReviewRows:172,visualReviewColumns:22,
    retainedXlsxArtifact:"synthetic-retained-fields.xlsx",
    retainedCodePrefix:"RET-",
    retainedNamePrefix:"Retained Supplier ",
    route:COUNTERPARTY_SUPPLIERS_ROUTE,
-   expectedTotal:53,isolated:true,productionUsed:false};
+   expectedTotal:54,isolated:true,productionUsed:false};
  writeFileSync(join(artifact,"fixture.json"),JSON.stringify(fixture,null,2));
  console.log("BEX01_BROWSER_FIXTURE_READY="+JSON.stringify(fixture));
 }catch(error){console.error("BEX01_BROWSER_FIXTURE_FAILED",error);await shutdown();process.exit(1);}

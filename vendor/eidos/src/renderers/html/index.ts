@@ -63,7 +63,13 @@ function input(field: RenderFieldV010): string {
   return `<input type="${type}" ${common}${initial}${min}${max}${pattern}>${field.unit ? `<span data-unit>${esc(field.unit)}</span>` : ""}`;
 }
 
-function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
+function renderReviewTaskSteps(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010): string {
+  return task.steps?.length ? `<ol data-eidos-form-task-steps>
+    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
+  </ol>` : "";
+}
+
+function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormReviewTaskV010, stepsInHeader = false): string {
   const subject=task.subject;
   const facts=(subject.facts ?? []).map(fact =>
     `<div data-eidos-form-task-fact><dt>${esc(fact.label)}</dt><dd>${esc(fact.value)}</dd></div>`
@@ -74,9 +80,7 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
     ${subject.statusLabel ? `<span data-eidos-form-task-source-status>${esc(subject.statusLabel)}</span>` : ""}
     ${facts ? `<dl data-eidos-form-task-facts>${facts}</dl>` : ""}
   </section>`;
-  const steps=task.steps?.length ? `<ol data-eidos-form-task-steps>
-    ${task.steps.map(step => `<li data-eidos-task-step-state="${esc(step.state)}">${esc(step.label)}</li>`).join("")}
-  </ol>` : "";
+  const steps=renderReviewTaskSteps(task);
   const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
     ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
       data-eidos-form-task-metric-id="${esc(metric.id)}"
@@ -93,17 +97,44 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
         data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
     </li>`).join("")}</ol>
   </section>` : "";
-  return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}
-    ${task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : ""}
-  </div>`;
+  const help=task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : "";
+  if(task.presentation === "decision-first") {
+    // Support context stays discoverable and keyboard accessible, but does not
+    // consume the first viewport ahead of Human field decisions.
+    const issuesLabel=task.issues?.length
+      ? `<span data-eidos-task-summary-issues>${esc(task.issuesTitle ?? "Review")}: ${task.issues.length}</span>`
+      : "";
+    return `<div data-eidos-form-task-overview data-eidos-task-presentation="decision-first">
+      <details data-eidos-form-task-details>
+        <summary><strong>${esc(subject.title)}</strong>${issuesLabel}</summary>
+        <div data-eidos-form-task-details-content>${steps}${context}${metrics}${issues}${help}</div>
+      </details>
+    </div>`;
+  }
+  if(task.presentation === "workbench") {
+    // Keep actual source, status, metrics, and actionable issues visible in
+    // their workflow order before Human review choices (Eidos #201).
+    return `<div data-eidos-form-task-overview data-eidos-task-presentation="workbench">
+      ${stepsInHeader ? "" : steps}${context}${metrics}${issues}${help}
+    </div>`;
+  }
+  return `<div data-eidos-form-task-overview>${steps}${context}${metrics}${issues}${help}</div>`;
 }
 
 export function renderToHtml(document: unknown): string {
   const model = toRenderModel(document);
-  const renderField = (field: RenderFieldV010) =>
-    `<div data-eidos-form-field><label>${esc(field.label)}${input(field)}</label>${field.contextLink
-      ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>`
-      : ""}</div>`;
+  const renderContextLink = (field: RenderFieldV010) => field.contextLink
+    ? `<button type="button" data-eidos-field-context-link data-eidos-context-route="${esc(field.contextLink.route)}">${esc(field.contextLink.label)}</button>` : "";
+  const renderField = (field: RenderFieldV010, compactLabel = false,
+    includeContextLink = true) => {
+    if (field.hidden === true) {
+      return `<input type="hidden" name="${esc(field.inputName)}" data-semantic-type="${esc(field.semanticType)}" data-eidos-hidden-field value="${esc(field.initialValue)}">`;
+    }
+    return `<div data-eidos-form-field><label>${compactLabel
+      ? `<span data-eidos-review-table-choice-label>${esc(field.label)}</span>`
+      : esc(field.label)}${input(field)}</label>${includeContextLink
+      ? renderContextLink(field) : ""}</div>`;
+  };
   const byKey = new Map(model.fields.map(field => [field.key, field]));
   const used = new Set<string>();
   const groups = (model.reviewGroups ?? []).map(group => {
@@ -126,7 +157,7 @@ export function renderToHtml(document: unknown): string {
     </section>`;
   }).join("");
   const standalone = model.fields.filter(field => !used.has(field.key))
-    .map(renderField).join("");
+    .map(field => renderField(field)).join("");
   // Table is a second, optional presentation of the SAME Form group keys.
   // It does not create a new command, synthetic field or separate save path.
   const reviewTable = model.reviewTable ? (() => {
@@ -136,10 +167,14 @@ export function renderToHtml(document: unknown): string {
     const allowed = selected?.statusKeys;
     const tableRows = (model.reviewGroups ?? []).map(group => {
       const status = group.reviewStatus!;
-      const primary = renderField(byKey.get(group.primaryFieldKey)!);
+      const primaryField = byKey.get(group.primaryFieldKey)!;
+      const compact = model.reviewTable?.presentation === "compact";
+      const deferLink = compact && Boolean(primaryField.contextLink)
+        && group.detailFieldKeys.length > 0;
+      const primary = renderField(primaryField,compact,!deferLink);
       const details = group.detailFieldKeys.map(key =>
         renderField(byKey.get(key)!)
-      ).join("");
+      ).join("") + (deferLink ? renderContextLink(primaryField) : "");
       const visible = !allowed || allowed.includes(status.key);
       const planFields=model.reviewPlan?.proposedFields?.find(item=>item.groupId===group.id);
       const planAttrs=planFields
@@ -173,7 +208,7 @@ export function renderToHtml(document: unknown): string {
           ).join("")}</select></label>
           <span data-eidos-form-review-table-count role="status" aria-live="polite">${count} / ${model.reviewGroups?.length ?? 0}</span></div>`
       : "";
-    return `<section data-eidos-form-review-table-wrap>
+    return `<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>
         <table data-eidos-form-review-table aria-label="${esc(model.title)}">
@@ -196,7 +231,10 @@ export function renderToHtml(document: unknown): string {
     <ul data-eidos-review-plan-items></ul>
     <p data-eidos-review-plan-warning>${esc(model.reviewPlan.warning)}</p>
   </section>` : "";
-  const taskOverview=model.reviewTask ? renderReviewTask(model.reviewTask) : "";
+  const workbenchSteps=model.reviewTask?.presentation === "workbench"
+    ? renderReviewTaskSteps(model.reviewTask) : "";
+  const taskOverview=model.reviewTask
+    ? renderReviewTask(model.reviewTask,model.reviewTask.presentation === "workbench") : "";
   const fields = standalone + (model.reviewTable
     ? reviewTable : groups
       ? `<div data-eidos-form-review-groups>${groups}</div>` : "");
@@ -219,6 +257,7 @@ ${renderContextNavigationV010(model.contextNavigation)}
 <h1>${esc(model.title)}</h1>
 ${model.description ? `<p data-eidos-page-description>${esc(model.description)}</p>` : ""}
 </div>
+${workbenchSteps}
 </div>
 </header>
 ${taskOverview}

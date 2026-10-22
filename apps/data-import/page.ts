@@ -718,6 +718,8 @@ export function createDataImportMappingPageV010(input: {
     }] : [])
   ];
   const reviewTable = {
+    // V3 compact four-column density uses upstream Eidos #200 semantics.
+    presentation: "compact" as const,
     columnLabels: {
       subject: zh(input.locale) ? "来源列名" : "Source column",
       evidence: zh(input.locale) ? "示例值" : "Examples",
@@ -739,30 +741,153 @@ export function createDataImportMappingPageV010(input: {
   const attentionColumns = reviewGroups.filter(group =>
     group.reviewStatus.key === "attention"
       || group.reviewStatus.key === "suggested");
+  const reviewIssues: {
+    id: string;
+    title: string;
+    description: string;
+    focusGroupId?: string;
+    actionLabel?: string;
+  }[] = attentionColumns.map(group => {
+    const candidates = candidatesFor(group.title);
+    if (candidates.length > 1) {
+      return {
+        id: group.id,
+        title: zh(input.locale)
+          ? group.title + "存在多个对应字段"
+          : group.title + " has multiple target fields",
+        description: zh(input.locale)
+          ? "请确认这列数据应写入哪个业务字段。"
+          : "Confirm which business field should receive this source column.",
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
+      };
+    }
+    if (metadataLikeColumn(group.title)) {
+      return {
+        id: group.id,
+        title: zh(input.locale)
+          ? "「" + group.title + "」尚未选择处理方式"
+          : "No handling choice for “" + group.title + "”",
+        description: zh(input.locale)
+          ? "请确认是否需要导入为业务字段。原文件内容会保留在导入记录中。"
+          : "Decide whether to import this as a business field. The original value remains in the import record.",
+        focusGroupId: group.id,
+        actionLabel: zh(input.locale) ? "处理此列" : "Handle column"
+      };
+    }
+    return {
+      id: group.id,
+      title: group.title,
+      description: group.reviewStatus.label + " · " + group.summary,
+      focusGroupId: group.id,
+      actionLabel: zh(input.locale) ? "核对本列" : "Review column"
+    };
+  });
+
+  // A failed dry-run is durable Host evidence. Surface row-level validation
+  // issues when returning to mapping; never infer business identities from
+  // raw values or execute validation while rendering the page.
+  const rowIssueGroups = new Map<string, {
+    issue: FoundationObjectImportIssueV010;
+    rowNumbers: number[];
+  }>();
+  for (const row of input.job.dryRun?.rows ?? []) {
+    for (const issue of row.issues) {
+      const key = (issue.fieldId ?? "") + "\\u0000" + issue.code;
+      const existing = rowIssueGroups.get(key);
+      if (existing) {
+        if (!existing.rowNumbers.includes(row.rowNumber)) {
+          existing.rowNumbers.push(row.rowNumber);
+        }
+      } else {
+        rowIssueGroups.set(key, { issue, rowNumbers: [row.rowNumber] });
+      }
+    }
+  }
+  for (const [index, rowIssue] of [...rowIssueGroups.values()].entries()) {
+    const sourceMapping = input.job.mapping.find(item =>
+      Boolean(item.sourceColumn) && item.targetFieldId === rowIssue.issue.fieldId);
+    const sourceGroup = sourceMapping?.sourceColumn
+      ? reviewGroups.find(group => group.title === sourceMapping.sourceColumn)
+      : undefined;
+    const field = input.schema.fields.find(item =>
+      item.fieldId === rowIssue.issue.fieldId);
+    const rowNumbers = [...rowIssue.rowNumbers].sort((a, b) => a - b);
+    const visibleRows = rowNumbers.slice(0, 8).join("、")
+      + (rowNumbers.length > 8 ? " 等" : "");
+    const missingSubjectType = rowIssue.issue.fieldId === "subjectType"
+      && rowIssue.issue.code.includes("REQUIRED");
+    const title = missingSubjectType
+      ? (zh(input.locale)
+        ? rowNumbers.length + " 条记录缺少主体类型"
+        : rowNumbers.length + " records are missing subject type")
+      : field
+        ? localizedTextV010(field.label, input.locale)
+        : rowIssue.issue.fieldId ?? rowIssue.issue.code;
+    const description = missingSubjectType
+      ? (zh(input.locale)
+        ? "请为以下记录选择正确的主体类型。（第 " + visibleRows + " 行）"
+        : "Choose the correct subject type for these records (rows " + visibleRows + ").")
+      : (zh(input.locale)
+        ? rowNumbers.length + " 条记录需要处理（第 " + visibleRows + " 行）· "
+        : rowNumbers.length + " row(s) need attention (rows " + visibleRows + ") · ")
+        + importReviewIssueMessageV010({
+          issue: rowIssue.issue, schema: input.schema, locale: input.locale
+        });
+    const existing = sourceGroup
+      ? reviewIssues.find(item => item.focusGroupId === sourceGroup.id)
+      : undefined;
+    if (existing) {
+      existing.description += "；" + description;
+      if (missingSubjectType) {
+        existing.title = title;
+        existing.actionLabel = zh(input.locale) ? "查看记录" : "View records";
+      }
+    } else {
+      reviewIssues.push({
+        id: "dry-run-issue-" + index,
+        title,
+        description,
+        ...(sourceGroup ? {
+          focusGroupId: sourceGroup.id,
+          actionLabel: missingSubjectType
+            ? (zh(input.locale) ? "查看记录" : "View records")
+            : (zh(input.locale) ? "核对本列" : "Review column")
+        } : {})
+      });
+    }
+  }
+  // The V3 workbench orders decisions by the approved review sequence:
+  // ambiguous target first, row-level required data second, metadata handling last.
+  const issuePriority = (issue: typeof reviewIssues[number]): number => {
+    if (issue.title.includes("多个对应字段")) return 0;
+    if (issue.title.includes("缺少主体类型")) return 1;
+    if (issue.title.includes("尚未选择处理方式")) return 2;
+    return 3;
+  };
+  reviewIssues.sort((a, b) => issuePriority(a) - issuePriority(b));
+
   const reviewTask = {
+    // Eidos #196: keep all task context behind an accessible disclosure
+    // so real source-row decisions lead the first viewport.
+    presentation: "workbench" as const,
     subject: {
       title: input.job.source.name ?? input.job.importJobId,
       subtitle: (zh(input.locale) ? "导入文件 · " : "Source file · ")
         + input.job.source.rows.length + (zh(input.locale) ? " 条记录 · " : " rows · ")
         + input.job.source.headers.length + (zh(input.locale) ? " 列" : " columns"),
-      statusLabel: zh(input.locale) ? "来源数据已保留" : "Source preserved",
-      facts: [{
-        id:"records",label:zh(input.locale)?"记录数":"Records",
-        value:String(input.job.source.rows.length)
-      }, {
-        id:"columns",label:zh(input.locale)?"来源列数":"Columns",
-        value:String(input.job.source.headers.length)
-      }]
+      statusLabel: zh(input.locale) ? "文件已读取" : "File read",
+      facts: []
     },
+    // Match the approved V3 prototype: the top stepper has two stages.
+    // Precheck, schema confirmation and explicit commit remain substeps of
+    // "核对并导入", not a third top-level stage.
     steps: [{
       id:"source",label:zh(input.locale)?"选择文件":"Choose file",
       state:"complete" as const
     }, {
-      id:"review",label:zh(input.locale)?"核对映射":"Review mapping",
+      id:"review",label:zh(input.locale)?"核对并导入":"Review & import",
       state:"current" as const
-    }, {
-      id:"commit",label:zh(input.locale)?"预检查与导入":"Validate & import",
-      state:"upcoming" as const
     }],
     metrics: [{
       id:"matched",label:zh(input.locale)?"已匹配":"Matched",
@@ -775,19 +900,13 @@ export function createDataImportMappingPageV010(input: {
       value:String(countStatus("ignored"))
     }, {
       id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
-      value:String(attentionColumns.length),tone:"warning" as const
+      value:String(reviewIssues.length),tone:"warning" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
     issuesDescription: zh(input.locale)
       ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
       : "Review only uncertain sources; jump directly to the relevant choice.",
-    issues: attentionColumns.slice(0,12).map(group => ({
-      id:group.id,
-      title:group.title,
-      description:group.reviewStatus.label + " · " + group.summary,
-      focusGroupId:group.id,
-      actionLabel:zh(input.locale)?"核对本列":"Review column"
-    })),
+    issues: reviewIssues.slice(0,12),
     helpText:zh(input.locale)
       ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
       : "Changes require explicit save and validation; viewing does not commit records."
@@ -799,7 +918,7 @@ export function createDataImportMappingPageV010(input: {
     reviewGroups,
     reviewTable,
     reviewTask,
-    title: t.mappingTitle + " · " + (input.job.source.name ?? input.job.importJobId),
+    title: zh(input.locale) ? "核对导入数据" : "Review import data",
     description: input.job.mappingOrigin === "RECIPE"
       ? t.recipeAppliedDescription
       : advisoryFields.length > 0
@@ -844,6 +963,7 @@ export function createDataImportMappingPageV010(input: {
       label: zh(input.locale) ? "当前文件" : "Current file",
       semanticType: "data-import-job-id",
       control: "select" as const,
+      hidden: true,
       required: true,
       initialValue: input.job.importJobId,
       options: [{
@@ -851,39 +971,7 @@ export function createDataImportMappingPageV010(input: {
         label: input.job.source.name
           ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
       }]
-    }, ...(!unmapped.length && canReviewBatchConstant ? [{
-      key:"batchConstantEntry",
-      label:zh(input.locale) ? "本次导入的批次固定值" : "Batch constant for this import",
-      semanticType:"data-import-batch-constant-review-link",
-      control:"text" as const,readOnly:true,required:false,
-      initialValue:zh(input.locale)
-        ? "批次值作用于全部记录。仅当来源列未映射主体类型时可人工设置；保存后必须重新预检查。"
-        : "A batch value applies to all rows. Confirm explicitly and validate again.",
-      contextLink:{
-        label:zh(input.locale) ? "查看或修改批次固定值" : "Review or edit batch constant",
-        route:objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-      }
-    }] : []), ...(input.canCreateExtension && input.job.targetId === "counterparty.subject" && unmapped.length > 0
-      ? [{
-          key: "batchReviewEntry",
-          label: zh(input.locale)
-            ? "批量字段审核 · 先复用已有映射，可先使用 AI 自动匹配"
-            : "Batch field review · reuse prior mappings, optionally ask AI",
-          semanticType: "data-import-batch-review-link",
-          control: "text" as const,
-          readOnly: true,
-          required: false,
-          initialValue: zh(input.locale)
-            ? "未匹配的来源列已保留。集中审核后一次创建并自动映射，不会自动提交供应商数据。"
-            : "Unmatched source values are preserved. Confirm fields together before importing.",
-          contextLink: {
-            label: zh(input.locale)
-              ? "集中审核 " + unmapped.length + " 个未匹配字段"
-              : "Review " + unmapped.length + " unmatched columns together",
-            route: objectExtensionImportRouteV010(input.job.importJobId) + "&mode=batch"
-          }
-        }]
-      : []), ...input.job.source.headers.flatMap((sourceColumn, index) => {
+    }, ...input.job.source.headers.flatMap((sourceColumn, index) => {
       const candidates = candidatesFor(sourceColumn);
 
       return [
