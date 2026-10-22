@@ -886,7 +886,27 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter","presentation"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
+      for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
+        const value=table[key];
+        if(value!==undefined && (!nonEmpty(value) || value.length>max)){
+          out.push(d("EIDOS_REVIEW_TABLE_GUIDANCE_INVALID",p+"."+key,
+            "Guidance must be a bounded, nonempty string"));
+        }
+      }
+      if (table.heading !== undefined) {
+        if (!isPlainObject(table.heading)
+          || !nonEmpty(table.heading.title)
+          || table.heading.title.length > 120
+          || table.heading.description !== undefined
+            && (typeof table.heading.description !== "string"
+              || table.heading.description.length > 600)) {
+          out.push(d("EIDOS_REVIEW_TABLE_HEADING_INVALID",p+".heading",
+            "Heading requires a bounded nonempty title and optional description"));
+        } else {
+          extraKeys(table.heading,new Set(["title","description"]),p+".heading",out);
+        }
+      }
       if (table.presentation !== undefined
         && (!nonEmpty(table.presentation)
           || !["standard","compact"].includes(table.presentation))) {
@@ -942,7 +962,62 @@ export function validateUidl(
             noMatchesMessage:f.noMatchesMessage,options};
         }
       }
+      if (table.agentActionId !== undefined
+        && (!nonEmpty(table.agentActionId)
+          || table.agentActionId.length > 128)) {
+        out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",p+".agentActionId",
+          "Toolbar agent action requires an existing action ID"));
+      }
+      let utilityNavigation:import("./contracts.js").UidlFormReviewTableV010["utilityNavigation"];
+      if(table.utilityNavigation!==undefined){
+        const nav=table.utilityNavigation;
+        if(!isPlainObject(nav) || !nonEmpty(nav.label) || nav.label.length>64
+          || !Array.isArray(nav.items) || nav.items.length<1
+          || nav.items.length>3){
+          out.push(d("EIDOS_REVIEW_TABLE_UTILITY_INVALID",p+".utilityNavigation",
+            "Secondary navigation needs a bounded label and 1-3 internal routes"));
+        }else{
+          extraKeys(nav,new Set(["label","items"]),p+".utilityNavigation",out);
+          const ids=new Set<string>();
+          const items:{id:string;label:string;route:string}[]=[];
+          for(const [index,raw] of nav.items.entries()){
+            const at=p+".utilityNavigation.items["+index+"]";
+            if(!isPlainObject(raw) || !nonEmpty(raw.id) || raw.id.length>80
+              || ids.has(raw.id) || !nonEmpty(raw.label) || raw.label.length>150
+              || !nonEmpty(raw.route) || raw.route.length>1024
+              || !raw.route.startsWith("/") || raw.route.startsWith("//")
+              || raw.route.includes("#") || raw.route.includes("\\")
+              || raw.route.includes(String.fromCharCode(10))
+              || raw.route.includes(String.fromCharCode(13))){
+              out.push(d("EIDOS_REVIEW_TABLE_UTILITY_INVALID",at,
+                "Only unique, bounded Host-internal navigation is allowed"));
+            }else{
+              extraKeys(raw,new Set(["id","label","route"]),at,out);
+              ids.add(raw.id);
+              items.push({id:raw.id,label:raw.label,route:raw.route});
+            }
+          }
+          if(items.length===nav.items.length){
+            utilityNavigation={label:nav.label,items};
+          }
+        }
+      }
       reviewTable={
+        ...(utilityNavigation ? {utilityNavigation} : {}),
+        ...(nonEmpty(table.agentActionId) && table.agentActionId.length <= 128
+          ? {agentActionId:table.agentActionId} : {}),
+        ...(typeof table.toolbarHint==="string" && table.toolbarHint.trim()
+          && table.toolbarHint.length<=240 ? {toolbarHint:table.toolbarHint} : {}),
+        ...(typeof table.footnote==="string" && table.footnote.trim()
+          && table.footnote.length<=400 ? {footnote:table.footnote} : {}),
+        ...(isPlainObject(table.heading) && nonEmpty(table.heading.title)
+          && table.heading.title.length <= 120
+          && (table.heading.description === undefined
+            || typeof table.heading.description === "string"
+              && table.heading.description.length <= 600)
+          ? {heading:{title:table.heading.title,
+              ...(typeof table.heading.description === "string"
+                ? {description:table.heading.description} : {})}} : {}),
         ...(table.presentation==="compact" || table.presentation==="standard"
           ? {presentation:table.presentation} : {}),
         columnLabels:{
@@ -1043,18 +1118,63 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","helpText","presentation"]),path,out);
+        "issuesDescription","issues","issuesCountSuffix","issuesLayout","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
         fail(path+".presentation","Unknown review task presentation mode");
       }
-      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
+      if (task.issuesLayout !== undefined
+        && (task.presentation !== "workbench"
+          || task.issuesLayout !== "connected"
+          || !Array.isArray(task.issues) || task.issues.length === 0)) {
+        fail(path+".issuesLayout",
+          "Connected issues need a nonempty opt-in workbench issue list");
+      }
+      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","statusTone","iconLabel","facts"]),
         path+".subject",out);
       if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")
         || (task.subject.statusLabel !== undefined
           && typeof task.subject.statusLabel !== "string")) {
         fail(path+".subject","Subject copy must be text");
+      }
+      if (task.subject.statusTone !== undefined
+        && (typeof task.subject.statusTone !== "string"
+          || !["neutral","positive","warning"].includes(task.subject.statusTone)
+          || !nonEmpty(task.subject.statusLabel))) {
+        fail(path+".subject.statusTone",
+          "Source status tone needs a visible status label and known semantic tone");
+      }
+      if (task.subject.iconLabel !== undefined
+        && (typeof task.subject.iconLabel !== "string"
+          || !task.subject.iconLabel.trim()
+          || task.subject.iconLabel.trim().length > 8)) {
+        fail(path+".subject.iconLabel","Decorative iconLabel must have 1-8 characters");
+      }
+      if (task.footer !== undefined) {
+        if (task.presentation !== "workbench" || !isPlainObject(task.footer)) {
+          fail(path+".footer","Footer controls require a workbench task");
+        } else {
+          extraKeys(task.footer,new Set(["back","resetLabel","saveHint"]),path+".footer",out);
+          if (task.footer.back !== undefined
+            && (!isPlainObject(task.footer.back)
+              || !nonEmpty(task.footer.back.label)
+              || typeof task.footer.back.route !== "string"
+              || !task.footer.back.route.startsWith("/")
+              || task.footer.back.route.startsWith("//")
+              || task.footer.back.route.includes(String.fromCharCode(10))
+              || task.footer.back.route.includes(String.fromCharCode(13)))) {
+            fail(path+".footer.back","Back requires a labeled internal route");
+          } else if (isPlainObject(task.footer.back)) {
+            extraKeys(task.footer.back,new Set(["label","route"]),path+".footer.back",out);
+          }
+          for (const key of ["resetLabel","saveHint"]) {
+            const value=task.footer[key];
+            if (value !== undefined && !nonEmpty(value)) {
+              fail(path+".footer."+key,"Footer text must be nonempty");
+            }
+          }
+        }
       }
       const checkIds = (items: unknown, pathName: string, max: number,
         predicate: (item:Record<string,unknown>,at:string)=>boolean) => {
@@ -1093,15 +1213,34 @@ export function validateUidl(
       });
       checkIds(task.issues,path+".issues",12,(item,at)=>{
         extraKeys(item,new Set(["id","title","description",
-          "focusGroupId","actionLabel"]),at,out);
+          "focusGroupId","actionLabel","relatedRoutes"]),at,out);
         return nonEmpty(item.title)
           && (item.description===undefined || typeof item.description==="string")
           && (item.focusGroupId===undefined
             || nonEmpty(item.focusGroupId)
               && reviewGroups.some(group=>group.id===item.focusGroupId))
           && (item.actionLabel===undefined || nonEmpty(item.actionLabel))
-          && (item.actionLabel===undefined || item.focusGroupId!==undefined);
+          && (item.actionLabel===undefined
+            || item.focusGroupId!==undefined || item.relatedRoutes!==undefined)
+          && (item.relatedRoutes===undefined || Array.isArray(item.relatedRoutes)
+            && item.relatedRoutes.length>=1 && item.relatedRoutes.length<=8
+            && item.relatedRoutes.every((raw:unknown)=>isPlainObject(raw)
+              && nonEmpty(raw.label) && raw.label.length<=80
+              && typeof raw.route==="string" && raw.route.length<=360
+              && raw.route.startsWith("/") && !raw.route.startsWith("//")
+              && !raw.route.includes(String.fromCharCode(10))
+              && !raw.route.includes(String.fromCharCode(13)))
+            && new Set(item.relatedRoutes.map((v:{route:string})=>v.route)).size
+              === item.relatedRoutes.length);
       });
+      if (task.issuesCountSuffix !== undefined
+        && (task.presentation !== "workbench"
+          || !nonEmpty(task.issuesCountSuffix)
+          || task.issuesCountSuffix.trim().length > 32
+          || !Array.isArray(task.issues) || task.issues.length === 0)) {
+        fail(path+".issuesCountSuffix",
+          "Issue count badge needs nonempty workbench issues and a bounded suffix");
+      }
       for (const key of ["issuesTitle","issuesDescription","helpText"] as const) {
         if (task[key]!==undefined && typeof task[key]!=="string") {
           fail(path+"."+key,"Review task copy must be text");
@@ -1141,6 +1280,12 @@ export function validateUidl(
     });
   }
 
+  if(reviewTable?.agentActionId && !actions.some(action=>
+    action.type === "agent" && action.id === reviewTable.agentActionId)){
+    out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",
+      "$.reviewTable.agentActionId",
+      "Toolbar action must reference a declared Agent action"));
+  }
   const submits = actions.filter(action => action.type === "submit");
   if (submits.length < 1 || submits.length > 3) {
     out.push(d("EIDOS_SUBMIT_CARDINALITY", "$.actions",

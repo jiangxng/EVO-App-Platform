@@ -703,19 +703,109 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-form-task-metric-id="proposed"] strong')).to_have_text("4")
     expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
     expect(visual_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    desktop_warning=visual_form.locator('[data-eidos-form-task-metric-id="attention"]')
+    expect(desktop_warning).to_have_attribute("data-tone","warning")
+    assert desktop_warning.evaluate("""el=>getComputedStyle(el).borderColor!==
+      getComputedStyle(document.querySelector('[data-eidos-form-task-metric-id="ignored"]')).borderColor"""),(
+      "BEX01_V3_WARNING_METRIC_LACKS_DISTINCT_BORDER")
+    desktop_file_status=visual_form.locator('[data-eidos-form-task-source-status]')
+    expect(desktop_file_status).to_have_attribute("data-tone","positive")
+    assert desktop_file_status.evaluate("""el=>getComputedStyle(el).color!==
+      getComputedStyle(document.querySelector('[data-eidos-form-task-identity] p')).color"""),(
+      "BEX01_V3_SOURCE_STATUS_NOT_POSITIVE")
+    steps=visual_form.locator('[data-eidos-form-task-steps] li')
+    expect(steps).to_have_count(2)
+    expect(steps.first).to_have_attribute('data-eidos-task-step-state','complete')
+    expect(steps.last).to_have_attribute('aria-current','step')
+    step_before=steps.first.evaluate("(el)=>getComputedStyle(el,'::before').content")
+    assert "✓" in step_before,("V3_WORKBENCH_COMPLETED_STEP_NOT_VISUAL",step_before)
+    expect(visual_form.locator('[data-eidos-form-task-issue-count]')).to_have_text("3 项待处理")
     issue_list=visual_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     expect(issue_list).to_have_count(3)
+    connected=visual_form.locator('[data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol')
+    expect(connected).to_have_count(1)
+    assert connected.evaluate("""el=>{
+      const nodes=[...el.querySelectorAll(':scope>li')];
+      const first=nodes[0].getBoundingClientRect(),second=nodes[1].getBoundingClientRect();
+      return nodes.length===3 && Math.abs(first.bottom-second.top)<=1.5
+        && getComputedStyle(el).borderTopStyle==='solid'
+        && getComputedStyle(nodes[1]).borderTopStyle==='solid';
+    }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_DESKTOP"
+    visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
+    row_issue=issue_list.filter(has_text="3 条记录缺少主体类型")
+    row_disclosure=row_issue.locator('[data-eidos-form-task-issue-related]')
+    expect(row_disclosure).to_have_count(1)
+    row_disclosure.locator("summary").click()
+    correctable=row_disclosure.locator('[data-eidos-form-task-issue-row]')
+    expect(correctable).to_have_count(3)
+    for index,number in enumerate([165,169,172]):
+        expect(correctable.nth(index)).to_have_text("第 %d 行"%number)
+        route=correctable.nth(index).get_attribute("data-eidos-context-route")
+        assert re.search(r"/data-import/jobs/[^/]+/fix/%d/\d+$"%number,route),(
+            "BEX01_V3_CORRECTION_ROUTE_INVALID",route)
+    assert correctable.first.evaluate("(el)=>el.getBoundingClientRect().height")>=32
+    visual_page.screenshot(path=str(OUT/"v3-issue-real-row-links-desktop.png"),full_page=False)
+    correctable.first.click()
+    live_correction=visual_page.locator('form[data-eidos-id="evo-data-import.row-correct"]')
+    expect(live_correction).to_be_visible(timeout=30000)
+    expect(live_correction.locator('select[name="rowNumber"]')).to_have_value("165")
+    visual_page.goto(HOST+"/?surface=desktop#"+visual_route,wait_until="domcontentloaded")
+    expect(visual_form).to_be_visible(timeout=30000)
+    issue_list=visual_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     issue_text=" ".join(issue_list.all_text_contents())
     for label in ["开户银行存在多个对应字段","3 条记录缺少主体类型","「系统编码」尚未选择处理方式"]:
         assert label in issue_text,("BEX01_V3_VISUAL_ISSUE_MISSING",label,issue_text)
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
     assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
+    expect(visual_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
+    expect(visual_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
+    options_menu=visual_form.locator('[data-eidos-form-review-table-utility-nav]')
+    expect(options_menu.locator("summary")).to_have_text("字段处理工具")
+    options_menu.locator("summary").click()
+    expect(options_menu.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
+    expect(options_menu.locator('[data-eidos-form-review-table-utility-id="create-extension"]')).to_be_visible()
+    visual_page.screenshot(path=str(OUT/"v3-secondary-field-tools-desktop.png"),full_page=False)
+    options_menu.locator("summary").click()
+    expect(visual_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
+    expect(visual_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
+    toolbar_ai=visual_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
+    expect(toolbar_ai).to_have_count(1)
+    expect(toolbar_ai).to_have_text("AI 自动匹配")
+    expect(visual_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
+    assert toolbar_ai.evaluate("(el)=>el.getAttribute('type')")=="button"
+    expect(visual_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
+    filter_choice=visual_form.locator('[data-eidos-form-review-table-filter]')
+    expected_count=visual_form.locator('[data-eidos-form-review-table-count]')
+    expect(expected_count).to_have_text("6 / 22")
+    filter_choice.select_option("all")
+    expect(expected_count).to_have_text("22 / 22")
+    filter_choice.select_option("needs")
+    expect(expected_count).to_have_text("6 / 22")
+    expect(visual_form.locator('[data-eidos-form-review-table-heading] p')).to_contain_text("系统已保留原有匹配结果")
+    expect(visual_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
+    expect(visual_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
+    expect(visual_form.locator('[data-eidos-form-task-back]')).to_have_text("返回文件")
+    expect(visual_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-issues-desktop.png"),full_page=False)
     visual_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_page.evaluate("""async () => {
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     }""")
     visual_page.screenshot(path=str(OUT/"v3-prototype-parity-submit-desktop.png"),full_page=False)
+    # Reset is actual local form restoration, not a Host command or persisted job change.
+    desktop_reset_choice=visual_form.locator('select[name="map_21"]')
+    desktop_initial=desktop_reset_choice.input_value()
+    assert desktop_initial != "__IGNORE__", desktop_initial
+    desktop_reset_choice.select_option("__IGNORE__")
+    expect(desktop_reset_choice).to_have_value("__IGNORE__")
+    visual_form.locator('[data-eidos-form-task-reset]').click()
+    expect(desktop_reset_choice).to_have_value(desktop_initial)
+    expect(visual_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    visual_page.screenshot(path=str(OUT/"v3-file-footer-reset-desktop.png"),full_page=False)
+    visual_form.locator('[data-eidos-form-task-back]').click()
+    expect(visual_page.locator('[data-eidos-capability="catalog-browser"]')).to_be_visible(timeout=30000)
+    assert visual_page.evaluate("location.hash")== "#/data-import", "RETURN_TO_FILE_LIST_ROUTE_REQUIRED"
+    print("BEX01_V3_FOOTER_RESET_AND_NAV_DESKTOP_PASS",flush=True)
     visual_context.close()
 
     visual_phone_context=browser.new_context(viewport={"width":390,"height":844},
@@ -738,15 +828,92 @@ with sync_playwright() as pw:
     expect(phone_form.locator('[data-eidos-form-task-metric-id="proposed"] strong')).to_have_text("4")
     expect(phone_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
     expect(phone_form.locator('[data-eidos-form-task-metric-id="attention"] strong')).to_have_text("3")
+    phone_warning=phone_form.locator('[data-eidos-form-task-metric-id="attention"]')
+    expect(phone_warning).to_have_attribute("data-tone","warning")
+    assert phone_warning.evaluate("""el=>getComputedStyle(el).borderColor!==
+      getComputedStyle(document.querySelector('[data-eidos-form-task-metric-id="ignored"]')).borderColor"""),(
+      "BEX01_V3_PHONE_WARNING_METRIC_LACKS_DISTINCT_BORDER")
+    expect(phone_form.locator('[data-eidos-form-task-source-status]')).to_have_attribute("data-tone","positive")
+    mobile_steps=phone_form.locator('[data-eidos-form-task-steps] li')
+    expect(mobile_steps).to_have_count(2)
+    expect(mobile_steps.last).to_have_attribute('aria-current','step')
+    expect(phone_form.locator('[data-eidos-form-task-issue-count]')).to_have_text("3 项待处理")
     phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     expect(phone_issues).to_have_count(3)
+    phone_connected=phone_form.locator('[data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol')
+    expect(phone_connected).to_have_count(1)
+    assert phone_connected.evaluate("""el=>{
+      const nodes=[...el.querySelectorAll(':scope>li')];
+      return nodes.length===3
+        && Math.abs(nodes[0].getBoundingClientRect().bottom - nodes[1].getBoundingClientRect().top)<=1.5
+        && getComputedStyle(nodes[1]).borderTopStyle==='solid';
+    }"""),"BEX01_V3_CONNECTED_ISSUES_LAYOUT_PHONE"
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_PHONE_CONNECTED_ISSUES_OVERFLOW"
+    visual_phone.screenshot(path=str(OUT/"v3-connected-issues-phone.png"),full_page=False)
+    phone_row_issue=phone_issues.filter(has_text="3 条记录缺少主体类型")
+    phone_disclosure=phone_row_issue.locator('[data-eidos-form-task-issue-related]')
+    expect(phone_disclosure).to_have_count(1)
+    phone_disclosure.locator("summary").click()
+    phone_row_buttons=phone_disclosure.locator('[data-eidos-form-task-issue-row]')
+    expect(phone_row_buttons).to_have_count(3)
+    assert phone_row_buttons.first.evaluate("(el)=>el.getBoundingClientRect().height")>=44
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
+        "BEX01_V3_PHONE_OPEN_ROW_LINKS_OVERFLOW")
+    visual_phone.screenshot(path=str(OUT/"v3-issue-real-row-links-phone.png"),full_page=False)
+    phone_row_buttons.nth(1).click()
+    phone_edit=visual_phone.locator('form[data-eidos-id="evo-data-import.row-correct"]')
+    expect(phone_edit).to_be_visible(timeout=30000)
+    expect(phone_edit.locator('select[name="rowNumber"]')).to_have_value("169")
+    visual_phone.goto(HOST+"/?surface=desktop#"+visual_route,wait_until="domcontentloaded")
+    expect(phone_form).to_be_visible(timeout=30000)
+    phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
+    expect(phone_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
+    phone_tools=phone_form.locator('[data-eidos-form-review-table-utility-nav]')
+    expect(phone_tools.locator("summary")).to_have_text("字段处理工具")
+    assert phone_tools.locator("summary").evaluate("(el)=>el.getBoundingClientRect().height")>=44
+    phone_tools.locator("summary").click()
+    expect(phone_tools.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
+    expect(phone_tools.locator('[data-eidos-form-review-table-utility-id="create-extension"]')).to_be_visible()
+    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX_V3_PHONE_UTILITIES_OVERFLOW"
+    visual_phone.screenshot(path=str(OUT/"v3-secondary-field-tools-phone.png"),full_page=False)
+    phone_tools.locator("summary").click()
+    expect(phone_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
+    expect(phone_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
+    phone_ai=phone_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
+    expect(phone_ai).to_have_count(1)
+    expect(phone_ai).to_have_text("AI 自动匹配")
+    assert phone_ai.evaluate("(el)=>el.getBoundingClientRect().height")>=44
+    expect(phone_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
+    expect(phone_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
+    phone_filter=phone_form.locator('[data-eidos-form-review-table-filter]')
+    phone_count=phone_form.locator('[data-eidos-form-review-table-count]')
+    expect(phone_count).to_have_text("6 / 22")
+    phone_filter.select_option("all")
+    expect(phone_count).to_have_text("22 / 22")
+    phone_filter.select_option("needs")
+    expect(phone_count).to_have_text("6 / 22")
+    expect(phone_form.locator('[data-eidos-form-task-icon]')).to_have_text("XLSX")
+    expect(phone_form.locator('[data-eidos-form-task-identity] p')).to_contain_text("工作表：Visual review · 共 172 条记录 · 22 列")
+    expect(phone_form.locator('[data-eidos-form-task-reset]')).to_have_text("恢复初始选择")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-issues-phone.png"),full_page=False)
     phone_form.locator('button[type="submit"]').first.scroll_into_view_if_needed()
     visual_phone.evaluate("""async () => {
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     }""")
     visual_phone.screenshot(path=str(OUT/"v3-prototype-parity-submit-phone.png"),full_page=False)
+    phone_reset_choice=phone_form.locator('select[name="map_21"]')
+    phone_initial=phone_reset_choice.input_value()
+    assert phone_initial != "__IGNORE__", phone_initial
+    phone_reset_choice.select_option("__IGNORE__")
+    phone_form.locator('[data-eidos-form-task-reset]').click()
+    expect(phone_reset_choice).to_have_value(phone_initial)
+    expect(phone_form.locator('[data-eidos-form-task-metric-id="ignored"] strong')).to_have_text("0")
+    visual_phone.screenshot(path=str(OUT/"v3-file-footer-reset-phone.png"),full_page=False)
+    phone_form.locator('[data-eidos-form-task-back]').click()
+    expect(visual_phone.locator('[data-eidos-capability="catalog-browser"]')).to_be_visible(timeout=30000)
+    assert visual_phone.evaluate("location.hash")== "#/data-import", "PHONE_RETURN_TO_FILE_LIST_ROUTE_REQUIRED"
+    print("BEX01_V3_FOOTER_RESET_AND_NAV_PHONE_PASS",flush=True)
     visual_phone_context.close()
 
     context.close()
