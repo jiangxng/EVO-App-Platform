@@ -89,16 +89,16 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
   const metrics=task.metrics?.length ? `<section data-eidos-form-task-metrics>
     ${task.metrics.map(metric=>`<div data-eidos-form-task-metric
       data-eidos-form-task-metric-id="${esc(metric.id)}"
+      ${metric.reactive === false ? 'data-eidos-form-task-metric-fixed="true"' : ""}
       data-tone="${esc(metric.tone ?? "neutral")}"><strong>${esc(metric.value)}</strong>
       <span>${esc(metric.label)}</span></div>`).join("")}
   </section>` : "";
-  const issues=task.issues?.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
-    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
-    <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
-    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
-    ${task.presentation === "workbench" && task.issuesCountSuffix
-      ? `<span data-eidos-form-task-issue-count aria-label="${esc(task.issues.length + " " + task.issuesCountSuffix)}">${esc(task.issues.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
-    <ol>${task.issues.map(issue=>`<li data-eidos-form-task-issue="${esc(issue.id)}">
+  // Preserve the complete, validated issue catalog. Native disclosure
+  // groups keep the first twelve decisions visible and the rest keyboard
+  // accessible without invoking a Host command or silently truncating rows.
+  const issueRows=task.issues ?? [];
+  const renderIssue=(issue: NonNullable<typeof task.issues>[number]): string =>
+    `<li data-eidos-form-task-issue="${esc(issue.id)}">
       <div><strong>${esc(issue.title)}</strong>
       ${issue.description ? `<p>${esc(issue.description)}</p>` : ""}</div>
       ${issue.relatedRoutes?.length
@@ -111,7 +111,26 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
           </details>`
         : issue.focusGroupId ? `<button type="button"
         data-eidos-form-task-focus="${esc(issue.focusGroupId)}">${esc(issue.actionLabel ?? "Review")}</button>` : ""}
-    </li>`).join("")}</ol>
+    </li>`;
+  const firstPageSize=task.issuesPageSize ?? issueRows.length;
+  const extraIssuePages=task.issuesPageSize===12
+    ? Array.from({length:Math.ceil(issueRows.length/12)-1},(_,pageIndex)=>{
+      const start=(pageIndex+1)*12;
+      const items=issueRows.slice(start,start+12);
+      return `<details data-eidos-form-task-issue-page>
+        <summary>${esc((start+1)+"–"+(start+items.length)+" / "+issueRows.length)}</summary>
+        <ol start="${start+1}" style="counter-reset:eidos-workbench-issue ${start}">${items.map(renderIssue).join("")}</ol>
+      </details>`;
+    }).join("")
+    : "";
+  const issues=issueRows.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
+    && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
+    <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
+    ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
+    ${task.presentation === "workbench" && task.issuesCountSuffix
+      ? `<span data-eidos-form-task-issue-count aria-label="${esc(issueRows.length + " " + task.issuesCountSuffix)}">${esc(issueRows.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
+    <ol>${issueRows.slice(0,firstPageSize).map(renderIssue).join("")}</ol>
+    ${extraIssuePages}
   </section>` : "";
   const help=task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : "";
   if(task.presentation === "decision-first") {
@@ -181,6 +200,7 @@ export function renderToHtml(document: unknown): string {
     const filter = model.reviewTable!.filter;
     const selected = filter?.options.find(option => option.id === filter.selectedId);
     const allowed = selected?.statusKeys;
+    const selectedChoices = selected?.choiceValues;
     const tableRows = (model.reviewGroups ?? []).map(group => {
       const status = group.reviewStatus!;
       const primaryField = byKey.get(group.primaryFieldKey)!;
@@ -191,7 +211,9 @@ export function renderToHtml(document: unknown): string {
       const details = group.detailFieldKeys.map(key =>
         renderField(byKey.get(key)!)
       ).join("") + (deferLink ? renderContextLink(primaryField) : "");
-      const visible = !allowed || allowed.includes(status.key);
+      const visible = selectedChoices
+        ? selectedChoices.includes(String(primaryField.initialValue ?? ""))
+        : !allowed || allowed.includes(status.key);
       const planFields=model.reviewPlan?.proposedFields?.find(item=>item.groupId===group.id);
       const planAttrs=planFields
         ? ` data-eidos-plan-label-field="${esc(planFields.labelFieldKey)}" data-eidos-plan-type-field="${esc(planFields.typeFieldKey)}"`
@@ -210,12 +232,14 @@ export function renderToHtml(document: unknown): string {
           </td>
           <td data-eidos-review-table-choice data-heading="${esc(columns.decision)}">${primary}</td>
           <td data-eidos-review-table-status data-tone="${esc(status.tone ?? "neutral")}"
-            data-heading="${esc(columns.status)}">${esc(status.label)}</td>
+            data-heading="${esc(columns.status)}"><span data-eidos-review-table-status-badge>${esc(status.label)}</span></td>
         </tr>
       </tbody>`;
     }).join("");
     const count=(model.reviewGroups ?? []).filter(group =>
-      !allowed || allowed.includes(group.reviewStatus!.key)).length;
+      selectedChoices
+        ? selectedChoices.includes(String(byKey.get(group.primaryFieldKey)?.initialValue ?? ""))
+        : !allowed || allowed.includes(group.reviewStatus!.key)).length;
     const toolbarAgent=model.reviewTable?.agentActionId
       ? model.agentActions.find(action=>action.id===model.reviewTable?.agentActionId)
       : undefined;
@@ -229,7 +253,8 @@ export function renderToHtml(document: unknown): string {
           ${filter ? `<label>${esc(filter.label)}
           <select data-eidos-form-review-table-filter>${filter.options.map(option =>
             `<option value="${esc(option.id)}"
-              data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
+              data-eidos-review-table-filter-keys="${esc(option.statusKeys.join(","))}"${option.choiceValues
+                ? ` data-eidos-review-table-filter-choices="${esc(option.choiceValues.join(","))}"` : ""}${option.id === filter.selectedId ? " selected" : ""}>${esc(option.label)}</option>`
           ).join("")}</select></label>` : ""}
           ${toolbarAgent ? `<button type="button" data-eidos-review-table-agent-action
             data-eidos-agent-action="${esc(toolbarAgent.id)}">${esc(toolbarAgent.label)}</button>` : ""}
@@ -251,7 +276,7 @@ export function renderToHtml(document: unknown): string {
             ? `<p>${esc(model.reviewTable.heading.description)}</p>` : ""}
           ${utilityMenu}
         </header>` : utilityMenu;
-    return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}">
+    return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}" data-eidos-review-table-evidence-layout="${esc(model.reviewTable?.evidenceLayout ?? "stacked")}">
       ${toolbar}
       <div data-eidos-form-review-table-scroll>
         <table data-eidos-form-review-table aria-label="${esc(model.title)}">

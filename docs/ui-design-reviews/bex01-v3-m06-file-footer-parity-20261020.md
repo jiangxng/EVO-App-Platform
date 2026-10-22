@@ -119,3 +119,48 @@ Eidos 通用 `reviewTask.subject.statusTone`（neutral/positive/warning），仅
 ### 自动续跑 #06｜原型问题区视觉差异的可选双布局
 
 原型 #909 一体暖色边框＋三条分隔行，#204 则通用独立编号卡片。决定不改 owner Draft、不移除任一语义，而是引入受严格校验的 `reviewTask.issuesLayout="connected"`，只由 Platform 的 BEX 页面选择。Eidos 默认仍单独卡片；connected 保留真实三条独立内容、三个动作、错误行详情及 Host 路由，仅将三条卡视觉连为一框。desktop、390px Chromium 必须检查相邻边界、实际编号、原生链接交互、触控和响应式，Human 最终选择仍 OPEN。
+
+
+### Window 04｜2026-10-21 增量视觉审查
+
+#909 1280px 普通四列表约 55px/行；#1077 隔离 Host 的普通行因另一整行“来源证据”链接约 73px/行。选用 opt-in 仅桌面把折叠披露与样例同排，保留所有真实审核证据和手机 44px 可操作性；展开仍独立完整块。保留默认 Eidos 布局、两个银行字段 Human 选择、显式 Host 保存。新 HEAD CI / Chromium 和新截图尚需实际核验，Human 签收 OPEN，不开放客户 XLSX/M05 提交。
+
+
+**Window 04 测量结论修订（2026-10-21）**：真实 Chromium `BEX_V3_DESKTOP_INLINE_ROW_MEASUREMENT` 确认行高 73px 时内层详情/下拉框都只有 36px，原因是紧凑表格的选择器标签继承上下各 12px margin；仅让证据入口同行不足以消除行高。精确范围内桌面紧凑 opt-in `label margin:3px 0`，手机不改；保持全证据、详情展开和单次显式保存。复测仍待精确 HEAD CI，未经 Human 签收。
+
+### Window 05｜2026-10-21 同根因集中修复：桌面任务纵向节奏
+
+依据实际查阅的 #909 原型 `03-complete-field-table.png` 与 #1086 已核验 Host `v3-prototype-parity-issues-desktop.png`：原型文件卡约 87px、统计卡约 101px、连续问题行约 86px；Host 原本约 72px、68px、56px。此差距属于 Workbench 上半部组件 padding/gap 的共同根因，不是映射表证据入口的问题。
+
+只在桌面 >=851px 的通用 `data-eidos-task-presentation="workbench"` 中集中调整 context、metric、issue、section gap 四项；保留 390px 手机、真实数据、原生操作、紧凑映射表、权限与保存。真实 synthetic Host Chromium 追加组件几何范围校验和新截图 `v3-prototype-parity-rhythm-desktop.png`；测试不把原型无侧栏的绝对 y 值硬套 Host。若实测不改善，先复核 computed style，禁止连续盲调。完整 CI/Human 门禁仍按最终 HEAD 验证；M04–M06 仍 OPEN，总进度 3/6。
+
+### Window 06｜2026-10-21 手机真实差距分组：统计卡与问题审查节奏
+
+已逐屏对照 #909 的 `10-mobile-overview.png`（390 CSS 视口像素对照）及本 PR 最近 Host `v3-connected-issues-phone.png`。原型手机四项统计卡约 86px，Host 原来约 68px；原型问题计数位于解释之下，Host 原来在标题右侧；原型首条问题行约 130px，Host 约 108px。三者属于通用 review Workbench 的移动阅读节奏，集中调整不改变业务逻辑。
+
+**反向约束**：实际 Host 测试文件名为 `BEX-V3-VISUAL-REVIEW-SYNTHETIC.xlsx`，比原型 `供应商资料_2026年10月.xlsx` 长，故 source 文件卡自身较高不是可用“加 padding”盲修的共因；必须保留真实完整文件名与源状态，绝不截断来源。仅改 Workbench @media(max-width:520px) 的统计卡 `padding-block`、问题 header 计数显示顺序、问题行 `padding-block`。不更改 1280px 桌面布局、移动审核字段证据/44px 操作、权限、显式保存、原始数据及 Eidos 默认其他 presentation。
+
+新增隔离 Host 390px Chromium 对统计卡高度、问题计数位于说明之后、第一条问题高度、无横向溢出的实测断言；同时保存 `v3-prototype-parity-rhythm-phone.png`。如果实测未改善，要检查真正的 computed style 和 DOM，不重复堆 CSS。Human 100% 验收依旧 OPEN，M01–M03 通过、M04–M06 未签收，总 3/6。完整 CI 需以本轮精确 HEAD 为准。
+
+### Window 07｜2026-10-21 手机字段卡证据与真实操作收口
+
+对照 #909 原型 `10-mobile-overview.png` 和 #1086 精确 HEAD `9d3346b3…` 实际 Host `v3-e4-map-phone-contiguous-00..11.png`、`v3-prototype-parity-submit-phone.png`；本批只修**两个互相邻近的手机视觉重复点**，不改已有来源列事实和业务逻辑：
+
+1. compact 表格手机卡片内的“示例值”生成式标题与已显示样本内容重复占用一行；将样本和原生“查看来源样本”折叠入口并排，完整 sample 仍可见，展开详情跨满所在卡片；`summary` 仍满足 44px 触控、没有横向溢出。默认普通 Eidos 表格不变，桌面行高 58px 不变。
+2. 当前 mobile footer 的两项次要 Host 动作并排而原型是单列清晰顺序；仅对 **workbench + compact review table** 的真实 footer 三项（返回文件、恢复初始选择、显式保存并预检）改成等宽纵列、保留可触控高度、真实导航/reset/保存。不得抄原型“自动保存”，实际 Host 仍要求明确保存和预检查。
+
+以上均为 CSS opt-in 渐进展示，不改变 `apps/data-import/page.ts`、协议、字段提交、授权或数据。在原有 synthetic 172 行真实 Host 390px Chromium 增加**几何与交互判别断言**：样本/summary 同行、展开后满宽、触控、不溢出、三按钮高度/宽度/上下顺序，继续覆盖返回/重置和导入完整路径。新截图 `v3-compact-evidence-and-stacked-footer-phone.png`。如果关键断言失败，先定位是否 CSS 选择器/真实 DOM 问题，禁止连续堆叠修复；Human 100% 视觉签收、M04–M06 OPEN，仍 3/6。
+
+### Window 09｜2026-10-21 同名开户银行 Human 双目标选择的真实浏览器验证
+
+复核 #1086 精确 HEAD `dca341b145a27247055177491200e0dd0a49e467` 和 synthetic Host 390px 连续滚动 `v3-e4-map-phone-scroll-manifest.json`：10 帧覆盖 5540px scroll 容器，没有发现值得继续纯 CSS 猜测的共同根因。更关键的**未证业务门禁**是：已有测试仅断言“开户银行存在多个对应字段”提示出现，尚未分别验证两个真实 target fieldId 可选、各自用途证据完整、仅改变本地选择以及返回未保存状态。
+
+本轮不改页面结构和业务契约，新增同一真实隔离 Host Chromium fixture 对第 20 列 `开户银行` 的 desktop + 390px touch Chrome Human 审核验收：从同名定义提取恰好两个不同 fieldId，两个下拉项均同时说明中文业务用途与真实 fieldId，展开态 read-only candidate evidence 包含两个 ID；分别选中两个，原始银行样本不变，最后 reset 必须回到 `__PENDING__`；手机再强制 reload，证明并未后台自动保存。新证据截图 `v3-bank-human-choice-{desktop,phone}-{1,2}.png`，所有信息仅来自 synthetic fixture；不得将下拉选值冒充 Human 已确认的业务用途。继续验证 7 类最终 HEAD CI 和真实 Host，Human 签收、真实客户 Excel、M04/M05/M06 不变（3/6）。若现有选项确实无法分辨，则先改业务文案/证据交互，而非继续调整 CSS 间距。
+
+**集成风险**：本 PR 仍叠加 #1077→#1060 Draft；2026-10-21 实时核对 #1060 对最新 main 已 `mergeable=false`，不得用视觉 PASS 代替主线可合并性。后续必须先由拥有者完成 base/main 的安全冲突检查和 PR 收敛，不能因为更换窗口而重建第三套同功能实现。
+
+### Window 09 实测反证与有界修复｜手机下拉选中项不可直观看清不同 fieldId
+
+首轮精确 HEAD `4f6f972edc05d4ab57af011c4c1737f9f796d7aa` 的 Chromium 7/7 PASS，日志证明两项真实 fieldId `ext_f12edb430f8c67dd` 与 `ext_7932cf289595ef82` 都能选择、reset 恢复 `__PENDING__`、手机 reload 不隐式保存。但**亲自打开**同一 run artifact `v3-bank-human-choice-phone-1.png/2.png` 后，发现两个选中项都只显示“开户银行 · 业务用途待核对 · ext_…”，**区别信息被窄屏截断**；此处是实际 Human 可读性未过关，而不是选择控件功能失败，不能把前次 7/7 当本项最终验收。
+
+因此仅在 `apps/data-import/page.ts` 的同名字段分支将选项改为「开户银行 · **真实 fieldId** · 可信用途或‘业务用途待核对’」，业务用途不存在时仍明确 unresolved，不猜测/伪造任何银行功能。相应问题卡加入「核对字段编号和可信用途；无法确认不要提交」说明。测试补强前 18 字符即可区分、ID 在描述之前、没有假造用途。Host 安全、source evidence、提交值、现有唯一名称的显示和手机 CSS 全不变。本轮最终 HEAD 必须重跑真实 Host Chromium 以及完整相关 CI，重看两张同名银行选中态截图。完成视为候选**视觉可区分**，不等同于真实业务用途确认、M04/M05/M06 Human 签收或生产。

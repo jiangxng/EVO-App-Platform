@@ -25,6 +25,7 @@ import {
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
   DATA_IMPORT_DIRECTORY_ROUTE,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -558,13 +559,15 @@ export function createDataImportMappingPageV010(input: {
   };
   const fieldLabel = new Map(importFields.map(field => [
     field.fieldId,
-    // Value always remains the real fieldId; show its technical identity only
-    // when identical business labels require a Human choice between candidates.
+    // Values remain real fieldIds. For duplicate business labels, put the
+    // distinct stable identity BEFORE any optional purpose text: on 390px
+    // controls, appending it last made both selected choices look identical.
+    // A missing verified purpose stays visibly unresolved; never invent it.
     field.resolvedLabel
       + (candidatesFor(field.resolvedLabel).length > 1
-        ? " · " + (field.resolvedDescription?.trim()
-          || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
-          + " · " + field.fieldId
+        ? " · " + field.fieldId
+          + " · " + (field.resolvedDescription?.trim()
+            || (zh(input.locale) ? "业务用途待核对" : "Purpose needs review"))
         : "")
   ] as const));
   const advisoryFields = input.job.mapping
@@ -667,6 +670,35 @@ export function createDataImportMappingPageV010(input: {
     };
   };
 
+  // V3 #909 changed()/render() derives presentation immediately from a Human
+  // selection. Reuse Eidos #195 statusByChoice, never mirror the demo's
+  // localStorage, fake save or fake import. Existing targets are only truly
+  // matched after their identity is restored from this authorized Host Job;
+  // new/ambiguous choices remain reviewable until the explicit Host save.
+  const choiceStatusFor = (column: string, value: string) => {
+    // Returning to the original Host-restored value must restore its original
+    // review state exactly, including unresolved metadata/ambiguous targets.
+    // These state hints are transient; Host saves/approves only on submit.
+    if (value === mappingSelectionFor(column)) return reviewStatusFor(column);
+    const pending = {key: "pending", label: zh(input.locale)
+      ? "需要核对" : "Needs review", tone: "warning" as const};
+    if (value === "__PENDING__") return pending;
+    if (value === "__IGNORE__") return {key: "ignored", label: zh(input.locale)
+      ? "不导入" : "Excluded", tone: "neutral" as const};
+    if (value === "__CREATE__") return metadataLikeColumn(column)
+      ? pending : {key: "proposed", label: zh(input.locale)
+        ? "待新增" : "Proposed", tone: "neutral" as const};
+    const available = importFields.some(field => field.fieldId === value);
+    if (!available) return pending; // A stale fieldId remains visible, never accepted.
+    const restored = current.get(column) === value
+      && candidatesFor(column).length <= 1 && !metadataLikeColumn(column);
+    return restored
+      ? {key: "matched", label: zh(input.locale) ? "已匹配" : "Matched",
+          tone: "positive" as const}
+      : {key: "suggested", label: zh(input.locale)
+          ? "待保存匹配" : "Mapping to save", tone: "neutral" as const};
+  };
+
   const reviewGroups = input.job.source.headers.map((sourceColumn, index) => {
     const candidates = candidatesFor(sourceColumn);
     const target = current.get(sourceColumn);
@@ -679,6 +711,15 @@ export function createDataImportMappingPageV010(input: {
       summary: sourceProfiles[index].summary,
       primaryFieldKey: "map_" + index,
       reviewStatus: reviewStatusFor(sourceColumn),
+      // Only values present in this Job's real select options are enumerated.
+      // Changing a choice updates this local view; no command or save runs.
+      statusByChoice: Object.fromEntries([
+        "__PENDING__", "__IGNORE__",
+        ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
+          ? ["__CREATE__"] : []),
+        ...(unavailable && target ? [target] : []),
+        ...importFields.map(field => field.fieldId)
+      ].map(value => [value, choiceStatusFor(sourceColumn, value)])),
       // One row = one short visible sample, plus complete source preview on demand.
       // Keep original column/row values in the unchanged, durable Import Job.
       detailFieldKeys: [
@@ -687,17 +728,25 @@ export function createDataImportMappingPageV010(input: {
       ],
       ...(ambiguous || unavailable ? { defaultExpanded: true } : {}),
       detailsLabel: zh(input.locale)
-        ? "查看来源及候选字段用途" : "Inspect source and field candidates"
+        ? (ambiguous ? "查看来源与候选用途" : "查看来源样本")
+        : (ambiguous ? "Source and candidate uses" : "View source samples")
     };
   });
 
   // Eidos E2 validates each filter status against THIS authorized Job.
   // Do not advertise states absent from the current table: a fresh Job may
   // contain only previously mapped columns, or only unresolved columns.
-  const statusKeys = [...new Set(reviewGroups.map(group =>
+  // Reachable statuses inform filter choices, not the initial filter.
+  // A fully handled Job must open on ALL rather than an empty attention view.
+  const currentStatusKeys = [...new Set(reviewGroups.map(group =>
     group.reviewStatus.key))];
+  const statusKeys = [...new Set(reviewGroups.flatMap(group => [
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status => status.key)
+  ]))];
   const attentionKeys = statusKeys.filter(key =>
-    key === "attention" || key === "proposed" || key === "suggested");
+    key === "attention" || key === "pending"
+      || key === "proposed" || key === "suggested");
   const handledKeys = statusKeys.filter(key =>
     key === "matched" || key === "ignored");
   const filterOptions = [
@@ -710,6 +759,14 @@ export function createDataImportMappingPageV010(input: {
       id: "all",
       label: zh(input.locale) ? "全部字段" : "All fields",
       statusKeys
+    },
+    // #909 V3: "待处理" matches actual, still undecided source
+    // option values, not every risky or proposed field-status tone.
+    {
+      id: "unmatched",
+      label: zh(input.locale) ? "待处理" : "Pending decision",
+      statusKeys,
+      choiceValues: ["__PENDING__"]
     },
     ...(handledKeys.length ? [{
       id: "handled",
@@ -741,6 +798,8 @@ export function createDataImportMappingPageV010(input: {
   const reviewTable = {
     // V3 compact four-column density uses upstream Eidos #200 semantics.
     presentation: "compact" as const,
+    // Only BEX enables compact desktop evidence; default remains stacked.
+    evidenceLayout: "inline-collapsed" as const,
     ...(utilityNavigationItems.length ? {utilityNavigation:{
       label:zh(input.locale) ? "字段处理工具" : "Field tools",
       items:utilityNavigationItems
@@ -766,7 +825,8 @@ export function createDataImportMappingPageV010(input: {
     },
     filter: {
       label: zh(input.locale) ? "显示" : "Show",
-      selectedId: attentionKeys.length ? "needs" : "all",
+      selectedId: currentStatusKeys.some(key => attentionKeys.some(attention => attention === key))
+        ? "needs" : "all",
       noMatchesMessage: zh(input.locale)
         ? "当前筛选没有需要处理的列。可选择“全部字段”查看原始列。"
         : "No matching columns. Choose All fields to inspect the source.",
@@ -795,8 +855,8 @@ export function createDataImportMappingPageV010(input: {
           ? group.title + "存在多个对应字段"
           : group.title + " has multiple target fields",
         description: zh(input.locale)
-          ? "请确认这列数据应写入哪个业务字段。"
-          : "Confirm which business field should receive this source column.",
+          ? "同名目标字段可能用途不同。请核对字段编号与可信业务用途；无法确认时不要提交。"
+          : "Same-name target fields can serve different purposes. Check the field ID and verified purpose; do not submit if uncertain.",
         focusGroupId: group.id,
         actionLabel: zh(input.locale) ? "选择字段" : "Choose field"
       };
@@ -974,6 +1034,9 @@ export function createDataImportMappingPageV010(input: {
     }, {
       id:"attention",label:zh(input.locale)?"需要核对":"Needs review",
       value:String(reviewIssues.length),
+      // Includes durable dry-run/row findings, not merely row-status counts.
+      // A local selection must never erase these unvalidated Host issues.
+      reactive:false,
       tone:reviewIssues.length > 0 ? "warning" as const : "neutral" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
@@ -982,9 +1045,16 @@ export function createDataImportMappingPageV010(input: {
       ? { issuesCountSuffix: zh(input.locale) ? "项待处理" : "pending" }
       : {}),
     issuesDescription: zh(input.locale)
-      ? "只显示需要人工判断的来源列；可直接跳到对应的字段选择。"
-      : "Review only uncertain sources; jump directly to the relevant choice.",
-    issues: reviewIssues.slice(0,12),
+      ? (reviewIssues.length > 12
+        ? "优先显示前 12 项，其余按每组 12 项展开；可定位来源列或查看已授权的行纠错入口。"
+        : "只显示需要人工判断的来源列；可直接跳到对应的字段选择。")
+      : (reviewIssues.length > 12
+        ? "First 12 tasks are shown; expand groups of 12 for the rest. Source and authorized row links remain available."
+        : "Review only uncertain sources; jump directly to the relevant choice."),
+    ...(reviewIssues.length > 12 ? { issuesPageSize:12 as const } : {}),
+    // No silent task loss: if a job exceeds the bounded Eidos catalog,
+    // validation fails closed rather than concealing unreviewed issues.
+    issues: reviewIssues,
     helpText:zh(input.locale)
       ? "更改映射后仍需明确保存和预检查；当前列表不会自动提交业务数据。"
       : "Changes require explicit save and validation; viewing does not commit records.",
@@ -1197,6 +1267,20 @@ export function createDataImportReviewPageV010(input: {
       route: dataImportMappingRouteV010(job.importJobId)
     }
   ];
+  // Source #909's precheck rerun maps to an authorized Host command.
+  // Never offer repeat validation to committed jobs or skip final approval.
+  if (job.state === "STAGED" || job.state === "DRY_RUN_FAILED"
+    || job.state === "DRY_RUN_READY") {
+    summaryActions.push({
+      id: "rerun",
+      label: zh(input.locale) ? "重新预检查" : "Run validation again",
+      type: "command" as const,
+      command: DATA_IMPORT_DRY_RUN_COMMAND_V010,
+      inputVersion: "0.1.0",
+      requiresConfirmation: false,
+      values: { importJobId: job.importJobId }
+    } as never);
+  }
   if (job.state === "DRY_RUN_READY") {
     summaryActions.push({
       id: "commit",

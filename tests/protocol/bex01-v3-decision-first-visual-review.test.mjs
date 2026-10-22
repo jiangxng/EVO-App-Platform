@@ -55,6 +55,7 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     assert.doesNotMatch(html,/<label>当前文件<select/);
     assert.doesNotMatch(html,/<label>批量字段审核/);
     assert.match(html,/data-eidos-review-table-presentation="compact"/);
+    assert.match(html,/data-eidos-review-table-evidence-layout="(inline-collapsed|stacked)"/);
     assert.match(html,/data-eidos-review-table-choice-label/,
       "source identity is already the first column; compact select keeps an accessible label");
     assert.match(html,/data-eidos-form-review-table-filter/);
@@ -86,6 +87,69 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     ...linkTask.issues[0],relatedRoutes:[
       linkTask.issues[0].relatedRoutes[0],linkTask.issues[0].relatedRoutes[0]]
   }]}}).ok,false,"repeated row links must fail closed");
+  // V3 #909: visible status, totals and filter are a live projection of the
+  // unsaved choice. The Host still owns real mapping persistence and approval.
+  const localGroup=mapping.reviewGroups.find(group=>group.title==="供应商编码");
+  assert.equal(localGroup.reviewStatus.key,"matched");
+  assert.equal(localGroup.statusByChoice.code.key,"matched");
+  assert.equal(localGroup.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(localGroup.statusByChoice.__PENDING__.key,"pending");
+  assert.equal(localGroup.statusByChoice.__CREATE__.key,"proposed");
+  assert.equal(validateUidl(mapping).ok,true,"all reachable review choices must validate");
+  const reachable=new Set(mapping.reviewGroups.flatMap(group=>[
+    group.reviewStatus.key,...Object.values(group.statusByChoice).map(s=>s.key)]));
+  const allOption=mapping.reviewTable.filter.options.find(option=>option.id==="all");
+  const needsOption=mapping.reviewTable.filter.options.find(option=>option.id==="needs");
+  const unmatchedOption=mapping.reviewTable.filter.options.find(option=>option.id==="unmatched");
+  assert.deepEqual(unmatchedOption.choiceValues,["__PENDING__"],
+    "V3 pending filter must match actual source option values, not warning status");
+  assert.ok([...reachable].every(key=>allOption.statusKeys.includes(key)));
+  for(const key of ["attention","pending","proposed","suggested"])
+    assert.ok(needsOption.statusKeys.includes(key),key+" must stay reviewable");
+  assert.match(renderToHtml(mapping),/data-eidos-review-status-by-choice=/);
+  assert.match(renderToHtml(mapping),
+    /data-eidos-review-table-filter-choices="__PENDING__"/);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    filter:{...mapping.reviewTable.filter,options:mapping.reviewTable.filter.options.map(option=>
+      option.id==="unmatched" ? {...option,choiceValues:["__NOT_A_REAL_OPTION__"]} : option)}}}).ok,false,
+    "choice-based filters must only refer to real authorized select values");
+  assert.doesNotMatch(renderToHtml(mapping),/localStorage|data-eidos-auto-save/);
+  const restoredOnly=createDataImportMappingPageV010({job:{
+    ...job,source:{...job.source,headers:["供应商编码"]},
+    ignoredSourceColumns:[]
+  },schema,locale:"zh-CN",canCreateExtension:true});
+  assert.equal(restoredOnly.reviewTable.filter.selectedId,"all",
+    "a fully matched Job must not start in an empty attention-only view");
+  assert.ok(restoredOnly.reviewTable.filter.options.some(x=>x.id==="needs"),
+    "available future Human changes may still be filtered deliberately");
+  assert.equal(restoredOnly.reviewGroups[0].reviewStatus.key,"matched");
+  assert.equal(validateUidl(restoredOnly).ok,true);
+
+  const metadataGroup=mapping.reviewGroups.find(group=>group.title==="系统编码");
+  assert.equal(metadataGroup.reviewStatus.key,"attention");
+  assert.equal(metadataGroup.statusByChoice.__CREATE__.key,"attention",
+    "reselecting an original unverified metadata proposal must restore its Host review status");
+  assert.equal(metadataGroup.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(metadataGroup.statusByChoice.__PENDING__.key,"pending");
+  // "Needs review" includes actual, durable Import Job problems; Eidos must
+  // not replace 3 Host issues with the 1 currently visible table-status row.
+  const issuesMetric=mapping.reviewTask.metrics.find(metric=>metric.id==="attention");
+  assert.equal(issuesMetric.reactive,false);
+  assert.match(renderToHtml(mapping),/data-eidos-form-task-metric-fixed="true"/);
+  assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
+    metrics:mapping.reviewTask.metrics.map(metric=>metric.id==="attention"
+      ? {...metric,reactive:"disabled"} : metric)}}).ok,false,
+    "the generic opt-out must be an explicitly validated boolean");
+  // The source-preserved proposal is still unsafe to treat as Human-approved.
+  assert.equal(mapping.fields.find(field=>field.key==="map_1").initialValue,"__CREATE__");
+
+  assert.equal(mapping.reviewTable.evidenceLayout,"inline-collapsed");
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    evidenceLayout:"invalid"}}).ok,false);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    presentation:"standard",evidenceLayout:"inline-collapsed"}}).ok,false);
+  assert.match(renderToHtml({...mapping,reviewTable:{...mapping.reviewTable,
+    evidenceLayout:undefined}}),/data-eidos-review-table-evidence-layout="stacked"/);
   assert.equal(mapping.reviewTable.utilityNavigation.label,"字段处理工具");
   assert.deepEqual(mapping.reviewTable.utilityNavigation.items.map(item=>item.id),
     ["batch-review","create-extension"]);
@@ -127,6 +191,18 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     heading:{title:""}}}).ok,false);
   assert.equal(mapping.reviewTask.issuesLayout,"connected");
   const continuousMarkup=renderToHtml(mapping);
+  // #909 uses filled state tags, not unadorned colored table-cell text.
+  // Keep semantic status keys on the same native Eidos rows for live choice updates.
+  assert.match(continuousMarkup,/data-eidos-review-table-status-badge/);
+  assert.match(continuousMarkup,/data-eidos-review-table-status-badge>不导入|data-eidos-review-table-status-badge>需要核对|data-eidos-review-table-status-badge>待新增/);
+  for(const key of ["matched","proposed","pending","attention","suggested"]){
+    assert.ok(eidosProductiveWorkbenchCss.includes('data-eidos-review-table-status-key="'+key+'"'),
+      "V3 source status chip style missing for "+key);
+  }
+  for(const color of ["#f0f3f6","#2b65aa","#eef5fd","#fff6e7","#eaf7f1"]){
+    assert.ok(eidosProductiveWorkbenchCss.includes(color),
+      "V3 source status chip palette missing "+color);
+  }
   assert.match(continuousMarkup,/data-eidos-form-task-issues data-eidos-task-issues-layout="connected"/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-task-issues-layout="connected"/);
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
@@ -149,6 +225,16 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     "real staged file status must be positive only after source evidence loaded");
   assert.match(renderToHtml(mapping),/data-eidos-form-task-source-status data-tone="positive">文件已读取/);
   assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-metric\]\[data-tone="warning"\]/);
+  // Exact source CSS in V3 #909; color/section fidelity is not a row-height test.
+  assert.ok(eidosProductiveWorkbenchCss.includes('form[data-eidos-id="evo-data-import.mapping"]{\n  --eidos-fg:#172b44;'));
+  for(const token of ["--eidos-bg-subtle:#f5f7fa","--eidos-primary:#2563a6",
+    "--eidos-success:#18765a","--eidos-warning:#a66712",
+    "--eidos-danger:#b54738","--eidos-border:#e3e9ef"]) {
+    assert.ok(eidosProductiveWorkbenchCss.includes(token), "V3 prototype palette missing: "+token);
+  }
+  assert.ok(eidosProductiveWorkbenchCss.includes('[data-eidos-workspace-content]:has(form[data-eidos-id="evo-data-import.mapping"])'));
+  assert.ok(eidosProductiveWorkbenchCss.includes('[data-eidos-form-task-metric][data-tone="warning"]{\n  background:#fffdfa;'));
+
   assert.equal(validateUidl({...mapping,reviewTask:{...mapping.reviewTask,
     subject:{...mapping.reviewTask.subject,statusTone:"danger"}}}).ok,false,
     "unknown source status tones must be rejected");
@@ -192,4 +278,57 @@ test("Eidos disclosure is opt-in; unknown modes fail closed",()=>{
   const full=renderToHtml(ordinary);
   assert.doesNotMatch(full,/data-eidos-task-presentation="decision-first"/);
   assert.match(full,/data-eidos-form-task-overview/);
+});
+
+
+test("V3 workbench retains all 29 Host issues in native twelve-item pages",()=>{
+  const headers=Array.from({length:29},(_,i)=>"来源待核对列-"+String(i+1));
+  const sourceJob={...job,source:{...job.source,headers,
+    rows:[Object.fromEntries(headers.map((key,i)=>[key,"值"+i]))]},
+    mapping:[],ignoredSourceColumns:[]};
+  const schema={fields:[{
+    fieldId:"code",resolvedLabel:"供应商编码",readable:true,writable:true,
+    surfaces:["IMPORT"],valueType:"STRING",required:true,semanticType:"counterparty-code"
+  }]};
+  const doc=createDataImportMappingPageV010({
+    job:sourceJob,schema,locale:"zh-CN",canCreateExtension:false
+  });
+  assert.equal(doc.reviewTask.metrics.find(item=>item.id==="attention").value,"29");
+  assert.equal(doc.reviewTask.issues.length,29,
+    "Host issue catalog must not discard tasks after the twelfth");
+  assert.equal(doc.reviewTask.issuesPageSize,12);
+  const result=validateUidl(doc);
+  assert.equal(result.ok,true,JSON.stringify(result.diagnostics));
+  const html=renderToHtml(doc);
+  assert.match(html,/data-eidos-form-task-issue-count[^>]*>29 项待处理/);
+  assert.equal((html.match(/data-eidos-form-task-issue-page>/g)??[]).length,2);
+  assert.match(html,/13–24 \/ 29/);
+  assert.match(html,/25–29 \/ 29/);
+  assert.match(html,/data-eidos-form-task-issue="map-source-28"/,
+    "the final source issue must remain directly navigable");
+  assert.match(html,/data-eidos-form-task-focus="map-source-28"/);
+  assert.match(html,/<ol start="25" style="counter-reset:eidos-workbench-issue 24">/);
+  assert.match(eidosProductiveWorkbenchCss,/display:list-item;list-style-position:inside/,
+    "Native expand marker must remain visible and keyboard discoverable");
+  assert.match(eidosProductiveWorkbenchCss,/data-eidos-form-task-issue-page/);
+  assert.equal(validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,issuesPageSize:13
+  }}).ok,false,"only the opt-in bounded twelve-item pages are valid");
+  assert.equal(validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,issuesPageSize:undefined
+  }}).ok,false,"legacy forms must retain the twelve-issue cap");
+  assert.equal(validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,presentation:"full"
+  }}).ok,false,"only the workbench can opt into issue pagination");
+  const overLimit=Array.from({length:4097},(_,i)=>({
+    id:"item-"+i,title:"Safe issue "+i
+  }));
+  const invalid=validateUidl({...doc,reviewTask:{
+    ...doc.reviewTask,issues:overLimit
+  }});
+  assert.equal(invalid.ok,false);
+  assert.ok(invalid.diagnostics.some(item=>
+    item.path==="$.reviewTask.issues"
+    && item.message.includes("bounded")),
+    "bounded Eidos contract must fail closed beyond 4096, not truncate");
 });
