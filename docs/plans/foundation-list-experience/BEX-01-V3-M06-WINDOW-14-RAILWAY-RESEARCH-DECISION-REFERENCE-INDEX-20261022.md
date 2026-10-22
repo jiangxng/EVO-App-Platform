@@ -114,3 +114,6 @@
 | [Railway Status](https://status.railway.com/) | **S/D** | 搜索索引保留 10/21 分阶段恢复信息，但 open 读到过期页面，不能断言 10/22 全平台此刻状态；本项目本轮 API upstream paused 的失败是更直接证据。 |
 
 **方案判断 [J] 与未关闭门禁：**继续以现有 Railway 部署完整 EVO，RawGitHack 仅作静态模拟；不重复 BEX 已合并源码工作。构建阻断与 Railway↔GitHub 授权先处理；账户 Owner 需在控制台核查 GitHub 连接、Railway GitHub App、Autodeploy、Workspace Audit Logs，并在充分盘点引用关系、外部消费者、备份/恢复方案及授权前不轮换 DB、密钥、卷。恢复后从当时最新 main 真实新 build，查精确 deployment.meta.commitHash、SUCCESS、health、Eidos、插件与 BEX V3；M04/M05/M06 Human 门禁独立 OPEN。#1111 只保留 Draft 文档交接，未获授权不得自动合并或删除。
+
+
+**本轮末尾 GitHub main 再前进的后续快照（2026-10-22）：** 追加文件后复查 branch API，main 已由 23e39173 变为 **5faf7f44c2a370d6372b00dd248a0bf382be1d26**，对应并行 PA05 文档 PR #1114 合并。上表 23e39173 属于**先前读取时点**，不可再视为最终当前 HEAD；Railway 最近 SUCCESS 仍是 eef6774，未来任何构建前必须再次抓取 main 精确 SHA。此变化不构成对 PA05 的修改或交叉 Owner 操作。
