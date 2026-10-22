@@ -93,3 +93,24 @@
 2. **安全重连**：W02/W03/W04/W05 的**官方完整原文**，尤其 Railway Github app reconnect、实际 workspace Audit Log、Postgres 轮换与回退；此前网页 open cache miss，若可访问应升格阅读等级。
 3. **外网功能验收**：拿到新 SUCCESS commit 后访问 /health、身份登录、Eidos 宿主、插件安装运行、V3 供应商导入用户路径，并对照 #909 原型/Window13 未签收事项。
 4. **不要再做的工作**：无目的再次搜索“此前另一个网站”、重新猜测 Vercel/Netlify、重建已删除旧 feat 分支、把 TR01 静态示例包装成 BEX V3 生产验证、重做 Window 13 的原型对照来源研究。
+
+
+## 8. Window 15 增量证据（2026-10-22；保留上文 Window 14 历史快照）
+
+| 来源和项目 | 证据等级 | 本轮发现、限制和用途 |
+|---|---|---|
+| [GitHub main branch](https://api.github.com/repos/jiangxng/EVO-App-Platform/branches/main) | **RM** | 读取到 main HEAD **23e391730c7606f3933fb31e8ffcb53c704aa191**（合并 #1113），对应 check-runs 3/3 success（verify-and-retire、continuity、lightweight-host）。它比 Window14 的 59d3103 新；不能以旧快照部署。 |
+| [PR #1111](https://github.com/jiangxng/EVO-App-Platform/pull/1111)、[#909](https://github.com/jiangxng/EVO-App-Platform/pull/909) | **RM** | 两者仍 Open / Draft / 未合并；#1111 本次更新前 head 2059ad68，保持 Draft，不合并、不删除。 |
+| [#1060](https://github.com/jiangxng/EVO-App-Platform/pull/1060) / [#1077](https://github.com/jiangxng/EVO-App-Platform/pull/1077) / [#1086](https://github.com/jiangxng/EVO-App-Platform/pull/1086) / [#1100](https://github.com/jiangxng/EVO-App-Platform/pull/1100) | **RM** | 全部再次 API 核实 merged=true；四条原过程分支先前已经通过 workflow 清理，本窗口不重复做。 |
+| [Railway 项目](https://railway.com/project/aee4643e-912b-4ca1-ae95-fe4ec64f5601) | **RM** | Railway OAuth 实查 production 五个服务 live；Ledger Configurator Online 1/1；source=jiangxng/EVO-App-Platform/main；build=RAILPACK、npm ci && npm run build，healthcheckPath=/health；/data 和 postgres-volume 仍在，staged patch 为 null。 |
+| Ledger Configurator deployment 5cfce97b-9745-4e62-9b64-d2b1e0a2eedf | **RM** | 最新 SUCCESS 仍为 **eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff**（2026-10-21）；不等于本次 main。 |
+| Railway 新构建触发操作 | **RM** | 在现有 Ledger Configurator 上调用 connect_service_source(repo=jiangxng/EVO-App-Platform, branch=main)，明确被拒绝：**Deploys have been paused due to an upstream issue**。随后 list_deployments 和 get_staged_changes 再核实：无新部署、无挂起变更；绝未 redeploy 旧 build 或新建服务。 |
+| Railway 凭据依赖初步清单 | **RM** | OAuth list_variables 的 valuesRedacted=true，**只读变量名、不暴露值**。Ledger Configurator 有 APP_PLATFORM_CONVERSATION_DATABASE_URL；EVO Runtime 与 App Host Validator 有 DATABASE_URL；变量名本身无法证明是引用还是复制连接串。Postgres list_tcp_proxies 为空（无 Railway 公网 TCP Proxy）；当前 Railway 项目无 Buckets。不代表无其他外部消费者或完全无风险。 |
+| [域名](https://ledger-configurator-production.up.railway.app) / [health](https://ledger-configurator-production.up.railway.app/health) | **RM/D** | Railway domain_status 确认 managed 域名仍绑定原服务；公开网页工具无法访问 health，测试容器 DNS 解析失败，此现象不能证明用户端站点下线，更不能报告 HTTP 200 / PASS。 |
+| [Railway 2026-10-21 Security Disclosure](https://blog.railway.com/p/security-disclosure-wednesday-october-21st) | **S** | 搜索正文称可能有未经授权读取的环境变量；官方建议审计并轮换。open 仍 cache miss，本账号是否受影响 D。 |
+| [Railway 2026-10-22 GitHub reconnect](https://blog.railway.com/p/security-disclosure-recommendation-redeploy-buckets-and-reconnect-github-after-the-credential-reset) | **S** | 搜索正文明确 Railway 重置 GitHub tokens；Account Settings 应重新连接 GitHub，确认 Railway GitHub App 仓库权限、Service Source 和 Autodeploy，再验证新构建。Railway OAuth 可读资源**不能代替** GitHub 授权成功证明；账户 UI 尚 D。 |
+| [Railway 2026-10-22 PostgreSQL rotate](https://blog.railway.com/p/security-disclosure-recommendation-rotate-postgresql-database-credentials) | **S** | 搜索正文：先区分引用/复制连接串、识别内部外部消费者、公网入口；再由负责人评估备份、Regenerate 和依赖服务重部署。原文 open cache miss；本轮未轮换任何数据库凭据。 |
+| [Railway 2026-10-22 anomalous GitHub access](https://blog.railway.com/p/security-disclosure-recommendation-check-for-anomalous-github-access) | **S** | 搜索正文建议核个人安全记录、授权 App/PAT/SSH、仓库 deploy keys/webhooks 以及 Railway Audit Logs。账户审计记录尚 D，不能臆断发生入侵。 |
+| [Railway Status](https://status.railway.com/) | **S/D** | 搜索索引保留 10/21 分阶段恢复信息，但 open 读到过期页面，不能断言 10/22 全平台此刻状态；本项目本轮 API upstream paused 的失败是更直接证据。 |
+
+**方案判断 [J] 与未关闭门禁：**继续以现有 Railway 部署完整 EVO，RawGitHack 仅作静态模拟；不重复 BEX 已合并源码工作。构建阻断与 Railway↔GitHub 授权先处理；账户 Owner 需在控制台核查 GitHub 连接、Railway GitHub App、Autodeploy、Workspace Audit Logs，并在充分盘点引用关系、外部消费者、备份/恢复方案及授权前不轮换 DB、密钥、卷。恢复后从当时最新 main 真实新 build，查精确 deployment.meta.commitHash、SUCCESS、health、Eidos、插件与 BEX V3；M04/M05/M06 Human 门禁独立 OPEN。#1111 只保留 Draft 文档交接，未获授权不得自动合并或删除。
