@@ -1,5 +1,7 @@
 # 独立 Agent 线交接入口
 
+> **PA05 最新工程事实（2026-10-22；覆盖下方合并前 Draft 历史快照）：** [PR #1104](https://github.com/jiangxng/EVO-App-Platform/pull/1104) **已合并 main** `3bb68a6a6b2dcb11f1e10a9456a33e90f3440a85`，最终工程 CI `46/46 SUCCESS`；Branch Hygiene [run #39756394843](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39756394843) 已**实际删除最后一条 PA05 工程过程分支**，无待合并 PA05 工程 Draft。正式安全认证仍由 [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 追踪：**K0/W06/PA05-05 NOT_SIGNED，material WRITE OFF**。合入 main ≠ Railway 在线部署 ≠ 外部生产签收；同日部署只读快照仍显示旧 SHA。后续窗口**不得重复开发、重开已合并 PR 或恢复已删源分支**，仅接续外部认证尾项。详见[阶段收口决定及最新追加记录](PA05-PHASED-ENGINEERING-CLOSEOUT-20261022.md)。
+
 > **PA05 阶段性收口决定（2026-10-22，优先阅读）：** [PA05 工程阶段收口／外部认证保留清单](PA05-PHASED-ENGINEERING-CLOSEOUT-20261022.md)。截至本记录，#1104 是唯一保留的 **OPEN Draft 工程整合候选**，原准确头 45/45 CI 成功但**未合入 main**；旧过程分支已有删除收据。**PA05 完整认证与 K0/W06 仍 NOT_SIGNED、#1092 外部 Operator 门禁 OPEN、生产 material WRITE OFF**。本声明仅结束已完成工程轮次，不改动原阶段建设路线、正式验收标准或生产权限；Railway 恢复后从 #1092 续接，而非重复研究。
 
 > **2026-10-21 PA05/K0 WINDOW-09 本次只读新证据（优先于 WINDOW-08 历史生产快照）：** [GitHub/Railway 实时核验、精确 CI、远端分支 SHA-pinned 退休审计及 #1092 Owner 缺口](PA05-E01J4K-K0-WINDOW-09-LIVE-STATE-BRANCH-AUDIT-20261021.md)。main 和 Railway 在本窗口检查期间从 4e21fa8d/7e794aba 前进至 9a382666/963dd693；此前 30 条标记退休分支均已不在远端；另有 9 条已合并 PA05 文档分支通过 exact HEAD/祖先验证，但**本窗口没有 delete-ref/手动 workflow_dispatch 入口，未实际删除**。四活动 Draft 保留、K0 NOT_SIGNED / production material WRITE OFF。
