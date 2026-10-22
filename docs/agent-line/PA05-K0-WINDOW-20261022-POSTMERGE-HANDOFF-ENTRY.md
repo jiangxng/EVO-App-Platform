@@ -42,3 +42,11 @@
 5. 查证细节和原始材料，优先读配套 [详细参考索引](PA05-K0-WINDOW-20261022-POSTMERGE-RESEARCH-REFERENCE-INDEX.md)，再读 [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 与 [旧研究索引](PA05-E01J4K-K0-WINDOW-FINAL-RESEARCH-REFERENCE-INDEX-20261021.md)，禁止凭聊天记忆补造来源。
 
 **防复工规则：** CI 通过、已合并 main、已部署在线、生产认证完成是四种不同状态，必须分别找原始记录；不得相互推断。新窗口若只做接续，优先延续 #1092，不创建新的 PA05 代码 Draft。
+
+
+## 2026-10-22 接续复核补充（动态只读快照，后续必须重新查）
+
+- 最新 GitHub `main@23e391730c7606f3933fb31e8ffcb53c704aa191`，#1104/#1112/#1113 全部合入；最后 PA05 工程过程分支再次查询不存在，**不要复建**。
+- Railway Ledger Configurator production 最新 SUCCESS/Online 仍为 deployment `5cfce97b-9745-4e62-9b64-d2b1e0a2eedf` / SHA `eef6774bf25e2d2d9e1f2f060cd60d8b28d4c4ff`；当前 main 比在线 SHA 超前 **257 commits**。在线的不是可证实已合入的 #1104 版本；自动部署滞后原因 **UNKNOWN**。
+- 此次仅用已连接 GitHub / Railway **直接只读 API** 核验，未重新查阅 Railway 官方原文；源级别和 R5-01/02/03 缺口详见[配套详细索引 §9](PA05-K0-WINDOW-20261022-POSTMERGE-RESEARCH-REFERENCE-INDEX.md)及 [#1092 新回执](https://github.com/jiangxng/EVO-App-Platform/issues/1092#issuecomment-6338734141)。
+- K0、W06、PA05-05 仍 **NOT_SIGNED**，生产 material WRITE **OFF**。下一轮不重复调用同一受限接口幻想拿到 PID1/生效 drain；由实际 Railway Operator 提供部署关联脱敏只读回执，并在另行授权的独立非生产环境评估 R5-03。
