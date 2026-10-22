@@ -2,7 +2,7 @@
 
 **记录日：2026-10-22（GitHub 在线核验）；性质：事实/研究交接，不是生产 K0 签收。**
 **下钻资料：** [WINDOW-10 详细参考索引与决策记录](PA05-E01J4K-K0-WINDOW-10-BRANCH-CLEANUP-RESEARCH-REFERENCE-INDEX-20261022.md)。
-**遗产：** [WINDOW-09 生产和分支审计](PA05-E01J4K-K0-WINDOW-09-LIVE-STATE-BRANCH-AUDIT-20261021.md)（位于 [#1071 Draft 分支](https://github.com/jiangxng/EVO-App-Platform/pull/1071)，尚未合并） / [WINDOW-08 短入口](PA05-E01J4K-K0-WINDOW-08-CONTINUATION-HANDOFF-ENTRY-20261021.md) / [WINDOW-08 原始研究来源索引](PA05-E01J4K-K0-WINDOW-08-CONTINUATION-RESEARCH-REFERENCE-INDEX-20261021.md)（后两篇亦在 #1071 分支）。不重查已经归档的 PostgreSQL18 / OAuth / Linux / Kubernetes Lease / Railway 通识。
+**遗产：** [WINDOW-09 生产和分支审计](https://github.com/jiangxng/EVO-App-Platform/blob/77275a1751160b9638191e22e83a40237fe25586/docs/agent-line/PA05-E01J4K-K0-WINDOW-09-LIVE-STATE-BRANCH-AUDIT-20261021.md)（位于 [#1071 Draft 分支](https://github.com/jiangxng/EVO-App-Platform/pull/1071)，尚未合并） / [WINDOW-08 短入口](https://github.com/jiangxng/EVO-App-Platform/blob/77275a1751160b9638191e22e83a40237fe25586/docs/agent-line/PA05-E01J4K-K0-WINDOW-08-CONTINUATION-HANDOFF-ENTRY-20261021.md) / [WINDOW-08 原始研究来源索引](https://github.com/jiangxng/EVO-App-Platform/blob/77275a1751160b9638191e22e83a40237fe25586/docs/agent-line/PA05-E01J4K-K0-WINDOW-08-CONTINUATION-RESEARCH-REFERENCE-INDEX-20261021.md)（后两篇亦在 #1071 分支）。不重查已经归档的 PostgreSQL18 / OAuth / Linux / Kubernetes Lease / Railway 通识。
 
 ## 1. 先看结论：66/66 目标远端分支已消失，不能冒领删除动作
 
@@ -26,7 +26,7 @@
 
 ## 4. PA05 K0 工作线保持原安全门禁
 
-K0、完整 E01J4、PA05-05 E01–E05、W06 **NOT_SIGNED**；production material WRITE **OFF**；[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092)、[#988](https://github.com/jiangxng/EVO-App-Platform/issues/988)、[#979](https://github.com/jiangxng/EVO-App-Platform/issues/979)、[#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) 2026-10-22 复核均 OPEN。真实生产 Operator 有效 draining/overlap、PID1→Node SIGTERM、独立 Supervisor/TTL/cgroup、所有 Worker/Runner/Caller、PG backend 消失、Human IdP/DBA/Secrets/Audit 权威签收均不可由分支清理替代。生产 Railway **本窗口未重新查询**：2026-10-21 [WINDOW-09](PA05-E01J4K-K0-WINDOW-09-LIVE-STATE-BRANCH-AUDIT-20261021.md) 的部署 ID 仅为历史快照，绝不冒充今天已验证。
+K0、完整 E01J4、PA05-05 E01–E05、W06 **NOT_SIGNED**；production material WRITE **OFF**；[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092)、[#988](https://github.com/jiangxng/EVO-App-Platform/issues/988)、[#979](https://github.com/jiangxng/EVO-App-Platform/issues/979)、[#913](https://github.com/jiangxng/EVO-App-Platform/issues/913) 2026-10-22 复核均 OPEN。真实生产 Operator 有效 draining/overlap、PID1→Node SIGTERM、独立 Supervisor/TTL/cgroup、所有 Worker/Runner/Caller、PG backend 消失、Human IdP/DBA/Secrets/Audit 权威签收均不可由分支清理替代。生产 Railway **本窗口未重新查询**：2026-10-21 [WINDOW-09](https://github.com/jiangxng/EVO-App-Platform/blob/77275a1751160b9638191e22e83a40237fe25586/docs/agent-line/PA05-E01J4K-K0-WINDOW-09-LIVE-STATE-BRANCH-AUDIT-20261021.md) 的部署 ID 仅为历史快照，绝不冒充今天已验证。
 
 ## 5. 下一窗口依次做什么
 
