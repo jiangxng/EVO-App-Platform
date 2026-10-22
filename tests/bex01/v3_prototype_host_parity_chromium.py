@@ -60,7 +60,10 @@ with sync_playwright() as pw:
         expect(ref_issue).to_be_visible()
         ref_metrics=reference.locator(".metrics")
         assert ref_metrics.locator(".metric").count()==4
-        reference.screenshot(path=str(OUT/f"v3-locked-prototype-{width}px.png"),full_page=True)
+        # Use identical visible viewports for fair first-screen comparison;
+        # retain the demo's full document separately as reference-only evidence.
+        reference.screenshot(path=str(OUT/f"v3-locked-prototype-{width}px.png"),full_page=False)
+        reference.screenshot(path=str(OUT/f"v3-locked-prototype-{width}px-document.png"),full_page=True)
         reference_data={
             "pageBackground":color(reference.locator("body"),"backgroundColor"),
             "font":color(reference.locator("body"),"color"),
@@ -152,6 +155,17 @@ with sync_playwright() as pw:
         expect(bank).to_have_attribute("data-eidos-review-table-status-key",original_bank_tone)
         assert post_actions==[],post_actions
 
+        # Capture the business-field editing position, then explicitly reset
+        # the actual Host's inner scroll container for a FAIR first viewport
+        # image against the reference's initial review viewport. "full_page"
+        # alone does not scroll overflow:auto workbench content into view.
+        page.screenshot(path=str(OUT/f"v3-real-host-{width}px-mapping-end.png"),
+            full_page=False)
+        workspace_scroll=page.locator('[data-eidos-workspace-content]')
+        assert workspace_scroll.count()==1
+        workspace_scroll.evaluate("(node) => {node.scrollTop=0; node.scrollLeft=0;}")
+        assert workspace_scroll.evaluate("(node) => node.scrollTop")==0
+        expect(form.locator('[data-eidos-page-header]')).to_be_visible()
         # The actual platform app provides a governed Host shell, not the
         # source demo topbar. Compare the content order and behavior only.
         content=form.locator('[data-eidos-form-task-context]')
@@ -178,12 +192,14 @@ with sync_playwright() as pw:
           "counts":counts,"sourceColumns":rows.count(),"issues":issues.count(),
           "sourceStatusChips":swatches,
           "fileContext":box(content),"metrics":box(metrics),
+          "firstViewportScrollTop":workspace_scroll.evaluate("(node) => node.scrollTop"),
           "issuesRegion":box(issuebox),"table":box(table),
           "horizontalOverflow":dimensions["scroll"]>dimensions["viewport"]+2,
           "unsavedChoiceReset":True,"actionsDispatchedOnLocalChoice":len(post_actions),
           "realHostAuthAndApprovalPreserved":True
         }
-        page.screenshot(path=str(OUT/f"v3-real-host-{width}px.png"),full_page=True)
+        assert box(content)["y"]>=0,("Comparison must use the Host first viewport",box(content))
+        page.screenshot(path=str(OUT/f"v3-real-host-{width}px.png"),full_page=False)
         observations["viewports"].append({"width":width,"phone":mobile,
             "reference":reference_data,"realHost":actual_data})
         host_context.close()
@@ -206,6 +222,9 @@ img{width:100%;border:1px solid #ced9e4;background:#fff;object-fit:contain;objec
 <div><h3>已锁定原型</h3><img src="v3-locked-prototype-{v}px.png"></div>
 <div><h3>真实 Host</h3><img src="v3-real-host-{v}px.png"></div></div></section>"""
 for v in (1280,390))+
-"""<p>机器验证结果：见 v3-prototype-host-parity-observation.json。
+"""<p>左、右均为相同尺寸的首屏快照。完整原型另见 -document.png；
+真实 Host 的业务表格末端另见 -mapping-end.png，
+不得把内部滚动状态误判成布局差异。</p>
+<p>机器验证结果：见 v3-prototype-host-parity-observation.json。
 布局宽度、真实 Host 认证壳、新字段审批和显式保存差异仍须 Human 决策。</p>
 </body></html>""",encoding="utf-8")
