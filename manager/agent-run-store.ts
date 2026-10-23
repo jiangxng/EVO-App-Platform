@@ -45,6 +45,7 @@ function validateEvent(event: AgentRunEventV010): void {
     [
       "SLICE_STARTED",
       "MODEL_DECISION_RECORDED",
+      "MODEL_INFERENCE_FAILED",
       "TOOL_OBSERVATION_RECORDED",
       "SLICE_PAUSED"
     ].includes(event.type)
@@ -148,6 +149,8 @@ export function materializeAgentRunsV010(
     let updatedAt = created.occurredAt;
     let lastEventId = created.eventId;
     let sliceCount = 0;
+    let modelFailureCount = 0;
+    const modelUsages: AgentRunV010["modelUsages"] = [];
     let activeSliceId: string | undefined;
     const decisions: AgentRunV010["decisions"] = [];
     const observations: AgentRunV010["observations"] = [];
@@ -172,6 +175,65 @@ export function materializeAgentRunsV010(
         continue;
       }
 
+      if (event.type === "MODEL_INFERENCE_FAILED") {
+        if (!event.sliceId || event.sliceId !== activeSliceId) {
+          throw new Error("AGENT_RUN_MODEL_FAILURE_SLICE_MISMATCH");
+        }
+        const data=event.payload as {code?:unknown;reason?:unknown;attempt?:unknown};
+        if(typeof data.reason!=="string"||!data.reason.trim()||
+          !Number.isInteger(data.attempt)||data.attempt!==modelFailureCount+1)
+          throw Error("AGENT_RUN_MODEL_FAILURE_ATTEMPT_INVALID");
+        modelFailureCount+=1;
+        state="PAUSED";
+        activeSliceId=undefined;
+        continue;
+      }
+
+      if (event.type === "MODEL_USAGE_RECORDED") {
+        if (!event.sliceId || event.sliceId !== activeSliceId
+          || modelUsages.some(item => item.sliceId === event.sliceId)) {
+          throw Error("AGENT_RUN_MODEL_USAGE_SLICE_INVALID");
+        }
+        const data = event.payload as {
+          providerId?: unknown; modelId?: unknown; status?: unknown; usage?: unknown;
+        };
+        if (data.providerId !== input.providerId
+          || data.modelId !== input.modelId
+          || !["REPORTED", "UNAVAILABLE"].includes(String(data.status))) {
+          throw Error("AGENT_RUN_MODEL_USAGE_SOURCE_INVALID");
+        }
+        if (data.status === "REPORTED") {
+          const usage = data.usage as Record<string, unknown> | undefined;
+          if (!usage || typeof usage !== "object" || Array.isArray(usage)
+            || !Number.isSafeInteger(usage.inputTokens)
+            || (usage.inputTokens as number) < 0
+            || !Number.isSafeInteger(usage.outputTokens)
+            || (usage.outputTokens as number) < 0
+            || (usage.cachedInputTokens !== undefined &&
+              (!Number.isSafeInteger(usage.cachedInputTokens)
+                || (usage.cachedInputTokens as number) < 0
+                || (usage.cachedInputTokens as number) > (usage.inputTokens as number)))
+            || (usage.cacheWriteInputTokens !== undefined &&
+              (!Number.isSafeInteger(usage.cacheWriteInputTokens)
+                || (usage.cacheWriteInputTokens as number) < 0))) {
+            throw Error("AGENT_RUN_MODEL_USAGE_PAYLOAD_INVALID");
+          }
+          modelUsages.push({
+            sliceId:event.sliceId,providerId:data.providerId as string,
+            modelId:data.modelId as string,status:"REPORTED",
+            usage:structuredClone(usage) as NonNullable<
+              AgentRunV010["modelUsages"][number]["usage"]>
+          });
+        } else {
+          if (data.usage !== undefined) throw Error("AGENT_RUN_MODEL_USAGE_UNKNOWN_NOT_ZERO");
+          modelUsages.push({
+            sliceId:event.sliceId,providerId:data.providerId as string,
+            modelId:data.modelId as string,status:"UNAVAILABLE"
+          });
+        }
+        continue;
+      }
+
       if (event.type === "MODEL_DECISION_RECORDED") {
         if (!event.sliceId || event.sliceId !== activeSliceId) {
           throw new Error("AGENT_RUN_DECISION_SLICE_MISMATCH");
@@ -186,6 +248,7 @@ export function materializeAgentRunsV010(
         ) {
           throw new Error("AGENT_RUN_MODEL_DECISION_INVALID");
         }
+        modelFailureCount=0;
         decisions.push({
           decisionEventId: event.eventId,
           sliceId: event.sliceId,
@@ -242,6 +305,48 @@ export function materializeAgentRunsV010(
           actionReceiptIds.add(eventPayload.receiptId);
         }
         state = "PAUSED";
+        continue;
+      }
+
+      if (event.type === "READ_REFRESH_RECORDED") {
+        // Refreshes only an existing successful READ result. The prior
+        // TOOL_OBSERVATION_RECORDED event remains immutable audit evidence.
+        // The materialized model view uses the most recent Host-verified
+        // observation instead of replaying a possibly stale old value.
+        const data = event.payload as {
+          decisionEventId?: unknown;
+          observation?: unknown;
+          sourceVersion?: unknown;
+        };
+        const record = decisions.find(d =>
+          d.decisionEventId === data.decisionEventId);
+        if (!record || record.decision.type !== "tool"
+          || !record.observation?.ok || record.observation.receipt
+          || (record.observation.result
+            && typeof record.observation.result === "object"
+            && "receiptId" in record.observation.result)
+          || typeof data.sourceVersion !== "string"
+          || !data.sourceVersion.trim()
+          || !data.observation || typeof data.observation !== "object"
+          || (data.observation as { ok?: unknown }).ok !== true
+          || (data.observation as { tool?: unknown }).tool !== record.decision.call.tool
+          || (data.observation as { receipt?: unknown }).receipt !== undefined
+        ) {
+          throw Error("AGENT_RUN_READ_REFRESH_INVALID");
+        }
+        const observationIndex = decisions
+          .slice(0, decisions.indexOf(record))
+          .filter(d => d.observation !== undefined).length;
+        if (observationIndex >= observations.length
+          || observations[observationIndex].tool !== record.decision.call.tool) {
+          throw Error("AGENT_RUN_READ_REFRESH_OBSERVATION_MISMATCH");
+        }
+        const observation = structuredClone(data.observation) as
+          AgentRunV010["observations"][number];
+        record.observation = observation;
+        record.refreshedAt = event.occurredAt;
+        record.refreshSourceVersion = data.sourceVersion.trim();
+        observations[observationIndex] = observation;
         continue;
       }
 
@@ -335,6 +440,8 @@ export function materializeAgentRunsV010(
       createdAt: created.occurredAt,
       updatedAt,
       sliceCount,
+      modelFailureCount,
+      modelUsages,
       ...(activeSliceId ? { activeSliceId } : {}),
       lastEventId,
       decisions,

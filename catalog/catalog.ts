@@ -1,6 +1,8 @@
 import type { CatalogEntryV010, PackageManifestV010 } from "../contracts/package.js";
 
 export interface PackageCatalog {
+  /** Trusted Host only: add a prevalidated package after explicit admission. */
+  register(manifest: PackageManifestV010): void;
   list(): CatalogEntryV010[];
   get(packageId: string): PackageManifestV010 | undefined;
   findCapabilityProviders(capability: string): Array<{ packageId: string; featureId: string }>;
@@ -21,6 +23,12 @@ export function createPackageCatalog(entries: PackageManifestV010[]): PackageCat
   }
 
   return {
+    register(manifest) {
+      if (packages.has(manifest.packageId)) {
+        throw new Error(`CATALOG_DUPLICATE_PACKAGE: ${manifest.packageId}`);
+      }
+      packages.set(manifest.packageId, clone(manifest));
+    },
     list() {
       return [...packages.values()]
         .sort((a, b) => a.packageId.localeCompare(b.packageId))

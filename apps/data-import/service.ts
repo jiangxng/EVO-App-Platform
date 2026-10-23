@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import type {
   FoundationObjectImportCellV010,
   FoundationObjectImportTargetV010
 } from "../../contracts/foundation-object/import.js";
 import {
-  fieldsForSurfaceV010
+  fieldsForSurfaceV010,
+  type EffectiveObjectSchemaV010
 } from "../../contracts/foundation-object/schema.js";
 import type {
   DataImportMappingV010,
@@ -20,6 +22,79 @@ import {
   dataImportTargetSchemaDigestV010,
   type DataImportRecipeRepositoryV010
 } from "./recipe.js";
+
+export function dataImportRowCorrectionRevisionV010(
+  job: DataImportJobV010, rowNumber: number, sourceColumn: string
+): string {
+  const row = job.source.rows[rowNumber - 1];
+  if (!row || !job.source.headers.includes(sourceColumn)) {
+    throw new Error("DATA_IMPORT_CORRECTION_SOURCE_NOT_FOUND");
+  }
+  const correction = job.rowCorrections?.find(item =>
+    item.rowNumber === rowNumber && item.sourceColumn === sourceColumn
+  );
+  return createHash("sha256").update(JSON.stringify({
+    jobId: job.importJobId, rowNumber, sourceColumn,
+    original: row[sourceColumn] ?? null,
+    correction: correction ?? null,
+    mapping: job.mapping.find(item => item.sourceColumn === sourceColumn) ?? null
+  })).digest("hex").slice(0, 32);
+}
+
+export function dataImportCorrectableSourceV010(input: {
+  job: DataImportJobV010;
+  schema: EffectiveObjectSchemaV010;
+  rowNumber: number;
+  sourceColumn: string;
+}): { fieldId: string; fieldLabel: string; valueType: "STRING" | "ENUM" } {
+  const { job, schema, rowNumber, sourceColumn } = input;
+  if (!Number.isInteger(rowNumber) || rowNumber < 1
+    || rowNumber > job.source.rows.length
+    || !job.source.headers.includes(sourceColumn)) {
+    throw new Error("DATA_IMPORT_CORRECTION_SOURCE_NOT_FOUND");
+  }
+  if (job.state === "COMMITTED" || job.state === "COMMITTED_WITH_ERRORS") {
+    throw new Error("DATA_IMPORT_JOB_ALREADY_COMMITTED");
+  }
+  const mapping = job.mapping.find(item => item.sourceColumn === sourceColumn);
+  if (!mapping || mapping.transform
+    || job.ignoredSourceColumns?.includes(sourceColumn)) {
+    throw new Error("DATA_IMPORT_CORRECTION_MAPPING_NOT_DIRECT");
+  }
+  const field = fieldsForSurfaceV010(schema, "IMPORT").find(item =>
+    item.fieldId === mapping.targetFieldId && item.writable
+  );
+  if (!field || (field.valueType !== "STRING" && field.valueType !== "ENUM")) {
+    throw new Error("DATA_IMPORT_CORRECTION_FIELD_NOT_EDITABLE");
+  }
+  const existing = job.rowCorrections?.some(item =>
+    item.rowNumber === rowNumber && item.sourceColumn === sourceColumn);
+  const issue = job.dryRun?.rows.find(item => item.rowNumber === rowNumber);
+  const issueForField = issue?.issues.some(item =>
+    item.fieldId === mapping.targetFieldId);
+  if (!existing && !issueForField) {
+    throw new Error("DATA_IMPORT_CORRECTION_REQUIRES_FIELD_ISSUE");
+  }
+  return {
+    fieldId: field.fieldId,
+    fieldLabel: field.resolvedLabel,
+    valueType: field.valueType
+  };
+}
+
+export function dataImportCorrectedRowV010(
+  job: DataImportJobV010, rowNumber: number
+): Record<string, FoundationObjectImportCellV010> {
+  const raw = job.source.rows[rowNumber - 1];
+  if (!raw) throw new Error("DATA_IMPORT_CORRECTION_SOURCE_NOT_FOUND");
+  const effective = { ...raw };
+  for (const item of job.rowCorrections ?? []) {
+    if (item.rowNumber === rowNumber) {
+      effective[item.sourceColumn] = item.value;
+    }
+  }
+  return effective;
+}
 
 function required(value: string, code: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(code);
@@ -183,8 +258,16 @@ export function suggestDataImportMappingV010(input: {
   const mapping: DataImportMappingV010[] = [];
   for (const sourceColumn of input.source.headers) {
     const matches = byAlias.get(normalizedHeader(sourceColumn)) ?? [];
-    const targetFieldId = matches.find(item => !usedTargets.has(item));
-    if (!targetFieldId) continue;
+    // A business label may name several distinct enterprise fields (e.g.
+    // two 开户银行 targets). Availability does not resolve semantic ambiguity.
+    // The only safe machine choice for an ambiguous alias is an explicit
+    // technical field ID; otherwise the Human must select the real target.
+    const explicitIds = matches.filter(item =>
+      normalizedHeader(item) === normalizedHeader(sourceColumn));
+    const uniqueId = matches.length === 1 ? matches[0]
+      : explicitIds.length === 1 ? explicitIds[0] : undefined;
+    if (!uniqueId || usedTargets.has(uniqueId)) continue;
+    const targetFieldId = uniqueId;
     usedTargets.add(targetFieldId);
     mapping.push({ sourceColumn, targetFieldId });
   }
@@ -204,6 +287,7 @@ export interface DataImportServiceV010 {
     schema: ReturnType<FoundationObjectImportTargetV010["describe"]>;
   }): {
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     origin: "DETERMINISTIC" | "RECIPE";
     recipeId?: string;
   };
@@ -226,10 +310,17 @@ export interface DataImportServiceV010 {
     unmappedColumns: string[];
     rawSourcePreserved: true;
   };
+  correctRow(input: {
+    contextId: string; importJobId: string; rowNumber: number;
+    sourceColumn: string; expectedRevision: string;
+    mode: "SET" | "REVERT"; value?: string;
+    actorSubjectId: string; recordedAt: string;
+  }): DataImportJobV010;
   updateMapping(input: {
     contextId: string;
     importJobId: string;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     mappingOrigin?: DataImportMappingOriginV010;
     appliedRecipeId?: string;
     actorSubjectId: string;
@@ -242,6 +333,7 @@ export interface DataImportServiceV010 {
     targetParameters?: DataImportJobV010["targetParameters"];
     source: DataImportSourceV010;
     mapping: DataImportMappingV010[];
+    ignoredSourceColumns?: string[];
     mappingOrigin?: DataImportMappingOriginV010;
     appliedRecipeId?: string;
     actorSubjectId: string;
@@ -329,6 +421,8 @@ export function createDataImportServiceV010(input: {
       ) {
         return {
           mapping: structuredClone(recipe.mapping),
+          ...(recipe.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...recipe.ignoredSourceColumns] } : {}),
           origin: "RECIPE" as const,
           recipeId: recipe.recipeId
         };
@@ -365,10 +459,68 @@ export function createDataImportServiceV010(input: {
       if (historical) {
         return {
           mapping: structuredClone(historical.mapping),
+          ...(historical.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...historical.ignoredSourceColumns] } : {}),
           origin: "RECIPE" as const,
           ...(historical.appliedRecipeId
             ? { recipeId: historical.appliedRecipeId }
             : {})
+        };
+      }
+
+      // A field added to the enterprise extension schema changes the whole
+      // schema digest, but should not erase earlier valid column decisions.
+      // Recover same-enterprise, same-source mappings as *reviewable* suggestions,
+      // never as an automatically validated/committed Recipe after schema drift.
+      const previousMappings = [
+        ...(recipe ? [recipe.mapping] : []),
+        ...input.repository.list(mappingInput.contextId)
+          .filter(job =>
+            job.targetId === mappingInput.targetId
+            && job.mappingOrigin === "HUMAN"
+            && job.mapping.length > 0
+            && dataImportSourceFingerprintV010({
+              targetId: job.targetId,
+              targetParameters: job.targetParameters,
+              source: job.source
+            }) === sourceFingerprint
+          ).map(job => job.mapping)
+      ];
+      for (const previous of previousMappings) {
+        const sources = new Set<string>();
+        const targets = new Set<string>();
+        const preserved = previous.filter(item => {
+          if (!importable.has(item.targetFieldId)
+            || targets.has(item.targetFieldId)) return false;
+          if (item.transform?.kind !== "CONSTANT"
+            && (!item.sourceColumn
+              || !mappingInput.source.headers.includes(item.sourceColumn)
+              || sources.has(item.sourceColumn))) return false;
+          if (item.sourceColumn) sources.add(item.sourceColumn);
+          targets.add(item.targetFieldId);
+          return true;
+        });
+        if (!preserved.length) continue;
+        // Fill only other unambiguous matches; never displace an old decision.
+        const extra = suggestDataImportMappingV010({
+          schema: mappingInput.schema,
+          source: mappingInput.source
+        }).filter(item =>
+          !sources.has(item.sourceColumn!)
+          && !targets.has(item.targetFieldId)
+        );
+        // A schema-drift fallback never auto-confirms an ignore.
+        // The current job still retains its own explicit ignore choices.
+        const priorIgnored = recipe?.mapping === previous
+          ? (recipe.ignoredSourceColumns ?? [])
+          : [];
+        return {
+          mapping: [...preserved, ...extra],
+          ignoredSourceColumns: priorIgnored.filter(column =>
+            mappingInput.source.headers.includes(column)
+            && ![...preserved, ...extra].some(item => item.sourceColumn === column)
+          ),
+          origin: "DETERMINISTIC" as const
         };
       }
 
@@ -439,6 +591,67 @@ export function createDataImportServiceV010(input: {
       };
     },
 
+    correctRow(correctionInput) {
+      const job = input.repository.get(correctionInput.contextId, correctionInput.importJobId);
+      if (!job) throw new Error("DATA_IMPORT_JOB_NOT_FOUND");
+      const schema = targetFor(job).describe({
+        contextId: correctionInput.contextId, parameters: job.targetParameters
+      });
+      const field = dataImportCorrectableSourceV010({
+        job, schema, rowNumber: correctionInput.rowNumber,
+        sourceColumn: correctionInput.sourceColumn
+      });
+      if (dataImportRowCorrectionRevisionV010(job, correctionInput.rowNumber,
+        correctionInput.sourceColumn) !== correctionInput.expectedRevision) {
+        throw new Error("DATA_IMPORT_CORRECTION_STALE");
+      }
+      const previous = job.rowCorrections ?? [];
+      const existing = previous.find(item =>
+        item.rowNumber === correctionInput.rowNumber
+          && item.sourceColumn === correctionInput.sourceColumn);
+      if (correctionInput.mode === "REVERT" && !existing) {
+        throw new Error("DATA_IMPORT_CORRECTION_NOT_FOUND");
+      }
+      if (correctionInput.mode !== "SET" && correctionInput.mode !== "REVERT") {
+        throw new Error("DATA_IMPORT_CORRECTION_MODE_INVALID");
+      }
+      if (correctionInput.mode === "SET"
+        && (typeof correctionInput.value !== "string"
+          || correctionInput.value.length > 2000)) {
+        throw new Error("DATA_IMPORT_CORRECTION_VALUE_INVALID");
+      }
+      if (correctionInput.mode === "SET" && field.valueType === "ENUM") {
+        const definition = schema.fields.find(item => item.fieldId === field.fieldId);
+        if (!definition?.enumOptions?.some(item => item.value === correctionInput.value)) {
+          throw new Error("DATA_IMPORT_CORRECTION_ENUM_INVALID");
+        }
+      }
+      const raw = job.source.rows[correctionInput.rowNumber - 1][
+        correctionInput.sourceColumn] ?? null;
+      const nextValue = correctionInput.mode === "SET"
+        ? (correctionInput.value === "" ? null : correctionInput.value!)
+        : raw;
+      const nextCorrections = previous.filter(item =>
+        item.rowNumber !== correctionInput.rowNumber
+          || item.sourceColumn !== correctionInput.sourceColumn);
+      if (correctionInput.mode === "SET" && nextValue !== raw) {
+        nextCorrections.push({
+          rowNumber: correctionInput.rowNumber, sourceColumn: correctionInput.sourceColumn,
+          value: nextValue, actorSubjectId: correctionInput.actorSubjectId,
+          recordedAt: correctionInput.recordedAt
+        });
+      }
+      return input.repository.save({
+        contextId: correctionInput.contextId,
+        job: {
+          ...job, state: "STAGED", rowCorrections: nextCorrections,
+          dryRun: undefined, receipt: undefined
+        },
+        actorSubjectId: correctionInput.actorSubjectId,
+        recordedAt: correctionInput.recordedAt
+      });
+    },
+
     updateMapping(mappingInput) {
       const job = input.repository.get(
         mappingInput.contextId,
@@ -462,6 +675,21 @@ export function createDataImportServiceV010(input: {
         ...job,
         state: "STAGED",
         mapping: structuredClone(mappingInput.mapping),
+        // Approval or any authoritative mapping change invalidates old draft
+        // proposals. Draft save itself uses a separate repository path.
+        batchReviewDrafts: undefined,
+        rowCorrections: (job.rowCorrections ?? []).filter(item =>
+          mappingInput.mapping.some(nextMap =>
+            nextMap.sourceColumn === item.sourceColumn
+            && nextMap.targetFieldId === job.mapping.find(old =>
+              old.sourceColumn === item.sourceColumn)?.targetFieldId
+            && !nextMap.transform
+          )
+        ),
+        ignoredSourceColumns: (mappingInput.ignoredSourceColumns
+          ?? job.ignoredSourceColumns ?? []).filter(column =>
+            !mappingInput.mapping.some(item => item.sourceColumn === column)
+          ),
         ...(mappingInput.mappingOrigin
           ? { mappingOrigin: mappingInput.mappingOrigin }
           : {}),
@@ -507,6 +735,9 @@ export function createDataImportServiceV010(input: {
         state: "STAGED",
         source: structuredClone(stageInput.source),
         mapping: structuredClone(stageInput.mapping),
+        ...(stageInput.ignoredSourceColumns
+          ? { ignoredSourceColumns: [...stageInput.ignoredSourceColumns] }
+          : {}),
         ...(stageInput.mappingOrigin
           ? { mappingOrigin: stageInput.mappingOrigin }
           : {}),
@@ -553,7 +784,8 @@ export function createDataImportServiceV010(input: {
         }
       }
       const seenDedupeKeys = new Set<string>();
-      const rows = job.source.rows.map((sourceRow, index) => {
+      const rows = job.source.rows.map((_sourceRow, index) => {
+        const sourceRow = dataImportCorrectedRowV010(job, index + 1);
         const rowNumber = index + 1;
         const validation = target.validateRow({
           contextId: dryRunInput.contextId,
@@ -618,6 +850,7 @@ export function createDataImportServiceV010(input: {
           source: saved.source,
           targetSchemaDigest: saved.dryRun!.schemaDigest,
           mapping: saved.mapping,
+          ignoredSourceColumns: saved.ignoredSourceColumns,
           importJobId: saved.importJobId,
           actorSubjectId: dryRunInput.actorSubjectId,
           recordedAt: dryRunInput.recordedAt
@@ -784,6 +1017,7 @@ export function createDataImportServiceV010(input: {
           source: saved.source,
           targetSchemaDigest: saved.dryRun!.schemaDigest,
           mapping: saved.mapping,
+          ignoredSourceColumns: saved.ignoredSourceColumns,
           importJobId: saved.importJobId,
           actorSubjectId: commitInput.actorSubjectId,
           recordedAt: commitInput.recordedAt

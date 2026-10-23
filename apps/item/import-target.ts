@@ -15,8 +15,8 @@ import {
   normalizeFoundationObjectImportCellV010
 } from "../../foundation/import-values.js";
 import type {
-  ObjectExtensionRepositoryV010
-} from "../object-extension/repository.js";
+  ObjectExtensionDefinitionReaderV010
+} from "../../contracts/foundation-object/extension.js";
 import type {
   ObjectExtensionValueRepositoryV010
 } from "../object-extension/values.js";
@@ -99,7 +99,7 @@ function extensionValueSets(input: {
   importJobId: string;
   item: ItemSubjectV010;
   values: Record<string, FoundationObjectImportCellV010>;
-  extensionRepository: ObjectExtensionRepositoryV010;
+  extensionRepository: ObjectExtensionDefinitionReaderV010;
 }) {
   const definitions = input.extensionRepository.list(
     input.contextId,
@@ -146,7 +146,7 @@ function extensionValueSets(input: {
 export function createItemImportTargetV010(input: {
   resources: EnterpriseResourceRepositoryV010;
   repository: ItemRepositoryV010;
-  extensionRepository: ObjectExtensionRepositoryV010;
+  extensionRepository: ObjectExtensionDefinitionReaderV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
 }): FoundationObjectImportTargetV010 {
   const existingCodeCache = new Map<string, Set<string>>();

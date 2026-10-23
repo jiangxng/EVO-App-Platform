@@ -1,0 +1,316 @@
+name: PA05 - Cross-database reservation admission (isolated)
+on:
+  pull_request:
+    paths:
+      - "manager/pa05-cross-database-admission.ts"
+      - "manager/pa05-read-owner-shared-sql-gate.ts"
+      - "manager/pa05-read-owner-authenticated-host.ts"
+      - "manager/pa05-read-owner-host-lifecycle.ts"
+      - "manager/pa05-read-owner-lifecycle-pg.ts"
+      - "manager/server.ts"
+      - "tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4f-prestartup-recovery-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j4f-pending-recovery.sql"
+      - "tests/agent-line/fixtures/pa05-e01j4f-repair-worker.mjs"
+      - "manager/pa05-read-owner-prestartup-recovery.ts"
+      - "manager/pa05-read-owner-trusted-prestartup.ts"
+      - "manager/pa05-read-owner-prestartup-audit.ts"
+      - "manager/pa05-read-owner-one-shot-prestartup.ts"
+      - "manager/pa05-read-owner-cooperative-host-lock.ts"
+      - "tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4i-one-shot-host-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4h-durable-audit-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4g-operator-trust-pg.test.mjs"
+      - "docs/agent-line/PA05-E01J4F-PRESTART-RECOVERY-20261019.md"
+      - "tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql"
+      - "docs/agent-line/PA05-E01J4E-LEAST-PRIVILEGED-SQL-OPERATOR-20261019.md"
+      - "docs/agent-line/PA05-E01J4D-ACTUAL-HOST-ROUTE-20261019.md"
+      - "docs/agent-line/PA05-E01J4C-HOST-LIFECYCLE-COMPOSITION-20261019.md"
+      - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j3-tcp-link.mjs"
+      - "docs/agent-line/PA05-E01J4-PERSISTED-MULTIWORKER-REATTEST-20261019.md"
+      - "docs/agent-line/PA05-E01J3-INFLIGHT-TCP-READ-20261019.md"
+      - "docs/agent-line/PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md"
+      - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j-sql-host-worker.mjs"
+      - "manager/pa05-cross-database-remote-sql-admission.ts"
+      - "manager/pa05-cross-database-freeze.ts"
+      - "manager/pa05-cross-database-host-principal.ts"
+      - "manager/pa05-cross-database-owner-settlement.ts"
+      - "manager/pa05-cross-database-domain-owner-fence.ts"
+      - "manager/pa05-cross-database-domain-coverage.ts"
+      - "apps/object-extension/pa05-governed-owner.ts"
+      - "apps/object-extension/agent-owner-postgres.ts"
+      - "apps/object-extension/pa05-physical-sql-guard.ts"
+      - "apps/object-extension/pa05-host-sql-permit.ts"
+      - "scripts/ci/pa05-host-mtls-setup.sh"
+      - "scripts/ci/pa05-host-mtls-revoke.sh"
+      - "agents/enterprise-agent/pa02b-governed-owner-write-handoff.ts"
+      - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs"
+      - "tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs"
+      - "tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs"
+      - "tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs"
+      - "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md"
+      - ".github/workflows/agent-pa05-cross-database-admission.yml"
+  push:
+    branches: [main]
+    paths:
+      - "manager/pa05-cross-database-admission.ts"
+      - "manager/pa05-read-owner-shared-sql-gate.ts"
+      - "manager/pa05-read-owner-authenticated-host.ts"
+      - "manager/pa05-read-owner-host-lifecycle.ts"
+      - "manager/pa05-read-owner-lifecycle-pg.ts"
+      - "manager/server.ts"
+      - "tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4f-prestartup-recovery-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j4f-pending-recovery.sql"
+      - "tests/agent-line/fixtures/pa05-e01j4f-repair-worker.mjs"
+      - "manager/pa05-read-owner-prestartup-recovery.ts"
+      - "manager/pa05-read-owner-trusted-prestartup.ts"
+      - "manager/pa05-read-owner-prestartup-audit.ts"
+      - "manager/pa05-read-owner-one-shot-prestartup.ts"
+      - "manager/pa05-read-owner-cooperative-host-lock.ts"
+      - "tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4i-one-shot-host-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4h-durable-audit-pg.test.mjs"
+      - "tests/agent-line/pa05-e01j4g-operator-trust-pg.test.mjs"
+      - "docs/agent-line/PA05-E01J4F-PRESTART-RECOVERY-20261019.md"
+      - "tests/agent-line/fixtures/pa05-e01j4e-operator-function.sql"
+      - "docs/agent-line/PA05-E01J4E-LEAST-PRIVILEGED-SQL-OPERATOR-20261019.md"
+      - "docs/agent-line/PA05-E01J4D-ACTUAL-HOST-ROUTE-20261019.md"
+      - "docs/agent-line/PA05-E01J4C-HOST-LIFECYCLE-COMPOSITION-20261019.md"
+      - "tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j2-host-worker.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j3-tcp-link.mjs"
+      - "docs/agent-line/PA05-E01J4-PERSISTED-MULTIWORKER-REATTEST-20261019.md"
+      - "docs/agent-line/PA05-E01J3-INFLIGHT-TCP-READ-20261019.md"
+      - "docs/agent-line/PA05-E01J2-AUTHENTICATED-SQL-HOST-READ-20261019.md"
+      - "tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs"
+      - "tests/agent-line/fixtures/pa05-e01j-sql-host-worker.mjs"
+      - "manager/pa05-cross-database-remote-sql-admission.ts"
+      - "manager/pa05-cross-database-freeze.ts"
+      - "tests/agent-line/pa05-cross-database-admission-pg.test.mjs"
+      - "tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs"
+      - ".github/workflows/agent-pa05-cross-database-admission.yml"
+permissions:
+  contents: read
+jobs:
+  cross-database-reservation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      authority:
+        image: postgres:18
+        env:
+          POSTGRES_USER: proof
+          POSTGRES_PASSWORD: proof
+          POSTGRES_DB: pa05_authority
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U proof -d pa05_authority"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+      worker_a:
+        image: postgres:18
+        env:
+          POSTGRES_USER: proof
+          POSTGRES_PASSWORD: proof
+          POSTGRES_DB: pa05_worker_a
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U proof -d pa05_worker_a"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+      worker_b:
+        image: postgres:18
+        env:
+          POSTGRES_USER: proof
+          POSTGRES_PASSWORD: proof
+          POSTGRES_DB: pa05_worker_b
+        ports: ["5434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U proof -d pa05_worker_b"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA05_XDB_AUTHORITY_DATABASE_URL: postgres://proof:proof@127.0.0.1:5432/pa05_authority
+      PA05_XDB_WORKER_A_DATABASE_URL: postgres://proof:proof@127.0.0.1:5433/pa05_worker_a
+      PA05_XDB_WORKER_B_DATABASE_URL: postgres://proof:proof@127.0.0.1:5434/pa05_worker_b
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Reproduce the last certified READ-recovery runtime; bump with the full PG gate.
+          node-version: "24.21.0"
+      - run: npm ci
+      - run: npm run build
+      - name: Configure ephemeral worker A PostgreSQL18 Host client certificate authentication
+        run: bash scripts/ci/pa05-host-mtls-setup.sh ${{ job.services.worker_a.id }}
+      - name: Three PostgreSQL18 clusters, central lock and remote Worker uncertainty
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Serial file runners prevent independent PG18 suites from exhausting
+          # the same ephemeral central authority connection pool. Assertions,
+          # 20-second per-IPC limits and the strict 22/22 zero-skip gate remain.
+          node --test --test-concurrency=1 tests/agent-line/pa05-cross-database-admission-pg.test.mjs tests/agent-line/pa05-cross-database-remote-sql-pg.test.mjs tests/agent-line/pa05-cross-database-governed-handoff-pg.test.mjs tests/agent-line/pa05-cross-database-host-sql-identity-pg.test.mjs tests/agent-line/pa05-cross-database-remote-freeze-pg.test.mjs tests/agent-line/pa05-cross-database-host-principal-pg.test.mjs tests/agent-line/pa05-cross-database-transaction-principal-pg.test.mjs tests/agent-line/pa05-cross-database-domain-owner-partition-pg.test.mjs tests/agent-line/pa05-cross-database-domain-coverage-pg.test.mjs tests/agent-line/pa05-actual-object-extension-owner-pg.test.mjs tests/agent-line/pa05-object-extension-physical-sql-fence-pg.test.mjs tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs tests/agent-line/pa05-e01j-shared-read-owner-pg.test.mjs tests/agent-line/pa05-e01j2-authenticated-read-handler-pg.test.mjs tests/agent-line/pa05-e01j4d-actual-host-http-pg.test.mjs tests/agent-line/pa05-e01j4f-prestartup-recovery-pg.test.mjs tests/agent-line/pa05-e01j4g-operator-trust-pg.test.mjs tests/agent-line/pa05-e01j4h-durable-audit-pg.test.mjs tests/agent-line/pa05-e01j4i-one-shot-host-pg.test.mjs tests/agent-line/pa05-e01j4j-cooperative-host-pg.test.mjs | tee pa05-xdb.log
+          grep -Fq 'PA05_XDB_CENTRAL_RESERVATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J_SHARED_READ_OWNER_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J2_AUTHENTICATED_HANDLER_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J2_AUTHORITY_UNAVAILABLE=' pa05-xdb.log
+          grep -Fq 'PA05_E01J3_INFLIGHT_TCP_PARTITION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4_PERSISTED_MULTIWORKER_REATTEST_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4B_CRASH_RECOVER_LIFECYCLE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4C_HOST_COMPOSED_LIFECYCLE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4D_ACTUAL_HTTP_LIFECYCLE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4E_LEAST_PRIVILEGE_FUNCTION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4F_PRESTART_RECOVERY_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4G_PROVIDER_DENIAL=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4G_TRUSTED_SQL_RECOVERY_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4H_DURABLE_AUDIT=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4I_ONE_SHOT_HOST_PG=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4I_ONE_SHOT_DENIAL=' pa05-xdb.log
+          grep -Fq 'PA05_E01J4J_COOPERATING_HOST=' pa05-xdb.log
+          grep -Fq '"secondCooperatingHostDenied":true' pa05-xdb.log
+          grep -Fq '"nonzeroHostExitLeavesLock":true' pa05-xdb.log
+          grep -Fq '"defaultHostModeStillOff":true' pa05-xdb.log
+          grep -Fq '"onlineHostExcludesMaintenanceBeforeIdentity":true' pa05-xdb.log
+          grep -Fq '"multiWorkerGlobalStopCertified":false' pa05-xdb.log
+          grep -Fq '"noProductionMaintainerCli":true' pa05-xdb.log
+          grep -Fq '"distributedHostLockCertified":false' pa05-xdb.log
+          grep -Fq '"authorizedEventSurvivesSigkill":true' pa05-xdb.log
+          grep -Fq '"centralDistributedAuditCertified":false' pa05-xdb.log
+          grep -Fq '"productionOperatorIdentityCertified":false' pa05-xdb.log
+          grep -Fq '"maintenanceCliDelivered":false' pa05-xdb.log
+          grep -Fq '"realHostE01iRejectedBeforeRepair":true' pa05-xdb.log
+          grep -Fq '"actualOsCrashAfterLocalUninstallBeforeComplete":true' pa05-xdb.log
+          grep -Fq '"realHostBootedAfterClearedState":true' pa05-xdb.log
+          grep -Fq '"productionRepairCommandWired":false' pa05-xdb.log
+          grep -Fq '"sqlHostRoleNoRawUpdate":true' pa05-xdb.log
+          grep -Fq '"ordinaryWorkerFunctionDenied":true' pa05-xdb.log
+          grep -Fq '"forgedHostIdentityAndGucDenied":true' pa05-xdb.log
+          grep -Fq '"productionDatabaseProvisioned":false' pa05-xdb.log
+          grep -Fq '"actualNodeHostHttpAndAction":true' pa05-xdb.log
+          grep -Fq '"directDisableSqlFirst":true' pa05-xdb.log
+          grep -Fq '"actionUninstallSqlFirst":true' pa05-xdb.log
+          grep -Fq '"missingCentralAuthorityFailsClosed":true' pa05-xdb.log
+          grep -Fq '"ordinaryWorkerCannotMutateCentralApproval":true' pa05-xdb.log
+          grep -Fq '"fullDistributedCrossStoreAtomicity":false' pa05-xdb.log
+          grep -Fq '"privilegedOperatorRequired":true' pa05-xdb.log
+          grep -Fq '"centralOutageBlocksLocalMutation":true' pa05-xdb.log
+          grep -Fq '"completeOutageLeavesDurableRepair":true' pa05-xdb.log
+          grep -Fq '"reinstallWithoutHostReattestationDenied":true' pa05-xdb.log
+          grep -Fq '"actualProductionServerRouteWired":false' pa05-xdb.log
+          grep -Fq '"centralCutAndIntentSameSqlTransaction":true' pa05-xdb.log
+          grep -Fq '"revokeWaitedForInFlightRead":true' pa05-xdb.log
+          grep -Fq '"uninstalledPackageNotAutoRestored":true' pa05-xdb.log
+          grep -Fq '"repairDurableAcrossThreeWorkerCrashes":true' pa05-xdb.log
+          grep -Fq '"reinstallWithoutReattestationDenied":true' pa05-xdb.log
+          grep -Fq '"productionCrossStoreAtomicityCertified":false' pa05-xdb.log
+          grep -Fq '"crashedWorkerRestoredLocallyActive":true' pa05-xdb.log
+          grep -Fq '"globalRecertificationDoesNotAutoApproveWorkers":true' pa05-xdb.log
+          grep -Fq '"workerCannotForgeHostReattestation":true' pa05-xdb.log
+          grep -Fq '"reattestedHostReadPasses":true' pa05-xdb.log
+          grep -Fq '"localJsonPostgresAtomicityCertified":false' pa05-xdb.log
+          grep -Fq '"cutOccurredDuringOriginalBusinessRead":true' pa05-xdb.log
+          grep -Fq '"originalBusinessResultNeverEscapedCut":true' pa05-xdb.log
+          grep -Fq '"staleEpochDeniedAfterTcpRecovery":true' pa05-xdb.log
+          grep -Fq '"supervisedFreshWorkerRecovered":true' pa05-xdb.log
+          grep -Fq '"originalWorkerGracefulTransportRecoveryCertified":false' pa05-xdb.log
+          grep -Fq '"liveProductionTransportCertified":false' pa05-xdb.log
+          grep -Fq '"silentPacketBlackholeCertified":false' pa05-xdb.log
+          grep -Fq '"readCallbackInvoked":false' pa05-xdb.log
+          grep -Fq '"roleBoundSessionUser":true' pa05-xdb.log
+          grep -Fq '"originalPurchaseAttentionHandlerAndSourceRouter":true' pa05-xdb.log
+          grep -Fq '"hostsCannotMutateEpochOrInventory":true' pa05-xdb.log
+          grep -Fq '"oldSqlBackendPrivilegeRevoked":true' pa05-xdb.log
+          grep -Fq '"activeBackendTerminationFailClosed":true' pa05-xdb.log
+          grep -Fq '"productionHostWired":false' pa05-xdb.log
+          grep -Fq '"crossStorageAtomicInstallCertified":false' pa05-xdb.log
+          grep -Fq '"actualSeparateHostProcesses":2' pa05-xdb.log
+          grep -Fq '"oldReadHeldBlocksRevokeCommit":true' pa05-xdb.log
+          grep -Fq '"oldEpochDeniedBothWorkers":true' pa05-xdb.log
+          grep -Fq '"productionHostBusinessHandlerIntegrated":false' pa05-xdb.log
+          grep -Fq '"sqlRoleSeparationCertified":false' pa05-xdb.log
+          grep -Fq 'PA05_E01J_READ_INVENTORY_PG=' pa05-xdb.log
+          grep -Fq '"hostInventoryPinned":true' pa05-xdb.log
+          grep -Fq 'PA05_E01J_PARTITION_FAIL_CLOSED=' pa05-xdb.log
+          grep -Fq '"unavailableAuthorityDenied":true' pa05-xdb.log
+          grep -Fq '"runtimePartitionDuringActiveReadCertified":false' pa05-xdb.log
+          grep -Fq '"physicalClusters":3' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
+          grep -Fq '"remoteWorkerEnforcementImplemented":false' pa05-xdb.log
+          grep -Fq 'PA05_XDB_REMOTE_SQL_ADMISSION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_GOVERNED_HANDOFF_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_OWNER_VERIFIED_SETTLEMENT_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_CENTRAL_SQL_HOST_IDENTITY_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_REMOTE_MONOTONE_FREEZE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_HOST_PRINCIPAL_BINDING_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_TRANSACTIONAL_HOST_FENCE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_DOMAIN_OWNER_PARTITION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_XDB_DOMAIN_COVERAGE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_EXTENSION_OWNER_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_PHYSICAL_SQL_FENCE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_HOST_PERMIT_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_ROLE_DRIFT_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_HOST_PERMIT_REVOCATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_APPROVED_PAYLOAD_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_HOST_COMMAND_PROVENANCE_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_TRANSACTION_BINDING_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_CREDENTIAL_ROTATION_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_HOST_MTLS_PG=' pa05-xdb.log
+          grep -Fq 'PA05_ACTUAL_OBJECT_SQL_HOST_TLS_REVOKE_RENEW_PG=' pa05-xdb.log
+          grep -Fq '"newHandshakeRevokedCertificateDenied":true' pa05-xdb.log
+          grep -Fq '"oldTlsHostPrivilegeDeniedAfterDbCutover":true' pa05-xdb.log
+          grep -Fq '"renewedCertificateOriginalOwnerAndVerifierSucceeded":true' pa05-xdb.log
+          grep -Fq '"originalRawOwnerDeniedEvenWithValidTicket":true' pa05-xdb.log
+          grep -Fq '"privilegedTableOwnerCanStillDisableTrigger":true' pa05-xdb.log
+          grep -Fq '"originalOwnerDirectBypassStillPossible":true' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
+          grep -Fq '"postCentralReserveFailureLeavesPendingAndNoLocalTicket":true' pa05-xdb.log
+          grep -Fq '"existingBusinessPluginsAutoProtected":false' pa05-xdb.log
+          grep -Fq '"hostUnticketedBeginWriteDenied":true' pa05-xdb.log
+          grep -Fq '"privilegedTableOwnerCanDisableTrigger":true' pa05-xdb.log
+          grep -Fq '"defaultBusinessPluginsFenced":false' pa05-xdb.log
+          grep -Fq 'PA05_XDB_HOST_LEAST_PRIVILEGE_ROTATION_PG=' pa05-xdb.log
+          grep -Fq '"actualD10TicketMintRejectedOnPrivilegeDrift":true' pa05-xdb.log
+          grep -Fq '"newPasswordAndRevisionReattested":true' pa05-xdb.log
+          grep -Fq '"realD10PreflightToReserveRaceDenied":true' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
+          grep -Fq '"rotatedPasswordDeniesNextRealTicket":true' pa05-xdb.log
+          grep -Fq '"atomicCrossDatabaseRevocationCertified":false' pa05-xdb.log
+          grep -Fq '"remotePartitionCannotClaimGlobalFreeze":true' pa05-xdb.log
+          grep -Fq '"actualPa02HostSqlBeginWriteDeniedAfterFreeze":true' pa05-xdb.log
+          grep -Fq '"preStagedTicketCanExecuteOnUnreachableActiveRemote":true' pa05-xdb.log
+          grep -Fq '"parallelSettlementExactlyOneNewTransition":true' pa05-xdb.log
+          grep -Fq '"duplicateSettlementIdempotent":true' pa05-xdb.log
+          grep -Fq '"actualPa02Handoff":true' pa05-xdb.log
+          grep -Fq '"sqlAdmissionRequiresStagedCentralReservation":true' pa05-xdb.log
+          grep -Fq '"productionWriteEnabled":false' pa05-xdb.log
+          # Node 24 test reporter uses the unicode summary rather than TAP '# skipped'.
+          # Pin actual case count so a conditional PG skip cannot look like success.
+          grep -Fq 'ℹ tests 28' pa05-xdb.log
+          grep -Fq 'ℹ pass 28' pa05-xdb.log
+          grep -Fq 'ℹ fail 0' pa05-xdb.log
+          grep -Fq 'ℹ skipped 0' pa05-xdb.log
+          if grep -Eq '^# skipped [1-9][0-9]*' pa05-xdb.log; then exit 1; fi
+      - name: Preserve isolated non-production evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pa05-xdb-reservation-pg-evidence
+          path: pa05-xdb.log
+          retention-days: 14
+          if-no-files-found: warn

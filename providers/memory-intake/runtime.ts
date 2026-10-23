@@ -16,6 +16,28 @@ export interface HostMemoryIntakeConfigV010 {
   records: ContextMemoryIntakeRecordV010[];
 }
 
+// Reference Host configuration is a bounded seed, not a bulk source database.
+const MAX_CONFIG_BYTES = 128 * 1024;
+const MAX_RECORDS = 1000;
+const MAX_RECORD_BYTES = 512 * 1024;
+
+function assertRecordCount(records: readonly unknown[]): void {
+  if (records.length > MAX_RECORDS) {
+    throw new Error("MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED");
+  }
+}
+
+function assertRecordBudget(records: readonly unknown[]): void {
+  assertRecordCount(records);
+  let bytes = 0;
+  for (const record of records) {
+    bytes += Buffer.byteLength(JSON.stringify(record), "utf8");
+    if (bytes > MAX_RECORD_BYTES) {
+      throw new Error("MEMORY_INTAKE_RECORD_BYTES_EXCEEDED");
+    }
+  }
+}
+
 function sameContext(
   left: ActiveContextRefV010,
   right: ActiveContextRefV010
@@ -210,6 +232,9 @@ function validRecord(
 export function parseHostMemoryIntakeConfigV010(
   raw: string | undefined
 ): HostMemoryIntakeConfigV010 | undefined {
+  if (raw && Buffer.byteLength(raw, "utf8") > MAX_CONFIG_BYTES) {
+    throw new Error("MEMORY_INTAKE_CONFIG_TOO_LARGE");
+  }
   if (!raw?.trim()) return undefined;
   const parsed = JSON.parse(raw) as Record<string, unknown>;
   if (
@@ -221,10 +246,12 @@ export function parseHostMemoryIntakeConfigV010(
   ) {
     throw new Error("MEMORY_INTAKE_CONFIG_INVALID");
   }
+  assertRecordCount(parsed.records);
   const source = validSource(parsed.source);
   const records = parsed.records.map((item, index) =>
     validRecord(item, index, source.sourceId)
   );
+  assertRecordBudget(records);
   const ids = new Set<string>();
   for (const record of records) {
     if (ids.has(record.sourceRecordId)) {
@@ -275,6 +302,7 @@ function offset(cursor: string | undefined): number {
 export function createHostMemoryIntakeSourceAdapterV010(
   config: HostMemoryIntakeConfigV010
 ): ContextMemoryIntakeSourceAdapterV010 {
+  assertRecordBudget(config.records);
   const records = config.records.map(item => structuredClone(item));
   return {
     providerId: HOST_MEMORY_INTAKE_SOURCE_PROVIDER_ID,

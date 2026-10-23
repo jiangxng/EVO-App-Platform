@@ -23,7 +23,10 @@ export type AgentRunEventTypeV010 =
   | "RUN_CREATED"
   | "SLICE_STARTED"
   | "MODEL_DECISION_RECORDED"
+  | "MODEL_INFERENCE_FAILED"
+  | "MODEL_USAGE_RECORDED"
   | "TOOL_OBSERVATION_RECORDED"
+  | "READ_REFRESH_RECORDED"
   | "SLICE_PAUSED"
   | "RUN_SUCCEEDED"
   | "RUN_BLOCKED"
@@ -77,6 +80,9 @@ export interface AgentRunDecisionRecordV010 {
   occurredAt: string;
   decision: AgentModelDecision;
   observation?: AgentToolObservation;
+  /** C03: the latest Host-verified READ refresh, not a mutation of the audit source. */
+  refreshedAt?: string;
+  refreshSourceVersion?: string;
 }
 
 export interface AgentRunV010 {
@@ -92,6 +98,21 @@ export interface AgentRunV010 {
   createdAt: string;
   updatedAt: string;
   sliceCount: number;
+  /** Consecutive durable failed model attempts; reset by a successful decision. */
+  modelFailureCount: number;
+  /** Provider-reported evidence, not an approved monetary charge. */
+  modelUsages: Array<{
+    sliceId: string;
+    providerId: string;
+    modelId: string;
+    status: "REPORTED" | "UNAVAILABLE";
+    usage?: {
+      inputTokens: number;
+      outputTokens: number;
+      cachedInputTokens?: number;
+      cacheWriteInputTokens?: number;
+    };
+  }>;
   activeSliceId?: string;
   lastEventId: string;
   decisions: AgentRunDecisionRecordV010[];

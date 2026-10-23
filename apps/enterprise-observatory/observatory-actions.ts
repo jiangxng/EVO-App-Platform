@@ -4,6 +4,8 @@ import type {
   AppActionRequestV010
 } from "../../actions/contracts.js";
 import {
+  EOG_OBSERVE_ACTION,
+  EOG_ANALYZE_ACTION,
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "./package.js";
@@ -20,10 +22,7 @@ import {
   parseEogObservatoryRequestInputV020
 } from "../../eog/observatory-input.js";
 
-export const EOG_OBSERVE_ACTION =
-  "enterprise-operating-graph.observatory.observe";
-export const EOG_ANALYZE_ACTION =
-  "enterprise-operating-graph.observatory.analyze";
+export { EOG_OBSERVE_ACTION, EOG_ANALYZE_ACTION } from "./package.js";
 
 function enterpriseId(
   context: PlatformRequestContextV010

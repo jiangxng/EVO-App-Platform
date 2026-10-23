@@ -5,6 +5,10 @@ import type {
   JsonValue
 } from "../../actions/contracts.js";
 import {
+  ENTERPRISE_OBSERVATORY_2D_PAGE_SOURCE as EOG_OBSERVATORY_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_2D_ROUTE as EOG_OBSERVATORY_ROUTE,
+  EOG_OBSERVATORY_VIEW_GET_ACTION,
+  EOG_OBSERVATORY_VIEW_OPERATION_ACTION,
   ENTERPRISE_OBSERVATORY_2D_FEATURE_ID,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "./package.js";
@@ -46,18 +50,16 @@ import {
   parseEogTimeLensInputV020
 } from "../../eog/observatory-input.js";
 import {
-  EOG_MOBILE_READ_PAGE_SOURCE,
-  EOG_MOBILE_READ_ROUTE
-} from "./mobile-read-page.js";
+  ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_MOBILE_ROUTE as EOG_MOBILE_READ_ROUTE
+} from "./package.js";
 
-export const EOG_OBSERVATORY_PAGE_SOURCE =
-  "app://evo-enterprise-operating-graph/pages/observatory";
-export const EOG_OBSERVATORY_ROUTE =
-  "/operating-graph/observe";
-export const EOG_OBSERVATORY_VIEW_GET_ACTION =
-  "enterprise-operating-graph.observatory.view.get";
-export const EOG_OBSERVATORY_VIEW_OPERATION_ACTION =
-  "enterprise-operating-graph.observatory.view.operation";
+export {
+  ENTERPRISE_OBSERVATORY_2D_PAGE_SOURCE as EOG_OBSERVATORY_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_2D_ROUTE as EOG_OBSERVATORY_ROUTE,
+  EOG_OBSERVATORY_VIEW_GET_ACTION,
+  EOG_OBSERVATORY_VIEW_OPERATION_ACTION
+} from "./package.js";
 
 export function createEnterpriseOperatingGraphObservatoryExperienceManifestV020() {
   const semanticId = "evo-enterprise-operating-graph.observatory";

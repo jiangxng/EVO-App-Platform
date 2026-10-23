@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-18",
+  "baseline": "8d2c98657cfe910ab7532c811bae407c027db697",
+  "baselineReproduction": {
+    "ttlMs": 1000,
+    "ownerAt0": true,
+    "contenderAt1001WithoutRelease": true
+  },
+  "sourceSha256": {
+    "manager/context-memory-scheduler.ts": "f7b46763ff8a75dd1f95bbfc14df1a5c9f1914c918990edd468892893104af66",
+    "tests/protocol/context-memory-scheduler-file-lease.test.mjs": "12948f3dff0d734d41ce82eaf6f4dd21cb9ddbdc42904292d10b33fda860f824",
+    ".github/workflows/lightweight-host.yml": "e8c6a5e5f311232e31b04db6267583ad93d0d7f78c3d898da92317179a802d70"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\nnpm notice\nnpm notice New major version of npm available! 11.9.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n",
+  "tests": "✔ real minimal Host without Memory or source registers 0 scheduler timer (2124.7634ms)\n✔ real minimal Host with retained Memory registers 1 scheduler timer (1979.021446ms)\n✔ real Host HTTP lifecycle, binding switch, in-flight page and restart preserve scheduler ownership and cursors (952.847461ms)\n✔ retention policy is append-only and scheduled evaluation emits governance expiry (3.810435ms)\n✔ legal hold blocks scheduled retention and read-time retainUntil expiry (9.77023ms)\n✔ DLP operation fails closed without Provider and writes no governance mutation (0.708982ms)\n✔ DLP Provider classification becomes append-only governance overlay (0.55924ms)\n✔ remote DLP Provider uses bearer credential and validates classification response (0.723023ms)\n✔ scheduler lease prevents overlapping execution and intake contexts are explicit (8.046722ms)\n✔ schedule context parser rejects implicit or malformed Context expansion (0.498249ms)\n✔ releasing one Legal Hold does not release another active hold (0.26912ms)\n✔ DLP never overrides explicit human privacy governance (0.52569ms)\n✔ DLP Provider failure leaves the entire classification batch unmodified (0.479882ms)\n✔ Eidos Memory Search receives only governance-visible Memory (0.486022ms)\n✔ Eidos Enterprise Memory Governance hides detail from MEMBER (0.736863ms)\n✔ scheduled intake cursor state advances one page and resets at source end (0.429347ms)\n✔ empty configured driver has zero timers; arrival wakes once; removal stops; reactivation restores (1.935953ms)\n✔ eligibility is rechecked before a queued tick; failed resolution stops without breaking the mutation (0.365082ms)\n✔ disabled schedule never evaluates providers or allocates a timer (0.426954ms)\n✔ source disable during an intake page drains its evidence but prevents next Context; restore permits later tick (8.555296ms)\n✔ another process cannot take over a long DLP tick; late completion retains ownership until finally (220.458454ms)\n✔ a dead owner is not silently replaced after TTL; recovery requires all writers stopped (199.643142ms)\n✔ re-entrant acquire does not lose ownership; normal release allows reuse (1.309784ms)\n✔ invalid, partial and expired legacy claims fail closed without changing bytes (1.816936ms)\n✔ release cannot delete a replacement claim even with the same holder label (0.868769ms)\n✔ invalid time cannot create a persistent claim and filesystem failures are observable (0.555294ms)\n✔ stop drains dlp without admitting another context or releasing its lease early (12.063322ms)\n✔ stop drains intake without admitting another context or releasing its lease early (0.985953ms)\n✔ stop timeout retains the active lease and blocks new work; later drain can be awaited (5.684597ms)\n✔ failing in-flight operation releases only in finally and stop reports failure (0.69358ms)\n✔ idle stop prevents lease acquisition; invalid deadline does not stop a live scheduler (0.448306ms)\nℹ tests 31\nℹ suites 0\nℹ pass 31\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 4190.907411\n",
+  "staticGate": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 350,
+    "legacyEagerEdges": 269,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "limits": [
+    "Local filesystem, same lease path, upgraded cooperating processes only; one designated scheduler is supported.",
+    "Cross-process tests inject time and use scheduler component plus child contenders, not two complete Hosts.",
+    "Crash recovery is manual after quiescence and remote-result reconciliation. No automatic failover or distributed fencing.",
+    "31 tests; real Host HTTP regression is synthetic local-source evidence. No deployment."
+  ]
+}

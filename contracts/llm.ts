@@ -27,9 +27,14 @@ export interface LlmInferenceResponseV010 {
   modelId: string;
   text: string;
   toolCalls: LlmToolCallV010[];
-  usage: {
+  /** If absent the Provider did not report usage; it is NOT a zero-cost inference. */
+  usage?: {
     inputTokens: number;
     outputTokens: number;
+    /** A reported subset of inputTokens. Absent is unknown, never zero. */
+    cachedInputTokens?: number;
+    /** Separately billable prompt cache writes, if reported by Provider. */
+    cacheWriteInputTokens?: number;
   };
   finishReason: string;
 }

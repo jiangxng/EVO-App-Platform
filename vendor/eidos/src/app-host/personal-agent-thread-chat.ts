@@ -1,4 +1,6 @@
 import type { ActionExecutionResult, ActionHost } from "../adapters/ports.js";
+import {recoverPersonalAgentRunEventsV010,type PersonalAgentRunRecoveryV010}
+  from "./personal-agent-run-event-recovery.js";
 import type {
   ChatMessageV020
 } from "../chat/contracts.js";
@@ -46,6 +48,8 @@ export interface ThreadBackedChatExecutionV010 {
   runState?: ThreadBackedRunStateV010;
   resumeCount: number;
   transcript: ChatMessageV020[];
+  /** Authenticated Host Outbox state from browser reconnect, if installed. */
+  runRecovery?: PersonalAgentRunRecoveryV010;
 }
 
 export interface ThreadBackedChatOptionsV010 {
@@ -586,6 +590,21 @@ export async function recoverThreadBackedChatV010(
     };
   }
 
+  // R05/R06: read the persisted, scoped Run Outbox *before* attempting to
+  // resume the same Thread. The Outbox itself must never drive business tools;
+  // on cursor loss or a gap, only the authoritative Run snapshot is trusted.
+  // Older V010-only Hosts expose no run.events action and keep their existing
+  // recovery path without a second/recreated Run.
+  const replay=await recoverPersonalAgentRunEventsV010({
+    actionHost:options.actionHost,request:options.request,runId:pendingRunId
+  });
+  if(replay.availability==="ERROR") {
+    return {
+      mode:"THREAD",result:replay.error,
+      thread,threadId:thread.threadId,runId:pendingRunId,
+      resumeCount:0,transcript:transcriptFromThreadV010(thread)
+    };
+  }
   const resumed = await options.actionHost.execute(commandRequest(
     options.request,
     "enterprise-agent.thread.resume",
@@ -596,7 +615,22 @@ export async function recoverThreadBackedChatV010(
       ...scopeValues(options.request)
     }
   ));
-  return drain(options, resumed, thread.threadId);
+  const outcome=await drain(options,resumed,thread.threadId);
+  if(replay.availability!=="AVAILABLE")return outcome;
+  // A terminal Host snapshot is immutable. Do not replace it with an older
+  // provisional browser result or silently switch to a different Run.
+  const committed=replay.recovery;
+  if(outcome.runId!==pendingRunId||
+    (["SUCCEEDED","FAILED","CANCELLED","BLOCKED"].includes(committed.state)&&
+      outcome.runState!==committed.state)) {
+    return {
+      ...outcome,
+      result:errorResult("EIDOS_PA02_RUN_RECOVERY_SNAPSHOT_MISMATCH",
+        "The thread recovery disagreed with a verified terminal Run snapshot. Refresh the same conversation; no new Run was started."),
+      runRecovery:committed
+    };
+  }
+  return {...outcome,runRecovery:committed};
 }
 
 export async function executeThreadBackedChatV010(

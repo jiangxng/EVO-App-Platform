@@ -335,3 +335,16 @@ test("identity-directory authentication failures have stable HTTP semantics", ()
     }
   );
 });
+
+test('authentication context is rechecked after directory wait before managed Session issuance', async () => {
+  const sessions = sessionService(); let active = true, enter, release;
+  const entered = new Promise(resolve => {enter = resolve;}); const barrier = new Promise(resolve => {release = resolve;});
+  const flow = createAuthenticationFlowV010({provider: humanProvider(), sessions, publicBaseUrl: 'https://evo.example', sessionTtlSeconds: 3600,
+    assertCurrent() {if (!active) throw Error('OIDC_CONTEXT_CHANGED');},
+    async onAuthenticatedPrincipal() {enter(); await barrier;}});
+  const pending = flow.complete('https://evo.example/auth/callback?code=synthetic'); await entered;
+  active = false; const rejected = assert.rejects(pending, /OIDC_CONTEXT_CHANGED/); release(); await rejected;
+  assert.equal(sessions.list().length, 0);
+  assert.equal(requestAuthenticationHttpFailureV010(Error('OIDC_CONTEXT_CHANGED')).status, 503);
+});
+

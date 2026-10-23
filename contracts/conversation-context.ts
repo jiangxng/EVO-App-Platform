@@ -15,6 +15,8 @@ export interface ConversationSummaryProvenanceV010 {
   strategy: "DETERMINISTIC_EXTRACTIVE" | "MODEL";
   policyId: string;
   policyVersion: string;
+  /** Exact SHA-256 fingerprint of the ordered source messages used for this derived summary. */
+  sourceDigest?: string;
   providerId?: string;
   modelId?: string;
   promptVersion?: string;
@@ -87,4 +89,25 @@ export interface ConversationContextAssemblerV010 {
     threadStore: ConversationThreadStoreV010;
     now: string;
   }): Promise<ConversationContextAssemblyResultV010>;
+}
+
+
+/**
+ * Optional Host/retention-owner port, never exposed as an Agent tool.
+ *
+ * The caller must authorize and coordinate the source-message revocation.
+ * Tombstones prevent a stale compression task from re-saving content from
+ * revoked source IDs; derived summaries/checkpoints are erased atomically.
+ * This does NOT delete the authoritative Conversation source message or
+ * third-party indexes, and does NOT grant permission to redact them.
+ */
+export interface ConversationSourceRevocationPortV010 {
+  revokeSourceMessages(input: {
+    threadId: string;
+    sourceMessageIds: string[];
+  }): Promise<{
+    removedSummaries: number;
+    removedCheckpoints: number;
+    newlyRevokedSources: number;
+  }>;
 }

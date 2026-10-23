@@ -1,0 +1,39 @@
+name: Agent PA-04 C05 Untrusted Tool Injection
+on:
+  pull_request:
+    paths:
+      - "agents/enterprise-agent/pa02-async-read-worker.ts"
+      - "agents/enterprise-agent/provider-model.ts"
+      - "manager/agent-async-read-worker-runtime.ts"
+      - "tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs"
+      - ".github/workflows/agent-pa04-c05-tool-injection.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reject-untrusted-outbound-tool:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: agentproof
+          POSTGRES_PASSWORD: agentproof
+          POSTGRES_DB: agentproof
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agentproof -d agentproof"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PA02A_PROOF_DATABASE_URL: postgres://agentproof:agentproof@127.0.0.1:5432/agentproof
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - run: node --test tests/agent-line/pa04-c05-tool-injection-pg-e2e.test.mjs tests/agent-line/pa02-async-read-worker.test.mjs tests/agent-line/pa04-c03-resumed-read-freshness-pg-e2e.test.mjs

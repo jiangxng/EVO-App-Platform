@@ -1,0 +1,182 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-21",
+  "baseline": "261c468b0f17c34080153a6a24eefcf1cf03a8af",
+  "branch": "fix/governance-static-session-boundary-20261021",
+  "scope": "A01/R3 security foundation classification and A05 static Session missing-provider rejection",
+  "change": {
+    "source": "manager/server.ts",
+    "beforeBlob": "2aef579dd104eed2a566f094f126b52567f315a1",
+    "newProductionModules": 0,
+    "bootstrapChanged": false,
+    "publicContractsChanged": false,
+    "requestSessionPriorityUnchanged": true,
+    "bareLegacyCompatibilityRetained": true,
+    "staticConfiguredAndApplicableBindingRequireProvider": true
+  },
+  "local": {
+    "node": "24.19.0",
+    "mode": "partial fixed-SHA snapshot/temporary type erasure",
+    "managedRegressionTests": 8,
+    "passed": 8,
+    "originalFunctionProbe": {
+      "before": {
+        "node": "v24.19.0",
+        "mode": "original private function after type erasure; empty effective descriptor dependency, not full Host",
+        "results": [
+          {
+            "name": "legacy",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "configured-static",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "system-binding",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "default-binding",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "other-installation",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "enterprise-binding",
+            "result": "host.compatibility-local"
+          }
+        ]
+      },
+      "after": {
+        "node": "v24.19.0",
+        "mode": "original private function after type erasure; empty effective descriptor dependency, not full Host",
+        "results": [
+          {
+            "name": "legacy",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "configured-static",
+            "error": "IDENTITY_SESSION_PROVIDER_UNAVAILABLE"
+          },
+          {
+            "name": "system-binding",
+            "error": "IDENTITY_SESSION_PROVIDER_UNAVAILABLE"
+          },
+          {
+            "name": "default-binding",
+            "error": "IDENTITY_SESSION_PROVIDER_UNAVAILABLE"
+          },
+          {
+            "name": "other-installation",
+            "result": "host.compatibility-local"
+          },
+          {
+            "name": "enterprise-binding",
+            "result": "host.compatibility-local"
+          }
+        ]
+      },
+      "assertedCases": 6,
+      "fullHost": false
+    },
+    "changedTestsAndServerSyntax": true,
+    "formalBuild": false,
+    "realHost": false,
+    "database": false,
+    "browser": false
+  },
+  "ci": {
+    "statusAtCommit": "pending exact final-head CI; permanent results in PR closeout",
+    "newHostFile": "tests/integration/static-session-fallback-boundary.test.mjs",
+    "newHostCases": 7,
+    "baselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "localModuleMeasurement": false,
+    "priorCountsAreHistorical": true,
+    "pa05PinnedNode2421Retained": true
+  },
+  "readScopes": [
+    {
+      "path": "manager/server.ts",
+      "read": "partial: ten bootstrap/config/registry entries, Session resolvers, context/diagnostics/lifecycle routes, error mapping"
+    },
+    {
+      "path": "manager/request-authentication.ts",
+      "read": "full"
+    },
+    {
+      "path": "manager/provider-resolution.ts",
+      "read": "full/reused full"
+    },
+    {
+      "path": "providers/session/runtime.ts",
+      "read": "full"
+    },
+    {
+      "path": "manager/external-agent-governance-store.ts",
+      "read": "partial file factory: load/snapshot/save"
+    },
+    {
+      "path": "manager/enterprise-context-governance-store.ts",
+      "read": "partial file factory: load/snapshot/save"
+    },
+    {
+      "path": "manager/secret-store.ts",
+      "read": "partial loadKey/loadState/encrypted file factory and methods"
+    },
+    {
+      "path": "docs/plans/platform-governance/SESSION-AND-MEMBERSHIP-DECISIONS.md",
+      "read": "full before incremental update"
+    },
+    {
+      "path": "docs/plans/platform-governance/STARTUP-RESTORE.md",
+      "read": "full"
+    },
+    {
+      "path": "docs/architecture/PRODUCTION-IDENTITY-SESSION-EA1A-v0.1.md",
+      "read": "full"
+    },
+    {
+      "path": "providers/enterprise-context/runtime.ts",
+      "read": "full; constructor captures dynamic source, list/probe invoke it"
+    }
+  ],
+  "efficiency": {
+    "authority": "docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md section10",
+    "reuseOnlyAlreadyReadUnchangedBlobs": true,
+    "singleProbeClassifiesThreeRejectionsAndThreePreservedCases": true,
+    "noRepeatedUnchangedJournalTests": true,
+    "failedRoute": "previous batch floating Node24.22 READ recovery retried twice, retained original owner gap; do not retry that environment",
+    "pivot": "new guard affects valid request identity or needs new permission/install policy; pause scope expansion and reassess"
+  },
+  "limits": [
+    "original-function dependency probe is not full Host",
+    "ten foundation matrix not fully certified",
+    "Host security snapshots/key creation must not be mislabeled zero IO",
+    "static configured bootstrap and post-uninstall restart policy unchanged",
+    "Node24.22 isolated READ recovery compatibility remains OPEN original PA05 owner"
+  ],
+  "remaining": [
+    "shared Secrets constructor qualification (no consumer/first use/corrupt key/state)",
+    "identity directory independent revocation and resource qualification",
+    "other security foundation lifecycle matrix",
+    "EVO deadlines/OIDC and records budgets",
+    "R1 frozen SOP identity/qualification",
+    "R2 Agent configured SQL responsibility/qualification",
+    "R4 final cross-layer acceptance",
+    "A03 result lookup/idempotent recovery",
+    "A05 production strategy/migration/other entry points"
+  ],
+  "globalStatusModified": false,
+  "productionDeployment": false,
+  "additionalProviderPilot": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

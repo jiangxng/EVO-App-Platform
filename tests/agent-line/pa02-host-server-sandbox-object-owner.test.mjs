@@ -59,6 +59,8 @@ const action=(threadId,message)=>({
 test("PA02 Server sandbox composition: ordinary thread.send discovers authorized Capability Owner and reconciles SQL effect",{
   skip:!url?"Needs disposable PostgreSQL18":false,timeout:90000
 },async()=>{
+  // Worker uses the real clock and a 72h Run lifetime: this is a new Run fixture.
+  const fixtureEpoch=Date.now();
   const runSchema="pa02_host_chat_"+randomUUID().replaceAll("-","").slice(0,10);
   const objectSchema="pa02_host_object_"+randomUUID().replaceAll("-","").slice(0,10);
   await preparePostgresObjectExtensionOwnerSchemaV010({connectionString:url,schema:objectSchema});
@@ -88,6 +90,14 @@ test("PA02 Server sandbox composition: ordinary thread.send discovers authorized
   const deps={manager,resolveAuthorizationProvider:()=>authProvider,resources};
   try {
     assert.equal(await createOptionalPa02SandboxObjectOwnerV010({},deps),undefined);
+    await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({
+      ...options,NODE_ENV:"development",
+      APP_PLATFORM_AGENT_RUN_PA02_TEST_POST_COMMIT_ACK_LOSS:"ackLostProof"
+    },deps),/PA02_HOST_OWNER_TEST_FAULT_NOT_ADMITTED/);
+    await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({
+      ...options,NODE_ENV:"test",
+      APP_PLATFORM_AGENT_RUN_PA02_TEST_POST_COMMIT_ACK_LOSS:"wrongField"
+    },deps),/PA02_HOST_OWNER_TEST_FAULT_NOT_ADMITTED/);
     await assert.rejects(createOptionalPa02SandboxObjectOwnerV010({
       ...options,NODE_ENV:"production"
     },deps),/PA02_HOST_OBJECT_SANDBOX_NOT_ADMITTED/);
@@ -148,7 +158,7 @@ test("PA02 Server sandbox composition: ordinary thread.send discovers authorized
     threadStore.create({
       threadId,principalSubjectId:principal.subjectId,
       principalActorType:principal.actorType,
-      context:context.activeContext,createdAt:"2026-10-14T00:00:00.000Z"
+      context:context.activeContext,createdAt:new Date(fixtureEpoch).toISOString()
     });
     const handlers=new Map(createThreadBackedAgentTurnActionHandlersV010({
       threadStore,runStore,runExecutor:{
@@ -162,13 +172,13 @@ test("PA02 Server sandbox composition: ordinary thread.send discovers authorized
         sessionId:"fixture-session",principal}),
       resolveContext:()=>context,createToolCatalog:catalog,
       runId:randomUUID,now:(()=>{let n=0;return ()=>
-        new Date(Date.parse("2026-10-14T00:00:03.000Z")+(n++)*1000);})()
+        new Date(fixtureEpoch+3000+(n++)*1000);})()
     }).map(h=>[h.commandCode,h]));
     const send=handlers.get("enterprise-agent.thread.send");
     const request=action(threadId,"Create Object Extension");
     const result=await send.execute(request,requestContext);
     assert.equal(result.ok,true,JSON.stringify(result.error));
-    assert.equal(result.result.run.state,"SUCCEEDED");
+    assert.equal(result.result.run.state,"SUCCEEDED",JSON.stringify(result.result.run));
     assert.equal(result.result.run.actionReceiptIds.length,1);
     assert.equal(sawAuthorizedOwner,true,"direct Owner added after Host Capability lookup");
     assert.equal(readCalls,0,"generic catalog never executes material WRITE");

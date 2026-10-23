@@ -1,0 +1,40 @@
+name: BEX-01 CP03 PR846 Verified Ref Retirement
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/bex01-cp03-pr846-merged-ref-retirement.yml]
+permissions:
+  contents: write
+  pull-requests: read
+jobs:
+  retire-exact-pr-head:
+    if: github.repository == 'jiangxng/EVO-App-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Delete exact PR846 fully merged source ref only
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const branch='docs/bex01-cp03-extension-handoff-20261014';
+            const p=(await github.rest.pulls.get({owner,repo,pull_number:846})).data;
+            if(!p.merged||p.base.ref!=='main'||p.head.ref!==branch||p.head.repo?.full_name!==owner+'/'+repo)
+              throw Error('REFUSE PR846 mismatch');
+            const open=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            if(open.some(x=>x.base.ref===branch||(x.head.repo?.full_name===owner+'/'+repo&&x.head.ref===branch)))
+              throw Error('REFUSE active PR depends on branch');
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            for(const sha of [p.head.sha,p.merge_commit_sha]){
+              const cmp=(await github.rest.repos.compareCommits({owner,repo,base:sha,head:main})).data;
+              if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==sha)throw Error('REFUSE not in main');
+            }
+            const getTip=async()=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+branch})).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}};
+            const tip=await getTip();
+            if(tip===null){core.info('ALREADY_ABSENT');return;}
+            if(tip!==p.head.sha)throw Error('REFUSE modified head');
+            if((await github.rest.repos.getBranch({owner,repo,branch})).data.protected)throw Error('REFUSE protected');
+            if(await getTip()!==p.head.sha)throw Error('REFUSE changed lease');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+branch});
+            core.info('DELETED_VERIFIED_BEX_PR846_REF '+branch+' @ '+p.head.sha);

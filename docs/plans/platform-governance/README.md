@@ -2,10 +2,21 @@
 
 日期：2026-10-14。本专项当前收敛为插件合理性与架构审查；生命周期试点停止扩展。
 
+**进度先读：[固定任务状态表](CLOSEOUT-COUNTDOWN.md)**。固定 7 项：4 项已闭环，3 项部分完成；均有审查结论，不等于实施全部完成。A03 已补回执校验与超时提示，权威结果查询仍待远端合同。
+
 **本轮先读：[审查成果与接续入口](REVIEW-ENTRY-20261014.md)**。38个在范围包已逐项给出判断；不是全平台迁移完成。
 
 用户目标：轻量宿主、按需安装卸载；安装能力少时降低装载与后台资源开销；个人Agent千人千面，企业具有跨部门整体分析与改进能力。
 
+- [A01收口复核与剩余责任清单](A01-CLOSURE-REVIEW-20261018.md)
+- [项目级装载原则与开发准入（第 11 节）](../../architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md#11-项目根本约束新增能力不能默认增加常驻业务负担)
+- [记忆调度器归属、停止整改与剩余边界](MEMORY-SCHEDULER-BOUNDARY-20261018.md)
+- [浏览器资源归档边界、清单实施与升级兼容证据](WEB-ASSET-ARCHIVE-BOUNDARY-20261017.md)
+- [基础对象装载消费者、存储归属与整改边界](FOUNDATION-LOADING-BOUNDARY-20261016.md)
+- [账本兼容服务按需创建与回归](LEDGER-COMPATIBILITY-LAZY-LOADING.md)
+- [未安装/停用插件装载审计与优先级](PLUGIN-LOADING-AUDIT-20261015.md)
+- [账本发布可靠性及剩余合同](LEDGER-PUBLICATION-RELIABILITY.md)
+- [运行时声明与可执行边界](RUNTIME-READINESS-BOUNDARY.md)
 - [账本编译边界整改及兼容清单](LEDGER-COMPILER-BOUNDARY.md)
 - [整体规划与执行路线](PLAN.md)
 - [GOV-00 首轮代码对账](BASELINE-20261013.md)

@@ -131,3 +131,82 @@ test('real Host lifecycle API denies anonymous access and rejects retry of an id
     });
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
+
+const fallbackTestSession = {
+  contractVersion: '0.1.0', sessionId: 'session:governance-test',
+  principal: { contractVersion: '0.1.0', subjectId: 'fallback-test-user',
+    actorType: 'HUMAN', identityProviderId: 'test.identity' },
+  issuedAt: '2026-10-01T00:00:00.000Z'
+};
+
+for (const mode of ['managed', 'bearer']) {
+  test(`configured ${mode} auth cannot fall back after provider disable/restart and recovers on reactivation`, { timeout: 60000 }, async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-auth-fallback-'));
+    const file = path.join(directory, 'state.json');
+    const packageId = mode === 'managed' ? 'host-managed-session-provider' : 'host-bearer-session-provider';
+    const env = {
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: mode === 'managed' ? 'true' : 'false',
+      APP_PLATFORM_STATIC_SESSION_JSON: JSON.stringify(fallbackTestSession),
+      ...(mode === 'bearer' ? { APP_PLATFORM_BEARER_SESSIONS_JSON: JSON.stringify({
+        contractVersion: '0.1.0', sessions: [{ token: 'isolated-valid-token', session: fallbackTestSession }]
+      }) } : {})
+    };
+    const healthy = async port => {
+      assert.equal((await fetch(`http://127.0.0.1:${port}/v1/contexts/effective`)).status, 401);
+      assert.equal((await fetch(`http://127.0.0.1:${port}/v1/contexts/effective`, {
+        headers: { authorization: 'Bearer invalid-token' }
+      })).status, 401);
+      if (mode === 'bearer') {
+        const result = await fetch(`http://127.0.0.1:${port}/v1/contexts/effective`, {
+          headers: { authorization: 'Bearer isolated-valid-token' }
+        });
+        assert.equal(result.status, 200);
+      }
+    };
+    try {
+      const initial = await boot(file, 'compatible', healthy, env);
+      const features = initial.activeFeatures.filter(item => item.packageId === packageId);
+      assert.ok(features.length > 0);
+      initial.activeFeatures = initial.activeFeatures.filter(item => item.packageId !== packageId);
+      fs.writeFileSync(file, JSON.stringify(initial));
+      const disabled = await boot(file, 'compatible', async port => {
+        for (const route of (mode === 'managed' ? ['/auth/session', '/v1/contexts/effective'] : ['/v1/contexts/effective'])) {
+          for (const headers of [{}, { authorization: 'Bearer isolated-valid-token' }]) {
+            const response = await fetch(`http://127.0.0.1:${port}${route}`, { headers });
+            assert.equal(response.status, 503);
+            const result = await response.json();
+            assert.equal(result.code, 'AUTHENTICATION_UNAVAILABLE');
+            assert.equal(JSON.stringify(result).includes('fallback-test-user'), false);
+            assert.equal(JSON.stringify(result).includes('compatibility-local'), false);
+          }
+        }
+      }, env);
+      assert.ok(disabled.activeFeatures.every(item => item.packageId !== packageId));
+      disabled.activeFeatures.push(...features);
+      fs.writeFileSync(file, JSON.stringify(disabled));
+      await boot(file, 'compatible', healthy, env);
+    } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+  });
+}
+
+test('unconfigured demo retains static/local identities but an explicit request binding fails closed', { timeout: 60000 }, async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-demo-auth-'));
+  try {
+    const env = { APP_PLATFORM_MANAGED_SESSION_ENABLED: 'false' };
+    for (const staticSession of [false, true]) {
+      await boot(path.join(directory, `demo-${staticSession}.json`), 'compatible', async port => {
+        assert.equal((await fetch(`http://127.0.0.1:${port}/v1/contexts/effective`)).status, 200);
+      }, { ...env, ...(staticSession ? { APP_PLATFORM_STATIC_SESSION_JSON: JSON.stringify(fallbackTestSession) } : {}) });
+    }
+    const bindingFile = path.join(directory, 'explicit-bindings.json');
+    fs.writeFileSync(bindingFile, JSON.stringify({ contractVersion: '0.1.0', bindings: [{
+      contractVersion: '0.1.0', capability: 'identity.session.request', providerId: 'missing-request-provider',
+      scope: 'INSTALLATION', scopeId: 'default'
+    }] }));
+    await boot(path.join(directory, 'bound.json'), 'compatible', async port => {
+      const response = await fetch(`http://127.0.0.1:${port}/v1/contexts/effective`);
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).code, 'AUTHENTICATION_UNAVAILABLE');
+    }, { ...env, APP_PLATFORM_PROVIDER_BINDINGS_FILE: bindingFile });
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});

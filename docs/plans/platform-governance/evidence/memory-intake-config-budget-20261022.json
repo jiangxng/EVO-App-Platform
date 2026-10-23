@@ -1,0 +1,127 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-22",
+  "baseline": "4495b0f5d2b52ada81286f585e649ac0fe692826",
+  "branch": "fix/governance-memory-intake-budget-20261022",
+  "scope": "A01/R3 existing reference Host memory-intake configuration and canonical snapshot budgets; preserve synchronous snapshot contract",
+  "change": {
+    "source": "providers/memory-intake/runtime.ts",
+    "beforeBlob": "cc99e70b1a248321e89c8002e23d1f3f5349f195",
+    "afterBlob": "0634ec95442767220ec190fc9c6e751b6d3a70a2",
+    "rawJsonUtf8MaxBytes": 131072,
+    "recordsMax": 1000,
+    "canonicalRecordsMaxBytes": 524288,
+    "canonicalBytesDefinition": "sum of each normalized record JSON UTF-8 bytes, including repeated source identifiers",
+    "rawCheckBeforeTrimAndJsonParse": true,
+    "countBeforeRecordValidation": true,
+    "canonicalCountAndBytesBeforeAdapterClone": true,
+    "noTruncation": true,
+    "noHostOrAgentOrGenericSourceContractChange": true,
+    "noLazyProxyOrNewFramework": true
+  },
+  "originalProbe": {
+    "node": "v24.19.0",
+    "sourceBlob": "cc99e70b1a248321e89c8002e23d1f3f5349f195",
+    "kind": "original module; synthetic configuration, not Host or Agent",
+    "before": {
+      "records1001": "accepted",
+      "rawBytes": 131282,
+      "over128KiB": "accepted",
+      "snapshotIsolatedBeforeFirstPull": true
+    },
+    "countFixtureRawBytes": 99103
+  },
+  "amplificationProbe": {
+    "sourceBlob": "cc99e70b1a248321e89c8002e23d1f3f5349f195",
+    "node": "v24.19.0",
+    "mode": "original and modified module, synthetic config; not Host",
+    "rawBytes": 101050,
+    "records": 1000,
+    "beforeCanonicalRecordBytes": 2229890,
+    "after": "MEMORY_INTAKE_RECORD_BYTES_EXCEEDED",
+    "beforeAccepted": true
+  },
+  "retention": {
+    "originalSyncSnapshot": true,
+    "preFirstPullInputMutationCannotChangeSnapshot": true,
+    "sharedEvidenceSourceAndIntake": true,
+    "startupWithInactiveConfig": "still validates/registers bounded pure snapshots before original installation journal; not zero CPU/clone",
+    "directReferences": "old direct references retain snapshots; no new lifecycle invalidation guarantee",
+    "notFullHeapOrLatencySla": true,
+    "budgetNotAppliedToEcGenericSourcesOrDurableHistory": true,
+    "sourceTrustNotTruthAndPendingHumanAcceptanceUnchanged": true
+  },
+  "localValidation": {
+    "node": "v24.19.0",
+    "mode": "partial fixed-SHA snapshot and stripTypeScriptTypes; original/modified modules and synthetic inputs, not formal npm build/Host/Agent/DB/browser",
+    "newBudgetTests": 11,
+    "existingResourceTests": 10,
+    "passed": 21,
+    "failed": 0,
+    "skipped": 0,
+    "commands": [
+      "node --test --test-isolation=none tests/protocol/memory-intake-config-budget.test.mjs tests/protocol/memory-security-resource-boundary.test.mjs",
+      "node --check tests/integration/configured-provider-startup-journal.test.mjs"
+    ],
+    "newHostTests": 2,
+    "newHostLocalStatus": "syntax only; exact-head CI to execute both profiles: valid1000, inactive persistence, count/amplification rejection, old Memory/journal bytes, corrected config/enable recovery",
+    "rawByteBoundaryHostCoverage": "component UTF-8 128KiB boundaries; actual Host tests isolate count/canonical expansion within OS env limits, not a claim of live Host raw-size boundary proof"
+  },
+  "ci": {
+    "atCommit": "pending; exact-head CI/four profiles/merge and branch status recorded in permanent PR closeout",
+    "baselineOrDenyListRelaxed": false,
+    "prior1101MetricsNotCurrent": true
+  },
+  "help": {
+    "id": "evo.memory.governance",
+    "locales": [
+      "en",
+      "zh-CN"
+    ],
+    "errorCodes": [
+      "MEMORY_INTAKE_CONFIG_TOO_LARGE",
+      "MEMORY_INTAKE_RECORD_LIMIT_EXCEEDED",
+      "MEMORY_INTAKE_RECORD_BYTES_EXCEEDED"
+    ],
+    "uiVisualSourceChanged": false
+  },
+  "efficiency": {
+    "newExternalResearch": false,
+    "reusedUnchangedReadAuthorities": true,
+    "sourceIdAmplificationFoundBeforeRemotePush": true,
+    "knownLocalHostSandboxFailureNotRetried": true,
+    "priorPa05Node2422ReadFailureNotRetriedOrFixed": true
+  },
+  "cleanupCarryover": {
+    "pr": 1101,
+    "branch": "fix/governance-oidc-transaction-budget-20261022",
+    "head": "fad5559569a078e6f4dd73de29625b1f1959b451",
+    "remoteStillExistsAtStartup": true,
+    "previousExecutionInterrupted": true,
+    "notRetried": true
+  },
+  "next": "Inspect shared managed Session JSONL replay read budgets and safe failure/recovery; preserve issuance/revocation history, no automatic truncation/compaction",
+  "remaining": [
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent configured SQL responsibility/qualification",
+    "R3 shared durable budgets and other safety foundation qualification",
+    "R4 final cross-layer acceptance",
+    "A03 authoritative result lookup/idempotent recovery",
+    "A05 production strategy/compatibility migration",
+    "PA05 original Node24.22 isolated READ compatibility OPEN; CrossDB pinned24.21 unchanged"
+  ],
+  "deployed": false,
+  "humanAcceptanceClaimed": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  },
+  "baseAdvance": {
+    "branchCreatedAt": "2811789dd7df7e5deb90ac8c772811b82d71820f",
+    "mainAdvancedTo": "4495b0f5d2b52ada81286f585e649ac0fe692826",
+    "scope": "PR1099 adds only two docs/agent-line handoff files; related rules/source unchanged",
+    "method": "fast-forward own uncommitted process branch and use latest tree; preserve concurrent docs",
+    "targetedTestsNotRepeatedForUnchangedSource": true
+  }
+}

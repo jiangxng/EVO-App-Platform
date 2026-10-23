@@ -203,6 +203,10 @@ test("fresh browser recovery discovers latest matching Host thread and resumes u
           }
         };
       }
+      if (value.command.code === "enterprise-agent.run.events") {
+        return {ok:false,error:{code:"ACTION_HANDLER_NOT_FOUND",
+          message:"V010-only Host does not support Outbox replay"}};
+      }
       if (value.command.code === "enterprise-agent.thread.resume") {
         assert.equal(value.values.threadId, "conversation-thread:1");
         assert.equal(value.values.runId, "agent-run:1");
@@ -230,6 +234,7 @@ test("fresh browser recovery discovers latest matching Host thread and resumes u
     calls.map(call => call.command.code),
     [
       "enterprise-agent.thread.list",
+      "enterprise-agent.run.events",
       "enterprise-agent.thread.resume"
     ]
   );

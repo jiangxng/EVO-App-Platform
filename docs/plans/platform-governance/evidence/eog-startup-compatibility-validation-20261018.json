@@ -1,0 +1,67 @@
+{
+  "baseline": "b9271dce6525cdf322227c80cc762d564d6054f0",
+  "date": "2026-10-18",
+  "sourceSha256": {
+    "manager/server.ts": "f4425d87b8f3594af1ba74249bd24fd6bf40752c4391da171c1643a411a361ec",
+    "manager/eog-startup-compatibility.ts": "4803414190f4c912bc8509d390c1bbbc1149f136c3fd71fc2742767cf530aff6",
+    "tests/integration/eog-startup-compatibility-host.test.mjs": "33dc965629bbc7816bfc20befece913219a588ef4b61fc95784ed94eb3a2a1a6",
+    "tools/plugin-loading-audit.mjs": "9b78752821e3f8050882bcf704919d6008f20e66469f3638132b6e144fd2fd8f"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\n",
+  "tests": "✔ empty real Host does not load migration or preview implementation (1216.00995ms)\n✔ legacy graph and SOP migrate before listening and remain unchanged on restart (2664.375673ms)\n✔ explicit preview loads only its compatibility module and remains idempotent (2031.078737ms)\n✔ corrupt legacy files and invalid explicit preview still fail startup (1329.668823ms)\n✔ Enterprise Context owns append-only Draft/Published/Effective definition lifecycle (4.04557ms)\n✔ Business Definition publication remains Human-governed (1.40027ms)\n✔ Enterprise Context Package exposes Business Definition capability without a standalone BDR package (0.317642ms)\n✔ Enterprise Context repository can persist EOG semantic revisions without owning View State (5.199134ms)\n✔ legacy EOG semantic snapshot migration is non-destructive and idempotent (2.279636ms)\n✔ repository-backed EOG persistence remains enterprise scoped (0.511981ms)\n✔ Host service can use Enterprise Context persistence without the legacy EOG semantic store (2.223303ms)\n✔ legacy migration remains restart-safe after repository-backed EOG advances (1.906472ms)\n✔ preview seed is opt-in and parses explicit JSON only (1.886602ms)\n✔ preview seed uses normal EOG service and is idempotent (3.070671ms)\nℹ tests 14\nℹ suites 0\nℹ pass 14\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 7337.779862\n",
+  "audit": [
+    {
+      "profile": "minimal-uninstalled",
+      "installed": 7,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "installed": 16,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "installed": 16,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "installed": 7,
+      "loadedModules": 345,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    }
+  ],
+  "staticGate": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 348,
+    "legacyEagerEdges": 266,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "limits": [
+    "Synthetic real Host startup tests; no production data or deployment.",
+    "Shared graph/SOP service is still eagerly constructed. Only compatibility code loading is retired from empty startup.",
+    "No real Human/Agent UI acceptance or remote write verification."
+  ]
+}
