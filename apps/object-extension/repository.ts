@@ -4,6 +4,7 @@ import type {
 } from "../../contracts/enterprise-resource.js";
 import {
   assertObjectExtensionDefinitionV010,
+  type ObjectExtensionDefinitionReaderV010,
   type ObjectExtensionDefinitionV010
 } from "../../contracts/foundation-object/extension.js";
 
@@ -16,15 +17,7 @@ export const OBJECT_EXTENSION_RESOURCE_TYPE_V010 =
 export const OBJECT_EXTENSION_SCHEMA_V010 =
   "evo.object-extension.definition/0.1.0" as const;
 
-export interface ObjectExtensionRepositoryV010 {
-  list(
-    contextId: string,
-    targetObjectType?: string
-  ): ObjectExtensionDefinitionV010[];
-  get(
-    contextId: string,
-    extensionId: string
-  ): ObjectExtensionDefinitionV010 | undefined;
+export interface ObjectExtensionRepositoryV010 extends ObjectExtensionDefinitionReaderV010 {
   save(input: {
     contextId: string;
     definition: ObjectExtensionDefinitionV010;

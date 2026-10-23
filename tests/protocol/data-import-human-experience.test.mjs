@@ -21,6 +21,7 @@ import {
 } from "../../dist/apps/data-import/actions.js";
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010
 } from "../../dist/apps/data-import/constants.js";
@@ -55,6 +56,7 @@ import {
 import {
   renderToHtml
 } from "../../dist/vendor/eidos/src/renderers/html/index.js";
+import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
 import {
   validateValues
 } from "../../dist/vendor/eidos/src/runtime/values.js";
@@ -348,6 +350,27 @@ test("mapping and review pages keep validation and commit explicit", () => {
       && action.route === "/data-import/jobs/import-human-1/map"
     )
   );
+  const rerun=reviewPage.actions.find(action=>action.id==="rerun");
+  assert.equal(rerun?.command,DATA_IMPORT_DRY_RUN_COMMAND_V010);
+  assert.equal(rerun?.requiresConfirmation,false);
+  assert.deepEqual(rerun?.values,{importJobId:"import-human-1"});
+  const failedPage=createDataImportReviewPageV010({job:{
+    ...job,state:"DRY_RUN_FAILED",dryRun:{
+      schemaDigest:"broken",totalRows:1,validRows:0,invalidRows:1,
+      rows:[{rowNumber:1,ok:false,issues:[{
+        code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+        fieldId:"subjectType",message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+      }]}]
+    }
+  },locale:"zh-CN"});
+  assert.equal(failedPage.actions.find(x=>x.id==="rerun")?.label,"重新预检查");
+  assert.ok(!failedPage.actions.some(x=>x.id==="commit"),
+    "invalid imports must not expose a commit action");
+  const terminalPage=createDataImportReviewPageV010({job:{
+    ...job,state:"COMMITTED"
+  },locale:"zh-CN"});
+  assert.ok(!terminalPage.actions.some(x=>x.id==="rerun"),
+    "completed imports must not be rerun by the review screen");
 });
 
 
@@ -802,7 +825,9 @@ test("CP-03D EC learns a Human-confirmed field mapping and reuses it across a di
     field => field.semanticType === "data-import-ec-recommendation"
   );
   assert.ok(advisoryField);
-  assert.match(advisoryField.initialValue, /编码 → 往来编码 · code/);
+  assert.match(advisoryField.initialValue, /编码 → 往来编码 · 90%/);
+  assert.doesNotMatch(advisoryField.initialValue, /· code/,
+    "EC suggestion is business-readable; the actual mapped option value is still code");
   assert.match(advisoryField.initialValue, /90%/);
 });
 
@@ -970,9 +995,139 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     locale:"zh-CN",canCreateExtension:true
   });
   assert.equal(page.fields.find(x=>x.key==="map_0").initialValue,"code");
+  const currentFile=page.fields.find(x=>x.key==="importJobId");
+  assert.equal(currentFile.label,"当前文件");
+  assert.equal(currentFile.initialValue,"batch-proposals");
+  assert.equal(currentFile.options[0].value,"batch-proposals",
+    "Host must continue receiving the stable Import Job ID");
+  assert.equal(currentFile.options[0].label,"已保存的导入任务",
+    "technical Job UUID must not be visible in the business-facing option");
+  assert.equal(page.reviewGroups.length,source.headers.length,
+    "actual /map route must group every source column, not just the other batch page");
+  assert.equal(validateUidl(page).ok,true,
+    JSON.stringify(validateUidl(page).diagnostics));
+  assert.deepEqual(page.reviewGroups.map(x=>x.title),source.headers);
+  assert.equal(page.reviewGroups[0].primaryFieldKey,"map_0");
+  assert.equal(page.reviewGroups[3].primaryFieldKey,"map_3");
+  assert.equal(page.reviewGroups[3].summary,"old-001",
+    "E4 visible cell shows a representative source value, not all samples/statistics");
+  assert.deepEqual(page.reviewGroups[3].detailFieldKeys,["sourceEvidence_3"]);
+  assert.deepEqual(page.reviewGroups[0].detailFieldKeys,["sourceEvidence_0"],
+    "mapped fields must still expose the original source preview on demand");
+  assert.equal(page.fields.find(x=>x.key==="sourceEvidence_0").readOnly,true);
+  assert.match(page.fields.find(x=>x.key==="sourceEvidence_3").initialValue,
+    /非空 1 \/ 1 · old-001/,
+    "full source preview remains readable after compacting the table");
+  const actualTarget=page.fields.find(x=>x.key==="map_0").options
+    .find(x=>x.value==="code");
+  assert.ok(actualTarget);
+  assert.doesNotMatch(actualTarget.label,/ · code$/,
+    "one unambiguous business field should not show raw technical fieldId");
+  assert.equal(actualTarget.value,"code","submission still uses the exact Host fieldId");
+  assert.equal(page.reviewTask.subject.title,"batch-proposals");
+  assert.deepEqual(page.reviewTask.subject.facts,[],
+    "the compact V3 source card must not repeat counts already present in the subtitle and metrics");
+  assert.match(page.reviewTask.subject.subtitle,/4 列/,
+    "source column count remains visible in the file summary");
+  assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
+  assert.deepEqual(page.reviewTask.steps.map(x=>[x.id,x.label,x.state]),[
+    ["source","选择文件","complete"],
+    ["review","核对并导入","current"]
+  ],"the top-level stepper must match the approved two-stage V3 prototype");
+  assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
+  assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
+  assert.equal(page.reviewTask.issues[0].actionLabel,"处理此列");
+  assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
+  assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
+  assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
+  assert.equal(page.reviewTable.filter.selectedId,"needs");
+  assert.deepEqual(page.reviewGroups.map(x=>x.reviewStatus.key),
+    ["matched","proposed","proposed","attention"],
+    "Host-restored mapping, new definition and metadata exceptions must remain distinct");
+  const reachableStatuses=new Set(page.reviewGroups.flatMap(group=>[
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status=>status.key)
+  ]));
+  assert.deepEqual(
+    new Set(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys),
+    reachableStatuses,
+    "All must retain current and reachable statuses for this authorized Job");
+  assert.equal(page.reviewTable.filter.selectedId,"needs",
+    "actual unresolved/created columns should determine the initial filter");
+  assert.deepEqual(page.reviewGroups.map(group=>group.reviewStatus.key),
+    ["matched","proposed","proposed","attention"],
+    "unsaved choices cannot rewrite the Host-restored initial status");
+  const metadata=page.reviewGroups.find(group=>group.title==="系统编码");
+  assert.equal(metadata.statusByChoice.__CREATE__.key,"attention",
+    "returning from ignore to the original proposed value must restore metadata risk");
+  assert.equal(metadata.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(metadata.statusByChoice.__PENDING__.key,"pending");
+  const stagedJob=repository.get("enterprise-context:a","batch-proposals");
+  const failedJob={
+    ...stagedJob,
+    state:"DRY_RUN_FAILED",
+    source:{
+      ...stagedJob.source,
+      headers:[...stagedJob.source.headers,"主体类型"],
+      rows:[1,2,3].map(()=>({...source.rows[0],"主体类型":""}))
+    },
+    mapping:[...stagedJob.mapping,{
+      sourceColumn:"主体类型",targetFieldId:"subjectType"
+    }],
+    dryRun:{
+      schemaDigest:"isolated-test-schema",
+      totalRows:3,validRows:0,invalidRows:3,
+      rows:[1,2,3].map(rowNumber=>({
+        rowNumber,ok:false,
+        issues:[{
+          code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+          fieldId:"subjectType",
+          message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+        }]
+      }))
+    }
+  };
+  const failedPage=createDataImportMappingPageV010({
+    job:failedJob,
+    schema:target.describe({contextId:"enterprise-context:a",
+      parameters:{relationshipMode:"SUPPLIER"}}),
+    locale:"zh-CN",canCreateExtension:true
+  });
+  assert.equal(failedPage.reviewTask.metrics.find(x=>x.id==="attention").value,"2",
+    "persisted row validation issues count as attention alongside unresolved mapping columns");
+  const subjectIssue=failedPage.reviewTask.issues.find(x=>x.title==="3 条记录缺少主体类型");
+  assert.ok(subjectIssue,"returning from a failed dry-run must expose its row issue on mapping review");
+  assert.match(subjectIssue.description,/请为以下记录选择正确的主体类型。（第 1、2、3 行）/);
+  assert.equal(subjectIssue.focusGroupId,"map-source-4",
+    "the issue should focus the existing source mapping group, not mutate the mapping");
+  assert.equal(validateUidl(failedPage).ok,true,
+    JSON.stringify(validateUidl(failedPage).diagnostics));
+  const mapHtml=renderToHtml(page);
+  assert.match(mapHtml,/data-eidos-form-task-overview/);
+  assert.match(mapHtml,/data-eidos-form-task-metrics/);
+  assert.match(mapHtml,/data-eidos-form-task-focus="map-source-3"/);
+  assert.match(mapHtml,/<table data-eidos-form-review-table/);
+  assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
+  assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
+  assert.match(mapHtml,/data-eidos-form-review-table-filter/);
+  assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
+  assert.match(mapHtml,/data-eidos-review-table-status-key="matched"[^>]* hidden/,
+    "a matched row stays hidden in needs even when opt-in state metadata is present");
+  for(let i=0;i<4;i++)
+    assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
+  assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);
+  assert.equal((mapHtml.match(/name="sourceEvidence_0"/g)??[]).length,1);
+  assert.match(mapHtml,/old-001/);
+  assert.doesNotMatch(mapHtml,/B 方案/);
+  assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
-  assert.match(page.fields.find(x=>x.key==="batchReviewEntry").contextLink.label,/集中审核/);
+  const batchReviewLink=page.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-review");
+  assert.ok(batchReviewLink,"Batch B remains available beside mapping decisions");
+  assert.ok(!page.contextNavigation.items.some(x=>x.id==="batch-review"),
+    "secondary actions must not be masqueraded as breadcrumbs");
+  assert.match(batchReviewLink.label,/集中审核/);
+  assert.match(batchReviewLink.route,/mode=batch/);
   assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
   assert.ok(page.fields.find(x=>x.key==="map_2").options.some(x=>x.value==="__IGNORE__"));
   const review=handlers.find(x=>x.commandCode===DATA_IMPORT_REVIEW_COMMAND_V010);
@@ -993,6 +1148,31 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     locale:"zh-CN",canCreateExtension:true
   });
   assert.equal(reopened.fields.find(x=>x.key==="map_3").initialValue,"__IGNORE__");
+  assert.equal(reopened.reviewGroups[3].reviewStatus.key,"ignored");
+  assert.equal(reopened.reviewTable.filter.selectedId,"needs");
+  assert.equal(reopened.reviewGroups.length,4,
+    "Original 4 columns must survive save / reopen even when filtered out");
   assert.equal(reopened.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(extensions.list("enterprise-context:a",target.targetId).length,0);
+  const complete={
+    ...saved,ignoredSourceColumns:[],
+    mapping:[
+      {sourceColumn:"编码",targetFieldId:"code"},
+      {sourceColumn:"名称",targetFieldId:"displayName"},
+      {sourceColumn:"结算方式",targetFieldId:"legalName"},
+      {sourceColumn:"系统编码",targetFieldId:"legacyExternalCode"},
+      {targetFieldId:"subjectType",transform:{kind:"CONSTANT",value:"ORGANIZATION"}}
+    ]
+  };
+  const completedPage=createDataImportMappingPageV010({
+    job:complete,schema:target.describe({
+      contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
+    }),locale:"zh-CN",canCreateExtension:true
+  });
+  assert.ok(completedPage.reviewTable.utilityNavigation.items.some(x=>x.id==="batch-constant"
+    && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
+  assert.match(completedPage.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-constant").label,
+    /核对本次导入的批次固定值/);
+  assert.equal(validateUidl(completedPage).ok,true,
+    JSON.stringify(validateUidl(completedPage).diagnostics));
 });

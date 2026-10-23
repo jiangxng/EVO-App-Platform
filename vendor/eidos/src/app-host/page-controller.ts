@@ -613,6 +613,227 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     listeners.push(() => catalogSearch.removeEventListener("input", filterCatalog));
   }
 
+  // The table is only a different realization of the same Form inputs.
+  // Filters never disable, remove or rewrite any underlying Host field value.
+  const reviewTableFilter = container.querySelector<HTMLSelectElement>(
+    "[data-eidos-form-review-table-filter]"
+  );
+  if (reviewTableFilter) {
+    const rows = Array.from(container.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row]"
+    ));
+    const count = container.querySelector<HTMLElement>("[data-eidos-form-review-table-count]");
+    const empty = container.querySelector<HTMLElement>("[data-eidos-form-review-table-empty]");
+    const applyReviewTableFilter = () => {
+      const active = reviewTableFilter.selectedOptions.item(0);
+      const keys = new Set(
+        (active?.dataset.eidosReviewTableFilterKeys ?? "").split(",").filter(Boolean)
+      );
+      let visible = 0;
+      const choices = active?.dataset.eidosReviewTableFilterChoices
+        ?.split(",").filter(Boolean);
+      for (const row of rows) {
+        const selectedValue = row.querySelector<HTMLSelectElement>(
+          "[data-eidos-review-table-choice] select"
+        )?.value;
+        const match = choices
+          ? selectedValue!==undefined && choices.includes(selectedValue)
+          : keys.has(row.dataset.eidosReviewTableStatusKey ?? "");
+        row.hidden = !match;
+        if (match) visible++;
+      }
+      if (count) count.textContent = visible + " / " + rows.length;
+      if (empty) empty.hidden = visible !== 0;
+    };
+    reviewTableFilter.addEventListener("change", applyReviewTableFilter);
+    listeners.push(() =>
+      reviewTableFilter.removeEventListener("change", applyReviewTableFilter));
+    applyReviewTableFilter();
+  }
+
+  // Opt-in, purely local review feedback. Never sends a Host command,
+  // changes values, approves a recommendation, or mutates source evidence.
+  // Applications enumerate actual select option values via validated UIDL.
+  const reviewChoiceStatuses = Array.from(container.querySelectorAll<HTMLElement>(
+    "[data-eidos-form-review-table-row][data-eidos-review-status-by-choice]"
+  ));
+  if (reviewChoiceStatuses.length) {
+    const allRows = Array.from(container.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row]"
+    ));
+    const supported = new Set<string>();
+    for (const row of reviewChoiceStatuses) {
+      const statuses = JSON.parse(row.dataset.eidosReviewStatusByChoice ?? "{}") as Record<string,{key:string;label:string;tone?:"neutral"|"warning"|"positive"}>;
+      Object.values(statuses).forEach(status => supported.add(status.key));
+    }
+    const updateCounts = () => {
+      // Source/Host issue totals are not equivalent to the count of rows with
+      // the same status key. Explicitly fixed metrics are never recomputed from
+      // unsaved select changes; default behavior remains backwards compatible.
+      for (const metric of Array.from(container.querySelectorAll<HTMLElement>(
+        "[data-eidos-form-task-metric-id]"
+      ))) {
+        const key=metric.dataset.eidosFormTaskMetricId;
+        if (!key || !supported.has(key)
+          || metric.dataset.eidosFormTaskMetricFixed === "true") continue;
+        const value=metric.querySelector<HTMLElement>("strong");
+        if(value) value.textContent=String(allRows.filter(row =>
+          row.dataset.eidosReviewTableStatusKey===key).length);
+      }
+    };
+    const onReviewChoiceChange = (event: Event) => {
+      const target=event.target;
+      if (!(target instanceof HTMLSelectElement)) return;
+      const row=target.closest<HTMLElement>(
+        "[data-eidos-form-review-table-row][data-eidos-review-status-by-choice]");
+      if (!row || !container.contains(row)
+        || !target.closest("[data-eidos-review-table-choice]")) return;
+      const statuses=JSON.parse(row.dataset.eidosReviewStatusByChoice ?? "{}") as Record<string,{key:string;label:string;tone?:"neutral"|"warning"|"positive"}>;
+      const status=Object.prototype.hasOwnProperty.call(statuses,target.value)
+        ? statuses[target.value] : undefined;
+      if (!status) return;
+      const cell=row.querySelector<HTMLElement>("[data-eidos-review-table-status]");
+      if (!cell) return;
+      row.dataset.eidosReviewTableStatusKey=status.key;
+      const badge=cell.querySelector<HTMLElement>("[data-eidos-review-table-status-badge]");
+      if (badge) badge.textContent=status.label;
+      else cell.textContent=status.label;
+      cell.dataset.tone=status.tone ?? "neutral";
+      updateCounts();
+      if (reviewTableFilter) {
+        reviewTableFilter.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+    };
+    container.addEventListener("change",onReviewChoiceChange);
+    listeners.push(()=>container.removeEventListener("change",onReviewChoiceChange));
+  }
+
+  // E6: a read-only Human proposal preview of the CURRENT unsaved selects.
+  // It never invokes Host, validates a schema, stores draft data or approves.
+  const preview=container.querySelector<HTMLElement>("[data-eidos-form-review-plan]");
+  if (preview) {
+    const form=preview.closest("form");
+    const rows=Array.from(form?.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row]") ?? []);
+    const categories=JSON.parse(
+      preview.dataset.eidosReviewPlanCategories ?? "[]"
+    ) as Array<{id:string;label:string;statusKeys:string[]}>;
+    const counters=preview.querySelector<HTMLElement>(
+      "[data-eidos-review-plan-counts]");
+    const items=preview.querySelector<HTMLElement>("[data-eidos-review-plan-items]");
+    const currentField=(row:HTMLElement,key:string):HTMLInputElement|HTMLSelectElement|undefined =>
+      Array.from(row.querySelectorAll<HTMLInputElement|HTMLSelectElement>(
+        "input[name],select[name]")).find(input=>input.name===key);
+    const updatePlan=()=>{
+      const counts=new Map(categories.map(c=>[c.id,0]));
+      const list=document.createDocumentFragment();
+      for (const row of rows) {
+        const key=row.dataset.eidosReviewTableStatusKey;
+        const category=categories.find(c=>key && c.statusKeys.includes(key));
+        if (!category) continue;
+        counts.set(category.id,(counts.get(category.id) ?? 0)+1);
+        const li=document.createElement("li");
+        li.dataset.eidosReviewPlanOutcome=category.id;
+        const label=row.querySelector<HTMLElement>("[data-eidos-review-table-subject]")
+          ?.textContent?.trim() ?? "";
+        const choice=row.querySelector<HTMLSelectElement>(
+          "[data-eidos-review-table-choice] select");
+        const selected=choice?.selectedOptions.item(0)?.textContent?.trim() ?? "";
+        const nameKey=row.dataset.eidosPlanLabelField;
+        const typeKey=row.dataset.eidosPlanTypeField;
+        const proposalName=nameKey?currentField(row,nameKey)?.value.trim():"";
+        const type=typeKey?currentField(row,typeKey):undefined;
+        const typeName=type instanceof HTMLSelectElement
+          ? type.selectedOptions.item(0)?.textContent?.trim() ?? "" : "";
+        const strong=document.createElement("strong");
+        strong.textContent=label;
+        const outcome=document.createElement("span");
+        outcome.textContent=category.label+
+          (nameKey && category.id==="create"
+            ? " · "+(proposalName || label)+(typeName ? " · "+typeName : "")
+            : selected ? " · "+selected : "");
+        li.append(strong,outcome);
+        list.append(li);
+      }
+      if (counters) {
+        const countsFragment=document.createDocumentFragment();
+        for (const category of categories) {
+          const entry=document.createElement("div");
+          entry.dataset.eidosReviewPlanCount=category.id;
+          const value=document.createElement("strong");
+          value.textContent=String(counts.get(category.id) ?? 0);
+          const label=document.createElement("span");
+          label.textContent=category.label;
+          entry.append(value,label);
+          countsFragment.append(entry);
+        }
+        counters.replaceChildren(countsFragment);
+      }
+      items?.replaceChildren(list);
+    };
+    const listener=(event:Event)=>{
+      if (!form || !(event.target instanceof Element) ||
+        !form.contains(event.target)) return;
+      updatePlan();
+    };
+    form?.addEventListener("change",listener);
+    form?.addEventListener("input",listener);
+    listeners.push(()=>{
+      form?.removeEventListener("change",listener);
+      form?.removeEventListener("input",listener);
+    });
+    updatePlan();
+  }
+
+  // A task issue can focus an existing reviewed Form row. This is
+  // presentation navigation only: never a Host command, approval or save.
+  const onReviewTaskFocus = (event: MouseEvent) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>("[data-eidos-form-task-focus]");
+    if (!button || !container.contains(button)) return;
+    const groupId = button.dataset.eidosFormTaskFocus;
+    if (!groupId) return;
+    const rows = Array.from(container.querySelectorAll<HTMLElement>(
+      "[data-eidos-form-review-table-row],[data-eidos-form-review-group]"
+    ));
+    const row = rows.find(item =>
+      item.dataset.eidosFormReviewTableRow === groupId
+      || item.dataset.eidosFormReviewGroup === groupId);
+    if (!row) return;
+    if (row.hidden) {
+      const filter = container.querySelector<HTMLSelectElement>(
+        "[data-eidos-form-review-table-filter]"
+      );
+      if (filter) {
+        const allKeys = new Set(rows.map(item =>
+          item.dataset.eidosReviewTableStatusKey).filter((key): key is string => Boolean(key)));
+        const all = Array.from(filter.options).find(option => {
+          const keys = new Set((option.dataset.eidosReviewTableFilterKeys ?? "")
+            .split(",").filter(Boolean));
+          return [...allKeys].every(key => keys.has(key));
+        });
+        if (all) {
+          filter.value = all.value;
+          filter.dispatchEvent(new Event("change",{bubbles:true}));
+        }
+      }
+    }
+    const choice = row.querySelector<HTMLSelectElement|HTMLInputElement>(
+      "[data-eidos-review-table-choice] select,"
+      + "[data-eidos-review-table-choice] input,"
+      + "[data-eidos-review-group-primary] select,"
+      + "[data-eidos-review-group-primary] input"
+    );
+    if (!row.hidden) {
+      row.scrollIntoView({block:"nearest",behavior:"instant"});
+      choice?.focus();
+    }
+  };
+  container.addEventListener("click",onReviewTaskFocus);
+  listeners.push(() =>
+    container.removeEventListener("click",onReviewTaskFocus));
+
   const activateCatalogRow = (
     row: HTMLElement,
     event: Event
@@ -2404,6 +2625,39 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       refreshExclusiveOptions();
     }
 
+    // An opt-in reset restores only unsaved form controls to the Host-loaded
+    // snapshot. It never calls ActionHost or rewrites persisted Import Job data.
+    if (doc.reviewTask?.presentation === "workbench"
+      && doc.reviewTask.footer?.resetLabel
+      && form.querySelector("[data-eidos-form-task-reset]")) {
+      let restoring = false;
+      const resetToLoadedSnapshot = (event: Event) => {
+        if (restoring) return;
+        event.preventDefault();
+        for (const group of exclusiveGroups.values()) {
+          for (const item of group) {
+            item.select.replaceChildren(...item.originals.map(option =>
+              option.cloneNode(true) as HTMLOptionElement));
+          }
+        }
+        restoring = true;
+        try { form.reset(); } finally { restoring = false; }
+        refreshExclusiveOptions();
+        for (const field of doc.fields) {
+          if (field.control !== "select" || field.hidden) continue;
+          const select = form.elements.namedItem(field.key);
+          if (select instanceof HTMLSelectElement) {
+            select.dispatchEvent(new Event("change", {bubbles:true}));
+          }
+        }
+        if (reviewTableFilter) {
+          reviewTableFilter.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      };
+      form.addEventListener("reset",resetToLoadedSnapshot);
+      listeners.push(()=>form.removeEventListener("reset",resetToLoadedSnapshot));
+    }
+
     const actionStatus = document.createElement("div");
     actionStatus.setAttribute("data-eidos-action-status", "");
     actionStatus.setAttribute("role", "status");
@@ -2421,13 +2675,16 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           return;
         }
 
-        const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-        if (submit) submit.disabled = true;
+        const submitter = event.submitter;
+        const declaredActionId = submitter instanceof HTMLButtonElement
+          && form.contains(submitter) ? submitter.dataset.eidosAction : undefined;
+        const submitButtons=Array.from(form.querySelectorAll<HTMLButtonElement>('button[type="submit"]'));
+        submitButtons.forEach(button=>{button.disabled=true;});
         actionStatus.textContent = hostText("shell.executing", "Executing…");
 
         try {
           const values = await collectFormValues(form, page.definition);
-          const execution = await executeAppHostPageAction(page, values, options.actionHost);
+          const execution = await executeAppHostPageAction(page, values, options.actionHost, declaredActionId);
           actionStatus.textContent = execution.result.ok
             ? formatAppHostActionResultV010(execution.result.result)
             : hostText(
@@ -2461,7 +2718,7 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
             { message: error instanceof Error ? error.message : String(error) }
           );
         } finally {
-          if (submit) submit.disabled = false;
+          submitButtons.forEach(button=>{button.disabled=false;});
         }
       })();
     };

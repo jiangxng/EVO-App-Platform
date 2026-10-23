@@ -1,0 +1,78 @@
+name: BEX-01 M06 Three Verified Handoff PR Ref Retirement
+
+# Only retire exact merged handoff refs. Never affect unrelated BEX/PA/Eidos owners.
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  retire-three-verified-doc-refs:
+    if: >-
+      github.repository == 'jiangxng/EVO-App-Platform' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.pull_request.merged == true &&
+        contains(fromJSON('[1058,1075,1084]'), github.event.pull_request.number)))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify all 3 PRs merged and exact branch tips included in main
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const full=owner+'/'+repo;
+            const targets=[
+              {n:1058,name:'docs/bex01-v3-m06-research-window-handoff-20261020'},
+              {n:1075,name:'docs/bex01-v3-m06-window02-research-handoff-20261020'},
+              {n:1084,name:'docs/bex01-v3-m06-window03-research-handoff-20261021'}
+            ];
+            const prs=await Promise.all(targets.map(async t=>({
+              ...t,pr:(await github.rest.pulls.get({owner,repo,pull_number:t.n})).data
+            })));
+            if(prs.some(x=>!x.pr.merged)){
+              core.info('PENDING_UNMERGED_HANDOFF_PRS; no branches deleted');
+              return;
+            }
+            const open=await github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const getRef=async name=>{
+              try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}
+            };
+            const verified=[];
+            for(const x of prs){
+              const p=x.pr;
+              if(p.state!=='closed'||p.base.ref!=='main'||p.head.ref!==x.name||
+                 p.head.repo?.full_name!==full)
+                throw Error('REFUSE PR provenance: '+x.n);
+              if(open.some(y=>y.base.ref===x.name||
+                (y.head.repo?.full_name===full&&y.head.ref===x.name)))
+                throw Error('REFUSE active PR depends on: '+x.name);
+              for(const sha of [p.merge_commit_sha,p.head.sha]){
+                const cmp=(await github.rest.repos.compareCommits({
+                  owner,repo,base:sha,head:main
+                })).data;
+                if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==sha)
+                  throw Error('REFUSE commit not main ancestor: '+x.name);
+              }
+              const tip=await getRef(x.name);
+              if(tip!==null){
+                if(tip!==p.head.sha)throw Error('REFUSE HEAD moved: '+x.name);
+                if((await github.rest.repos.getBranch({owner,repo,branch:x.name})).data.protected)
+                  throw Error('REFUSE protected: '+x.name);
+              }
+              verified.push({name:x.name,expected:p.head.sha,tip});
+            }
+            for(const v of verified){
+              if(v.tip===null){core.info('ALREADY_ABSENT '+v.name);continue;}
+              if(await getRef(v.name)!==v.expected)throw Error('REFUSE lease moved: '+v.name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+v.name});
+              core.info('DELETED_VERIFIED_M06_HANDOFF_REF '+v.name+' @ '+v.expected);
+            }
+            await core.summary.addHeading('BEX-01 M06 3 merged handoffs ref retirement')
+              .addCodeBlock(JSON.stringify({main,verified},null,2),'json').write();

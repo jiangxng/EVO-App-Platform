@@ -8,6 +8,13 @@
 
 用户目标：轻量宿主、按需安装卸载；安装能力少时降低装载与后台资源开销；个人Agent千人千面，企业具有跨部门整体分析与改进能力。
 
+- [A01收口复核与剩余责任清单](A01-CLOSURE-REVIEW-20261018.md)
+- [项目级装载原则与开发准入（第 11 节）](../../architecture/PLUGIN-LAZY-RESOURCE-LOADING-v0.1.md#11-项目根本约束新增能力不能默认增加常驻业务负担)
+- [记忆调度器归属、停止整改与剩余边界](MEMORY-SCHEDULER-BOUNDARY-20261018.md)
+- [浏览器资源归档边界、清单实施与升级兼容证据](WEB-ASSET-ARCHIVE-BOUNDARY-20261017.md)
+- [基础对象装载消费者、存储归属与整改边界](FOUNDATION-LOADING-BOUNDARY-20261016.md)
+- [账本兼容服务按需创建与回归](LEDGER-COMPATIBILITY-LAZY-LOADING.md)
+- [未安装/停用插件装载审计与优先级](PLUGIN-LOADING-AUDIT-20261015.md)
 - [账本发布可靠性及剩余合同](LEDGER-PUBLICATION-RELIABILITY.md)
 - [运行时声明与可执行边界](RUNTIME-READINESS-BOUNDARY.md)
 - [账本编译边界整改及兼容清单](LEDGER-COMPILER-BOUNDARY.md)

@@ -1,0 +1,73 @@
+{
+  "baseline": "eeb88493ace53cbe67c4971c49c99a0b158d77da",
+  "date": "2026-10-19",
+  "sourceSha256": {
+    "manager/server.ts": "7572c1942f474264e58b97ab92e5e2eb1ab266209a41d14b7d7c1b34f222c36f",
+    "apps/enterprise-observatory/package.ts": "6f5362fedbfde83979f53951a9a88be341d202fc0a496dbccbef429c27f44898",
+    "apps/enterprise-observatory/desktop-page.ts": "1d070251cf8a8779c550e9c8b0b2dcdc93701f118180cec563317245aadcccac",
+    "apps/enterprise-observatory/mobile-read-page.ts": "0271e3403d1ac832e296f5df132c1b0520068bf2ee8772c9ce007532f2eb110e",
+    "tests/integration/eog-observatory-surfaces-lazy-host.test.mjs": "7b43257323e3c7a72d94c487c6d3cdfbd3fd12884245547f9b5ac64235a3911d",
+    "tests/integration/enterprise-observatory-2d-cutover.test.mjs": "2c252e1de73b45597f26a5e377e008aa34f0b54776f4cf36553afa1af59919ae",
+    ".github/workflows/lightweight-host.yml": "4a393dd5b2617c90fc85b92e33fdb0577a4fdff5883b74e76f87cdaff27476c4",
+    "tools/plugin-loading-audit.mjs": "c6c50e848ff9b5832d01f999ac5b0d5c5d85199135a25f6302a9fedd2e11ec19",
+    "tools/lightweight-host-baseline.json": "c215e1a4930107cdc94db1e50bff496b99e7d278593a9d2bd00054c2254daa91"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\n",
+  "tests": "✔ inactive plugin action does not load its implementation (10.997938ms)\n✔ lazy handler guard blocks dependent plugin loading (3.677918ms)\n✔ concurrent first calls share loading and a failed load can retry (2.439705ms)\n✔ Enterprise Observatory is an independent peer package over EOG 2D Viewer (86.724486ms)\n✔ 2D Observatory handlers are lifecycle-owned by the peer package (2.435203ms)\n✔ legacy Observatory manifest helper reports the peer package owner (0.842495ms)\n✔ real Host desktop observatory loads independently and preserves lifecycle/output (3904.179687ms)\n✔ real Host mobile observatory loads independently and preserves lifecycle/output (3251.33751ms)\n✔ real Host spatial observatory page/action stay unloaded until used and recover after disable (4528.47365ms)\n✔ Observatory page declares deterministic Time Lens presets (6.049575ms)\n✔ Observatory projection keeps semantic layout read-only and overlays real facts with comparison delta (162.27846ms)\n✔ Observatory view renders the graph without inventing facts when no Runtime Provider is configured (8.596973ms)\n✔ compact capability falls from unsupported MOBILE_TASK to EOG MOBILE_READ (5.00683ms)\n✔ explicit MOBILE_TASK request remains an unsupported handoff (0.814743ms)\n✔ EOG MOBILE_READ page is read-bound and contains no write command (0.957005ms)\n✔ EOG MOBILE_READ projects the same runtime facts into entity metrics and evidence (37.63168ms)\n✔ MOBILE_READ runtime has no static Workbench, Diagram or Spatial dependency (23.6792ms)\nℹ tests 17\nℹ suites 0\nℹ pass 17\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 8194.909566\n",
+  "static": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 341,
+    "legacyEagerEdges": 257,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "audit": [
+    {
+      "profile": "minimal-uninstalled",
+      "installed": 7,
+      "loadedModules": 338,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "installed": 16,
+      "loadedModules": 338,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "installed": 16,
+      "loadedModules": 338,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "installed": 7,
+      "loadedModules": 338,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    }
+  ],
+  "initialFailure": "Existing 2D cutover fixture omitted required evo-eog-3d.viewer; added actual eog3dPackage without changing assertions or production dependencies.",
+  "limits": [
+    "No real external facts, browser visual or exact in-flight disable fault injection",
+    "Other model/actions/providers remain; A01 stays partial",
+    "No deployment; final CI recorded in PR"
+  ]
+}

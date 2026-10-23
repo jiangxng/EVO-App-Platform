@@ -54,8 +54,10 @@ function failure(
   };
 }
 
-export function createCounterpartyProjectionActionHandlersV010(input: {
-  service: CounterpartyProjectionServiceV010;
+export function createCounterpartyProjectionActionHandlersV010(input: (
+  { service: CounterpartyProjectionServiceV010 } |
+  { resolveService(): Promise<CounterpartyProjectionServiceV010> }
+) & {
   resolveEnterpriseRelationshipKind(
     principal: PlatformPrincipalV010,
     contextId: string
@@ -75,7 +77,8 @@ export function createCounterpartyProjectionActionHandlersV010(input: {
       try {
         if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
         const active = activeEnterpriseContext(context);
-        const result = await input.service.read({
+        const service = "resolveService" in input ? await input.resolveService() : input.service;
+        const result = await service.read({
           contextId: active.contextId,
           projectionId,
           ...(Object.keys(request.values).length

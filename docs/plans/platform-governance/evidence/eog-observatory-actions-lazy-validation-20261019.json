@@ -1,0 +1,71 @@
+{
+  "baseline": "27266ba2e9f1672b66465b8a116b5dc8d6960efb",
+  "date": "2026-10-19",
+  "sourceSha256": {
+    "manager/server.ts": "38a7e2058159abc830706c302e795303e5db28848191ab25eef81d1eb79c47db",
+    "apps/enterprise-observatory/package.ts": "979b1b2a40ec188027d72d1bbf8ee8db09bfbfa6cd2b34045c57d048f74d24c0",
+    "apps/enterprise-observatory/observatory-actions.ts": "ccadb21bc17eade28df89f2d6cf28e3aa3db18e04f25f67067cbcca90195c7c2",
+    "tests/integration/eog-observatory-actions-lazy-host.test.mjs": "2e098808de5f53b5e5ad8d85c85d5b11edf18dc97bcf5337398ce625cd0eb166",
+    "tools/plugin-loading-audit.mjs": "e2a504118e08b4ab148ec497985e30f9f355dc7a5a0ccfc83a949bf1845cc781",
+    "tools/lightweight-host-baseline.json": "7a2023645a136fbd7e1f222c10004cb0b3e2374bb3e95b983b8ee01caa70efda",
+    ".github/workflows/lightweight-host.yml": "dab25486376e7700a4118e2859134900dcc539ae9800bbeb1d7c99fd8d052a4c"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\n",
+  "tests": "✔ inactive plugin action does not load its implementation (3.25754ms)\n✔ lazy handler guard blocks dependent plugin loading (0.985699ms)\n✔ concurrent first calls share loading and a failed load can retry (2.137024ms)\n✔ real Host observe/analyze commands stay unloaded until used and preserve fail-closed lifecycle (3579.171144ms)\n✔ real Host desktop observatory loads independently and preserves lifecycle/output (4079.70961ms)\n✔ real Host mobile observatory loads independently and preserves lifecycle/output (3081.032432ms)\n✔ Observatory Provider resolution honors enterprise-scoped binding (45.128195ms)\n✔ Provider runtime identity must match the selected Provider descriptor (11.974169ms)\n✔ Human Observatory READ action fails closed without a Runtime Fact Provider (4.754382ms)\n✔ Human Observatory READ action returns only Provider-backed validated Runtime Facts (9.937155ms)\n✔ Personal Agent Observatory tools appear only when real Provider runtimes are available (8.986751ms)\n✔ Time Lens resolves previous period deterministically (6.626656ms)\n✔ Runtime Facts observe one semantic graph without mutating semantic revision (12.310158ms)\n✔ Runtime provider cannot attach facts to unknown EOG targets (19.28695ms)\n✔ Runtime provider provenance is fail-closed (8.303144ms)\n✔ Analysis Overlay remains derived and must cite Runtime Fact evidence (6.199369ms)\n✔ Analysis Overlay cannot invent evidence references (21.163484ms)\n✔ Runtime provider cannot widen requested target or metric scope (6.244083ms)\n✔ Fact identity is unique across primary and comparison windows (13.520702ms)\n✔ Runtime Provider receives Host-resolved canonical semantic targets (29.861232ms)\n✔ graph-wide Runtime Provider query receives canonical nodes and semantic relation endpoints (27.534745ms)\n✔ Observatory input grammar is package-neutral across 2D and 3D viewers (22.495967ms)\n✔ Enterprise Observatory and spatial compatibility consume public Observatory runtime contracts (16.34657ms)\n✔ peer Observatory Provider packages consume public capability constants (12.447705ms)\nℹ tests 24\nℹ suites 0\nℹ pass 24\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 7783.013362\n",
+  "static": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 339,
+    "legacyEagerEdges": 255,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "audit": [
+    {
+      "profile": "minimal-uninstalled",
+      "installed": 7,
+      "loadedModules": 336,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "installed": 16,
+      "loadedModules": 336,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "installed": 16,
+      "loadedModules": 336,
+      "intervals": 0,
+      "stateFiles": 3,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "installed": 7,
+      "loadedModules": 336,
+      "intervals": 0,
+      "stateFiles": 2,
+      "archivedAssets": 96,
+      "blockedOutbound": 0,
+      "exit": 0
+    }
+  ],
+  "limits": [
+    "Host test intentionally has no real fact Provider; positive path covered by existing component fixtures",
+    "No exact in-flight disable fault injection",
+    "Other shared model/view/provider dependencies remain",
+    "No deployment; final CI in PR"
+  ]
+}

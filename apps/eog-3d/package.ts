@@ -11,6 +11,7 @@ export const EOG_3D_VIEWER_EXPERIENCE_ID = "evo-eog-3d-viewer";
 export const EOG_3D_VIEWER_PAGE_ID = "evo-eog-3d-viewer.workspace";
 export const EOG_3D_VIEWER_PAGE_SOURCE =
   "app://evo-enterprise-operating-graph/pages/viewer-3d";
+export const EOG_3D_VIEWER_GET_ACTION = "enterprise-operating-graph.viewer.spatial.get";
 export const EOG_3D_VIEWER_ROUTE = "/operating-graph/view/3d";
 
 export const eog3dPackage: PackageManifestV010 = {

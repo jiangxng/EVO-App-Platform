@@ -44,6 +44,8 @@ const command=(code,values,actionId)=>({
 test("PA02C real Host cancellation preserves independently verified Object Extension effect and never replays",{
   skip:!url?"Needs disposable PostgreSQL18":false,timeout:90000
 },async()=>{
+  // Fresh cancellation scenarios must remain within the real Worker Run lifetime.
+  const fixtureEpoch=Date.now();
   const schema="pa02_cancel_owner_"+randomUUID().replaceAll("-","").slice(0,12);
   const objectSchema="pa02_cancel_object_"+randomUUID().replaceAll("-","").slice(0,12);
   await preparePostgresObjectExtensionOwnerSchemaV010({
@@ -110,7 +112,7 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
     resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
     resolveContext:()=>context,
     createToolCatalog:catalog,runId:()=> "run:pa02c:"+(++runNumber),
-    now:()=>new Date("2026-10-14T04:00:00.000Z")
+    now:()=>new Date(fixtureEpoch)
   }).map(handler=>[handler.commandCode,handler]));
   try{
     runtime=await createPostgresHostAsyncReadExecutionV030({
@@ -125,7 +127,9 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
     const inFlight=start.execute(command("enterprise-agent.run.start",{
       message:"Create Object Extension safely"
     },"pa02c:source:1"),requestContext);
-    await ownerCommitted;
+    await Promise.race([ownerCommitted,inFlight.then(result=>{
+      throw Error("PA02C_OWNER_NOT_REACHED: "+JSON.stringify(result));
+    })]);
     const requested=await cancel.execute(command("enterprise-agent.run.cancel",{
       runId,reason:"Stop this run now"
     },"pa02c:cancel:1"),requestContext);
@@ -198,7 +202,9 @@ test("PA02C real Host cancellation preserves independently verified Object Exten
       command("enterprise-agent.run.start",{
         message:"Create a second Object Extension safely"
       },"pa02c:source:crash"),requestContext);
-    await crashedCommitted;
+    await Promise.race([crashedCommitted,crashedInFlight.then(result=>{
+      throw Error("PA02C_CRASH_OWNER_NOT_REACHED: "+JSON.stringify(result));
+    })]);
     const crashRequested=await crashActions.get("enterprise-agent.run.cancel").execute(
       command("enterprise-agent.run.cancel",{runId:crashRunId,
         reason:"Stop after lost worker"},"pa02c:cancel:crash:1"),requestContext);

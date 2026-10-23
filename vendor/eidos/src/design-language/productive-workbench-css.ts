@@ -179,6 +179,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 [data-side-panel-visible="false"] [data-eidos-workbench-splitter]{display:none}
 
+/* A Host-selected focused workflow is not a permanent user preference.
+   Keep the activity strip visible and allow toolbar navigation restore. */
+@media (min-width:701px){
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-focused="true"]{
+    grid-template-columns:var(--eidos-activity-width) 0 0 minmax(0,1fr)
+  }
+  [data-eidos-workspace-focused="true"] [data-eidos-side-panel],
+  [data-eidos-workspace-focused="true"] [data-eidos-workbench-splitter]{
+    display:none
+  }
+  [data-eidos-workspace-focused="true"] [data-eidos-workspace]{
+    grid-column:2/5
+  }
+  [data-eidos-workspace-focused="true"] form[data-eidos-id]{
+    width:min(var(--eidos-focused-workspace-content-max,1200px),100%)
+  }
+}
+[data-eidos-workspace-focus-toggle]{justify-self:start;min-width:44px;min-height:44px}
+[data-eidos-workspace-focus-toggle][hidden]{display:none!important}
+@media(max-width:700px){
+  [data-eidos-workspace-focus-toggle]{display:none!important}
+}
+
 [data-eidos-workspace]{
   grid-column:4;grid-row:1;min-width:0;min-height:0;
   display:flex;flex-direction:column;overflow:hidden;background:var(--eidos-bg);
@@ -588,6 +611,18 @@ form[data-eidos-id] button,
   gap:var(--eidos-space-section);min-width:0;
 }
 [data-eidos-page-heading-copy]{min-width:0}
+form[data-eidos-id] [data-eidos-page-heading] > [data-eidos-form-task-steps]{
+  justify-content:flex-end;align-self:flex-start;flex:0 0 auto;max-width:48%;
+  margin:0
+}
+@media(max-width:850px){
+  form[data-eidos-id] [data-eidos-page-heading]:has(> [data-eidos-form-task-steps]){
+    flex-wrap:wrap
+  }
+  form[data-eidos-id] [data-eidos-page-heading] > [data-eidos-form-task-steps]{
+    width:100%;max-width:none;justify-content:flex-start
+  }
+}
 form[data-eidos-id] [data-eidos-page-heading] h1,
 [data-eidos-capability="catalog-browser"] [data-eidos-page-heading] h1{
   margin:0;font-size:var(--eidos-font-page);line-height:1.25;letter-spacing:-.015em;
@@ -2267,6 +2302,18 @@ body{
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-toolbar]{
   grid-template-columns:minmax(0,1fr);
 }
+[data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-browser-toolbar]{
+  grid-template-columns:auto minmax(0,1fr);
+}
+[data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-global-controls]{
+  grid-column:2;
+}
+@media(max-width:700px){
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-global-controls]{grid-column:1}
+  [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"][data-eidos-workspace-focus-eligible="true"] [data-eidos-browser-toolbar]{
+    grid-template-columns:minmax(0,1fr)
+  }
+}
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-address],
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-go],
 [data-eidos-app-host-layout="workbench"][data-eidos-workspace-mode="app"] [data-eidos-browser-external]{
@@ -2833,4 +2880,923 @@ form[data-eidos-id] button:hover,
   }
 }
 
+/* Generic Eidos grouped form review: no product names, source data or decisions. */
+[data-eidos-form-review-groups]{display:grid;gap:0;margin-top:var(--eidos-space-lg);border-block-start:1px solid var(--eidos-border)}
+[data-eidos-form-review-group]{padding:var(--eidos-space-md) 0;border-block-end:1px solid var(--eidos-border);min-width:0}
+[data-eidos-review-group-heading]{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1fr);gap:var(--eidos-space-lg);align-items:center}
+[data-eidos-review-group-heading]>div{min-width:0}
+[data-eidos-review-group-heading] strong{display:block;font-size:var(--eidos-font-compact)}
+[data-eidos-review-group-heading] p{color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);margin:var(--eidos-space-xs) 0 0;overflow-wrap:anywhere}
+[data-eidos-form-review-group] [data-eidos-form-field] label{margin:0}
+[data-eidos-form-review-group] [data-eidos-form-field] select{margin-top:var(--eidos-space-xs)}
+[data-eidos-review-group-detail]{margin-top:var(--eidos-space-sm);min-width:0}
+[data-eidos-review-group-detail]>summary{cursor:pointer;color:var(--eidos-primary);font-weight:600;font-size:var(--eidos-font-compact);min-height:32px;display:list-item;align-content:center}
+[data-eidos-review-group-detail]>summary:focus-visible{outline:2px solid var(--eidos-primary);outline-offset:2px}
+[data-eidos-review-group-fields]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--eidos-space-md);padding:var(--eidos-space-md) 0}
+[data-eidos-review-group-fields]>[data-eidos-form-field]{min-width:0}
+@media(max-width:680px){
+ [data-eidos-review-group-heading]{grid-template-columns:minmax(0,1fr);gap:var(--eidos-space-sm)}
+ [data-eidos-review-group-fields]{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Optional domain-neutral heading before the E2 decision table. */
+[data-eidos-form-review-table-heading]{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  column-gap:var(--eidos-space-md);row-gap:var(--eidos-space-xs);
+  margin-top:var(--eidos-space-section);min-width:0
+}
+[data-eidos-form-review-table-heading] h2{grid-column:1;grid-row:1}
+[data-eidos-form-review-table-heading] p{grid-column:1;grid-row:2}
+[data-eidos-form-review-table-utility-nav]{
+  grid-column:2;grid-row:1 / span 2;justify-self:end;
+  min-width:0;max-width:100%;font-size:var(--eidos-font-compact)
+}
+[data-eidos-form-review-table-utility-nav] summary{
+  display:flex;align-items:center;min-height:var(--eidos-control-normal);
+  cursor:pointer;color:var(--eidos-primary);font-weight:600;
+  padding:0 var(--eidos-space-sm);border-radius:var(--eidos-radius-md);
+  border:1px solid var(--eidos-border-strong);background:var(--eidos-bg);
+}
+[data-eidos-form-review-table-utility-nav] summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-form-review-table-utility-links]{
+  display:grid;gap:var(--eidos-space-xs);padding-top:var(--eidos-space-xs)
+}
+[data-eidos-form-review-table-utility-links] button{
+  text-align:left;white-space:normal;overflow-wrap:anywhere;
+  border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-md);
+  padding:var(--eidos-space-sm);min-height:var(--eidos-control-normal);
+  background:var(--eidos-bg);color:var(--eidos-primary);cursor:pointer
+}
+[data-eidos-form-review-table-utility-links] button:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+@media(max-width:700px){
+  [data-eidos-form-review-table-utility-nav]{
+    grid-column:1 / -1;grid-row:auto;justify-self:start
+  }
+  [data-eidos-form-review-table-utility-nav] summary,
+  [data-eidos-form-review-table-utility-links] button{min-height:44px}
+}
+[data-eidos-form-review-table-heading] h2{
+  margin:0;color:var(--eidos-fg);font-size:var(--eidos-font-section)
+}
+[data-eidos-form-review-table-heading] p{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)
+}
+[data-eidos-form-review-table-heading]+[data-eidos-form-review-table-wrap]{
+  margin-top:var(--eidos-space-md)
+}
+/* Eidos E2: domain-neutral editable review table, never a product-specific mapping skin. */
+[data-eidos-form-review-table-wrap]{
+  min-width:0;
+  margin-block:var(--eidos-space-lg);
+  background:var(--eidos-bg);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  overflow:hidden;
+}
+[data-eidos-form-review-table-toolbar]{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:center;
+  gap:var(--eidos-space-sm);
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  border-bottom:1px solid var(--eidos-border);
+}
+[data-eidos-form-review-table-toolbar-context]{display:grid;gap:var(--eidos-space-xs);min-width:0}
+[data-eidos-form-review-table-toolbar-hint]{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+  overflow-wrap:anywhere;
+}
+[data-eidos-form-review-table-footnote]{
+  margin:0;padding:var(--eidos-space-md) var(--eidos-space-lg);
+  background:var(--eidos-bg-subtle);border-top:1px solid var(--eidos-border);
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+}
+[data-eidos-form-review-table-toolbar-tools]{
+  display:flex;align-items:center;justify-content:flex-end;
+  flex-wrap:wrap;gap:var(--eidos-space-sm);min-width:0
+}
+[data-eidos-review-table-agent-action]{
+  min-height:var(--eidos-control-normal);border-radius:var(--eidos-radius-md);
+  border:1px solid var(--eidos-border-strong);background:var(--eidos-bg);
+  color:var(--eidos-primary);padding:0 var(--eidos-space-md);
+  font-size:var(--eidos-font-compact);font-weight:600;cursor:pointer
+}
+[data-eidos-review-table-agent-action]:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-review-table-agent-action]:disabled{opacity:.5;cursor:wait}
+[data-eidos-form-review-table-toolbar] label{
+  display:flex;
+  gap:var(--eidos-space-sm);
+  align-items:center;
+  min-width:0;
+  font-size:var(--eidos-font-compact);
+}
+[data-eidos-form-review-table-toolbar] select{
+  background:var(--eidos-bg);
+  color:var(--eidos-fg);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-md);
+  min-height:var(--eidos-control-normal);
+  padding-inline:var(--eidos-space-sm);
+}
+[data-eidos-form-review-table-toolbar] select:focus-visible{
+  outline:2px solid var(--eidos-focus);
+  outline-offset:2px;
+}
+[data-eidos-form-review-table-count]{
+  font-size:var(--eidos-font-meta);
+  color:var(--eidos-fg-muted);
+  font-variant-numeric:tabular-nums;
+}
+[data-eidos-form-review-table-scroll]{
+  max-width:100%;
+  overflow-x:auto;
+}
+[data-eidos-form-review-table-row][hidden]{display:none !important}
+[data-eidos-form-review-table]{
+  width:100%;
+  min-width:680px;
+  border-collapse:collapse;
+  table-layout:fixed;
+}
+[data-eidos-form-review-table] thead{
+  background:var(--eidos-bg-subtle);
+}
+[data-eidos-form-review-table] th,
+[data-eidos-form-review-table] td{
+  padding:var(--eidos-space-md);
+  text-align:start;
+  vertical-align:middle;
+  border-bottom:1px solid var(--eidos-border);
+  font-size:var(--eidos-font-compact);
+  overflow-wrap:anywhere;
+}
+[data-eidos-form-review-table] thead th{
+  color:var(--eidos-fg-muted);
+  font-weight:650;
+  font-size:var(--eidos-font-meta);
+}
+[data-eidos-form-review-table] th:first-child{width:20%}
+[data-eidos-form-review-table] th:nth-child(2){width:25%}
+[data-eidos-form-review-table] th:nth-child(3){width:38%}
+[data-eidos-form-review-table] th:nth-child(4){width:17%}
+[data-eidos-review-table-subject]{color:var(--eidos-fg)}
+[data-eidos-review-table-evidence]{color:var(--eidos-fg-muted)}
+[data-eidos-review-table-status]{
+  font-size:var(--eidos-font-meta);
+  color:var(--eidos-fg-muted);
+}
+[data-eidos-review-table-status][data-tone="warning"]{color:var(--eidos-warning)}
+[data-eidos-review-table-status][data-tone="positive"]{color:var(--eidos-success)}
+[data-eidos-review-table-choice]>[data-eidos-form-field]{margin:0}
+[data-eidos-review-table-choice] [data-eidos-form-field] label{
+  display:grid;
+  gap:var(--eidos-space-xs);
+  font-weight:500;
+}
+[data-eidos-review-table-choice] [data-eidos-form-field] select,
+[data-eidos-review-table-choice] [data-eidos-form-field] input{
+  width:100%;
+  max-width:100%;
+  min-height:var(--eidos-control-normal);
+}
+/* E4: a collapsed disclosure belongs beside its evidence, not in a full-width
+   second table row. Expanded details grow only the owning source row. */
+[data-eidos-review-table-evidence] [data-eidos-review-group-detail]{
+  margin-top:var(--eidos-space-xs);
+  min-width:0;
+}
+[data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{
+  font-size:var(--eidos-font-meta);
+  font-weight:600;
+  min-height:var(--eidos-control-normal);
+}
+[data-eidos-review-table-evidence] [data-eidos-review-group-fields]{
+  grid-template-columns:minmax(0,1fr);
+  gap:var(--eidos-space-xs);
+  padding:var(--eidos-space-sm) 0 0;
+}
+[data-eidos-review-table-evidence] [data-eidos-review-group-fields] input{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+}
+[data-eidos-form-review-table-empty]{
+  padding:var(--eidos-space-lg);
+  margin:0;
+  color:var(--eidos-fg-muted);
+}
+@media(max-width:700px){
+ [data-eidos-form-review-table-scroll]{overflow:visible}
+ [data-eidos-form-review-table]{display:block;min-width:0}
+ [data-eidos-form-review-table] thead{
+   position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+   overflow:hidden;clip-path:inset(50%);white-space:nowrap;
+ }
+ [data-eidos-form-review-table] tbody{
+   display:block;
+   margin:var(--eidos-space-sm);
+   border:1px solid var(--eidos-border);
+   border-radius:var(--eidos-radius-md);
+   min-width:0;
+   overflow:hidden;
+ }
+ /* Keep source identity and read-only status in one glanceable header.
+    Editable target and evidence remain full width for 44px touch controls. */
+ [data-eidos-form-review-table] tbody>tr{
+   display:grid;
+   grid-template-columns:minmax(0,1fr) auto;
+   align-items:start;
+   column-gap:var(--eidos-space-xs);
+ }
+ [data-eidos-form-review-table] tbody th[data-eidos-review-table-subject]{
+   grid-column:1;
+   grid-row:1;
+   width:100%;
+   min-width:0;
+   align-self:center;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-status]{
+   grid-column:2;
+   grid-row:1;
+   align-self:center;
+   justify-self:end;
+   width:auto;
+   white-space:nowrap;
+   text-align:end;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-status][data-heading]:before{
+   display:none;
+ }
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence],
+ [data-eidos-form-review-table] tbody td[data-eidos-review-table-choice]{
+   grid-column:1/-1;
+ }
+ [data-eidos-form-review-table] tbody th,
+ [data-eidos-form-review-table] tbody td{
+   display:block;
+   width:100%;
+   min-width:0;
+   border-bottom:0;
+   padding:var(--eidos-space-sm) var(--eidos-space-md);
+ }
+ [data-eidos-form-review-table] tbody th{font-size:var(--eidos-font-compact)}
+ [data-eidos-form-review-table] tbody td[data-heading]:before{
+   content:attr(data-heading);
+   display:block;
+   font-size:var(--eidos-font-meta);
+   color:var(--eidos-fg-subtle);
+   margin-bottom:var(--eidos-space-xs);
+ }
+ [data-eidos-form-review-table] select,
+ [data-eidos-form-review-table] input{min-height:44px}
+ [data-eidos-form-review-table-toolbar] label{width:100%}
+ [data-eidos-form-review-table-toolbar] select{flex:1;min-width:0}
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]>summary{min-height:44px}
+}
+
+
+/* Generic compact Human review rows; field labels remain screen-reader visible. */
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice-label]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0
+}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] th,
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table] td{padding:var(--eidos-space-sm) var(--eidos-space-md)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] [data-eidos-form-field] label{display:block;gap:0;line-height:normal}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-review-table-choice] select{min-height:var(--eidos-control-normal)}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+  [data-eidos-form-review-table-toolbar] label{white-space:nowrap;flex-wrap:nowrap}
+@media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar-tools]{width:100%;justify-content:space-between}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-review-table-agent-action]{min-height:44px}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar-context]{width:100%}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-review-table-choice] select{min-height:44px}
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+   [data-eidos-form-review-table-toolbar] label{white-space:normal;width:100%}
+}
+
+/* Optional compact desktop evidence only. Open details regain their full width.
+   Default tables and 44px mobile controls preserve existing layout. */
+@media(min-width:701px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open]){
+   display:inline-block;vertical-align:middle;
+   margin:0 0 0 var(--eidos-space-sm);max-width:100%;
+ }
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])>summary{
+   min-height:var(--eidos-control-normal);
+ }
+ /* Native compact choice controls were visually 36px tall, yet inherited
+    12px label margins above and below inflated table rows to 73px.
+    Keep a small breathing space only for this opted-in desktop surface. */
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"][data-eidos-review-table-evidence-layout="inline-collapsed"]
+ [data-eidos-review-table-choice] [data-eidos-form-field] label{
+   margin:3px 0;
+ }
+}
+/* Opt-in Human review workbench: show the original source, the actual counts,
+   and every actionable blocker before choices; never conceal business facts. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+  gap:var(--eidos-space-md);
+  margin-block:var(--eidos-space-section);
+  min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+  justify-content:flex-end;gap:var(--eidos-space-md);min-width:0
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-identity] strong{
+  font-size:var(--eidos-font-section)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-identity][data-eidos-form-task-has-icon="true"]{
+  grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:var(--eidos-space-md)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-source-status][data-tone="positive"]{
+  color:var(--eidos-success);
+  background:color-mix(in srgb,var(--eidos-success) 11%,var(--eidos-bg));
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-source-status][data-tone="warning"]{
+  color:var(--eidos-warning);
+  background:color-mix(in srgb,var(--eidos-warning) 11%,var(--eidos-bg));
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-icon]{
+  display:grid;place-items:center;min-width:46px;min-height:46px;
+  border-radius:var(--eidos-radius-md);padding:var(--eidos-space-xs);
+  background:var(--eidos-bg-subtle);color:var(--eidos-success);
+  font-size:var(--eidos-font-compact);font-weight:var(--eidos-weight-semibold)
+}
+form[data-eidos-id] [data-eidos-form-task-save-hint]{
+  margin-right:auto;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta)
+}
+@media(max-width:520px){
+  form[data-eidos-id] [data-eidos-form-task-save-hint]{flex-basis:100%}
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+  grid-template-columns:repeat(4,minmax(0,1fr))
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+  padding:var(--eidos-space-md) var(--eidos-space-lg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric][data-tone="warning"]{
+  border-color:color-mix(in srgb,var(--eidos-warning) 33%,var(--eidos-border));
+  background:color-mix(in srgb,var(--eidos-warning) 3%,var(--eidos-bg));
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header h2{
+  color:var(--eidos-fg)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>ol{
+  background:var(--eidos-bg-subtle)
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-help]{
+  color:var(--eidos-fg-muted)
+}
+@media(max-width:850px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-steps]{
+   justify-content:flex-start;flex-wrap:wrap
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:360px){
+  [data-eidos-form-task-context]{grid-template-columns:minmax(0,1fr)}
+  [data-eidos-form-task-identity]{grid-column:1;grid-row:auto}
+  [data-eidos-form-task-source-status]{grid-column:1;grid-row:auto;justify-self:start;max-width:100%;text-align:left}
+}
+@media(max-width:520px){
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metrics]{
+   gap:var(--eidos-space-sm)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+   padding:var(--eidos-space-md)
+ }
+ [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+   padding:var(--eidos-space-sm)
+ }
+}
+
+
+/* Opt-in, accessible two-stage workbench hierarchy. Existing non-workbench
+   process indicators remain unchanged; the business app supplies state. */
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]{
+  counter-reset:eidos-workbench-step;gap:var(--eidos-space-lg);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li{
+  counter-increment:eidos-workbench-step;position:relative;gap:var(--eidos-space-sm);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li::before{
+  content:counter(eidos-workbench-step);
+  width:24px;height:24px;box-sizing:border-box;
+  display:grid;place-items:center;flex:0 0 24px;
+  border-radius:50%;border:1px solid var(--eidos-border-strong);
+  background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);
+  font-weight:700;font-size:var(--eidos-font-meta);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]
+  li[data-eidos-task-step-state="complete"]::before{
+  content:"✓";background:var(--eidos-bg-subtle);
+  border-color:var(--eidos-success);color:var(--eidos-success);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]
+  li[data-eidos-task-step-state="current"]::before{
+  background:var(--eidos-primary);border-color:var(--eidos-primary);
+  color:var(--eidos-bg);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li{
+  margin-inline-start:var(--eidos-space-lg);
+}
+[data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li::after{
+  content:"";position:absolute;inset-inline-start:calc(-1 * (var(--eidos-space-lg) + var(--eidos-space-md)));
+  top:50%;width:var(--eidos-space-lg);height:1px;background:var(--eidos-border-strong);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+  column-gap:var(--eidos-space-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header h2{
+  grid-column:1;grid-row:1;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header p{
+  grid-column:1;grid-row:2;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+  grid-column:2;grid-row:1 / span 2;
+  padding:var(--eidos-space-xs) var(--eidos-space-sm);
+  border-radius:var(--eidos-radius-lg);
+  color:var(--eidos-warning);
+  background:color-mix(in srgb,var(--eidos-warning) 10%,var(--eidos-bg));
+  font-size:var(--eidos-font-meta);white-space:nowrap;
+}
+@media(max-width:520px){
+  [data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"]{
+    gap:var(--eidos-space-sm);
+  }
+  [data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li{
+    margin-inline-start:var(--eidos-space-sm);
+  }
+  [data-eidos-form-task-steps][data-eidos-task-steps-presentation="workbench"] li+li::after{
+    display:none;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+    align-self:start;
+  }
+}
+
+/* Eidos E3: generic Human review task overview. Business facts stay Host-owned. */
+[data-eidos-form-task-overview]{display:grid;gap:var(--eidos-space-lg);min-width:0;margin-block:var(--eidos-space-lg)}
+/* Eidos: optional Human decision-first task summary. All evidence, issue
+   focus buttons and metrics remain operable inside a native disclosure. */
+[data-eidos-form-task-overview][data-eidos-task-presentation="decision-first"]{
+  gap:var(--eidos-space-xs);margin-block:var(--eidos-space-sm)
+}
+[data-eidos-form-task-details]{
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);min-width:0
+}
+[data-eidos-form-task-details]>summary{
+  cursor:pointer;min-height:44px;box-sizing:border-box;
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  color:var(--eidos-fg);font-size:var(--eidos-font-compact);
+  overflow-wrap:anywhere
+}
+[data-eidos-form-task-details]>summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
+[data-eidos-form-task-details]>summary strong{
+  font-weight:650;overflow-wrap:anywhere
+}
+[data-eidos-task-summary-issues]{
+  margin-inline-start:var(--eidos-space-md);
+  font-size:var(--eidos-font-meta);color:var(--eidos-warning)
+}
+[data-eidos-form-task-details-content]{
+  display:grid;gap:var(--eidos-space-md);padding:var(--eidos-space-lg);
+  border-top:1px solid var(--eidos-border);min-width:0
+}
+
+[data-eidos-form-task-steps]{display:flex;flex-wrap:wrap;align-items:center;gap:var(--eidos-space-md);padding:0;margin:0;list-style:none;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)}
+[data-eidos-form-task-steps] li{display:flex;gap:var(--eidos-space-sm);align-items:center}
+[data-eidos-form-task-steps] li:before{content:"";width:8px;height:8px;border-radius:50%;border:2px solid var(--eidos-border-strong);background:var(--eidos-bg)}
+[data-eidos-form-task-steps] li[data-eidos-task-step-state="complete"]:before{background:var(--eidos-success);border-color:var(--eidos-success)}
+[data-eidos-form-task-steps] li[data-eidos-task-step-state="current"]{font-weight:650;color:var(--eidos-fg)}
+[data-eidos-form-task-steps] li[data-eidos-task-step-state="current"]:before{background:var(--eidos-primary);border-color:var(--eidos-primary)}
+[data-eidos-form-task-context]{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--eidos-space-sm) var(--eidos-space-lg);padding:var(--eidos-space-lg);background:var(--eidos-bg);border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-lg);min-width:0}
+[data-eidos-form-task-identity]{display:grid;gap:var(--eidos-space-xs);min-width:0}
+[data-eidos-form-task-identity] strong{font-size:var(--eidos-font-section);overflow-wrap:anywhere}
+[data-eidos-form-task-identity] p{margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);overflow-wrap:anywhere}
+[data-eidos-form-task-source-status]{align-self:center;border-radius:var(--eidos-radius-md);padding:var(--eidos-space-xs) var(--eidos-space-sm);color:var(--eidos-fg-muted);background:var(--eidos-bg-subtle);font-size:var(--eidos-font-meta)}
+[data-eidos-form-task-facts]{display:flex;flex-wrap:wrap;grid-column:1/-1;gap:var(--eidos-space-lg);padding:var(--eidos-space-sm) 0 0;margin:0;border-top:1px solid var(--eidos-border)}
+[data-eidos-form-task-fact]{display:grid;gap:var(--eidos-space-xs);min-width:0}
+[data-eidos-form-task-fact] dt{color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta)}
+[data-eidos-form-task-fact] dd{margin:0;color:var(--eidos-fg);font-size:var(--eidos-font-compact);overflow-wrap:anywhere}
+[data-eidos-form-task-metrics]{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,156px),1fr));gap:var(--eidos-space-sm)}
+[data-eidos-form-task-metric]{display:grid;gap:var(--eidos-space-xs);background:var(--eidos-bg);border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-lg);padding:var(--eidos-space-lg);min-width:0}
+[data-eidos-form-task-metric] strong{font-size:var(--eidos-font-page);font-variant-numeric:tabular-nums;color:var(--eidos-fg);line-height:1.15}
+[data-eidos-form-task-metric] span{font-size:var(--eidos-font-compact);color:var(--eidos-fg-muted);overflow-wrap:anywhere}
+[data-eidos-form-task-metric][data-tone="warning"] strong{color:var(--eidos-warning)}
+[data-eidos-form-task-metric][data-tone="danger"] strong{color:var(--eidos-danger)}
+[data-eidos-form-task-issues]{min-width:0}
+[data-eidos-form-task-issues]>header{margin:0 0 var(--eidos-space-md)}
+[data-eidos-form-task-issues]>header h2{margin:0;font-size:var(--eidos-font-section)}
+[data-eidos-form-task-issues]>header p{margin:var(--eidos-space-xs) 0 0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact)}
+[data-eidos-form-task-issues]>ol{list-style:none;margin:0;padding:0;border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-lg);background:var(--eidos-bg)}
+[data-eidos-form-task-issues] li{display:flex;justify-content:space-between;align-items:center;gap:var(--eidos-space-lg);padding:var(--eidos-space-md) var(--eidos-space-lg);border-bottom:1px solid var(--eidos-border);min-width:0}
+[data-eidos-form-task-issues] li:last-child{border-bottom:0}
+[data-eidos-form-task-issues] li>div{min-width:0}
+[data-eidos-form-task-issues] li strong{font-size:var(--eidos-font-compact);overflow-wrap:anywhere}
+[data-eidos-form-task-issues] li p{margin:var(--eidos-space-xs) 0 0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);overflow-wrap:anywhere}
+[data-eidos-form-task-issues] li button{flex:0 0 auto;border:1px solid var(--eidos-border-strong);background:var(--eidos-bg);color:var(--eidos-primary);border-radius:var(--eidos-radius-md);padding:var(--eidos-space-sm) var(--eidos-space-md);min-height:var(--eidos-control-normal);font-size:var(--eidos-font-compact);font-weight:600;cursor:pointer}
+[data-eidos-form-task-issues] li button:focus-visible{outline:2px solid var(--eidos-focus);outline-offset:2px}
+[data-eidos-form-task-help]{font-size:var(--eidos-font-compact);color:var(--eidos-fg-muted);margin:0}
+@media(max-width:680px){
+  [data-eidos-form-task-context]{grid-template-columns:minmax(0,1fr) auto;align-items:start}
+  [data-eidos-form-task-identity]{grid-column:1;grid-row:1}
+  [data-eidos-form-task-source-status]{grid-column:2;grid-row:1;justify-self:end;align-self:start;max-width:42vw;white-space:normal;text-align:right}
+  [data-eidos-form-task-facts]{grid-column:1/-1}
+  [data-eidos-form-task-issues] li{flex-wrap:wrap;gap:var(--eidos-space-sm)}
+  [data-eidos-form-task-issues] li button{min-height:44px}
+}
+
+
+/* E6: evidence-led decision preview; presentation only, never Host approval. */
+[data-eidos-form-review-plan]{
+  margin-block:var(--eidos-space-lg);
+  padding:var(--eidos-space-lg);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  display:grid;
+  gap:var(--eidos-space-md);
+  min-width:0;
+}
+[data-eidos-form-review-plan] header{display:grid;gap:var(--eidos-space-xs)}
+[data-eidos-form-review-plan] h2{margin:0;font-size:var(--eidos-font-section);color:var(--eidos-fg)}
+[data-eidos-form-review-plan] header p{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-compact);
+}
+[data-eidos-review-plan-counts]{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,128px),1fr));
+  gap:var(--eidos-space-sm);margin:0;
+}
+[data-eidos-review-plan-counts]>div{
+  padding:var(--eidos-space-sm);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-md);display:grid;gap:var(--eidos-space-xs);
+}
+[data-eidos-review-plan-counts] strong{font-size:var(--eidos-font-page);font-variant-numeric:tabular-nums}
+[data-eidos-review-plan-counts] span{font-size:var(--eidos-font-compact);color:var(--eidos-fg-muted)}
+[data-eidos-review-plan-items]{
+  margin:0;padding:0;list-style:none;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));
+  gap:var(--eidos-space-xs);
+}
+[data-eidos-review-plan-items] li{
+  padding:var(--eidos-space-sm);border-bottom:1px solid var(--eidos-border);
+  display:grid;gap:var(--eidos-space-xs);min-width:0;
+}
+[data-eidos-review-plan-items] li strong{
+  font-size:var(--eidos-font-compact);overflow-wrap:anywhere;
+}
+[data-eidos-review-plan-items] li span{
+  font-size:var(--eidos-font-meta);color:var(--eidos-fg-muted);
+  overflow-wrap:anywhere;
+}
+[data-eidos-review-plan-warning]{
+  margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+}
+/* Verified row-correction links within a workbench issue. Native disclosure
+   preserves layout and keyboard behavior; navigation is Host-owned. */
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related]{
+  align-self:start;min-width:0;max-width:100%;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary{
+  display:flex;align-items:center;justify-content:center;
+  min-height:var(--eidos-control-normal);box-sizing:border-box;
+  padding:0 var(--eidos-space-sm);border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-md);background:var(--eidos-bg);
+  color:var(--eidos-primary);font-size:var(--eidos-font-compact);
+  font-weight:600;cursor:pointer;list-style:none;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary::-webkit-details-marker{display:none}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px;
+}
+/* An expanded issue reveals the complete row list underneath its title,
+   rather than leaving a tall empty left column beside vertically stacked links. */
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]
+  li > [data-eidos-form-task-issue-related][open]{
+  grid-column:2 / -1;grid-row:2;justify-self:stretch;width:100%;max-width:none;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related][open] summary{
+  width:max-content;max-width:100%;margin-inline-start:auto;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links]{
+  display:flex;flex-wrap:wrap;gap:var(--eidos-space-xs);
+  margin-top:var(--eidos-space-sm);padding:var(--eidos-space-sm);
+  background:var(--eidos-bg-subtle);border-radius:var(--eidos-radius-md);
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links] button{
+  min-height:var(--eidos-control-normal);white-space:nowrap;
+}
+@media(max-width:850px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related]{
+    grid-column:2;justify-self:start;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related] summary,
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-related-links] button{
+    min-height:44px;
+  }
+}
+/* BEX-01 workbench parity: distinct, numbered Human actions rather than one
+   undifferentiated grey list. Only the opt-in workbench presentation changes. */
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]{
+  border:0;background:transparent;padding:0;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>ol{
+  display:grid;gap:var(--eidos-space-sm);counter-reset:eidos-workbench-issue;
+  border:0;background:transparent;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+  display:grid;grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:start;gap:var(--eidos-space-md);
+  padding:var(--eidos-space-md) var(--eidos-space-lg);
+  border:1px solid color-mix(in srgb,var(--eidos-warning) 30%,var(--eidos-border));
+  border-radius:var(--eidos-radius-lg);background:var(--eidos-bg);
+  counter-increment:eidos-workbench-issue;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li::before{
+  content:counter(eidos-workbench-issue);display:grid;place-items:center;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--eidos-bg-subtle);color:var(--eidos-warning);
+  font-size:var(--eidos-font-meta);font-weight:700;
+}
+[data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li button{
+  align-self:center;
+}
+@media(max-width:850px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    grid-template-columns:28px minmax(0,1fr);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li button{
+    grid-column:2;justify-self:start;align-self:start;
+  }
+}
+
+
+/* An opt-in connected list matches continuous review prototypes while keeping
+   the Eidos #204 independent numbered-card default, action semantics and DOM.
+   No owner PR or generic issue-card presentation is overwritten. */
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol{
+  display:grid;gap:0;overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--eidos-warning) 32%,var(--eidos-border));
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol>li{
+  margin:0;border:0;border-radius:0;
+  background:transparent;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol>li+li{
+  border-top:1px solid var(--eidos-border);
+}
+
+/* Desktop workbench source, summary and issue hierarchy. Keep mobile density
+   and the independently governed compact evidence table unchanged. */
+@media(min-width:851px){
+  [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]{
+    gap:24px;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-context]{
+    padding-block:calc(var(--eidos-space-lg) + 7px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+    padding-block:calc(var(--eidos-space-md) + 15px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    padding-block:calc(var(--eidos-space-md) + 15px);
+  }
+}
+
+/* Opt-in 390px Human review rhythm, isolated to Workbench presentation.
+   Leave true source filenames, row evidence and mobile 44px controls intact. */
+@media(max-width:520px){
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-metric]{
+    padding-block:calc(var(--eidos-space-md) + 9px);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues]>header{
+    grid-template-columns:minmax(0,1fr);
+    row-gap:var(--eidos-space-sm);
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issue-count]{
+    grid-column:1;grid-row:3;justify-self:start;
+  }
+  [data-eidos-task-presentation="workbench"] [data-eidos-form-task-issues] li{
+    padding-block:calc(var(--eidos-space-md) + 11px);
+  }
+}
+
+/* Opt-in compact phone mapping: put the still-visible source example beside
+   its native source disclosure. Open evidence spans full width, never hides
+   the original record and retains the 44px touch affordance. */
+@media(max-width:700px){
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence]:has(>details){
+    display:grid;grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;gap:var(--eidos-space-sm);
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-form-review-table] tbody td[data-eidos-review-table-evidence]:has(>details)::before{
+    display:none;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-table-sample]{
+    min-width:0;overflow-wrap:anywhere;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-group-detail]{
+    margin-top:0;
+  }
+  [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
+    [data-eidos-review-table-evidence] [data-eidos-review-group-detail][open]{
+    grid-column:1 / -1;width:100%;
+  }
+}
+/* Mobile task footer: the three real Host operations follow the prototype's
+   scan-friendly single column, without pretending changes auto-save. */
+@media(max-width:520px){
+  form[data-eidos-id]:has(
+    [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]
+    + [data-eidos-form-fields] [data-eidos-review-table-presentation="compact"]
+  ) footer[data-eidos-form-actions]{
+    display:flex;flex-direction:column;align-items:stretch;
+  }
+  form[data-eidos-id]:has(
+    [data-eidos-form-task-overview][data-eidos-task-presentation="workbench"]
+    + [data-eidos-form-fields] [data-eidos-review-table-presentation="compact"]
+  ) footer[data-eidos-form-actions]>button{
+    width:100%;min-height:44px;flex:0 0 auto;
+  }
+}
+
+/* BEX-01 V3 source-of-truth visual palette and canvas: #909's actual HTML
+   :root/.panel/.metric/.issuebox CSS, not measured screenshot dimensions.
+   Scope to the real mapping form; the Host shell, authorizations, save
+   commands, other forms and other Eidos experiences retain their own skin. */
+[data-eidos-workspace-content]:has(form[data-eidos-id="evo-data-import.mapping"]){
+  background:#f5f7fa;
+}
+form[data-eidos-id="evo-data-import.mapping"]{
+  --eidos-fg:#172b44;
+  --eidos-fg-muted:#6a7c91;
+  --eidos-fg-subtle:#718196;
+  --eidos-bg:#ffffff;
+  --eidos-bg-subtle:#f5f7fa;
+  --eidos-bg-hover:#f4f8fc;
+  --eidos-bg-selected:#eaf2fb;
+  --eidos-border:#e3e9ef;
+  --eidos-border-strong:#ced9e4;
+  --eidos-focus:#73aaf4;
+  --eidos-primary:#2563a6;
+  --eidos-primary-hover:#1d538d;
+  --eidos-primary-subtle:#eaf2fb;
+  --eidos-success:#18765a;
+  --eidos-success-bg:#eaf7f1;
+  --eidos-warning:#a66712;
+  --eidos-warning-bg:#fff6e7;
+  --eidos-danger:#b54738;
+  --eidos-danger-bg:#fff1ee;
+  width:min(1200px,100%);
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--eidos-fg);
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-context],
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-metric],
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-wrap]{
+  background:var(--eidos-bg);
+  border:1px solid var(--eidos-border);
+  border-radius:10px;
+  box-shadow:0 2px 9px #13284006;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-metric][data-tone="warning"]{
+  background:#fffdfa;
+  border-color:#e8d9bd;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-icon]{
+  background:#eaf5ed;color:#198354;border-radius:9px;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-source-status][data-tone="positive"]{
+  background:var(--eidos-success-bg);color:var(--eidos-success);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-task-issues][data-eidos-task-issues-layout="connected"]>ol{
+  border-color:#eddfc6;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-task-issues] li::before{
+  background:var(--eidos-warning-bg);color:var(--eidos-warning);
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table] thead{
+  background:#f7f9fb;
+}
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-footnote]{
+  background:var(--eidos-bg);
+}
+/* V3 #909 status chips: preserve native table cells and scoped Eidos semantics.
+   Changing a choice updates the existing row status key; no Host mutation. */
+form[data-eidos-id="evo-data-import.mapping"] [data-eidos-review-table-status-badge]{
+  display:inline-block;max-width:100%;box-sizing:border-box;
+  padding:2px 8px;border-radius:4px;white-space:normal;
+  background:#f0f3f6;color:var(--eidos-fg-muted);
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="matched"]
+  [data-eidos-review-table-status-badge]{
+  color:#18765a;background:#eaf7f1;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row][data-eidos-review-table-status-key="proposed"]
+  [data-eidos-review-table-status-badge]{
+  color:#2b65aa;background:#eef5fd;
+}
+form[data-eidos-id="evo-data-import.mapping"]
+  [data-eidos-form-review-table-row]:is([data-eidos-review-table-status-key="pending"],
+    [data-eidos-review-table-status-key="attention"],
+    [data-eidos-review-table-status-key="suggested"])
+  [data-eidos-review-table-status-badge]{
+  color:#a66712;background:#fff6e7;
+}
+
+
+/* Optional bounded issue pages: native details retain every Host issue while
+   keeping the source-aligned twelve-decision first page. No JS or auto-save. */
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]{
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  background:var(--eidos-bg);
+  margin-top:var(--eidos-space-sm);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>summary{
+  cursor:pointer;padding:var(--eidos-space-md) var(--eidos-space-lg);
+  min-height:44px;box-sizing:border-box;
+  display:list-item;list-style-position:inside;
+  color:var(--eidos-primary);font-weight:var(--eidos-weight-semibold);
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>summary:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page]>ol{
+  list-style:none;display:grid;gap:var(--eidos-space-sm);
+  margin:0;padding:var(--eidos-space-sm);
+  counter-reset:eidos-workbench-issue;
+}
+[data-eidos-task-presentation="workbench"]
+  [data-eidos-form-task-issue-page] li{
+  display:grid;grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:start;gap:var(--eidos-space-md);
+  border:1px solid color-mix(in srgb,var(--eidos-warning) 30%,var(--eidos-border));
+  border-radius:var(--eidos-radius-lg);background:var(--eidos-bg);
+  counter-increment:eidos-workbench-issue;
+}
+@media(max-width:520px){
+  [data-eidos-task-presentation="workbench"]
+    [data-eidos-form-task-issue-page] li{
+    grid-template-columns:28px minmax(0,1fr);gap:var(--eidos-space-sm);
+  }
+}
 `;

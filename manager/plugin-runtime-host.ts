@@ -194,6 +194,9 @@ interface RuntimeRecord {
     }
   >;
   eventSubscriptions: Map<string, () => void>;
+  // Settles only after Node reports the child's OS exit and all stdio/IPC
+  // handles have closed. This is a LOCAL receipt, not external attestation.
+  closed: Promise<void>;
 }
 
 function defaultEntrypointResolver(pkg: PackageManifestV010): string {
@@ -225,6 +228,20 @@ export function createProcessPluginRuntimeHostV010(
   options: ProcessPluginRuntimeHostOptionsV010
 ): ProcessPluginRuntimeHostV010 {
   const runtimes = new Map<string, RuntimeRecord>();
+  // A runtime may be absent from the active map while its child is still
+  // stopping. Keep that exit promise so shutdown cannot claim completion early.
+  const stopping = new Map<string, Promise<void>>();
+  // A timeout can remove a child from runtimes before SIGKILL finishes.
+  // Keep every forked generation until the ChildProcess "close" event.
+  const liveChildren = new Set<RuntimeRecord>();
+  const retiring = new Map<string, RuntimeRecord>();
+  // Serializes all in-progress verified starts, including an asynchronous
+  // Sigstore verifier. Prevents duplicate fork for the same package.
+  const starting = new Map<string, Promise<PluginRuntimeStatusV010>>();
+  // Cancels the LOCAL wait for a pending external verifier. The verifier
+  // itself may continue externally; a cancelled start must never fork.
+  const cancelVerifying = new Map<string, (error: Error) => void>();
+  let shuttingDown = false;
   const childEntrypoint = fileURLToPath(
     new URL("./plugin-runtime-process-child.js", import.meta.url)
   );
@@ -325,16 +342,33 @@ export function createProcessPluginRuntimeHostV010(
     record.pending.clear();
     for (const unsubscribe of record.eventSubscriptions.values()) unsubscribe();
     record.eventSubscriptions.clear();
-    runtimes.delete(record.pkg.packageId);
+    if (runtimes.get(record.pkg.packageId) === record) {
+      runtimes.delete(record.pkg.packageId);
+    }
   }
 
-  async function start(
+  async function startOne(
     pkg: PackageManifestV010,
     installed: InstalledPackageV010
   ): Promise<PluginRuntimeStatusV010> {
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+    if (stopping.has(pkg.packageId)) {
+      throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+    }
+    // Before a new generation is forked, the previous timed-out
+    // generation must have actually closed, not merely received SIGKILL.
+    const oldGeneration = retiring.get(pkg.packageId);
+    if (oldGeneration) {
+      await oldGeneration.closed;
+      if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+      if (stopping.has(pkg.packageId)) {
+        throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+      }
+    }
     const existing = runtimes.get(pkg.packageId);
     if (existing) {
       await existing.ready;
+      if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
       return structuredClone(existing.status);
     }
 
@@ -368,7 +402,24 @@ export function createProcessPluginRuntimeHostV010(
           `PLUGIN_EXTERNAL_EVIDENCE_VERIFIER_REQUIRED: ${pkg.packageId}: SIGSTORE_BUNDLE`
         );
       }
-      const evidence = await options.verifyExternalEvidence(pkg, artifactBytes);
+      let cancel!: (error: Error) => void;
+      const cancellation = new Promise<never>((_resolve, reject) => {
+        cancel = reject;
+      });
+      cancelVerifying.set(pkg.packageId, cancel);
+      let evidence: PluginExternalEvidenceVerificationV010;
+      try {
+        // Promise.race attaches handlers to both promises: a late rejection
+        // from a verifier abandoned by shutdown cannot become unhandled.
+        evidence = await Promise.race([
+          options.verifyExternalEvidence(pkg, artifactBytes),
+          cancellation
+        ]);
+      } finally {
+        if (cancelVerifying.get(pkg.packageId) === cancel) {
+          cancelVerifying.delete(pkg.packageId);
+        }
+      }
       if (evidence.state !== "VERIFIED") {
         throw new Error(
           `PLUGIN_EXTERNAL_EVIDENCE_REJECTED: ${pkg.packageId}: ${evidence.state}: ${evidence.message}`
@@ -376,6 +427,12 @@ export function createProcessPluginRuntimeHostV010(
       }
     }
 
+    // External integrity verification may have awaited while Host shutdown
+    // began. Recheck admission directly before forking the child.
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+    if (stopping.has(pkg.packageId)) {
+      throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+    }
     emit({
       packageId: pkg.packageId,
       type: "PROCESS_STARTING",
@@ -413,6 +470,8 @@ export function createProcessPluginRuntimeHostV010(
       serialization: "advanced"
     });
 
+    let resolveClosed!: () => void;
+    const closed = new Promise<void>(resolvePromise => {resolveClosed = resolvePromise;});
     const record: RuntimeRecord = {
       pkg: structuredClone(pkg),
       child,
@@ -429,9 +488,18 @@ export function createProcessPluginRuntimeHostV010(
       rejectReady,
       readySettled: false,
       pending: new Map(),
-      eventSubscriptions: new Map()
+      eventSubscriptions: new Map(),
+      closed
     };
+    liveChildren.add(record);
     runtimes.set(pkg.packageId, record);
+    // "close" follows OS exit (or a failed spawn) and handles draining.
+    // It is deliberately tracked independently from the active-package map.
+    child.once("close", () => {
+      liveChildren.delete(record);
+      if (retiring.get(pkg.packageId) === record) retiring.delete(pkg.packageId);
+      resolveClosed();
+    });
 
     child.on("message", raw => {
       const message = raw as {
@@ -582,6 +650,28 @@ export function createProcessPluginRuntimeHostV010(
     return structuredClone(record.status);
   }
 
+  async function start(
+    pkg: PackageManifestV010,
+    installed: InstalledPackageV010
+  ): Promise<PluginRuntimeStatusV010> {
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
+    if (stopping.has(pkg.packageId)) {
+      throw new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${pkg.packageId}`);
+    }
+    const inFlight = starting.get(pkg.packageId);
+    if (inFlight) return await inFlight;
+    // Reserve the package synchronously before an async verifier can yield.
+    const startPromise = startOne(pkg, installed);
+    starting.set(pkg.packageId, startPromise);
+    try {
+      return await startPromise;
+    } finally {
+      if (starting.get(pkg.packageId) === startPromise) {
+        starting.delete(pkg.packageId);
+      }
+    }
+  }
+
   async function invoke(
     pkg: PackageManifestV010,
     installed: InstalledPackageV010,
@@ -589,6 +679,7 @@ export function createProcessPluginRuntimeHostV010(
   ): Promise<unknown> {
     if (!request.method.trim()) throw new Error("PLUGIN_PROCESS_METHOD_REQUIRED");
     await start(pkg, installed);
+    if (shuttingDown) throw new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN");
     const record = runtimes.get(pkg.packageId);
     if (!record || record.status.status !== "READY") {
       throw new Error(`PLUGIN_PROCESS_NOT_READY: ${pkg.packageId}`);
@@ -612,6 +703,7 @@ export function createProcessPluginRuntimeHostV010(
         if (runtimes.get(pkg.packageId) === record) {
           runtimes.delete(pkg.packageId);
         }
+        retiring.set(pkg.packageId, record);
         const timeoutMessage = `PLUGIN_PROCESS_TIMEOUT: ${pkg.packageId}: ${request.method}: ${timeoutMs}ms`;
         emit({
           packageId: pkg.packageId,
@@ -641,39 +733,59 @@ export function createProcessPluginRuntimeHostV010(
   }
 
   async function stop(packageId: string): Promise<void> {
-    const record = runtimes.get(packageId);
-    if (!record) return;
-    runtimes.delete(packageId);
+    const inFlight = stopping.get(packageId);
+    if (inFlight) return await inFlight;
 
-    const stopped = new Promise<void>(resolvePromise => {
-      if (record.child.exitCode !== null || record.child.signalCode !== null) {
-        resolvePromise();
-        return;
+    // Register stop intent before awaiting an asynchronous start. A verifier
+    // still in progress must fail its recheck rather than fork after stop().
+    const stopPromise = (async (): Promise<void> => {
+      let record = runtimes.get(packageId);
+      if (!record) {
+        const pendingStart = starting.get(packageId);
+        if (pendingStart) {
+          cancelVerifying.get(packageId)?.(
+            new Error(`PLUGIN_PROCESS_STOP_IN_PROGRESS: ${packageId}`)
+          );
+          await pendingStart.catch(() => {});
+        }
+        record = runtimes.get(packageId);
       }
-      record.child.once("exit", () => resolvePromise());
-    });
+      if (!record) return;
+      runtimes.delete(packageId);
 
-    if (record.child.connected) {
-      record.child.send({ type: "shutdown" });
+      // "close" is an individual LOCAL process completion receipt.
+      const stopped = record.closed;
+      const killTimer = setTimeout(() => {
+        if (record.child.exitCode === null && record.child.signalCode === null) {
+          record.child.kill("SIGKILL");
+        }
+      }, 750);
+      try {
+        if (record.child.connected) {
+          try {
+            record.child.send({ type: "shutdown" });
+          } catch {
+            // Continue to wait for the child and fall back to SIGKILL.
+          }
+        }
+        await stopped;
+        emit({
+          packageId,
+          type: "PROCESS_STOPPED",
+          message: "Plugin process stopped by Host lifecycle."
+        });
+      } finally {
+        clearTimeout(killTimer);
+        cleanupRecord(record, new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`));
+      }
+    })();
+
+    stopping.set(packageId, stopPromise);
+    try {
+      await stopPromise;
+    } finally {
+      if (stopping.get(packageId) === stopPromise) stopping.delete(packageId);
     }
-
-    const killTimer = setTimeout(() => {
-      if (record.child.exitCode === null && record.child.signalCode === null) {
-        record.child.kill("SIGKILL");
-      }
-    }, 750);
-
-    await stopped;
-    clearTimeout(killTimer);
-    emit({
-      packageId,
-      type: "PROCESS_STOPPED",
-      message: "Plugin process stopped by Host lifecycle."
-    });
-    cleanupRecord(
-      record,
-      new Error(`PLUGIN_PROCESS_STOPPED: ${packageId}`)
-    );
   }
 
   return {
@@ -685,7 +797,26 @@ export function createProcessPluginRuntimeHostV010(
       return value ? structuredClone(value) : undefined;
     },
     async shutdown() {
-      await Promise.all([...runtimes.keys()].map(packageId => stop(packageId)));
+      // Close all future start/invoke admission before building a stop
+      // snapshot. Include children already removed by a previous stop().
+      shuttingDown = true;
+      // Cancel LOCAL verifier admission before awaiting pending starts.
+      // A remote verifier that ignores cancellation may still run, but
+      // its eventual resolution no longer authorizes a new fork.
+      for (const cancel of cancelVerifying.values()) {
+        cancel(new Error("PLUGIN_PROCESS_HOST_SHUTTING_DOWN"));
+      }
+      // A verifier may be pending without a forked child yet. Wait until
+      // those calls observe shutdown and reject before returning.
+      const pendingStarts = [...starting.values()].map(promise =>
+        promise.then(() => undefined, () => undefined)
+      );
+      const inFlight = [...stopping.values()];
+      const active = [...runtimes.keys()].map(packageId => stop(packageId));
+      // This list also includes children removed by invocation timeout,
+      // fatal/error cleanup, or another asynchronous lifecycle operation.
+      const everyForkedChild = [...liveChildren].map(record => record.closed);
+      await Promise.all([...pendingStarts, ...inFlight, ...active, ...everyForkedChild]);
     }
   };
 }

@@ -22,14 +22,18 @@ import type {
   EogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
 
-export const EOG_SOP_LIST_ACTION =
-  "enterprise-operating-graph.sop.list";
-export const EOG_SOP_CREATE_ACTION =
-  "enterprise-operating-graph.sop.create";
-export const EOG_SOP_REVISE_ACTION =
-  "enterprise-operating-graph.sop.revise";
-export const EOG_SOP_PUBLISH_ACTION =
-  "enterprise-operating-graph.sop.publish";
+import {
+  EOG_SOP_LIST_ACTION,
+  EOG_SOP_CREATE_ACTION,
+  EOG_SOP_REVISE_ACTION,
+  EOG_SOP_PUBLISH_ACTION
+} from "../contracts/enterprise-operating-graph-sop.js";
+export {
+  EOG_SOP_LIST_ACTION,
+  EOG_SOP_CREATE_ACTION,
+  EOG_SOP_REVISE_ACTION,
+  EOG_SOP_PUBLISH_ACTION
+} from "../contracts/enterprise-operating-graph-sop.js";
 
 function textValue(
   values: Record<string, JsonValue>,
@@ -349,3 +353,4 @@ export function createEogExpectedSopActionHandlersV010(input: {
     })
   ];
 }
+

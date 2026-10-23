@@ -55,6 +55,7 @@ test("CP-03 XLSX retains valid first-sheet staged rows and a caller-configured l
   ]);
   assert.deepEqual(parseXlsxSourceV010({ bytes, maxRows: 1 }), {
     kind: "XLSX",
+    worksheetName: "Sheet1",
     headers: ["Code", "Name"],
     rows: [{ Code: "SUP-001", Name: "Supplier" }]
   });

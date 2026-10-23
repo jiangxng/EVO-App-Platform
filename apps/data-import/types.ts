@@ -5,6 +5,14 @@ import type {
   FoundationObjectImportTargetParametersV010
 } from "../../contracts/foundation-object/import.js";
 
+export type DataImportRowCorrectionV010 = {
+  rowNumber: number;
+  sourceColumn: string;
+  value: FoundationObjectImportCellV010;
+  actorSubjectId: string;
+  recordedAt: string;
+};
+
 export type DataImportJobStateV010 =
   | "STAGED"
   | "DRY_RUN_READY"
@@ -15,6 +23,8 @@ export type DataImportJobStateV010 =
 export interface DataImportSourceV010 {
   kind: "CSV" | "XLSX" | "ROWS";
   name?: string;
+  /** Original XLSX worksheet selected by the parser, not inferred from a file name. */
+  worksheetName?: string;
   headers: string[];
   rows: Array<Record<string, FoundationObjectImportCellV010>>;
 }
@@ -105,6 +115,19 @@ export interface DataImportExperienceLearningV010 {
   diagnostic?: string;
 }
 
+/** Owner-scoped, non-approved Human choices. Never drives import commit or schema changes. */
+export interface DataImportBatchReviewDraftV010 {
+  actorSubjectId: string;
+  recordedAt: string;
+  columns: Array<{
+    sourceColumn: string;
+    choice: string;
+    label: string;
+    valueType: "STRING" | "NUMBER" | "BOOLEAN" | "DATE";
+  }>;
+  batchSubjectType?: "__KEEP__" | "ORGANIZATION" | "PERSON";
+}
+
 export interface DataImportJobV010 {
   contractVersion: "0.1.0";
   importJobId: string;
@@ -113,8 +136,12 @@ export interface DataImportJobV010 {
   state: DataImportJobStateV010;
   source: DataImportSourceV010;
   mapping: DataImportMappingV010[];
+  /** Per-Human review only; saving drafts cannot approve enterprise definitions. */
+  batchReviewDrafts?: DataImportBatchReviewDraftV010[];
   /** Explicitly ignored source columns. All original cells remain in source.rows. */
   ignoredSourceColumns?: string[];
+  /** Human-confirmed overrides; original Excel cells remain in source.rows. */
+  rowCorrections?: DataImportRowCorrectionV010[];
   mappingOrigin?: DataImportMappingOriginV010;
   appliedRecipeId?: string;
   stagedAt: string;
@@ -143,6 +170,15 @@ export function assertDataImportJobV010(
     "COMMITTED_WITH_ERRORS"
   ].includes(value.state)) {
     throw new Error("DATA_IMPORT_JOB_STATE_INVALID");
+  }
+  if (value.source.worksheetName !== undefined
+    && (value.source.kind !== "XLSX"
+      || typeof value.source.worksheetName !== "string"
+      || !value.source.worksheetName.trim()
+      || value.source.worksheetName.length > 128
+      || value.source.worksheetName.includes(String.fromCharCode(10))
+      || value.source.worksheetName.includes(String.fromCharCode(13)))) {
+    throw new Error("DATA_IMPORT_SOURCE_WORKSHEET_INVALID");
   }
   const headers = value.source.headers.map(header =>
     required(header, "DATA_IMPORT_SOURCE_HEADER_INVALID")
@@ -274,6 +310,29 @@ export function assertDataImportJobV010(
       mapping.some(item => item.sourceColumn === column))) {
     throw new Error("DATA_IMPORT_IGNORED_COLUMN_INVALID");
   }
+
+  const corrections = (value.rowCorrections ?? []).map(item => {
+    if (!Number.isInteger(item.rowNumber) || item.rowNumber < 1
+      || item.rowNumber > value.source.rows.length
+      || !headerSet.has(item.sourceColumn)
+      || !mapping.some(entry => entry.sourceColumn === item.sourceColumn)
+      || ignoredSourceColumns.includes(item.sourceColumn)
+      || typeof item.actorSubjectId !== "string" || !item.actorSubjectId.trim()
+      || typeof item.recordedAt !== "string" || !item.recordedAt.trim()
+      || !("value" in item)
+      || !(item.value === null || typeof item.value === "string"
+        || (typeof item.value === "number" && Number.isFinite(item.value))
+        || typeof item.value === "boolean")) {
+      throw new Error("DATA_IMPORT_ROW_CORRECTION_INVALID");
+    }
+    return { rowNumber: item.rowNumber, sourceColumn: item.sourceColumn,
+      value: item.value, actorSubjectId: item.actorSubjectId.trim(),
+      recordedAt: item.recordedAt.trim() };
+  });
+  const correctionKeys = corrections.map(item => item.rowNumber + "|" + item.sourceColumn);
+  if (new Set(correctionKeys).size !== correctionKeys.length) {
+    throw new Error("DATA_IMPORT_ROW_CORRECTION_DUPLICATE");
+  }
   let experienceLearning: DataImportExperienceLearningV010 | undefined;
   if (value.experienceLearning) {
     const item = value.experienceLearning;
@@ -320,11 +379,61 @@ export function assertDataImportJobV010(
       ...(value.source.name?.trim()
         ? { name: value.source.name.trim() }
         : {}),
+      ...(value.source.worksheetName !== undefined
+        ? { worksheetName: value.source.worksheetName.trim() } : {}),
       headers,
       rows: structuredClone(value.source.rows)
     },
     mapping,
+    ...(value.batchReviewDrafts !== undefined ? {
+      batchReviewDrafts: (() => {
+        if (!Array.isArray(value.batchReviewDrafts)
+          || value.batchReviewDrafts.length > 16) {
+          throw new Error("DATA_IMPORT_BATCH_DRAFTS_INVALID");
+        }
+        const seenActors=new Set<string>();
+        return value.batchReviewDrafts.map(draft=>{
+          if (!draft || typeof draft !== "object"
+            || typeof draft.actorSubjectId !== "string"
+            || !draft.actorSubjectId.trim()
+            || typeof draft.recordedAt !== "string"
+            || !draft.recordedAt.trim()
+            || !Array.isArray(draft.columns) || draft.columns.length > 200
+            || seenActors.has(draft.actorSubjectId)
+            || draft.batchSubjectType !== undefined && ![
+              "__KEEP__","ORGANIZATION","PERSON"
+            ].includes(draft.batchSubjectType)) {
+            throw new Error("DATA_IMPORT_BATCH_DRAFT_INVALID");
+          }
+          seenActors.add(draft.actorSubjectId);
+          const used=new Set<string>();
+          const columns=draft.columns.map(entry=>{
+            if (!entry || typeof entry.sourceColumn !== "string"
+              || !headers.includes(entry.sourceColumn)
+              || used.has(entry.sourceColumn)
+              || typeof entry.choice !== "string" || !entry.choice.trim()
+              || entry.choice.length > 160
+              || typeof entry.label !== "string"
+              || !entry.label.trim() || entry.label.length > 80
+              || !["STRING","NUMBER","BOOLEAN","DATE"].includes(entry.valueType)) {
+              throw new Error("DATA_IMPORT_BATCH_DRAFT_INVALID");
+            }
+            used.add(entry.sourceColumn);
+            return {...entry};
+          });
+          return {
+            actorSubjectId:draft.actorSubjectId,
+            recordedAt:draft.recordedAt,
+            columns,
+            ...(draft.batchSubjectType ? {
+              batchSubjectType:draft.batchSubjectType
+            } : {})
+          };
+        });
+      })()
+    } : {}),
     ...(ignoredSourceColumns.length ? { ignoredSourceColumns } : {}),
+    ...(corrections.length ? { rowCorrections: corrections } : {}),
     ...(value.mappingOrigin
       ? { mappingOrigin: value.mappingOrigin }
       : {}),

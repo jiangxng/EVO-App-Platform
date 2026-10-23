@@ -1,0 +1,147 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-20",
+  "scope": "A01/R3 existing memory and shared security factory resource classification; test-only retention",
+  "repository": "jiangxng/EVO-App-Platform",
+  "baseline": "eaa5e813b1e86a6460d988c76eb2076512c35127",
+  "branch": "test/governance-memory-security-boundary-20261020",
+  "originalBaseline": {
+    "pr": 1020,
+    "commit": "42ce894b4129089cbd8a270bd3473f0c93b7657b",
+    "verifiedAncestor": true
+  },
+  "productionChanges": false,
+  "sharedViewStateReopened": false,
+  "additionalProviderPilot": false,
+  "deployment": false,
+  "sources": [
+    {
+      "path": "providers/memory-intake/runtime.ts",
+      "gitBlob": "cc99e70b1a248321e89c8002e23d1f3f5349f195",
+      "read": "full"
+    },
+    {
+      "path": "providers/context-memory-semantic/runtime.ts",
+      "gitBlob": "eb5e5345b5f8ff25ed7c8099ce73a9611724f860",
+      "read": "full"
+    },
+    {
+      "path": "providers/context-memory-dlp/runtime.ts",
+      "gitBlob": "f6ccea6fe33368593bacebe2dd661a88355dca5d",
+      "read": "full"
+    },
+    {
+      "path": "providers/experience-compiler-memory/runtime.ts",
+      "gitBlob": "26d1e13a7ec9862afc05374e5a1320437454ba2a",
+      "read": "full"
+    },
+    {
+      "path": "providers/identity-directory/runtime.ts",
+      "gitBlob": "75637eaba7916a2a56fcf6013bf5ed13741094b9",
+      "read": "full"
+    },
+    {
+      "path": "providers/authorization/runtime.ts",
+      "gitBlob": "8d8eee6483ceae026abeb2e6f8ee2eaef76a807e",
+      "read": "full"
+    },
+    {
+      "path": "providers/enterprise-context-grant/runtime.ts",
+      "gitBlob": "eed4e5663d0ba10eff4c1c98b3d83ee9b35e2648",
+      "read": "full"
+    },
+    {
+      "path": "providers/enterprise-relationship/runtime.ts",
+      "gitBlob": "ca132ed1f7b1fc450617b07c0892a63010702b1f",
+      "read": "full"
+    },
+    {
+      "path": "providers/remote-credential/runtime.ts",
+      "gitBlob": "a7fb1d83785b5e5f37cfe4e4bd0961d6673ea083",
+      "read": "full"
+    },
+    {
+      "path": "manager/identity-user-directory-store.ts",
+      "gitBlob": "29183fc3ae7e11fddc01574da296b076ca3541a1",
+      "read": "full"
+    },
+    {
+      "path": "manager/enterprise-context-governance-store.ts",
+      "gitBlob": "336ba314cd2f001f662ab41337ede09e37ca8633",
+      "read": "partial: file factory snapshot/save and imports"
+    },
+    {
+      "path": "manager/server.ts",
+      "gitBlob": "d1c50cc2c4c52bd251146ce84dfc6acfeca45e53",
+      "read": "partial: shared identity/governance store construction, provider registrations, optionalInstallationSecret, refreshP12MemoryProviderRuntimes and settings trigger"
+    },
+    {
+      "path": "contracts/platform-services.ts",
+      "gitBlob": "ec300d3907990f1711c441864b10e66897f43384",
+      "read": "partial: semantic/DLP/intake request interfaces"
+    }
+  ],
+  "decisions": {
+    "retainResourceFreeMemoryFactories": true,
+    "memoryIntakeCost": "O(configured records) parsing/cloning, not zero-memory or large-data-budget acceptance",
+    "retainSharedSecurityAuthority": true,
+    "identityFileStore": "constructor reads configured state file; adapter construction itself does not read store",
+    "enterpriseGovernanceFileStore": "snapshot exists/read and save validation/write; adapter source deferred until query/probe",
+    "remoteMemoryHealth": "configuration protocol only; no remote request or credential validation",
+    "p12CredentialDebt": "configured endpoint triggers describe and configured secret resolve at Host startup/settings refresh; optional bearer semantics require consumer/qualification audit before repair",
+    "resourceOwnership": "per-request controller/timeout; no provider-owned connection pool, subscription or global request cache",
+    "stoppingLimit": "no production lifecycle changes; helpers alone do not authenticate Feature qualification or cancel existing references"
+  },
+  "local": {
+    "node": "24.19.0",
+    "mode": "pinned partial source snapshot, temporary stripTypeScriptTypes dist; not formal npm ci/build",
+    "command": "node --test --test-isolation=none tests/protocol/memory-security-resource-boundary.test.mjs tests/protocol/eog-retained-imports.test.mjs",
+    "passed": 15,
+    "newCases": 10,
+    "existingGuardCases": 5,
+    "syntaxChecksPassed": true,
+    "fullBuild": false,
+    "realHost": false,
+    "browser": false,
+    "database": false,
+    "network": "synthetic injected fetch, no external business endpoint",
+    "timerTest": "controlled callbacks/Promise body barriers; not wall-clock timeout acceptance"
+  },
+  "guard": {
+    "fixture": "tests/fixtures/memory-security-construction-probe.mjs",
+    "reused": "tests/fixtures/eog-retained-import-probe.mjs",
+    "freshRuntimeRoots": 9,
+    "constructedProviderRegistrations": 10,
+    "additionalCredentialRegistration": 1,
+    "injectedSecuritySourcesReadDuringConstructionAndDiscovery": 0,
+    "scope": "enumerated fs, fetch/TCP/http, timer and child-process public ports before project evaluation; not all native resource APIs"
+  },
+  "ci": {
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "newTest": "tests/protocol/memory-security-resource-boundary.test.mjs",
+    "statusAtCommit": "pending final-head CI; exact head/run/results persisted in PR closeout",
+    "staticBaselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "currentModuleMeasurement": "not measured locally; final-head CI required"
+  },
+  "priorEvidence": {
+    "pr": 1073,
+    "head": "c29b3bbc3ab509360bf8f366d01b88b702bbb72a",
+    "merge": "eaa5e813b1e86a6460d988c76eb2076512c35127",
+    "url": "https://github.com/jiangxng/EVO-App-Platform/pull/1073#issuecomment-6283766419",
+    "historicalOnly": true
+  },
+  "remaining": [
+    "R1 frozen SOP identity/qualification exceptions",
+    "R2 configured Agent SQL ownership/qualification/acceptance with original owner",
+    "R3 P12 optional credentials, other provider classes and complete consumers",
+    "R4 final cross-layer matrix",
+    "A03 authority lookup/idempotent recovery",
+    "A05 production policy/compatibility/other entrypoints"
+  ],
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

@@ -36,6 +36,8 @@ const request=(code,values,actionId)=>({contractVersion:"0.1.0",
 test("PA02 actual Run action: async READ completion, persistence, cancellation, and scope",{
   skip:!url?"Requires isolated PostgreSQL":false,timeout:90000
 },async()=>{
+  // This is a fresh-run proof; the real Worker enforces a 72-hour lifetime.
+  const fixtureStartedAt=Date.now();
   const schema="pa02_host_exe_"+randomUUID().replaceAll("-","").slice(0,12);
   const admin=postgres(url,{max:2});
   let runtime,holdResolve,enteredResolve;
@@ -90,7 +92,7 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
         sessionId:"test-session",principal}),
       resolveContext:()=>context,
       createToolCatalog:createCatalog,runId:()=>String(++sequence),
-      now:()=>new Date("2026-10-13T00:00:00.000Z")
+      now:()=>new Date(fixtureStartedAt)
     });
     const action=new Map(handlers.map(h=>[h.commandCode,h]));
     assert.ok(action.has("enterprise-agent.run.cancel"));
@@ -157,7 +159,7 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
     threadStore.create({
       threadId,principalSubjectId:principal.subjectId,
       principalActorType:principal.actorType,context:context.activeContext,
-      createdAt:"2026-10-13T00:00:00.000Z"
+      createdAt:new Date(fixtureStartedAt).toISOString()
     });
     let threadClock=0;
     const turnActions=new Map(createThreadBackedAgentTurnActionHandlersV010({
@@ -171,7 +173,7 @@ test("PA02 actual Run action: async READ completion, persistence, cancellation, 
       resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
       resolveContext:()=>context,createToolCatalog:createCatalog,
       runId:()=>randomUUID(),
-      now:()=>new Date(Date.parse("2026-10-13T00:00:02.000Z")+
+      now:()=>new Date(fixtureStartedAt+2000+
         (threadClock++)*1000)
     }).map(h=>[h.commandCode,h]));
     const send=turnActions.get("enterprise-agent.thread.send");

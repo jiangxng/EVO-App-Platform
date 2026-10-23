@@ -107,3 +107,8 @@ export interface FoundationObjectImportTargetV010 {
     results: FoundationObjectImportCommitResultV010[];
   };
 }
+
+/** Discovery-only directory data; no business runtime methods are required. */
+export type FoundationObjectImportTargetSummaryV010 = Pick<
+  FoundationObjectImportTargetV010, "targetId" | "label"
+>;

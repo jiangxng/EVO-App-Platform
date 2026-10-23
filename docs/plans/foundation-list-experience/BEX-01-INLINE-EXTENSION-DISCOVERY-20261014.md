@@ -179,3 +179,42 @@ BEX 后续只看新入口是否易找、权限是否正确、字段创建后返�
 | 历史两个“开户银行” | 未核实引用/值 | 只在业务确认后处理，不自动归并 |
 | 原 Excel 与旧 Import Job 实际验收 | 未完成，缺具体 Import Job 链接及原文件 | 真实浏览器和原作业核对 |
 | **BEX-01/CP-03 整体** | **工程与开发环境已完成，Human Accepted 尚未关闭** | **历史作业与用户原 Excel 签收** |
+
+## 2026-10-15｜#860 原 PR 与 V3 当前 main 收敛（本次实际实现）
+
+**基线与禁止重复**：本轮基于当前 EVO `main@b6dfa35b46fb5851b62444447efb505e11a89113`，在原 [PR #860](https://github.com/jiangxng/EVO-App-Platform/pull/860) 的**同一分支**收敛旧冲突；保留已合并 #921 继续导入、#925 全来源核对、#929 行级受控更正、#933 同名候选业务用途及真实样本、已有批量新增/自动映射和 Host 安全门禁。没有另造旧 BEX 的第二套实现。#878 仍是跨治理混合的历史 PR，#909 为 Draft 高保真研究，不自动合并。Eidos 正式 #186 不重写。
+
+### 当前独立业务闭环
+
+1. **从真实原列发起创建**：原字段映射的“为本列创建”路线已携带来源 column；新字段表单只能选择该来源列，真实 Excel 原始样本与预填字段名称同屏可见；已映射/无效的旧深链拒绝而不是落到另一列。
+2. **真正持久化映射**：确认字段的同时使用现有 Data Import Service 更新 Host 企业 Job 的原列→新 field ID 映射，返回映射页面直接读取已保存结果。不是仅通过 URL 参数伪装选中，也不是自动提交供应商。
+3. **幂等和冲突可理解**：同一来源列重试复用确定性 field ID；相同业务槽的同名目标不能再创建第三个；历史两个“开户银行”保留（不删除、未经实际用途核验不选定）。业务 Owner 负责真实 field ID/描述及引用核对。
+4. **不要漏原数据**：未确认的 `__PENDING__` 来源列不能直接绕开处理继续 dry-run；多列 `__CREATE__` 仍走既有集中审核，一对一映射、忽略可撤销、Recipe 与行级更正保持。字段定义创建与供应商正式提交是分开的权限/确认步骤。
+5. **就近核对**：主映射页针对待处理列显示真实非空来源样本，对同名字段并列展示有效 Schema 描述、field ID、已占用状态；只有可用且唯一的现有字段可预选。固定 Eidos Form 控件，不增加独立 CSS/颜色与 Host 启动依赖。
+6. **回归证据与限制**：协议测试追加部分映射失败后安全重试、拒绝自动重复建字段、静默待处理保护、原始行/业务映射持久化；隔离 Host/Chromium 继续覆盖字段创建→映射→预检查→明确提交→供应商详情。必须以本 PR **最新 HEAD 的 CI 实际状态** 判定完成。用户原 XLSX 二进制、授权 Job JSON、两个真实银行字段所有权仍未取得；真实人工验收和 Railway 发布无授权，不得报 PASS。
+
+### 验收项目｜当前状态｜下一步
+
+| 验收项目 | 当前状态 | 下一步 |
+| --- | --- | --- |
+| 点击来源列与带入名称/样本 | 已编写真实 UI 增量 | 最新 Host Chromium / 中文手机 |
+| 字段创建后原列自动映射与保存 | 已编写现有 Service 接线 | Host 持久 Job 读取/失败重试回归 |
+| 同名定义防重复 | 已实现失败关闭与旧字段保留 | 真实 field ID 与业务用途核对 |
+| 主映射页来源样本/同名比较 | 已实现有效 schema 说明 | Eidos Human UI 与浏览器确认 |
+| 待处理列不得无声丢失 | 已加受控拒绝 | 未决单元测试与原批量场景 |
+| 原 Recipe / 行级更正 / 批量能力 | 未修改其所有者逻辑 | 原 CI 不退化 |
+| 真实客户 Excel、授权 Job 与 Human | 未取得 / 未验收 | 取得客户授权实物后再验收 |
+| 生产 Railway | 未部署 | 必须独立授权 |
+
+**下一段工作**：通过本 PR 相关 CI、Human UI 设计审查、安全与轻量 Host 检查，确认最新 main 再正常合并；无需为每条测试重开 PR。合并结果、精确 SHA 与证据继续回写本节或同套验收账。旧研究 URL 的阅读等级继续沿用 V3 2026-10-15 索引，不能当本次重复阅读。
+
+## 2026-10-15 合并后实际验收结果（覆盖上文“等待 CI”历史进度）
+
+- 原实现 [PR #860](https://github.com/jiangxng/EVO-App-Platform/pull/860) **已合并 main**，准确合并 SHA `c0b56deb1ca0595c0062829dbc6ab8f76fa76507`，没有另建一个替代业务 PR。为解决历史冲突，先在原分支继承已合并 #921/#925/#929/#933 和 PA05 当前 main 的完整实现，不恢复旧掉队版映射页面。
+- 合并前最新 HEAD `ad24df99bcca6813d20461a914df6eb83f9ef942`，对 `main@9b9b19f2643c955b07a0e69db2b05b65d8d3c3a8` 执行 **43/43 GitHub Actions 全部通过**，`mergeable_state=clean` 后按受保护的正常 merge 完成；未绕过门禁。
+- [Platform CI #38715079484](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079484)、[真实隔离 Host/Chromium #38715079051](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079051)、[导入恢复和契约 #38715079393](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079393)、[Human UI #38715079600](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079600)、[Continuity #38715079399](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079399)、[Lightweight Host #38715079594](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38715079594) 全部 PASS。
+- Chromium 141 隔离业务旅程 **5/5 PASS**（包括原来源列建字段、Host 实际保存映射、独立预检查/正式提交、详情显示及批量审核）；新增来源核对与行更正 desktop+390px PHONE 回归保持 PASS。测试使用隔离生成 CSV 和协议测试样本；没有访问用户原始 XLSX。
+- 现在可判定 **`DEV_COMPLETE`**：单列来源正确带入、同屏来源样本、持久字段映射、重复名称保护/失败重试、主映射同名候选比较、未决列安全审核闭环。**不能判定** `V3_COMPLETE`、`PRODUCTION_READY`、`DEPLOYED` 或真实客户 Import Job Human 签收。
+- 用户原始 Excel 二进制、授权 Import Job JSON、两个历史“开户银行”的实际 field ID/业务用途与可能的引用关系仍未取得。不得用 SUPPLIER 关系推断三条 `subjectType`，不得删除客户旧同名字段或擅自 Railway 部署。#878 历史混合治理 PR 与 #909 Draft 研究原型继续保持独立，不因本轮合并而一并合入。
+
+**下一步最小真实门槛**：在授权的原 Excel/原 Job 上核对 22 列与三条缺失主体身份、对照真实两个银行字段用途，完成已实现的 Human 修正→预检查→明确提交的可用性签收；如无授权样本，继续独立测例验证手机/键盘/放大，但不可虚报真实企业结果。

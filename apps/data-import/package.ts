@@ -17,6 +17,9 @@ import {
   DATA_IMPORT_MAPPING_PAGE_SOURCE,
   DATA_IMPORT_MAPPING_ROUTE,
   DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_ROW_CORRECT_PAGE_ID,
+  DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE,
+  DATA_IMPORT_ROW_CORRECT_ROUTE,
   DATA_IMPORT_REVIEW_PAGE_ID,
   DATA_IMPORT_REVIEW_PAGE_SOURCE,
   DATA_IMPORT_REVIEW_ROUTE,
@@ -113,6 +116,10 @@ export const dataImportPackage: PackageManifestV010 = {
             id: DATA_IMPORT_REVIEW_PAGE_ID,
             title: "Review Import",
             source: DATA_IMPORT_REVIEW_PAGE_SOURCE
+          }, {
+            id: DATA_IMPORT_ROW_CORRECT_PAGE_ID,
+            title: "Correct Row",
+            source: DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE
           }],
           routes: [{
             id: DATA_IMPORT_DIRECTORY_PAGE_ID,
@@ -130,6 +137,10 @@ export const dataImportPackage: PackageManifestV010 = {
             id: DATA_IMPORT_REVIEW_PAGE_ID,
             path: DATA_IMPORT_REVIEW_ROUTE,
             pageId: DATA_IMPORT_REVIEW_PAGE_ID
+          }, {
+            id: DATA_IMPORT_ROW_CORRECT_PAGE_ID,
+            path: DATA_IMPORT_ROW_CORRECT_ROUTE,
+            pageId: DATA_IMPORT_ROW_CORRECT_PAGE_ID
           }],
           navigation: [{
             id: "evo-data-import.nav",

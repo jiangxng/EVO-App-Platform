@@ -1,8 +1,5 @@
 # BEX-01 界面研究资料与决策详细参考索引 — 2026-10-15
 
-> **最新研究增量（不重做、不覆盖 V/M/F 旧资料）：** [V3 会话资料与决策索引](BEX-01-UI-V3-SESSION-RESEARCH-INDEX-20261015.md)；[V3 简短交接入口](BEX-01-UI-V3-SESSION-HANDOFF-20261015.md)。本页保留原视觉 V01–V16、认知 M01–M08、流程 F01–F07 的来源/阅读状态；新索引补齐飞书、简道云等中国软件研究、实际浏览器证据、Eidos #186 与 EVO #921 合并状态。
-
-
 > **本索引与 [简短交接入口](BEX-01-UI-RESEARCH-HANDOFF-ENTRY-20261015.md) 配套。** 保存完整参考遗产和明确的读原文/摘要边界。已完成研究复用，不开展重复的互联网调查。原始文献事实、Eidos 设计权威和 EVO 场景推断分开记录。
 >
 > **本轮仓库核验成果**：此前的导航与颜色不是散落在 Platform 的独立方案，而是 Eidos `EIDOS-ENTERPRISE-NAVIGATION-INFORMATION-ARCHITECTURE-v0.1.md` 和 `EIDOS-BUSINESS-OFFICE-VISUAL-LANGUAGE-v0.2.md` 的正式权威，Eidos `EIDOS-HUMAN-EXPERIENCE-DESIGN-AUTHORITY-v1.0.md` 是先读的总入口。Platform 通过 `docs/architecture/EIDOS-NAVIGATION-INFORMATION-ARCHITECTURE-ADOPTION-v0.1.md` 采纳。新增的视觉/认知研究归入 Eidos [PR #183](https://github.com/jiangxng/eidos/pull/183)；Platform 设计工作门禁由 [PR #904](https://github.com/jiangxng/EVO-App-Platform/pull/904) 跟进。以各 PR 的合并状态为准，不提前声称 main 已启用门禁。

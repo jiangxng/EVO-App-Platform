@@ -1,6 +1,5 @@
 import {
   closeSync,
-  existsSync,
   mkdirSync,
   openSync,
   readFileSync,
@@ -39,6 +38,7 @@ interface FileLeaseRecordV010 {
   holderId: string;
   acquiredAt: string;
   expiresAt: string;
+  acquisitionId?: string;
 }
 
 export function createFileContextMemorySchedulerLeaseV010(
@@ -50,52 +50,56 @@ export function createFileContextMemorySchedulerLeaseV010(
   if (!Number.isFinite(ttlMs) || ttlMs < 1_000) {
     throw new Error("CONTEXT_MEMORY_SCHEDULER_LEASE_TTL_INVALID");
   }
-  let owned = false;
-
-  function expired(now: Date): boolean {
-    if (!existsSync(path)) return true;
-    try {
-      const value = JSON.parse(readFileSync(path, "utf8")) as FileLeaseRecordV010;
-      return value.contractVersion !== "0.1.0"
-        || !Number.isFinite(Date.parse(value.expiresAt))
-        || Date.parse(value.expiresAt) <= now.getTime();
-    } catch {
-      return true;
-    }
-  }
-
+  // TTL is diagnostic only: elapsed time cannot fence an in-flight writer.
+  let acquisitionId: string | undefined;
   return {
     acquire(now) {
+      if (acquisitionId) return false;
+      const record: FileLeaseRecordV010 = {
+        contractVersion: "0.1.0",
+        holderId,
+        acquisitionId: randomUUID(),
+        acquiredAt: now.toISOString(),
+        expiresAt: new Date(now.getTime() + ttlMs).toISOString()
+      };
       mkdirSync(dirname(path), { recursive: true });
-      if (existsSync(path) && expired(now)) {
-        try { unlinkSync(path); } catch { /* another process may own cleanup */ }
+      let fd: number;
+      try {
+        fd = openSync(path, "wx");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+        // Never unlink a competing claim, including a partial or legacy record.
+        let current: FileLeaseRecordV010;
+        try {
+          current = JSON.parse(readFileSync(path, "utf8")) as FileLeaseRecordV010;
+          if (current?.contractVersion !== "0.1.0" || !current.holderId
+            || !Number.isFinite(Date.parse(current.expiresAt))) throw new Error("invalid record");
+        } catch {
+          throw new Error("CONTEXT_MEMORY_SCHEDULER_LEASE_UNREADABLE");
+        }
+        if (Date.parse(current.expiresAt) <= now.getTime()) {
+          throw new Error("CONTEXT_MEMORY_SCHEDULER_LEASE_OVERDUE");
+        }
+        return false;
       }
       try {
-        const fd = openSync(path, "wx");
-        const record: FileLeaseRecordV010 = {
-          contractVersion: "0.1.0",
-          holderId,
-          acquiredAt: now.toISOString(),
-          expiresAt: new Date(now.getTime() + ttlMs).toISOString()
-        };
         writeFileSync(fd, JSON.stringify(record, null, 2) + "\n", "utf8");
-        closeSync(fd);
-        owned = true;
+        acquisitionId = record.acquisitionId;
         return true;
-      } catch {
-        owned = false;
-        return false;
+      } finally {
+        // A failed write keeps the claim for quiescent recovery, never auto-steals it.
+        closeSync(fd);
       }
     },
     release() {
-      if (!owned) return;
+      if (!acquisitionId) return;
       try {
         const current = JSON.parse(readFileSync(path, "utf8")) as FileLeaseRecordV010;
-        if (current.holderId === holderId) unlinkSync(path);
+        if (current.holderId === holderId && current.acquisitionId === acquisitionId) unlinkSync(path);
       } catch {
-        // Lease release is best-effort; TTL prevents permanent lockout.
+        // Fail closed. Abandoned/corrupt claims require quiescent recovery.
       } finally {
-        owned = false;
+        acquisitionId = undefined;
       }
     }
   };
@@ -111,6 +115,7 @@ export interface ContextMemorySchedulerDependenciesV010 {
   operationLog: ContextMemoryOperationLogV010;
   listGovernanceContexts(): ActiveContextRefV010[];
   listIntakeContexts?(): ActiveContextRefV010[];
+  canRunSourceIntake?: () => boolean;
   runSourceIntake?: (context: ActiveContextRefV010) => Promise<{
     examined: number;
     changed: number;
@@ -145,14 +150,15 @@ export function createContextMemorySchedulerV010(
   const now = dependencies.now ?? (() => new Date());
   const id = dependencies.id ?? randomUUID;
   let running = false;
+  let stopped = false;
+  let pending: Promise<{ acquired: boolean; governanceRuns: number; intakeRuns: number }> | undefined;
 
-  return {
-    async tick(): Promise<{
+  async function tick(): Promise<{
       acquired: boolean;
       governanceRuns: number;
       intakeRuns: number;
     }> {
-      if (running) {
+      if (running || stopped) {
         return { acquired: false, governanceRuns: 0, intakeRuns: 0 };
       }
       const acquiredAt = now();
@@ -164,13 +170,15 @@ export function createContextMemorySchedulerV010(
       let intakeRuns = 0;
       try {
         for (const context of uniqueContexts(dependencies.listGovernanceContexts())) {
+          if (stopped) break;
           dependencies.operations.runRetention(context);
           await dependencies.operations.runDlp(context);
           governanceRuns++;
         }
 
-        if (dependencies.runSourceIntake) {
+        if (!stopped && dependencies.runSourceIntake) {
           for (const context of uniqueContexts(dependencies.listIntakeContexts?.() ?? [])) {
+            if (stopped || dependencies.canRunSourceIntake?.() === false) break;
             const started = now();
             const operationId = `memory-operation:intake:${id()}`;
             try {
@@ -211,6 +219,34 @@ export function createContextMemorySchedulerV010(
       } finally {
         running = false;
         dependencies.lease.release();
+      }
+  }
+  return {
+    tick() {
+      if (stopped || pending) {
+        return Promise.resolve({ acquired: false, governanceRuns: 0, intakeRuns: 0 });
+      }
+      pending = tick().finally(() => { pending = undefined; });
+      return pending;
+    },
+    /** Stop admission, drain the current operation, and keep its lease until it settles. */
+    async stop(timeoutMs = 5000): Promise<void> {
+      if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
+        throw new Error("CONTEXT_MEMORY_SCHEDULER_STOP_TIMEOUT_INVALID");
+      }
+      stopped = true;
+      const active = pending;
+      if (!active) return;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          active,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error("CONTEXT_MEMORY_SCHEDULER_STOP_TIMEOUT")), timeoutMs);
+          })
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
       }
     }
   };
@@ -254,4 +290,47 @@ export function parseContextMemoryScheduleContextsV010(
       contextId: item.contextId.trim()
     };
   });
+}
+
+/** Event-driven timer admission; no idle polling timer is used to discover work. */
+export function createContextMemoryScheduleDriverV010(options: {
+  intervalMs: number;
+  hasWork(): boolean;
+  tick(): Promise<unknown>;
+  onError(error: unknown): void;
+}) {
+  if (!Number.isFinite(options.intervalMs) || options.intervalMs < 0
+    || (options.intervalMs > 0 && options.intervalMs < 60_000)) {
+    throw new Error("CONTEXT_MEMORY_SCHEDULE_INTERVAL_INVALID");
+  }
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let disposed = false;
+  const clear = () => {
+    if (timer) clearInterval(timer);
+    timer = undefined;
+  };
+  const refresh = () => {
+    try {
+      if (disposed || options.intervalMs === 0 || !options.hasWork()) {
+        clear();
+        return;
+      }
+      if (!timer) {
+        timer = setInterval(() => {
+          refresh();
+          if (!timer) return;
+          void options.tick().catch(options.onError);
+        }, options.intervalMs);
+        timer.unref();
+      }
+    } catch (error) {
+      clear();
+      options.onError(error);
+    }
+  };
+  return {
+    refresh,
+    dispose() { disposed = true; clear(); },
+    isScheduled() { return timer !== undefined; }
+  };
 }

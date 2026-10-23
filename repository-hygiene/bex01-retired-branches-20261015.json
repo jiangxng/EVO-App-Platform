@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "scope": "EVO BEX-01 merged process branch cleanup, requested 2026-10-15; do not retire OPEN PRs or PA/Eidos refs",
+  "requiredCurrentDeployment": {
+    "project": "EVO Ledger Runtime MVP",
+    "service": "Ledger Configurator",
+    "branch": "main",
+    "deploymentId": "c955ea8d-6167-4065-b9b0-e1c8a1f39d78",
+    "statusVerified": "SUCCESS"
+  },
+  "retiredBranches": [
+    {
+      "pr": 860,
+      "name": "fix/bex01-one-click-field-mapping-20261014",
+      "expectedHeadSha": "ad24df99bcca6813d20461a914df6eb83f9ef942"
+    },
+    {
+      "pr": 925,
+      "name": "feat/bex01-v3-real-source-audit-20261015",
+      "expectedHeadSha": "47bc806e3e9185caf14b18d025105b4999048c3c"
+    },
+    {
+      "pr": 929,
+      "name": "feat/bex01-v3-governed-row-correction-20261015",
+      "expectedHeadSha": "67eb4feea8bc82bb30c90af4f15ab1ee7868019a"
+    },
+    {
+      "pr": 931,
+      "name": "docs/bex01-v3-row-correction-verified-20261015",
+      "expectedHeadSha": "72841bcd129179a55bd081fb33a3d98f5e5a5dbe"
+    },
+    {
+      "pr": 933,
+      "name": "feat/bex01-v3-batch-candidate-comparison-20261015",
+      "expectedHeadSha": "e8abe8c9c4be5f48f40b7aee7523362d354a2142"
+    },
+    {
+      "pr": 936,
+      "name": "docs/bex01-v3-batch-candidate-verified-20261015",
+      "expectedHeadSha": "a8397ec856aa22243db79ef2895d361a0f577669"
+    },
+    {
+      "pr": 937,
+      "name": "docs/bex01-v3-single-column-autofield-verified-20261015",
+      "expectedHeadSha": "b06f4600884e77374d10c529bd0252e0dbbff9bd"
+    },
+    {
+      "pr": 939,
+      "name": "test/bex01-v3-isolated-xlsx-172row-acceptance-20261015",
+      "expectedHeadSha": "1ecffc8effd202422ec036e3a91b1b9585ccb8e8"
+    },
+    {
+      "pr": 940,
+      "name": "docs/bex01-v3-synthetic-xlsx-verified-20261015",
+      "expectedHeadSha": "113dd76972eb1c2fb2f42095f4894dc1e3a7d71e"
+    },
+    {
+      "pr": 942,
+      "name": "test/bex01-v3-xlsx-172-business-fields-persist-20261015",
+      "expectedHeadSha": "2f1b3d7e5cfc419849bdf389814d15c4a23441ab"
+    },
+    {
+      "pr": 944,
+      "name": "docs/bex01-v3-retained-business-fields-verified-20261015",
+      "expectedHeadSha": "2f52fc07736b3a06116f65540cb78129206188c6"
+    },
+    {
+      "pr": 884,
+      "name": "feat/bex01-batch-field-review-20261015",
+      "expectedHeadSha": "0f10b8b2dcfcb6391e42169641188804d87b9a60"
+    },
+    {
+      "pr": 890,
+      "name": "docs/bex01-batch-merged-dev-release-20261015",
+      "expectedHeadSha": "6607eb00fbb5b7044f5088522c89de92c38a56f6"
+    },
+    {
+      "pr": 899,
+      "name": "docs/bex01-import-ux-simplification-research-20261015",
+      "expectedHeadSha": "b5c4fce004805b48f57f5f064fde6d23e8bd5382"
+    },
+    {
+      "pr": 881,
+      "name": "docs/bex01-research-decision-handoff-20261015",
+      "expectedHeadSha": "8583f0e5ee80d9e44210af6555c85e5b0600a695"
+    },
+    {
+      "pr": 896,
+      "name": "docs/bex01-reuse-preserve-deploy-evidence-20261015",
+      "expectedHeadSha": "9bdc15126c65edbde38bf7a243e3260da39586aa"
+    },
+    {
+      "pr": 927,
+      "name": "docs/bex01-v3-source-audit-verified-20261015",
+      "expectedHeadSha": "55703fe203cb62f9ac682160859e2eeca2fe58df"
+    },
+    {
+      "pr": 894,
+      "name": "fix/bex01-reuse-mapping-preserve-columns-20261015",
+      "expectedHeadSha": "11ea5d220f152fb76c153558bab6f464e60709a0"
+    },
+    {
+      "pr": 866,
+      "name": "fix/bex01-unique-target-mapping-20261014",
+      "expectedHeadSha": "7553fd91417f0dc537503a8e361686472d634cbd"
+    },
+    {
+      "pr": null,
+      "name": "release/bex01-dev-20261014",
+      "expectedHeadSha": "7620f15f703d7e65775ccd55e1c19a215fdc40a5",
+      "reason": "verified old Railway source retired after new main deployment SUCCESS; ancestry verified; service now follows main"
+    }
+  ]
+}

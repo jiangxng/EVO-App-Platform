@@ -1,0 +1,23 @@
+{
+  "baseline": "6c5bf0a2901fd2e12f4e2be6409ed994012dd6e6",
+  "date": "2026-10-19",
+  "sha256": {
+    "providers/eog-view-state/store.ts": "69f4f4312de1637396cb1a016094328803d02d79d7478f2fd57597b5e33db34c",
+    "providers/eog-view-state/runtime.ts": "868ee972d10595279af53cc9c82de8b0ea0e0f847160ba7444d9397d6d892b22",
+    "contracts/enterprise-operating-graph-view-state.ts": "64a71c1def0e26c15fda9f1ca72ee21d09dc28343b0abe3b40400fc3546ca494",
+    "dist/providers/eog-view-state/store.js": "07972d306340d317fbbc8177bc657cd3a937b04bff0d1dc0c0e8fa95f5b9b6d9",
+    "dist/providers/eog-view-state/runtime.js": "b662a259f4d86b9464f4b5f837bdc541a03cdc44510dd19c37b031b931224e11",
+    "tests/protocol/eog-view-state-loading.test.mjs": "4580a87eaa26ed7e6ffd4d2a18b79b75ea96b1d7647f1f126ecf8026482a1347",
+    ".github/workflows/lightweight-host.yml": "8630919ad0be5289e69c5edf2f54156d82b76af80b696f3fd5a659c0c5edc355"
+  },
+  "tests": "✔ real Host 3D page/action stay unloaded until used and recover after disable (5151.004672ms)\n✔ real Host desktop observatory loads independently and preserves lifecycle/output (4451.126257ms)\n✔ real Host mobile observatory loads independently and preserves lifecycle/output (3125.589699ms)\n✔ real Host spatial observatory page/action stay unloaded until used and recover after disable (4878.782318ms)\n✔ view store and provider construction perform zero filesystem operations (358.217742ms)\n✔ file views fail closed on corrupt data, reread repairs and persist shared 2D/3D state (92.153961ms)\n✔ EOG View State is a shared Host provider boundary, not plugin-private state (44.839601ms)\n✔ EOG plugins depend on the public View State provider contract instead of manager-private service (26.620521ms)\n✔ 2D projection clipping is reversible View State and does not require semantic mutation (4.691014ms)\nℹ tests 9\nℹ suites 0\nℹ pass 9\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 7920.601778\n",
+  "productionChange": false,
+  "build": "Reused current main compiled artifacts; no production code changed. CI rebuilds.",
+  "audit": "No new four-profile measurement; previous #1019 is latest baseline, not this batch measurement.",
+  "limits": [
+    "Construction test intercepts synchronous fs APIs after ESM import, not loader IO",
+    "Existing file store concurrency model unchanged; no multi-process atomicity claim",
+    "No browser or production acceptance; no deployment",
+    "Full A01 remains partial"
+  ]
+}
