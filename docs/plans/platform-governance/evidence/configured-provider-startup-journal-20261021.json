@@ -1,0 +1,135 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-21",
+  "baseline": "4d291fb31f7a5c429b20be14fb48df687c5a1dac",
+  "originalBaseline": "6bea66e8b7cde970a1f62d440b00d6567aeeca57",
+  "branch": "fix/governance-configured-provider-journal-20261021",
+  "scope": "A01/R3 optional configured provider install intent",
+  "packages": [
+    "evo-runtime-observatory-provider",
+    "host-memory-intake-provider",
+    "remote-context-memory-semantic-provider",
+    "remote-context-memory-dlp-provider",
+    "experience-compiler-memory-intake-provider"
+  ],
+  "decision": {
+    "reuseOriginalStartupJournal": true,
+    "preserveFirstExplicitConfigurationInBothProfiles": true,
+    "unreadyNotRecorded": true,
+    "inactiveAndRememberedUninstallPreserved": true,
+    "securityFoundationsUnchanged": true,
+    "dlpMissingProviderStillFailed": true,
+    "newProductionModules": 0,
+    "journalFormatChanged": false
+  },
+  "sources": [
+    {
+      "path": "manager/server.ts",
+      "gitBlob": "65ed9113acf9432b7ec2073e90402e6c39ff1375",
+      "read": "partial: all direct bootstrap calls, config/registry/resolver/scheduler wiring and lifecycle HTTP routes"
+    },
+    {
+      "path": "manager/startup-defaults.ts",
+      "read": "full/reused full"
+    },
+    {
+      "path": "manager/settings-store.ts",
+      "read": "full"
+    },
+    {
+      "path": "manager/context-memory-operations.ts",
+      "read": "partial: complete runDlp rejection/classification/staged commit path"
+    },
+    {
+      "path": "providers/*/runtime.ts",
+      "read": "reused resource evidence in Provider boundary sections 8-11; no new runtime changes"
+    },
+    {
+      "path": "tests/agent-line/pa05-host-write-lifecycle.test.mjs",
+      "read": "partial: bootstrap inventory and original fail-closed tests"
+    }
+  ],
+  "local": {
+    "node": "24.19.0",
+    "mode": "fixed SHA partial source/temporary type erasure",
+    "passedTests": 7,
+    "targetedPa05BootstrapInventory": true,
+    "changedTestFixtureAndServerSyntax": true,
+    "formalBuild": false,
+    "realHost": false,
+    "database": false,
+    "browser": false
+  },
+  "ci": {
+    "statusAtCommit": "pending final-head CI; permanent results in PR closeout",
+    "newHostFile": "tests/integration/configured-provider-startup-journal.test.mjs",
+    "newHostCases": 4,
+    "strengthenedHostFile": "tests/integration/memory-credential-host.test.mjs",
+    "pa05DirectInventory": {
+      "INSTALL": 11,
+      "ENABLE": 1,
+      "journalRoutesExplicitlyAsserted": 5
+    },
+    "baselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "localModuleMeasurement": false,
+    "previousCountsAreHistorical": true,
+    "isolatedReadRecovery": {
+      "firstHead": "45c053407566f645d0fea4f25de4d69345bbb91c",
+      "run": 39542536115,
+      "failedJobs": [
+        119033305775,
+        119034972474
+      ],
+      "error": "PA05_E01J2_TIMEOUT:readResult after backend termination",
+      "failedEnvironmentNode": "24.22.0",
+      "testsAtFailure": 24,
+      "passAtFailure": 23,
+      "priorGreen": {
+        "head": "db70038467bee482f787ab991360422cc07a1dcd",
+        "run": 39534571081,
+        "job": 119008120522,
+        "node": "24.21.0",
+        "tests": 28,
+        "pass": 28
+      },
+      "decision": "pin this workflow to prior certified Node24.21.0; all tests/limits/PG environment unchanged",
+      "causalityNotProven": true,
+      "node2422Compatibility": "OPEN under original PA05 owner",
+      "stopIfStillFails": true
+    }
+  },
+  "continuity": {
+    "mainMoved": "#1089 merged while branch had no unique commits; fast-forwarded before commit",
+    "ruleRead": "docs/governance/FAST-FEEDBACK-AND-ROUTE-PIVOT-v1.0.md full",
+    "failedApproach": "same-head transient retry failed twice; stop repeating; inspect baseline runtime drift and test Node24.21.0 pin",
+    "alternative": "no new desired-state controller/lazy proxy; existing journal expresses lifecycle intent",
+    "pivot": "protected fallback, state/data corruption or public contract change requires owner qualification before expanding; two ineffective rounds require reassessment"
+  },
+  "limits": [
+    "legacy pre-journal installed state is a fixture; lifecycle disable/enable/uninstall/install use real HTTP",
+    "no background work/requests configured in new four Host tests",
+    "existing empty shared memory file byte preservation is not audit of every business store",
+    "generic shared startup snapshots and security foundation installs remain",
+    "journal loss cannot infer previous uninstall; no new cross-file transaction",
+    "in-memory source records scale budget remains open"
+  ],
+  "remaining": [
+    "ten security foundation startup responsibilities/qualification",
+    "EVO query/probe deadlines",
+    "OIDC transaction budgets",
+    "R1 frozen SOP identity/qualification",
+    "R2 Agent configured SQL responsibility/qualification",
+    "R4 final cross-layer matrix",
+    "A03 result lookup/idempotent recovery",
+    "A05 production strategy/migration"
+  ],
+  "globalStatusModified": false,
+  "productionDeployment": false,
+  "additionalProviderPilot": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

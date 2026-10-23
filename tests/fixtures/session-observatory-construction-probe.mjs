@@ -39,9 +39,9 @@ assert.equal(staticProvider.current().sessionId, value.sessionId);
 assert.equal(pairs[1][0].resolve({contractVersion: '0.1.0', bearerToken: 'synthetic-token'}).sessionId, value.sessionId);
 assert.equal(pairs[2][0].resolve({contractVersion: '0.1.0'}), undefined);
 assert.equal(pairs[2][0].resolve({contractVersion: '0.1.0', sessionToken: 'a', bearerToken: 'b'}), undefined);
-// Public-client configuration is network-free. The configured Secret path is
-// intentionally a separate test; it currently DOES describe/resolve on refresh.
+// Configured Secret providers must also stay untouched during refresh.
 await host.configureGenericOidcProviderRuntimeV010({settings: {issuer: oidcOptions.issuer,
-  clientId: oidcOptions.clientId}, registry, fetchImpl: forbidden});
+  clientId: oidcOptions.clientId}, registry, fetchImpl: forbidden,
+  secrets: {describe: forbidden, resolve: forbidden}});
 assert.equal(attempts, 0);
 assertNoGuardedResourceAttempts();

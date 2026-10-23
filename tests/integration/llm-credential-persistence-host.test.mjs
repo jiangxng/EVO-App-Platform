@@ -16,22 +16,26 @@ const records = dir => {
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')).records : {};
 };
 const reference = namespace => ({contractVersion: '0.1.0', namespace, key: 'apiKey', scope: 'INSTALLATION', scopeId: 'default'});
-async function start(directory, legacy = true) {
+async function start(directory, legacy = true, {profile = "compatible", forbidFiles = false} = {}) {
   const environment = {PATH: process.env.PATH, PORT: '0', NODE_ENV: 'test',
     APP_PLATFORM_STATE_FILE: path.join(directory, 'state.json'),
     APP_PLATFORM_ENTERPRISE_GOVERNANCE_FILE: path.join(directory, 'governance.json'),
-    APP_PLATFORM_MANAGED_SESSION_ENABLED: 'false', APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: 'false',
+    APP_PLATFORM_STARTUP_PROFILE: profile, APP_PLATFORM_MANAGED_SESSION_ENABLED: String(profile === 'minimal'),
+    APP_PLATFORM_SECRETS_FILE: path.join(directory, 'secrets.enc.json'),
+    APP_PLATFORM_SECRETS_KEY_FILE: path.join(directory, 'secrets.master.key'),
+    TEST_SECRETS_FORBID_ACCESS: String(forbidFiles), TEST_SECRETS_IGNORE_DIRECTORY: 'true', APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: 'false',
     APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: 'false'};
   for (const provider of providers) {
     if (legacy) environment[provider.env + '_API_KEY'] = 'synthetic-env-' + provider.name;
     environment[provider.env + '_MODEL'] = provider.model;
     environment[provider.env + '_BASE_URL'] = 'https://llm-credential.invalid/' + provider.name;
   }
-  const profile = createPersonalAgentExperienceProfileV010(environment);
+  const hostProfile = createPersonalAgentExperienceProfileV010(environment);
   const child = fork(path.resolve('dist/manager/server.js'), [], {execArgv: [
     '--import', path.resolve('tools/plugin-loading-audit-probe.mjs'),
-    '--import', path.resolve('tests/fixtures/llm-credential-fetch-probe.mjs')],
-    env: profile.environment, stdio: ['ignore', 'pipe', 'pipe', 'ipc']});
+    '--import', path.resolve('tests/fixtures/llm-credential-fetch-probe.mjs'),
+    '--import', path.resolve('tests/fixtures/secrets-file-access-probe.mjs')],
+    env: hostProfile.environment, stdio: ['ignore', 'pipe', 'pipe', 'ipc']});
   child.stdout.resume(); let stderr = ''; child.stderr.on('data', part => stderr += part);
   const exit = new Promise(resolve => child.once('exit', resolve)); let timer;
   try {
@@ -53,7 +57,7 @@ async function start(directory, legacy = true) {
       const result = await call('/v1/' + operation, {packageId}); assert.equal(result.status, 200); return result;
     };
     const probe = provider => call('/v1/providers/health/probe', {providerId: provider.id,
-      capability: 'llm.inference', adminToken: profile.bootstrapAdminToken});
+      capability: 'llm.inference', adminToken: hostProfile.bootstrapAdminToken});
     const counts = () => new Promise((resolve, reject) => {
       const id = crypto.randomUUID();
       const timeout = setTimeout(() => {child.off('message', receive); reject(Error('CREDENTIAL_COUNT_TIMEOUT'));}, 5000);
@@ -70,7 +74,13 @@ async function start(directory, legacy = true) {
       }};
       child.on('message', receive); child.send({kind: 'llm-credential-decryptions', id});
     });
-    return {call, settings, lifecycle, probe, counts, decryptions, adminToken: profile.bootstrapAdminToken, async stop() {
+    const accesses = () => new Promise((resolve, reject) => {
+      const id = crypto.randomUUID();
+      const receive = message => {if (message.id === id) {clearTimeout(timeout); child.off('message', receive); resolve(message.accesses);}};
+      const timeout = setTimeout(() => {child.off('message', receive); reject(Error('LLM_METADATA_ACCESS_TIMEOUT'));}, 5000);
+      child.on('message', receive); child.send({kind: 'secrets-file-access', id});
+    });
+    return {call, settings, lifecycle, probe, counts, decryptions, accesses, adminToken: hostProfile.bootstrapAdminToken, async stop() {
       if (child.exitCode === null && child.signalCode === null) {
         child.kill('SIGTERM'); const kill = setTimeout(() => child.kill('SIGKILL'), 7000);
         assert.equal(await exit, 0); clearTimeout(kill);
@@ -183,5 +193,69 @@ test('persisted LLM keys are not decrypted on discovery, cold startup or lifecyc
     assert.equal(await host.decryptions(), 0, 'active cold restart must not decrypt');
     for (const provider of providers) assert.equal((await host.probe(provider)).body.health.state, 'HEALTHY');
     assert.equal(await host.decryptions(), 2);
+  } finally {await host?.stop(); fs.rmSync(dir, {recursive: true, force: true});}
+});
+
+
+
+for (const profile of ['compatible', 'minimal']) test('inactive/uninstalled LLMs leave shared Secrets dormant; first install and enable recover persisted keys: ' + profile, {timeout: 120000}, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'llm-metadata-qualified-')); let host;
+  const stateFile = path.join(dir, 'secrets.enc.json'), keyFile = path.join(dir, 'secrets.master.key');
+  try {
+    const store = createEncryptedFileSecretStoreV010(stateFile, keyFile);
+    for (const provider of providers) store.put(reference(provider.packageId), 'synthetic-persisted-' + provider.name);
+    const state = fs.readFileSync(stateFile), key = fs.readFileSync(keyFile);
+    // Neither LLM nor shared Secrets is installed in the lifecycle snapshot.
+    // First install must prepare the runtime without a Settings save/restart.
+    host = await start(dir, false, {profile}); assert.deepEqual(await host.accesses(), []);
+    for (const provider of providers) await host.lifecycle('install', provider.packageId);
+    assert.equal(await host.decryptions(), 0);
+    for (const result of await Promise.all(providers.map(provider => host.probe(provider)))) assert.equal(result.body.health.state, 'HEALTHY');
+    assert.equal(await host.decryptions(), 2);
+    for (const provider of providers) await host.lifecycle('disable', provider.packageId);
+    await host.stop(); host = undefined;
+    host = await start(dir, false, {profile, forbidFiles: true});
+    assert.deepEqual(await host.accesses(), []); assert.equal(await host.decryptions(), 0);
+    for (const provider of providers) assert.equal((await host.probe(provider)).body.error.code, 'PROVIDER_NOT_ACTIVE');
+    assert.deepEqual(await host.accesses(), []); await host.stop(); host = undefined;
+    host = await start(dir, false, {profile});
+    await Promise.all(providers.map(provider => host.lifecycle('enable', provider.packageId)));
+    assert.equal(await host.decryptions(), 0);
+    for (const result of await Promise.all(providers.map(provider => host.probe(provider)))) assert.equal(result.body.health.state, 'HEALTHY');
+    assert.equal(await host.decryptions(), 2);
+    for (const provider of providers) await host.lifecycle('uninstall', provider.packageId);
+    await host.stop(); host = undefined;
+    // Shared Secrets remains active while no LLM is installed.
+    host = await start(dir, false, {profile, forbidFiles: true});
+    assert.deepEqual(await host.accesses(), []); assert.equal(await host.decryptions(), 0);
+    await host.stop(); host = undefined;
+    host = await start(dir, false, {profile});
+    for (const provider of providers) {
+      // Exercise the original action route as well as /v1 lifecycle endpoints.
+      const installed = await host.call('/v1/actions', {contractVersion: '0.1.0', type: 'command',
+        command: {code: 'app-platform.install-package', inputVersion: '0.1.0'},
+        values: {itemId: provider.packageId, confirmed: true}, sourceInteractionId: 'llm-reinstall', actionId: 'install', requiresConfirmation: false});
+      assert.equal(installed.status, 200, JSON.stringify(installed.body));
+      assert.equal((await host.probe(provider)).body.health.state, 'HEALTHY');
+    }
+    assert.deepEqual(fs.readFileSync(stateFile), state); assert.deepEqual(fs.readFileSync(keyFile), key);
+    assert.equal((await host.accesses()).filter(x => ['writeFileSync', 'renameSync', 'chmodSync', 'mkdirSync'].includes(x.operation)).length, 0);
+  } finally {await host?.stop(); fs.rmSync(dir, {recursive: true, force: true});}
+});
+
+for (const malformed of [false, true]) test('shared Secrets alone never initializes missing/corrupt files for uninstalled LLMs (malformed=' + malformed + ')', {timeout: 60000}, async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'llm-metadata-unused-')); let host;
+  const stateFile = path.join(dir, 'secrets.enc.json'), keyFile = path.join(dir, 'secrets.master.key');
+  try {
+    if (malformed) {fs.writeFileSync(stateFile, '{invalid-state'); fs.writeFileSync(keyFile, 'invalid-key');}
+    host = await start(dir, true, {forbidFiles: true});
+    await host.lifecycle('install', 'host-encrypted-secrets-provider');
+    assert.deepEqual(await host.accesses(), []); await host.stop(); host = undefined;
+    host = await start(dir, true, {forbidFiles: true});
+    assert.deepEqual(await host.accesses(), []); assert.deepEqual(await host.counts(), {openai: 0, deepseek: 0});
+    for (const provider of providers) assert.equal((await host.probe(provider)).body.error.code, 'PROVIDER_NOT_ACTIVE');
+    assert.deepEqual(await host.accesses(), []);
+    if (malformed) {assert.equal(fs.readFileSync(stateFile, 'utf8'), '{invalid-state'); assert.equal(fs.readFileSync(keyFile, 'utf8'), 'invalid-key');}
+    else {assert.equal(fs.existsSync(stateFile), false); assert.equal(fs.existsSync(keyFile), false);}
   } finally {await host?.stop(); fs.rmSync(dir, {recursive: true, force: true});}
 });

@@ -152,7 +152,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          # Reproduce the last certified READ-recovery runtime; bump with the full PG gate.
+          node-version: "24.21.0"
       - run: npm ci
       - run: npm run build
       - name: Configure ephemeral worker A PostgreSQL18 Host client certificate authentication

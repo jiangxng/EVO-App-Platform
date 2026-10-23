@@ -1,0 +1,111 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-21",
+  "scope": "A01/R3 dormant EVO application-map startup side effects",
+  "baseline": "524106df36af45b89d15eebd4c0c4f308b1718fc",
+  "branch": "fix/governance-evo-map-startup-20261021",
+  "sources": [
+    {
+      "path": "manager/server.ts",
+      "gitBlob": "13a13a71e2de58747e32ab69a2ed929d32627c7d",
+      "read": "partial: store, startup defaults/config branches, map activation/write and all direct binding resolver references"
+    },
+    {
+      "path": "manager/startup-defaults.ts",
+      "gitBlob": "a26d4cc87663a79204743ee2f0f58a962f6b4912",
+      "read": "full"
+    },
+    {
+      "path": "providers/application-runtime-binding/runtime.ts",
+      "gitBlob": "4caa9e8cbe8a951c853e381825ccc1dd82203e68",
+      "read": "full"
+    },
+    {
+      "path": "providers/application-runtime-binding/store.ts",
+      "gitBlob": "e434ef9e14cf1a49e37ab21a016d68255b53b592",
+      "read": "full"
+    },
+    {
+      "path": "contracts/enterprise-application-runtime-binding.ts",
+      "gitBlob": "9032a3da6571e5c8596a36e8b902cd8ecab09d18",
+      "read": "full"
+    },
+    {
+      "path": "providers/application-runtime-binding/package.ts",
+      "gitBlob": "51feecb2d786c147512cfa4ff85dcda6bec78a7d",
+      "read": "full"
+    }
+  ],
+  "changes": {
+    "productionFiles": 1,
+    "newProductionModules": 0,
+    "offSkipsMapParsing": true,
+    "offMapDoesNotActivatePackages": true,
+    "offMapDoesNotWriteBindings": true,
+    "enabledLegacyBootstrapPreserved": true,
+    "sharedProviderAndConsumersPreserved": true,
+    "newConfigurationFields": 0
+  },
+  "configCategories": {
+    "oneTimeDefaults": "existing startup journal preserves inactive/uninstalled after completed default",
+    "hostSecurity": "managed and configured auth direct bootstrap retained pending complete qualification",
+    "evoMap": "off now dormant; enabled repair/write authority and exit conditions open",
+    "p12AndOtherConfigured": "direct bootstrap is not all journalled; complete matrix remains open"
+  },
+  "local": {
+    "node": "24.19.0",
+    "mode": "pinned partial source/temporary type erasure",
+    "passed": 7,
+    "startupDefaults": 4,
+    "physicalOwnership": 3,
+    "newHostFixtureAndServerSyntax": true,
+    "formalBuild": false,
+    "realHost": false,
+    "browser": false,
+    "database": false
+  },
+  "ci": {
+    "statusAtCommit": "pending final-head CI; permanent exact-head results in PR closeout",
+    "newHostCases": 5,
+    "test": "tests/integration/evo-map-startup-boundary.test.mjs",
+    "fixture": "tests/fixtures/evo-map-startup-probe.mjs",
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "staticBaselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "localModuleMeasurement": false,
+    "priorCountsAreHistorical": true
+  },
+  "matrix": [
+    "compatible unset flag + valid map: no map-driven install/write",
+    "minimal false flag + valid map: no map-driven install/write",
+    "false malformed map: dormant",
+    "enabled->disabled->enabled: persisted bindings/inactive state preserved while off and original re-enable/remap semantics retained",
+    "true malformed map: original rejection"
+  ],
+  "limits": [
+    "common binding snapshot may still read files independently of observatory flag",
+    "inactive state uses persisted fixture, not lifecycle API authorization proof",
+    "enabled map can repair inactive package and overwrite same-key binding on restart; not closed",
+    "no all-store IO or complete resource qualification claim",
+    "search returning no results is not evidence of no other consumers/docs"
+  ],
+  "remaining": [
+    "enabled map reconciliation authority/one-time migration and exit conditions",
+    "other configured bootstrap qualification",
+    "EVO query/probe deadline",
+    "OIDC transaction budgets",
+    "R1 frozen SOP identity/qualification",
+    "R2 original Agent configured SQL responsibility/qualification",
+    "R4 final cross-layer matrix",
+    "A03 authority lookup/idempotent recovery",
+    "A05 production strategy/migration"
+  ],
+  "globalStatusModified": false,
+  "productionDeployment": false,
+  "additionalProviderPilot": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}
