@@ -8,7 +8,8 @@ import type {
   ConversationContextArtifactStoreV010,
   ConversationContextAssemblerV010,
   ConversationContextAssemblyResultV010,
-  ConversationSummaryArtifactV010
+  ConversationSummaryArtifactV010,
+  ConversationSourceRevocationPortV010
 } from "../contracts/conversation-context.js";
 import type {
   ConversationMessageV010
@@ -54,6 +55,17 @@ function excerpt(
     ? normalized.slice(0, Math.max(1, maxCharacters - 1)) + "…"
     : normalized;
   return role + ": " + clipped;
+}
+
+/** Invalidates a derived summary if any covered message was removed, replaced or redacted. */
+function sourceDigest(messages: readonly ConversationMessageV010[]): string {
+  return createHash("sha256")
+    .update(JSON.stringify(messages.map(message => ({
+      messageId: message.messageId,
+      role: message.role,
+      content: message.content
+    }))))
+    .digest("hex");
 }
 
 function unique(values: string[]): string[] {
@@ -135,18 +147,25 @@ export function createDeterministicConversationCompressionProviderV010():
 }
 
 export function createMemoryConversationContextArtifactStoreV010():
-  ConversationContextArtifactStoreV010 {
+  ConversationContextArtifactStoreV010 & ConversationSourceRevocationPortV010 {
   const summaries = new Map<string, ConversationSummaryArtifactV010[]>();
   const checkpoints = new Map<string, ConversationCheckpointV010[]>();
+  const revoked = new Map<string, Set<string>>();
+  const isRevoked = (threadId: string, sourceIds: readonly string[]) =>
+    sourceIds.some(id => revoked.get(threadId)?.has(id) === true);
   return {
     async latestSummary(input) {
       const values = summaries.get(input.threadId) ?? [];
       return [...values].reverse().find(item =>
         item.provenance.policyId === input.policyId
         && item.provenance.policyVersion === input.policyVersion
+        && !isRevoked(input.threadId, item.sourceMessageIds)
       );
     },
     async saveSummary(summary) {
+      if (isRevoked(summary.threadId, summary.sourceMessageIds)) {
+        throw Error("CONVERSATION_DERIVED_SOURCE_REVOKED");
+      }
       const values = summaries.get(summary.threadId) ?? [];
       const existing = values.find(item => item.summaryId === summary.summaryId);
       if (existing) return structuredClone(existing);
@@ -155,12 +174,47 @@ export function createMemoryConversationContextArtifactStoreV010():
       return structuredClone(summary);
     },
     async saveCheckpoint(checkpoint) {
+      const source = (summaries.get(checkpoint.threadId) ?? [])
+        .find(summary => summary.summaryId === checkpoint.summaryId);
+      if (!source || isRevoked(checkpoint.threadId, source.sourceMessageIds)) {
+        throw Error("CONVERSATION_DERIVED_SOURCE_REVOKED");
+      }
       const values = checkpoints.get(checkpoint.threadId) ?? [];
       const existing = values.find(item => item.checkpointId === checkpoint.checkpointId);
       if (existing) return structuredClone(existing);
       values.push(structuredClone(checkpoint));
       checkpoints.set(checkpoint.threadId, values);
       return structuredClone(checkpoint);
+    },
+    async revokeSourceMessages(input) {
+      const threadId = required(input.threadId, "CONVERSATION_THREAD_ID_REQUIRED");
+      if (!Array.isArray(input.sourceMessageIds)
+        || input.sourceMessageIds.length === 0
+        || input.sourceMessageIds.length > 1000
+        || input.sourceMessageIds.some(id => typeof id !== "string" || !id.trim())) {
+        throw Error("CONVERSATION_REVOKED_SOURCE_IDS_INVALID");
+      }
+      const ids = [...new Set(input.sourceMessageIds.map(id => id.trim()))];
+      const current = revoked.get(threadId) ?? new Set<string>();
+      const initial = current.size;
+      for (const id of ids) current.add(id);
+      revoked.set(threadId, current);
+
+      const previousSummaries = summaries.get(threadId) ?? [];
+      const removed = previousSummaries.filter(summary =>
+        summary.sourceMessageIds.some(id => current.has(id)));
+      const removedIds = new Set(removed.map(x => x.summaryId));
+      summaries.set(threadId, previousSummaries.filter(summary =>
+        !removedIds.has(summary.summaryId)));
+      const previousCheckpoints = checkpoints.get(threadId) ?? [];
+      checkpoints.set(threadId, previousCheckpoints.filter(checkpoint =>
+        !removedIds.has(checkpoint.summaryId)));
+      return {
+        removedSummaries: removed.length,
+        removedCheckpoints: previousCheckpoints.length -
+          (checkpoints.get(threadId)?.length ?? 0),
+        newlyRevokedSources: current.size - initial
+      };
     }
   };
 }
@@ -257,10 +311,15 @@ export function createConversationContextAssemblerV010(input: {
           policyId: policy.policyId,
           policyVersion: policy.version
         });
+        const digest = sourceDigest(older);
         const coverageMatches = latest
           && latest.sourceLastMessageId === older.at(-1)!.messageId
           && latest.sourceFirstMessageId === older[0].messageId
-          && latest.sourceMessageCount === older.length;
+          && latest.sourceMessageCount === older.length
+          && latest.sourceMessageIds.length === older.length
+          && latest.sourceMessageIds.every((id, index) => id === older[index].messageId)
+          // Legacy summaries without a source fingerprint cannot prove freshness.
+          && latest.provenance.sourceDigest === digest;
         const summary = coverageMatches
           ? latest
           : await compressor.compress({
@@ -269,7 +328,10 @@ export function createConversationContextAssemblerV010(input: {
               policy,
               generatedAt: request.now,
               artifactVersion: (latest?.artifactVersion ?? 0) + 1
-            });
+            }).then(result => ({
+              ...result,
+              provenance: { ...result.provenance, sourceDigest: digest }
+            }));
         if (!coverageMatches) {
           await input.artifactStore.saveSummary(summary);
           await input.artifactStore.saveCheckpoint({

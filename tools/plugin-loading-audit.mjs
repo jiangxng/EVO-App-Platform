@@ -1,0 +1,179 @@
+import { fork, execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../', import.meta.url));
+const output = process.argv[2];
+if (!output) throw new Error('Usage: node tools/plugin-loading-audit.mjs <report.json>');
+function files(directory, prefix = '') {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const relative = path.join(prefix, entry.name);
+    return entry.isDirectory() ? files(path.join(directory, entry.name), relative)
+      : [{ path: relative.split(path.sep).join('/'), bytes: fs.statSync(path.join(directory, entry.name)).size }];
+  }).sort((a, b) => a.path.localeCompare(b.path));
+}
+async function sample(name, directory, profile, extra = {}) {
+  const state = path.join(directory, 'state.json');
+  const child = fork(path.join(root, 'dist/manager/server.js'), [], {
+    cwd: root, execArgv: ['--import', path.join(root, 'tools/plugin-loading-audit-probe.mjs')],
+    env: { PATH: process.env.PATH, PORT: '0', NODE_ENV: 'test',
+      APP_PLATFORM_STATE_FILE: state, APP_PLATFORM_STARTUP_PROFILE: profile,
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: 'true', ...extra },
+    stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+  });
+  child.stdout.resume();
+  let stderr = '', timer;
+  child.stderr.on('data', data => { stderr = (stderr + data).slice(-10000); });
+  const exited = new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })));
+  try {
+    const report = await new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('AUDIT_START_TIMEOUT')), 30000);
+      child.once('error', reject);
+      child.once('exit', code => reject(new Error(`AUDIT_EARLY_EXIT ${code}: ${stderr}`)));
+      child.on('message', message => { if (message.kind === 'host-baseline') resolve(message); });
+    });
+    clearTimeout(timer);
+    if (name === "minimal-scheduler-configured" && report.registeredIntervals.length !== 0) {
+      throw new Error("EMPTY_MINIMAL_HOST_BACKGROUND_TIMER");
+    }
+    const lifecycle = JSON.parse(fs.readFileSync(state, 'utf8'));
+    const inventory = files(directory);
+    const storedFiles = inventory.filter(file => !file.path.startsWith('web-assets/'));
+    const archived = inventory.filter(file => file.path.startsWith('web-assets/'));
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'dist/web-asset-manifest.json'), 'utf8'));
+    const expectedArchive = ['.ready', manifest.shellCss.path, ...manifest.files.map(file => file.path)].sort();
+    const actualArchive = archived.map(file => file.path.split('/').slice(2).join('/')).sort();
+    if (JSON.stringify(actualArchive) !== JSON.stringify(expectedArchive)) throw new Error('WEB_ARCHIVE_MANIFEST_COVERAGE_MISMATCH');
+    const archiveAreas = {};
+    for (const file of archived) {
+      const area = file.path.split('/')[2];
+      archiveAreas[area] ??= { files: 0, bytes: 0 };
+      archiveAreas[area].files++; archiveAreas[area].bytes += file.bytes;
+    }
+    const archivedAssets = { files: archived.length,
+      bytes: archived.reduce((sum, file) => sum + file.bytes, 0), areas: archiveAreas };
+    child.kill('SIGTERM');
+    timer = setTimeout(() => child.kill('SIGKILL'), 7000);
+    const shutdown = await exited;
+    if (shutdown.code !== 0 || stderr || report.blockedOutbound !== 0
+      || !report.loadedModules.includes('dist/manager/server.js')) {
+      throw new Error('AUDIT_INVALID: ' + JSON.stringify({ shutdown, stderr, blockedOutbound: report.blockedOutbound }));
+    }
+    for (const module of ['dist/apps/eog-2d-designer/legacy-definition-migration.js',
+      'dist/providers/enterprise-context/eog-sop-migration.js', 'dist/manager/eog-preview-seed.js']) {
+      if (report.loadedModules.includes(module)) throw new Error('UNUSED_EOG_COMPATIBILITY_EAGER: ' + module);
+    }
+    if (report.loadedModules.includes('dist/apps/eog-2d-designer/definition-projection-editor.js')) throw new Error('EOG_DEFINITION_PROJECTION_EDITOR_EAGER');
+    if (report.loadedModules.includes('dist/manager/enterprise-operating-graph-sop-actions.js')) throw new Error('LEGACY_SOP_ACTION_IMPLEMENTATION_EAGER');
+    for (const file of ['enterprise-operating-graph-actions', 'enterprise-operating-graph-page']) {
+      if (report.loadedModules.includes(`dist/apps/eog-2d-designer/${file}.js`)
+        || report.loadedModules.includes(`dist/manager/${file}.js`)) {
+        throw new Error('EOG_EDITOR_IMPLEMENTATION_EAGER:' + file);
+      }
+    }
+    if (report.loadedModules.includes('dist/apps/eog-3d/workspace-page.js')) throw new Error('EOG_3D_VIEWER_PAGE_EAGER');
+    if (report.loadedModules.includes('dist/apps/enterprise-observatory/observatory-actions.js')) throw new Error('EOG_OBSERVATORY_ACTIONS_EAGER');
+    for (const surface of ['desktop-page', 'mobile-read-page']) {
+      if (report.loadedModules.includes(`dist/apps/enterprise-observatory/${surface}.js`)) throw new Error('EOG_OBSERVATORY_SURFACE_EAGER:' + surface);
+    }
+    if (report.loadedModules.includes('dist/apps/enterprise-observatory/spatial-page.js')) throw new Error('EOG_SPATIAL_OBSERVATORY_PAGE_EAGER');
+    // Retired startup debt: fail CI if the compatibility runtime returns to
+    // these unused/disabled startup paths. Counts remain observations only.
+    for (const module of ['service', 'default-library', 'expression-compiler']) {
+      if (report.loadedModules.includes(`dist/apps/ledger-runtime-configurator/${module}.js`)) {
+        throw new Error('LEDGER_COMPATIBILITY_RUNTIME_EAGER: ' + module);
+      }
+    }
+    for (const module of ['runtime', 'repository', 'roles', 'facets', 'projection-service']) {
+      if (report.loadedModules.includes(`dist/apps/counterparty/${module}.js`)) {
+        throw new Error('COUNTERPARTY_RUNTIME_EAGER: ' + module);
+      }
+    }
+    if (report.loadedModules.includes('dist/apps/responsibility/repository.js')) {
+      throw new Error('RESPONSIBILITY_RUNTIME_EAGER');
+    }
+    for (const module of ['repository', 'values']) {
+      if (report.loadedModules.includes(`dist/apps/object-extension/${module}.js`)) {
+        throw new Error('OBJECT_EXTENSION_RUNTIME_EAGER: ' + module);
+      }
+    }
+    for (const module of ['runtime', 'repository', 'recipe', 'service', 'experience-advisor']) {
+      if (report.loadedModules.includes(`dist/apps/data-import/${module}.js`)) {
+        throw new Error('DATA_IMPORT_RUNTIME_EAGER: ' + module);
+      }
+    }
+    // Hook instrumentation makes these unsuitable for performance comparisons.
+    const { port, readyMs, memoryBytes, idleCpuMicros, ...observations } = report;
+    return { profile: name, ...observations, installedPackages: lifecycle.installedPackages.map(p => p.packageId).sort(),
+      activeFeatures: lifecycle.activeFeatures.map(f => ({ packageId: f.packageId, featureId: f.featureId })),
+      storedFiles, archivedAssets, shutdown };
+  } finally {
+    clearTimeout(timer);
+    if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await exited; }
+  }
+}
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-loading-audit-'));
+const samples = [];
+try {
+  const minimal = path.join(directory, 'minimal'), compatible = path.join(directory, 'compatible');
+  fs.mkdirSync(minimal); fs.mkdirSync(compatible);
+  samples.push(await sample('minimal-uninstalled', minimal, 'minimal'));
+  samples.push(await sample('compatible-installed-unused', compatible, 'compatible'));
+  const statePath = path.join(compatible, 'state.json');
+  const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  const disabledPackages = ['evo-counterparty', 'evo-object-extension', 'evo-data-import',
+    'evo-eog-2d', 'evo-eog-3d', 'evo-enterprise-observatory', 'eog-bottleneck-analysis-provider'];
+  state.activeFeatures = state.activeFeatures.filter(f => !disabledPackages.includes(f.packageId));
+  fs.writeFileSync(statePath, JSON.stringify(state));
+  const disabled = await sample('compatible-disabled-restart', compatible, 'compatible');
+  if (disabled.activeFeatures.some(f => disabledPackages.includes(f.packageId))) throw new Error('DISABLED_FEATURE_REACTIVATED');
+  samples.push({ ...disabled, disabledPackages });
+  const scheduled = path.join(directory, 'scheduled'); fs.mkdirSync(scheduled);
+  samples.push(await sample('minimal-scheduler-configured', scheduled, 'minimal', {
+    APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS: '60000'
+  }));
+} finally { fs.rmSync(directory, { recursive: true, force: true }); }
+const loadedModuleSets = {};
+for (const sample of samples) {
+  const key = createHash('sha256').update(JSON.stringify(sample.loadedModules)).digest('hex');
+  loadedModuleSets[key] = sample.loadedModules;
+  sample.loadedModuleSet = key;
+  sample.loadedModuleCount = sample.loadedModules.length;
+  delete sample.loadedModules;
+}
+const report = {
+  schemaVersion: 1, measuredAt: new Date().toISOString(),
+  sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
+  sourceState: 'working tree; file hashes identify measured source',
+  measuredFilesSha256: Object.fromEntries(['manager/server.ts', 'dist/manager/server.js',
+    'manager/web-asset-archive.ts', 'tools/build-web-asset-manifest.mjs',
+    'dist/web-asset-manifest.json',
+    'tools/plugin-loading-audit.mjs', 'tools/plugin-loading-audit-probe.mjs',
+    'tools/plugin-loading-audit-loader.mjs', 'tools/lightweight-host-probe.mjs',
+    'manager/data-import-runtime.ts', 'apps/data-import/runtime.ts',
+    'apps/data-import/management-access.ts', 'apps/data-import/actions.ts',
+    'apps/data-import/repository.ts', 'apps/data-import/recipe.ts',
+    'apps/data-import/service.ts', 'apps/data-import/experience-advisor.ts',
+    'manager/object-extension-runtime.ts', 'apps/object-extension/actions.ts',
+    'apps/object-extension/repository.ts', 'apps/object-extension/values.ts',
+    'manager/responsibility-runtime.ts', 'apps/responsibility/actions.ts',
+    'apps/responsibility/repository.ts',
+    'manager/counterparty-runtime.ts', 'apps/counterparty/runtime.ts',
+    'apps/counterparty/constants.ts', 'apps/counterparty/foundation-object.ts',
+    'apps/counterparty/repository.ts', 'apps/counterparty/actions.ts',
+    'apps/counterparty/projection-actions.ts',
+    'apps/ledger-runtime-configurator/action-handler.ts',
+    'apps/ledger-runtime-configurator/capability-action-handlers.ts']
+    .map(file => [file, createHash('sha256').update(fs.readFileSync(path.join(root, file))).digest('hex')])),
+  environment: { node: process.version, platform: process.platform, architecture: process.arch },
+  scope: 'Isolated empty file storage; no production secrets or business requests. One sample/profile at ~500ms. Async load hooks inventory dist ESM only (not CommonJS require graphs); they prove module loading, not instance creation or heap retention. Interval registration is not tick execution. File inventory is not database connection evidence. No performance conclusions.',
+  loadedModuleSets, samples
+};
+fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
+fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
+console.log(JSON.stringify(samples.map(s => ({ profile: s.profile, installed: s.installedPackages.length,
+  loadedModules: s.loadedModuleCount, intervals: s.registeredIntervals.length, stateFiles: s.storedFiles.length, archivedAssets: s.archivedAssets.files,
+  blockedOutbound: s.blockedOutbound, exit: s.shutdown.code })), null, 2));
+

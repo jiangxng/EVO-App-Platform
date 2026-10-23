@@ -1,0 +1,378 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-20",
+  "baseline": "1f2a7bbd717cca4547d68680a51733966457d41c",
+  "branch": "test/governance-eog-retained-imports-20261020",
+  "scope": "A01/R1 directed reconciliation of retained EOG Host root imports, not a complete Host/Provider/Agent audit",
+  "productionChange": false,
+  "baselineIncludesHandoff": "42ce894b4129089cbd8a270bd3473f0c93b7657b",
+  "rootInventoryMethod": "Enumerate top-level value imports in pinned manager/server.ts whose path names EOG, enterprise-observatory, operating-graph, current-2d-editor or definition-projection. Type-only imports excluded. All 24 source blobs checked against recursive Git tree; corresponding built JS covered in fresh-process import probes.",
+  "rootCount": 24,
+  "sourceRootImports": [
+    {
+      "from": "manager/server.ts",
+      "path": "manager/eog-service-runtime.ts",
+      "specifier": "./eog-service-runtime.js",
+      "sourceLine": 1,
+      "bindings": "{ createOnUseEogServicesV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "187203833bc973ef61634a3a35c112bd03484740",
+      "sha256": "2c4c7945d5f45d38dc708c4a5143efe4d90fc5d826bb1e85fd4ce02305514881"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "contracts/definition-projection.ts",
+      "specifier": "../contracts/definition-projection.js",
+      "sourceLine": 18,
+      "bindings": "{ createMemoryDefinitionProjectionSessionStoreV010, DEFINITION_2D_EDITOR_ROUTE_V010, DEFINITION_2D_PREVIEW_ROUTE_V010, definition2dPreviewRouteV010, parseDefinitionProjectionRouteV010 }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "7f349a9f0eae997c870a0bc440c2147cd22b5985",
+      "sha256": "e8cdcb688859f9cff2c7634f6e1530db40a31dbcadfec288d5f163008cfb7c05"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "contracts/current-2d-editor.ts",
+      "specifier": "../contracts/current-2d-editor.js",
+      "sourceLine": 25,
+      "bindings": "{ createMemoryCurrent2dEditorSessionStoreV010 }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "4e029954ae597a16796a1e3f9f140f99f4cc8ffa",
+      "sha256": "58d56cc3db87e53ff1eb884861d8bdd3f903c0385c5b140aee78ef39c2aa2ec3"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/eog-2d-designer/definition-persistence.ts",
+      "specifier": "../apps/eog-2d-designer/definition-persistence.js",
+      "sourceLine": 109,
+      "bindings": "{ createEnterpriseOperatingGraphDefinitionPersistenceV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "6127eb288abdc7de625b692238087b8a99bb9547",
+      "sha256": "648b88417ca2214ad829671634c47b6fb65a8f35ea7dc7b48bdd8c1f48a923d9"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/eog-2d-designer/current-2d-editor-agent-tools.ts",
+      "specifier": "../apps/eog-2d-designer/current-2d-editor-agent-tools.js",
+      "sourceLine": 112,
+      "bindings": "{ createCurrent2dEditorAgentToolRegistrationsV010 }",
+      "category": "REQUEST_TOOL_DESCRIPTOR",
+      "gitBlob": "d5d8ce0825dc71cce42bfa76b64b78c471e8c2cf",
+      "sha256": "b494321926068a98904372964b010dee3df73c34d25a30e362a5d9a8086b259c"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "providers/enterprise-context/definition-projection.ts",
+      "specifier": "../providers/enterprise-context/definition-projection.js",
+      "sourceLine": 115,
+      "bindings": "{ createEnterpriseDefinitionProjectionArtifactSourceV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "1a4a20ea2859bcbdd0cbd7312b5b24134eb57d56",
+      "sha256": "7b97779a781c39b65dd5e09c9fe61db05de21e5d24543fbf4e26a9de88e10ffb"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/eog-startup-compatibility.ts",
+      "specifier": "./eog-startup-compatibility.js",
+      "sourceLine": 118,
+      "bindings": "{ migrateExistingEogGraphsV010, migrateExistingEogSopsV010, applyConfiguredEogPreviewSeedV010 }",
+      "category": "CONDITIONAL_STARTUP_COMPATIBILITY",
+      "gitBlob": "4328cb8eeaf73cdc03e9c3a08e15a2b52262fee2",
+      "sha256": "4803414190f4c912bc8509d390c1bbbc1149f136c3fd71fc2742767cf530aff6"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-service.ts",
+      "specifier": "./enterprise-operating-graph-service.js",
+      "sourceLine": 119,
+      "bindings": "{ createEnterpriseOperatingGraphHostServiceV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "b9945796b188802c295ed28ad37ebbc07b426466",
+      "sha256": "4ec6d461da1fbba5e1167999edcf504a9a572daa28dc47bd661d219b039d56cb"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "providers/eog-view-state/store.ts",
+      "specifier": "../providers/eog-view-state/store.js",
+      "sourceLine": 122,
+      "bindings": "{ createFileEogViewStateStoreV010, createMemoryEogViewStateStoreV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "ff8a1f447c14d7304c4f0434bda0fb846423a8c1",
+      "sha256": "69f4f4312de1637396cb1a016094328803d02d79d7478f2fd57597b5e33db34c"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "providers/eog-view-state/runtime.ts",
+      "specifier": "../providers/eog-view-state/runtime.js",
+      "sourceLine": 126,
+      "bindings": "{ createEogViewStateProviderV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "d7c46808c40a309302df6e61ff081c203050d5e1",
+      "sha256": "868ee972d10595279af53cc9c82de8b0ea0e0f847160ba7444d9397d6d892b22"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-sop-service.ts",
+      "specifier": "./enterprise-operating-graph-sop-service.js",
+      "sourceLine": 136,
+      "bindings": "{ createEogExpectedSopServiceV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "219dd510053cb19b84e9d1c272177f96a908b2ec",
+      "sha256": "57e4054fff4f14ea236114c05231618c2527a03a9873ce07240ee838b044a7fd"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "contracts/enterprise-operating-graph-sop.ts",
+      "specifier": "../contracts/enterprise-operating-graph-sop.js",
+      "sourceLine": 139,
+      "bindings": "{ EOG_SOP_LIST_ACTION, EOG_SOP_CREATE_ACTION, EOG_SOP_REVISE_ACTION, EOG_SOP_PUBLISH_ACTION }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "e469436eb2c621d01667d91906095aa5814a7561",
+      "sha256": "bead00d1fee458183e3d6e7d85bcd8c13291fa5946863a68155522df7a90aadb"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-sop-agent-tools.ts",
+      "specifier": "./enterprise-operating-graph-sop-agent-tools.js",
+      "sourceLine": 145,
+      "bindings": "{ createEogExpectedSopAgentToolRegistrationsV010 }",
+      "category": "REQUEST_TOOL_DESCRIPTOR",
+      "gitBlob": "c51e1eb581f8a6a653024255729d86233d4b9e85",
+      "sha256": "ef44ac02f4b0a5323d8d1d5d747c53e2e369c7bd1b44508c6a8cfdace43d4e38"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-agent-tools.ts",
+      "specifier": "./enterprise-operating-graph-agent-tools.js",
+      "sourceLine": 148,
+      "bindings": "{ createEnterpriseOperatingGraphAgentToolRegistrationsV010 }",
+      "category": "REQUEST_TOOL_DESCRIPTOR",
+      "gitBlob": "20aa485bf30b13f371ea13f4a005f6847ba0cb88",
+      "sha256": "b7eb4664360cd7b35d5240eda739ad1ea0d4067589e96698ca7fc2a1d0595026"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-observatory-provider.ts",
+      "specifier": "./enterprise-operating-graph-observatory-provider.js",
+      "sourceLine": 151,
+      "bindings": "{ createEnterpriseOperatingGraphObservatoryProviderResolverV020 }",
+      "category": "RESOLVER_CLOSURE",
+      "gitBlob": "fe21bf47405261f6417266c87b3a33be7eec9d59",
+      "sha256": "5ba5a6d0b376425b6ed0383f49023127f4665e712080f827008f5bcef4b54eb6"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-inspector-provider.ts",
+      "specifier": "./enterprise-operating-graph-inspector-provider.js",
+      "sourceLine": 154,
+      "bindings": "{ createEnterpriseOperatingGraphInspectorPropertyResolverV010 }",
+      "category": "RESOLVER_CLOSURE",
+      "gitBlob": "3a46ef58500ca3a3531de9129d6895e243fe15bb",
+      "sha256": "88f40975f9b2b46ecf670415230c7317fbba34bee21a0f783368d7c57ff33db9"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "manager/enterprise-operating-graph-observatory-agent-tools.ts",
+      "specifier": "./enterprise-operating-graph-observatory-agent-tools.js",
+      "sourceLine": 157,
+      "bindings": "{ createEnterpriseOperatingGraphObservatoryAgentToolRegistrationsV020 }",
+      "category": "REQUEST_TOOL_DESCRIPTOR",
+      "gitBlob": "bbf5777e50b2cc8d142bad39ddfcec1eb6aad729",
+      "sha256": "dfb7be30e2f8f17d8e97ecb5deb1d5888662428554772e291042e3e1732771bc"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "providers/enterprise-context/definition-projection-store.ts",
+      "specifier": "../providers/enterprise-context/definition-projection-store.js",
+      "sourceLine": 329,
+      "bindings": "{ createFileDefinitionProjectionStoreV010, createMemoryDefinitionProjectionStoreV010 }",
+      "category": "SHARED_SYNC_CLOSURE",
+      "gitBlob": "daf9831e844e37dca193541e0a194dd25b212829",
+      "sha256": "c69d757d17fb0495813c81eb720d96a905f2019d611850c3456c1f7de976ee47"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "providers/eog-bottleneck-analysis/package.ts",
+      "specifier": "../providers/eog-bottleneck-analysis/package.js",
+      "sourceLine": 473,
+      "bindings": "{ EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID, EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID, eogBottleneckAnalysisProviderPackage }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "f2e84423ca288702780c6e18b502cc764cbfa9c2",
+      "sha256": "84b36f7c1cf3e621985b56254014a603de55a34d006dd2a6f09eb41608974673"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/eog-2d-designer/authorization.ts",
+      "specifier": "../apps/eog-2d-designer/authorization.js",
+      "sourceLine": 603,
+      "bindings": "{ EOG_DEFINITION_PROJECTION_RESOURCE_TYPE_V010, EOG_DEFINITION_PROJECTION_SAVE_AUTHORIZATION_ACTION_V010, EOG_OPERATING_GRAPH_VIEW_EDIT_AUTHORIZATION_ACTION_V010, EOG_OPERATING_GRAPH_VIEW_RESOURCE_TYPE_V010, eogDefinitionProjectionAuthorizationPolicyV010 }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "0b706ea9928a87dd17d84774fa93a8c344da5821",
+      "sha256": "7eba2c5a6cb3d7051c8c03025cc580f2d98878cd4ff2dd924b13422f014bc0eb"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/eog-2d-designer/package.ts",
+      "specifier": "../apps/eog-2d-designer/package.js",
+      "sourceLine": 789,
+      "bindings": "{ EOG_2D_DESIGNER_DEFINITION_PROJECTION_GET_ACTION, EOG_2D_DESIGNER_DEFINITION_PROJECTION_PAGE_SOURCE, EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION, EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION, EOG_2D_DESIGNER_FEATURE_ID, EOG_2D_DESIGNER_PAGE_SOURCE as EOG_EDITOR_PAGE_SOURCE, EOG_2D_DESIGNER_PACKAGE_ID, EOG_CREATE_ACTION, EOG_GET_ACTION, EOG_LIST_ACTION, EOG_VALIDATE_ACTION, EOG_APPLY_OPERATION_ACTION, EOG_VIEW_GET_ACTION, EOG_VIEW_OPERATION_ACTION, EOG_VIEW_SELECTION_GET_ACTION }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "45d089facc8e3c3919477b88f380a38fb45779a6",
+      "sha256": "7ec5bba6bd273ebd0ea25dcd80b436b5d492acce8c73286f0997901c53adf778"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/eog-2d-viewer/package.ts",
+      "specifier": "../apps/eog-2d-viewer/package.js",
+      "sourceLine": 956,
+      "bindings": "{ EOG_2D_VIEWER_DEFINITION_PREVIEW_GET_ACTION, EOG_2D_VIEWER_DEFINITION_PREVIEW_PAGE_SOURCE, EOG_2D_VIEWER_DEFINITION_PREVIEW_SELECTION_GET_ACTION, EOG_2D_VIEWER_FEATURE_ID, EOG_2D_VIEWER_PACKAGE_ID, EOG_2D_VIEWER_TEMPLATE_PREVIEW_GET_ACTION, EOG_2D_VIEWER_TEMPLATE_PREVIEW_PAGE_SOURCE, EOG_2D_VIEWER_TEMPLATE_PREVIEW_SELECTION_GET_ACTION, EOG_2D_VIEWER_WORKSPACE_GET_ACTION, EOG_2D_VIEWER_WORKSPACE_PAGE_SOURCE, EOG_2D_VIEWER_WORKSPACE_SELECTION_GET_ACTION }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "67d2c783c107243a63de13ba64a8c3d2d557f6e2",
+      "sha256": "d367f9ead0e98da32a816318977eeedae47d675735bb65d27909b4888ae228a7"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/eog-3d-viewer/package.ts",
+      "specifier": "../apps/eog-3d-viewer/package.js",
+      "sourceLine": 969,
+      "bindings": "{ EOG_3D_VIEWER_FEATURE_ID, EOG_3D_VIEWER_GET_ACTION, EOG_3D_VIEWER_PAGE_SOURCE, EOG_3D_VIEWER_PACKAGE_ID }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "529c30f3fc685723c5b7d872ab91ad43ad9fdd5e",
+      "sha256": "66e821bb03bde0cf17f5c8827aecc9f5acd14e8aaa4e1f75356c5eaf84280171"
+    },
+    {
+      "from": "manager/server.ts",
+      "path": "apps/enterprise-observatory/package.ts",
+      "specifier": "../apps/enterprise-observatory/package.js",
+      "sourceLine": 975,
+      "bindings": "{ ENTERPRISE_OBSERVATORY_2D_PAGE_SOURCE as EOG_OBSERVATORY_PAGE_SOURCE, ENTERPRISE_OBSERVATORY_MOBILE_PAGE_SOURCE as EOG_MOBILE_READ_PAGE_SOURCE, EOG_OBSERVE_ACTION, EOG_ANALYZE_ACTION, EOG_OBSERVATORY_VIEW_GET_ACTION, EOG_OBSERVATORY_VIEW_OPERATION_ACTION, EOG_MOBILE_READ_GET_ACTION, ENTERPRISE_OBSERVATORY_2D_FEATURE_ID, ENTERPRISE_OBSERVATORY_3D_FEATURE_ID, ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE as EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE, EOG_SPATIAL_OBSERVATORY_GET_ACTION, ENTERPRISE_OBSERVATORY_PACKAGE_ID }",
+      "category": "METADATA_IDENTITY_POLICY",
+      "gitBlob": "08ca0096d0ec4f4b2debee0386770d5c8035ddbd",
+      "sha256": "979b1b2a40ec188027d72d1bbf8ee8db09bfbfa6cd2b34045c57d048f74d24c0"
+    }
+  ],
+  "decisions": [
+    {
+      "category": "METADATA_IDENTITY_POLICY",
+      "count": 9,
+      "retain": "cheap manifests, public identities/routes, empty per-Host session maps and existing authorization policy; no implementation extraction or weakened security"
+    },
+    {
+      "category": "SHARED_SYNC_CLOSURE",
+      "count": 8,
+      "retain": "graph/SOP on-use facades, definition persistence/source and View State shared synchronous contracts; business access occurs on methods, not imports/constructor; do not dispose on one UI Feature disable"
+    },
+    {
+      "category": "REQUEST_TOOL_DESCRIPTOR",
+      "count": 4,
+      "retain": "request-scoped descriptors/closures with current Principal/Context; original execution and lifecycle gates unchanged; SOP legacy qualification is a frozen exception, not certified"
+    },
+    {
+      "category": "RESOLVER_CLOSURE",
+      "count": 2,
+      "retain": "runtime-fact/analysis and inspector provider resolver construction; query/inspect happens on use; does not certify all Provider factory side effects"
+    },
+    {
+      "category": "CONDITIONAL_STARTUP_COMPATIBILITY",
+      "count": 1,
+      "retain": "configured legacy path existsSync at startup; actual legacy graph/SOP migration only if file exists, preview only when explicitly configured. Existing #1014 Host acceptance reused; import probe does not call startup functions"
+    }
+  ],
+  "transitiveRetainedExamples": [
+    "apps/eog-2d-designer/enterprise-operating-graph-model.ts",
+    "eog/diagram-projection.ts",
+    "eog/definition-projection.ts",
+    "eog/observatory-input.ts",
+    "manager/enterprise-operating-graph-observatory.ts",
+    "manager/provider-resolution.ts"
+  ],
+  "alreadyLazy": [
+    "graph page/view and semantic Human handlers (#1061)",
+    "current definition-projection crop implementation (#1047)",
+    "legacy four SOP Human commands (#1063)",
+    "3D/spatial/desktop/mobile/observe/analyze entries (#1016-1019)"
+  ],
+  "test": {
+    "file": "tests/protocol/eog-retained-imports.test.mjs",
+    "fixture": "tests/fixtures/eog-retained-import-probe.mjs",
+    "newCases": 5,
+    "canaryCases": 9,
+    "groups": [
+      9,
+      8,
+      6,
+      1
+    ],
+    "guardTiming": "before first project ESM import in each fresh process; all root namespaces asserted nonempty and native loader observation asserted",
+    "loader": "native registerHooks loads only unchanged dist .js through captured readFileSync; evaluation receives patched public fs exports. Canary proves direct read of that same dist path is also rejected. No production hook or code transformation.",
+    "blocked": "enumerated public fs/fs.promises, TCP Socket.connect, http/https request/get, fetch, globals/timers/timers.promises, child_process creation; attempts retained even if module swallows throw",
+    "existingComplement": [
+      "eog-registration-resource-boundary: 3 construction/discovery/refusal tests",
+      "eog-service-on-use: 5 shared state/isolation/retry tests",
+      "existing real Host lazy/lifecycle/compatibility CI"
+    ]
+  },
+  "local": {
+    "node": "24.19.0",
+    "passed": 13,
+    "newPassed": 5,
+    "existingPassed": 8,
+    "command": "node --test --test-isolation=none tests/protocol/eog-retained-imports.test.mjs tests/protocol/eog-registration-resource-boundary.test.mjs tests/protocol/eog-service-on-use.test.mjs",
+    "officialBuild": false,
+    "realHost": false,
+    "browser": false,
+    "method": "independent fixed-SHA partial source snapshot; reused temporary Node type-erased dist with erased named-import pruning and supplemented missing pinned modules; not official TS compilation. Default runner pipes unavailable locally."
+  },
+  "ci": {
+    "statusAtCommit": "pending; final accurate-head CI/run IDs and merge recorded in PR",
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "baselineAllowanceChanged": false
+  },
+  "historicalOnly": {
+    "pr": 1063,
+    "head": "f72cd4a88033e11e7acba6825978e2fadfab7135",
+    "modulesPerProfile": 310,
+    "staticEdges": 246,
+    "currentMeasurement": false
+  },
+  "limits": [
+    "Only enumerated public resource entrypoints; not VM isolation, syscall auditing or all native/worker/DB APIs",
+    "Native loader code reads are required and excluded through captured function; business execution cannot use this fixture closure",
+    "No invocation, async background lifetime or construction guarantee from import test alone; reuse existing component/Host tests for those",
+    "No whole Host graph, real Agent task, browser/user acceptance, production database or new performance measurement locally",
+    "SOP tool owner evo-app-platform and Enterprise-only qualification retained as explicit deferred debt; SOP Designer remains unregistered/default OFF/product frozen"
+  ],
+  "remaining": [
+    "R1 broader lifecycle/qualification and frozen exceptions remain open; directed static entry reconciliation completed only",
+    "R2 configured Agent SQL ownership/qualification/acceptance, not closed by PA05 work",
+    "R3 Provider factory and Host call-site side effects classification; next OpenAI/DeepSeek wrappers and probes, no second Provider pilot",
+    "R4 final cross-layer acceptance matrix"
+  ],
+  "reading": {
+    "reusedFull": "project bootstrap/LLM/delivery rules, designated governance docs, loading authority, EOG ownership/extraction frozen baseline; applicable root rule blobs matched latest tree",
+    "thisBatchFull": "new probe/tests; eog-startup-compatibility; inspector/observatory resolver modules; EOG authorization and bottleneck manifest",
+    "thisBatchPartial": "Host root imports/shared construction/request catalog and relevant configuration; observatory query execution and Provider resolution selected functions. Not full server/Agent implementation."
+  },
+  "progress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  },
+  "productionDeployment": false,
+  "sha256": {
+    "manager/server.ts": "3a877b4f3f64b2a22eead6dfdde5390333b3a03ccfdac020db99fce1a2fbbe38",
+    "tests/fixtures/eog-retained-import-probe.mjs": "7c8bdf12dc33be1a4611d22ab21cbe9648229a7173e6529f714a027266fa3290",
+    "tests/protocol/eog-retained-imports.test.mjs": "93c9b62cc3d72b398d4771eecf700fa3f1a607e56c381491aaa6c85cc8a51735",
+    ".github/workflows/lightweight-host.yml": "e2ebce4997d44d1f635cb763b2f96dd4355ff3ebc42545da35f5bfb0a3f805b4",
+    "tools/lightweight-host-baseline.json": "c446aa8b6797f95efc18eb6da3df680c09d8d12de50e81729bb4f1310e220c09"
+  },
+  "mainSynchronization": {
+    "sha": "ad5ea4932dbabe8289f66289314b43667c154b4a",
+    "changedPaths": [
+      "docs/agent-line/HANDOFF.md",
+      "docs/agent-line/PA05-CERTIFICATION-BASELINE-20261015.md",
+      "docs/agent-line/PA05-E01J4K-K0-PRODUCTION-WORKER-TOPOLOGY-20261020.md"
+    ],
+    "productionSourcesChanged": false,
+    "overlap": false
+  }
+}

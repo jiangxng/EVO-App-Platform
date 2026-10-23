@@ -58,6 +58,20 @@ interface BrowserSessionSnapshotV010 {
   principal: BrowserPrincipalV010;
 }
 
+/**
+ * Platform-owned opt-in route scope for the V3 Human review workbench.
+ * Eidos only receives the predicate; never owns these business route names.
+ */
+export function shouldFocusBex01V3ReviewWorkspaceRouteV010(route: string): boolean {
+  const question = route.indexOf("?");
+  const path = question < 0 ? route : route.slice(0,question);
+  if (/^\/data-import\/jobs\/[^/]+\/map$/.test(path)) return true;
+  if (path !== "/object-extensions/from-import") return false;
+  if (question < 0) return false;
+  const params = new URLSearchParams(route.slice(question+1));
+  return params.get("mode") === "batch" && Boolean(params.get("job")?.trim());
+}
+
 export function currentUserDisplayNameV010(
   principal: BrowserPrincipalV010
 ): string {
@@ -571,6 +585,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       title: "EVO",
       defaultActivityId: "apps",
       initialWorkspaceRoute: "/workspace",
+      shouldFocusWorkspaceRoute: shouldFocusBex01V3ReviewWorkspaceRouteV010,
       surfaceId: activeSurfaceId,
       activities: initialActivities.activities,
       actionHost,

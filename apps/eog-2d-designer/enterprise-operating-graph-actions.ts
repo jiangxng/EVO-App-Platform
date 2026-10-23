@@ -20,12 +20,20 @@ import {
   authorizeMaterialWriteV010
 } from "../../actions/material-write-authorization.js";
 
-export const EOG_CREATE_ACTION = "enterprise-operating-graph.create";
-export const EOG_GET_ACTION = "enterprise-operating-graph.get";
-export const EOG_LIST_ACTION = "enterprise-operating-graph.list";
-export const EOG_VALIDATE_ACTION = "enterprise-operating-graph.validate";
-export const EOG_APPLY_OPERATION_ACTION =
-  "enterprise-operating-graph.operation.apply";
+import {
+  EOG_CREATE_ACTION,
+  EOG_GET_ACTION,
+  EOG_LIST_ACTION,
+  EOG_VALIDATE_ACTION,
+  EOG_APPLY_OPERATION_ACTION
+} from "./package.js";
+export {
+  EOG_CREATE_ACTION,
+  EOG_GET_ACTION,
+  EOG_LIST_ACTION,
+  EOG_VALIDATE_ACTION,
+  EOG_APPLY_OPERATION_ACTION
+} from "./package.js";
 
 export interface EnterpriseOperatingGraphActionDependenciesV010 {
   service: EnterpriseOperatingGraphHostServiceV010;
@@ -295,3 +303,4 @@ export function createEnterpriseOperatingGraphActionHandlersV010(
     })
   ];
 }
+

@@ -35,9 +35,6 @@ import type {
   EnterpriseOperatingGraphHostServiceV010
 } from "./enterprise-operating-graph-service.js";
 import {
-  cropDefinitionProjectionToVisibleItemsV010
-} from "./definition-projection-editor.js";
-import {
   EOG_2D_DESIGNER_PACKAGE_ID
 } from "./package.js";
 
@@ -332,7 +329,7 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
       capability: "enterprise.operating-graph.designer.2d"
     }),
     available,
-    execute(args) {
+    async execute(args) {
       if (typeof args.expectedWriteToken !== "string"
         || !/^(0|[1-9][0-9]*)$/.test(args.expectedWriteToken)
         || !Number.isSafeInteger(Number(args.expectedWriteToken))) {
@@ -347,6 +344,32 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
         "CURRENT_2D_EDITOR_VISIBLE_EDGES_INVALID",
         false
       );
+      const target = structuredClone(currentTarget(input.currentEditors, input.principal));
+      const assertCurrentCropTarget = () => {
+        if (!(input.isDesignerActive?.() ?? true)) {
+          throw new Error("AGENT_TOOL_UNAVAILABLE");
+        }
+        const selected = currentTarget(input.currentEditors, input.principal);
+        if (JSON.stringify(selected) !== JSON.stringify(target)) {
+          throw new Error("CURRENT_2D_EDITOR_WRITE_CONFLICT");
+        }
+        if (input.canAccessEnterprise
+          && !input.canAccessEnterprise(input.principal, target.enterpriseId)) {
+          throw new Error("CURRENT_2D_EDITOR_ENTERPRISE_ACCESS_REQUIRED");
+        }
+        if (input.canManageEnterprise
+          && !input.canManageEnterprise(input.principal, target.enterpriseId)) {
+          throw new Error("CURRENT_2D_EDITOR_MANAGE_ROLE_REQUIRED");
+        }
+      };
+      assertCurrentCropTarget();
+      // Registration, reads and Operating Graph crops must not load the full
+      // Definition Projection editor. Recheck authority/selection after await;
+      // no business read or write has happened at this point.
+      const projectionEditor = target.kind === "DEFINITION_PROJECTION"
+        ? await import("./definition-projection-editor.js")
+        : undefined;
+      assertCurrentCropTarget();
       const current = read();
       ensureRetainedSet({
         nodeIds: visibleNodeIds,
@@ -397,7 +420,7 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
         if (args.expectedWriteToken !== current.writeToken) {
           throw new Error("DEFINITION_PROJECTION_WRITE_CONFLICT");
         }
-        const nextGallery = cropDefinitionProjectionToVisibleItemsV010({
+        const nextGallery = projectionEditor!.cropDefinitionProjectionToVisibleItemsV010({
           gallery: current.gallery,
           projectionId: current.target.projectionId,
           diagram: current.diagram,
@@ -445,3 +468,4 @@ export function createCurrent2dEditorAgentToolRegistrationsV010(input: {
     }
   }];
 }
+

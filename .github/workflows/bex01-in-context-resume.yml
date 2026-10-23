@@ -1,0 +1,29 @@
+name: BEX-01 In-Context Import Resume
+
+on:
+  pull_request:
+    paths:
+      - "apps/data-import/page.ts"
+      - "tests/protocol/bex01-in-context-resume.test.mjs"
+      - "tests/protocol/bex01-v3-source-audit.test.mjs"
+      - "apps/data-import/source-audit.ts"
+      - "docs/ui-design-reviews/bex01-in-context-resume-20261015.md"
+      - ".github/workflows/bex01-in-context-resume.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safe-resume-and-existing-import-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node --test tests/protocol/bex01-in-context-resume.test.mjs tests/protocol/bex01-v3-source-audit.test.mjs tests/protocol/bex01-v3-row-correction.test.mjs tests/protocol/bex01-supplier-import-journey.test.mjs tests/protocol/data-import-human-experience.test.mjs

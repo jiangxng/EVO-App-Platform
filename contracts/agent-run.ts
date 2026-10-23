@@ -26,6 +26,7 @@ export type AgentRunEventTypeV010 =
   | "MODEL_INFERENCE_FAILED"
   | "MODEL_USAGE_RECORDED"
   | "TOOL_OBSERVATION_RECORDED"
+  | "READ_REFRESH_RECORDED"
   | "SLICE_PAUSED"
   | "RUN_SUCCEEDED"
   | "RUN_BLOCKED"
@@ -79,6 +80,9 @@ export interface AgentRunDecisionRecordV010 {
   occurredAt: string;
   decision: AgentModelDecision;
   observation?: AgentToolObservation;
+  /** C03: the latest Host-verified READ refresh, not a mutation of the audit source. */
+  refreshedAt?: string;
+  refreshSourceVersion?: string;
 }
 
 export interface AgentRunV010 {

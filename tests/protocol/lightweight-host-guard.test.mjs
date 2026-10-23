@@ -33,3 +33,29 @@ test('transitive barrels cannot hide a new eager business import', () => {
     assert.equal(compare([], result.edges).removed.length, 1);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+
+test('startup IIFEs cannot disguise eager imports as lazy factories', () => {
+  const found = imports(`
+    void (async () => { await import('./startup.js'); })();
+    (function () { void import('./sync-startup.js'); })();
+    export const deferred = () => (async () => import('./on-use.js'))();
+    const callback = () => import('./callback.js');
+    void (() => { const later = () => import('./nested-later.js'); })();
+  `, 'fixture.ts');
+  assert.deepEqual(found.map(item => item.specifier), ['./startup.js', './sync-startup.js']);
+  assert.throws(() => imports('(async () => import(target))()', 'fixture.ts'), /computed eager/);
+});
+
+test('startup IIFE dependency reaches the same no-expansion ratchet', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'host-iife-guard-'));
+  try {
+    fs.mkdirSync(path.join(root, 'apps/optional'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'host.ts'),
+      `void (async () => { await import('./apps/optional/runtime.js'); })();`);
+    fs.writeFileSync(path.join(root, 'apps/optional/runtime.ts'), 'export const runtime = {};');
+    const result = inspect(root, ['host.ts']);
+    assert.deepEqual(compare(result.edges, []).added,
+      ['host.ts -> apps/optional/runtime.ts [eager-dynamic]']);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

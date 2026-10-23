@@ -1,3 +1,4 @@
+import { activeEnterpriseContext, ensureManage } from "./management-access.js";
 import type {
   AppActionExecutionResultV010,
   AppActionHandler,
@@ -15,6 +16,9 @@ import type {
 import {
   fieldsForSurfaceV010
 } from "../../contracts/foundation-object/schema.js";
+import {
+  objectExtensionImportRouteV010
+} from "../object-extension/constants.js";
 import {
   parseCsvSourceV010
 } from "./csv.js";
@@ -36,6 +40,7 @@ import {
 import type {
   DataImportMappingV010,
   DataImportMappingOriginV010,
+  DataImportJobV010,
   DataImportValueMapEntryV010
 } from "./types.js";
 import {
@@ -47,6 +52,7 @@ import {
   DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
   DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
   DATA_IMPORT_PACKAGE_ID,
+  DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
@@ -66,37 +72,6 @@ function required(value: unknown, code: string): string {
   return normalized;
 }
 
-function activeEnterpriseContext(
-  context: PlatformRequestContextV010 | undefined
-): { contextId: string; enterpriseId: string } {
-  const active = context?.context?.activeContext;
-  if (
-    !context
-    || !active
-    || active.kind !== "ENTERPRISE"
-    || !active.contextId?.trim()
-    || !active.enterpriseId?.trim()
-  ) {
-    throw new Error("DATA_IMPORT_ENTERPRISE_CONTEXT_REQUIRED");
-  }
-  return {
-    contextId: active.contextId.trim(),
-    enterpriseId: active.enterpriseId.trim()
-  };
-}
-
-function ensureManage(
-  principal: PlatformPrincipalV010,
-  contextId: string,
-  canManageEnterpriseContext: (
-    principal: PlatformPrincipalV010,
-    contextId: string
-  ) => boolean
-): void {
-  if (!canManageEnterpriseContext(principal, contextId)) {
-    throw new Error("DATA_IMPORT_MANAGE_ROLE_REQUIRED");
-  }
-}
 
 function importCell(
   value: JsonValue | undefined,
@@ -343,10 +318,23 @@ function failure(
   };
 }
 
-function jobResult(job: unknown): JsonValue {
+/** Only the active Human may read their unapproved draft through Job APIs. */
+function actorVisibleJobV010(
+  job: DataImportJobV010, actorSubjectId: string
+): DataImportJobV010 {
+  const { batchReviewDrafts, ...visible } = job;
+  const own = batchReviewDrafts?.find(draft =>
+    draft.actorSubjectId === actorSubjectId
+  );
+  return own
+    ? { ...visible, batchReviewDrafts: [structuredClone(own)] }
+    : visible;
+}
+
+function jobResult(job: DataImportJobV010, actorSubjectId: string): JsonValue {
   return JSON.parse(JSON.stringify({
     contractVersion: "0.1.0",
-    job
+    job: actorVisibleJobV010(job,actorSubjectId)
   })) as JsonValue;
 }
 
@@ -412,6 +400,31 @@ export function createDataImportActionHandlersV010(input: {
           .filter(field => field.writable)
           .map(field => field.fieldId);
         const availableTargetFieldIdSet = new Set(availableTargetFieldIds);
+        // EC advice is reviewable evidence, not permission to guess between
+        // multiple Human-visible meanings with the same business label.
+        // Unlike previously confirmed Recipes, an EC recommendation must not
+        // preselect such a field on initial staging (unless its exact fieldId
+        // was explicitly used as the source heading).
+        const normalizedBusinessAlias = (value: string) => value
+          .normalize("NFKC").trim().toLocaleLowerCase()
+          .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
+        const businessAliases = new Map<string, Set<string>>();
+        for (const field of fieldsForSurfaceV010(schema, "IMPORT")
+          .filter(item => item.writable)) {
+          for (const name of [field.resolvedLabel, field.label.default,
+            ...Object.values(field.label.translations ?? {})]) {
+            const key = normalizedBusinessAlias(name);
+            if (!key) continue;
+            const ids = businessAliases.get(key) ?? new Set<string>();
+            ids.add(field.fieldId);
+            businessAliases.set(key, ids);
+          }
+        }
+        const ambiguousTargetIds = new Set(
+          [...businessAliases.values()]
+            .filter(ids => ids.size > 1)
+            .flatMap(ids => [...ids])
+        );
         const resolvedMapping = structuredClone(initial.mapping);
         let experienceRecommendationCount = 0;
 
@@ -443,6 +456,9 @@ export function createDataImportActionHandlersV010(input: {
                 )
                 || usedSources.has(recommendation.sourceColumn)
                 || usedTargets.has(recommendation.targetFieldId)
+                || (ambiguousTargetIds.has(recommendation.targetFieldId)
+                  && normalizedBusinessAlias(recommendation.sourceColumn)
+                    !== normalizedBusinessAlias(recommendation.targetFieldId))
               ) {
                 continue;
               }
@@ -476,6 +492,8 @@ export function createDataImportActionHandlersV010(input: {
           ...(parameters ? { targetParameters: parameters } : {}),
           source,
           mapping: resolvedMapping,
+          ...(initial.ignoredSourceColumns?.length
+            ? { ignoredSourceColumns: [...initial.ignoredSourceColumns] } : {}),
           mappingOrigin: initial.origin,
           ...(initial.recipeId
             ? { appliedRecipeId: initial.recipeId }
@@ -547,10 +565,30 @@ export function createDataImportActionHandlersV010(input: {
             .map(item => [item.sourceColumn!, item] as const)
         );
         const nextMapping: DataImportMappingV010[] = [];
+        const ignoredSourceColumns: string[] = [];
+        let proposedNewFields = 0;
+        const unresolvedColumns: string[] = [];
         current.source.headers.forEach((sourceColumn, index) => {
           const value = request.values["map_" + index];
-          if (typeof value !== "string" || !value.trim()) return;
-          if (value === "__IGNORE__") return;
+          if (typeof value !== "string" || !value.trim()) {
+            if (current.ignoredSourceColumns?.includes(sourceColumn)) {
+              ignoredSourceColumns.push(sourceColumn);
+            }
+            return;
+          }
+          if (value === "__CREATE__") {
+            proposedNewFields += 1;
+            return;
+          }
+          // Explicit ignore is a reversible job choice, not loss of source data.
+          if (value === "__IGNORE__") {
+            ignoredSourceColumns.push(sourceColumn);
+            return;
+          }
+          if (value === "__PENDING__") {
+            unresolvedColumns.push(sourceColumn);
+            return;
+          }
           const targetFieldId = value.trim();
           const existing = existingBySource.get(sourceColumn);
           nextMapping.push(
@@ -563,6 +601,14 @@ export function createDataImportActionHandlersV010(input: {
           );
         });
 
+        // Pending is not the same as an explicit, reversible ignore. Never
+        // allow an accidental dry-run to silently omit unreviewed Excel data.
+        // Pending columns may accompany a CREATE proposal because the
+        // full batch review must decide *all* remaining columns. They may
+        // never be skipped when proceeding directly to dry-run.
+        if (unresolvedColumns.length > 0 && proposedNewFields === 0) {
+          throw new Error("DATA_IMPORT_COLUMNS_NEED_DECISION");
+        }
         const explicitlyMappedTargets = new Set(
           nextMapping.map(item => item.targetFieldId)
         );
@@ -575,14 +621,27 @@ export function createDataImportActionHandlersV010(input: {
           }
         }
         const recordedAt = now().toISOString();
-        input.service.updateMapping({
+        const staged = input.service.updateMapping({
           contextId: active.contextId,
           importJobId,
           mapping: nextMapping,
+          ignoredSourceColumns,
           mappingOrigin: mappingOrigin(context.principal),
           actorSubjectId: context.principal.subjectId,
           recordedAt
         });
+        if (proposedNewFields > 0 && staged.targetId === "counterparty.subject") {
+          return {
+            ok: true,
+            correlationId: context.correlationId,
+            result: JSON.parse(JSON.stringify({
+              contractVersion: "0.1.0",
+              message: "Existing selections saved. Review proposed enterprise fields together; source rows remain preserved. No supplier data imported.",
+              navigateTo: objectExtensionImportRouteV010(importJobId) + "&mode=batch",
+              job: actorVisibleJobV010(staged,context.principal.subjectId)
+            })) as JsonValue
+          };
+        }
         const job = input.service.dryRun({
           contextId: active.contextId,
           importJobId,
@@ -598,7 +657,7 @@ export function createDataImportActionHandlersV010(input: {
               ? "Validation passed. Review the result and confirm import."
               : "Validation found issues. Review errors before importing.",
             navigateTo: dataImportReviewRouteV010(importJobId),
-            job
+            job: actorVisibleJobV010(job,context.principal.subjectId)
           })) as JsonValue
         };
       } catch (error) {
@@ -647,7 +706,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -683,7 +742,10 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          // Browser Shell already refreshes the mounted review page on
+          // successful Host commands. Do not also navigate to the same route:
+          // duplicate render races can break the next row-correction click.
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -780,7 +842,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -810,7 +872,7 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: jobResult(job)
+          result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {
         return failure(error, context);
@@ -847,7 +909,10 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: JSON.parse(JSON.stringify(inspection)) as JsonValue
+          result: JSON.parse(JSON.stringify({
+            ...inspection,
+            job: actorVisibleJobV010(inspection.job,context.principal.subjectId)
+          })) as JsonValue
         };
       } catch (error) {
         return failure(error, context);
@@ -915,6 +980,65 @@ export function createDataImportActionHandlersV010(input: {
     }
   };
 
+  const rowCorrect: AppActionHandler = {
+    packageId: DATA_IMPORT_PACKAGE_ID,
+    featureId: DATA_IMPORT_FEATURE_ID,
+    commandCode: DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
+    async execute(request, context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        if (context.principal.actorType !== "HUMAN") {
+          throw new Error("DATA_IMPORT_CORRECTION_HUMAN_REQUIRED");
+        }
+        const active = activeEnterpriseContext(context);
+        ensureManage(context.principal, active.contextId,
+          input.canManageEnterpriseContext);
+        const rowNumber = Number(request.values.rowNumber);
+        const mode = request.values.mode;
+        if (!Number.isSafeInteger(rowNumber) || rowNumber < 1
+          || (mode !== "SET" && mode !== "REVERT")) {
+          throw new Error("DATA_IMPORT_CORRECTION_INPUT_INVALID");
+        }
+        const importJobId = required(
+          request.values.importJobId, "DATA_IMPORT_JOB_ID_REQUIRED");
+        const recordedAt = now().toISOString();
+        input.service.correctRow({
+          contextId: active.contextId,
+          importJobId,
+          rowNumber,
+          sourceColumn: required(request.values.sourceColumn,
+            "DATA_IMPORT_CORRECTION_SOURCE_REQUIRED"),
+          expectedRevision: required(request.values.expectedRevision,
+            "DATA_IMPORT_CORRECTION_REVISION_REQUIRED"),
+          mode,
+          ...(typeof request.values.value === "string"
+            ? {value: request.values.value} : {}),
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        const job = input.service.dryRun({
+          contextId: active.contextId, importJobId,
+          actorSubjectId: context.principal.subjectId,
+          recordedAt
+        });
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: JSON.parse(JSON.stringify({
+            contractVersion: "0.1.0",
+            message: job.state === "DRY_RUN_READY"
+              ? "Correction saved. Validation passed; final import still requires confirmation."
+              : "Correction saved. Review remaining validation issues.",
+            navigateTo: dataImportReviewRouteV010(importJobId),
+            job: actorVisibleJobV010(job,context.principal.subjectId)
+          })) as JsonValue
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
+
   const errorCsv: AppActionHandler = {
     packageId: DATA_IMPORT_PACKAGE_ID,
     featureId: DATA_IMPORT_FEATURE_ID,
@@ -967,6 +1091,7 @@ export function createDataImportActionHandlersV010(input: {
     get,
     inspectMapping,
     applyMapping,
+    rowCorrect,
     errorCsv
   ];
 }

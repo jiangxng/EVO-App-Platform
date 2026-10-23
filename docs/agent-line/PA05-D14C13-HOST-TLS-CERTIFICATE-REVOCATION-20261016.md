@@ -1,0 +1,47 @@
+# PA05-04D14C13 — genuine PG18 Host client-certificate revocation, renewal and surviving TLS backend fence
+
+**Document class:** DECISION_RECORD / engineering candidate (2026-10-16). **Certification:** NOT_SIGNED until accurate PR HEAD real three-physical-PostgreSQL18 CI is green, new markers are checked, and integration is merged. PA-05/W06 IN_PROGRESS; Issue #913 OPEN; production WRITE OFF.
+
+## Prior reusable evidence and boundaries
+
+- D14C11 already provides administrator-controlled SQL session epochs, and the actual original Owner and independent verifier must remain untouched. D14C12 added TLS client certificate CA validation at `hostssl` and `pg_stat_ssl` identity pin: original three-distinct-PG18 proof Actions [#38886594068](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38886594068) (12/12, 0 skipped). This D14C13 record neither reinterprets that as production PKI nor recreates D9–D14C12. Full source history: [2026-10-16 reference index](PA05-D14C5-D14C12-RESEARCH-REFERENCE-INDEX-20261016.md) and [baseline §§35–42](PA05-CERTIFICATION-BASELINE-20261015.md).
+- Exact inherited docs main snapshot was `7525fd599a7468885e4fc58aab6405d7e94de168` (PR #974); D14C13 branch was created at then-current `main@8f2b86a77fae933c63bcbb8731729f92f12cd6a5`. Re-check latest main and PR HEAD before integration.
+- All changes are **opt-in, CI-only Object Extension SQL Host**. No production PostgreSQL schema provisioning, CA/private key/secret store, exposed Agent operation, default route, Railway deployment or production material WRITE.
+
+## What the official primary source actually says (direct original-page partial reading on 2026-10-16)
+
+1. [PostgreSQL 18 §18.9: Secure TCP/IP Connections with SSL](https://www.postgresql.org/docs/18/ssl-tcp.html), specifically §18.9.3 and §18.9.4: PostgreSQL checks CRLs for certificate-chain validation when `ssl_crl_file` or `ssl_crl_dir` is configured. The server reads `ssl_crl_file` at startup or configuration reload; an invalid reload retains the old SSL configuration. The source does **not** promise revocation of established TLS backends.
+2. [PostgreSQL 18 §19.3.4: SSL connection settings](https://www.postgresql.org/docs/18/runtime-config-connection.html), `ssl_crl_file` and `ssl_crl_dir`: the former loads on config reload, the latter on new connection with appropriately rehashed directory. Does not establish a cross-DB revocation guarantee.
+3. [PostgreSQL 18 §27.2: `pg_stat_ssl`](https://www.postgresql.org/docs/18/monitoring-stats.html): server-side presented certificate DN/issuer/serial for a backend; the status is not a continuously revalidated external PKI clearance decision.
+4. [PostgreSQL 18 §20.1: HBA](https://www.postgresql.org/docs/18/auth-pg-hba-conf.html): `hostssl` + certificate option and first-match-rule behavior. This proof continues to use the earlier D14C12 scoped IPv4 HBA instead of claiming full production HBA/IPv6 policy.
+5. Existing SQL code and PG18 fixture were directly fetched from this repository in this session; original D14C12 reference index distinguishes its own evidence grade. A statement about a surviving backend is a **security hypothesis until a real negative test passes**; it is not a verbatim guarantee from docs.
+
+## Decision and rejected alternatives
+
+**Chosen minimal defense in depth:** keep the real CA-signed old Host leaf, issue a separate same-DN/same-issuer leaf with a **new serial** (4242→5252), build a CA-signed CRL revoking 4242, then test it on the real PostgreSQL18 worker A. Simultaneously require an administrator-only protected SQL trust row to hold the currently allowed TLS DN/issuer/serial, `enabled` bit and `FOR SHARE` authorization read; the DBA-only `pa05_object_cutover_host_tls` advances both Host and Business SQL session epochs **in the same database transaction** as disabling or replacing the pin. A previously connected backend still able to `SELECT 1` must fail the existing Host business authority function. A fresh old-cert connection must fail at real TLS admission after CRL reload. A renewed Host TLS connection and fresh original Business Owner + independent verifier must succeed only after DBA cutover.
+
+The SQL database trust row and PKI CRL are two different control planes; **the test does not magically make their updates a single atomic network operation**. The safe operational sequence is SQL deny/fence first, CRL deployment and server reload check second, then new leaf SQL admission. Unexpected CRL-reload failure must leave the old cert SQL-disabled; no blind rollback to old serial. This is a bounded same-worker safeguard, not a production PKI controller. Optional `ssl_crl_dir` is not introduced because there is no production PKI distribution path under test.
+
+**Rejected:** certificate revocation only at TLS handshake (already authenticated Host sessions survive), SQL `ALTER ROLE PASSWORD` alone (D14C11 proved existing authenticated backend survives), app-memory blacklist, client self-declared serial, trusting a pending `pg_reload_conf()` without testing a rejected old client, reusing the revoked certificate's serial for its replacement, or reporting a successful DB SQL guard as production machine attestation.
+
+## Exact negative and positive evidence required
+
+- Three distinct physical PG18 `pg_control_system().system_identifier`, no skipped cases.
+- Real CA-signed CRL includes serial 4242; PG18 applies `ssl_crl_file`; a **new** connection presenting that revoked cert and the otherwise correct Host SQL password fails.
+- A **previously authenticated** Host backend retains the same database PID and is still able to run an unprivileged `SELECT` after SQL/CRL cutover, but its genuine SQL protected Host command registration must fail; this is more precise than claiming a TLS transport was physically torn down.
+- Business SQL session epochs advance in the same admin transaction; D14C11 in-flight/old snapshot regression continues. SQL Host/Business cannot execute the DBA cutover or edit its protected trust row.
+- Correct new CA-signed leaf (new serial) is initially denied at the SQL authority pin, then accepted only on DBA cutover; old leaf remains rejected. Original D10 ticket/transaction-bound permit, actual Object Extension three-table transaction, immutable receipt and independent verifier succeed.
+- Continue existing D9–D14C12 markers and require new `PA05_ACTUAL_OBJECT_SQL_HOST_TLS_REVOKE_RENEW_PG` in [actual Actions workflow](../../.github/workflows/agent-pa05-cross-database-admission.yml). Target exact-head CI and 12/12 PASS, 0 skipped; until then this remains CANDIDATE.
+
+## Remaining NOT_SIGNED
+
+Production workload attestation and CA lifecycle/keys/HSM/KMS, production CRL distribution/reload monitoring, cert expiration handling, compromised fresh credential/backend, privileged DBA/DDL tampering, in-flight GRANT/DDL, IPv6 HBA, multi-Worker network partition/global freeze, real other business plugins and PA05-05 Human/Agent/Provider/Owner E2E. Issue #913 remains OPEN; even after this isolated PR passes, **PA05/W06 and production material WRITE stay NOT_SIGNED/OFF**.
+
+**Implementation index:** [SQL physical guard](../../apps/object-extension/pa05-physical-sql-guard.ts), [original Host issuer](../../apps/object-extension/pa05-host-sql-permit.ts) unchanged, [original Owner](../../apps/object-extension/agent-owner-postgres.ts) unchanged, [real three-instance test](../../tests/agent-line/pa05-object-extension-host-permit-pg.test.mjs), [disposable CA/CRL generation](../../scripts/ci/pa05-host-mtls-setup.sh), [CRL activation](../../scripts/ci/pa05-host-mtls-revoke.sh).
+
+
+## First accurate-head engineering proof (2026-10-16; earlier than the final document commit)
+
+**DIRECT GITHUB G-LOG + source test code (read by this engineering session):** [PA05 genuine three-PG18 Actions #38893918507](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38893918507) on exact original implementation/test HEAD `02c7d5ad147512a64f07c3c95ca4b9b2ad56dac1` — **12/12 PASS, 0 skipped**. All six change-triggered workflows on that precise HEAD completed **SUCCESS**: Cross-DB PG18, Governed WRITE, Cross-business READ, Project Continuity, Lightweight Host Architecture and Human UI Review. The new marker `PA05_ACTUAL_OBJECT_SQL_HOST_TLS_REVOKE_RENEW_PG` independently reports 3 physical clusters, signed CRL loaded, revoked-client new handshake denied, old physical TLS backend PID still live, SQL Host authority denied after revocation, DBA serial cutover, renewed original Owner+independent verifier accepted, production WRITE false. Additional explicit actual Business session cutover denial and Host/Business protected trust table UPDATE denials were included in this final engineering HEAD. Test source/Actions log were **directly inspected**, not merely quoted from the older index.
+
+The immediately preceding original PR HEAD `7b26e1c99c4c43f9c4030aca6170d3701541a1ce` failed 11/12 (0 skipped), because the newly added test serialized Host command JSONB differently from the already-proven `postgres.js` `sql.json()` source; this was corrected on the **same PR** (no downgrade of SQL validation). [First failed PG18 run #38893488589](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38893488589) retained as a negative engineering-history data point. Accurate CI acceptance must be repeated/checked for the **final PR HEAD**, which includes this documentation update. Nothing above is a production PKI/deployment certificate.

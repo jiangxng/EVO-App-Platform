@@ -73,10 +73,48 @@ function write(row: Record<string, unknown>): AgentWriteIntentV020 {
  */
 export async function createPostgresAgentExecutionCoordinatorV020(input: {
   connectionString: string; schema: string;
+  /**
+   * PA05-04B opt-in only: require a trusted Owner link and a LIVE plugin-level
+   * PostgreSQL lifecycle gate in the same transaction as PREPARED -> INVOKING.
+   * Never switch existing Host/PA-02 callers implicitly.
+   */
+  requirePluginWriteLifecycleFence?: boolean;
+  /**
+   * Optional trusted Host binding: cross-Schema federation is NOT certified.
+   * In fenced mode, a Worker with a different schema than the Host gate
+   * must fail before creating leases/tables or attempting an Owner action.
+   * Existing isolated PA-02 paths remain unchanged when this is omitted.
+   */
+  hostLifecycleAuthoritySchema?: string;
+  /**
+   * Opt-in shared authority, single PostgreSQL DATABASE only. Worker owns
+   * writes/receipts in `schema`, but must use the Host-owned central gate row
+   * in hostLifecycleAuthoritySchema. The Host explicitly names every Worker
+   * schema; unregistered Worker admission must fail closed.
+   */
+  sharedLifecycleWorkerSchemas?: readonly string[];
 }): Promise<AgentExecutionCoordinatorV020> {
   const url = required(input.connectionString);
   if (!/^[a-z][a-z0-9_]{0,62}$/.test(input.schema)) throw Error("PA02B_SCHEMA_INVALID");
+  const shared = input.requirePluginWriteLifecycleFence &&
+    input.sharedLifecycleWorkerSchemas !== undefined;
+  if (shared) {
+    const allowed = input.sharedLifecycleWorkerSchemas!;
+    if (!input.hostLifecycleAuthoritySchema ||
+      !/^[a-z][a-z0-9_]{0,62}$/.test(input.hostLifecycleAuthoritySchema) ||
+      !Array.isArray(allowed) || !allowed.length ||
+      allowed.some(x => !/^[a-z][a-z0-9_]{0,62}$/.test(x)) ||
+      new Set(allowed).size !== allowed.length ||
+      !allowed.includes(input.schema))
+      throw Error("PA05_WRITE_SHARED_AUTHORITY_CONFIGURATION_INVALID");
+  } else if (input.requirePluginWriteLifecycleFence &&
+      input.hostLifecycleAuthoritySchema !== undefined &&
+      input.hostLifecycleAuthoritySchema !== input.schema) {
+    throw Error("PA05_WRITE_WORKER_SCHEMA_MISMATCH");
+  }
   const q = '"' + input.schema + '"';
+  const authoritySchema = shared ? input.hostLifecycleAuthoritySchema! : input.schema;
+  const a = '"' + authoritySchema + '"';
   const sql = postgres(url,{max:8,connect_timeout:10,idle_timeout:15});
   try {
     await sql.begin(async tx => {
@@ -98,6 +136,19 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
         "PRIMARY KEY(scope_key,effect_id))");
     });
   } catch (e) { await sql.end(); throw e; }
+  if (shared) {
+    try {
+      // The central worker inventory is installed by the trusted Host Gate,
+      // not by this Worker. Matching schema strings alone are insufficient.
+      const rows = await sql.unsafe(
+        "SELECT schema_name FROM " + a +
+        ".pa05_plugin_write_worker_schemas ORDER BY schema_name"
+      );
+      const declared = [...input.sharedLifecycleWorkerSchemas!].sort();
+      if (JSON.stringify(rows.map(x => x.schema_name)) !== JSON.stringify(declared))
+        throw Error("PA05_WRITE_SHARED_WORKER_INVENTORY_MISMATCH");
+    } catch (error) { await sql.end(); throw error; }
+  }
 
   async function scopedWrite(scope: HostResolvedAgentDurabilityScopeV020,effectId: string) {
     const rows = await sql.unsafe("SELECT * FROM " + q + ".pa02b_writes WHERE scope_key=$1 AND effect_id=$2",
@@ -176,6 +227,30 @@ export async function createPostgresAgentExecutionCoordinatorV020(input: {
       const scopeKey=key(r.scope),effectId=required(r.effectId);
       return sql.begin(async tx => {
         await assertLease(tx,scopeKey,r.lease);
+        if(input.requirePluginWriteLifecycleFence) {
+          // No Owner identity may be chosen by Agent arguments. A trusted
+          // Owner/Receipt link was persisted by the existing reconciler.bind.
+          const links=await tx.unsafe("SELECT owner_package_id FROM "+
+            q+".pa02b_owner_links WHERE scope_key=$1 AND effect_id=$2 AND run_id=$3",
+            [scopeKey,effectId,r.lease.runId]);
+          if(links.length!==1)throw Error("PA05_WRITE_OWNER_LINK_REQUIRED");
+          // Exact same row/transaction as freeze(): either INVOKING commits
+          // before the freeze sees it, or frozen state refuses invocation.
+          if (shared) {
+            // Fail closed if Host inventory has changed since Worker init.
+            // This check and Owner row lock share the effect admission tx.
+            const rows=await tx.unsafe("SELECT schema_name FROM "+
+              a+".pa05_plugin_write_worker_schemas ORDER BY schema_name");
+            const declared=[...input.sharedLifecycleWorkerSchemas!].sort();
+            if(JSON.stringify(rows.map(x=>x.schema_name))!==JSON.stringify(declared))
+              throw Error("PA05_WRITE_SHARED_WORKER_INVENTORY_MISMATCH");
+          }
+          const gates=await tx.unsafe("SELECT state FROM "+
+            a+".pa05_plugin_write_lifecycle_gates WHERE owner_package_id=$1 FOR UPDATE",
+            [links[0].owner_package_id]);
+          if(gates.length!==1||gates[0].state!=="ACTIVE")
+            throw Error("PA05_PLUGIN_WRITE_LIFECYCLE_FROZEN");
+        }
         const rows=await tx.unsafe("UPDATE " + q + ".pa02b_writes "+
           "SET state='INVOKING',fence=$4 WHERE scope_key=$1 AND effect_id=$2 "+
           "AND run_id=$3 AND state='PREPARED' RETURNING *",

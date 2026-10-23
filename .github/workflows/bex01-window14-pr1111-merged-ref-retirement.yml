@@ -1,0 +1,69 @@
+name: BEX-01 Window14 Merged PR #1111 Branch Retirement
+
+# One-shot: only the introduction of this exact workflow into main fires it.
+# Do not re-run on unrelated main commits or touch other owners' refs.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/bex01-window14-pr1111-merged-ref-retirement.yml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  retire-window14-verified-head:
+    if: github.repository == 'jiangxng/EVO-App-Platform' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Verify PR #1111 merge, exact ref and main ancestry before deletion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo}=context.repo;
+            const prNumber=1111;
+            const branch='docs/bex01-v3-m06-window14-railway-preview-handoff-20261022';
+            const fullName=owner+'/'+repo;
+            const p=(await github.rest.pulls.get({owner,repo,pull_number:prNumber})).data;
+            if(!p.merged || p.state!=='closed' || p.base.ref!=='main' ||
+               p.head.repo?.full_name!==fullName || p.head.ref!==branch)
+              throw Error('REFUSE: PR #1111 provenance or merged state mismatch');
+            const expected=p.head.sha;
+            if(!/^[a-f0-9]{40}$/.test(expected))throw Error('Invalid PR head SHA');
+            const open=await github.paginate(github.rest.pulls.list,{
+              owner,repo,state:'open',per_page:100
+            });
+            if(open.some(x=>x.base.ref===branch ||
+              (x.head.repo?.full_name===fullName && x.head.ref===branch)))
+              throw Error('REFUSE: open PR still uses this branch');
+            const main=(await github.rest.git.getRef({owner,repo,ref:'heads/main'})).data.object.sha;
+            const merged=(await github.rest.repos.compareCommits({
+              owner,repo,base:p.merge_commit_sha,head:main
+            })).data;
+            if(merged.behind_by!==0)throw Error('REFUSE: merge commit absent from main');
+            // Only a true merge (not a squash) allows exact branch HEAD ancestry proof.
+            const ancestry=(await github.rest.repos.compareCommits({
+              owner,repo,base:expected,head:main
+            })).data;
+            if(ancestry.behind_by!==0 || ancestry.merge_base_commit?.sha!==expected)
+              throw Error('REFUSE: exact branch HEAD not in main');
+            const readRef=async()=>{
+              try{return (await github.rest.git.getRef({
+                owner,repo,ref:'heads/'+branch
+              })).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}
+            };
+            const current=await readRef();
+            if(current===null){core.info('ALREADY_ABSENT '+branch);return;}
+            if(current!==expected)throw Error('REFUSE: branch has moved');
+            const details=(await github.rest.repos.getBranch({owner,repo,branch})).data;
+            if(details.protected)throw Error('REFUSE: protected branch');
+            if(await readRef()!==expected)throw Error('REFUSE: HEAD changed before delete');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+branch});
+            core.info('DELETED_VERIFIED_BEX_WINDOW14_HEAD '+branch+' @ '+expected);
+            await core.summary.addHeading('BEX-01 Window14 one-ref closeout')
+              .addCodeBlock(JSON.stringify({
+                pr:prNumber,branch,head:expected,mergedIntoMain:main,deleted:true
+              },null,2),'json').write();

@@ -4,6 +4,7 @@ import type {
 } from "../../contracts/enterprise-resource.js";
 import {
   assertObjectExtensionValueSetV010,
+  type ObjectExtensionValueReaderV010,
   type ObjectExtensionValueSetV010
 } from "../../contracts/foundation-object/extension-value.js";
 
@@ -47,19 +48,7 @@ function fromPayload(
   );
 }
 
-export interface ObjectExtensionValueRepositoryV010 {
-  get(input: {
-    contextId: string;
-    objectType: string;
-    objectId: string;
-    slot: string;
-    namespace: string;
-  }): ObjectExtensionValueSetV010 | undefined;
-  listForObject(input: {
-    contextId: string;
-    objectType: string;
-    objectId: string;
-  }): ObjectExtensionValueSetV010[];
+export interface ObjectExtensionValueRepositoryV010 extends ObjectExtensionValueReaderV010 {
   save(input: {
     contextId: string;
     valueSet: ObjectExtensionValueSetV010;

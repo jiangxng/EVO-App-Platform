@@ -12,11 +12,16 @@ export interface GenericOidcProviderOptionsV010 {
   issuer: string;
   clientId: string;
   clientSecret?: string;
+  // Host-only ports: no Secret resolution during construction/discovery.
+  resolveClientSecret?: (signal: AbortSignal, checkContext: () => void) => Promise<string | undefined>;
+  captureContext?: () => () => void;
   scopes?: string;
   fetchImpl?: typeof fetch;
   now?: () => Date;
   randomBytesImpl?: (size: number) => Buffer;
   transactionTtlSeconds?: number;
+  /** Retained, unconsumed login states per runtime; does not evict live logins. */
+  maxPendingTransactions?: number;
 }
 
 interface OidcDiscoveryDocumentV010 {
@@ -49,6 +54,7 @@ interface OidcLoginTransactionV010 {
   callbackUrl: string;
   returnTo: string;
   createdAtMs: number;
+  checkContext: () => void;
 }
 
 interface JwtHeaderV010 {
@@ -167,25 +173,32 @@ function audienceCount(aud: string | string[] | undefined): number {
 async function fetchJsonV010<T>(
   fetchImpl: typeof fetch,
   url: string,
-  init: RequestInit | undefined,
-  errorPrefix: string
+  init: RequestInit | ((signal: AbortSignal) => Promise<RequestInit>) | undefined,
+  errorPrefix: string,
+  checkContext?: () => void
 ): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
+    const prepared = typeof init === "function" ? await init(controller.signal) : init;
+    controller.signal.throwIfAborted();
+    checkContext?.();
     const response = await fetchImpl(url, {
-      ...init,
+      ...prepared,
       redirect: "error",
       signal: controller.signal,
       headers: {
         accept: "application/json",
-        ...(init?.headers ?? {})
+        ...(prepared?.headers ?? {})
       }
     });
     if (!response.ok) {
       throw new Error(`${errorPrefix}_HTTP_${response.status}`);
     }
-    return await response.json() as T;
+    const body = await response.json() as T;
+    controller.signal.throwIfAborted();
+    checkContext?.();
+    return body;
   } finally {
     clearTimeout(timeout);
   }
@@ -207,6 +220,10 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
   if (!Number.isFinite(transactionTtlSeconds) || transactionTtlSeconds <= 0) {
     throw new Error("OIDC_TRANSACTION_TTL_INVALID");
   }
+  const maxPendingTransactions = options.maxPendingTransactions ?? 1000;
+  if (!Number.isSafeInteger(maxPendingTransactions) || maxPendingTransactions < 1) {
+    throw new Error("OIDC_TRANSACTION_LIMIT_INVALID");
+  }
 
   const scopeSet = new Set(
     (options.scopes ?? "openid profile email")
@@ -220,6 +237,14 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
   const transactions = new Map<string, OidcLoginTransactionV010>();
   let discoveryCache: Promise<OidcDiscoveryDocumentV010> | undefined;
   let jwksCache: Promise<JwkSetV010> | undefined;
+
+  function pruneExpiredTransactions(nowMs: number): void {
+    for (const [state, transaction] of transactions) {
+      if (nowMs - transaction.createdAtMs > transactionTtlSeconds * 1000) {
+        transactions.delete(state);
+      }
+    }
+  }
 
   async function discover(): Promise<OidcDiscoveryDocumentV010> {
     discoveryCache ??= (async () => {
@@ -252,7 +277,15 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
       }
       return metadata;
     })();
-    return discoveryCache;
+    const pending = discoveryCache;
+    try {
+      return await pending;
+    } catch (error) {
+      // Keep successful metadata and in-flight sharing, but allow a new login
+      // after failure. A stale rejection must not evict a replacement cache.
+      if (discoveryCache === pending) discoveryCache = undefined;
+      throw error;
+    }
   }
 
   async function jwks(forceRefresh = false): Promise<JwkSetV010> {
@@ -266,12 +299,19 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
         "OIDC_JWKS"
       );
     })();
-    return jwksCache;
+    const pending = jwksCache;
+    try {
+      return await pending;
+    } catch (error) {
+      if (jwksCache === pending) jwksCache = undefined;
+      throw error;
+    }
   }
 
   async function validateIdToken(
     idToken: string,
-    expectedNonce: string
+    expectedNonce: string,
+    checkContext: () => void
   ): Promise<JwtClaimsV010> {
     const parts = idToken.split(".");
     if (parts.length !== 3) throw new Error("OIDC_ID_TOKEN_INVALID");
@@ -290,7 +330,9 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
     if (!header.kid) throw new Error("OIDC_ID_TOKEN_KID_REQUIRED");
 
     async function findKey(forceRefresh: boolean): Promise<Record<string, unknown> | undefined> {
+      checkContext();
       const set = await jwks(forceRefresh);
+      checkContext();
       return (set.keys ?? []).find(key =>
         key.kid === header.kid
         && key.kty === "RSA"
@@ -347,11 +389,21 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
     providerId: GENERIC_OIDC_PROVIDER_ID,
 
     async begin(input): Promise<IdentityAuthenticationStartResultV010> {
+      const checkContext = options.captureContext?.() ?? (() => {});
+      checkContext();
       const metadata = await discover();
+      checkContext();
       const callbackUrl = requireHttpsEndpoint(
         input.callbackUrl,
         "OIDC_CALLBACK_HTTPS_REQUIRED"
       );
+      const createdAtMs = now().getTime();
+      pruneExpiredTransactions(createdAtMs);
+      // No await between admission and insertion: concurrent begins cannot
+      // overbook the retained-state budget after shared discovery resolves.
+      if (transactions.size >= maxPendingTransactions) {
+        throw new Error("OIDC_TRANSACTION_LIMIT_REACHED");
+      }
       const state = randomBase64Url(32, randomBytesImpl);
       const nonce = randomBase64Url(32, randomBytesImpl);
       const codeVerifier = randomBase64Url(32, randomBytesImpl);
@@ -363,7 +415,8 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
         codeVerifier,
         callbackUrl,
         returnTo: input.returnTo,
-        createdAtMs: now().getTime()
+        createdAtMs,
+        checkContext
       });
 
       const authorizationUrl = new URL(metadata.authorization_endpoint);
@@ -383,20 +436,26 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
     },
 
     async complete(input): Promise<IdentityAuthenticationResultV010> {
+      const checkContext = options.captureContext?.() ?? (() => {});
+      checkContext();
       const callbackUrl = new URL(input.callbackUrl);
       const providerError = callbackUrl.searchParams.get("error");
+      const state = callbackUrl.searchParams.get("state")?.trim();
+      const code = callbackUrl.searchParams.get("code")?.trim();
+      const transaction = state ? transactions.get(state) : undefined;
+      if (state) transactions.delete(state);
+      pruneExpiredTransactions(now().getTime());
+      // Error and malformed callbacks also consume a presented known state.
+      // None of these failure paths may replay it into a token exchange.
       if (providerError) {
         throw new Error(`OIDC_AUTHORIZATION_ERROR:${providerError}`);
       }
 
-      const state = callbackUrl.searchParams.get("state")?.trim();
-      const code = callbackUrl.searchParams.get("code")?.trim();
       if (!state) throw new Error("OIDC_STATE_REQUIRED");
       if (!code) throw new Error("OIDC_AUTHORIZATION_CODE_REQUIRED");
 
-      const transaction = transactions.get(state);
-      transactions.delete(state);
       if (!transaction) throw new Error("OIDC_STATE_INVALID");
+      transaction.checkContext();
       if (transaction.callbackUrl !== callbackUrl.origin + callbackUrl.pathname) {
         throw new Error("OIDC_CALLBACK_MISMATCH");
       }
@@ -408,6 +467,8 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
       }
 
       const metadata = await discover();
+      checkContext();
+      transaction.checkContext();
       const body = new URLSearchParams({
         grant_type: "authorization_code",
         code,
@@ -418,37 +479,47 @@ export function createGenericOidcIdentityAuthenticationProviderV010(
         "content-type": "application/x-www-form-urlencoded"
       };
 
-      const clientSecret = options.clientSecret?.trim();
-      if (clientSecret) {
-        const allowed = metadata.token_endpoint_auth_methods_supported;
-        if (
-          Array.isArray(allowed)
-          && !allowed.includes("client_secret_basic")
-        ) {
-          throw new Error("OIDC_CLIENT_SECRET_BASIC_UNSUPPORTED");
-        }
-        headers.authorization =
-          "Basic " + Buffer.from(`${clientId}:${clientSecret}`, "utf8").toString("base64");
-      } else {
-        body.set("client_id", clientId);
-      }
-
       const token = await fetchJsonV010<OidcTokenResponseV010>(
         fetchImpl,
         metadata.token_endpoint,
-        {
-          method: "POST",
-          headers,
-          body
+        async signal => {
+          checkContext();
+          transaction.checkContext();
+          // The resolver is authoritative when supplied, including undefined
+          // (public client) and rejection. Never fall back to a captured value.
+          const clientSecret = options.resolveClientSecret
+            ? await options.resolveClientSecret(signal, () => { checkContext(); transaction.checkContext(); })
+            : options.clientSecret?.trim();
+          signal.throwIfAborted();
+          checkContext();
+          transaction.checkContext();
+          if (clientSecret) {
+            const allowed = metadata.token_endpoint_auth_methods_supported;
+            if (Array.isArray(allowed) && !allowed.includes("client_secret_basic")) {
+              throw new Error("OIDC_CLIENT_SECRET_BASIC_UNSUPPORTED");
+            }
+            headers.authorization = "Basic "
+              + Buffer.from(`${clientId}:${clientSecret}`, "utf8").toString("base64");
+          } else {
+            body.set("client_id", clientId);
+          }
+          return {method: "POST", headers, body};
         },
-        "OIDC_TOKEN"
+        "OIDC_TOKEN",
+        () => { checkContext(); transaction.checkContext(); }
       );
+      checkContext();
+      transaction.checkContext();
       if (token.error) {
         throw new Error(`OIDC_TOKEN_ERROR:${token.error}`);
       }
       if (!token.id_token) throw new Error("OIDC_ID_TOKEN_REQUIRED");
 
-      const claims = await validateIdToken(token.id_token, transaction.nonce);
+      const claims = await validateIdToken(token.id_token, transaction.nonce, () => {
+        checkContext(); transaction.checkContext();
+      });
+      checkContext();
+      transaction.checkContext();
       const principal: PlatformPrincipalV010 = {
         contractVersion: "0.1.0",
         subjectId: stableSubjectId(issuer, claims.sub!),
@@ -501,3 +572,4 @@ export function createGenericOidcIdentityHealthProbeV010(
     }
   };
 }
+

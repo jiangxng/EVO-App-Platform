@@ -1,0 +1,136 @@
+{
+  "measuredAt": "2026-10-17T22:50:16.300Z",
+  "sourceCommit": "943a816e1013c2bb9b0b78aaf54e6228401ffce0",
+  "sourceState": "working tree; hashes identify changed source",
+  "scope": "Isolated real Host idle startup/shutdown only; in-flight behavior tested by controlled promises in protocol tests. No production or multi-process exclusivity proof.",
+  "measuredFilesSha256": {
+    "manager/context-memory-scheduler.ts": "2fa283134115a7ad01ee31b93435e04f27fc8dcdb780e8a9349069d80fabdd11",
+    "manager/server.ts": "8bc86a5412043b01c7795722721877f7a834c387c3baf02b726b7d769cb3dbf5",
+    "tests/protocol/context-memory-scheduler-stop.test.mjs": "a215e69640c57fca5ca5b887e74e4f6a73f59d7bed9241b52479697b5e5ac533"
+  },
+  "tests": {
+    "command": "node --test tests/protocol/context-memory-scheduler-stop.test.mjs tests/protocol/context-memory-p1-3-operations.test.mjs",
+    "passed": 18,
+    "failed": 0
+  },
+  "samples": [
+    {
+      "profile": "minimal-uninstalled",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "profile": "compatible-installed-unused",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "profile": "compatible-disabled-restart",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    {
+      "profile": "minimal-scheduler-configured",
+      "loadedModuleCount": 347,
+      "registeredIntervals": [
+        {
+          "delayMs": 60000,
+          "origin": "    at file://<repo>/dist/manager/server.js:2395:34\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)",
+          "referenced": false
+        }
+      ],
+      "archivedAssets": {
+        "files": 96,
+        "bytes": 1104242,
+        "areas": {
+          ".ready": {
+            "files": 1,
+            "bytes": 169
+          },
+          "manager": {
+            "files": 14,
+            "bytes": 211800
+          },
+          "vendor": {
+            "files": 81,
+            "bytes": 892273
+          }
+        }
+      },
+      "blockedOutbound": 0,
+      "shutdown": {
+        "code": 0,
+        "signal": null
+      }
+    }
+  ]
+}

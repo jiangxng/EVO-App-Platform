@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AgentRunCreateInputV010, AgentRunEventV010, AgentRunV010 } from "../contracts/agent-run.js";
 import type { PlatformPrincipalV010, PlatformRequestContextV010, ResolvedContextSetV010 } from "../contracts/platform-services.js";
 import type { LlmInferenceProvider, LlmInferenceRequestV010 } from "../contracts/llm.js";
+import type { CertifiedModelContextWindowV010 } from "../agents/enterprise-agent/pa04-certified-context-window.js";
 import type {Pa02CostPolicyCandidateV010,Pa02CostLedgerV010} from
   "../agents/enterprise-agent/pa02-r10-postgres-cost-reservation.js";
 import type { AgentToolCatalogV010 } from "../agents/enterprise-agent/contracts.js";
@@ -38,6 +39,16 @@ export interface HostAsyncReadExecutionV030 {
 }
 export interface HostAsyncReadExecutionDependenciesV030 {
   resolveProvider():LlmInferenceProvider|undefined;
+  /** Optional Host-approved exact model context window + request-token upper
+   * bound attestation. Not inferred from advertised model names or prices.
+   * An unconfigured Provider continues with its current safe behavior. */
+  contextWindow?:CertifiedModelContextWindowV010;
+  /** Optional exact Host-owned C03 source freshness verification and re-READ.
+   * Unconfigured staged workers preserve current PA-02 behavior. */
+  readFreshness?:NonNullable<import("../agents/enterprise-agent/pa02-async-read-worker.js").ReadOnlyFencedWorkerDependenciesV030["readFreshness"]>;
+  /** C05: optional Host-reviewed exact tool call/destination admission,
+   * checked even when resuming a persisted model decision. */
+  toolCallAdmission?:NonNullable<import("../agents/enterprise-agent/pa02-async-read-worker.js").ReadOnlyFencedWorkerDependenciesV030["toolCallAdmission"]>;
   /** Synthetic contract for isolated budget integration tests only.
    * Ordinary Server does not construct this. NEVER actual vendor pricing. */
   testOnlyCostPolicy?:Pa02CostPolicyCandidateV010;
@@ -265,6 +276,9 @@ export async function createPostgresHostAsyncReadExecutionV030(input:{
       createToolCatalog:catalog,
       ...(governedWrite?{governedWrite}:{}),
       ...(testOnlyCostPort?{testOnlyCostPort}:{}),
+      ...(input.deps.contextWindow?{contextWindow:input.deps.contextWindow}:{}),
+      ...(input.deps.readFreshness?{readFreshness:input.deps.readFreshness}:{}),
+      ...(input.deps.toolCallAdmission?{toolCallAdmission:input.deps.toolCallAdmission}:{}),
       eventId:randomUUID,sliceId:randomUUID
     });
     let run=before;

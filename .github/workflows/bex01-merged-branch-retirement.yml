@@ -37,7 +37,32 @@ jobs:
               {n:858,branch:'docs/bex01-railway-dev-deploy-3112de7-20261014'},
               {n:862,branch:'fix/bex01-direct-field-create-and-reuse-20261014',sha:'f85252350464ab3d4b7ad4c8aff130eb4f415d4f'},
               {n:864,branch:'docs/bex01-human-direct-create-closure-20261014'},
-              {n:878,branch:'docs/bex01-batch-extension-review-20261015'}
+              {n:906,branch:'ci/mandatory-ui-review-required-continuity-20261015',sha:'8b197937a282a6a837c492e3f1988211cf56711f',noUniqueAhead:true},
+              {n:956,branch:'docs/governance-foundation-loading-boundary-20261016',sha:'5b75afce57c8cc3b46addaf7c0046aad89f4b9b4',noUniqueAhead:true},
+              {n:914,branch:'docs/governance-loading-audit-20261015',sha:'4fcde7bc2a5c2f4e4746528e60df38f000b2d7d5',noUniqueAhead:true},
+              {n:902,branch:'docs/pa04-window-research-decision-handoff-20261015',sha:'5c2d040e94b57756baa38a07ef07ca4fd8daf1de',noUniqueAhead:true},
+              {n:955,branch:'docs/pa05-d14c4-research-decision-handoff-20261016',sha:'756ca69f3d02557c10772cb0879cc68122fb0b6b',noUniqueAhead:true},
+              {n:932,branch:'docs/pa05-window-recovery-20261015',sha:'d1cc03b6d3bf19869a18f093dcbe1569ab1d5559',noUniqueAhead:true},
+              {n:968,branch:'docs/bex01-e4-v3-context-recovery-20261016',sha:'cc044ab2e8f8d7ac41220a61254daba990189ecc',noUniqueAhead:true},
+              {n:964,branch:'feat/bex01-e2-real-map-editable-review-table-20261016',sha:'7d02c6a758eb05ab39ce69f7261fc1dacd22833d',noUniqueAhead:true},
+              {n:966,branch:'feat/bex01-v3-e3-real-map-task-context-20261016',sha:'5aa334186ec17c1499a1ab96687160d18176f055',noUniqueAhead:true},
+              {n:957,branch:'feat/bex01-v3-eidos-grouped-batch-review-20261016',sha:'6ae763dd3aef578e747e341134d30be517af0293',noUniqueAhead:true},
+              {n:960,branch:'fix/bex01-v3-actual-map-route-review-groups-20261016',sha:'d68ce868a4cea715ab2fb62b9ead663390a4e12c',noUniqueAhead:true},
+              {n:922,branch:'fix/governance-ledger-lazy-20261015',sha:'ff0c115b011619795df7cabadb3af7c94714e14c',noUniqueAhead:true},
+              {n:916,branch:'fix/governance-loading-principles-20261015',sha:'8f0f8dce50fba85832362422fb9fc4bcbc0de2af',noUniqueAhead:true},
+              {n:904,branch:'governance/human-ui-design-review-gate-20261015',sha:'1171d6a340ccbbff716ae925fc883a7cce3d8437',noUniqueAhead:true},
+              {n:970,branch:'chore/verified-merged-ref-retirement-e4-20261016',sha:'de2f1a545a59859eb593e8ac64367fb183dceb51',noUniqueAhead:true},
+              // Current PR head SHA is taken from its merged PR; self-referential static SHA cannot be pinned in this file.
+              {n:971,branch:'docs/bex01-e4-01-evidence-visual-gap-20261016',noUniqueAhead:true},
+              {n:977,branch:'docs/bex01-e4-02-online-verification-20261016',sha:'1a6587ac9452c64571aa9af573200311299f5268',noUniqueAhead:true},
+              {n:978,branch:'test/bex01-e4-complete-map-scroll-evidence-20261016',noUniqueAhead:true},
+              {n:981,branch:'feat/bex01-e4-05-eidos-compact-mobile-review-20261016',noUniqueAhead:true},
+              {n:984,branch:'feat/bex01-v3-real-batch-review-decision-table-20261016',noUniqueAhead:true},
+              {n:989,branch:'feat/bex01-v3-live-decision-state-20261016',noUniqueAhead:true},
+              {n:996,branch:'feat/bex01-v3-schema-plan-preview-20261016',noUniqueAhead:true},
+              {n:998,branch:'fix/bex01-v3-constant-only-after-all-mapped-20261016',noUniqueAhead:true},
+              {n:991,branch:'feat/bex01-v3-governed-batch-subject-constant-20261016',noUniqueAhead:true},
+              {n:973,branch:'feat/bex01-e4-02-compact-mapping-evidence-20261016',noUniqueAhead:true}
             ];
             const allOpen=(await github.paginate(github.rest.pulls.list,
               {owner,repo,state:'open',per_page:100})).filter(x=>x.head.repo?.full_name===owner+'/'+repo);
@@ -57,6 +82,10 @@ jobs:
               })).data;
               if(comparison.behind_by!==0)throw Error('Merge not in main '+x.n);
               if(reserved.has(x.branch))throw Error('Branch still used by an open PR '+x.branch);
+              if(x.noUniqueAhead){
+                const ancestry=(await github.rest.repos.compareCommits({owner,repo,base:main,head:expected})).data;
+                if(ancestry.ahead_by!==0)throw Error('Unmerged branch commits, refuse deletion '+x.branch);
+              }
               let current;
               try{current=(await github.rest.git.getRef({owner,repo,ref:'heads/'+x.branch})).data;}
               catch(e){if(e.status===404){core.info('ALREADY_ABSENT '+x.branch);continue;}throw e;}

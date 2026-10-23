@@ -102,9 +102,16 @@ function failure(
   };
 }
 
-export function createCounterpartyActionHandlersV010(input: {
+type CounterpartyActionRepositoriesV010 = {
+  assertAvailable?(): void;
   repository: CounterpartyRepositoryV010;
   roleRepository: CounterpartyRoleRepositoryV010;
+};
+export function createCounterpartyActionHandlersV010(input: (
+  CounterpartyActionRepositoriesV010 | {
+    resolveRepositories(): Promise<CounterpartyActionRepositoriesV010>;
+  }
+) & {
   canManageEnterpriseContext(
     principal: PlatformPrincipalV010,
     contextId: string
@@ -130,6 +137,10 @@ export function createCounterpartyActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repositories = "resolveRepositories" in input
+          ? await input.resolveRepositories() : input;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
+        repositories.assertAvailable?.();
 
         const subjectType = required(
           request.values.subjectType,
@@ -139,7 +150,7 @@ export function createCounterpartyActionHandlersV010(input: {
           throw new Error("COUNTERPARTY_SUBJECT_TYPE_INVALID");
         }
 
-        const saved = input.repository.save({
+        const saved = repositories.repository.save({
           contextId: active.contextId,
           subject: {
             contractVersion: "0.1.0",
@@ -210,11 +221,14 @@ export function createCounterpartyActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repositories = "resolveRepositories" in input
+          ? await input.resolveRepositories() : input;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const counterpartyId = required(
           request.values.counterpartyId,
           "COUNTERPARTY_ID_REQUIRED"
         );
-        const current = input.repository.get(
+        const current = repositories.repository.get(
           active.contextId,
           counterpartyId
         );
@@ -228,7 +242,7 @@ export function createCounterpartyActionHandlersV010(input: {
           throw new Error("COUNTERPARTY_SUBJECT_TYPE_INVALID");
         }
 
-        const saved = input.repository.save({
+        const saved = repositories.repository.save({
           contextId: active.contextId,
           subject: {
             contractVersion: "0.1.0",
@@ -299,11 +313,14 @@ export function createCounterpartyActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repositories = "resolveRepositories" in input
+          ? await input.resolveRepositories() : input;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const counterpartyId = required(
           request.values.counterpartyId,
           "COUNTERPARTY_ID_REQUIRED"
         );
-        input.repository.archive({
+        repositories.repository.archive({
           contextId: active.contextId,
           counterpartyId,
           actorSubjectId: context.principal.subjectId,
@@ -340,12 +357,15 @@ export function createCounterpartyActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repositories = "resolveRepositories" in input
+          ? await input.resolveRepositories() : input;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const counterpartyId = required(
           request.values.counterpartyId,
           "COUNTERPARTY_ID_REQUIRED"
         );
         const roleCode = relationshipRoleCode(request.values.roleCode);
-        input.roleRepository.assign({
+        repositories.roleRepository.assign({
           contextId: active.contextId,
           counterpartyId,
           roleCode,
@@ -384,12 +404,15 @@ export function createCounterpartyActionHandlersV010(input: {
           active.contextId,
           input.canManageEnterpriseContext
         );
+        const repositories = "resolveRepositories" in input
+          ? await input.resolveRepositories() : input;
+        ensureManage(context.principal, active.contextId, input.canManageEnterpriseContext);
         const counterpartyId = required(
           request.values.counterpartyId,
           "COUNTERPARTY_ID_REQUIRED"
         );
         const roleCode = relationshipRoleCode(request.values.roleCode);
-        input.roleRepository.archive({
+        repositories.roleRepository.archive({
           contextId: active.contextId,
           counterpartyId,
           roleCode,

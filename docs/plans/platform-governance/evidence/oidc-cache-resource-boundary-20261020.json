@@ -1,0 +1,119 @@
+{
+  "documentClass": "HISTORICAL_SNAPSHOT",
+  "date": "2026-10-20",
+  "scope": "A01/R3 session/EVO/OIDC resource classification and rejected cache recovery",
+  "baseline": "91ffb9bdae2a34ebfc6f677a0eb6a3d9aeaa99fa",
+  "branch": "fix/governance-oidc-cache-resource-boundary-20261020",
+  "sources": [
+    {
+      "path": "providers/session/runtime.ts",
+      "read": "full",
+      "gitBlob": "503e718ed1ee2299d4ab9f84196773c8c951bcd8"
+    },
+    {
+      "path": "providers/request-session/runtime.ts",
+      "read": "full",
+      "gitBlob": "de84f90b8e96fa8a36ac42827e5bf5206689e72c"
+    },
+    {
+      "path": "providers/managed-session/runtime.ts",
+      "read": "full",
+      "gitBlob": "86ac5f50e35d58725fa53f7e3654d31004ecd4e5"
+    },
+    {
+      "path": "providers/oidc/runtime.ts",
+      "read": "full",
+      "gitBlob": "88b7ab8f875b3818401a7055bf909d9b85d84308"
+    },
+    {
+      "path": "providers/oidc/host-runtime.ts",
+      "read": "full",
+      "gitBlob": "4351f82bcd7cb695a42a71a1ed2ef8eb355c101a"
+    },
+    {
+      "path": "providers/evo-runtime-observatory/runtime.ts",
+      "read": "full",
+      "gitBlob": "fa3e20e1e513c4089ddeb46967518f7a27184e36"
+    },
+    {
+      "path": "manager/identity-session-store.ts",
+      "read": "full",
+      "gitBlob": "94191a265177b613ac24a5d39d0cc85098b465ad"
+    },
+    {
+      "path": "manager/evo-runtime-revision-bridge.ts",
+      "read": "full",
+      "gitBlob": "b566ce321fe969001808466fa6ef81396520edd1"
+    },
+    {
+      "path": "manager/startup-defaults.ts",
+      "read": "full",
+      "gitBlob": "a26d4cc87663a79204743ee2f0f58a962f6b4912"
+    }
+  ],
+  "hostRead": "partial: managed construction, configuration/register/refresh/bootstrap and EVO mapping binding",
+  "manifestRead": "identity/capability/Secret fields only",
+  "changes": {
+    "newProductionModules": 0,
+    "rejectedCacheReleased": true,
+    "successfulCachePreserved": true,
+    "inflightSharingPreserved": true,
+    "automaticRetry": false,
+    "consumedCallbackReplay": false,
+    "authenticationValidationUnchanged": true
+  },
+  "retained": [
+    "pure configured factories and registry discovery",
+    "shared managed-session index replay in enabled managed mode per EA1A section 6",
+    "existing revision bridge lifecycle"
+  ],
+  "local": {
+    "node": "24.19.0",
+    "mode": "pinned partial source/temporary stripTypeScriptTypes dist",
+    "passed": 20,
+    "newCases": 7,
+    "reusedCases": 13,
+    "preFix": {
+      "originalPassed": 8,
+      "newCacheFailed": 2
+    },
+    "formalBuild": false,
+    "realHost": false,
+    "browser": false,
+    "database": false
+  },
+  "ci": {
+    "statusAtCommit": "pending final-head CI; permanent exact-head results in PR closeout",
+    "workflow": ".github/workflows/lightweight-host.yml",
+    "tests": [
+      "tests/protocol/session-observatory-resource-boundary.test.mjs",
+      "tests/protocol/generic-oidc-provider.test.mjs",
+      "tests/protocol/generic-oidc-host-runtime.test.mjs"
+    ],
+    "staticBaselineRelaxed": false,
+    "coldDenyListRelaxed": false,
+    "localModuleMeasurement": false,
+    "priorCountsAreHistorical": true
+  },
+  "remaining": [
+    "OIDC Host refresh eager clientSecret resolution and full qualification/transaction matrix",
+    "managed mode off with explicit session file still reads",
+    "EVO configured application map may install/enable/bind at startup",
+    "configuration bootstrap installation authority and exit conditions",
+    "EVO query/probe deadline/Abort/redirect and resource budgets",
+    "OIDC pending transaction expiry/capacity and successful JWKS cache policy",
+    "R1 frozen SOP identity/qualification",
+    "R2 configured SQL ownership/qualification with original owner",
+    "R4 final cross-layer matrix",
+    "A03 authority lookup/idempotent recovery",
+    "A05 production policy/compatibility/other entries"
+  ],
+  "deployment": false,
+  "additionalProviderPilot": false,
+  "globalStatusModified": false,
+  "fixedProgress": {
+    "total": 7,
+    "closed": 4,
+    "partial": 3
+  }
+}

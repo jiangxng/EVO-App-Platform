@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { eog3dPackage } from "../../dist/apps/eog-3d/package.js";
+
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
@@ -37,6 +39,7 @@ test("Enterprise Observatory is an independent peer package over EOG 2D Viewer",
     createPackageCatalog([
       enterpriseObservatoryPackage,
       eog2dPackage,
+      eog3dPackage,
       hostEnterpriseContextProviderPackage,
       hostStaticAuthorizationProviderPackage
     ]),

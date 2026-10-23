@@ -1,3 +1,4 @@
+import { eog2dPackage } from "../../dist/apps/eog-2d/package.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -32,6 +33,7 @@ test("EOG 3D Viewer and Enterprise Observatory 3D are independent lifecycle feat
   const manager = createAppManagerService(
     createPackageCatalog([
       eog3dPackage,
+      eog2dPackage,
       enterpriseObservatoryPackage,
       hostEnterpriseContextProviderPackage
     ]),

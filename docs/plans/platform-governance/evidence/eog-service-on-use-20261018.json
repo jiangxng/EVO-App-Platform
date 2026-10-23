@@ -1,0 +1,27 @@
+{
+  "baseline": "48a9a63d79447089f22b209621b52a14618f34b2",
+  "date": "2026-10-18",
+  "sourceSha256": {
+    "manager/server.ts": "8a235e14513cf7be4b79c011d7f2def2a0c71b492f97315320e46fd251ebe109",
+    "manager/eog-service-runtime.ts": "2c4c7945d5f45d38dc708c4a5143efe4d90fc5d826bb1e85fd4ce02305514881",
+    "tests/protocol/eog-service-on-use.test.mjs": "e510da9fa787c3d6ee0773f72700b05e43d4ba77172aa905a8ff76982883f9f8",
+    ".github/workflows/lightweight-host.yml": "49da3a7a2722f39f1bc000a9086e9227608ab07377b3015b41440f24b426a86a"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\n",
+  "tests": "✔ empty real Host does not load migration or preview implementation (1105.331698ms)\n✔ legacy graph and SOP migrate before listening and remain unchanged on restart (2619.527658ms)\n✔ explicit preview loads only its compatibility module and remains idempotent (2015.431178ms)\n✔ corrupt legacy files and invalid explicit preview still fail startup (1293.666575ms)\n✔ Enterprise Context owns append-only Draft/Published/Effective definition lifecycle (3.032597ms)\n✔ Business Definition publication remains Human-governed (1.103675ms)\n✔ Enterprise Context Package exposes Business Definition capability without a standalone BDR package (0.297075ms)\n✔ Enterprise Context repository can persist EOG semantic revisions without owning View State (3.777614ms)\n✔ legacy EOG semantic snapshot migration is non-destructive and idempotent (3.055641ms)\n✔ repository-backed EOG persistence remains enterprise scoped (0.500611ms)\n✔ Host service can use Enterprise Context persistence without the legacy EOG semantic store (1.693499ms)\n✔ legacy migration remains restart-safe after repository-backed EOG advances (1.641191ms)\n✔ preview seed is opt-in and parses explicit JSON only (1.986778ms)\n✔ preview seed uses normal EOG service and is idempotent (3.286247ms)\n✔ metadata registration, inactive calls, invalid context and denied writes create no services (2.371536ms)\n✔ SOP read methods create only SOP; graph reads create graph/persistence once across callers (1.116314ms)\n✔ graph edits and SOP create/revise/publish share original repository; enterprise isolation remains (6.199299ms)\n✔ disable rejects new router calls, re-enable preserves state; shared read reference remains usable (0.762994ms)\n✔ failed graph and SOP factories retry independently without caching failure (0.564176ms)\nℹ tests 19\nℹ suites 0\nℹ pass 19\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 7131.872458\n",
+  "staticGate": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 349,
+    "legacyEagerEdges": 266,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "limits": [
+    "Factory counting uses real router/handlers/services with injected factory callbacks, not a production Host diagnostic.",
+    "Existing real Host compatibility migration/preview/restart tests passed.",
+    "Implementation modules remain statically imported; no module count/RSS reduction claimed.",
+    "Synchronous process-local instances own no connections or background resources. Existing caller authorization/lifecycle remains authoritative; no cross-process fencing added.",
+    "No deployment or real user data."
+  ]
+}

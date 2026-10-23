@@ -6,6 +6,9 @@ import type {
 } from "../../actions/contracts.js";
 import {
   ENTERPRISE_OBSERVATORY_3D_FEATURE_ID,
+  ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE as EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_3D_ROUTE as EOG_SPATIAL_OBSERVATORY_ROUTE,
+  EOG_SPATIAL_OBSERVATORY_GET_ACTION,
   ENTERPRISE_OBSERVATORY_PACKAGE_ID
 } from "./package.js";
 import type {
@@ -48,12 +51,11 @@ import {
   projectEnterpriseOperatingGraphSpatialBaseV010
 } from "../../eog/spatial-projection.js";
 
-export const EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE =
-  "app://evo-enterprise-operating-graph/pages/observatory-spatial";
-export const EOG_SPATIAL_OBSERVATORY_ROUTE =
-  "/operating-graph/observe/3d";
-export const EOG_SPATIAL_OBSERVATORY_GET_ACTION =
-  "enterprise-operating-graph.observatory.spatial.get";
+export {
+  ENTERPRISE_OBSERVATORY_3D_PAGE_SOURCE as EOG_SPATIAL_OBSERVATORY_PAGE_SOURCE,
+  ENTERPRISE_OBSERVATORY_3D_ROUTE as EOG_SPATIAL_OBSERVATORY_ROUTE,
+  EOG_SPATIAL_OBSERVATORY_GET_ACTION
+} from "./package.js";
 
 export function createEnterpriseOperatingGraphSpatialObservatoryExperienceManifestV020() {
   return {

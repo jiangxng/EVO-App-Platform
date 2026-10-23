@@ -63,6 +63,6 @@ test("server migrates Viewer-only EOG 2D installs to the Designer profile", asyn
   );
   assert.match(
     source,
-    /featureId === EOG_2D_VIEWER_FEATURE_ID[\s\S]*?!eog2dStartupSnapshot\.activeFeatures\.some\([\s\S]*?EOG_2D_DESIGNER_FEATURE_ID[\s\S]*?manager\.enable\(EOG_2D_DESIGNER_PACKAGE_ID\)/
+    /featureId === EOG_2D_VIEWER_FEATURE_ID[\s\S]*?!eog2dStartupSnapshot\.activeFeatures\.some\([\s\S]*?EOG_2D_DESIGNER_FEATURE_ID[\s\S]*?pa05WriteLifecycleHost\.bootstrapActivation\("ENABLE", EOG_2D_DESIGNER_PACKAGE_ID\)/
   );
 });

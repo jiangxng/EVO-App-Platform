@@ -12,6 +12,12 @@ export interface AppActionRouter {
   ): Promise<AppActionExecutionResultV010>;
 }
 
+/** Privileged Host-composition interface; plugin Owners get AppActionRouter only. */
+export interface HostMutableAppActionRouter extends AppActionRouter {
+  hasHandler(commandCode: string): boolean;
+  registerHandler(handler: AppActionHandler): void;
+}
+
 export type AppActionPreExecuteV010 = (input: {
   handler: AppActionHandler;
   request: AppActionRequestV010;
@@ -25,7 +31,7 @@ export function createAppActionRouter(
   handlers: readonly AppActionHandler[],
   isFeatureActive: (featureId: string) => boolean,
   preExecute?: AppActionPreExecuteV010
-): AppActionRouter {
+): HostMutableAppActionRouter {
   const byCommand = new Map<string, AppActionHandler>();
 
   for (const handler of handlers) {
@@ -36,6 +42,15 @@ export function createAppActionRouter(
   }
 
   return {
+    hasHandler(commandCode) {
+      return byCommand.has(commandCode);
+    },
+    registerHandler(handler) {
+      if (byCommand.has(handler.commandCode)) {
+        throw new Error(`DUPLICATE_ACTION_HANDLER: ${handler.commandCode}`);
+      }
+      byCommand.set(handler.commandCode, handler);
+    },
     async execute(request, context) {
       if (request.contractVersion !== "0.1.0" || request.type !== "command") {
         return {

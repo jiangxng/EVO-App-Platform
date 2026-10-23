@@ -1,0 +1,30 @@
+{
+  "baseline": "65f8776b7e1cc5b8cbcbde8c4c93687fa27efc65",
+  "date": "2026-10-19",
+  "sourceSha256": {
+    "manager/server.ts": "02209fc8dea0bcb75c0ab192a339f84b8482cee0972b3c9e8178b591a675748e",
+    "apps/enterprise-observatory/package.ts": "96078f69a57fcd23f77de51aab89ba394033a505e522ef95ee6ecd6875395c59",
+    "apps/enterprise-observatory/spatial-page.ts": "91413317658c62863101c3b1c9ca06b628bc3f658c869d3880373c084698738d",
+    "tests/integration/eog-spatial-lazy-host.test.mjs": "5d11f5bc396b8d08799352b7ae9969e4ea33c47e4f7625e3f8dbc8c124591785",
+    "tools/plugin-loading-audit.mjs": "2f4ced49e682fd3151ab7754db330cc90e8f8729e8284c1522c67f6a5244c49a",
+    ".github/workflows/lightweight-host.yml": "30a6476fb140fb0c874d94e2150345aa67174db3b0a192194fb58ecaf9067920",
+    "tools/lightweight-host-baseline.json": "dab64b304c3df610b53cdb79897967ca85be5025c98e0c258b46d8f76e5a5fee"
+  },
+  "build": "npm warn Unknown env config \"http-proxy\". This will stop working in the next major version of npm.\n\n> @evo/app-platform@0.1.0 build\n> tsc -p tsconfig.json\n\n\n> @evo/app-platform@0.1.0 postbuild\n> node tools/copy-login-assets.mjs && node tools/build-web-asset-manifest.mjs\n\nBrowser archive manifest: 94 JS files and shell CSS\nnpm notice\nnpm notice New major version of npm available! 11.9.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n",
+  "tests": "✔ inactive plugin action does not load its implementation (1.947398ms)\n✔ lazy handler guard blocks dependent plugin loading (0.357495ms)\n✔ concurrent first calls share loading and a failed load can retry (0.704614ms)\n✔ real Host 3D page/action stay unloaded until used and recover after disable (3436.745567ms)\n✔ EOG 3D Viewer and Enterprise Observatory 3D are independent lifecycle features (50.733098ms)\n✔ 3D Viewer owns neutral spatial read while Observatory owns runtime overlays (0.923203ms)\n✔ real Host spatial observatory page/action stay unloaded until used and recover after disable (3671.523973ms)\n✔ evidence-backed bottleneck provider observes rising pressure only when activity does not keep pace (2.599349ms)\n✔ bottleneck provider says insufficient evidence instead of inventing a result (0.661115ms)\n✔ SPATIAL_3D projection uses stable semantic layers and overlays analysis without mutating graph truth (1.382336ms)\n✔ 3D Viewer owns a neutral Spatial Workspace implementation (10.578689ms)\n✔ Spatial Observatory is physically peer-owned with compatibility wrappers (3.74549ms)\nℹ tests 12\nℹ suites 0\nℹ pass 12\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3981.90823\n",
+  "static": {
+    "gate": "lightweight-host-static",
+    "visitedModules": 345,
+    "legacyEagerEdges": 262,
+    "added": [],
+    "removed": [],
+    "errors": []
+  },
+  "audit": "[\n  {\n    \"profile\": \"minimal-uninstalled\",\n    \"installed\": 7,\n    \"loadedModules\": 342,\n    \"intervals\": 0,\n    \"stateFiles\": 2,\n    \"archivedAssets\": 96,\n    \"blockedOutbound\": 0,\n    \"exit\": 0\n  },\n  {\n    \"profile\": \"compatible-installed-unused\",\n    \"installed\": 16,\n    \"loadedModules\": 342,\n    \"intervals\": 0,\n    \"stateFiles\": 3,\n    \"archivedAssets\": 96,\n    \"blockedOutbound\": 0,\n    \"exit\": 0\n  },\n  {\n    \"profile\": \"compatible-disabled-restart\",\n    \"installed\": 16,\n    \"loadedModules\": 342,\n    \"intervals\": 0,\n    \"stateFiles\": 3,\n    \"archivedAssets\": 96,\n    \"blockedOutbound\": 0,\n    \"exit\": 0\n  },\n  {\n    \"profile\": \"minimal-scheduler-configured\",\n    \"installed\": 7,\n    \"loadedModules\": 342,\n    \"intervals\": 0,\n    \"stateFiles\": 2,\n    \"archivedAssets\": 96,\n    \"blockedOutbound\": 0,\n    \"exit\": 0\n  }\n]\n",
+  "limits": [
+    "Synthetic isolated Host; no real external facts or browser visual acceptance",
+    "No fault injection of exact disable-during-import timing",
+    "Shared model and other page/action imports remain",
+    "No deployment; final CI/merge recorded in PR"
+  ]
+}

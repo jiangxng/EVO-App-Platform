@@ -607,3 +607,35 @@ test("unknown source enum values remain visible to validation instead of being s
     )
   );
 });
+
+
+test("BEX reuse: source mappings survive extension-schema growth without auto-validating a stale recipe", () => {
+  const {target, service, repository} = fixture();
+  const contextId = "enterprise-context:recovery";
+  const parameters = {relationshipMode:"SUPPLIER"};
+  const firstSource = source("original.xlsx");
+  service.stage({
+    contextId,importJobId:"original-user-mapped",targetId:target.targetId,
+    targetParameters:parameters,source:firstSource,mapping,
+    mappingOrigin:"HUMAN",actorSubjectId:"owner",
+    recordedAt:"2026-10-15T01:00:00.000Z"
+  });
+  // A mapping already saved in a staged import is useful evidence even before
+  // dry-run; unlike a confirmed recipe it must still require Human review.
+  const schema = target.describe({contextId,parameters});
+  const laterSchema = structuredClone(schema);
+  laterSchema.fields.push({
+    ...structuredClone(schema.fields[0]),
+    fieldId:"ext_added_later",
+    semanticType:"enterprise-added-later",
+    label:{default:"后来新增企业字段"},
+    resolvedLabel:"后来新增企业字段"
+  });
+  const restored = service.resolveInitialMapping({
+    contextId,targetId:target.targetId,targetParameters:parameters,
+    source:source("reuploaded.xlsx"),schema:laterSchema
+  });
+  assert.equal(restored.origin,"DETERMINISTIC");
+  assert.deepEqual(restored.mapping.filter(x => x.targetFieldId !== "ext_added_later"),mapping);
+  assert.equal(repository.get(contextId,"original-user-mapped").source.rows.length,1);
+});

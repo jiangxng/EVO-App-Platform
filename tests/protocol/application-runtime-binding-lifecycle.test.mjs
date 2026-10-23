@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import {createStartupDefaultsV010} from '../../dist/manager/startup-defaults.js';
+import {createMemorySettingsStore} from '../../dist/manager/settings-store.js';
 
 import {
   ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010
@@ -82,7 +84,7 @@ test("Host Runtime Binding consumers resolve through installed provider descript
   );
 });
 
-test("legacy configured bindings trigger package migration and activate the installed provider", async () => {
+test("configured bindings retain initial activation and the Host-owned one-time installation journal", async () => {
   const server = await readFile("manager/server.ts", "utf8");
   assert.equal(
     server.includes("applicationRuntimeBindingStore.snapshot().bindings.length > 0"),
@@ -132,14 +134,22 @@ test("legacy installed-but-inactive Runtime Binding package is repairable by ena
   );
 });
 
-test("Host bootstrap repairs installed-but-inactive Runtime Binding state", async () => {
-  const server = await readFile("manager/server.ts", "utf8");
-  assert.equal(
-    server.includes("item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID"),
-    true
-  );
-  assert.equal(
-    server.includes("manager.enable(APPLICATION_RUNTIME_BINDING_PACKAGE_ID)"),
-    true
-  );
+test("configured initialization preserves inactive and removed binding packages until explicit lifecycle action", () => {
+  const store = createMemoryLifecycleStore();
+  store.saveInstalledPackage({packageId: APPLICATION_RUNTIME_BINDING_PACKAGE_ID, version: '0.1.0',
+    installedAt: '2026-10-02T00:00:00.000Z', trustApproved: true, grantedPermissions: []});
+  const manager = createAppManagerService(createPackageCatalog([applicationRuntimeBindingProviderPackage]), store,
+    () => new Date('2026-10-03T12:30:00.000Z'));
+  const journal = createMemorySettingsStore();
+  const apply = () => createStartupDefaultsV010(journal).apply({packageId: APPLICATION_RUNTIME_BINDING_PACKAGE_ID,
+    installed: manager.getSnapshot().installedPackages.some(item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID),
+    install() {throw Error('must preserve lifecycle intent');}});
+  assert.equal(apply(), 'PRESERVED');
+  assert.equal(manager.getSnapshot().activeFeatures.length, 0);
+  manager.uninstall(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+  assert.equal(apply(), 'PRESERVED');
+  assert.equal(manager.getSnapshot().installedPackages.length, 0);
+  manager.install(APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
+  assert.ok(manager.listEffectiveServiceProviders(ENTERPRISE_APPLICATION_RUNTIME_BINDING_CAPABILITY_V010).length > 0);
 });
+
