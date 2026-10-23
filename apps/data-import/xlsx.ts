@@ -176,9 +176,10 @@ function normalizeZipPath(base: string, target: string): string {
 function firstWorksheetPath(
   workbookXml: string,
   relsXml: string
-): string {
+): { path: string; worksheetName?: string } {
   const sheet = workbookXml.match(/<sheet\b([^>]*)\/?\s*>/u);
   const relationshipId = sheet ? attr(sheet[1], "r:id") : undefined;
+  const worksheetName = sheet ? attr(sheet[1], "name")?.trim() : undefined;
   if (!relationshipId) {
     throw new Error("DATA_IMPORT_XLSX_WORKSHEET_NOT_FOUND");
   }
@@ -188,7 +189,8 @@ function firstWorksheetPath(
     if (attr(match[1], "Id") !== relationshipId) continue;
     const target = attr(match[1], "Target");
     if (!target) break;
-    return normalizeZipPath("xl", target);
+    return { path: normalizeZipPath("xl", target),
+      ...(worksheetName ? { worksheetName } : {}) };
   }
   throw new Error("DATA_IMPORT_XLSX_WORKSHEET_RELATIONSHIP_NOT_FOUND");
 }
@@ -306,8 +308,8 @@ export function parseXlsxSourceV010(input: {
   if (!workbook || !rels) {
     throw new Error("DATA_IMPORT_XLSX_WORKBOOK_INVALID");
   }
-  const worksheetPath = firstWorksheetPath(workbook, rels);
-  const worksheet = readText(worksheetPath);
+  const worksheetSource = firstWorksheetPath(workbook, rels);
+  const worksheet = readText(worksheetSource.path);
   if (!worksheet) throw new Error("DATA_IMPORT_XLSX_WORKSHEET_NOT_FOUND");
 
   const strings = sharedStrings(readText("xl/sharedStrings.xml"));
@@ -341,6 +343,8 @@ export function parseXlsxSourceV010(input: {
   return {
     kind: "XLSX",
     ...(input.name?.trim() ? { name: input.name.trim() } : {}),
+    ...(worksheetSource.worksheetName
+      ? { worksheetName: worksheetSource.worksheetName } : {}),
     headers,
     rows
   };

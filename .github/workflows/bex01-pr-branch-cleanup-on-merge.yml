@@ -1,0 +1,54 @@
+name: BEX-01 Completed PR Branch Cleanup
+# One-shot by path trigger. Fires only when this file first lands on main;
+# subsequent normal pushes to main do not rerun the cleanup.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/bex01-pr-branch-cleanup-on-merge.yml
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  delete-merged-bex01-process-branches:
+    if: github.repository == 'jiangxng/EVO-App-Platform'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify each PR merged and no dependent open PR before deleting
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo}=context.repo;
+            const targets=[
+              {pr:1060,branch:"feat/bex01-v3-real-fidelity-clean-mainline-20261020"},
+              {pr:1077,branch:"feat/bex01-v3-m06-file-footer-parity-20261020"},
+              {pr:1086,branch:"feat/bex01-v3-m06-evidence-density-20261021"},
+              {pr:1100,branch:"docs/bex01-v3-m06-window13-source-research-handoff-20261022"}
+            ];
+            // Do not delete a single branch if any associated PR is still open
+            // or non-merged: partial cleanup in that situation is unwanted.
+            for(const target of targets) {
+              const {data:p}=await github.rest.pulls.get({owner,repo,pull_number:target.pr});
+              if (!p.merged || p.base.ref!=="main" || p.head.ref!==target.branch)
+                throw Error("Refusing cleanup: PR #"+target.pr+" not merged to main as expected");
+              const dependents=await github.paginate(github.rest.pulls.list,{
+                owner,repo,base:target.branch,state:"open",per_page:100
+              });
+              if(dependents.length)throw Error("Refusing cleanup: open PR based on "+target.branch);
+              const compare=await github.rest.repos.compareCommits({
+                owner,repo,base:target.branch,head:"main"
+              });
+              if(!["ahead","identical"].includes(compare.data.status))
+                throw Error("Refusing cleanup: main does not contain "+target.branch);
+            }
+            const outcomes=[];
+            for(const target of targets){
+              await github.rest.git.deleteRef({owner,repo,ref:"heads/"+target.branch});
+              outcomes.push("Deleted #"+target.pr+" process branch "+target.branch);
+            }
+            core.summary.addHeading("BEX-01 merged-process branch cleanup");
+            core.summary.addRaw(outcomes.join("\n\n"));
+            await core.summary.write();

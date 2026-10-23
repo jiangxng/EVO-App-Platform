@@ -18,6 +18,8 @@ test("synthetic 22-column 172-row binary XLSX parses with every original value p
   });
   assert.equal(restored.kind,"XLSX");
   assert.equal(restored.name,"synthetic-acceptance.xlsx");
+  assert.equal(restored.worksheetName,"Synthetic",
+    "sheet identity comes from the actual workbook metadata");
   assert.deepEqual(restored.headers,SYNTHETIC_V3_HEADERS);
   assert.equal(restored.rows.length,172);
   assert.deepEqual(restored.rows,fixture.rows);
@@ -53,6 +55,7 @@ test("second isolated XLSX has distinct identities while preserving every mapped
   assert.deepEqual(parsed.headers,SYNTHETIC_V3_HEADERS);
   assert.deepEqual(parsed.rows,retained.rows);
   assert.equal(parsed.rows.length,172);
+  assert.equal(parsed.worksheetName,"Synthetic");
   assert.equal(parsed.rows[0]["往来编码"],"RET-0001");
   assert.equal(parsed.rows[171]["往来名称"],"Retained Supplier 0172");
   assert.equal(parsed.rows[171]["企业属性17"],"synthetic-20-0172");

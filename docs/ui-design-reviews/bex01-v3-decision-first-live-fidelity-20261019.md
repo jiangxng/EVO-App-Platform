@@ -1,0 +1,216 @@
+# BEX-01 V3｜真实 Host 决策优先布局与高保真目标审查（2026-10-19）
+
+> 本次实施是 **V3 100% 还原建设的第一项工程改动，并非 100% 完工声明**。原设计权威为 [#909 V3 HTML](https://github.com/jiangxng/EVO-App-Platform/pull/909) 和 2026-10-16 S01–S04 四张原始截图（ChatGPT 文件库原图已直接读取并在 M04 详细研究索引 §9.4 登记）。通用技术来源为**已合并的 [Eidos #196](https://github.com/jiangxng/eidos/pull/196)**：`reviewTask.presentation="decision-first"`。本次仅将已合并的 Eidos 上游改动准确前移到 Platform vendor 局部，不重做外站研究、不更新其他 Eidos owner 模块、不改真实客户数据。
+
+## 目标与完成条件
+
+V3 Human 工作台首先让用户核对当前来源列、原始样本、字段选择及状态。现有 `/data-import/jobs/:id/map` 与 `object-extension.batch-import` 页面 Eidos 默认完整任务概览在表格前，占据首屏，和用户的“异常优先、证据就地、操作连续”的高保真基准冲突。本次在原有四列审核表之前压缩任务概览为可展开摘要，完整辅助信息仍可取得。最终 V3 的 100% 样式、交互和 Human 签收是后续独立门禁，不能由此一项替代。
+
+## 流程与步骤
+
+从既有 Host Job 打开 /map 或批次审核：首先显示文件名及真实注意项数量的任务摘要 → 立即可见来源表及字段决策 → 如需检查历史，点击或键盘展开原生 details 查看原完整文件事实、步骤、统计、问题跳转、说明 → 折叠后继续做决定。原始字段选项和保存/授权命令不因展开、折叠发生变化。客户主体类型每条原值与审批路径维持既有规则。
+
+## 导航与信息架构
+
+两条实际 Host 页面均复用 Eidos `reviewTask` 合同，仅选用已经合并的通用 `presentation` 属性；无新增 BEX 私有 shell、React 皮肤、侧边栏或业务路由。/map 现有“集中审核”入口及返回方式不变；文件 ID、授权企业上下文、`choice_N` 的来源列身份和版本校验不变。不得把 Task Summary 的文本当正式批准。
+
+## 视觉与颜色
+
+采用上游 Eidos 44px 原生 summary、高对比边框、现有响应式 token。摘要层默认折叠，但展开时全部 steps/facts/metrics/issues/help 原样出现；状态数量附文字，不单用色彩。真实 ReviewTable 四列、默认需要关注筛选和移动卡片保持独立。**尚未检验 1280px/390px 的逐像素比例与截图偏差，仍需后续检查，不能称已经 100%。**
+
+## 记忆与注意力
+
+人的当前任务是逐列审核，不是重复阅读多屏上下文。来源文件名和待处理数仍可即刻识别，冗长统计与问题辅助是可还原的结构性信息而非删除。草稿保存、重入和已审核 Recipe 仍由 Host 负责；本布局不改变任何原始行值或已保存决策。
+
+## 无障碍与跨年龄
+
+原生 HTML `details/summary` 支持键盘、屏幕阅读器；summary 最小 44px 并有可见焦点，长中文名可换行，所有内层 focusGroupId 不删除。Eidos validator 严格白名单 `full/decision-first`，未知 `presentation` 被拒，默认值保持旧展示。窄屏审核卡片仍提供源列、示例、选择、状态，目标是无水平溢出；真机触摸、200%/400% 缩放和读屏器需要另行签收。
+
+## 安全与数据修复
+
+**仅展示层选择**。没有改变 `DATA_IMPORT_REVIEW_COMMAND_V010`、`OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010`、映射字段 ID、企业 Owner/Admin 权限、同名开户银行防误选、三条主体类型逐行纠错、Schema 创建批准、dry-run、Recipe、supplier commit、receipt 或审计。Eidos 通用合同既非授权源，也没有新脚本执行；Html 所有主体文字沿用 `esc` 转义。M04 未取得用户原 Excel 和受权 Job，仍 OPEN。
+
+## 证据与剩余问题
+
+- 上游 Eidos #196：已合并原文、源代码/完整补丁，明确只对 opt-in 生效。本次做最小 4 个 vendor 文件同步，保留已有 Platform Host overlays。
+- Platform 真实业务：修改 `apps/data-import/page.ts` 和 `apps/object-extension/batch-page.ts`，使两个页面显式选择 decision-first；`tests/protocol/bex01-v3-decision-first-visual-review.test.mjs` 对 HTML native disclosure、完整事实保留、严格校验和真实表单进行回归。
+- 按精确 PR HEAD 校验 Platform CI、BEX-01 Real Host Chromium、Human UI Gate、Continuity、Lightweight Host，核对原 1280px/390px 截图；如果出现新增失败必须修复后重跑。
+- **仍有原 V3 的剩余差异**：实际已登录 Railway 页面与原型的字体、留白、标题、工具栏、字段确认区、底部操作区和跨路由连续性尚需逐项截图审查，不能将本项的自动化绿灯视作完整 100% 或用户签收。
+- M01–M03 工程已完成；M04 的原 Excel、两个开户银行真实 ID、三条真实主体身份未验收；M05 真实最终导入待验证；M06 视觉和 Human 签收待验证。工程 3/6 不变。
+
+## 2026-10-19 同窗口追加：S01/S02 直接对照与 Eidos #200 紧凑密度（R）
+
+原始 PNG 的真实读取对照（不是只看索引摘要）：S01 `image(20261016-123851).png` 的 V3 目标表格是紧凑四列，常规一行同时看到原始字段名、示例值、目标选择和状态，没有第三列再次大字重复“系统编码”，也没有固定显示几十个冗长的单列创建链接；S02 `image(20261016-123943).png` 和用户 2026-10-19 当前截图则显示“系统编码”在第 1 和第 3 列重复、来源详情链接和单列创建链接长期占行，导致大量垂直滚动。**S02 是当前偏差证据，不是视觉验收的目标图**。S01 是可供核对的目标片段，而完整页面和流程仍以 #909 HTML 为权威。
+
+针对该差异，经 Eidos owner [#200](https://github.com/jiangxng/eidos/pull/200)（已合并，提交 `bd21cfbce952b6b27527cbb6fdcab5f4c59d076b`）提供可选 `reviewTable.presentation="compact"`：视觉上隐藏重复字段名，绑定的可读标签、选项值、键盘语义仍保留；若当前行有证据展开区，将原 contextLink 保留在**该行展开区中**而不是永远占据选择框下面；没有证据区则仍保持直接显示。桌面使用统一 token 缩小单行间距；工具栏计数在左、筛选在右；手机触摸控件不少于 44px。不复制原型私有 CSS。Platform 仅同步 Eidos 已合并 5 个通用文件的精确功能，在真实 `/map` 和 `mode=batch` 中明确选择 compact，不改业务字段与 Host 命令。
+
+新增浏览器回归核对：真实隔离 Host 四列表格是否显式 compact、来源展开能看到准确的单列导航、选择栏不再重复显示链接、字段映射与集中审核在 1280px 第一屏能看到可操作行、390px 无水平溢出。**这些是自动化工程证据，尚未人工逐像素签收。** 下一批重点：完整文件摘要、需处理问题区域、表格工具栏文案及密度、表底说明与操作区、字段审批/预检流程的一致性。
+
+| M01–M06 原里程碑 | 当前状态和证据 | 尚余门禁 |
+| --- | --- | --- |
+| M01 四列审核 | 工程完成：#973/#978/#981/#984/#989 已合并；线上旧版本运行，当前 #1054 新视觉仍 Draft | M06 实际视觉 |
+| M02 批次审核 | 工程完成：#991/#993/#996 已合并，隔离 Host 回归 | M04 真实身份 |
+| M03 保存/重入 | 工程完成：#1028→#999 已合并，历史 CI/部署成功 | 授权客户现场重入 |
+| M04 真实数据验收 | 工程安全 #1033/#1035/#1037/#1039 完成，M04 OPEN | 客户原 Excel、授权 Job、两个同名银行字段的实际 ID、三条主体身份 |
+| M05 真实导入 | OPEN；隔离流程已有历史回归 | 真实权限、预检/幂等、最终明确提交、审计 |
+| M06 高保真 | OPEN；#1054 Draft 包含新 opt-in，Eidos #200 已合并，仍待 V3 全面还原 | 1280/390 实际画面与 Human 签收 |
+
+**整体工程依旧 3/6。** 本追加仅记录直接已读来源事实和新增决策，不是把 #1054 的测试通过等同于完成，也未触碰生产客户文件或 PA05。
+
+## 2026-10-19 续跑 #02：原型上半部分结构纠偏（Eidos #201）
+
+- **新增直接读取事实（R，2026-10-19）：** V3 #909 原 HTML 的 `#review` 区域在四列字段表之前依次呈现导入步骤、真实文件信息、四项计数和“需要处理”问题列表；问题区有人工选择按钮及行级导航。相比之下，PR #1054 最初采用的 `decision-first` 虽保留了全部元素，却在默认关闭的 details 内隐藏这些信息，**不符合用户要求的 100% 原型还原**。
+- **变更理由（方案判断）：** 用户明确要求按原型而非单纯首屏短/测试绿灯验收。因此针对两条真实 Host 页面改选通用 `reviewTask.presentation="workbench"`：步骤→文件摘要→计数→有实际问题才显示问题列表→字段表→字段方案及审核动作。撤销了“首屏必须先看到审核行”的非原型假设，改为验证文件/统计/实际问题按工作流顺序可见。
+- **架构与实施（R）：** [Eidos #201](https://github.com/jiangxng/eidos/pull/201) 已通过原库 CI + Human UI Gate 并合并于 `1b651737182c083bdb945e30c4d16b9ecacbc1e1`。Platform 在当前 Draft #1054 仅选择性同步 4 个通用框架文件，并对实际 `/data-import/jobs/:id/map`、`/object-extensions/from-import?mode=batch` 显式 opt-in。保留 Eidos 旧 `full` / `decision-first` 供其他应用使用。内容仍取自真实授权 Job，**不捏造原型中的银行候选 ID、三条主体身份、172 行客户记录**。
+- **业务/安全门禁：** 企业上下文、字段选择、源值、Host 命令、权限、草稿、字段审批、预检和明确导入未变；同名银行绝不因 UI 展示自动选择。工作流页可能比简化模式更长，这正是优先展示真实问题所需要的，不构成视觉失真。
+- **下一步待验证：** 最新 #1054 exact-HEAD 协议/Chromium 1280/390 与 CI；随后逐项核对原型文件卡片文字、四项指标、问题区域/按钮、工具栏、列间距、底部操作区和实际登录页面长图。工程总体保持 **3/6**；M04 数据、M05 导入、M06 Human 签收均 OPEN。不得因为这个工程子项通过而提前合并 Draft。
+
+## 2026-10-19 续跑 #02：真实隔离浏览器截图人工复核（R）
+
+**来源事实等级 R：** 直接下载并打开 [Real Host Chromium run 39277312473](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39277312473) 的 ZIP [artifact 12197673105](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39277312473/artifacts/12197673105)，查阅日期 2026-10-19。并非仅看 CI 摘要；也不是生产登录客户页面。精确 HEAD `0ade1040d701f456e362338cadf075e73de6c96a` 的关联 8 个工作流均 SUCCESS。
+
+| 实际打开的截图 | 已能证明的可见事实 | 仍与 #909 V3 原型有差异 |
+| --- | --- | --- |
+| `v3-fidelity-workbench-map-1280.png`（1280×900） | 真实 /map 页已可见文件名、172 行/22 列、来源保留标记、步骤条、四个实际统计（4 匹配/17 拟新增/1 忽略/0 需核对）、四列表工具栏与首条来源。0 需核对时不编造 issues。 | **侧栏仍占据约 420px，实际业务内容约 810px，不是原型在页面中 1200px 宽的完整布局**；页标题、文件卡片、统计及表格区的比例、间距、内容文案需进一步对齐。 |
+| `v3-fidelity-workbench-batch-1280.png`（1280×900） | 集中审核同样可见原 Excel、172 行/18 列待处理、步骤条与 17/0/1/0 四指标、主体类型来源提示以及四列表。批次主体类型来自 Excel 源列，未自行生成企业常量。 | 同样受固定侧栏宽度限制；顶部标题、长说明、表格操作行、页脚确认区仍不等同原型单一流程布局。 |
+| `v3-fidelity-first-viewport-batch-390.png`（390×844） | 移动端展示两列统计卡、文件摘要、步骤与原字段来源提示，底部为现有通用应用导航；控件未在截图中以假数据替代。 | 与 #909 手机原型的顶部/底部区域与长页节奏尚有差异，必须继续对照完整页面；目前尚非 Human 视觉签收。 |
+| `v3-e2-actual-map-22-rows-desktop.png`（1280×2577） | 真实 Eidos 业务表中长行、可选字段、新建字段建议与不导入记录均保留；来源证据按钮和目标选择在同一行。 | 仍有相对原型偏窄的列宽与选择框文案差异；完整截图是滚动视图而非所见即所得的 1200px 原型正视图。 |
+
+**来源事实 vs. 判断：** 以上可见结构与图片尺寸是本窗口直接读取的隔离浏览器截图事实；“仍未 100%”是根据 #909 原 HTML 布局、S01 视觉片段与该真实截图的比较判断，不等于生产客户现场测试。**下一项最高优先级 UI 差距：Eidos/Platform 工作台导航占宽与 V3 目标容器尺寸的协调**；仅在明确使用通用受控聚焦布局且不破坏其他页面的前提下修改。其后核对标题、摘要、行密度、问题卡片、操作区与跨页面连续性。不得为追求像素复制而绕开 Host 或越权关闭客户审查。
+
+工程 M01–M03 已完成；M04 真客户数据 OPEN；M05 真导入 OPEN；M06 高保真未签收。总工程进度固定 3/6。PR #1054 **保持 Draft，不自动合并到 main，不切换 Railway**。
+
+## 2026-10-19 续跑 #03：1200px 路由级聚焦布局（Eidos #202 待验证）
+
+**证据和新增决策：** 源自直接读取 #909 HTML、已保存的 S01 视觉目标、实际 Chromium 1280/390 工件 run 39277312473，以及 Eidos `src/workbench/shell.ts` 与 `productive-workbench-css.ts` 的原码。1280px 真实隔离 Host 中，原有侧栏约占 420px、主体宽度仅约 810px；即使隐藏侧栏，Eidos 默认表单还有 1100px 宽度上限。与 V3 目标的约 1200px 连续四列审核工作区不相符，故本轮增加**仅该业务路由选用、通用层提供、可随时恢复的聚焦布局**。
+
+- **Eidos owner 边界（进行中）：** [Eidos PR #202](https://github.com/jiangxng/eidos/pull/202) 提供 `WorkbenchShellOptions.shouldFocusWorkspaceRoute(route)`；桌面聚焦后保留活动栏，隐藏通常导航侧栏与 splitter，字段表最大宽度由通用变量控制（默认 1200px）。工具栏按钮可恢复原导航并重新聚焦，不写入持久化侧栏偏好；390px 使用既有单列工作区，不增加无意义的切换按钮。2026-10-19 本次记录时 #202 的 exact-HEAD CI 仍 **QUEUED**，不得称已合并。
+- **Platform 业务归属（Draft 暂存）：** 仅真实 `/data-import/jobs/:id/map` 及有 Job 参数的 `/object-extensions/from-import?mode=batch` 适用；供应商列表、最终预检、普通扩展字段、其他工作台、Agent 和外部 URL 均拒绝进入该聚焦模式。Platform 仅将通用 owner 改动临时同步进 #1054 Draft，与已合并 upstream 保持严格分离，待 #202 通过且合并才可正式认定版本依赖。
+- **验证用例（待最新 CI）：** `tests/protocol/bex01-v3-wide-route-focus.test.mjs` 逐个校验允许/拒绝路由；真实 Host Chromium 测试检查 1280px 的映射表实际宽度 1000–1220px、焦点模式开启、侧栏真正隐藏以及工具栏按钮先恢复后重新聚焦。任何绿色结论必须对应**最新精确 HEAD**，不能引用旧 run 39277312473 已通过来替代新代码的验证。
+- **后续：** Eidos #202 CI → 合并 → Platform #1054 精确 CI、真实截图 → 对照 #909 剩余标题、文件统计卡片、状态、底部操作区/跨路由流程 → Human 签收。真实客户 Excel、两个银行字段与三条缺失身份仍无新授权证据。**M01–M03 工程完成，M04/M05/M06 OPEN，工程总进度 3/6。** #1054 保持 Draft，不切 Railway release、不写真实客户数据、不覆盖 PA05/Eidos 其他工作。
+
+### 续跑 #04 补充：既有活动栏与快捷键也必须可逆
+
+直接核对 Eidos Workbench 原代码发现单纯覆盖 CSS 的聚焦模式会造成导航可达性冲突：如果用户通过左侧活动栏重新选择 navigation activity，或使用既有 `Ctrl/Cmd+B` 折叠/展开，布局不能仍把侧栏隐藏，更不能因为 V3 临时聚焦而永久写掉原 `sidePanelVisible` / `sidePanelWidth` 偏好。故本轮在 Eidos owner PR [#202](https://github.com/jiangxng/eidos/pull/202) 追加通用行为：导航活动主动展开临时侧栏；快捷键和原 sidebar toggle 共用临时切换，只有用户在普通页面执行正常操作时才沿用旧持久化规则。Platform #1054 Draft 选择性同步这部分变更，并扩展隔离 Host Chromium 覆盖 1280px 聚焦、顶部按钮、`Control+B`、活动栏、离开导入页后的侧栏恢复，以及偏好字段逐项不变（`workspaceTarget` 本身按真实导航仍允许更新）。
+
+**CI 证据级别仍为待验证：** 新增 Eidos PR #202 HEAD 和 Platform #1054 HEAD 关联的 GitHub Actions 均显示 queued，未取到任何该批代码的成功 Chromium 截图。此改动不能升级为已完成工程或 V3 Human 签收。后续先检查 CI/日志，修复后再比对 1280px/390px 完整画面；M01–M03 依历史工程证据完成，M04/M05/M06 OPEN，仍 3/6。
+
+### 续跑 #06：原本关闭侧栏的 V3 用户仍获得宽表且可主动恢复导航
+
+2026-10-20 本轮直接读取 Eidos #202 / Platform #1054 的工作台布局、活动栏与持久化偏好源代码（R）；并非新增外站资料、生产客户视觉证据。发现此前的路由聚焦把 `state.sidePanelVisible` 作为整个聚焦模式的准入条件：当用户原本已关闭侧栏时，既有工作区虽变宽，但默认 `form` 仍限制在 1100px，无法满足 V3 1200px 容器目标；此时点击既有侧栏按钮或 `Ctrl+B` 又会立刻重新启用自动隐藏，导致明确的导航可用性缺陷。这属于从已读源码推出并已作工程修复的具体问题，不冒称真实浏览器验证已通过。
+
+**决定与实施：** 将“当前路由符合工作台聚焦要求”与“用户侧栏偏好为可显示”两个判断分离。任何符合 V3 路由的 1280px 页面均获得统一宽表模式，原本已关闭侧栏则不显示无意义的第二个聚焦按钮；如果用户使用现有快捷键或活动栏主动打开导航，显式操作优先于路由默认聚焦，不被 CSS 随即隐藏。Eidos owner #202 与 Platform vendor 副本均已同步此修复，保留 `sidePanelWidth` 和 `sidePanelVisible` 的普通用户控制语义。
+
+**新增门禁：** Eidos Workbench 结构回归保护上述判断、临时揭示与按钮可见性；Platform 隔离 Host Chromium 使用独立 1280px 用户上下文，预设 `eidos.workbench.layout.sidePanelVisible=false`，核对 V3 实际映射表 1120–1220px、无多余聚焦按钮、原偏好保持不变，然后 `Ctrl+B` 确实恢复侧栏并更新普通偏好。390px 继续沿用 Eidos 单列导航。最新精确 HEAD CI 和真实浏览器结果**仍待 GitHub Actions Runner 运行，不能算 PASS**。
+
+上述是导航布局修复，不代表 #909 标题、文件卡片、审核区、底部操作区和 Human 视觉签收完成。M01–M03 工程完成，M04 客户真实数据验收 OPEN，M05 真实完整导入 OPEN，M06 高保真 OPEN，总体仍 **3/6**。#1054 继续 Draft；#202 未通过/合并前禁止宣告上线。
+
+
+## 2026-10-20 续跑 #07：标题与 Host 身份字段回到原型层级
+
+本次直接对照 #909 原始 HTML 的 review 状态（原型源码已读，R）与 Platform 当前真实 Host Chromium 截图（run 39363181134 工件已打开，R），确认两处可定位偏差：正式映射页标题仍为“字段映射 · 文件名”，而 #909 的审核步骤标题为“核对导入数据”；同时唯一选项的“当前文件”与“批量字段审核”只读导航字段被作为普通表单控件重复显示，原型已用文件摘要和现有上下文导航表达同一信息。
+
+**决定：** 标题改为“核对导入数据”，文件名只在真实文件摘要卡显示；不可变的 `importJobId` 与批次源修订号仍进入 Host 表单，但改用 Eidos 通用 `hidden: true` 语义，不再展示成可选项。批次审核/创建扩展字段的导航已存在于 `contextNavigation`，删除表单内重复的只读链接字段，保留原导航入口、Agent 自动匹配动作与 Host 命令。
+
+**架构边界：** Eidos 新增通用隐藏字段呈现能力（独立 Draft [#203](https://github.com/jiangxng/eidos/pull/203)），Platform 仅在当前文件与批次修订标识上 opt-in；隐藏字段不是授权凭据，Host 必须继续按当前授权上下文验证 ID。未修改映射目标、源值、权限、Recipe、字段创建/预检查/提交逻辑，也未使用合成样本冒充客户证据。
+
+**剩余门禁：** Eidos #203 CI/Human UI Gate；Platform exact-HEAD CI、真实 Host 1280px/390px；核对问题区真实有问题时的直接跳转、四列、底部操作区和原型完整长页。仍未签收视觉，M04/M05/M06 OPEN，总体 3/6。
+
+
+## 2026-10-20 续跑 #08：工作流步骤回归原型标题行（R）
+
+**直接读取的证据：** 本次重新下载并打开 #909 对应原型浏览器工件（run [38704093619](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38704093619)，artifact `11957646429`，2026-10-15 的原始 V3 HTML/Chromium 画面），并打开最新实际 Host Chromium 工件（run [39381740543](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39381740543)，artifact `12245951269`，精确候选 HEAD `0a135314c32fcd0633cedf1ac7dda1ad9be66407`，2026-10-20）。两者均为已直接读取，不是搜索摘要。
+
+**观察到的差异：** #909 原型中两阶段步骤指示器与“核对导入数据”标题在同一水平行；实际 Host 的 `renderReviewTask()` 将步骤放在标题 `header` 之后的 task overview 内，导致标题、说明之后又单独占用一行，增加垂直距离并改变首屏层级。该差异与数据内容不同无关，是 HTML 结构层面的真实差异。当前真实 Host 1280px 画面还显示文件摘要比原型更高；本次只处理有明确结构根因的步骤位置，不顺带修改尚未量化的卡片高度。
+
+**决定与改动：** 对 `reviewTask.presentation="workbench"`，将通用步骤列表移入 `data-eidos-page-heading`，与标题/说明形成同一桌面标题行；工作流概览中不再重复输出步骤。移动端在 850px 以下允许步骤另起一行并左对齐。其他 `full` / `decision-first` 呈现维持旧结构，不影响普通表单。增加协议回归，要求 workbench 步骤 DOM 位于页面标题容器内、任务摘要之前。
+
+**边界：** 仅更改 Platform vendor Eidos 通用 renderer/CSS、V3 视觉回归测试与本审查记录；不修改字段映射、真实数据、Host 命令、授权、导入提交、PA05、EOG 或 `project.status.json`。这是按 #909 已读原型做的局部高保真修正，不代表 M06 100% 完成。需以新的精确 HEAD 通过 Platform CI、V3 实际 Host Chromium，并重新读取 1280px/390px 截图后继续检查文件卡片、问题区、四列、底部操作区和完整流程。
+
+当前里程碑保持：M01–M03 工程完成；M04 客户真实数据验收 OPEN；M05 真实完整导入 OPEN；M06 高保真建设中、待 Human 视觉签收；总体 3/6。
+
+
+## 2026-10-20 续跑 #09：文件摘要卡片去重与压缩（R）
+
+**直接证据：** 对照已读取的 #909 原型截图 `01-desktop-overview.png` / `10-mobile-overview.png`（artifact `11957646429`）和最新真实隔离 Host 截图（run [39383243019](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39383243019)，artifact `12245807913`）。原型文件卡片用单个紧凑摘要表达文件名、行数/列数和状态；当前 Host 的任务上下文把行数/列数放在 subtitle 后，又用 facts 区再次列出同样数字，造成多余的第二行和分隔线。批次页也重复显示来源列数/待处理列数，并且把“集中审核”作为卡片主副标题的一部分，而原型主身份应为源文件。
+
+**改动：** 映射页移除重复 facts 行，保留真实行数和来源列数于文件 subtitle，并将状态文案调整为“文件已读取”。批次页将 subtitle 改为“导入文件 · 行数 · 来源列数 · 待处理列数”，移除重复 facts 行；不更改指标统计、源 Excel、Job、字段决策或 Host 命令。通用 Eidos 移动端任务卡片改为文件身份与状态并排，窄于 360px 时退回安全单列。V3 协议测试新增断言，防止映射/批次文件卡片重新出现重复 facts。
+
+**验收边界：** 该修复目标是缩短文件卡片、消除信息重复，并接近 #909 文件卡片的桌面/手机层级。必须在新精确 HEAD 上重新通过 Platform CI 与真实 Host Chromium，直接检查最新 1280px/390px 图像。它不表示整个页面已 100% 还原；问题区、表格密度、底部操作区、跨阶段流程仍须逐项核验。M01–M03 完成；M04/M05/M06 OPEN；总体 3/6。
+
+
+## 2026-10-20｜真实 Host 截图复核与剩余视觉差异
+
+### 核验范围与可复现证据
+
+- Platform 候选提交：`6049c5875adecadef7b353fbc8861acc5c154ecd`。
+- 当前 Platform `main`：`eaa5e813b1e86a6460d988c76eb2076512c35127`。双向比较显示候选分支领先 36 个提交、落后 0 个提交；本轮不需要再盲目 rebase。PR #1060 仍为 Draft，未合并。
+- [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540039)：PASS。
+- [BEX-01 Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540028)：PASS；产物 `bex01-real-host-chromium-evidence`（artifact ID `12246513104`），包含真实 Host 的隔离合成数据截图和 `report.json`。
+- [BEX-01 In-Context Import Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540118)：PASS。
+- 同一 HEAD 的 [PA-01B2 Full Isolated Chrome Host Acceptance](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39384540116) 有独立失败：普通聊天 transport 场景的 mock model call 未被观察到（7/8）。这不是 BEX 专项门禁，不应通过改动 PA01/PA05 源码或忽略该失败来处理。
+- V3 原型对照来源仍是 [#909 原型产物](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38704093619)，其中 `bex-v3-in-context-import-open-in-browser` artifact ID `11957646429`。该产物的 `report.json` 明确标注其为 synthetic fixture，且真实客户工作簿、授权、生产提交和 Human 视觉审批未验证。
+
+### 实际截图观察
+
+当前 Host 产物中可复查以下文件：
+
+- `v3-fidelity-workbench-map-1280.png`：映射页首屏。
+- `v3-fidelity-workbench-batch-1280.png`：批次集中审核页首屏。
+- `v3-fidelity-first-viewport-batch-390.png`：390px 手机首屏。
+- `v3-map-row-issues-desktop.png`、`v3-map-row-issues-phone.png`：有真实 Host 映射问题的桌面/手机视图。
+- `v3-e4-map-desktop-contiguous-00.png` 至 `v3-e4-map-desktop-contiguous-03.png`、`v3-e4-map-desktop-submit.png`：映射表连续滚动与底部操作区证据。
+- `report.json`：5/5 个 BEX 真实 Host 浏览器场景通过，浏览器错误列表为空。数据是隔离合成供应商数据，不是客户验收证据。
+
+### 对照 #909 原型后确认的差异
+
+1. **上下文 Host 外壳不同**：正式页面在 Eidos/Platform Host 导航、语言和用户控件内运行；原型使用轻量演示页头。当前判断这是运行环境差异，不单独复制原型外壳到业务页。
+2. **文件卡片细节未达到原型**：原型展示 XLSX 类型图标、文件名、工作表、行列数及绿色“文件已读取”状态；当前 Host 有文件名、记录数、列数和读取状态，但缺少同等显著的文件类型图标/信息层级。列为待修复视觉差异。
+3. **异常区的内容结构不同**：原型截图使用 3 种不同异常（开户银行多目标、3 条主体类型缺失、系统编码未决），各有独立动作；当前真实 Host 问题截图使用只有 3 条主体类型缺失的隔离 CSV，因此只显示一个聚合问题卡和“核对本列”。这不是同一数据状态，不能据此声称异常区已 100% 还原。下一步应补充单独的隔离视觉 fixture，覆盖三个不同问题类型；不修改真实客户数据。
+4. **映射表结构已对齐基本四列**：来源列名、示例值、对应系统字段、状态均存在；但实际 fixture 的字段名、匹配/待新增比例与原型不同。最终签收需要在相同 22 列语义状态下比对，而不是用 172×22 另一组数据替代原型截图。
+5. **步骤流程与底部操作区尚未完成逐项签收**：Host 的当前步骤标识可见；原型有更明确的已完成步骤、连接线和编号层级。Host 映射页底部有“保存映射并预检查 / AI 自动匹配”，而原型概览底部是“返回文件 / 恢复初始选择 / 预检查并继续”。操作差异可能由实际工作流状态与上下文入口导致，需先统一测试状态再决定是否调整，不应仅为截图复制按钮。
+6. **手机布局已有功能性证据，不等于视觉签收**：390px 下页面宽度不溢出，卡片重排及触控检查通过；当前手机问题区只有一类聚合问题，且 Host 固定底部导航与原型不同。仍需用同一三类异常 fixture 做连续截图复核。
+
+### 决策与下一步
+
+- 不把自动化 PASS 当作 Human 视觉签收，也不把原型测试数据当作真实客户证据。
+- 保持 PR #1060 为 Draft；不部署、不合并、不启动 M04/M05 真实客户 Excel 验收。
+- 下一项具体工作：增加一个**独立、隔离、明确标记为 synthetic 的 V3 视觉 fixture**，让实际 Host 呈现与 #909 同等的 22 列、16 已匹配、4 待新增、0 忽略、3 类问题状态；保存 1280px 和 390px 连续截图。然后逐项修复文件卡片、异常区、步骤流程和底部操作区的真实差异，再请求 Human 签收。
+- 不改 `project.status.json`，不切换 Railway 到 release，不修改 PA05/Eidos 其他工作或插件治理。
+
+## 2026-10-20 continuation: real three-issue state and actionable cards
+
+### New live Host evidence
+
+The isolated Host now stages a dedicated synthetic 22-column, 172-row visual-review job. It does not use customer data and is not committed. The job is shaped to show the prototype's decision classes at once: 16 existing-field matches, 4 new-field proposals, 0 ignored columns, and 3 issues.
+
+The latest actual Host Chromium run passed:
+- [BEX-01 Real Host Chromium Supplier Journey](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545718)
+- [Platform CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545794)
+- [BEX-01 In-Context Import Resume](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545764)
+- [Human UI Design Review Gate](https://github.com/jiangxng/EVO-App-Platform/actions/runs/39391545683)
+
+The browser artifact `bex01-real-host-chromium-evidence` contains:
+- `v3-prototype-parity-issues-desktop.png`
+- `v3-prototype-parity-issues-phone.png`
+- `v3-prototype-parity-submit-desktop.png`
+- `v3-prototype-parity-submit-phone.png`
+
+The issue list now shows distinct Human actions:
+1. `开户银行存在多个对应字段` → `选择字段`
+2. `3 条记录缺少主体类型` → `查看记录`, with rows 165, 169, and 172 preserved
+3. `「系统编码」尚未选择处理方式` → `处理此列`
+
+The issue order is explicitly tested to match the approved prototype. The desktop and 390px screenshots come from the actual isolated Host and Chromium, not a static mock.
+
+### Decisions and limits
+
+- Ambiguous bank targets are not auto-selected. The issue action only focuses the existing field-choice control.
+- Missing subject type is summarized from durable dry-run evidence; it does not invent or fill a business value.
+- System-code-like metadata is retained in the source record until a Human chooses how to handle it.
+- The issue-card visual treatment is scoped to Eidos's opt-in `workbench` task presentation. The owner-layer CSS and regression test are tracked separately in [Eidos PR #204](https://github.com/jiangxng/eidos/pull/204), based on Eidos main and independent of PR #202.
+- The original V3 source-file card still lacks the prototype's explicit XLSX badge. The bottom action bar also still has only the current functional Host actions (`保存映射并预检查` and `AI 自动匹配`); `返回文件` and `恢复初始选择` have not been implemented yet because their real navigation/reset behavior must be added, not drawn as inert buttons.
+
+### Human review remains open
+
+This is a more faithful issue-state fixture and a validated implementation improvement, not final visual acceptance. Continue to compare the complete source card, issue panel, four-column table, stepper and bottom actions against PR #909 at 1280px and 390px. Do not start customer Excel acceptance until the user signs off the final V3 page.

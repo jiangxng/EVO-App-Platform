@@ -21,6 +21,7 @@ import {
 } from "../../dist/apps/data-import/actions.js";
 import {
   DATA_IMPORT_COMMIT_COMMAND_V010,
+  DATA_IMPORT_DRY_RUN_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010
 } from "../../dist/apps/data-import/constants.js";
@@ -349,6 +350,27 @@ test("mapping and review pages keep validation and commit explicit", () => {
       && action.route === "/data-import/jobs/import-human-1/map"
     )
   );
+  const rerun=reviewPage.actions.find(action=>action.id==="rerun");
+  assert.equal(rerun?.command,DATA_IMPORT_DRY_RUN_COMMAND_V010);
+  assert.equal(rerun?.requiresConfirmation,false);
+  assert.deepEqual(rerun?.values,{importJobId:"import-human-1"});
+  const failedPage=createDataImportReviewPageV010({job:{
+    ...job,state:"DRY_RUN_FAILED",dryRun:{
+      schemaDigest:"broken",totalRows:1,validRows:0,invalidRows:1,
+      rows:[{rowNumber:1,ok:false,issues:[{
+        code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+        fieldId:"subjectType",message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+      }]}]
+    }
+  },locale:"zh-CN"});
+  assert.equal(failedPage.actions.find(x=>x.id==="rerun")?.label,"重新预检查");
+  assert.ok(!failedPage.actions.some(x=>x.id==="commit"),
+    "invalid imports must not expose a commit action");
+  const terminalPage=createDataImportReviewPageV010({job:{
+    ...job,state:"COMMITTED"
+  },locale:"zh-CN"});
+  assert.ok(!terminalPage.actions.some(x=>x.id==="rerun"),
+    "completed imports must not be rerun by the review screen");
 });
 
 
@@ -1003,11 +1025,18 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
     "one unambiguous business field should not show raw technical fieldId");
   assert.equal(actualTarget.value,"code","submission still uses the exact Host fieldId");
   assert.equal(page.reviewTask.subject.title,"batch-proposals");
-  assert.equal(page.reviewTask.subject.facts.find(x=>x.id==="columns").value,"4");
+  assert.deepEqual(page.reviewTask.subject.facts,[],
+    "the compact V3 source card must not repeat counts already present in the subtitle and metrics");
+  assert.match(page.reviewTask.subject.subtitle,/4 列/,
+    "source column count remains visible in the file summary");
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
+  assert.deepEqual(page.reviewTask.steps.map(x=>[x.id,x.label,x.state]),[
+    ["source","选择文件","complete"],
+    ["review","核对并导入","current"]
+  ],"the top-level stepper must match the approved two-stage V3 prototype");
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
   assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
-  assert.equal(page.reviewTask.issues[0].actionLabel,"核对本列");
+  assert.equal(page.reviewTask.issues[0].actionLabel,"处理此列");
   assert.equal(page.reviewTable.columnLabels.subject,"来源列名");
   assert.equal(page.reviewTable.columnLabels.decision,"对应系统字段");
   assert.equal(page.reviewTable.columnLabels.evidence,"示例值");
@@ -1015,19 +1044,75 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.deepEqual(page.reviewGroups.map(x=>x.reviewStatus.key),
     ["matched","proposed","proposed","attention"],
     "Host-restored mapping, new definition and metadata exceptions must remain distinct");
-  assert.deepEqual(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys,
-    ["matched","proposed","attention"],
-    "Eidos filters must reference only status values in this authorized Job");
+  const reachableStatuses=new Set(page.reviewGroups.flatMap(group=>[
+    group.reviewStatus.key,
+    ...Object.values(group.statusByChoice).map(status=>status.key)
+  ]));
+  assert.deepEqual(
+    new Set(page.reviewTable.filter.options.find(x=>x.id==="all").statusKeys),
+    reachableStatuses,
+    "All must retain current and reachable statuses for this authorized Job");
+  assert.equal(page.reviewTable.filter.selectedId,"needs",
+    "actual unresolved/created columns should determine the initial filter");
+  assert.deepEqual(page.reviewGroups.map(group=>group.reviewStatus.key),
+    ["matched","proposed","proposed","attention"],
+    "unsaved choices cannot rewrite the Host-restored initial status");
+  const metadata=page.reviewGroups.find(group=>group.title==="系统编码");
+  assert.equal(metadata.statusByChoice.__CREATE__.key,"attention",
+    "returning from ignore to the original proposed value must restore metadata risk");
+  assert.equal(metadata.statusByChoice.__IGNORE__.key,"ignored");
+  assert.equal(metadata.statusByChoice.__PENDING__.key,"pending");
+  const stagedJob=repository.get("enterprise-context:a","batch-proposals");
+  const failedJob={
+    ...stagedJob,
+    state:"DRY_RUN_FAILED",
+    source:{
+      ...stagedJob.source,
+      headers:[...stagedJob.source.headers,"主体类型"],
+      rows:[1,2,3].map(()=>({...source.rows[0],"主体类型":""}))
+    },
+    mapping:[...stagedJob.mapping,{
+      sourceColumn:"主体类型",targetFieldId:"subjectType"
+    }],
+    dryRun:{
+      schemaDigest:"isolated-test-schema",
+      totalRows:3,validRows:0,invalidRows:3,
+      rows:[1,2,3].map(rowNumber=>({
+        rowNumber,ok:false,
+        issues:[{
+          code:"DATA_IMPORT_REQUIRED_VALUE_MISSING",
+          fieldId:"subjectType",
+          message:"DATA_IMPORT_REQUIRED_VALUE_MISSING"
+        }]
+      }))
+    }
+  };
+  const failedPage=createDataImportMappingPageV010({
+    job:failedJob,
+    schema:target.describe({contextId:"enterprise-context:a",
+      parameters:{relationshipMode:"SUPPLIER"}}),
+    locale:"zh-CN",canCreateExtension:true
+  });
+  assert.equal(failedPage.reviewTask.metrics.find(x=>x.id==="attention").value,"2",
+    "persisted row validation issues count as attention alongside unresolved mapping columns");
+  const subjectIssue=failedPage.reviewTask.issues.find(x=>x.title==="3 条记录缺少主体类型");
+  assert.ok(subjectIssue,"returning from a failed dry-run must expose its row issue on mapping review");
+  assert.match(subjectIssue.description,/请为以下记录选择正确的主体类型。（第 1、2、3 行）/);
+  assert.equal(subjectIssue.focusGroupId,"map-source-4",
+    "the issue should focus the existing source mapping group, not mutate the mapping");
+  assert.equal(validateUidl(failedPage).ok,true,
+    JSON.stringify(validateUidl(failedPage).diagnostics));
   const mapHtml=renderToHtml(page);
   assert.match(mapHtml,/data-eidos-form-task-overview/);
   assert.match(mapHtml,/data-eidos-form-task-metrics/);
   assert.match(mapHtml,/data-eidos-form-task-focus="map-source-3"/);
   assert.match(mapHtml,/<table data-eidos-form-review-table/);
   assert.equal((mapHtml.match(/data-eidos-form-review-table-row="map-source-/g)??[]).length,4);
-  assert.equal((mapHtml.match(/data-eidos-review-table-choice/g)??[]).length,4);
+  assert.equal((mapHtml.match(/data-eidos-review-table-choice data-heading=/g)??[]).length,4);
   assert.match(mapHtml,/data-eidos-form-review-table-filter/);
   assert.match(mapHtml,/data-eidos-form-review-table-count role="status" aria-live="polite">3 \/ 4/);
-  assert.match(mapHtml,/data-eidos-review-table-status-key="matched" hidden/);
+  assert.match(mapHtml,/data-eidos-review-table-status-key="matched"[^>]* hidden/,
+    "a matched row stays hidden in needs even when opt-in state metadata is present");
   for(let i=0;i<4;i++)
     assert.equal((mapHtml.match(new RegExp('name="map_'+i+'"','g'))??[]).length,1);
   assert.equal((mapHtml.match(/name="sourceEvidence_3"/g)??[]).length,1);
@@ -1037,7 +1122,12 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
-  assert.match(page.fields.find(x=>x.key==="batchReviewEntry").contextLink.label,/集中审核/);
+  const batchReviewLink=page.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-review");
+  assert.ok(batchReviewLink,"Batch B remains available beside mapping decisions");
+  assert.ok(!page.contextNavigation.items.some(x=>x.id==="batch-review"),
+    "secondary actions must not be masqueraded as breadcrumbs");
+  assert.match(batchReviewLink.label,/集中审核/);
+  assert.match(batchReviewLink.route,/mode=batch/);
   assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
   assert.ok(page.fields.find(x=>x.key==="map_2").options.some(x=>x.value==="__IGNORE__"));
   const review=handlers.find(x=>x.commandCode===DATA_IMPORT_REVIEW_COMMAND_V010);
@@ -1079,10 +1169,10 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
       contextId:"enterprise-context:a",parameters:{relationshipMode:"SUPPLIER"}
     }),locale:"zh-CN",canCreateExtension:true
   });
-  assert.ok(completedPage.contextNavigation.items.some(x=>x.id==="batch-constant"
+  assert.ok(completedPage.reviewTable.utilityNavigation.items.some(x=>x.id==="batch-constant"
     && x.route.includes("mode=batch")),"saved batch constant remains editable after all columns mapped");
-  assert.match(completedPage.fields.find(x=>x.key==="batchConstantEntry").contextLink.label,
-    /查看或修改批次固定值/);
+  assert.match(completedPage.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-constant").label,
+    /核对本次导入的批次固定值/);
   assert.equal(validateUidl(completedPage).ok,true,
     JSON.stringify(validateUidl(completedPage).diagnostics));
 });

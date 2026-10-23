@@ -43,6 +43,7 @@ const fieldKeys = new Set([
   "semanticType",
   "control",
   "required",
+  "hidden",
   "readOnly",
   "initialValue",
   "unit",
@@ -112,6 +113,7 @@ function parseField(
     semanticType,
     control,
     required,
+    hidden,
     readOnly,
     initialValue,
     unit,
@@ -163,6 +165,24 @@ function parseField(
       "EIDOS_SCHEMA_TYPE",
       `${path}.readOnly`,
       "readOnly must be boolean"
+    ));
+  }
+  if (hidden !== undefined && typeof hidden !== "boolean") {
+    out.push(d(
+      "EIDOS_SCHEMA_TYPE",
+      `${path}.hidden`,
+      "hidden must be boolean"
+    ));
+  }
+  if (hidden === true && (
+    !["string", "number", "boolean"].includes(typeof initialValue)
+    || control === "file"
+    || contextLink !== undefined
+  )) {
+    out.push(d(
+      "EIDOS_HIDDEN_FIELD_VALUE_INVALID",
+      path,
+      "Hidden fields require a primitive initialValue and cannot be file inputs or include context links"
     ));
   }
   if (unit !== undefined && typeof unit !== "string") {
@@ -422,6 +442,7 @@ function parseField(
     semanticType,
     control: control as UidlField["control"],
     required,
+    ...(typeof hidden === "boolean" ? { hidden } : {}),
     ...(typeof readOnly === "boolean" ? { readOnly } : {}),
     ...(
       ["string", "number", "boolean"].includes(typeof initialValue)
@@ -865,7 +886,40 @@ export function validateUidl(
       out.push(d("EIDOS_REVIEW_TABLE_INVALID",p,
         "Review table needs headings and fully annotated review groups"));
     } else {
-      extraKeys(table, new Set(["columnLabels","filter"]),p,out);
+      extraKeys(table, new Set(["columnLabels","filter","presentation","evidenceLayout","heading","toolbarHint","footnote","agentActionId","utilityNavigation"]),p,out);
+      for(const [key,max] of [["toolbarHint",240],["footnote",400]] as const){
+        const value=table[key];
+        if(value!==undefined && (!nonEmpty(value) || value.length>max)){
+          out.push(d("EIDOS_REVIEW_TABLE_GUIDANCE_INVALID",p+"."+key,
+            "Guidance must be a bounded, nonempty string"));
+        }
+      }
+      if (table.heading !== undefined) {
+        if (!isPlainObject(table.heading)
+          || !nonEmpty(table.heading.title)
+          || table.heading.title.length > 120
+          || table.heading.description !== undefined
+            && (typeof table.heading.description !== "string"
+              || table.heading.description.length > 600)) {
+          out.push(d("EIDOS_REVIEW_TABLE_HEADING_INVALID",p+".heading",
+            "Heading requires a bounded nonempty title and optional description"));
+        } else {
+          extraKeys(table.heading,new Set(["title","description"]),p+".heading",out);
+        }
+      }
+      if (table.presentation !== undefined
+        && (!nonEmpty(table.presentation)
+          || !["standard","compact"].includes(table.presentation))) {
+        out.push(d("EIDOS_REVIEW_TABLE_PRESENTATION_INVALID",p+".presentation",
+          "Review-table presentation must be standard or compact"));
+      }
+      if (table.evidenceLayout !== undefined
+        && (typeof table.evidenceLayout !== "string"
+          || !["stacked","inline-collapsed"].includes(table.evidenceLayout)
+          || table.evidenceLayout==="inline-collapsed" && table.presentation!=="compact")) {
+        out.push(d("EIDOS_REVIEW_TABLE_EVIDENCE_LAYOUT_INVALID",p+".evidenceLayout",
+          "Inline collapsed evidence requires compact presentation"));
+      }
       extraKeys(table.columnLabels,
         new Set(["subject","evidence","decision","status"]),p+".columnLabels",out);
       const labels = table.columnLabels as Record<"subject"|"evidence"|"decision"|"status",string>;
@@ -888,6 +942,11 @@ export function validateUidl(
           const ids = new Set<string>(), options: NonNullable<
             import("./contracts.js").UidlFormReviewTableV010["filter"]
           >["options"] = [];
+          const primaryChoices = new Set(reviewGroups.flatMap(group=>{
+            const field=fields.find(item=>item.key===group.primaryFieldKey);
+            return field?.control==="select"
+              ? (field.options??[]).map(option=>String(option.value)) : [];
+          }));
           let all = false;
           f.options.forEach((raw:unknown,i:number)=>{
             if (!isPlainObject(raw) || !nonEmpty(raw.id) || !raw.id.trim()
@@ -895,17 +954,26 @@ export function validateUidl(
               || !Array.isArray(raw.statusKeys) || raw.statusKeys.length===0
               || raw.statusKeys.some((k:unknown)=>typeof k!=="string"||!keys.has(k))
               || new Set(raw.statusKeys).size!==raw.statusKeys.length
+              || raw.choiceValues!==undefined
+                && (!Array.isArray(raw.choiceValues)
+                  || raw.choiceValues.length===0 || raw.choiceValues.length>12
+                  || raw.choiceValues.some((value:unknown)=>
+                    typeof value!=="string" || !primaryChoices.has(value))
+                  || new Set(raw.choiceValues).size!==raw.choiceValues.length)
               || ids.has(raw.id)) {
               out.push(d("EIDOS_REVIEW_TABLE_FILTER_INVALID",
                 p+".filter.options["+i+"]","Invalid or duplicated filter option"));
               return;
             }
-            extraKeys(raw,new Set(["id","label","statusKeys"]),
+            extraKeys(raw,new Set(["id","label","statusKeys","choiceValues"]),
               p+".filter.options["+i+"]",out);
             ids.add(raw.id);
             const statusKeys = [...raw.statusKeys] as string[];
-            options.push({id:raw.id,label:raw.label,statusKeys});
-            if ([...keys].every(k=>statusKeys.includes(k))) all=true;
+            const choiceValues = raw.choiceValues===undefined
+              ? undefined : [...raw.choiceValues] as string[];
+            options.push({id:raw.id,label:raw.label,statusKeys,
+              ...(choiceValues ? {choiceValues} : {})});
+            if (!choiceValues && [...keys].every(k=>statusKeys.includes(k))) all=true;
           });
           if (!ids.has(f.selectedId) || !all) {
             out.push(d("EIDOS_REVIEW_TABLE_FILTER_ALL_MISSING",p+".filter",
@@ -915,7 +983,66 @@ export function validateUidl(
             noMatchesMessage:f.noMatchesMessage,options};
         }
       }
+      if (table.agentActionId !== undefined
+        && (!nonEmpty(table.agentActionId)
+          || table.agentActionId.length > 128)) {
+        out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",p+".agentActionId",
+          "Toolbar agent action requires an existing action ID"));
+      }
+      let utilityNavigation:import("./contracts.js").UidlFormReviewTableV010["utilityNavigation"];
+      if(table.utilityNavigation!==undefined){
+        const nav=table.utilityNavigation;
+        if(!isPlainObject(nav) || !nonEmpty(nav.label) || nav.label.length>64
+          || !Array.isArray(nav.items) || nav.items.length<1
+          || nav.items.length>3){
+          out.push(d("EIDOS_REVIEW_TABLE_UTILITY_INVALID",p+".utilityNavigation",
+            "Secondary navigation needs a bounded label and 1-3 internal routes"));
+        }else{
+          extraKeys(nav,new Set(["label","items"]),p+".utilityNavigation",out);
+          const ids=new Set<string>();
+          const items:{id:string;label:string;route:string}[]=[];
+          for(const [index,raw] of nav.items.entries()){
+            const at=p+".utilityNavigation.items["+index+"]";
+            if(!isPlainObject(raw) || !nonEmpty(raw.id) || raw.id.length>80
+              || ids.has(raw.id) || !nonEmpty(raw.label) || raw.label.length>150
+              || !nonEmpty(raw.route) || raw.route.length>1024
+              || !raw.route.startsWith("/") || raw.route.startsWith("//")
+              || raw.route.includes("#") || raw.route.includes("\\")
+              || raw.route.includes(String.fromCharCode(10))
+              || raw.route.includes(String.fromCharCode(13))){
+              out.push(d("EIDOS_REVIEW_TABLE_UTILITY_INVALID",at,
+                "Only unique, bounded Host-internal navigation is allowed"));
+            }else{
+              extraKeys(raw,new Set(["id","label","route"]),at,out);
+              ids.add(raw.id);
+              items.push({id:raw.id,label:raw.label,route:raw.route});
+            }
+          }
+          if(items.length===nav.items.length){
+            utilityNavigation={label:nav.label,items};
+          }
+        }
+      }
       reviewTable={
+        ...(utilityNavigation ? {utilityNavigation} : {}),
+        ...(nonEmpty(table.agentActionId) && table.agentActionId.length <= 128
+          ? {agentActionId:table.agentActionId} : {}),
+        ...(typeof table.toolbarHint==="string" && table.toolbarHint.trim()
+          && table.toolbarHint.length<=240 ? {toolbarHint:table.toolbarHint} : {}),
+        ...(typeof table.footnote==="string" && table.footnote.trim()
+          && table.footnote.length<=400 ? {footnote:table.footnote} : {}),
+        ...(isPlainObject(table.heading) && nonEmpty(table.heading.title)
+          && table.heading.title.length <= 120
+          && (table.heading.description === undefined
+            || typeof table.heading.description === "string"
+              && table.heading.description.length <= 600)
+          ? {heading:{title:table.heading.title,
+              ...(typeof table.heading.description === "string"
+                ? {description:table.heading.description} : {})}} : {}),
+        ...(table.presentation==="compact" || table.presentation==="standard"
+          ? {presentation:table.presentation} : {}),
+        ...(table.evidenceLayout==="stacked" || table.evidenceLayout==="inline-collapsed"
+          ? {evidenceLayout:table.evidenceLayout} : {}),
         columnLabels:{
           subject:labels.subject,evidence:labels.evidence,
           decision:labels.decision,status:labels.status
@@ -1014,13 +1141,71 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","helpText"]),path,out);
-      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","facts"]),
+        "issuesDescription","issues","issuesCountSuffix","issuesLayout","issuesPageSize","helpText","presentation","footer"]),path,out);
+      if (task.presentation !== undefined
+        && (typeof task.presentation !== "string"
+          || !["full","decision-first","workbench"].includes(task.presentation))) {
+        fail(path+".presentation","Unknown review task presentation mode");
+      }
+      if (task.issuesPageSize !== undefined
+        && (task.presentation !== "workbench"
+          || task.issuesPageSize !== 12
+          || !Array.isArray(task.issues)
+          || task.issues.length === 0)) {
+        fail(path+".issuesPageSize",
+          "Issue pagination requires a nonempty workbench list in groups of twelve");
+      }
+      if (task.issuesLayout !== undefined
+        && (task.presentation !== "workbench"
+          || task.issuesLayout !== "connected"
+          || !Array.isArray(task.issues) || task.issues.length === 0)) {
+        fail(path+".issuesLayout",
+          "Connected issues need a nonempty opt-in workbench issue list");
+      }
+      extraKeys(task.subject,new Set(["title","subtitle","statusLabel","statusTone","iconLabel","facts"]),
         path+".subject",out);
       if ((task.subject.subtitle !== undefined && typeof task.subject.subtitle !== "string")
         || (task.subject.statusLabel !== undefined
           && typeof task.subject.statusLabel !== "string")) {
         fail(path+".subject","Subject copy must be text");
+      }
+      if (task.subject.statusTone !== undefined
+        && (typeof task.subject.statusTone !== "string"
+          || !["neutral","positive","warning"].includes(task.subject.statusTone)
+          || !nonEmpty(task.subject.statusLabel))) {
+        fail(path+".subject.statusTone",
+          "Source status tone needs a visible status label and known semantic tone");
+      }
+      if (task.subject.iconLabel !== undefined
+        && (typeof task.subject.iconLabel !== "string"
+          || !task.subject.iconLabel.trim()
+          || task.subject.iconLabel.trim().length > 8)) {
+        fail(path+".subject.iconLabel","Decorative iconLabel must have 1-8 characters");
+      }
+      if (task.footer !== undefined) {
+        if (task.presentation !== "workbench" || !isPlainObject(task.footer)) {
+          fail(path+".footer","Footer controls require a workbench task");
+        } else {
+          extraKeys(task.footer,new Set(["back","resetLabel","saveHint"]),path+".footer",out);
+          if (task.footer.back !== undefined
+            && (!isPlainObject(task.footer.back)
+              || !nonEmpty(task.footer.back.label)
+              || typeof task.footer.back.route !== "string"
+              || !task.footer.back.route.startsWith("/")
+              || task.footer.back.route.startsWith("//")
+              || task.footer.back.route.includes(String.fromCharCode(10))
+              || task.footer.back.route.includes(String.fromCharCode(13)))) {
+            fail(path+".footer.back","Back requires a labeled internal route");
+          } else if (isPlainObject(task.footer.back)) {
+            extraKeys(task.footer.back,new Set(["label","route"]),path+".footer.back",out);
+          }
+          for (const key of ["resetLabel","saveHint"]) {
+            const value=task.footer[key];
+            if (value !== undefined && !nonEmpty(value)) {
+              fail(path+".footer."+key,"Footer text must be nonempty");
+            }
+          }
+        }
       }
       const checkIds = (items: unknown, pathName: string, max: number,
         predicate: (item:Record<string,unknown>,at:string)=>boolean) => {
@@ -1052,22 +1237,45 @@ export function validateUidl(
         fail(path+".steps","Exactly one step must be current");
       }
       checkIds(task.metrics,path+".metrics",8,(item,at)=>{
-        extraKeys(item,new Set(["id","label","value","tone"]),at,out);
+        extraKeys(item,new Set(["id","label","value","tone","reactive"]),at,out);
         return nonEmpty(item.label) && typeof item.value==="string"
+          && (item.reactive===undefined || typeof item.reactive==="boolean")
           && (item.tone===undefined
             || ["neutral","positive","warning","danger"].includes(item.tone as string));
       });
-      checkIds(task.issues,path+".issues",12,(item,at)=>{
+      // Existing workbenches remain capped at 12. Opt-in pages may retain
+      // the full issue catalog up to a bounded 4096 entries; above this,
+      // validation must fail instead of silently dropping outstanding tasks.
+      checkIds(task.issues,path+".issues",task.issuesPageSize===12?4096:12,(item,at)=>{
         extraKeys(item,new Set(["id","title","description",
-          "focusGroupId","actionLabel"]),at,out);
+          "focusGroupId","actionLabel","relatedRoutes"]),at,out);
         return nonEmpty(item.title)
           && (item.description===undefined || typeof item.description==="string")
           && (item.focusGroupId===undefined
             || nonEmpty(item.focusGroupId)
               && reviewGroups.some(group=>group.id===item.focusGroupId))
           && (item.actionLabel===undefined || nonEmpty(item.actionLabel))
-          && (item.actionLabel===undefined || item.focusGroupId!==undefined);
+          && (item.actionLabel===undefined
+            || item.focusGroupId!==undefined || item.relatedRoutes!==undefined)
+          && (item.relatedRoutes===undefined || Array.isArray(item.relatedRoutes)
+            && item.relatedRoutes.length>=1 && item.relatedRoutes.length<=8
+            && item.relatedRoutes.every((raw:unknown)=>isPlainObject(raw)
+              && nonEmpty(raw.label) && raw.label.length<=80
+              && typeof raw.route==="string" && raw.route.length<=360
+              && raw.route.startsWith("/") && !raw.route.startsWith("//")
+              && !raw.route.includes(String.fromCharCode(10))
+              && !raw.route.includes(String.fromCharCode(13)))
+            && new Set(item.relatedRoutes.map((v:{route:string})=>v.route)).size
+              === item.relatedRoutes.length);
       });
+      if (task.issuesCountSuffix !== undefined
+        && (task.presentation !== "workbench"
+          || !nonEmpty(task.issuesCountSuffix)
+          || task.issuesCountSuffix.trim().length > 32
+          || !Array.isArray(task.issues) || task.issues.length === 0)) {
+        fail(path+".issuesCountSuffix",
+          "Issue count badge needs nonempty workbench issues and a bounded suffix");
+      }
       for (const key of ["issuesTitle","issuesDescription","helpText"] as const) {
         if (task[key]!==undefined && typeof task[key]!=="string") {
           fail(path+"."+key,"Review task copy must be text");
@@ -1107,6 +1315,12 @@ export function validateUidl(
     });
   }
 
+  if(reviewTable?.agentActionId && !actions.some(action=>
+    action.type === "agent" && action.id === reviewTable.agentActionId)){
+    out.push(d("EIDOS_REVIEW_TABLE_AGENT_ACTION_INVALID",
+      "$.reviewTable.agentActionId",
+      "Toolbar action must reference a declared Agent action"));
+  }
   const submits = actions.filter(action => action.type === "submit");
   if (submits.length < 1 || submits.length > 3) {
     out.push(d("EIDOS_SUBMIT_CARDINALITY", "$.actions",
