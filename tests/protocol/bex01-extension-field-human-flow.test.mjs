@@ -83,6 +83,10 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
    "＋ 为本列创建企业扩展字段");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
+ assert.ok(mappingWithEntry.reviewTable.utilityNavigation.items.some(x=>
+   x.id==="batch-review" && x.route.includes("mode=batch")));
+ assert.equal(mappingWithEntry.contextNavigation.items.some(x=>
+   x.id==="batch-review" || x.id==="create-extension"),false);
  const exclusive = mappingWithEntry.fields.filter(x=>x.semanticType==="data-import-field-mapping");
  assert.equal(exclusive.length,job.source.headers.length);
  assert.deepEqual(exclusive.map(x=>x.exclusiveSelect),Array(exclusive.length).fill({
@@ -92,6 +96,7 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
   job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:false
  });
  assert.equal(mappingWithoutPermission.fields.some(x=>x.contextLink),false);
+ assert.equal(mappingWithoutPermission.reviewTable.utilityNavigation,undefined);
  assert.equal(mappingWithoutPermission.contextNavigation.items.some(x=>x.id==="create-extension"),false);
  const mapOtherObject=createDataImportMappingPageV010({
   job:{...job,targetId:"warehouse.item"},schema:schemaBefore,locale:"zh-CN",

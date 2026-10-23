@@ -1,3 +1,5 @@
+import { createLlmCredentialFetchV010 } from "./llm-credential-fetch.js";
+import { createMemoryCredentialFetchV010 } from "./memory-credential-fetch.js";
 import { createOnUseEogServicesV010 } from "./eog-service-runtime.js";
 import { createPa05HostWriteLifecycleV010, Pa05HostLifecycleDeniedV010, pa05HostLifecycleConfigurationV010 } from "./agent-plugin-write-host-lifecycle.js";
 import { createProviderLifecyclePage, providerLifecyclePageSource } from "./provider-lifecycle-page.js";
@@ -11,6 +13,8 @@ import { createLazyProviderRuntimeV010 } from "./lazy-provider-runtime.js";
 import type { EnterpriseOperatingGraphAnalysisProviderV020 } from "../contracts/enterprise-operating-graph-observatory.js";
 import { createPackageCatalog } from "../catalog/catalog.js";
 import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js";
+import { acquirePa05CooperativeHostStateLockV010 } from "./pa05-read-owner-cooperative-host-lock.js";
+import { rejectHostShutdownRequestV010, runHostShutdownStepsV010 } from "./host-shutdown.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
 import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
@@ -136,22 +140,17 @@ import {
   createEogExpectedSopServiceV010
 } from "./enterprise-operating-graph-sop-service.js";
 import {
-  createEogExpectedSopActionHandlersV010
-} from "./enterprise-operating-graph-sop-actions.js";
+  EOG_SOP_LIST_ACTION,
+  EOG_SOP_CREATE_ACTION,
+  EOG_SOP_REVISE_ACTION,
+  EOG_SOP_PUBLISH_ACTION
+} from "../contracts/enterprise-operating-graph-sop.js";
 import {
   createEogExpectedSopAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-sop-agent-tools.js";
 import {
-  createEnterpriseOperatingGraphActionHandlersV010
-} from "./enterprise-operating-graph-actions.js";
-import {
   createEnterpriseOperatingGraphAgentToolRegistrationsV010
 } from "./enterprise-operating-graph-agent-tools.js";
-import {
-  createEnterpriseOperatingGraphEditorPageV010,
-  createEnterpriseOperatingGraphViewActionHandlersV010,
-  EOG_EDITOR_PAGE_SOURCE
-} from "./enterprise-operating-graph-page.js";
 import {
   createEnterpriseOperatingGraphObservatoryProviderResolverV020
 } from "./enterprise-operating-graph-observatory-provider.js";
@@ -796,7 +795,16 @@ import {
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SAVE_ACTION,
   EOG_2D_DESIGNER_DEFINITION_PROJECTION_SELECTION_GET_ACTION,
   EOG_2D_DESIGNER_FEATURE_ID,
-  EOG_2D_DESIGNER_PACKAGE_ID
+  EOG_2D_DESIGNER_PAGE_SOURCE as EOG_EDITOR_PAGE_SOURCE,
+  EOG_2D_DESIGNER_PACKAGE_ID,
+  EOG_CREATE_ACTION,
+  EOG_GET_ACTION,
+  EOG_LIST_ACTION,
+  EOG_VALIDATE_ACTION,
+  EOG_APPLY_OPERATION_ACTION,
+  EOG_VIEW_GET_ACTION,
+  EOG_VIEW_OPERATION_ACTION,
+  EOG_VIEW_SELECTION_GET_ACTION
 } from "../apps/eog-2d-designer/package.js";
 import {
   ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
@@ -1041,6 +1049,28 @@ const catalog = createPackageCatalog([
   ...tradingStagePreviewContribution.packages
 ]);
 const lifecycleStateFile = process.env.APP_PLATFORM_STATE_FILE?.trim();
+// PA05/E01J4J: optional *cooperating process* exclusion on exactly the
+// J4I one-shot state file. All ordinary startup paths remain unchanged by
+// default. This is NOT a distributed Worker/production-offline proof.
+const pa05CooperativeLockMode =
+  process.env.APP_PLATFORM_PA05_E01J4J_COOPERATIVE_HOST_LOCK?.trim() || "OFF";
+if (!["OFF", "OPT_IN"].includes(pa05CooperativeLockMode))
+  throw Error("PA05_J4J_COOPERATIVE_LOCK_MODE_INVALID");
+if (pa05CooperativeLockMode === "OPT_IN") {
+  if (!lifecycleStateFile)
+    throw Error("PA05_J4J_COOPERATIVE_STATE_FILE_REQUIRED");
+  const hostLock = acquirePa05CooperativeHostStateLockV010({
+    mode: "OPT_IN", stateFile: lifecycleStateFile
+  });
+  // Only successful clean exit releases the lock. An E01I early throw,
+  // shutdown failure or SIGKILL leaves it for independent Human review.
+  process.once("exit", (exitCode) => {
+    // Only clean process exit certifies a graceful Host release.
+    // Error exit, uncaught exception or failed shutdown leave this lock
+    // ambiguous for independently authorized stale-lock investigation.
+    if (exitCode === 0) hostLock.release();
+  });
+}
 const store = lifecycleStateFile ? createFileLifecycleStore(lifecycleStateFile) : createMemoryLifecycleStore();
 
 // PA05-05/E01I: the local file store is NOT a shared, transactional
@@ -1208,10 +1238,10 @@ if (
   throw new Error("AUTHENTICATION_SESSION_TTL_INVALID");
 }
 const managedSessionStateFile =
-  process.env.APP_PLATFORM_MANAGED_SESSION_FILE?.trim()
-  || (managedSessionEnabled && lifecycleStateFile
-    ? join(dirname(lifecycleStateFile), "identity-sessions.jsonl")
-    : undefined);
+  managedSessionEnabled
+    ? process.env.APP_PLATFORM_MANAGED_SESSION_FILE?.trim()
+      || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "identity-sessions.jsonl") : undefined)
+    : undefined;
 if (managedSessionEnabled && !managedSessionStateFile) {
   throw new Error(
     "IDENTITY_SESSION_DURABLE_STORE_REQUIRED: configure APP_PLATFORM_MANAGED_SESSION_FILE or APP_PLATFORM_STATE_FILE"
@@ -2031,6 +2061,35 @@ providerRuntimeRegistry.setHealth(HOST_ENCRYPTED_SECRETS_PROVIDER_ID, {
     : "In-memory Host secret store is active for this process.",
   checkedAt: new Date().toISOString()
 });
+// Three optional-token consumers only; bounded epochs/counts contain no credentials.
+// One OIDC owner: invalidate login transactions without retaining protocol secrets.
+let oidcContextEpoch = 0;
+let oidcSettingsWrites = 0;
+const memoryCredentialOwners = new Map<string, string>([
+  [REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID],
+  [REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID],
+  [EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID]
+]);
+const memoryCredentialEpochs = new Map<string, number>();
+const memorySettingsWrites = new Map<string, number>();
+function invalidateMemoryCredential(providerId: string): void {
+  memoryCredentialEpochs.set(providerId, (memoryCredentialEpochs.get(providerId) ?? 0) + 1);
+}
+function invalidateMemoryBinding(capability: string): void {
+  if (capability === IDENTITY_AUTHENTICATION_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    oidcContextEpoch++;
+  }
+  if (capability === CONTEXT_MEMORY_SEMANTIC_RETRIEVAL_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    invalidateMemoryCredential(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
+  }
+  if (capability === CONTEXT_MEMORY_DLP_CLASSIFICATION_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    invalidateMemoryCredential(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID);
+  }
+  if (capability === CONTEXT_MEMORY_INTAKE_SOURCE_CAPABILITY
+      || capability === CONTEXT_MEMORY_EVIDENCE_SOURCE_CAPABILITY || capability === SECRETS_RESOLVE_CAPABILITY) {
+    invalidateMemoryCredential(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID);
+  }
+}
 const providerBindingsFile = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE?.trim()
   || (lifecycleStateFile ? join(dirname(lifecycleStateFile), "provider-bindings.json") : undefined);
 const baseProviderBindings = providerBindingsFile
@@ -2038,9 +2097,14 @@ const baseProviderBindings = providerBindingsFile
   : createMemoryProviderBindingStoreV010();
 const providerBindings: typeof baseProviderBindings = {
   list: capability => baseProviderBindings.list(capability),
-  save(binding) { baseProviderBindings.save(binding); refreshContextMemorySchedule(); },
+  save(binding) {
+    try { baseProviderBindings.save(binding); }
+    finally { invalidateMemoryBinding(binding.capability); }
+    refreshContextMemorySchedule();
+  },
   delete(capability, scope, scopeId) {
-    baseProviderBindings.delete(capability, scope, scopeId);
+    try { baseProviderBindings.delete(capability, scope, scopeId); }
+    finally { invalidateMemoryBinding(capability); }
     refreshContextMemorySchedule();
   }
 };
@@ -2217,12 +2281,38 @@ const bottleneckRuntime = createLazyProviderRuntimeV010<EnterpriseOperatingGraph
   }
 });
 
+// Bounded metadata only: no credentials or pending operations are stored here.
+const llmCredentialEpochs = new Map<string, number>();
+const llmConfigurationEpochs = new Map<string, number>();
+const llmSettingsWrites = new Map<string, number>();
+
 const manager = createAppManagerService(
   catalog,
   store,
   () => new Date(),
   new Map([...referenceExperienceAssets, ...tradingStagePreviewContribution.experienceAssets]),
   event => {
+    if (event.packageId === GENERIC_OIDC_PACKAGE_ID
+        || catalog.get(event.packageId)?.features.some(feature =>
+          feature.providesCapabilities?.includes(IDENTITY_AUTHENTICATION_CAPABILITY))) oidcContextEpoch++;
+    const llmProviderId = event.packageId === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
+      : event.packageId === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
+    if (llmProviderId) {
+      llmCredentialEpochs.set(llmProviderId, (llmCredentialEpochs.get(llmProviderId) ?? 0) + 1);
+      // Prepare only currently effective LLMs after the lifecycle state change.
+      // The original refresh revision rejects late preparation after stop.
+      const refresh = llmProviderId === OPENAI_LLM_PROVIDER_ID
+        ? refreshOpenAiProviderRuntime : refreshDeepSeekProviderRuntime;
+      void refresh().catch(error => console.error("LLM lifecycle preparation failed.", error));
+    }
+    const memoryProviderId = memoryCredentialOwners.get(event.packageId);
+    if (memoryProviderId) invalidateMemoryCredential(memoryProviderId);
+    if (catalog.get(event.packageId)?.features.some(feature => feature.providesCapabilities?.includes(SECRETS_RESOLVE_CAPABILITY))) {
+      invalidateMemoryBinding(SECRETS_RESOLVE_CAPABILITY);
+      // A restored shared Secrets source may make an effective LLM usable.
+      void refreshOpenAiProviderRuntime().catch(error => console.error("OpenAI Secrets-source preparation failed.", error));
+      void refreshDeepSeekProviderRuntime().catch(error => console.error("DeepSeek Secrets-source preparation failed.", error));
+    }
     refreshContextMemorySchedule();
     const emitted = pluginEvents.publish("evo.app-platform", "evo.app-platform.lifecycle", event);
     lifecycleEventLog.push(emitted);
@@ -2516,7 +2606,7 @@ async function resolveBiWorkbenchRuntimeV010() {
 const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
   ? createFileSettingsStore(join(dirname(lifecycleStateFile), "startup-defaults.json"))
   : createMemorySettingsStore());
-function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false): void {
+function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false) {
   if (startupProfile === "minimal" && !explicit) return;
   try {
     const result = startupDefaults.apply({
@@ -2526,8 +2616,10 @@ function installBusinessDefaultOnce(packageId: string, ready = true, explicit = 
       install() { pa05WriteLifecycleHost.bootstrapActivation("INSTALL", packageId); }
     });
     if (result === "INSTALLED") console.log("Installed first-run business default", packageId);
+    return result;
   } catch (error) {
     console.error("Failed to initialize business default", packageId, error);
+    return "FAILED" as const;
   }
 }
 
@@ -2573,19 +2665,7 @@ installBusinessDefaultOnce(EOG_BOTTLENECK_ANALYSIS_PACKAGE_ID);
 const evoObservatoryEnabled =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_ENABLED?.trim().toLowerCase()
   === "true";
-if (
-  evoObservatoryEnabled
-  && !installedAtStartup.some(
-    item => item.packageId === EVO_RUNTIME_OBSERVATORY_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EVO_RUNTIME_OBSERVATORY_PACKAGE_ID);
-    console.log("Activated EVO Runtime Observatory Provider.");
-  } catch (error) {
-    console.error("Failed to activate EVO Runtime Observatory Provider.", error);
-  }
-}
+installBusinessDefaultOnce(EVO_RUNTIME_OBSERVATORY_PACKAGE_ID, Boolean(evoObservatoryEnabled), true);
 if (
   managedSessionEnabled
   && !installedAtStartup.some(item => item.packageId === HOST_MANAGED_SESSION_PACKAGE_ID)
@@ -2630,56 +2710,10 @@ if (!installedAtStartup.some(item => item.packageId === HOST_ENTERPRISE_RELATION
   }
 }
 installBusinessDefaultOnce(HOST_CONTEXT_MEMORY_PACKAGE_ID);
-if (
-  hostMemoryIntakeConfig
-  && !installedAtStartup.some(item => item.packageId === HOST_MEMORY_INTAKE_PACKAGE_ID)
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", HOST_MEMORY_INTAKE_PACKAGE_ID);
-    console.log("Activated Host Memory Intake Provider.");
-  } catch (error) {
-    console.error("Failed to activate Host Memory Intake Provider.", error);
-  }
-}
-if (
-  remoteSemanticEndpoint
-  && !installedAtStartup.some(
-    item => item.packageId === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID);
-    console.log("Activated Remote Context Memory Semantic Provider.");
-  } catch (error) {
-    console.error("Failed to activate Remote Context Memory Semantic Provider.", error);
-  }
-}
-if (
-  remoteDlpEndpoint
-  && !installedAtStartup.some(
-    item => item.packageId === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID);
-    console.log("Activated Remote Context Memory DLP Provider.");
-  } catch (error) {
-    console.error("Failed to activate Remote Context Memory DLP Provider.", error);
-  }
-}
-if (
-  experienceCompilerMemoryIntakeConfig
-  && !installedAtStartup.some(
-    item => item.packageId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
-  )
-) {
-  try {
-    pa05WriteLifecycleHost.bootstrapActivation("INSTALL", EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID);
-    console.log("Activated Experience Compiler Memory Intake Provider.");
-  } catch (error) {
-    console.error("Failed to activate Experience Compiler Memory Intake Provider.", error);
-  }
-}
+installBusinessDefaultOnce(HOST_MEMORY_INTAKE_PACKAGE_ID, Boolean(hostMemoryIntakeConfig), true);
+installBusinessDefaultOnce(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, Boolean(remoteSemanticEndpoint), true);
+installBusinessDefaultOnce(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, Boolean(remoteDlpEndpoint), true);
+installBusinessDefaultOnce(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, Boolean(experienceCompilerMemoryIntakeConfig), true);
 if (
   hostStaticSession
   && !installedAtStartup.some(item => item.packageId === HOST_STATIC_SESSION_PACKAGE_ID)
@@ -2850,12 +2884,19 @@ function authenticationFlow() {
   if (!provider) {
     throw new Error("IDENTITY_AUTHENTICATION_PROVIDER_UNAVAILABLE");
   }
+  const oidcEpoch = oidcContextEpoch;
   return createAuthenticationFlowV010({
     provider,
     sessions: managedSessionService,
     publicBaseUrl: authenticationPublicBaseUrl,
     sessionTtlSeconds: authenticationSessionTtlSeconds,
     secureCookie: !authenticationPublicBaseUrl.startsWith("http://localhost"),
+    ...(provider.providerId === GENERIC_OIDC_PROVIDER_ID ? {
+      assertCurrent() {
+        if (oidcContextEpoch !== oidcEpoch || oidcSettingsWrites !== 0
+            || resolveIdentityAuthenticationProvider() !== provider) throw new Error("OIDC_CONTEXT_CHANGED");
+      }
+    } : {}),
     onAuthenticatedPrincipal(principal) {
       const directory = resolveIdentityUserDirectoryProvider();
       if (!directory) {
@@ -2979,6 +3020,16 @@ function resolveContextMemoryEvidenceSourceProvider(): ContextMemoryEvidenceSour
 function resolveIdentitySession(): IdentitySessionV010 {
   const descriptors = manager.listEffectiveServiceProviders(IDENTITY_SESSION_CAPABILITY);
   if (descriptors.length === 0) {
+    // A configured identity source cannot become a different local Principal
+    // merely because its package is inactive or absent.
+    const identityProviderRequired = hostStaticSession !== undefined
+      || providerBindings.list(IDENTITY_SESSION_CAPABILITY).some(binding =>
+        binding.scope === "SYSTEM"
+        || (binding.scope === "INSTALLATION" && binding.scopeId === "default")
+      );
+    if (identityProviderRequired) {
+      throw new Error("IDENTITY_SESSION_PROVIDER_UNAVAILABLE");
+    }
     return {
       contractVersion: "0.1.0",
       sessionId: "compatibility-local-session",
@@ -3413,6 +3464,8 @@ const evoObservatoryEnterpriseMap = (() => {
 const evoObservatoryDefaultEnterpriseCode =
   process.env.APP_PLATFORM_EVO_OBSERVATORY_DEFAULT_ENTERPRISE_CODE?.trim();
 const evoObservatoryApplicationMap = (() => {
+  // A configured map is dormant while its observatory owner is disabled.
+  if (!evoObservatoryEnabled) return [];
   const raw = process.env.APP_PLATFORM_EVO_OBSERVATORY_APPLICATION_MAP_JSON?.trim();
   if (!raw) return [] as Array<{
     enterpriseId: string;
@@ -3456,24 +3509,11 @@ const evoObservatoryApplicationMap = (() => {
   }
   return result;
 })();
-if (
-  evoObservatoryApplicationMap.length > 0
-  && !manager.getSnapshot().activeFeatures.some(
-    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
-  )
-) {
-  try {
-    const installed = manager.getSnapshot().installedPackages.some(
-      item => item.packageId === APPLICATION_RUNTIME_BINDING_PACKAGE_ID
-    );
-    if (installed) {
-      pa05WriteLifecycleHost.bootstrapActivation("ENABLE", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    } else {
-      pa05WriteLifecycleHost.bootstrapActivation("INSTALL", APPLICATION_RUNTIME_BINDING_PACKAGE_ID);
-    }
-    console.log("Activated Application Runtime Binding Provider for configured EVO Observatory mappings.");
-  } catch (error) {
-    console.error("Failed to activate Application Runtime Binding Provider.", error);
+if (evoObservatoryApplicationMap.length > 0) {
+  // Explicit configuration may initialize once, never revive a persisted
+  // disable/uninstall choice. Reuse the existing Host-owned startup journal.
+  if (installBusinessDefaultOnce(APPLICATION_RUNTIME_BINDING_PACKAGE_ID, true, true) === "FAILED") {
+    throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
   }
 }
 const configuredApplicationRuntimeBindingProvider =
@@ -3484,15 +3524,26 @@ if (
   evoObservatoryApplicationMap.length > 0
   && !configuredApplicationRuntimeBindingProvider
 ) {
-  throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+  if (manager.getSnapshot().activeFeatures.some(
+    item => item.featureId === APPLICATION_RUNTIME_BINDING_FEATURE_ID
+  )) {
+    // An active but unresolvable selection is still a configuration error.
+    throw new Error("APPLICATION_RUNTIME_BINDING_PROVIDER_REQUIRED");
+  }
+  console.log("Configured EVO application mappings deferred: Runtime Binding package is inactive or absent.");
 }
-for (const mapping of evoObservatoryApplicationMap) {
-  configuredApplicationRuntimeBindingProvider!.bind({
-    enterpriseId: mapping.enterpriseId,
-    hostApplicationRefId: mapping.hostApplicationRefId,
-    runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID,
-    runtimeApplicationId: mapping.runtimeApplicationId
-  });
+if (configuredApplicationRuntimeBindingProvider) {
+  for (const mapping of evoObservatoryApplicationMap) {
+    const key = {
+      enterpriseId: mapping.enterpriseId,
+      hostApplicationRefId: mapping.hostApplicationRefId,
+      runtimeProviderId: EVO_RUNTIME_OBSERVATORY_PROVIDER_ID
+    };
+    // Explicit map entries own only these observation keys. Keep unchanged
+    // bindings (including timestamps) and all unlisted/shared keys intact.
+    if (configuredApplicationRuntimeBindingProvider.resolve(key)?.runtimeApplicationId === mapping.runtimeApplicationId) continue;
+    configuredApplicationRuntimeBindingProvider.bind({ ...key, runtimeApplicationId: mapping.runtimeApplicationId });
+  }
 }
 const evoRuntimeRevisionIntervalMs = Number(
   process.env.APP_PLATFORM_EVO_RUNTIME_REVISION_INTERVAL_MS?.trim() || "15000"
@@ -3625,20 +3676,6 @@ function installationSecretReference(
   };
 }
 
-async function optionalInstallationSecret(
-  namespace: string,
-  key: string
-): Promise<string | undefined> {
-  const secrets = resolveManagedSecretsProvider();
-  if (!secrets) throw new Error("SECRETS_PROVIDER_REQUIRED");
-  const reference = installationSecretReference(namespace, key);
-  const status = await secrets.describe(reference);
-  if (!status.configured) return undefined;
-  const value = (await secrets.resolve(reference)).trim();
-  if (!value) throw new Error(`SECRET_VALUE_EMPTY: ${namespace}/${key}`);
-  return value;
-}
-
 function openAiApiKeyReference(): SecretReferenceV010 {
   return {
     contractVersion: "0.1.0",
@@ -3651,30 +3688,21 @@ function openAiApiKeyReference(): SecretReferenceV010 {
 
 async function refreshOpenAiProviderRuntime(): Promise<void> {
   const reference = openAiApiKeyReference();
-  const legacyApiKey = process.env.OPENAI_API_KEY?.trim();
-  let apiKey: string | undefined;
-
+  const revision = (llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) ?? 0) + 1;
+  llmConfigurationEpochs.set(OPENAI_LLM_PROVIDER_ID, revision);
+  if (!manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === OPENAI_LLM_PROVIDER_ID)) {
+    providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
+    return;
+  }
+  let configured = false;
   try {
     const secrets = resolveManagedSecretsProvider();
-    if (secrets) {
-      const status = await secrets.describe(reference);
-      if (!status.configured && legacyApiKey) {
-        await secrets.put(reference, legacyApiKey);
-        console.log("Migrated legacy OpenAI credential into Host Secrets Provider.");
-      }
-      const refreshedStatus = await secrets.describe(reference);
-      if (refreshedStatus.configured) {
-        apiKey = (await secrets.resolve(reference)).trim();
-      }
-    }
+    configured = secrets ? (await secrets.describe(reference)).configured : false;
   } catch (error) {
-    console.error("OpenAI Secret resolution failed closed.", error);
+    console.error("OpenAI Secret metadata resolution failed closed.", error);
   }
-
-  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
-  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
-
-  if (!apiKey) {
+  if (llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) !== revision) return;
+  if (!configured && !process.env.OPENAI_API_KEY?.trim()) {
     providerRuntimeRegistry.remove(OPENAI_LLM_PROVIDER_ID);
     return;
   }
@@ -3688,9 +3716,20 @@ async function refreshOpenAiProviderRuntime(): Promise<void> {
     : process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1";
 
   const options = {
-    apiKey,
+    // Validates factory configuration without capturing a plaintext credential.
+    apiKey: "configured-at-request",
     model,
-    baseUrl
+    baseUrl,
+    fetchImpl: createLlmCredentialFetchV010({
+      reference,
+      resolveSecrets: resolveManagedSecretsProvider,
+      legacyKey: () => process.env.OPENAI_API_KEY,
+      isCurrent: () => llmConfigurationEpochs.get(OPENAI_LLM_PROVIDER_ID) === revision
+        && (llmSettingsWrites.get(OPENAI_LLM_PROVIDER_ID) ?? 0) === 0
+        && manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === OPENAI_LLM_PROVIDER_ID),
+      activationEpoch: () => llmCredentialEpochs.get(OPENAI_LLM_PROVIDER_ID) ?? 0,
+      onSecretError: error => console.error("OpenAI Secret resolution failed closed.", error)
+    })
   };
   providerRuntimeRegistry.replace<LlmInferenceProvider>(
     OPENAI_LLM_PROVIDER_ID,
@@ -3721,30 +3760,21 @@ function deepSeekApiKeyReference(): SecretReferenceV010 {
 
 async function refreshDeepSeekProviderRuntime(): Promise<void> {
   const reference = deepSeekApiKeyReference();
-  const legacyApiKey = process.env.DEEPSEEK_API_KEY?.trim();
-  let apiKey: string | undefined;
-
+  const revision = (llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0) + 1;
+  llmConfigurationEpochs.set(DEEPSEEK_LLM_PROVIDER_ID, revision);
+  if (!manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === DEEPSEEK_LLM_PROVIDER_ID)) {
+    providerRuntimeRegistry.remove(DEEPSEEK_LLM_PROVIDER_ID);
+    return;
+  }
+  let configured = false;
   try {
     const secrets = resolveManagedSecretsProvider();
-    if (secrets) {
-      const status = await secrets.describe(reference);
-      if (!status.configured && legacyApiKey) {
-        await secrets.put(reference, legacyApiKey);
-        console.log("Migrated legacy DeepSeek credential into Host Secrets Provider.");
-      }
-      const refreshedStatus = await secrets.describe(reference);
-      if (refreshedStatus.configured) {
-        apiKey = (await secrets.resolve(reference)).trim();
-      }
-    }
+    configured = secrets ? (await secrets.describe(reference)).configured : false;
   } catch (error) {
-    console.error("DeepSeek Secret resolution failed closed.", error);
+    console.error("DeepSeek Secret metadata resolution failed closed.", error);
   }
-
-  // Compatibility fallback only. New configuration must use the Host Secrets Provider.
-  if (!apiKey && legacyApiKey) apiKey = legacyApiKey;
-
-  if (!apiKey) {
+  if (llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) !== revision) return;
+  if (!configured && !process.env.DEEPSEEK_API_KEY?.trim()) {
     providerRuntimeRegistry.remove(DEEPSEEK_LLM_PROVIDER_ID);
     return;
   }
@@ -3758,9 +3788,20 @@ async function refreshDeepSeekProviderRuntime(): Promise<void> {
     : process.env.DEEPSEEK_BASE_URL?.trim() || "https://api.deepseek.com";
 
   const options = {
-    apiKey,
+    // Validates factory configuration without capturing a plaintext credential.
+    apiKey: "configured-at-request",
     model,
-    baseUrl
+    baseUrl,
+    fetchImpl: createLlmCredentialFetchV010({
+      reference,
+      resolveSecrets: resolveManagedSecretsProvider,
+      legacyKey: () => process.env.DEEPSEEK_API_KEY,
+      isCurrent: () => llmConfigurationEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) === revision
+        && (llmSettingsWrites.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0) === 0
+        && manager.listEffectiveServiceProviders("llm.inference").some(item => item.providerId === DEEPSEEK_LLM_PROVIDER_ID),
+      activationEpoch: () => llmCredentialEpochs.get(DEEPSEEK_LLM_PROVIDER_ID) ?? 0,
+      onSecretError: error => console.error("DeepSeek Secret resolution failed closed.", error)
+    })
   };
   providerRuntimeRegistry.replace<LlmInferenceProvider>(
     DEEPSEEK_LLM_PROVIDER_ID,
@@ -3783,7 +3824,11 @@ async function refreshGenericOidcProviderRuntime(): Promise<void> {
   try {
     const result = await configureGenericOidcProviderRuntimeV010({
       settings: settingsStore.getNamespace(GENERIC_OIDC_PACKAGE_ID),
-      secrets: resolveManagedSecretsProvider(),
+      resolveSecrets: resolveManagedSecretsProvider,
+      isCurrent: () => managedSessionEnabled && !!authenticationPublicBaseUrl
+        && oidcSettingsWrites === 0
+        && resolveIdentityAuthenticationProvider()?.providerId === GENERIC_OIDC_PROVIDER_ID,
+      epoch: () => oidcContextEpoch,
       registry: providerRuntimeRegistry
     });
     if (!result.configured) {
@@ -3799,21 +3844,21 @@ async function refreshGenericOidcProviderRuntime(): Promise<void> {
 
 await refreshGenericOidcProviderRuntime();
 
-async function refreshP12MemoryProviderRuntimes(): Promise<void> {
-  let semanticRetriever: ContextMemorySemanticRetrieverV010 | undefined;
-
+function refreshP12MemoryProviderRuntimes(): void {
   if (remoteSemanticEndpoint) {
     try {
-      const bearerToken = await optionalInstallationSecret(
-        REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID,
-        "apiToken"
-      );
       const options = {
         endpoint: remoteSemanticEndpoint,
         ...(Number.isFinite(remoteSemanticTimeoutMs)
           ? { timeoutMs: remoteSemanticTimeoutMs }
           : {}),
-        ...(bearerToken ? { bearerToken } : {})
+        fetchImpl: createMemoryCredentialFetchV010({
+          reference: installationSecretReference(REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID, "apiToken"),
+          resolveSecrets: resolveManagedSecretsProvider,
+          isCurrent: () => (memorySettingsWrites.get(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID) ?? 0) === 0
+            && resolveContextMemorySemanticRetriever()?.providerId === REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
+          epoch: () => memoryCredentialEpochs.get(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID) ?? 0
+        })
       };
       providerRuntimeRegistry.replace<ContextMemorySemanticRetrieverV010>(
         REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID,
@@ -3831,7 +3876,6 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
           checkedAt: new Date().toISOString()
         }
       );
-      semanticRetriever = resolveContextMemorySemanticRetriever();
     } catch (error) {
       providerRuntimeRegistry.remove(REMOTE_CONTEXT_MEMORY_SEMANTIC_PROVIDER_ID);
       console.error("Remote Context Memory Semantic Provider failed closed.", error);
@@ -3850,22 +3894,24 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
             .filter(item => item.state === "ACTIVE");
         }
       },
-      ...(semanticRetriever ? { semanticRetriever } : {})
+      resolveSemanticRetriever: resolveContextMemorySemanticRetriever
     })
   );
 
   if (remoteDlpEndpoint) {
     try {
-      const bearerToken = await optionalInstallationSecret(
-        REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID,
-        "apiToken"
-      );
       const options = {
         endpoint: remoteDlpEndpoint,
         ...(Number.isFinite(remoteDlpTimeoutMs)
           ? { timeoutMs: remoteDlpTimeoutMs }
           : {}),
-        ...(bearerToken ? { bearerToken } : {})
+        fetchImpl: createMemoryCredentialFetchV010({
+          reference: installationSecretReference(REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID, "apiToken"),
+          resolveSecrets: resolveManagedSecretsProvider,
+          isCurrent: () => (memorySettingsWrites.get(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID) ?? 0) === 0
+            && resolveContextMemoryDlpClassifier()?.providerId === REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
+          epoch: () => memoryCredentialEpochs.get(REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID) ?? 0
+        })
       };
       providerRuntimeRegistry.replace<ContextMemoryDlpClassifierV010>(
         REMOTE_CONTEXT_MEMORY_DLP_PROVIDER_ID,
@@ -3893,13 +3939,15 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
 
   if (experienceCompilerMemoryIntakeConfig) {
     try {
-      const bearerToken = await optionalInstallationSecret(
-        EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID,
-        "apiToken"
-      );
       const options = {
         config: experienceCompilerMemoryIntakeConfig,
-        ...(bearerToken ? { bearerToken } : {})
+        fetchImpl: createMemoryCredentialFetchV010({
+          reference: installationSecretReference(EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID, "apiToken"),
+          resolveSecrets: resolveManagedSecretsProvider,
+          isCurrent: () => (memorySettingsWrites.get(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID) ?? 0) === 0
+            && resolveContextMemoryIntakeSource()?.providerId === EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID,
+          epoch: () => memoryCredentialEpochs.get(EXPERIENCE_COMPILER_MEMORY_INTAKE_PROVIDER_ID) ?? 0
+        })
       };
       providerRuntimeRegistry.replace<ContextMemoryEvidenceSourceProviderV010>(
         EXPERIENCE_COMPILER_EVIDENCE_PROVIDER_ID,
@@ -3951,7 +3999,7 @@ async function refreshP12MemoryProviderRuntimes(): Promise<void> {
   refreshContextMemorySchedule();
 }
 
-await refreshP12MemoryProviderRuntimes();
+refreshP12MemoryProviderRuntimes();
 
 providerRuntimeRegistry.replace<EnterpriseOperatingGraphAnalysisProviderV020>(
   EOG_BOTTLENECK_ANALYSIS_PROVIDER_ID,
@@ -4599,36 +4647,101 @@ const actionRouter = createAppActionRouter(
         return (await resolveBiWorkbenchRuntimeV010()).service;
       }
     }),
-    ...createEnterpriseOperatingGraphActionHandlersV010({
-      service: enterpriseOperatingGraphService,
-      resolveAuthorizationProvider
-    }),
-    ...createEogExpectedSopActionHandlersV010({
-      service: eogExpectedSopService,
-      resolveAuthorizationProvider
-    }),
-    ...createEnterpriseOperatingGraphViewActionHandlersV010({
-      service: enterpriseOperatingGraphService,
-      viewService: enterpriseOperatingGraphViewService,
-      resolveAuthorizationProvider,
-      inspectorResolver: enterpriseOperatingGraphInspectorProperties,
-      locale(context) {
-        return context.locale;
-      },
-      onEditorRead(context, target) {
-        const selectedAt = new Date().toISOString();
-        for (const key of current2dEditorSessionKeysV010(context.principal)) {
-          current2dEditorSessions.set(key, {
-            contractVersion: "0.1.0",
-            kind: "OPERATING_GRAPH",
-            enterpriseId: target.enterpriseId,
-            graphId: target.graphId,
-            resourceId: target.resourceId,
-            selectedAt
-          });
+    ...[EOG_CREATE_ACTION, EOG_GET_ACTION, EOG_LIST_ACTION,
+      EOG_VALIDATE_ACTION, EOG_APPLY_OPERATION_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/eog-2d-designer/enterprise-operating-graph-actions.js");
+          const handler = module.createEnterpriseOperatingGraphActionHandlersV010({
+            service: enterpriseOperatingGraphService,
+            resolveAuthorizationProvider
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+                return { ok: false, correlationId: request.sourceInteractionId,
+                  error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "EOG Designer feature is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
         }
-      }
-    }),
+      })
+    ),
+    ...[EOG_SOP_LIST_ACTION, EOG_SOP_CREATE_ACTION,
+      EOG_SOP_REVISE_ACTION, EOG_SOP_PUBLISH_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ENTERPRISE_AGENT_PACKAGE_ID,
+        featureId: ENTERPRISE_AGENT_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("./enterprise-operating-graph-sop-actions.js");
+          const handler = module.createEogExpectedSopActionHandlersV010({
+            service: eogExpectedSopService,
+            resolveAuthorizationProvider
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_SOP_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === ENTERPRISE_AGENT_FEATURE_ID)) {
+                return { ok: false, correlationId: request.sourceInteractionId,
+                  error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "Legacy SOP action owner feature is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
+        }
+      })
+    ),
+    ...[EOG_VIEW_GET_ACTION, EOG_VIEW_OPERATION_ACTION, EOG_VIEW_SELECTION_GET_ACTION].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: EOG_2D_DESIGNER_PACKAGE_ID,
+        featureId: EOG_2D_DESIGNER_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/eog-2d-designer/enterprise-operating-graph-page.js");
+          const handler = module.createEnterpriseOperatingGraphViewActionHandlersV010({
+            service: enterpriseOperatingGraphService,
+            viewService: enterpriseOperatingGraphViewService,
+            resolveAuthorizationProvider,
+            inspectorResolver: enterpriseOperatingGraphInspectorProperties,
+            locale(context) {
+              return context.locale;
+            },
+            onEditorRead(context, target) {
+              const selectedAt = new Date().toISOString();
+              for (const key of current2dEditorSessionKeysV010(context.principal)) {
+                current2dEditorSessions.set(key, {
+                  contractVersion: "0.1.0",
+                  kind: "OPERATING_GRAPH",
+                  enterpriseId: target.enterpriseId,
+                  graphId: target.graphId,
+                  resourceId: target.resourceId,
+                  selectedAt
+                });
+              }
+            }
+          }).find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("EOG_VIEW_ACTION_NOT_REGISTERED:" + commandCode);
+          return {
+            ...handler,
+            async execute(request, context) {
+              if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+                return { ok: false, correlationId: request.sourceInteractionId,
+                  error: { code: "ACTION_FEATURE_NOT_ACTIVE", message: "EOG Designer feature is not active." } };
+              }
+              return handler.execute(request, context);
+            }
+          };
+        }
+      })
+    ),
     ...[EOG_OBSERVE_ACTION, EOG_ANALYZE_ACTION].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: ENTERPRISE_OBSERVATORY_PACKAGE_ID,
@@ -6125,8 +6238,10 @@ function publishActionRealtimeEvents(
   }
 }
 
+let shuttingDown = false;
 const server = createServer(async (request, response) => {
   try {
+    if (rejectHostShutdownRequestV010(shuttingDown, response)) return;
     const url = new URL(request.url ?? "/", "http://localhost");
     applyWebSecurityHeaders(response);
     applyWebRevisionHeadersV010(
@@ -8266,10 +8381,14 @@ const server = createServer(async (request, response) => {
           : enterpriseContexts.length === 1
             ? enterpriseContexts[0]
             : resolved.activeContext;
+        const module = await import("../apps/eog-2d-designer/enterprise-operating-graph-page.js");
+        if (!manager.getSnapshot().activeFeatures.some(feature => feature.featureId === EOG_2D_DESIGNER_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
         return json(
           response,
           200,
-          createEnterpriseOperatingGraphEditorPageV010({
+          module.createEnterpriseOperatingGraphEditorPageV010({
             activeContext,
             locale: requestedLocale(url)
           })
@@ -9557,58 +9676,82 @@ const server = createServer(async (request, response) => {
             values
           );
 
-          if (secretsProvider) {
-            for (const change of secretChanges) {
-              try {
-                if (change.operation === "PUT") {
-                  await secretsProvider.put(change.reference, change.value!);
-                } else {
-                  await secretsProvider.remove(change.reference);
+          const oidcWrite = namespace === GENERIC_OIDC_PACKAGE_ID;
+          if (oidcWrite) { oidcContextEpoch++; oidcSettingsWrites++; }
+
+          const llmProviderId = namespace === OPENAI_LLM_PACKAGE_ID ? OPENAI_LLM_PROVIDER_ID
+            : namespace === DEEPSEEK_LLM_PACKAGE_ID ? DEEPSEEK_LLM_PROVIDER_ID : undefined;
+          if (llmProviderId) {
+            llmConfigurationEpochs.set(llmProviderId, (llmConfigurationEpochs.get(llmProviderId) ?? 0) + 1);
+            llmSettingsWrites.set(llmProviderId, (llmSettingsWrites.get(llmProviderId) ?? 0) + 1);
+          }
+          const memoryProviderId = memoryCredentialOwners.get(namespace);
+          if (memoryProviderId) {
+            invalidateMemoryCredential(memoryProviderId);
+            memorySettingsWrites.set(memoryProviderId, (memorySettingsWrites.get(memoryProviderId) ?? 0) + 1);
+          }
+          try {
+            if (secretsProvider) {
+              for (const change of secretChanges) {
+                try {
+                  if (change.operation === "PUT") {
+                    await secretsProvider.put(change.reference, change.value!);
+                  } else {
+                    await secretsProvider.remove(change.reference);
+                  }
+                  secretAudit.append(secretAuditEventV010({
+                    action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                    outcome: "ALLOWED",
+                    actorId: change.authorization?.actorId ?? "unknown",
+                    ...(change.authorization?.policyProviderId
+                      ? { policyProviderId: change.authorization.policyProviderId }
+                      : {}),
+                    correlationId: action.sourceInteractionId,
+                    reference: change.reference,
+                    reason: change.authorization?.reason ?? "AUTHORIZED_SECRET_CHANGE"
+                  }));
+                } catch (error) {
+                  secretAudit.append(secretAuditEventV010({
+                    action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
+                    outcome: "FAILED",
+                    actorId: change.authorization?.actorId ?? "unknown",
+                    ...(change.authorization?.policyProviderId
+                      ? { policyProviderId: change.authorization.policyProviderId }
+                      : {}),
+                    correlationId: action.sourceInteractionId,
+                    reference: change.reference,
+                    reason: error instanceof Error ? error.message : String(error)
+                  }));
+                  throw error;
                 }
-                secretAudit.append(secretAuditEventV010({
-                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
-                  outcome: "ALLOWED",
-                  actorId: change.authorization?.actorId ?? "unknown",
-                  ...(change.authorization?.policyProviderId
-                    ? { policyProviderId: change.authorization.policyProviderId }
-                    : {}),
-                  correlationId: action.sourceInteractionId,
-                  reference: change.reference,
-                  reason: change.authorization?.reason ?? "AUTHORIZED_SECRET_CHANGE"
-                }));
-              } catch (error) {
-                secretAudit.append(secretAuditEventV010({
-                  action: change.operation === "PUT" ? "PUT_SECRET" : "REMOVE_SECRET",
-                  outcome: "FAILED",
-                  actorId: change.authorization?.actorId ?? "unknown",
-                  ...(change.authorization?.policyProviderId
-                    ? { policyProviderId: change.authorization.policyProviderId }
-                    : {}),
-                  correlationId: action.sourceInteractionId,
-                  reference: change.reference,
-                  reason: error instanceof Error ? error.message : String(error)
-                }));
-                throw error;
+              }
+            }
+          } finally {
+            try {
+              if (namespace === OPENAI_LLM_PACKAGE_ID) {
+                await refreshOpenAiProviderRuntime();
+              }
+              if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
+                await refreshDeepSeekProviderRuntime();
+              }
+              if (oidcWrite) await refreshGenericOidcProviderRuntime();
+            } finally {
+              if (oidcWrite) oidcSettingsWrites--;
+              if (memoryProviderId) {
+                const remaining = (memorySettingsWrites.get(memoryProviderId) ?? 1) - 1;
+                if (remaining) memorySettingsWrites.set(memoryProviderId, remaining);
+                else memorySettingsWrites.delete(memoryProviderId);
+              }
+              if (llmProviderId) {
+                const remaining = (llmSettingsWrites.get(llmProviderId) ?? 1) - 1;
+                if (remaining) llmSettingsWrites.set(llmProviderId, remaining);
+                else llmSettingsWrites.delete(llmProviderId);
               }
             }
           }
 
-          if (namespace === OPENAI_LLM_PACKAGE_ID) {
-            await refreshOpenAiProviderRuntime();
-          }
-          if (namespace === DEEPSEEK_LLM_PACKAGE_ID) {
-            await refreshDeepSeekProviderRuntime();
-          }
-          if (namespace === GENERIC_OIDC_PACKAGE_ID) {
-            await refreshGenericOidcProviderRuntime();
-          }
-          if (
-            namespace === REMOTE_CONTEXT_MEMORY_SEMANTIC_PACKAGE_ID
-            || namespace === REMOTE_CONTEXT_MEMORY_DLP_PACKAGE_ID
-            || namespace === EXPERIENCE_COMPILER_MEMORY_INTAKE_PACKAGE_ID
-          ) {
-            await refreshP12MemoryProviderRuntimes();
-          }
+          // All three memory tokens resolve per request; fixed endpoint
+          // runtimes and the shared reader do not need rebuilding on save.
 
           const secretStatus = await Promise.all(
             (pkg.secrets ?? []).map(async declaration => {
@@ -10102,39 +10245,54 @@ const port = Number(process.env.PORT ?? 4100);
 await pa05WriteLifecycleHost.attestStartupActivation();
 server.listen(port, () => console.log(`EVO App Manager listening on http://localhost:${port}`));
 
-let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`EVO App Manager shutting down (${signal})`);
-  evoRuntimeRevisionBridge?.dispose();
-  contextMemoryScheduleDriver.dispose();
-  let shutdownFailed = false;
-  try {
-    await contextMemoryScheduler.stop();
-  } catch (error) {
-    shutdownFailed = true;
-    console.error("Context Memory scheduler shutdown incomplete", error);
-  }
-  try {
-    await bottleneckRuntime.stop();
-    await counterpartyRuntimeHost.stop();
-    await responsibilityRuntimeHost.stop();
-    await dataImportRuntimeHost.stop();
-    await Promise.all([extensionManagement.stop(), counterpartyExtensionDefinitions.stop(),
-      counterpartyExtensionValues.stop(), itemExtensionDefinitions.stop(),
-      itemExtensionValues.stop(), warehouseExtensionValues.stop()]);
-  } catch (error) {
-    shutdownFailed = true;
-    console.error("Managed runtime shutdown incomplete", error);
-  }
-  await optionalAgentAsyncRunReader?.close();
-  await optionalAgentAsyncReadWorker?.close();
-  await optionalPa02ObjectExtensionOwner?.close();
-  await pa05WriteLifecycleHost.close();
-  await processRuntimeHost.shutdown();
-  server.close(() => process.exit(shutdownFailed ? 1 : 0));
-  setTimeout(() => process.exit(1), 5000).unref();
+
+  // Close admission immediately. Keep the deadline referenced so a hung
+  // cleanup promise cannot let Node exit zero and release the J4J lock.
+  const shutdownDeadline = setTimeout(() => {
+    console.error("Host shutdown deadline exceeded");
+    process.exit(1);
+  }, 5000);
+  const serverClosed = new Promise<{ok: boolean; error?: unknown}>(resolve => {
+    try {
+      server.close(error => resolve(error ? {ok: false, error} : {ok: true}));
+    } catch (error) {
+      resolve({ok: false, error});
+    }
+  });
+
+  const cleanup = await runHostShutdownStepsV010([
+    {name: "EVO Runtime revision bridge", run: () => evoRuntimeRevisionBridge?.dispose()},
+    {name: "Context Memory schedule driver", run: () => contextMemoryScheduleDriver.dispose()},
+    {name: "Context Memory scheduler", run: () => contextMemoryScheduler.stop()},
+    {name: "Bottleneck runtime", run: () => bottleneckRuntime.stop()},
+    {name: "Counterparty runtime", run: () => counterpartyRuntimeHost.stop()},
+    {name: "Responsibility runtime", run: () => responsibilityRuntimeHost.stop()},
+    {name: "Data import runtime", run: () => dataImportRuntimeHost.stop()},
+    {name: "Extension management", run: () => extensionManagement.stop()},
+    {name: "Counterparty extension definitions", run: () => counterpartyExtensionDefinitions.stop()},
+    {name: "Counterparty extension values", run: () => counterpartyExtensionValues.stop()},
+    {name: "Item extension definitions", run: () => itemExtensionDefinitions.stop()},
+    {name: "Item extension values", run: () => itemExtensionValues.stop()},
+    {name: "Warehouse extension values", run: () => warehouseExtensionValues.stop()},
+    {name: "Agent async run reader", run: () => optionalAgentAsyncRunReader?.close()},
+    {name: "Agent async read worker", run: () => optionalAgentAsyncReadWorker?.close()},
+    {name: "PA-02 Object Extension Owner", run: () => optionalPa02ObjectExtensionOwner?.close()},
+    {name: "PA05 write lifecycle Host", run: () => pa05WriteLifecycleHost.close()},
+    {name: "Process runtime Host", run: () => processRuntimeHost.shutdown()}
+  ], (name, error) => {
+    console.error(`Host shutdown incomplete: ${name}`, error);
+  });
+
+  const closed = await serverClosed;
+  clearTimeout(shutdownDeadline);
+  if (!closed.ok) console.error("HTTP server shutdown incomplete", closed.error);
+  // Any incomplete cleanup or server-close failure exits nonzero. The J4J
+  // exit hook consequently preserves the lock for independent review.
+  process.exit(cleanup.ok && closed.ok ? 0 : 1);
 }
 
 process.once("SIGTERM", () => void shutdown("SIGTERM"));

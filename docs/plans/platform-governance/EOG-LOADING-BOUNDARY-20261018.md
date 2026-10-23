@@ -223,3 +223,253 @@ R1 整体未关闭；R2 Agent配置触发SQL需原owner的职责/资格及验收
 
 阅读记录：完整读取根 AGENTS、AI-BOOTSTRAP、LLM、两份适用clinerules、交付规范、文档分类规则、本专项五份指定材料及装载规范；全局 `project.status`/生成handoff仅定向核对当前里程碑/最新闭环/live gate/部署声明，未改写，不能据其较旧全局快照覆盖本专项或其他owner最新记录。源码完整读取 graph model/service/persistence、SOP actions、observatory tools/resolver、projection store/source、inspector resolver；工具组逐个核对 import、工厂、available/execute，page/view handler与大 projection editor仅定向读取导入、构造及实际业务调用，不声称审计全部2D算法、Eidos实现或整个Host。无新增外网研究，复用现有合同与历史证据。
 
+## 13. 2026-10-19增量：当前编辑器仅在定义投影裁剪时加载完整编辑器
+
+基线 main `9b80babdc31fafbcb98f043fde01a6f388c7ce03`（#1046），已核对当前开放PR，没有本批路径的并行实现。本批推进A01/R1，不新增Agent或2D产品功能。
+
+### 问题、选择与实现
+
+第12节的候选已追踪到明确根边：`manager/server.ts`静态导入当前编辑器工具，工具又为一个裁剪函数静态导入`definition-projection-editor.ts`，后者带入Eidos 2D聚合出口。Host原有定义投影页面、GET/selection/SAVE命令已经通过原页面分支/lazy handler动态导入该编辑器；局部核对server全部该路径引用，未发现需要把这些消费者再次改造的理由。
+
+因此只修改`apps/eog-2d-designer/current-2d-editor-agent-tools.ts`：移除裁剪函数的静态import，WRITE execute在参数格式、当前目标、有效Feature、企业访问和管理角色检查之后，**仅对`DEFINITION_PROJECTION`目标await原模块**。目录构造/发现、两种目标的READ，以及`OPERATING_GRAPH`目标的裁剪均不加载此编辑器。没有复制裁剪/缩略图/合并算法，也没有新增懒代理、加载框架或修改同步公共service/model合同；既有工具execute合同允许Promise，裁剪实现现返回Promise，READ保持原同步返回。
+
+新增等待点后再次检查Feature、访问、管理角色和捕获的完整当前编辑目标快照（包含selectedAt）；切换或重新选择目标返回原`CURRENT_2D_EDITOR_WRITE_CONFLICT`，不把旧请求绑定到新资源。之后才调用原read和集合校验，保留原expectedWriteToken检查、`putIfVersion`及onEditorUpdated。等待期间其他写入已推进版本时，本请求按原CAS拒绝，不重放WRITE。Host目录的授权/回执、Personal会话与当前编辑器企业范围、Shared View State、企业定义权威均保持。
+
+### 生命周期、资源与恢复
+
+| 场景 | 本批明确行为 / 验收 |
+|---|---|
+| 未安装/停用、启动及合法目录发现 | 原入口资格保持；完整投影编辑器新增四组合冷启动禁入断言。调用预检拒绝时不加载实现、不读业务数据 |
+| 已启用未使用、READ、运行图裁剪 | 工具登记与发现保留轻量闭包；模块加载探针证明这三类调用不加载定义投影编辑器 |
+| 首次定义投影裁剪 / 并发 | 原生ESM共用模块缓存；两个相同token并发请求只加载一次、一笔提交、一笔CAS冲突；输出继续使用原函数 |
+| 加载期间停用/访问撤销/角色撤销/目标变化 | 真实ESM load hook中改变测试权威/选择；await后拒绝，业务读取/本请求写入/失效通知计数均0 |
+| 等待期间其他编辑者提交 | load hook通过另一真实文件store实例推进版本；本请求保留冲突，不覆盖其数据；重新读取正确token可继续 |
+| 恢复资格/目标 | 同一工具实例和成功加载模块可复用；每次仍检查当下资格与token，不把ESM缓存当作权限 |
+| 模块装载失败 | 错误原样上抛，本请求零业务读写。未新建自有失败缓存；不承诺绕过Node原生ESM失败缓存。交付/模块故障修复后重启Host恢复，新进程正常裁剪测试与故障进程分开 |
+
+此处没有新建连接、任务、订阅或后台资源；没有需在停用时dispose的新实例。ESM可保留缓存，工具闭包仍随请求目录持有Principal/Context；不创建跨用户全局单例。停止只阻止新调用及本批新增等待点后的动作，不宣称撤销已提交WRITE、跨进程事务冻结或完成全平台停止合同。
+
+### 验证、证据与限制
+
+本地18项定向回归通过：新增`tests/protocol/eog-current-editor-crop-lazy.test.mjs`9项、原`personal-agent-current-projection.test.mjs`6项及第12节登记边界3项。两个test-only fixture在独立进程注册真实ESM loader，记录模块装载；竞态在完整编辑器load hook中改变测试资格/当前目标，或经另一真实文件store实例写入。没有修改模块源码或在生产增加测试注入参数。验证Personal会话继续操作Host选择的企业素材、两种编辑器裁剪保持、语义graph/definition未变；输出/缩略图与原算法兼容。
+
+最初基于MessagePort的测试同步出现通知排队/超时，已改为loader直接写测试专用信号和实际文件store。最终回归无定时轮询、无生产诊断端点；只保留最终可执行fixture，不把初次失败算通过证据。
+
+本地仍受第12节环境限制：固定SHA源码快照、Node24临时类型擦除转译及`--test-isolation=none`，不是正式TypeScript全仓构建。正式npm ci/build、默认Node22 runner及真实Host四组合禁入由本PR CI执行，结果见PR。静态基线只删除当前工具→完整编辑器、完整编辑器→package的两条退休边（原基线255条，待CI严格核实），不扩允许集合。**本地没有新四组合测量，不把#1019的336模块或#1046的历史CI当作本轮模块实测。** CI新报告如有数字以本PR实际日志/产物为准，不推算RSS或生产收益。
+
+完整证据：[eog-current-editor-crop-lazy-20261019.json](evidence/eog-current-editor-crop-lazy-20261019.json)；[兼容评审](../../ui-design-reviews/eog-current-editor-crop-lazy-20261019.md)。未部署，无真实模型/用户任务、浏览器视觉、生产权限变动或跨Host冻结验收。源码事实来自完整当前编辑器工具与原当前投影测试、局部editor裁剪/merge/thumbnail链及Host对应消费者；没有通读整个Host或全部Eidos算法。复用已读装载/交付规范及第12节根边研究，完整读取工具系统规范、UI检查规则/设计总纲/清单，不重复外部研究。
+
+### 2026-10-20 门禁接续记录（PR #1047）
+
+原提交 `1e2e56887e9ef17927fc0c7c6c3ffd0960b2f43e` 的 Lightweight Host、Platform、Continuity、Human UI Review、Diagram Integration 五项CI通过；正式Host日志为159项行为测试、6项守卫、四组合均317个项目ESM模块/253条静态边、0 interval、96个归档文件。这是本批CI实测，不是本地测量或#1019历史值。
+
+Native Browser run `39251390713` 首轮在D02 Save后新拖动未改变坐标，唯一一次失败job复验在E04收起检查器后重新点击曲线超时（job `118071070157`）。两条路径直接调用原editor/renderer，不经过本批当前编辑器工具；没有据此证明生产缺陷，也没有跳过断言或合并红灯。定向读源码确认检查器布局改变后ResizeObserver会异步重新适配camera，单次boundingBox/CTM测量存在时序风险，实际失败是否由此导致仍需原生事件证据，不能把推断写成已复现根因。
+
+本次仅在原browser proof内补充三个有界坐标手势的前置条件：E04重新选择、D02前后两次节点移动，要求目标元素/画布/屏幕几何连续三个动画帧一致（最多120帧），重新选择真实可命中路径点，并记录可信pointerdown及真实目标。只发一次原生点击/拖拽，不重复手势、不更改DOM状态、无固定sleep、不放宽位移/Undo/CAS/ghost-chord断言；未改Eidos、2D页面或业务实现。由CI日志检验布局稳定与真实命中，保留诊断失败。
+
+合入当前main `5919e0147232fef1ddfc4f7e9a38b67969100bcf`：已逐文件比较基线后的18个变更，均为Agent/BEX独立路径，无本PR文件重叠。以main完整tree叠加本PR文件并保留双亲，避免部分本地快照丢失并行工作。本地18项定向回归与browser脚本语法检查通过；本地沙箱禁止回环监听/Chromium socket，未执行浏览器场景，正式浏览器与合入后CI仍待本PR验证，结果以PR后续记录为准。未部署。
+
+### 2026-10-20 原生浏览器及正式CI结果
+
+实现/测试提交 `9940a3bb581e5be6b6367f35fd023032b0c1b768` 六项CI全部通过：Lightweight Host `39360320807`、Platform `39360320867`、Continuity `39360320803`、Human UI Review `39360320857`、Diagram Integration `39360320842`、Native Browser `39360320862`（job `118424743952`）。正式构建、159项行为测试/6项守卫通过，四组合本轮仍为317模块/253静态边、0 interval、96归档文件，不能据此推算生产RSS或浏览器下载收益。
+
+浏览器日志捕获了D02 Save后实际布局变化：节点rect首帧 `[186.2044,232.0805,187.5,85]`，稳定后 `[48.9878,242.7870,174.4576,79.0874]`，左边界横移约137像素；首帧中心约(280,275)已在稳定后节点之外。等待4帧（其中一次几何变化）后，可信pointerdown在(136.22,282.33)命中sale节点，原位移、三步Undo/Redo、CAS 3→4、Save后Undo回新基线/清dirty及业务revision不变断言全部通过。该证据验证了旧单次测量点可能失效的具体机制，不把上次失败现场假装成已捕获trace。
+
+E04稳定3帧、未观察到本轮几何变化，可信pointerdown命中真实curve；原ghost-chord不命中、真实曲线可选、无隐式Save断言通过。其上次失败的具体根因仍未独立复现，不因一次绿灯宣告全脚本无时序风险。没有手动重复整套CI或跳过断言来代替修复。完整三条手势诊断及run标识已写入原JSON。
+
+这是原生Chromium合成企业夹具的自动子门禁，不能替代真实用户、物理触屏、客户/生产或Human视觉签署。本地仍未执行浏览器，本批仍未部署。后续仅补本文/JSON/兼容评审的结果记录，代码与测试与上述六绿提交完全相同；结果记录提交的CI与合并号见PR。
+
+### 2026-10-20 文档提交后的手机门禁复核
+
+结果文档提交 `2066981003ba756535defff23bd4d8afd60b652e` 仍自动触发全部六项PR门禁，其中五项通过，Native Browser `39361148972` / job `118427389279` 在T06手机多选第一项保持断言失败（Chromium 155.0.8059.84）；前一个六绿结果只属于其准确head，不能据此合并当前红灯。T06原点按同样只取一次boundingBox；打开检查器改变画布后，下一个点按没有等待几何稳定。是否为本次失败直接原因尚待事件证据，不宣称已复现。
+
+复用同脚本前置条件，仅覆盖T06原有三个节点点按；保留原rendered尺寸断言和全部无Shift多选/移除/框选行为断言。使用原生touchscreen.tap，新增pointerType必须为touch；其他手势必须为mouse。不会用mouse替代touch，不进行手势重试、状态注入或放宽断言。正式浏览器结果待新head CI，未合并、未部署；不扩展2D产品功能或调整其实现。
+
+### 2026-10-20 最终head及并行main同步
+
+`6408b18c0a41d51cd5315012a3fe2a210cb44d8e` 六项CI均通过：Lightweight Host `39361363235`（159行为测试/6守卫、四组合317模块/253静态边）、Native Browser `39361363250`、Platform `39361363245`、Continuity `39361363215`、Human UI Review `39361363211`、Diagram Integration `39361363196`。三个T06 tap的可信pointerType均为touch且正确命中sale/receipt/sale，原无Shift多选、切换移除、原生触摸框选及无Save断言通过。节点选择前后画布高度从685.5变为533.1875/542.34375，说明不能假定相邻点按的画布几何不变；本轮三次稳定等待自身未捕获变化帧，仍不伪称复现旧T06失败现场。D02再次捕获约137px横移并保留全部原断言。
+
+合并期间另一个窗口已合入#1057，main前进至 `e123924af8bdd1214a4aec6bfaf358c5afb9f445`。仓库continuity规则启用strict up-to-date，首次合并API因新合并基线缺检查返回405；没有绕过规则。已核对9个新增/变更路径（Agent文档、CI、cooperative lock、server和对应测试）与本PR无重叠，完整保留并同步最新main。该Agent改动不等于本专项R2资源资格/SQL合同已闭环；R1–R4及固定7项口径不变。此同步提交的正式CI测量和最终合并结果见[PR #1047](https://github.com/jiangxng/EVO-App-Platform/pull/1047)，不将上个head的317模块冒充更新后实测。未部署。
+
+### 接续与固定进度
+
+本入口整改完成后停止追加拆分。R1原运行图page/view handler、semantic/SOP命令模块及其他静态实现仍需按第12节分类继续选择，保留纯模型/同步共享合同；不能据此称整个Eidos 2D链或全部编辑器都退出Host。下一批优先原graph page/view handler与semantic actions的共同装配，复用既有lazy handler并保持当前编辑器选择回调；不重做定义投影页面或本批裁剪入口。R2 Agent配置触发SQL、R3 Provider分类、R4最终跨层验收仍未关闭。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；本批裁剪装配与竞态回归 | R1剩余page/action装配，继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、原Agent专项实施 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+## 14. 2026-10-20增量：原运行图页面与八条Human命令按需装配
+
+基线main `00d05159af8912f9a1194399d7723adfbbf686a5`（#1047），包含#1020基线。已核对开放PR；Agent/BEX独立工作保留，不改全局project.status/HANDOFF，不重复第11节View State或第13节裁剪整改。新过程分支 `fix/governance-eog-editor-entries-lazy-20261020`。本节是A01/R1一个有界入口批次，不是2D或Agent产品开发。
+
+### 事实、保留决定与最小整改
+
+完整读取原graph actions（298行）及page/view实现（985行），局部核对server全部对应imports、登记与页面分支。5个semantic handler与3个view handler的构造只生成闭包；业务get/list/validate/create、view.ensure/apply与inspector.inspect发生在execute，页面工厂仅生成页面合同。**没有发现本批工厂启动即访问业务存储的新缺陷**；但Host静态导入两个manager兼容出口，仍把可选页面/命令实现加入冷链，符合第12/13节已保存的装配候选。
+
+本批只调整原装配位置：
+
+- 在现有designer package元数据中声明8个原命令字符串；actions/page及manager兼容出口继续导出同名值，不改旧公共调用路径。复用原package，不新增通用框架、代理、插件或第二个Provider。
+- Host为5个semantic命令和3个view命令分别使用原createLazyAppActionHandlerV010；对应模块由合法首次调用动态import，按commandCode取得原handler。路由原Feature/权限前置检查保持；await后复查Designer有效性，再执行原handler，停用不执行迟到WRITE/READ。
+- 页面使用原有效Feature分支加载原page工厂，页面来源复用package已有source；await后再检查有效性。保留Personal/单企业fallback、语言、requestValues与页面内容，不改Human导航或视觉。
+- 原onEditorRead闭包原样保留，继续按session/subject记住当前企业图；原管理角色/授权、确认、semantic/view版本与冲突、inspector owner调用均不变。未做真实LLM任务验收。
+
+共享graph service、View State provider/store、纯model/projection算法及Agent登记继续按第6/11/12节决定保留同步共享合同；不得因Designer停用清理其他插件共同使用的业务事实。SOP语义/工具、其他静态Provider仍留后续核对，不机械拆轻量常量或纯算法。
+
+### 触发、资源与恢复
+
+| 场景 | 本批行为及证据入口 |
+|---|---|
+| 未安装、停用、启用未使用 | 目录保留廉价描述；页面404，八命令按原Feature拒绝；两个owner实现及两个manager兼容模块加入四组合冷启动禁入 |
+| 首次semantic并发 | 原lazy handler按命令缓存初始化Promise，Node ESM缓存共享模块；先调用list不连带page/view实现；原业务结果保持 |
+| 首次page/view | 加载原page/view模块；该模块仍复用原semantic函数，未拆成影子算法。页面与原工厂深比较；GET/selection/operation保持合同 |
+| import期间停用 | test-only原生ESM hook用有期限文件屏障挂起两个模块，真实HTTP disable后放行；semantic CREATE、view GET与page必须分别拒绝，重新启用后同handler可正常使用 |
+| import失败 | hook原样抛出交付故障，Host显式失败；重启且恢复模块后list为空、create成功，不能用失败返回推断已有业务WRITE已回滚 |
+| 视图/语义一致性 | 布局写入保留CAS；stale revision拒绝，semantic原图不变；不同企业相同graphId隔离；停用/恢复、卸载重装及进程重启保留各自数据 |
+
+本批没有新业务实例、连接、timer、订阅或后台任务。每命令cache仅持有原共享服务和Host resolver，execute仍使用当前请求Principal/Context；没有捕获单用户上下文为全局缓存。没有需dispose的新资源；停止拒绝新调用与新增await后的迟到调用，不承诺撤销已进入原业务授权/提交阶段的WRITE、ESM卸载或跨Host冻结。原生ESM失败可能缓存；修复交付后重启恢复，不做cache busting或自动重放。
+
+### 验证与限制
+
+真实Host测试采用原compatible/static-session合成夹具，并通过原startup-defaults settings API记入已退休的3D/Observatory/bottleneck一次性默认项，以免其依赖自动安装2D；断言state中2D确实未安装。未修改生产默认安装或准入代码，测试仍经真实HTTP安装/权限/生命周期。
+
+新增 `tests/integration/eog-editor-entries-lazy-host.test.mjs` 三项真实Host测试及一个test-only原生loader屏障/故障fixture，进入既有Lightweight Host CI；沿用原模块观察probe和隔离合成企业，不新增生产诊断入口。补入原semantic Host组件回归及lazy selection协议回归，继续运行原当前编辑器/构造资源回归。屏障仅测试中10ms有期限轮询，生产没有轮询或测试参数，模块源码未被替换/改写。
+
+本地既有18项组件/故障探针通过，selection2项首次因部分快照缺Viewer文件无法导入，补足固定SHA源码并临时转译后2项通过，合计20项通过。Host源码临时类型擦除后语法检查、新测试/fixture/audit脚本语法检查通过。**本地没有正式全仓TS构建或真实Host/browser执行**：复用前批受限环境的固定SHA部分源码快照，隔离到独立目录，不覆盖上一窗口文件；Node24临时类型擦除不是正式构建。正式npm ci/build、Node22测试、三项真实Host测试及四组合实测由本批CI给出，最终准确head/run/合并以本PR记录为准。
+
+首轮提交 `2a3fdb16ba792fa582b77aaf4ac8a6213312c12e` 正式npm ci/build与strict ratchet通过（253→247，只删除6条旧边）。Host行为测试169/170通过，新增正常生命周期/持久性/隔离与import期间停用两项通过；唯一失败是新故障用例误将已有动作异常HTTP envelope预期为500，实际为403。已定向读取Host动作路由内部catch，修正测试为403并精确检查注入故障码/消息，保留生产协议。错误尚未经过该旧断言之后的重启检查，不把169项通过宣称全绿；修正后的正式结果与最终head见PR。
+
+静态允许集合不扩张。#1047最终四组合318模块/253边是历史基线，不是本批实测；本地未新测模块数量或生产性能。没有部署，不把合成浏览器/Host自动证据当作Human业务签署。
+
+证据：[eog-editor-entries-lazy-20261020.json](evidence/eog-editor-entries-lazy-20261020.json)；[兼容评审](../../ui-design-reviews/eog-editor-entries-lazy-20261020.md)。复用已完整读取的AGENTS/启动、LLM、交付、根clinerules、装载规范、指定治理材料与Eidos设计总纲/清单；本轮核对它们的版本/接续章节，并补读lazy handler/router、原graph actions/page全文、相关原测试及server对应局部。全局状态仅读取当前/历史标识；没有把其较旧TR快照覆盖本专项。未新增外网研究，未声称通读全Host或其他owner全部代码。
+
+### 接续与固定进度
+
+本入口达到对应CI后停止追加拆分。R1剩余SOP命令/工具静态入口先核对现有责任及副作用，再决定必要整改或保留；纯共享model/View State结论不重开。R2配置SQL仍需原Agent owner资源资格/职责/验收证据，R3 Provider逐类分类、R4最终跨层矩阵仍未关闭；不代任何其他专项宣告完成。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；原图页面/八命令按需装配 | R1剩余SOP/工具边界，继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 未整体收口 |
+
+## 15. 2026-10-20增量：旧SOP Human命令装配与冻结边界
+
+基线main `71d63ce6716c19d68e34e77dcd2fe0c185027e35`（#1062）；已核对包含#1061及#1020祖先。#1061最终head `16be3e4233eb49ea94a96232588110480734703d` 的46项CI通过、170行为/6守卫、四组合310模块/247边，合并 `e51ceadeaa7b46413443a1d7af6d1b50ae2e3300`，[收尾证据](https://github.com/jiangxng/EVO-App-Platform/pull/1061#issuecomment-6282656104)。这些是前批结果，不是本批测量。#1062仅5个Agent文档路径；开放BEX #1060已核对18个文件，无本批路径重叠。不覆盖其他窗口、不修改全局状态或部署。
+
+### 已读事实与选择
+
+本批完整读取SOP contract、actions、service、Agent tools、原共享on-use实现；Host局部核对全部SOP消费者。并完整补读定义/EOG边界和peer extraction baseline及结构化职责/CI字段，确认**SOP product/extraction仍DEFERRED**，既有SOP定义/分析语料为preserved/non-gating。源码身份scaffold不等于已注册可安装产品。本批不启用SOP Designer、不改APQC+time语义、SOP分析或Agent功能，不把preserved corpus加入EOG Core产品门禁。
+
+| 入口/事实 | 触发与副作用 | 本批决定 |
+|---|---|---|
+| 旧Human四命令：list/create/revise/publish | 原owner为enterprise-agent / enterprise-agent.default；构造仅建闭包。execute才读服务，WRITE才授权、版本校验/确认及调用Enterprise Context仓库 | 合法首次调用经现有lazy handler加载原实现；原owner/command与错误、授权、确认、版本规则保持；await后重查原Feature |
+| 3项SOP Agent工具 | 工厂在请求目录构建中调用；只创建描述/闭包。旧ownerPackageId=evo-app-platform，available仅检查Enterprise，execute才调SOP service | 保留原登记及业务合同，不新增工具/发布能力，不擅改归属与资格。此旧身份/资格债务如需迁移，须按冻结产品边界独立决定；不能声称本批使其全部生命周期合同正确 |
+| 共享SOP service及on-use委托 | Host Human handler、Agent工具，以及向bottleneck provider注入的expectedSopService共用；SOP构造无业务调用，list/history/listPublished只读定义仓库，create/revise才需要graph.get校验节点 | 保留同步共享服务与既有按需实例，不绑定单个UI/Agent Feature停用释放，不重开第6节；纯校验/转换不另造异步代理 |
+| SOP contract | 版本/类型；本批加入原四命令字符串，旧actions继续同名导出 | 只保留轻量公共身份，未转导出任何实现。不新增插件、影子仓库或通用加载框架 |
+
+未发现本批这几个构造函数“启动即业务I/O”的新缺陷；整改的是四个可选业务handler的静态装配，而非假称解决一次文件访问。SOP service实现仍保留在共享冷链，这是有依据的保留，不承诺把所有含SOP名称的模块清零。Host其余Agent路径/Provider副作用不在这份局部源码结论内。
+
+### 生命周期、恢复与回归
+
+四个原身份值进入现有SOP contract；旧actions公共导出保持；Host原静态factory登记改为4个现有createLazyAppActionHandler。路由前置Feature/授权保持，加载后再次检查原Agent Feature；之后执行原handler，每次使用当前请求Context/Principal，不缓存某个用户资格。原生ESM缓存+每command初始化Promise不等于授权缓存；原实现没有新增连接、任务、订阅或业务缓存，不新增dispose。
+
+新增 `tests/integration/eog-sop-command-lazy-host.test.mjs` 三项资源/装配兼容测试，进入原Lightweight Host治理CI，不是SOP产品认证；原preserved业务/analysis corpus和SOP Designer scaffold均不改。复用已验证Host隔离profile、startup-defaults journal及module probe；test-only原生ESM hook用有期限文件屏障挂起实际import，或抛出加载故障，无源码替换或生产测试入口。
+
+- 未安装/停用四命令拒绝，已安装未使用模块不加载；首次并发list返回相同结果，且不连带加载graph页面/命令。
+- 合成企业兼容检查原create/revise/publish、stale revision拒绝、发布确认与Human attribution、已发布不可变、不同企业隔离；原数据经停用/恢复、卸载重装、重启保留。停用旧owner时EOG独立图入口仍读原图，不释放共享状态。SOP Designer保持未安装。
+- 实际import期间HTTP停用后，迟到list/create拒绝且共享定义文件字节不变；重新启用后同lazy handler可读。交付故障按原Host动作HTTP403/body.error显式返回，定义文件不写；修复模块且重启后恢复。没有自动重放WRITE或绕过Node ESM失败缓存。
+
+停止只拒绝新调用与新增await之后的动作，不撤销已进入原授权/提交的WRITE、不承诺ESM卸载或跨Host冻结。SOP Agent工具旧资格不由本批附带重构。R2 Agent配置SQL、R3 Provider分类、R4最终矩阵仍未关闭。
+
+### 验证、证据与读取限制
+
+本地10项通过：原on-use共享服务5项、原登记/发现资源边界3项、preserved authority手动2项；最后2项仅为兼容证据，未恢复到EOG Core必跑语料。覆盖零工厂、SOP只读不创建graph、授权拒绝、共享仓库/隔离、恢复和发布Human确认/无Agent发布工具。Host临时类型擦除语法与新增test/hook/audit语法通过。仍为独立固定SHA部分源码快照+Node24临时转译，**不是本地正式全仓TS build，未本地执行真实Host/browser**；正式npm ci/build、Node22、三项Host回归及本批四组合数字由本PR CI给出，最终准确head/run/合并见PR。
+
+静态基线只删除旧SOP actions→Agent package一条退出冷链的边，247→246为编辑值，待严格CI验证；新增SOP actions冷启动禁入。contract常量替代实现模块，模块总数不一定下降；不能据数字不变否定正确装配，也不据数字下降声称资源/性能全合格。没有新的本地四组合测量，不用#1061的310/247当作本批结果。
+
+证据：[eog-sop-command-loading-20261020.json](evidence/eog-sop-command-loading-20261020.json)；[兼容评审](../../ui-design-reviews/eog-sop-command-loading-20261020.md)。复用前批已完整读取的项目启动/LLM/交付/clinerules/装载规范及本专项材料；本轮核对最新main、AGENTS及第14节接续，新增读取上述SOP/冻结权威全文与相关原测试，Host仅局部。无外网重复研究，无真实LLM/用户、物理设备、生产验收或部署。
+
+### 接续与固定进度
+
+本批通过对应CI后不继续拆纯模型/零资源工具。下一批先统一核对R1剩余静态根入口和有依据的保留/冻结例外，保留旧SOP工具身份/资格债务的明确边界，再推进R3 Provider逐类副作用。R1不因本批变为完成；R2需原Agent owner资源职责/资格和验收证据，R4跨层最终验收仍待完成；不替其他专项宣告闭环。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；旧SOP Human命令装配已整改 | R1剩余根边/保留项统一对账；R2/R3/R4继续 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+## 16. 2026-10-20增量：保留根入口对账与模块求值资源回归
+
+基线main `1f2a7bbd717cca4547d68680a51733966457d41c`（#1063），已用compare确认包含原交接 `42ce894b4129089cbd8a270bd3473f0c93b7657b`。#1063最终head `f72cd4a88033e11e7acba6825978e2fadfab7135` 的44项CI通过，173行为/6守卫、四组合310模块/246静态边，见[最终记录](https://github.com/jiangxng/EVO-App-Platform/pull/1063#issuecomment-6282895640)。以上是历史结果，不是本批实测。过程分支 `test/governance-eog-retained-imports-20261020`；本批只改测试、既有治理CI和本专项文档，没有生产源码、UI、全局状态或部署变更。
+
+### 当前入口账与保留决定
+
+在固定提交的Host顶层value imports中，按EOG、enterprise-observatory、operating-graph、current-2d-editor、definition-projection路径定向对账，共24个直接入口；逐项路径、绑定名、行号、git blob及sha256见[本批证据](evidence/eog-retained-imports-20261020.json)。类型导入不算运行入口，24不是违规数，也不是全Host静态根总数。全部24份本地源码与该提交完整Git tree比对；此前快照写入产生的末尾空行仅在匹配远端blob时归一，不改变远端源码。
+
+| 类别/直接入口数 | 实际触发与副作用 | 决定、归属及退出条件 |
+|---|---|---|
+| 清单、身份、路由/会话合同及授权策略：9 | 清单和常量为数据；会话store工厂只创建空Map，set/get由请求使用。授权策略保留既有规则，不查询业务事实 | 保留廉价登记，空会话状态归Host进程；不拆公共合同或移除安全规则。若将来引入I/O、任务或重型索引，须重新评审并提供资源合同 |
+| 同步共享服务和持久化闭包：8 | graph/SOP已按首次方法调用分别实例化；definition persistence/source、View State/store构造零业务文件访问；业务读取/持久化在get/list/apply等方法发生 | 保留Enterprise Context共同权威和同步合同，graph/view/SOP/Agent/分析Provider复用。不得把某个UI Feature停用当作释放共享事实或清空业务数据的理由；出现独立连接/任务时由资源owner另行管生命周期 |
+| 请求工具登记：4 | graph/SOP/观测/当前编辑器工厂只建描述和闭包，发现只查既有资格、当前会话和候选元数据；execute才使用服务。当前定义投影裁剪已在#1047按需加载 | 保留请求Principal/Context，不增加全局用户缓存。原2D/3D/观测资格保持；**旧SOP工具owner=evo-app-platform、仅Enterprise资格仍为冻结兼容债务**，不是推荐新增方式或本批认证通过 |
+| 观测与inspector resolver闭包：2 | 构造不查询业务；候选检查/解析经有效贡献与现有registry，实际query/inspect在调用阶段 | 保留现有解析机制，不能从import或闭包成立推断所有Provider工厂无副作用；Provider构造、登记和健康探测仍归R3逐类检查 |
+| 条件兼容入口：1 | 模块求值不访问文件；Host调用时对已配置旧路径执行existsSync；存在旧文件才import迁移实现并读取/迁移业务数据；显式preview配置才种子写入 | 保留#1014已验收的共享定义兼容责任及错误/冲突规则。此处**允许有条件启动业务访问**，不得用本批import零访问断言掩盖调用时副作用；未来退休须有旧数据迁移与消费者证据 |
+
+graph model、diagram/definition projection、observatory输入解析等经上述入口传递加载，保留纯校验/转换算法；无需异步代理或新包。原graph page/view/semantic命令（#1061）、SOP四条Human命令（#1063）、当前定义裁剪及3D/各观测页面/命令已经沿既有lazy机制退出冷装配，本批不重复整改。没有发现足以支持再拆生产实现的新资源缺陷；这一判断限于上述定向入口及已有证据，不能外推至所有Agent或Provider。
+
+### 新增保护补的是什么
+
+第12节原构造/发现测试在ESM import完成后才安装资源拦截，不能证明模块求值本身没有副作用。本批新增 `tests/protocol/eog-retained-imports.test.mjs`，分别在4个全新子进程中，在第一个项目import前安装拦截，再动态import上述9/8/6/1组入口；每个入口都检查非空namespace及原生loader实际加载记录，避免ESM缓存掩盖未执行。
+
+拦截枚举的公共fs/fs.promises、TCP connect、HTTP(S)/fetch、global/timers/timers.promises及子进程创建；吞掉异常仍保留attempt并失败。一个独立自检用9个真实ESM故障样例验证同步/异步读、写、TCP、fetch、timer、Promise timer及子进程调用确实被捕获，其中包含读取dist源码的样例。
+
+Node24的原生ESM loader可能通过公共fs.readFileSync读取JS。fixture用原生registerHooks及捕获的读取函数，仅为dist下原样JS提供source；不改写源码、不以路径放行业务调用、不新增生产hook。模块执行看到的是已拦截的公共fs，即使直接读同一个dist文件也被自检捕获。源码装载自身的必要文件读取不算业务I/O；这不是文件系统/VM隔离，也没有声称拦截所有syscall、native addon、Worker或数据库API。
+
+本批仅增强模块求值保护；构造、发现、首次使用、共享隔离和工厂失败恢复复用已有组件测试，真实Host启停/迟到import/持久化/重启复用既有CI。模块import测试不调用兼容迁移函数，也不能单独证明在途WRITE、延迟后台任务、跨Host冻结或ESM卸载。本批没有新资源，不新增dispose；业务停止/恢复仍由原owner及第6～15节合同负责。SOP Designer仍未注册、默认OFF、产品/extraction DEFERRED，不将preserved语料提升为EOG Core产品门禁。
+
+### 验证与接续
+
+本地新增5项（含9个故障样例）及原登记3项/on-use5项，合计13项通过。首次试验在Node24默认loader读取源码时触发fs拦截，按上述原生hook隔离必要装载读取后通过；部分源码快照缺少resolver/compatibility等模块，补齐固定SHA源码后通过。没有修改生产代码来迎合测试。执行于独立 `/workspace/eog-r1-retained-20261020` 固定SHA部分源码快照及既有Node24临时类型擦除dist，不是正式TS build；本地未执行真实Host/browser。正式npm ci/build、Node22标准runner和既有Host/四组合验收由本PR CI给出，最终准确head/run与合并结果以PR收口记录为准。
+
+没有调整静态基线或禁入列表，不能借此放宽现有门禁。本地没有新的四组合模块数量、耗时、RSS或生产收益测量。读取复用前批已完整阅读的启动/LLM/交付、指定治理资料及冻结边界；本轮核对对应规则blob，补读compatibility、resolver、授权及清单全文，Host仅核对根imports、共享创建和请求登记；观测query与Provider resolution按相关函数查阅，未声称通读全Host或Agent。无新增外网研究。
+
+本批完成R1这份定向静态入口的当前对账和保留决定；**R1不整体关闭**，旧SOP身份/资格及其他冻结例外仍明确保留。下一批转入R3：先核对现有OpenAI/DeepSeek wrapper与health probe的工厂和Host登记调用点，区分纯闭包、配置读取、首次网络及必要安全机制，再选有副作用的整改或保留回归；不是第二个Provider试点。R2两处conversationDatabaseUrl触发SQL的owner职责/资格/验收仍未解决，PA05其他成果不能代替；R4最终跨层矩阵仍待R1～R3后汇总。不改其他窗口Agent/BEX/2D状态或替其宣告完成。
+
+插件平台架构治理 固定进度表（当前专项）
+
+| 验收项目 | 当前状态 | 下一步 |
+|---|---|---|
+| A01 轻量宿主与按需装载 | 部分完成；24个保留入口对账与模块求值回归 | R1冻结例外保留；继续R2/R3/R4 |
+| A02 安装声明与执行边界 | 已闭环 | 无需进一步操作 |
+| A03 账本管理与编译边界 | 部分完成 | 权威结果查询与幂等恢复 |
+| A04 成员关系与访问授权分包 | 已闭环，保留两包 | 无需进一步操作 |
+| A05 三种会话服务定位 | 部分完成 | 正式策略、兼容迁移与其他入口 |
+| A06 生命周期覆盖范围 | 已闭环 | 全平台实施缺口继续归A01 |
+| A07 个人/企业上下文边界 | 已闭环、已移交原Agent专项 | 无需本窗口进一步操作 |
+| 插件平台架构治理 整体 | 7项：4闭环、3部分完成 | 尚未整体收口 |
+
+本PR提交期间main前进至 `ad5ea4932dbabe8289f66289314b43667c154b4a`；compare仅有3个Agent拓扑/交接文档路径，与本批6文件不重叠。同步提交完整保留并行改动，不将其当作R2资源资格已验收；生产源码与24入口账不变。最终准确head的正式CI及测量见PR收口记录。

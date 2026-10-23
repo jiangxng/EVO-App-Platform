@@ -630,8 +630,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
         (active?.dataset.eidosReviewTableFilterKeys ?? "").split(",").filter(Boolean)
       );
       let visible = 0;
+      const choices = active?.dataset.eidosReviewTableFilterChoices
+        ?.split(",").filter(Boolean);
       for (const row of rows) {
-        const match = keys.has(row.dataset.eidosReviewTableStatusKey ?? "");
+        const selectedValue = row.querySelector<HTMLSelectElement>(
+          "[data-eidos-review-table-choice] select"
+        )?.value;
+        const match = choices
+          ? selectedValue!==undefined && choices.includes(selectedValue)
+          : keys.has(row.dataset.eidosReviewTableStatusKey ?? "");
         row.hidden = !match;
         if (match) visible++;
       }
@@ -660,12 +667,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       Object.values(statuses).forEach(status => supported.add(status.key));
     }
     const updateCounts = () => {
-      // Only id-matching status metrics opt into reactive counts.
+      // Source/Host issue totals are not equivalent to the count of rows with
+      // the same status key. Explicitly fixed metrics are never recomputed from
+      // unsaved select changes; default behavior remains backwards compatible.
       for (const metric of Array.from(container.querySelectorAll<HTMLElement>(
         "[data-eidos-form-task-metric-id]"
       ))) {
         const key=metric.dataset.eidosFormTaskMetricId;
-        if (!key || !supported.has(key)) continue;
+        if (!key || !supported.has(key)
+          || metric.dataset.eidosFormTaskMetricFixed === "true") continue;
         const value=metric.querySelector<HTMLElement>("strong");
         if(value) value.textContent=String(allRows.filter(row =>
           row.dataset.eidosReviewTableStatusKey===key).length);
@@ -685,7 +695,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       const cell=row.querySelector<HTMLElement>("[data-eidos-review-table-status]");
       if (!cell) return;
       row.dataset.eidosReviewTableStatusKey=status.key;
-      cell.textContent=status.label;
+      const badge=cell.querySelector<HTMLElement>("[data-eidos-review-table-status-badge]");
+      if (badge) badge.textContent=status.label;
+      else cell.textContent=status.label;
       cell.dataset.tone=status.tone ?? "neutral";
       updateCounts();
       if (reviewTableFilter) {
@@ -2611,6 +2623,39 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       form.addEventListener("change",onExclusiveChange);
       listeners.push(()=>form.removeEventListener("change",onExclusiveChange));
       refreshExclusiveOptions();
+    }
+
+    // An opt-in reset restores only unsaved form controls to the Host-loaded
+    // snapshot. It never calls ActionHost or rewrites persisted Import Job data.
+    if (doc.reviewTask?.presentation === "workbench"
+      && doc.reviewTask.footer?.resetLabel
+      && form.querySelector("[data-eidos-form-task-reset]")) {
+      let restoring = false;
+      const resetToLoadedSnapshot = (event: Event) => {
+        if (restoring) return;
+        event.preventDefault();
+        for (const group of exclusiveGroups.values()) {
+          for (const item of group) {
+            item.select.replaceChildren(...item.originals.map(option =>
+              option.cloneNode(true) as HTMLOptionElement));
+          }
+        }
+        restoring = true;
+        try { form.reset(); } finally { restoring = false; }
+        refreshExclusiveOptions();
+        for (const field of doc.fields) {
+          if (field.control !== "select" || field.hidden) continue;
+          const select = form.elements.namedItem(field.key);
+          if (select instanceof HTMLSelectElement) {
+            select.dispatchEvent(new Event("change", {bubbles:true}));
+          }
+        }
+        if (reviewTableFilter) {
+          reviewTableFilter.dispatchEvent(new Event("change", {bubbles:true}));
+        }
+      };
+      form.addEventListener("reset",resetToLoadedSnapshot);
+      listeners.push(()=>form.removeEventListener("reset",resetToLoadedSnapshot));
     }
 
     const actionStatus = document.createElement("div");

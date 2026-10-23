@@ -1,0 +1,55 @@
+name: Governance merged refs retirement (2026-10-22)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/governance-merged-ref-retirement-20261022.yml
+      - tools/governance-branch-retirement-20261022.cjs
+      - tests/protocol/governance-branch-retirement-20261022.test.mjs
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/governance-merged-ref-retirement-20261022.yml
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: governance-merged-ref-retirement-20261022-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - run: node --test tests/protocol/governance-branch-retirement-20261022.test.mjs
+      - name: Audit exact merged heads without deletion permission
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {retire}=require('./tools/governance-branch-retirement-20261022.cjs');
+            await retire({github,context,core});
+  retire-on-main:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - run: node --test tests/protocol/governance-branch-retirement-20261022.test.mjs
+      - name: Verify all targets and atomically retire leased refs including this cleanup source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {retire}=require('./tools/governance-branch-retirement-20261022.cjs');
+            await retire({github,context,core});

@@ -1,5 +1,12 @@
 export const EOG_EXPECTED_SOP_VERSION_V010 = "0.1.0" as const;
 
+// Legacy command identities only. Keeping registration metadata here does not
+// activate the deferred SOP Designer or change the current handler owner.
+export const EOG_SOP_LIST_ACTION = "enterprise-operating-graph.sop.list";
+export const EOG_SOP_CREATE_ACTION = "enterprise-operating-graph.sop.create";
+export const EOG_SOP_REVISE_ACTION = "enterprise-operating-graph.sop.revise";
+export const EOG_SOP_PUBLISH_ACTION = "enterprise-operating-graph.sop.publish";
+
 export type EogExpectedSopStateV010 = "DRAFT" | "PUBLISHED";
 
 export interface EogExpectedSopStepV010 {

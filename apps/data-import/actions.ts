@@ -742,6 +742,9 @@ export function createDataImportActionHandlersV010(input: {
         return {
           ok: true,
           correlationId: context.correlationId,
+          // Browser Shell already refreshes the mounted review page on
+          // successful Host commands. Do not also navigate to the same route:
+          // duplicate render races can break the next row-correction click.
           result: jobResult(job,context.principal.subjectId)
         };
       } catch (error) {

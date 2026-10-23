@@ -1,0 +1,133 @@
+name: PA05 superseded bounded engineering source retirement (2026-10-22)
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pa05-superseded-engineering-ref-retirement-20261022.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/pa05-superseded-engineering-ref-retirement-20261022.yml
+permissions:
+  contents: write
+  pull-requests: read
+  checks: read
+jobs:
+  verify-and-retire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Retire only superseded exact-source PA05 refs with integrated draft retained
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const full=owner+'/'+repo;
+            if(full!=='jiangxng/EVO-App-Platform')throw Error('Wrong repository');
+            const execute=context.eventName==='push'&&context.ref==='refs/heads/main';
+            if(!execute&&context.eventName!=='pull_request')throw Error('Unsupported event');
+            const cleanup='chore/pa05-superseded-engineering-ref-retirement-20261022';
+            const workflow='.github/workflows/pa05-superseded-engineering-ref-retirement-20261022.yml';
+            const integrated='agent/pa05-k0-consolidated-engineering-20261022';
+            const integratedSha='35b7f1e9d385d58a93302b7b6290e0a6c242683c';
+            const paths1074=['manager/server.ts','manager/host-shutdown.ts','tests/agent-line/pa05-host-shutdown-error-path.test.mjs'];
+            const paths1082=['manager/plugin-runtime-host.ts',
+              'tests/fixtures/pa05-k0-delayed-process.mjs',
+              'tests/fixtures/pa05-k0-external-supervisor-preflight.mjs',
+              'tests/fixtures/pa05-k0-runtime-process-ancestry-readonly.mjs',
+              'tests/fixtures/pa05-k0-supervised-os-tree.mjs',
+              'tests/fixtures/pa05-k0-supervisor-receipt-proof.mjs',
+              'tests/fixtures/pa05-k0-synthetic-inventory-reconciliation.mjs',
+              'tests/protocol/pa05-k0-external-os-tree-observation.test.mjs',
+              'tests/protocol/pa05-k0-process-shutdown-barrier.test.mjs',
+              'tests/protocol/pa05-k0-runtime-process-ancestry-readonly.test.mjs',
+              'tests/protocol/pa05-k0-supervisor-preflight.test.mjs',
+              'tests/protocol/pa05-k0-synthetic-inventory-reconciliation.test.mjs',
+              'tests/protocol/pa05-k0-synthetic-stop-receipt.test.mjs'];
+            const targets=[
+              {n:1074,name:'agent/pa05-host-shutdown-error-path-20261020',
+                sha:'c9a3f85c06093f8e6aa0c117e616e6fe14012e6a',prHead:'1238931199e63978cceeb3395507c0c77bda2964',retained:paths1074},
+              {n:1081,name:'agent/pa05-k0-process-runtime-concurrency-proof-20261020',
+                sha:'a1e8a0941ff5b796816aaea0904b89533191a239',prHead:'a1e8a0941ff5b796816aaea0904b89533191a239',retained:[]},
+              {n:1082,name:'agent/pa05-k0-process-runtime-stop-barrier-20261020',
+                sha:'2b19d9f2c345a19e056884963ab7e7fcae1415b4',prHead:'2b19d9f2c345a19e056884963ab7e7fcae1415b4',retained:paths1082}
+            ];
+            const get=async name=>{try{return (await github.rest.git.getRef({owner,repo,ref:'heads/'+name})).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}};
+            const open=async()=>github.paginate(github.rest.pulls.list,{owner,repo,state:'open',per_page:100});
+            const reserved=async()=>{const refs=new Set(['main']);for(const p of await open()){
+              refs.add(p.base.ref);if(p.head.repo?.full_name===full)refs.add(p.head.ref);
+            }return refs;};
+            const main=(await github.rest.repos.getBranch({owner,repo,branch:'main'})).data.commit.sha;
+            if(!execute){
+              const p=context.payload.pull_request;
+              if(p.head.ref!==cleanup||p.base.ref!=='main'||p.head.repo?.full_name!==full)
+                throw Error('Unexpected audit PR');
+              const f=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:p.number,per_page:100});
+              if(f.length!==1||f[0].filename!==workflow)throw Error('This PR must contain only the single one-time workflow');
+            }
+            const integration=(await github.rest.pulls.get({owner,repo,pull_number:1104})).data;
+            if(integration.state!=='open'||!integration.draft||integration.merged_at||
+              integration.base.ref!=='main'||integration.head.repo?.full_name!==full||
+              integration.head.ref!==integrated||integration.head.sha!==integratedSha||
+              await get(integrated)!==integratedSha)throw Error('Active integrated PA05 Draft changed');
+            const checks=await github.rest.checks.listForRef({owner,repo,ref:integratedSha,per_page:100});
+            if(checks.data.total_count!==45||checks.data.check_runs.some(c=>c.conclusion!=='success'))
+              throw Error('Integrated candidate exact HEAD is not 45/45 green');
+            const integrationFiles=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:1104,per_page:100});
+            if(integrationFiles.length!==18)throw Error('Integration PR scope changed');
+            const binarySha=async(path,ref)=>{
+              const r=(await github.rest.repos.getContent({owner,repo,path,ref})).data;
+              if(Array.isArray(r)||r.type!=='file'||!r.sha)throw Error('File absent '+path+' @ '+ref);
+              return r.sha;
+            };
+            for(const path of [...paths1074,...paths1082]){
+              const from=targets.find(t=>t.retained.includes(path));
+              if(await binarySha(path,from.sha)!==await binarySha(path,integratedSha))
+                throw Error('Unpreserved source blob '+path);
+            }
+            const wf=(await github.rest.repos.getContent({owner,repo,path:'.github/workflows/lightweight-host.yml',ref:integratedSha})).data;
+            const workflowText=Buffer.from(wf.content,'base64').toString('utf8');
+            if(!workflowText.includes('PA05 Host shutdown isolation and cooperative lock')||
+               !workflowText.includes('tests/agent-line/pa05-host-shutdown-error-path.test.mjs')||
+               !workflowText.includes('memory-intake-config-budget.test.mjs'))
+              throw Error('Main CI additions or PA05 shutdown tests lost');
+            for(const t of targets){
+              const pr=(await github.rest.pulls.get({owner,repo,pull_number:t.n})).data;
+              if(pr.state!=='closed'||pr.merged_at||pr.base.ref!=='main'||pr.head.ref!==t.name||
+                 pr.head.repo?.full_name!==full||pr.head.sha!==t.prHead)
+                throw Error('Unmerged source PR archival status changed: #'+t.n);
+              const c=(await github.rest.repos.compareCommits({owner,repo,base:t.prHead,head:t.sha})).data;
+              if(c.behind_by!==0||c.merge_base_commit?.sha!==t.prHead)
+                throw Error('Current source HEAD not descendant of original PR tip #'+t.n);
+              if(t.n===1081){
+                const files=await github.paginate(github.rest.pulls.listFiles,{owner,repo,pull_number:1081,per_page:100});
+                if(files.length!==2||!files.some(f=>f.filename==='tests/protocol/pa05-k0-process-shutdown-negative.test.mjs'))
+                  throw Error('Historical negative evidence PR inaccessible');
+              }
+              const now=await get(t.name);
+              if(now===null){core.info('ALREADY_ABSENT '+t.name);continue;}
+              if(now!==t.sha)throw Error('Target ref moved '+t.name);
+              if((await reserved()).has(t.name))throw Error('Source claimed by open PR '+t.name);
+              const info=(await github.rest.repos.getBranch({owner,repo,branch:t.name})).data;
+              if(info.protected)throw Error('Protected source '+t.name);
+              if(!execute){core.info('AUDIT_ELIGIBLE_SUPERSEDED '+t.name+' @ '+t.sha);continue;}
+              if(await get(t.name)!==t.sha||(await reserved()).has(t.name))
+                throw Error('Race at source '+t.name);
+              await github.rest.git.deleteRef({owner,repo,ref:'heads/'+t.name});
+              core.info('DELETED_SUPERSEDED_PA05_SOURCE '+t.name+' @ '+t.sha);
+            }
+            if(!execute){core.info('AUDIT_ONLY_PA05_SUPERSEDED');return;}
+            const closed=await github.paginate(github.rest.pulls.list,{owner,repo,state:'closed',head:owner+':'+cleanup,per_page:100});
+            const own=closed.find(p=>p.merged_at&&p.base.ref==='main'&&p.head.ref===cleanup&&p.head.repo?.full_name===full);
+            if(!own)throw Error('Own cleanup PR not merged');
+            const cmp=(await github.rest.repos.compareCommits({owner,repo,base:own.head.sha,head:main})).data;
+            if(cmp.behind_by!==0||cmp.merge_base_commit?.sha!==own.head.sha)
+              throw Error('Cleanup source not ancestral to main');
+            if(await get(cleanup)!==own.head.sha||(await reserved()).has(cleanup))
+              throw Error('Cleanup source moved or active');
+            const ownBranch=(await github.rest.repos.getBranch({owner,repo,branch:cleanup})).data;
+            if(ownBranch.protected)throw Error('Protected cleanup source');
+            if(await get(cleanup)!==own.head.sha)throw Error('Cleanup source raced');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+cleanup});
+            core.info('DELETED_OWN_PA05_CLEANUP_SOURCE '+cleanup+' @ '+own.head.sha);
+            core.info('PA05_SUPERSEDED_SOURCE_REF_RETIREMENT_COMPLETE');
