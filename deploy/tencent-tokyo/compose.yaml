@@ -36,6 +36,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Docker's "running" state alone does not prove that Node is serving HTTP.
+    healthcheck:
+      test: ["CMD", "node", "-e", "const h=require('node:http');const q=h.get('http://127.0.0.1:4100/health',r=>{r.resume();process.exit(r.statusCode===200?0:1)});q.on('error',()=>process.exit(1));q.setTimeout(3000,()=>q.destroy())"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
     ports:
       - "127.0.0.1:4100:4100"
     volumes:
@@ -47,7 +54,9 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
-    depends_on: [evo]
+    depends_on:
+      evo:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"

@@ -95,6 +95,16 @@ sudo rm -f /root/evo-tokyo-dev-actions /root/evo-tokyo-dev-actions.pub
 - 工作流使用固定 `ubuntu-24.04` Runner 与 Node24 兼容的官方 Actions，**Node 应用运行时仍保持 `22.22.2`**，不借部署诊断升级业务工具链。
 - 此次失败前成功推送的镜像仅代表 GitHub 镜像构建成功，**不代表腾讯云验证环境已部署**；Railway 原环境保持不变。
 
-## 7. 换窗口交接
+## 7. 本次真实启动故障：首次 Docker 启动的 HTTP 验证与回退（2026-10-27）
+
+- [Actions run #40459162831](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40459162831)，精确 `main@a8de4336f685442ed754c70d8ffa95799849dbd1`：SSH 两项 Secret 与服务器预检、`npm run test:platform`、GHCR 镜像构建、`scp`、远端 Docker 登录全部 **PASS**。
+- Docker 创建独立 `evo-tokyo-dev_internal` 网络与四个新 volume；PostgreSQL、EVO、Caddy 容器都显示 `Started/Healthy`；**旧 Compose 只给 PG 设置了真正的探针，EVO/Caddy 的 Docker "Healthy" 不构成 Web 成功实证**。
+- 本地 HTTP 检查立即报 `curl (56) Recv failure: Connection reset by peer`；原因尚不能确定，可能 Node 未就绪或进程退出，当前没有 Host 启动日志/容器内部探针证据；不得直接判定某一业务错误。
+- 旧回滚用 `.env.rollback` 中的首次 `EVO_IMAGE=...:pending`，试图拉取不存在的占位镜像，造成第二次错误；且不能宣称 `PREVIOUS_IMAGE_RESTORED` 已成功。
+- 改动：给 EVO 添加真正的容器内部 `GET /health` 探针，Caddy 待 EVO healthy 才启动；远端 Compose 等 HTTP 就绪，Host curl 对临时 TCP reset 进行有界重试；出错时只打印容器状态/退出码（不打印环境变量和凭据）。只有曾通过本地健康检查、写入 `.last-health-pass-sha` 的历史 SHA 才能回退。首次失败保留当前 image/卷供排障，**不回到 `pending`**。
+- 首次修复后的 Runner 若仍因真实 Host unhealthy 而超时，需要额外核实经脱敏的 `docker compose logs evo` 与 `docker inspect ... State`，不要靠重新安装 Docker 或更换私钥解决。只在新 PR 合并 `main` 后调用 **新的** `workflow_dispatch`；不要 rerun 旧 Actions。
+- 当前已知：镜像在腾讯云被拉取并初步运行；**尚无有效 /health 200 的外网/主机证据、未完成发布验收**。Railway 原项目、数据卷和 Secrets 未改。
+
+## 8. 换窗口交接
 
 开始于 `main@9e95a05de072cbd643d425022b7c1c9b5a400f06`。新的 GitHub 部署 owner 工作线只改 `deploy/tencent-tokyo/**`、`.github/workflows/evo-tokyo-dev-deploy.yml`、本 runbook，不动 PA05/BEX/Eidos/EC 产品代码、`project.status.json` 或其他窗口的 PR。没有已记录的同目标失败部署；当前阻塞是服务器授权、首次安装、真实 GitHub CI 和网络验收。失败时保持本 PR/服务器数据并只做定向排障，不盲目反复重建。
