@@ -16,29 +16,69 @@ concurrency:
 jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: evo-tokyo-dev
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22.22.2
           cache: npm
+      # Fail fast: validate Secrets and SSH readiness BEFORE npm tests and image build.
+      - name: Validate pinned SSH secrets (without exposing their values)
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$PRIVATE_KEY" ]]; then
+            echo "::error title=EVO_TOKYO_PRIVATE_KEY_MISSING::Add EVO_TOKYO_SSH_PRIVATE_KEY to the evo-tokyo-dev environment."
+            exit 1
+          fi
+          if [[ -z "$HOST_KEYS" ]]; then
+            echo "::error title=EVO_TOKYO_HOST_KEY_MISSING::Add EVO_TOKYO_SSH_KNOWN_HOSTS to the evo-tokyo-dev environment."
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          if ! ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null 2>&1; then
+            echo "::error title=EVO_TOKYO_HOST_KEY_INVALID::Known-hosts Secret must contain a complete verified line beginning '43.167.252.197 ssh-ed25519 '. Never paste a secret into logs."
+            exit 1
+          fi
+          if ! ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" >/dev/null 2>&1; then
+            echo "::error title=EVO_TOKYO_PRIVATE_KEY_INVALID::Private-key Secret must contain an unencrypted multiline OpenSSH private key (not the .pub file or Tencent key ID). Do not post its contents."
+            exit 1
+          fi
+          echo "EVO_TOKYO_SSH_SECRET_FORMAT_PASS"
+      - name: SSH preflight - verify deployed identity and Docker
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 \
+            'test "$(id -un)" = evo-deploy && test -f /opt/evo-tokyo/.env && docker compose version && docker info >/dev/null'; then
+            echo "::error title=EVO_TOKYO_REMOTE_PREFLIGHT_FAILED::SSH identity, firewall port 22, or first-time Docker/bootstrap setup is not ready. Inspect the preceding SSH error, not your secret values."
+            exit 1
+          fi
+          echo "EVO_TOKYO_REMOTE_PREFLIGHT_PASS"
       - name: Required pre-deploy platform validation
         run: |
           npm ci
           npm run test:platform
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
       - name: Build immutable SHA-tagged runtime image on GitHub
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -46,21 +86,6 @@ jobs:
           tags: ghcr.io/jiangxng/evo-app-platform:${{ github.sha }}
           cache-from: type=gha,scope=evo-tokyo-dev
           cache-to: type=gha,scope=evo-tokyo-dev,mode=max
-      - name: Configure pinned SSH host identity and deployment key
-        shell: bash
-        env:
-          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
-          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
-        run: |
-          set -euo pipefail
-          test -n "$PRIVATE_KEY" || { echo 'Missing EVO_TOKYO_SSH_PRIVATE_KEY'; exit 1; }
-          test -n "$HOST_KEYS" || { echo 'Missing EVO_TOKYO_SSH_KNOWN_HOSTS'; exit 1; }
-          umask 077
-          mkdir -p "$HOME/.ssh"
-          printf '%s\n' "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
-          printf '%s\n' "$HOST_KEYS" > "$HOME/.ssh/known_hosts"
-          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
-          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" >/dev/null
       - name: Upload versioned Compose definition
         run: |
           scp -o BatchMode=yes -o StrictHostKeyChecking=yes \
