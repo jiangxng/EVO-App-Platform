@@ -2,6 +2,9 @@ import {
   createRevisionAwareBrowserTransportV010
 } from "./browser-transport.js";
 import {
+  createBusinessPageReadinessFetchV010
+} from "./business-page-readiness-fetch.js";
+import {
   createBrowserPerformanceReporterV010
 } from "./browser-performance.js";
 import {
@@ -54,12 +57,12 @@ const transport = createRevisionAwareBrowserTransportV010({
   }
 });
 
+const currentLocale = () =>
+  window.localStorage.getItem("evo.locale")?.trim() || initialLocale;
 const source = createAppManagerExperienceSource({
   baseUrl: window.location.origin,
-  fetchImpl: transport.fetch,
-  locale: () =>
-    window.localStorage.getItem("evo.locale")?.trim()
-    || initialLocale
+  fetchImpl: createBusinessPageReadinessFetchV010(transport.fetch, currentLocale),
+  locale: currentLocale
 });
 
 const connectivity = mountBrowserConnectivityNoticeV010();
