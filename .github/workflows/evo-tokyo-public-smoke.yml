@@ -22,6 +22,8 @@ jobs:
       - name: Verify DNS, certificate, HTTPS health, Basic Auth boundary
         shell: bash
         run: |
+          # GitHub bash defaults to -e; keep collecting all gates after a failing curl.
+          set +e
           set -u
           host="evo.43.167.252.197.sslip.io"
           ip="43.167.252.197"
