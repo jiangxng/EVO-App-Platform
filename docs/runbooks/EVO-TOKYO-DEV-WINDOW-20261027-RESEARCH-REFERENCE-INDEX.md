@@ -177,3 +177,10 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - **P1 架构原文**：[PLUGIN-PLATFORM-MAINLINE-v0.1](../architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md)、[EVO-WORKBENCH-v0.1](../architecture/EVO-WORKBENCH-v0.1.md)。**事实**：插件安装和生命周期由 Host 掌控，Eidos 只呈现有效贡献；**决策**：不能以 UI 假过滤遮住已激活插件，而应纠正东京首次安装策略。
 - **实施候选**：[Draft PR #1120](https://github.com/jiangxng/EVO-App-Platform/pull/1120)，独立分支 fix/evo-tokyo-clean-plugin-shell-20261027；新增 Tokyo clean 启动档，保留其他环境 compatible 行为；删除 EVO 平台冗余 Workspace Activity；有针对性的测试与 [详细验收记录](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-clean-plugin-shell-20261027/docs/runbooks/EVO-TOKYO-DEV-PLUGIN-SHELL-ACCEPTANCE-20261027.md)。
 - **未关闭门禁**：当前 VPS /data 卷已在 compatible 启动时保留真实已装业务插件，新档不会自动卸载/停用旧记录；必须先读取生命周期状态与来源，通过正式禁用（保留数据）纠正后，才可宣称现场菜单清空。PR CI、合并、发布和 Human 页面验收各自独立，不冒充已经上线。
+
+## 2026-10-27 更正：企业上下文缺失导致应用工作区空白（后续窗口证据）
+
+- **用户一手截图（U，2026-10-27）**：腾讯云 Tokyo 页面右上角显示“暂无企业”；点击客户应用后 URL 是 #/counterparties/customers，左侧仍有客户、供应商、数据导入，主区完全空白。可确认用户可见的企业列表为空；**不能仅凭此证明应用包没有安装，或后端 Service Binding 一定不存在**。
+- **P1 仓库原文已读**：[Host 页面 API](https://github.com/jiangxng/EVO-App-Platform/blob/7b95c3b70d947c83476e9ca966c3252ade96e384/manager/server.ts) 在无 Enterprise Context 时对客户等业务页面返回 HTTP 409 领域码 ENTERPRISE_CONTEXT_REQUIRED；[Eidos Workbench](https://github.com/jiangxng/EVO-App-Platform/blob/7b95c3b70d947c83476e9ca966c3252ade96e384/vendor/eidos/src/workbench/shell.ts) 先清空工作区并向上传播加载失败，使错误不可见。这是与截图吻合的源码故障解释，缺少该次公网 HTTP 日志，因此未将推断冒充请求实测。
+- **已撤回上一个提案**：#1120 早期的 Tokyo clean startup 配置试图让新环境自动安装的应用链接不再出现，不能解决“已有应用入口但缺企业业务上下文时应有提示”的需求，现已从 PR 中撤回。不要删除/停用东京现有插件来替代真实错误提示。
+- **现行方案**：[Draft PR #1120](https://github.com/jiangxng/EVO-App-Platform/pull/1120)，平台在收到页面级、精确 ENTERPRISE_CONTEXT_REQUIRED 的 409 时提供 Eidos 标准只读空状态；服务端仍拒绝业务数据访问，授权和插件生命周期不变。移除与 Apps 折叠重复的 Workspace 全局 Activity。依据 [本批运行验收文档](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-clean-plugin-shell-20261027/docs/runbooks/EVO-TOKYO-DEV-PLUGIN-SHELL-ACCEPTANCE-20261027.md)，后续分层验证插件包安装、企业上下文、企业业务服务绑定三种不同状态。准确 HEAD CI、实际部署、Human 验收独立。
