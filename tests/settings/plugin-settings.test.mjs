@@ -153,7 +153,7 @@ test("invalid setting types and undeclared select values are rejected", () => {
 
 test("no plugins installed means no decorative Settings groups or dead routes", () => {
   const manager = createAppManagerService(
-    createPackageCatalog([openAiLlmProviderPackage, hostEncryptedSecretsProviderPackage]),
+    createPackageCatalog([openAiLlmProviderPackage, hostEncryptedSecretsProviderPackage, enterpriseAgentPackage]),
     createMemoryLifecycleStore()
   );
   const empty = createSettingsIndexPage(manager, "zh-CN");
@@ -168,6 +168,15 @@ test("no plugins installed means no decorative Settings groups or dead routes", 
   assert.match(html, /前往插件商店/);
   const manifest = createSettingsExperienceManifest(manager, "zh-CN");
   assert.deepEqual(manifest.routes.map(route => route.path), ["/settings"]);
+
+  // A real installed application without a Settings contribution must
+  // not reintroduce four meaningless categories.
+  manager.install("enterprise-agent");
+  assert.deepEqual(createSettingsIndexPage(manager, "zh-CN").items, []);
+  assert.deepEqual(
+    createSettingsExperienceManifest(manager, "zh-CN").routes.map(route => route.path),
+    ["/settings"]
+  );
 
   manager.install("openai-llm-provider");
   assert.deepEqual(createSettingsIndexPage(manager, "zh-CN").items.map(item => item.id), ["system"]);
