@@ -16,7 +16,7 @@ import { createFileLifecycleStore, createMemoryLifecycleStore } from "./store.js
 import { acquirePa05CooperativeHostStateLockV010 } from "./pa05-read-owner-cooperative-host-lock.js";
 import { rejectHostShutdownRequestV010, runHostShutdownStepsV010 } from "./host-shutdown.js";
 import { createFileSettingsStore, createMemorySettingsStore } from "./settings-store.js";
-import { createStartupDefaultsV010, resolveStartupProfileV010 } from "./startup-defaults.js";
+import { createStartupDefaultsV010, resolveStartupProfileV010, shouldBootstrapBusinessDefaultV010 } from "./startup-defaults.js";
 import { createMemoryTemplatePreviewSessionStoreV010 } from "./template-preview-session.js";
 import {
   createMemoryDefinitionProjectionSessionStoreV010,
