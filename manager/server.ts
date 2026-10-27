@@ -2609,7 +2609,7 @@ const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
 function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false) {
   // A clean plugin host only activates user-installed or explicitly configured apps.
   // The legacy compatible profile keeps its existing one-time defaults.
-  if ((startupProfile === "minimal" || startupProfile === "clean") && !explicit) return;
+  if (!shouldBootstrapBusinessDefaultV010(startupProfile, explicit)) return;
   try {
     const result = startupDefaults.apply({
       packageId,
