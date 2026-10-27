@@ -26,7 +26,7 @@ Platform-owned Activities:
 
 - Apps → navigation View Container
 - Plugins → Plugin Store workspace route
-- Workspace → maximize/focus current workspace
+- Workspace focus → the existing Apps Activity toggles the Side Panel, and Eidos still provides route-specific focus/sidebar controls; EVO does not publish a redundant global Workspace icon
 - Settings → Settings workspace route
 
 Product Activities are lifecycle contributions. For example, Enterprise Agent contributes its own `eidos.workbench-activity` entry targeting `/enterprise-agent`; App Host does not hard-code an Agent slot. The same mechanism is the required path for future Search, Notifications, approvals or knowledge tools.
