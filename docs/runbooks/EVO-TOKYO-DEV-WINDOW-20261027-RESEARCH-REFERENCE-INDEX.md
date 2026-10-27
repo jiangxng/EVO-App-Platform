@@ -161,3 +161,10 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 **最新门禁快照**：main@7b95c3b... 部署成功（本地 HTTP）；PR #1118 exact HEAD a96ea258... 首轮 4/4 CI SUCCESS（本次补录后需重新核 exact HEAD CI）；公网 DNS/HTTP80 302 PASS；**443/TLS/Basic Auth FAIL/OPEN**；持久化、备份、回滚、Human、自动 main 发布仍未完成。原 Railway 环境与数据保持未动。
 
 **决策**：不改既有 SSH Secrets，不安装第二次 Docker，不将 4100/5432 公网暴露。优先读取东京 Lighthouse 实例 TCP443 允许/拒绝规则及顺序，缺失时才增补 ALLOW（若需要公开预览则来源 0.0.0.0/0）。只有 443 实际可访问，才重跑探针验证证书/health/Basic Auth；之后再做持久化/备份/回滚及 CI-gated 自动发布。当前并未登录腾讯云控制台或 VPS 修改网络规则。
+
+
+### 新发现的官方文档冲突（2026-10-27，必须保留）
+
+- [腾讯云国际版 Managing the Instance Firewall](https://intl.cloud.tencent.com/document/product/1103/41393?lang=en)，**P1 已读官方原文**，网页标注最后更新 **2023-12-06**，Adding a firewall rule 一节表示新建 Lighthouse 默认放通 80、443、22、3389 和 ICMP。
+- [腾讯云中文《防火墙应用案例》](https://cloud.tencent.com.cn/document/product/1207/136745)，**P1 已读官方原文**，标注 2026-08-25 更新，明确 Linux/容器镜像默认放通 22、80、ICMP，未包含 443。
+- 两个官方原文描述**相互冲突**，可能出自年份/地区/镜像策略不同，但并未逐项证实，不能以“默认规则”推断本台东京实例的现有状态。实际外部探针只证明 TCP443 连通超时，**是否缺少云侧规则仍待读实例本身**；保留 OS firewall、Caddy listener 等候选，不盲目修改现有服务。
