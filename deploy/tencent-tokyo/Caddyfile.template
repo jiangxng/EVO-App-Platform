@@ -1,0 +1,21 @@
+# Generated once by bootstrap.sh. Do not commit the rendered Caddyfile with its hash.
+# IP-only access redirects to the free, IP-derived HTTPS hostname.
+http://43.167.252.197 {
+    redir https://evo.43.167.252.197.sslip.io{uri} 302
+}
+
+evo.43.167.252.197.sslip.io {
+    encode gzip
+
+    @health path /health
+    handle @health {
+        reverse_proxy evo:4100
+    }
+
+    handle {
+        basic_auth {
+            evo __EVO_PREVIEW_BCRYPT_HASH__
+        }
+        reverse_proxy evo:4100
+    }
+}
