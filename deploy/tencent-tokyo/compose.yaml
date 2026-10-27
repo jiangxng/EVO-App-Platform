@@ -1,0 +1,69 @@
+name: evo-tokyo-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evo
+      POSTGRES_DB: evo_dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set_in_private_env_file}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evo -d evo_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  evo:
+    image: ${EVO_IMAGE:?set_in_private_env_file}
+    restart: unless-stopped
+    environment:
+      PORT: "4100"
+      NODE_ENV: production
+      APP_PLATFORM_STATE_FILE: /data/platform-state.json
+      APP_PLATFORM_CONVERSATION_AUTHORITY: POSTGRES
+      APP_PLATFORM_CONVERSATION_DATABASE_URL: postgres://evo:${POSTGRES_PASSWORD}@postgres:5432/evo_dev
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_PUBLIC_BASE_URL: https://evo.43.167.252.197.sslip.io
+      APP_PLATFORM_DEPLOY_REVISION: ${EVO_REVISION:-unverified}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:4100:4100"
+    volumes:
+      - evo-data:/data
+    networks: [internal]
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [evo]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [internal]
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  internal:
+
+volumes:
+  postgres-data:
+  evo-data:
+  caddy-data:
+  caddy-config:
