@@ -213,14 +213,36 @@ function installedConfigurablePackages(manager: AppManagerService): PackageManif
     .sort((a, b) => a.packageId.localeCompare(b.packageId));
 }
 
+// Only live plugin Contributions, not the installable catalog or a fixed menu,
+// may expose optional Settings groups. System configuration can also be edited
+// for an installed but disabled package, consistent with the lifecycle contract.
+function effectiveSettingsRoutes(manager: AppManagerService): ReadonlySet<string> {
+  const routes = new Set<string>();
+  for (const candidate of manager.listEffectiveExperiences()) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const manifest = candidate as { routes?: Array<{ path?: string }> };
+    for (const route of manifest.routes ?? []) {
+      if (typeof route.path === "string") routes.add(route.path);
+    }
+  }
+  return routes;
+}
+
+export function availableSettingsGroups(manager: AppManagerService): SettingsNavigationGroupV010[] {
+  const routes = effectiveSettingsRoutes(manager);
+  return [
+    ...(routes.has(ENTERPRISE_CONTEXT_DIRECTORY_ROUTE) || routes.has(LEDGER_MANAGER_ROUTE)
+      ? ["business" as const] : []),
+    ...(routes.has(TEMPLATE_STORE_ROUTE) ? ["applications" as const] : []),
+    ...(routes.has("/memory") ? ["ai" as const] : []),
+    ...(routes.has("/providers") || installedConfigurablePackages(manager).length > 0
+      ? ["system" as const] : [])
+  ];
+}
+
 export function createSettingsExperienceManifest(manager: AppManagerService, locale = "en") {
   const packages = installedConfigurablePackages(manager);
-  const groups: SettingsNavigationGroupV010[] = [
-    "business",
-    "applications",
-    "ai",
-    "system"
-  ];
+  const groups = availableSettingsGroups(manager);
 
   return {
     contractVersion: "0.1.0",
@@ -313,15 +335,19 @@ function navigationLocale(locale: string) {
     providersSummary: zh
       ? "管理平台能力对应的 Provider 和作用域。"
       : "Manage Provider selection and scope for platform capabilities.",
-    configure: zh ? "配置" : "Configure"
+    configure: zh ? "配置" : "Configure",
+    empty: zh ? "暂无已安装插件的设置。安装支持配置的插件后，设置将自动显示。"
+      : "No installed plugin settings yet. Configuration appears here after installation.",
+    browsePlugins: zh ? "前往插件商店" : "Browse Plugin Store"
   };
 }
 
 export function createSettingsIndexPage(
-  _manager: AppManagerService,
+  manager: AppManagerService,
   locale = "en"
 ): CatalogBrowserV010 {
   const ui = navigationLocale(locale);
+  const available = new Set(availableSettingsGroups(manager));
   const groups: Array<{
     id: SettingsNavigationGroupV010;
     title: string;
@@ -338,12 +364,20 @@ export function createSettingsIndexPage(
     kind: "catalog-browser",
     id: "evo.settings",
     title: ui.settings,
-    description: ui.description,
-    emptyMessage: "",
-    items: groups.map(group => ({
+    description: available.size ? ui.description : ui.empty,
+    emptyMessage: ui.empty,
+    ...(available.size === 0
+      ? { actions: [{
+          id: "browse-plugins",
+          label: ui.browsePlugins,
+          type: "navigate" as const,
+          route: "/store",
+          primary: true
+        }] }
+      : {}),
+    items: groups.filter(group => available.has(group.id)).map(group => ({
       id: group.id,
       title: group.title,
-      category: "SETTINGS_GROUP",
       summary: group.summary,
       primaryAction: {
         id: "open",
@@ -362,6 +396,7 @@ export function createSettingsGroupPage(
 ): CatalogBrowserV010 {
   const ui = navigationLocale(locale);
   const packages = installedConfigurablePackages(manager);
+  const effective = effectiveSettingsRoutes(manager);
 
   const items = group === "business"
     ? [
@@ -446,8 +481,14 @@ export function createSettingsGroupPage(
         : group === "ai"
           ? ui.aiSummary
           : ui.systemSummary,
-    emptyMessage: "",
-    items: items.map(item => ({
+    emptyMessage: ui.empty,
+    items: items.filter(item =>
+      item.route === "/store"
+        ? effective.has(TEMPLATE_STORE_ROUTE)
+        : item.route.startsWith("/settings/")
+          ? packages.some(pkg => settingsPackageRoute(pkg.packageId) === item.route)
+          : effective.has(item.route)
+    ).map(item => ({
       id: item.id,
       title: item.title,
       category: item.category,
