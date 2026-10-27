@@ -143,3 +143,21 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 **无法从本聊天直接持久化到 GitHub 的私有证据：**（1）用户 GitHub Environment 页面原截图附件仅在当前聊天提供，路径及 file ID 已记录；（2）GitHub Environment Secrets 内容、VPS Caddy 预览密码、PG 数据库密码、SSH 私钥均**不复制入仓库和交接**；（3）VPS 实际 TLS/外网流量和应用持久化数据尚未经外部实测；（4）第三方官网文章的原文尚未读取，均保持 P2/P3；（5）独立铁路数据库/运行配置未取回，本专项无迁移证据。保持未证实，不臆造。
 
 建议未来新窗口仅在本专项 PR/记录追加**新的** GitHub run、脱敏公网 HTTPS 验收、恢复验证和自动部署 PR，而不为“换窗口”重新查已经确认的 Node Dockerfile 或重复提交 ssh known-hosts 修复。
+
+
+## 新窗口新增证据补录：2026-10-27 公网 443 门禁（不覆盖上述历史快照）
+
+> 这是 **2026-10-27 新窗口第二次查询** 的增量记录；与本索引前述“公网工具不支持、无法判断”并不冲突：现在已有真实 GitHub-hosted Runner 的公网探针结果。详细步骤和完整证据表另见 [公网入口验收文档（PR #1119）](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-public-entry-gate-20261027/docs/runbooks/EVO-TOKYO-DEV-PUBLIC-ACCEPTANCE-20261027.md)。#1119 仍为独立 Draft PR，**尚未合入 main**。
+
+| 新增来源标题、原始 URL、检查日期 | 等级与真实证据 | 采用理由、边界和对应模块 |
+| --- | --- | --- |
+| [东京第一次公网探针 #40463297608](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40463297608)，[job #122052688019](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40463297608/job/122052688019)，2026-10-27 | **P1 GitHub Actions 原始 job 日志**：DNS A=43.167.252.197 正确；从公网连接 TCP443 超时，curl (28)；原测试脚本被 GitHub bash -e 提前停止。 | 真实外部诊断，不是网页读取工具边界。原脚本问题已按证据修改，不能将未执行的检查记为通过。 |
+| **[东京完整公网探针 #40463405902](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40463405902)**，[job #122053036724](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40463405902/job/122053036724)，2026-10-27 | **P1 GitHub Actions 原始 job 日志**：DNS PASS；公网 TCP443 FAIL（10s）；DNS 正常和强制指定 IP 的 HTTPS /health 均 curl (28)、HTTP 000；HTTPS / 根路径超时；**HTTP 裸 IP 返回 302，PASS**。 | 证实 80 正常/443 不通；证书、Basic Auth、功能页面仍不可认证。涉及 deploy/tencent-tokyo 的 Caddy 端口/腾讯云 Lighthouse 防火墙，先不动 EVO 应用或 SSH。 |
+| [腾讯云官方《防火墙应用案例》](https://cloud.tencent.com.cn/document/product/1207/136745)，文档更新 2026-08-25；查阅 2026-10-27 | **P1 官网原文已打开**：Linux 系统/容器镜像默认放通 22、80、ICMP；未列出 TCP443。 | **来源事实** 说明公网 80 通 443 不通的合理机制；**方案判断**：最优先确认该 Lighthouse 实例是否缺少 443 ALLOW。尚未取得实例规则，不能说根因已经确定。 |
+| [腾讯云官方《管理实例防火墙》](https://cloud.tencent.com/document/product/1207/44577)，文档更新 2026-01-27；查阅 2026-10-27 | **P1 官网原文已打开**：实例详情→防火墙→添加规则，端口 TCP443 / 允许 / 按需来源；规则有优先级，变更即时生效。 | 为单点最小修复提供操作依据：公网验收需允许 TCP443；不清空规则、不放出 4100/5432，不重启 VPS，不替换 SSH Secrets。 |
+| [Caddy 官方 Troubleshooting](https://caddyserver.com/docs/troubleshooting)，查阅 2026-10-27 | **P1 官网原文已打开**：系统网络、DNS/端口、HTTP/TLS 等多层逐项核查。 | 443 打开后如果 TLS/ACME/代理仍失败，才调查 Caddy 证书/监听，不凭模板推断已签发证书。 |
+| [专项诊断与证据 Draft PR #1119](https://github.com/jiangxng/EVO-App-Platform/pull/1119)，2026-10-27 | **P1 GitHub PR 和工作流原文**：独立分支 fix/evo-tokyo-public-entry-gate-20261027；只读外部 smoke，无服务器/Secrets 写入；第二轮外网失败是预期的实际红灯。 | 该 PR 未合入 main。先补上公网门禁并保留完整源码/测试日志，不能把 PR 存在等同 HTTPS 修复。 |
+
+**最新门禁快照**：main@7b95c3b... 部署成功（本地 HTTP）；PR #1118 exact HEAD a96ea258... 首轮 4/4 CI SUCCESS（本次补录后需重新核 exact HEAD CI）；公网 DNS/HTTP80 302 PASS；**443/TLS/Basic Auth FAIL/OPEN**；持久化、备份、回滚、Human、自动 main 发布仍未完成。原 Railway 环境与数据保持未动。
+
+**决策**：不改既有 SSH Secrets，不安装第二次 Docker，不将 4100/5432 公网暴露。优先读取东京 Lighthouse 实例 TCP443 允许/拒绝规则及顺序，缺失时才增补 ALLOW（若需要公开预览则来源 0.0.0.0/0）。只有 443 实际可访问，才重跑探针验证证书/health/Basic Auth；之后再做持久化/备份/回滚及 CI-gated 自动发布。当前并未登录腾讯云控制台或 VPS 修改网络规则。
