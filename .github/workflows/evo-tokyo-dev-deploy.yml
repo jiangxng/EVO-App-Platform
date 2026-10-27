@@ -100,7 +100,7 @@ jobs:
           printf '%s' "$GHCR_TOKEN" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
             evo-deploy@43.167.252.197 \
             "docker login ghcr.io --username '${{ github.actor }}' --password-stdin"
-      - name: Deploy and verify, restoring old image on failure
+      - name: Deploy with readiness checks and bounded first-boot failure handling
         shell: bash
         run: |
           set -euo pipefail
@@ -111,21 +111,60 @@ jobs:
           [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
           cd /opt/evo-tokyo
           test -f .env
-          cp -p .env .env.rollback
-          trap 'cp -p .env.rollback .env; docker compose up -d --wait --wait-timeout 180 || true; echo "DEPLOY_FAILED_PREVIOUS_IMAGE_RESTORED_IF_AVAILABLE" >&2' ERR
-          sed '/^EVO_IMAGE=/d;/^EVO_REVISION=/d' .env > .env.new
-          printf 'EVO_IMAGE=ghcr.io/jiangxng/evo-app-platform:%s\n' "$sha" >> .env.new
-          printf 'EVO_REVISION=%s\n' "$sha" >> .env.new
-          chmod 0600 .env.new
-          mv .env.new .env
+          # A prior attempt can have a pending/failed tag; only a confirmed
+          # prior local HTTP PASS counts as a rollback target.
+          previous_good=""
+          if [[ -f .last-health-pass-sha ]]; then
+            previous_good="$(cat .last-health-pass-sha)"
+            [[ "$previous_good" =~ ^[0-9a-f]{40}$ ]] || previous_good=""
+          fi
+          write_release_env() {
+            local rev="$1"
+            umask 077
+            sed '/^EVO_IMAGE=/d;/^EVO_REVISION=/d' .env > .env.new
+            printf 'EVO_IMAGE=ghcr.io/jiangxng/evo-app-platform:%s\n' "$rev" >> .env.new
+            printf 'EVO_REVISION=%s\n' "$rev" >> .env.new
+            mv .env.new .env
+          }
+          on_failure() {
+            local exit_code="$1"
+            trap - ERR
+            set +e
+            echo "EVO_TOKYO_DEPLOY_FAILURE_CODE=$exit_code"
+            docker compose ps --all || true
+            cid="$(docker compose ps -q evo)"
+            if [[ -n "$cid" ]]; then
+              docker inspect --format 'EVO_STATUS={{.State.Status}} EVO_EXIT_CODE={{.State.ExitCode}} EVO_RESTARTS={{.RestartCount}} EVO_HEALTH={{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$cid" || true
+            fi
+            if [[ -n "$previous_good" ]]; then
+              echo "RESTORING_PREVIOUS_LOCAL_HEALTH_PASS sha=$previous_good"
+              write_release_env "$previous_good"
+              if docker compose up -d --wait --wait-timeout 180; then
+                echo "PREVIOUS_LOCAL_HEALTH_PASS_RESTORED"
+              else
+                echo "PREVIOUS_VERSION_RESTART_FAILED_INSPECT_VPS" >&2
+              fi
+            else
+              echo "FIRST_DEPLOY_NO_VERIFIED_PRIOR_IMAGE: retaining attempted image and volumes for diagnosis; no nonexistent pending pull"
+            fi
+            exit "$exit_code"
+          }
+          trap 'on_failure "$?"' ERR
+          write_release_env "$sha"
           docker compose pull evo
+          # Real EVO /health container probe is part of Compose; --wait now
+          # blocks until Node is actually ready, not merely process-running.
           docker compose up -d --wait --wait-timeout 180
-          curl --fail --silent --show-error --retry 10 --retry-delay 2 \
+          curl --fail --silent --show-error --retry 12 --retry-all-errors \
+            --retry-delay 3 --connect-timeout 2 --max-time 8 \
             http://127.0.0.1:4100/health
+          echo
           docker compose ps
-          rm -f .env.rollback
+          printf '%s\n' "$sha" > .last-health-pass-sha.tmp
+          chmod 0640 .last-health-pass-sha.tmp
+          mv .last-health-pass-sha.tmp .last-health-pass-sha
           trap - ERR
-          echo "EVO_TOKYO_DEV_DEPLOY_PASS sha=$sha"
+          echo "EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=$sha"
           REMOTE
       - name: Remove temporary SSH credentials from runner
         if: always()
