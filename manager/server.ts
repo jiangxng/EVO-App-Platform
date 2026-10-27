@@ -2607,7 +2607,9 @@ const startupDefaults = createStartupDefaultsV010(lifecycleStateFile
   ? createFileSettingsStore(join(dirname(lifecycleStateFile), "startup-defaults.json"))
   : createMemorySettingsStore());
 function installBusinessDefaultOnce(packageId: string, ready = true, explicit = false) {
-  if (startupProfile === "minimal" && !explicit) return;
+  // A clean plugin host only activates user-installed or explicitly configured apps.
+  // The legacy compatible profile keeps its existing one-time defaults.
+  if ((startupProfile === "minimal" || startupProfile === "clean") && !explicit) return;
   try {
     const result = startupDefaults.apply({
       packageId,
