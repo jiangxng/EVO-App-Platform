@@ -21,5 +21,5 @@
 ## 安全与数据修复
 保持 Package→Feature→Contribution 的 Host 权威。改变的是新东京环境启动时非显式业务自动安装策略，不跳过插件安装/权限/签名/依赖审批，不删除现有安装记录、数据库、卷或 Railway 资源。不私自在 Eidos vendored 代码打补丁。
 
-## 验证证据与遗留
+## 证据与剩余问题
 参见同 PR 中的 startup-defaults、navigation-information-architecture 测试，最终以 exact HEAD CI 结果为准。东京已有卷的历史自动安装记录须由现有插件生命周期正式停用（保留数据且可恢复），才能认为用户截图已实际修正；页面、高保真 V3 和 Human 签收分别验收。
