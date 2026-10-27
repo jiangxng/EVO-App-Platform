@@ -8,10 +8,12 @@ import { createAppManagerService } from "../../dist/manager/service.js";
 import {
   createSettingsGroupPage,
   createSettingsIndexPage,
+  createSettingsExperienceManifest,
   createSettingsPage,
   validateAndMergeSettings
 } from "../../dist/manager/settings-page.js";
 import { createPluginStorePage } from "../../dist/manager/plugin-store-page.js";
+import { renderCatalogBrowserToHtml } from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 import { openAiLlmProviderPackage } from "../../dist/providers/openai/package.js";
 import { hostEncryptedSecretsProviderPackage } from "../../dist/providers/secrets/package.js";
 import { createMemorySecretStoreV010 } from "../../dist/manager/secret-store.js";
@@ -149,6 +151,37 @@ test("invalid setting types and undeclared select values are rejected", () => {
   );
 });
 
+test("no plugins installed means no decorative Settings groups or dead routes", () => {
+  const manager = createAppManagerService(
+    createPackageCatalog([openAiLlmProviderPackage, hostEncryptedSecretsProviderPackage]),
+    createMemoryLifecycleStore()
+  );
+  const empty = createSettingsIndexPage(manager, "zh-CN");
+  assert.equal(empty.items.length, 0);
+  assert.match(empty.description, /暂无已安装插件的设置/);
+  assert.match(empty.emptyMessage, /安装支持配置的插件后/);
+  assert.deepEqual(empty.actions.map(action => [action.label, action.route]), [
+    ["前往插件商店", "/store"]
+  ]);
+  const html = renderCatalogBrowserToHtml(empty);
+  assert.doesNotMatch(html, /SETTINGS_GROUP|业务管理|AI 与知识|应用与扩展/);
+  assert.match(html, /前往插件商店/);
+  const manifest = createSettingsExperienceManifest(manager, "zh-CN");
+  assert.deepEqual(manifest.routes.map(route => route.path), ["/settings"]);
+
+  manager.install("openai-llm-provider");
+  assert.deepEqual(createSettingsIndexPage(manager, "zh-CN").items.map(item => item.id), ["system"]);
+  const installedRoutes = createSettingsExperienceManifest(manager, "zh-CN").routes.map(route => route.path);
+  assert.ok(installedRoutes.includes("/settings/system"));
+  assert.ok(installedRoutes.includes("/settings/openai-llm-provider"));
+  assert.equal(installedRoutes.includes("/settings/business"), false);
+
+  manager.disable("openai-llm-provider");
+  assert.deepEqual(createSettingsIndexPage(manager, "zh-CN").items.map(item => item.id), ["system"]);
+  manager.uninstall("openai-llm-provider");
+  assert.deepEqual(createSettingsIndexPage(manager, "zh-CN").items, []);
+});
+
 test("Settings index and Plugin Store expose Configure only for configurable installed packages", () => {
   const manager = createAppManagerService(
     createPackageCatalog([
@@ -162,26 +195,16 @@ test("Settings index and Plugin Store expose Configure only for configurable ins
   manager.install("enterprise-agent");
 
   const index = createSettingsIndexPage(manager, "zh-CN");
-  assert.deepEqual(index.items.map(item => item.id), [
-    "business",
-    "applications",
-    "ai",
-    "system"
+  assert.deepEqual(index.items.map(item => item.id), ["system"]);
+  assert.deepEqual(index.items.map(item => item.primaryAction.route), [
+    "/settings/system"
   ]);
-  assert.deepEqual(
-    index.items.map(item => item.primaryAction.route),
-    [
-      "/settings/business",
-      "/settings/applications",
-      "/settings/ai",
-      "/settings/system"
-    ]
-  );
+  assert.doesNotMatch(renderCatalogBrowserToHtml(index), /SETTINGS_GROUP/);
 
   const system = createSettingsGroupPage(manager, "system", "en");
   assert.equal(
     system.items.some(item => item.id === "provider-bindings"),
-    true
+    false
   );
   assert.equal(
     system.items.find(item => item.id === "openai-llm-provider")?.primaryAction.route,
@@ -189,22 +212,13 @@ test("Settings index and Plugin Store expose Configure only for configurable ins
   );
 
   const business = createSettingsGroupPage(manager, "business", "zh-CN");
-  assert.deepEqual(
-    business.items.map(item => item.primaryAction.route),
-    ["/enterprise-contexts", "/ledger"]
-  );
+  assert.deepEqual(business.items, []);
 
   const applications = createSettingsGroupPage(manager, "applications", "zh-CN");
-  assert.deepEqual(
-    applications.items.map(item => item.primaryAction.route),
-    ["/store", "/templates"]
-  );
+  assert.deepEqual(applications.items, []);
 
   const ai = createSettingsGroupPage(manager, "ai", "zh-CN");
-  assert.deepEqual(
-    ai.items.map(item => item.primaryAction.route),
-    ["/memory"]
-  );
+  assert.deepEqual(ai.items, []);
 
   const storePage = createPluginStorePage(
     [openAiLlmProviderPackage, enterpriseAgentPackage],
