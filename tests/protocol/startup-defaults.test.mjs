@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemorySettingsStore } from '../../dist/manager/settings-store.js';
-import { createStartupDefaultsV010, resolveStartupProfileV010 } from '../../dist/manager/startup-defaults.js';
+import { createStartupDefaultsV010, resolveStartupProfileV010, shouldBootstrapBusinessDefaultV010 } from '../../dist/manager/startup-defaults.js';
 
 test('bootstrap respects existing inactive installs and remembered uninstall', () => {
   const journal = createMemorySettingsStore();
