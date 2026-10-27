@@ -2,8 +2,8 @@ import type { SettingsStore } from "./settings-store.js";
 
 export function resolveStartupProfileV010(value: string | undefined, managedSessionEnabled: boolean) {
   const profile = value?.trim().toLowerCase() || "compatible";
-  if (profile !== "compatible" && profile !== "minimal") {
-    throw new Error("STARTUP_PROFILE_INVALID: expected compatible or minimal");
+  if (profile !== "compatible" && profile !== "minimal" && profile !== "clean") {
+    throw new Error("STARTUP_PROFILE_INVALID: expected compatible, clean or minimal");
   }
   if (profile === "minimal" && !managedSessionEnabled) {
     throw new Error("MINIMAL_STARTUP_REQUIRES_MANAGED_SESSION");
