@@ -1,25 +1,25 @@
-# EVO 东京验证环境：空插件平台与导航去重 — UI 设计评审
+# EVO 东京：应用关联企业引导与导航去重 — UI Review
 
 ## 目标与完成条件
-新实例未安装业务插件时不出现业务菜单；通过真实插件安装及 Feature 激活后由其 Contribution 动态出现。左侧只保留“应用”导航入口，不重复提供全局“工作区”图标。侧栏可展开、收起，右侧工作区域始终存在。此文是设计审查记录，不冒充真人签收。
+现场没有企业可选、点击客户或数据导入变成空白。已注册应用的入口可以存在，但没有 Enterprise Context 时主工作区必须显示清楚的未就绪提示，不能假装后台服务已连接。此记录只代表设计评审，不代表 Human 已签收。
 
 ## 流程与步骤
-新东京实例使用 clean profile：不会代替用户自动安装 Counterparty / Data Import / Object Extension 等业务插件；用户通过插件商店安装、启用后可看到声明导航，并可在停用时撤销入口。旧兼容环境仍保持原一次性默认安装策略。现有东京卷此前已经自动安装的插件需要另行核实和可逆停用，不直接写文件删状态。
+用户点击“客户”等应用 → Host 检查真正 Enterprise Context → 若页面 API 返回特定 409 错误 → 工作区用 Eidos 只读状态显示未关联企业、下一步配置建议。成功时直接显示正常业务页；建立企业后再访问必须更新。无企业时不创建测试数据或替用户安装其它插件。
 
 ## 导航与信息架构
-平台提供 Apps Activity 作为 Side Panel 切换；再次点击同一图标折叠/展开，腾出右侧内容面积。“Workspace”独立全局 Activity 与其职责重复，删除 EVO-owned 注册，不更改 Eidos shell 的通用布局、各插件声明 Activity、键盘 Ctrl/Cmd+B 或右侧页面路由。
+应用前端来自有效插件 Contribution，企业可用性是运行前置条件，不应被展示菜单时误判。Apps 图标控制侧栏展开/隐藏，删除重复全局 Workspace Activity；不修改插件贡献的其它入口和路由。
 
 ## 视觉与颜色
-不新增色彩、字体或独立 CSS。沿用 Eidos Productive Workbench 标准按钮、焦点与图标体系，减少一个无必要的视觉操作目标，保留原有导航容器、工作区和拖拽比例。
+不写新 CSS、不加第二套 UI 库；缺失上下文用已有 Eidos catalog-browser 标题、说明和空状态。留白和层级复用标准 Eidos tokens，不能用一片空白或原始英文 HTTP 错误取代用户指导。
 
 ## 记忆与注意力
-使用单一“应用”入口降低记忆负担，减轻“应用”和“工作区”含义相似的决策负担；插件安装状态与可见导航一致，不用前端伪过滤制造不同步。
+提示“当前应用尚未关联企业”，给出下一步配置方向，不强迫用户记住错误代码。无缓存 ETag 的临时提示重新读取，企业准备后返回正常应用页面。不给出未经证实的“后端不存在”断言。
 
 ## 无障碍与跨年龄
-不改变语义按钮、Eidos 既有 aria label、键盘切换和移动端单表面布局；删除冗余全局按钮不移除主内容访问路径。真实桌面/移动端、辅助技术和 Human 验收尚未完成。
+Eidos 既有语义标题、文本与键盘可读的 catalog-browser 组件，保留侧栏快捷键与移动端容器。没有完成实际读屏器、触屏设备和 Human 验收。
 
 ## 安全与数据修复
-保持 Package→Feature→Contribution 的 Host 权威。改变的是新东京环境启动时非显式业务自动安装策略，不跳过插件安装/权限/签名/依赖审批，不删除现有安装记录、数据库、卷或 Railway 资源。不私自在 Eidos vendored 代码打补丁。
+改动的 UI 入口为 manager/app-host-client.ts 和 manager/desktop-workbench-runtime.ts；新增平台适配器 manager/business-page-readiness-fetch.ts。只对页面 409 + 明确 ENTERPRISE_CONTEXT_REQUIRED 返回标准只读提示；服务端继续拒绝业务读写。401/403/其他 409、成功页及应用外 API 不转换，不改变企业授权、插件安装状态、Railway 或数据卷。
 
 ## 证据与剩余问题
-本次实际修改的 UI 代码路径：`manager/desktop-workbench-runtime.ts`；参见同 PR 中的 startup-defaults、navigation-information-architecture 测试，最终以 exact HEAD CI 结果为准。东京已有卷的历史自动安装记录须由现有插件生命周期正式停用（保留数据且可恢复），才能认为用户截图已实际修正；页面、高保真 V3 和 Human 签收分别验收。
+证据来自本轮截图，Host/Eidos 源码与 tests/app-host/business-page-readiness.test.mjs。准确 HEAD CI 与实际东京浏览器测试尚需分开核实；没有企业可选只能证明 UI 上没有可用 Enterprise Context，不能推断所有应用 backend runtime binding 状态。未修改 Eidos owner 通用框架。
