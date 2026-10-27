@@ -9,7 +9,7 @@
 ## 导航与信息架构
 平台提供 Apps Activity 作为 Side Panel 切换；再次点击同一图标折叠/展开，腾出右侧内容面积。“Workspace”独立全局 Activity 与其职责重复，删除 EVO-owned 注册，不更改 Eidos shell 的通用布局、各插件声明 Activity、键盘 Ctrl/Cmd+B 或右侧页面路由。
 
-## 视觉、颜色与布局
+## 视觉与颜色
 不新增色彩、字体或独立 CSS。沿用 Eidos Productive Workbench 标准按钮、焦点与图标体系，减少一个无必要的视觉操作目标，保留原有导航容器、工作区和拖拽比例。
 
 ## 记忆与注意力
