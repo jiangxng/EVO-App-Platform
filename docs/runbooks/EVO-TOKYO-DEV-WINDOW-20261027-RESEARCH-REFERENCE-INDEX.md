@@ -168,3 +168,12 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - [腾讯云国际版 Managing the Instance Firewall](https://intl.cloud.tencent.com/document/product/1103/41393?lang=en)，**P1 已读官方原文**，网页标注最后更新 **2023-12-06**，Adding a firewall rule 一节表示新建 Lighthouse 默认放通 80、443、22、3389 和 ICMP。
 - [腾讯云中文《防火墙应用案例》](https://cloud.tencent.com.cn/document/product/1207/136745)，**P1 已读官方原文**，标注 2026-08-25 更新，明确 Linux/容器镜像默认放通 22、80、ICMP，未包含 443。
 - 两个官方原文描述**相互冲突**，可能出自年份/地区/镜像策略不同，但并未逐项证实，不能以“默认规则”推断本台东京实例的现有状态。实际外部探针只证明 TCP443 连通超时，**是否缺少云侧规则仍待读实例本身**；保留 OS firewall、Caddy listener 等候选，不盲目修改现有服务。
+
+
+## 2026-10-27 新窗口插件 Shell 研究与修复链接（增量）
+
+- **用户现场证据（U）**：腾讯云东京独立验证环境已能 HTTPS Basic Auth 登录，浏览器“应用”侧栏出现客户/供应商/我的客户/我的供应商/往来对象/数据导入，但用户未主动安装业务插件；左侧“应用”按钮已可折叠 Side Panel，“工作区”按钮冗余。截图由当前会话提供，并非仓库文件或服务器生命周期状态。
+- **P1 本轮实读源码**：[manager/server.ts](https://github.com/jiangxng/EVO-App-Platform/blob/7b95c3b70d947c83476e9ca966c3252ade96e384/manager/server.ts)（bootstrap 中 installBusinessDefaultOnce 在 compatible profile 下自动安装 Counterparty/Object Extension/Data Import）、[manager/service.ts](https://github.com/jiangxng/EVO-App-Platform/blob/7b95c3b70d947c83476e9ca966c3252ade96e384/manager/service.ts)（有效 Experience 来自 activated Feature）、[manager/desktop-workbench-runtime.ts](https://github.com/jiangxng/EVO-App-Platform/blob/7b95c3b70d947c83476e9ca966c3252ade96e384/manager/desktop-workbench-runtime.ts)（平台注册 Apps 与 Workspace 两个 Activity）。
+- **P1 架构原文**：[PLUGIN-PLATFORM-MAINLINE-v0.1](../architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md)、[EVO-WORKBENCH-v0.1](../architecture/EVO-WORKBENCH-v0.1.md)。**事实**：插件安装和生命周期由 Host 掌控，Eidos 只呈现有效贡献；**决策**：不能以 UI 假过滤遮住已激活插件，而应纠正东京首次安装策略。
+- **实施候选**：[Draft PR #1120](https://github.com/jiangxng/EVO-App-Platform/pull/1120)，独立分支 fix/evo-tokyo-clean-plugin-shell-20261027；新增 Tokyo clean 启动档，保留其他环境 compatible 行为；删除 EVO 平台冗余 Workspace Activity；有针对性的测试与 [详细验收记录](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-clean-plugin-shell-20261027/docs/runbooks/EVO-TOKYO-DEV-PLUGIN-SHELL-ACCEPTANCE-20261027.md)。
+- **未关闭门禁**：当前 VPS /data 卷已在 compatible 启动时保留真实已装业务插件，新档不会自动卸载/停用旧记录；必须先读取生命周期状态与来源，通过正式禁用（保留数据）纠正后，才可宣称现场菜单清空。PR CI、合并、发布和 Human 页面验收各自独立，不冒充已经上线。
