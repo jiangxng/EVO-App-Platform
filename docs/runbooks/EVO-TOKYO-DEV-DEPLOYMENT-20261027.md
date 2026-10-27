@@ -119,3 +119,13 @@ sudo rm -f /root/evo-tokyo-dev-actions /root/evo-tokyo-dev-actions.pub
 ## 9. 历史初始窗口交接（最初部署规划快照，不代表当前状态）
 
 开始于 `main@9e95a05de072cbd643d425022b7c1c9b5a400f06`。新的 GitHub 部署 owner 工作线只改 `deploy/tencent-tokyo/**`、`.github/workflows/evo-tokyo-dev-deploy.yml`、本 runbook，不动 PA05/BEX/Eidos/EC 产品代码、`project.status.json` 或其他窗口的 PR。没有已记录的同目标失败部署；当前阻塞是服务器授权、首次安装、真实 GitHub CI 和网络验收。失败时保持本 PR/服务器数据并只做定向排障，不盲目反复重建。
+
+
+## 10. 新窗口公网 443 真失败与最小修复门禁（增量 2026-10-27）
+
+> 此节为原始运行日志补录，不改写上文历史故障及 VPS-local SUCCESS。证据详情、官方文档、来源等级和后续账本见 [PR #1119 中的公网验收记录](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-public-entry-gate-20261027/docs/runbooks/EVO-TOKYO-DEV-PUBLIC-ACCEPTANCE-20261027.md)，本窗口详索引已增记原始 URL。
+
+- **新的 GitHub-hosted Runner 事实**：[run #40463405902](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40463405902) 经公网查证，DNS A 正确指向 43.167.252.197，原始 IP HTTP80 返回 302 正常跳转，但 **TCP 443 连接超时**；正常 DNS 与强制指定 IP 的 HTTPS /health，以及 HTTPS 根路径均 curl (28) / HTTP000。因此目前仍**不能验证证书和 Basic Auth**，也没有通过真正公网验收。
+- **最优先定向排查**：腾讯云官方 [2026-08-25 防火墙应用案例](https://cloud.tencent.com.cn/document/product/1207/136745) 指出 Linux Lighthouse 默认放通 22、80、ICMP，不包括 443；实际实例防火墙规则尚未读取。先查东京实例 TCP443 ingress，若确实缺失，按 [腾讯云实例防火墙官方指南](https://cloud.tencent.com/document/product/1207/44577) 最小增加 ALLOW TCP443（需要公网预览时来源为 0.0.0.0/0）；不得替换整套规则、开放 4100/5432、重建 SSH/Docker 或删除卷。若已有 443 允许规则但仍超时，再只读检查 VPS OS firewall/443 listener/Caddy 状态。
+- **修复后独立验收**：公网 DNS PASS、TCP443 PASS、严格 TLS /health 200 正确 JSON、根路径未认证 401、原 IP 80 仍 302，记录 exact SHA 和 Actions 链接。然后才依次完成非破坏性持久化、异机备份/恢复、旧 good SHA 回滚、Human 页面签收；自动 main 发布必须作为独立 PR 并遵守 required CI，不提前启用。
+- **权限限制**：此会话只持有 GitHub 连接，没有直接操作腾讯 Lighthouse 防火墙或 VPS 的可信远程写入工具；当前没有声称已放通 443、签发证书、登录页面。原 Railway 与数据没有变更。
