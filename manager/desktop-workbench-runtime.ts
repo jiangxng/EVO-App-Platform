@@ -243,17 +243,6 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
       }
     },
     {
-      id: "workspace",
-      title: "Workspace",
-      icon: "workspace",
-      kind: "workspace-focus",
-      order: 40,
-      localization: {
-        namespace: "evo-app-platform",
-        key: "workbench.activity.workspace"
-      }
-    },
-    {
       id: "help",
       title: "Help",
       icon: "help",
