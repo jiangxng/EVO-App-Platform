@@ -213,31 +213,13 @@ function installedConfigurablePackages(manager: AppManagerService): PackageManif
     .sort((a, b) => a.packageId.localeCompare(b.packageId));
 }
 
-// Only live plugin Contributions, not the installable catalog or a fixed menu,
-// may expose optional Settings groups. System configuration can also be edited
-// for an installed but disabled package, consistent with the lifecycle contract.
-function effectiveSettingsRoutes(manager: AppManagerService): ReadonlySet<string> {
-  const routes = new Set<string>();
-  for (const candidate of manager.listEffectiveExperiences()) {
-    if (!candidate || typeof candidate !== "object") continue;
-    const manifest = candidate as { routes?: Array<{ path?: string }> };
-    for (const route of manifest.routes ?? []) {
-      if (typeof route.path === "string") routes.add(route.path);
-    }
-  }
-  return routes;
-}
-
+// Settings are configuration, not shortcuts to installed business applications.
+// A running app does not imply that it contributes a Settings editor.
+// Preserve configuration for installed-but-disabled packages so they can be repaired.
 export function availableSettingsGroups(manager: AppManagerService): SettingsNavigationGroupV010[] {
-  const routes = effectiveSettingsRoutes(manager);
-  return [
-    ...(routes.has(ENTERPRISE_CONTEXT_DIRECTORY_ROUTE) || routes.has(LEDGER_MANAGER_ROUTE)
-      ? ["business" as const] : []),
-    ...(routes.has(TEMPLATE_STORE_ROUTE) ? ["applications" as const] : []),
-    ...(routes.has("/memory") ? ["ai" as const] : []),
-    ...(routes.has("/providers") || installedConfigurablePackages(manager).length > 0
-      ? ["system" as const] : [])
-  ];
+  return installedConfigurablePackages(manager).length > 0
+    ? ["system"]
+    : [];
 }
 
 export function createSettingsExperienceManifest(manager: AppManagerService, locale = "en") {
@@ -396,7 +378,6 @@ export function createSettingsGroupPage(
 ): CatalogBrowserV010 {
   const ui = navigationLocale(locale);
   const packages = installedConfigurablePackages(manager);
-  const effective = effectiveSettingsRoutes(manager);
 
   const items = group === "business"
     ? [
@@ -482,12 +463,11 @@ export function createSettingsGroupPage(
           ? ui.aiSummary
           : ui.systemSummary,
     emptyMessage: ui.empty,
+    // In Settings, only concrete installed package configuration is an
+    // available destination. Business management stays in its owning app.
     items: items.filter(item =>
-      item.route === "/store"
-        ? effective.has(TEMPLATE_STORE_ROUTE)
-        : item.route.startsWith("/settings/")
-          ? packages.some(pkg => settingsPackageRoute(pkg.packageId) === item.route)
-          : effective.has(item.route)
+      group === "system"
+      && packages.some(pkg => settingsPackageRoute(pkg.packageId) === item.route)
     ).map(item => ({
       id: item.id,
       title: item.title,
