@@ -11,6 +11,15 @@ export function resolveStartupProfileV010(value: string | undefined, managedSess
   return profile;
 }
 
+// Compatible keeps historical one-time business defaults. Clean is suitable for
+// an empty plugin platform without imposing managed-session requirements.
+export function shouldBootstrapBusinessDefaultV010(
+  profile: "compatible" | "clean" | "minimal",
+  explicit: boolean
+): boolean {
+  return profile === "compatible" || explicit;
+}
+
 // A separate host-owned journal, never a plugin's editable settings namespace.
 // Successful defaults are one-time bootstrap actions, not desired-state loops.
 export function createStartupDefaultsV010(journal: SettingsStore) {
