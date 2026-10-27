@@ -1,6 +1,6 @@
 # EVO 东京验证环境：腾讯云 Lighthouse 独立部署
 
-**状态：候选工程 / 未合并 / 未部署 / 未通过公网验收**（2026-10-27）。
+**状态：PR #1115 已合并 / 首次 GitHub 镜像成功 / SSH 预检失败 / 腾讯云尚未部署 / 未通过公网验收**（2026-10-27）。
 本方案仅作用于新实例 `evo-dev-tokyo-01`（东京一区，`43.167.252.197`），不修改既有 Railway 项目、环境变量、数据库或持久卷。
 
 ## 0. 目标与当前边界
@@ -82,6 +82,19 @@ sudo rm -f /root/evo-tokyo-dev-actions /root/evo-tokyo-dev-actions.pub
 | Railway 数据保护 | 原平台未修改 | 保留；迁移单独授权 |
 | 腾讯云验证环境整体 | 未完成 | 以上验收完成后明确标记 DEPLOYED，而非仅 CI PASS |
 
-## 6. 换窗口交接
+## 6. 首次真实部署失败的定位与防重复（2026-10-27）
+
+- 初始部署工程 PR [#1115](https://github.com/jiangxng/EVO-App-Platform/pull/1115) 已合并到 `main@737df25b14a96f8ddd8a1c1ca81103cccf90f7b4`，不能继续按首版文档将其描述为未合并。
+- 首次 workflow_dispatch [#40456198877](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40456198877) 的 `npm ci && npm run test:platform` 及 GHCR 镜像构建/推送均成功；第 8 步 `Configure pinned SSH host identity and deployment key` 退出码 1，尚未发生 `scp`、远端 `docker login` 或 `docker compose up`。
+- 日志表明两项 GitHub Secrets 均 **非空**，旧脚本在 `ssh-keygen -F` 与 `ssh-keygen -y` 间没有有界失败信息，**不能据此认定具体哪把密钥错误**。Node.js 20 弃用、Ubuntu 26 迁移提示都不是该次失败原因。
+- 修复：改为 **先校验 SSH Secret 格式 → 服务器 SSH/Docker 只读预检 → 通过才跑平台测试、构建和部署**；首个真正失败点有以下不泄露秘密的诊断码：
+  - `EVO_TOKYO_HOST_KEY_INVALID`：检查 `EVO_TOKYO_SSH_KNOWN_HOSTS` 是完整主机公钥记录，开头是 `43.167.252.197 ssh-ed25519 `，不是腾讯云密钥 ID、SSH 指纹或私钥。
+  - `EVO_TOKYO_PRIVATE_KEY_INVALID`：检查 `EVO_TOKYO_SSH_PRIVATE_KEY` 是多行、未加密的私钥全文，不是 `.pub` 文件或腾讯云控制台密钥 ID。
+  - `EVO_TOKYO_REMOTE_PREFLIGHT_FAILED`：Secret 格式有效，但 SSH 防火墙、账号授权、主机身份、Docker Compose 或一次性初始化未准备好；看其上方 SSH 错误，**不打印 Secret**。
+- 仅在修复 PR 合并 `main` 后重新手动触发一次，不能在原旧 workflow 上反复 rerun。失败时只纠正对应 GitHub Environment Secret 或 VPS 初始化项，其他项保持不变。
+- 工作流使用固定 `ubuntu-24.04` Runner 与 Node24 兼容的官方 Actions，**Node 应用运行时仍保持 `22.22.2`**，不借部署诊断升级业务工具链。
+- 此次失败前成功推送的镜像仅代表 GitHub 镜像构建成功，**不代表腾讯云验证环境已部署**；Railway 原环境保持不变。
+
+## 7. 换窗口交接
 
 开始于 `main@9e95a05de072cbd643d425022b7c1c9b5a400f06`。新的 GitHub 部署 owner 工作线只改 `deploy/tencent-tokyo/**`、`.github/workflows/evo-tokyo-dev-deploy.yml`、本 runbook，不动 PA05/BEX/Eidos/EC 产品代码、`project.status.json` 或其他窗口的 PR。没有已记录的同目标失败部署；当前阻塞是服务器授权、首次安装、真实 GitHub CI 和网络验收。失败时保持本 PR/服务器数据并只做定向排障，不盲目反复重建。
