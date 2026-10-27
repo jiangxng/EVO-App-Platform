@@ -28,6 +28,8 @@ services:
       APP_PLATFORM_STATE_FILE: /data/platform-state.json
       APP_PLATFORM_CONVERSATION_AUTHORITY: POSTGRES
       APP_PLATFORM_CONVERSATION_DATABASE_URL: postgres://evo:${POSTGRES_PASSWORD}@postgres:5432/evo_dev
+      # Tokyo is a fresh plugin-platform verification site, not a demo-app bundle.
+      APP_PLATFORM_STARTUP_PROFILE: clean
       APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
       APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
       APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
