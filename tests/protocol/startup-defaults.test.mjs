@@ -37,6 +37,13 @@ test('minimal profile requires managed authentication and invalid profiles fail 
   assert.throws(() => resolveStartupProfileV010('typo', true), /INVALID/);
 });
 
+test('clean plugin host does not automatically install business apps', () => {
+  assert.equal(shouldBootstrapBusinessDefaultV010('clean', false), false);
+  assert.equal(shouldBootstrapBusinessDefaultV010('clean', true), true);
+  assert.equal(shouldBootstrapBusinessDefaultV010('compatible', false), true);
+  assert.equal(shouldBootstrapBusinessDefaultV010('minimal', false), false);
+});
+
 test('versioned migrations run once and failures are retryable', () => {
   const journal = createMemorySettingsStore();
   let calls = 0;
