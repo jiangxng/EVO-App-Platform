@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemorySettingsStore } from '../../dist/manager/settings-store.js';
-import { createStartupDefaultsV010, resolveStartupProfileV010, shouldBootstrapBusinessDefaultV010 } from '../../dist/manager/startup-defaults.js';
+import { createStartupDefaultsV010, resolveStartupProfileV010 } from '../../dist/manager/startup-defaults.js';
 
 test('bootstrap respects existing inactive installs and remembered uninstall', () => {
   const journal = createMemorySettingsStore();
@@ -31,17 +31,8 @@ test('unready and failed defaults retry; successful defaults run once', () => {
 test('minimal profile requires managed authentication and invalid profiles fail closed', () => {
   assert.equal(resolveStartupProfileV010(undefined, false), 'compatible');
   assert.equal(resolveStartupProfileV010('minimal', true), 'minimal');
-  assert.equal(resolveStartupProfileV010('clean', false), 'clean');
-  assert.equal(resolveStartupProfileV010('CLEAN', false), 'clean');
   assert.throws(() => resolveStartupProfileV010('minimal', false), /REQUIRES_MANAGED/);
   assert.throws(() => resolveStartupProfileV010('typo', true), /INVALID/);
-});
-
-test('clean plugin host does not automatically install business apps', () => {
-  assert.equal(shouldBootstrapBusinessDefaultV010('clean', false), false);
-  assert.equal(shouldBootstrapBusinessDefaultV010('clean', true), true);
-  assert.equal(shouldBootstrapBusinessDefaultV010('compatible', false), true);
-  assert.equal(shouldBootstrapBusinessDefaultV010('minimal', false), false);
 });
 
 test('versioned migrations run once and failures are retryable', () => {
