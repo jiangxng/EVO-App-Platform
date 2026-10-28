@@ -213,14 +213,18 @@ function installedConfigurablePackages(manager: AppManagerService): PackageManif
     .sort((a, b) => a.packageId.localeCompare(b.packageId));
 }
 
+// Settings are configuration, not shortcuts to installed business applications.
+// A running app does not imply that it contributes a Settings editor.
+// Preserve configuration for installed-but-disabled packages so they can be repaired.
+export function availableSettingsGroups(manager: AppManagerService): SettingsNavigationGroupV010[] {
+  return installedConfigurablePackages(manager).length > 0
+    ? ["system"]
+    : [];
+}
+
 export function createSettingsExperienceManifest(manager: AppManagerService, locale = "en") {
   const packages = installedConfigurablePackages(manager);
-  const groups: SettingsNavigationGroupV010[] = [
-    "business",
-    "applications",
-    "ai",
-    "system"
-  ];
+  const groups = availableSettingsGroups(manager);
 
   return {
     contractVersion: "0.1.0",
@@ -313,15 +317,19 @@ function navigationLocale(locale: string) {
     providersSummary: zh
       ? "管理平台能力对应的 Provider 和作用域。"
       : "Manage Provider selection and scope for platform capabilities.",
-    configure: zh ? "配置" : "Configure"
+    configure: zh ? "配置" : "Configure",
+    empty: zh ? "暂无已安装插件的设置。安装支持配置的插件后，设置将自动显示。"
+      : "No installed plugin settings yet. Configuration appears here after installation.",
+    browsePlugins: zh ? "前往插件商店" : "Browse Plugin Store"
   };
 }
 
 export function createSettingsIndexPage(
-  _manager: AppManagerService,
+  manager: AppManagerService,
   locale = "en"
 ): CatalogBrowserV010 {
   const ui = navigationLocale(locale);
+  const available = new Set(availableSettingsGroups(manager));
   const groups: Array<{
     id: SettingsNavigationGroupV010;
     title: string;
@@ -338,12 +346,20 @@ export function createSettingsIndexPage(
     kind: "catalog-browser",
     id: "evo.settings",
     title: ui.settings,
-    description: ui.description,
-    emptyMessage: "",
-    items: groups.map(group => ({
+    description: available.size ? ui.description : ui.empty,
+    emptyMessage: ui.empty,
+    ...(available.size === 0
+      ? { actions: [{
+          id: "browse-plugins",
+          label: ui.browsePlugins,
+          type: "navigate" as const,
+          route: "/store",
+          primary: true
+        }] }
+      : {}),
+    items: groups.filter(group => available.has(group.id)).map(group => ({
       id: group.id,
       title: group.title,
-      category: "SETTINGS_GROUP",
       summary: group.summary,
       primaryAction: {
         id: "open",
@@ -446,8 +462,13 @@ export function createSettingsGroupPage(
         : group === "ai"
           ? ui.aiSummary
           : ui.systemSummary,
-    emptyMessage: "",
-    items: items.map(item => ({
+    emptyMessage: ui.empty,
+    // In Settings, only concrete installed package configuration is an
+    // available destination. Business management stays in its owning app.
+    items: items.filter(item =>
+      group === "system"
+      && packages.some(pkg => settingsPackageRoute(pkg.packageId) === item.route)
+    ).map(item => ({
       id: item.id,
       title: item.title,
       category: item.category,
