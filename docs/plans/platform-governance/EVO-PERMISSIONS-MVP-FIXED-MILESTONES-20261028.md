@@ -54,5 +54,5 @@
 - 代码：[PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130) 合并 `fd0e5ad55040ee92de79b9652e4e4b1cd778bde0`，准确 HEAD 47/47 CI 成功；新读 API `GET /v1/permissions/me/enterprise-create`，已有插件路由 `/enterprise-contexts/my-permissions`；服务端写入仍执行独立授权。
 - 首发 [#1131](https://github.com/jiangxng/EVO-App-Platform/pull/1131) 合并后遇到两个遗留 `on.push` 定义，GitHub **未执行 VPS job**；[PR #1132](https://github.com/jiangxng/EVO-App-Platform/pull/1132) 通过 5/5 CI，合并 `ba1498e951a5abcea1244f3b78e6a574a580c20b`，删除旧触发条件并重试。
 - 一手 [Actions #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615) **SUCCESS**：部署步骤、严格公网 HTTPS /health 与未认证根目录 401 验证均为成功。**健康检查不能证明页面内权限操作已签收**。
-- 单次发布触发器收口 [Draft PR #1133](https://github.com/jiangxng/EVO-App-Platform/pull/1133) 独立检查中，清理不重新部署。东京共享 `demo-user` 无法模拟多个正式用户，不能把其预览页面当作 M1–M3 的多用户验收。
+- 单次发布触发器收口 [PR #1133](https://github.com/jiangxng/EVO-App-Platform/pull/1133) **4/4 CI PASS 并已合并**，提交 `e37fa1f224d8062076c25f4697b72084f8db0743`；最新 main workflow 已只保留 `workflow_dispatch`，没有触发新的东京部署。东京共享 `demo-user` 无法模拟多个正式用户，不能把其预览页面当作 M1–M3 的多用户验收。
 - 本次仍保持四项固定里程碑，不新增权限点、角色/套餐/众包任务。Railway、数据卷不变。
