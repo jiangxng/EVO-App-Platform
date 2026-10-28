@@ -4,6 +4,12 @@ name: EVO Tokyo Dev - Verified Manual Release
 # after first live smoke test, rollback check and required-CI policy are verified.
 on:
   workflow_dispatch:
+  # One-time release of reviewed Tokyo preview authorization fix.
+  # Only this dedicated marker triggers this run. Remove after success.
+  push:
+    branches: [main]
+    paths:
+      - "docs/runbooks/EVO-TOKYO-DEV-ENTERPRISE-AUTH-RELEASE-20261028.md"
 
 permissions:
   contents: read
