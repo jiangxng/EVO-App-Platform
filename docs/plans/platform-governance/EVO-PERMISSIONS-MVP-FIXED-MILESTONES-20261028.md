@@ -70,3 +70,25 @@
 
 - [本窗口简短交接入口](EVO-PERMISSIONS-M0-WINDOW-20261028-HANDOFF-ENTRY.md)；[研究与决策详细索引](EVO-PERMISSIONS-M0-WINDOW-20261028-RESEARCH-REFERENCE-INDEX.md)。均在当前 Draft PR #1129 的研究分支，尚未合并 main。
 - 本表仍是**唯一权威里程碑记录**：M0 已部署，**Human 待签收**；M1、M2、M3 不提前标记完成。不把新建的交接文档计作产品功能。
+
+
+## 接续核验 #05 · 2026-10-28 — M0 Human 页面门禁复核
+
+> **唯一固定状态表结论不变**：M0 Human 待签收；M1–M3 未开始。本段是证据增量，不另建里程碑表。
+
+### 本窗口实际读取的一手工程证据（P1，非 Human）
+
+- 已按顺序从交接分支 docs/evo-platform-access-management-plan-20261028@7cc6f2fcab210b9652a6b0fe118317174c222c61 读取交接入口、详细研究索引、本文、M0 规格。读取 GitHub 分支 API 确认 main@e37fa1f224d8062076c25f4697b72084f8db0743；规划 [Draft PR #1129](https://github.com/jiangxng/EVO-App-Platform/pull/1129) 仍打开，未合并。
+- [M0 PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130) 已合并 fd0e5ad55040ee92de79b9652e4e4b1cd778bde0。实际读取准确 M0 PR HEAD 66df22f4a5091f06846f86d5ea6fb307a6263f11 的 [check-runs](https://github.com/jiangxng/EVO-App-Platform/commit/66df22f4a5091f06846f86d5ea6fb307a6263f11/checks)：47 success、5 skipped（52 条记录）；不得把跳过项写成已执行测试通过。
+- [发布 Actions #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615) conclusion success；读取 [Job #122630601414](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615/job/122630601414) 日志，明确输出 EVO_TOKYO_DEV_LOCAL_HEALTH_PASS（发布 SHA ba1498e951a5abcea1244f3b78e6a574a580c20b）、EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS、EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS。这是当次发布时的服务和边界证据，**并非本窗口的网页登录或页面 Human 签收**。
+- 实际查看发布 SHA 的 manager/server.ts、manager/enterprise-create-eligibility.ts、apps/enterprise-context-governance/package.ts 及 M0 UI 评审和负向测试：GET /v1/permissions/me/enterprise-create 依赖当前 Principal、个人上下文、Authorization Provider；企业目录、/enterprise-contexts/my-permissions、/enterprise-contexts/new 用相同只读资格预检；无许可时中文说明且不暴露 STATIC_POLICY_NO_MATCH；创建提交仍须后端再次授权。**这是代码证据，并不证明真实浏览器已正确呈现。**
+- 研究索引原有官网 P1/P2/P3 标记继续有效；本轮没有额外读取外部官网原文，没有升级摘要等级，没有产生改变已确认产品选择的新证据。
+
+### 待签收的最小 Human 页面验收
+
+1. 在东京现有已授权预览浏览器登录后，切至**个人空间**；打开“企业上下文 → 我的权限”（/enterprise-contexts/my-permissions）。记录是否加载、状态（已授权／暂不可用）、对应中文解释是否清楚；确认没有空白或原始错误码。
+2. 打开“创建企业”（/enterprise-contexts/new）。有资格应能进入现有企业名称、企业代码表单；无资格应显示解释，不能出现可提交表单；个人空间不正确时应说明切换要求。**为验收展示页面无需实际创建企业，不得擅自改动授权或撤权。**
+3. 记录访问日期、当前身份类别（共享 demo-user 或真实用户）、看到的资格状态，并提供这两个页面的**脱敏截图或清晰的人工观察记录**；不要上传 Basic Auth 密码、Cookie、Token 等秘密。
+4. 本窗口没有能进入 Basic Auth 及登录会话的浏览器通道，也没有收到页面实际观察或用户签收，因此 **M0 Human = 待签收**。收到证据再在本文唯一里程碑表中更新 Human；若发现缺陷，仅按 M0 范围最小独立 PR 修复。自动负向测试不得代替真人页签收。
+
+本轮不改功能代码、不授予真实权限、不重做 VPS/SSH/Docker/443，不影响 Railway、PostgreSQL、持久卷、PA05/BEX/Eidos/EC 并行 owner，不提前启动 M1/M2/M3。
