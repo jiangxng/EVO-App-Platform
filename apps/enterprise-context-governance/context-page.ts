@@ -62,7 +62,12 @@ export function createEnterpriseContextDirectoryPageV010(input: {
   activeContext?: ActiveContextRefV010;
   defaultContextId?: string;
   ownerContextIds?: readonly string[];
-  createEligibility?: { allowed: boolean; message: string };
+  createEligibility?: {
+    allowed: boolean;
+    status?: string;
+    message: string;
+  };
+  personalContextId?: string;
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
@@ -136,7 +141,9 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     description: [
       text.description,
       `${text.count}: ${enterprises.length}`,
-      ...(input.createEligibility?.allowed === false ? [input.createEligibility.message] : [])
+      ...(input.createEligibility?.allowed === false
+        && input.createEligibility.status !== "PERSONAL_CONTEXT_REQUIRED"
+        ? [input.createEligibility.message] : [])
     ].join(" · "),
     search: {
       placeholder: text.search,
@@ -145,13 +152,30 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     },
     // Page-level actions are not enterprise records; keep them outside the directory.
     actions: [
-      ...(input.createEligibility?.allowed === false ? [] : [{
-        id: "create-enterprise",
-        label: text.create,
-        type: "navigate" as const,
-        route: ENTERPRISE_CONTEXT_CREATE_ROUTE,
-        primary: true
-      }]),
+      // Enterprise space is a context precondition, not a revoked grant.
+      // Switch to this principal's registered Personal Context and continue.
+      ...(input.createEligibility?.status === "PERSONAL_CONTEXT_REQUIRED"
+        && input.personalContextId ? [{
+          id: "create-enterprise",
+          label: text.create,
+          type: "command" as const,
+          command: ENTERPRISE_CONTEXT_SELECT_COMMAND,
+          inputVersion: "0.1.0",
+          requiresConfirmation: false,
+          primary: true,
+          values: {
+            targetContextId: input.personalContextId,
+            navigateTo: ENTERPRISE_CONTEXT_CREATE_ROUTE
+          }
+        }] : input.createEligibility?.allowed === false
+          && input.createEligibility.status !== "PERSONAL_CONTEXT_REQUIRED"
+          ? [] : [{
+            id: "create-enterprise",
+            label: text.create,
+            type: "navigate" as const,
+            route: ENTERPRISE_CONTEXT_CREATE_ROUTE,
+            primary: true
+          }]),
       {
         id: "check-create-eligibility",
         label: input.locale?.toLowerCase().startsWith("zh") ? "查看创建资格" : "Check creation eligibility",
@@ -161,6 +185,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     ],
     items: enterpriseItems,
     emptyMessage: input.createEligibility?.allowed === false
+      && input.createEligibility.status !== "PERSONAL_CONTEXT_REQUIRED"
       ? input.createEligibility.message
       : text.empty
   };
