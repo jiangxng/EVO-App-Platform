@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemorySettingsStore } from '../../dist/manager/settings-store.js';
-import { createStartupDefaultsV010, resolveStartupProfileV010 } from '../../dist/manager/startup-defaults.js';
+import { createStartupDefaultsV010, resolveStartupProfileV010, shouldBootstrapBusinessDefaultV010 } from '../../dist/manager/startup-defaults.js';
 
 test('bootstrap respects existing inactive installs and remembered uninstall', () => {
   const journal = createMemorySettingsStore();
@@ -33,6 +33,34 @@ test('minimal profile requires managed authentication and invalid profiles fail 
   assert.equal(resolveStartupProfileV010('minimal', true), 'minimal');
   assert.throws(() => resolveStartupProfileV010('minimal', false), /REQUIRES_MANAGED/);
   assert.throws(() => resolveStartupProfileV010('typo', true), /INVALID/);
+});
+
+test('clean plugin platform defers implicit defaults without blocking later explicit installs', () => {
+  assert.equal(resolveStartupProfileV010('clean', false), 'clean');
+  assert.equal(resolveStartupProfileV010('CLEAN', false), 'clean');
+  assert.equal(shouldBootstrapBusinessDefaultV010('compatible', false), true);
+  assert.equal(shouldBootstrapBusinessDefaultV010('clean', false), false);
+  assert.equal(shouldBootstrapBusinessDefaultV010('clean', true), true);
+  assert.equal(shouldBootstrapBusinessDefaultV010('minimal', false), false);
+
+  const journal = createMemorySettingsStore();
+  const defaults = createStartupDefaultsV010(journal);
+  let installCount = 0;
+  const bootstrap = (profile, explicit, installed = false) =>
+    shouldBootstrapBusinessDefaultV010(profile, explicit)
+      ? defaults.apply({ packageId: 'optional-business-app', installed,
+          install() { installCount++; } })
+      : 'SKIPPED';
+
+  assert.equal(bootstrap('clean', false), 'SKIPPED');
+  assert.equal(installCount, 0);
+  // Later manual installation remains available with the exact same lifecycle
+  // and can bind its requests to an Enterprise Context created afterward.
+  assert.equal(bootstrap('clean', true), 'INSTALLED');
+  assert.equal(installCount, 1);
+  assert.equal(bootstrap('clean', false, true), 'SKIPPED');
+  assert.equal(bootstrap('clean', true, true), 'PRESERVED');
+  assert.equal(installCount, 1);
 });
 
 test('versioned migrations run once and failures are retryable', () => {
