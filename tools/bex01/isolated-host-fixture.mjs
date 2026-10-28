@@ -83,7 +83,9 @@ try{
  },undefined,true);
  const contextId=created?.context?.contextId??created?.contextId;
  assert.ok(contextId,"BEX01_CONTEXT_MISSING");
- for(const packageId of ["evo-counterparty","evo-data-import"]){
+ // Disposable BEX fixture explicitly installs every plugin it uses. A clean
+  // Host must never silently install Object Extension for the test.
+  for(const packageId of ["evo-counterparty","evo-data-import","evo-object-extension"]){
    const outcome=await request("/v1/install","POST",{packageId});
    assert.equal(outcome.status,200,JSON.stringify({packageId,outcome}).slice(0,1500));
    assert.ok(outcome.value.snapshot?.installedPackages?.some(x=>x.packageId===packageId),"BEX01_INSTALL_FAILED_"+packageId);

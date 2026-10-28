@@ -49,24 +49,40 @@ test('real host restart preserves inactive and removed optional defaults', { tim
     'eog-bottleneck-analysis-provider', 'evo-counterparty', 'evo-object-extension', 'evo-data-import']);
   const save = state => fs.writeFileSync(stateFile, JSON.stringify(state));
   try {
-    const initial = await boot(stateFile);
+    const initial = await boot(stateFile, 'compatible');
     for (const id of packages) assert.ok(initial.installedPackages.some(item => item.packageId === id), id);
     // Persisted-state fixtures test restoration, not uninstall permission/dependency APIs.
     initial.activeFeatures = initial.activeFeatures.filter(item => !packages.has(item.packageId));
     save(initial);
     // Emulate an existing instance upgrading before any startup journal existed.
     fs.rmSync(path.join(directory, 'startup-defaults.json'));
-    const disabled = await boot(stateFile);
+    const disabled = await boot(stateFile, 'compatible');
     assert.ok(disabled.activeFeatures.every(item => !packages.has(item.packageId)));
     disabled.installedPackages = disabled.installedPackages.filter(item => !packages.has(item.packageId));
     save(disabled);
-    const removed = await boot(stateFile);
+    const removed = await boot(stateFile, 'compatible');
     assert.ok(removed.installedPackages.every(item => !packages.has(item.packageId)));
     assert.ok(removed.activeFeatures.every(item => !packages.has(item.packageId)));
     assert.ok(removed.installedPackages.some(item => item.packageId === 'host-managed-session-provider'));
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
+
+test('fresh Host with no startup profile never auto-installs optional business apps', { timeout: 60000 }, async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-clean-host-'));
+  try {
+    const file = path.join(directory, 'state.json');
+    const initial = await boot(file);
+    const installed = initial.installedPackages.map(item => item.packageId);
+    for (const id of ['evo-counterparty', 'evo-data-import', 'evo-object-extension', 'evo-eog-3d', 'evo-enterprise-observatory']) {
+      assert.ok(!installed.includes(id), id);
+    }
+    const restarted = await boot(file);
+    assert.deepEqual(restarted.installedPackages.map(item => item.packageId).sort(), installed.sort());
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 test('minimal fresh boot omits business defaults and still rejects anonymous access', { timeout: 60000 }, async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-minimal-'));
@@ -96,11 +112,11 @@ test('completed 2D cutover does not reactivate an intentionally disabled Designe
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-designer-migration-'));
   try {
     const file = path.join(directory, 'state.json');
-    const initial = await boot(file);
+    const initial = await boot(file, 'compatible');
     assert.ok(initial.activeFeatures.some(item => item.featureId === 'evo-eog-2d.designer'));
     initial.activeFeatures = initial.activeFeatures.filter(item => item.featureId !== 'evo-eog-2d.designer');
     fs.writeFileSync(file, JSON.stringify(initial));
-    const restarted = await boot(file);
+    const restarted = await boot(file, 'compatible');
     assert.ok(!restarted.activeFeatures.some(item => item.featureId === 'evo-eog-2d.designer'));
     assert.ok(restarted.activeFeatures.some(item => item.featureId === 'evo-eog-2d.viewer'));
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }

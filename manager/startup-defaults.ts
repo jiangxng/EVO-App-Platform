@@ -1,14 +1,25 @@
 import type { SettingsStore } from "./settings-store.js";
 
 export function resolveStartupProfileV010(value: string | undefined, managedSessionEnabled: boolean) {
-  const profile = value?.trim().toLowerCase() || "compatible";
-  if (profile !== "compatible" && profile !== "minimal") {
-    throw new Error("STARTUP_PROFILE_INVALID: expected compatible or minimal");
+  // New installations are intentionally empty. Legacy defaults require an explicit opt-in.
+  const profile = value?.trim().toLowerCase() || "clean";
+  if (profile !== "compatible" && profile !== "clean" && profile !== "minimal") {
+    throw new Error("STARTUP_PROFILE_INVALID: expected compatible, clean or minimal");
   }
   if (profile === "minimal" && !managedSessionEnabled) {
     throw new Error("MINIMAL_STARTUP_REQUIRES_MANAGED_SESSION");
   }
   return profile;
+}
+
+// Clean hosts never auto-install optional business plugins. An explicit
+// operator-configured capability is still permitted, and existing installs
+// stay untouched. Minimal retains its separate managed-session requirement.
+export function shouldBootstrapBusinessDefaultV010(
+  profile: "compatible" | "clean" | "minimal",
+  explicit: boolean
+): boolean {
+  return profile === "compatible" || explicit;
 }
 
 // A separate host-owned journal, never a plugin's editable settings namespace.

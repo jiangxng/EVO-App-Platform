@@ -12,6 +12,7 @@ const capability = 'context.memory.semantic-retrieval';
 const reference = {contractVersion: '0.1.0', namespace: packageId, key: 'apiToken', scope: 'INSTALLATION', scopeId: 'default'};
 async function boot(root) {
   const profile = createPersonalAgentExperienceProfileV010({PATH: process.env.PATH, PORT: '0', NODE_ENV: 'test',
+    APP_PLATFORM_STARTUP_PROFILE: 'compatible',
     APP_PLATFORM_STATE_FILE: path.join(root, 'state.json'), APP_PLATFORM_MANAGED_SESSION_ENABLED: 'false',
     APP_PLATFORM_CONTEXT_MEMORY_SCHEDULE_MS: '0', APP_PLATFORM_MEMORY_SEMANTIC_URL: 'https://semantic-credential.invalid/query'});
   const child = fork(path.resolve('dist/manager/server.js'), [], {execArgv: [
