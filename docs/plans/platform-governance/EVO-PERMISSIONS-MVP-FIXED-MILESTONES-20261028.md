@@ -56,3 +56,12 @@
 - 一手 [Actions #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615) **SUCCESS**：部署步骤、严格公网 HTTPS /health 与未认证根目录 401 验证均为成功。**健康检查不能证明页面内权限操作已签收**。
 - 单次发布触发器收口 [PR #1133](https://github.com/jiangxng/EVO-App-Platform/pull/1133) **4/4 CI PASS 并已合并**，提交 `e37fa1f224d8062076c25f4697b72084f8db0743`；最新 main workflow 已只保留 `workflow_dispatch`，没有触发新的东京部署。东京共享 `demo-user` 无法模拟多个正式用户，不能把其预览页面当作 M1–M3 的多用户验收。
 - 本次仍保持四项固定里程碑，不新增权限点、角色/套餐/众包任务。Railway、数据卷不变。
+
+## 自动续跑 #04 · 2026-10-28 12:28:53 — M0 独立发布证据复核（范围不变）
+
+- 本轮从 **main 最新源码**重新核实，M0 功能已经在 [PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130) 合并 `fd0e5ad55040ee92de79b9652e4e4b1cd778bde0`；存在实际服务端 `GET /v1/permissions/me/enterprise-create`、`/enterprise-contexts/my-permissions`、目录按钮预检、未授权页面中文提示和提交时独立再次授权，故**不重复开发**。
+- **本轮读取了一手部署 job 日志**：[Actions #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615) / job `122630601414`，于 2026-10-28 UTC 04:25 明确输出 `EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=ba1498e951a5abcea1244f3b78e6a574a580c20b`，随后 `EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS` 与 `EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS`。发布步骤 SUCCESS。此 SHA 是**真实 VPS 已健康启动的 M0 版本**，main 之后单独合并收尾 PR #1133（`e37fa1f2`），没有据此声称 VPS 也换成 #1133。
+- [M0 自动测试](https://github.com/jiangxng/EVO-App-Platform/blob/fd0e5ad55040ee92de79b9652e4e4b1cd778bde0/tests/protocol/enterprise-create-eligibility.test.mjs) 检验允许、拒绝、无会话、撤销/显式 DENY、深链引导且写入服务端仍检查。**但这些是代码/CI 证据，不是 Human 浏览器签收**。
+- **状态保持**：M0“已部署东京，待 Human 验收”；M1/M2/M3 均未开始。当前共享 `demo-user` 无法证明三真实独立主体的 UI，不能借此跳到 M1。
+- **唯一待签收动作**：在东京已认证浏览器打开“企业上下文 → 我的权限”及“创建企业”，确认权限提示是可理解中文、允许时能进入表单；若当前账号有授予权限，不必为检验拒绝而先去撤销真实授权。未授权/撤销等负向案例已自动测试，更多真人实测要等 M1 真实身份就绪。
+- 本轮没有更改任何产品代码、授权、运行环境、数据卷或 Railway，也没有新增里程碑。将实际 Human 观察（截图或用户确认）补入本条即可给 M0 完成签收；若发现缺陷，仍只在 M0 范围修复。
