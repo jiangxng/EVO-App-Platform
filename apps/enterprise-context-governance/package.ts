@@ -103,7 +103,7 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             source: ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE
           }, {
             id: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
-            title: "My permissions",
+            title: "Enterprise creation eligibility",
             source: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE
           }, {
             id: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID,
