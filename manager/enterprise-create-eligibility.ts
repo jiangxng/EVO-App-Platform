@@ -99,3 +99,36 @@ export function createEnterpriseCreateNotAllowedPageV010(
     emptyMessage: state.message
   };
 }
+
+export function createEnterpriseCreateEligibilityPageV010(
+  state: EnterpriseCreateEligibilityV010,
+  locale = "en"
+): CatalogBrowserV010 {
+  const zh = locale.toLowerCase().startsWith("zh");
+  return {
+    contractVersion: "0.1.0",
+    kind: "catalog-browser",
+    id: "evo-enterprise-create.my-permissions",
+    title: zh ? "我的权限" : "My permissions",
+    description: state.message,
+    items: [{
+      id: "enterprise-create-permission",
+      title: zh ? "创建企业" : "Create an enterprise",
+      summary: state.message,
+      status: {
+        label: state.allowed ? (zh ? "已授权" : "Allowed")
+          : (zh ? "暂不可用" : "Unavailable"),
+        tone: state.allowed ? "positive" : "neutral"
+      },
+      ...(state.allowed ? {
+        primaryAction: {
+          id: "go-create",
+          label: zh ? "前往创建企业" : "Create an enterprise",
+          type: "navigate" as const,
+          route: "/enterprise-contexts/new"
+        }
+      } : {})
+    }],
+    emptyMessage: state.message
+  };
+}
