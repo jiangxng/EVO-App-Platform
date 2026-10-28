@@ -3,10 +3,10 @@ import type {
   PlatformPrincipalV010
 } from "../contracts/platform-services.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
-import {
-  ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
-  ENTERPRISE_CONTEXT_CREATE_ROUTE
-} from "../apps/enterprise-context-governance/constants.js";
+// Keep the Host read-only precheck independent of plugin modules.
+// These stable public routes are mirrored by the optional Enterprise Context Experience.
+const ENTERPRISE_CONTEXT_DIRECTORY_ROUTE = "/enterprise-contexts";
+const ENTERPRISE_CONTEXT_CREATE_ROUTE = "/enterprise-contexts/new";
 
 export type EnterpriseCreateEligibilityStatusV010 =
   | "ALLOWED"
