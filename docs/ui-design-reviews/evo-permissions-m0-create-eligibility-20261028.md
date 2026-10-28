@@ -23,3 +23,36 @@
 
 ## 证据与剩余问题
 针对性自动测试 tests/protocol/enterprise-create-eligibility.test.mjs 覆盖至少四类状态、直接页面与目录联动、缺省拒绝以及服务端动作检查。CI/合并/东京部署/真实账号与 Human 另行核验。M1 身份、M2 平台授权写界面和 M3 端到端不在本 PR。
+
+## M0 截图缺陷与修订依据（2026-10-28）
+
+- **U 真实截图**：东京预览 `demo-user` 已在企业空间。企业目录将“创建新企业”“我的权限”当业务对象卡片；“我的权限”显示“暂不可用”“先切个人空间”且没有返回入口。用户反馈已经能创建企业，但期待 **EVO 平台权限管理**，不是企业内的单项操作资格。
+- **P1 已读源码**：`apps/enterprise-context-governance/context-page.ts` 将操作/权限作为 `CatalogBrowser.items`；`manager/enterprise-create-eligibility.ts` 在 ENTERPRISE context 先返回 PERSONAL_CONTEXT_REQUIRED，未执行授权查询，所以“暂不可用”**不能解释为没有创建资格**；`vendor/eidos/src/catalog-browser/render.ts` 支持 `actions` 页级操作和导航。
+- **修订范围**：仅 M0 已有只读预检的文案、列表页面操作归属、回退入口；不添加平台授予/撤销、角色配置、修改授权规则或登录逻辑。平台授权管理由固定 M2 完成；M0 的路由 `/enterprise-contexts/my-permissions` 保留兼容，但可见标题更正为“创建企业资格”。
+- **数据安全**：仍以服务端真实会话、个人上下文、Authorization Provider 作最终预检；状态 PERSONAL_CONTEXT_REQUIRED 明确解释“尚未核实资格，而非撤权”，不可在 ENTERPRISE 空间因已有创建资格就绕过写入前置条件。
+
+## 页面模式与导航归属
+
+- 选择 **Eidos CatalogBrowser 列表 + 页级动作**，非另造权限中心或通用后台卡片；企业记录留在列表；创建企业和“查看创建资格”置于列表页级操作区。它们是用户动作，不是企业实体。当前/默认企业和所有者分别陈述，避免相同事实在标题、摘要、状态中堆叠。
+- “创建企业资格”是**个人当前操作资格只读查询**，不是企业成员/OWNER 管理，也不是 EVO 平台 Owner 的授权编辑器。平台管理→权限管理按本专项 M2 交付；未完成之前不显示虚假编辑权限功能。
+- M0 资格页和创建受限页均提供“返回企业列表”（稳定路由 `/enterprise-contexts`），不依赖浏览器后退历史；个人空间仍由现有顶部统一切换器管理，不新造局部切换协议。
+
+## 功能、布局、颜色对照
+
+- 功能：**代码待 CI**。允许/拒绝/未登录/需个人空间仍沿用原服务端语义；新增返回导航、资格页正确标题及阻断状态解释；现有提交授权始终重检。
+- 布局：**代码待浏览器实测**。参照 V3 业务信息层级与 Eidos Navigation & IA，把企业列表与页级操作分离，避免三张并列大卡作为导航。不是复制 V3 导入布局。
+- 颜色：**代码待浏览器实测**。继续完全复用 Eidos CatalogBrowser 和其既有 tokens，无新增色值、CSS、插件私有蓝色。
+- 依据：Eidos Human Experience Authority、Navigation & IA、Productive Design Language、Business Office Visual Language；V3 的方法论是“功能就近、信息就地、系统记忆、异常驱动、操作连续”，不是复制静态模板。
+
+## 浏览器与 Human 证据
+
+- 桌面：**旧东京截图已观察问题；本次修订后的浏览器证据未取得**。
+- 移动：**未取得**；需核对 390px 布局、中文换行与实际按钮可操作。
+- Human：**未签收**；用户已证实其账号能创建企业、且旧“我的权限”页无返回入口。修复版本还未经过 CI 合并与东京受控部署，不冒充已上线。
+- 需要签收的最小操作：当前企业空间打开创建资格页→明确“需切个人空间”且无虚假“未授权”暗示→点击“返回企业列表”可回到目录；个人空间再打开同一页→显示真实预检资格→有权时进入原创建表单。EVO 平台管理授权编辑页面**不在本次 M0**。
+- 旧技术状态 `STATIC_POLICY_NO_MATCH` 不应暴露；不允许为了制造 DENY 案例修改真实演示授权。真实身份三账户仍属 M1。
+
+## 证据与剩余问题
+
+- 本 PR 还应跑 `tests/protocol/enterprise-create-eligibility.test.mjs`，确认原 M0 4 状态、目录动作、回退路由与文案；按最新 HEAD 检查必需 CI。HTML 渲染/静态断言不能替代真实浏览器 Human。
+- M0 Human 的目录/资格页缺陷仅在本次修复和重新上线后关闭。M1、M2、M3 不因此自动启动或标完成。

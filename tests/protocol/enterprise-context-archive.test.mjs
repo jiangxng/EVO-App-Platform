@@ -20,7 +20,8 @@ import {
   createPrincipalContextRegistryV010
 } from "../../dist/manager/principal-context.js";
 import {
-  createEnterpriseContextDirectoryPageV010
+  createEnterpriseContextDirectoryPageV010,
+  createEnterpriseContextOverviewPageV010
 } from "../../dist/apps/enterprise-context-governance/context-page.js";
 
 const contextId = "enterprise:ent_acme";
@@ -190,34 +191,45 @@ test("archive requires OWNER role and explicit confirmation", async () => {
   assert.equal(store.snapshot().contexts[0].lifecycleState, "ACTIVE");
 });
 
-test("directory exposes archive only to an OWNER", () => {
+test("enterprise management keeps archive off directory actions and exposes it to OWNER on overview", () => {
   const enterprise = seed().contexts[0];
-  const ownerPage = createEnterpriseContextDirectoryPageV010({
+  const ownerDirectory = createEnterpriseContextDirectoryPageV010({
     contexts: [enterprise],
     ownerContextIds: [contextId],
     defaultContextId: contextId,
     locale: "zh-CN"
   });
-  const ownerItem = ownerPage.items.find(item => item.id === contextId);
+  const ownerItem = ownerDirectory.items.find(item => item.id === contextId);
   assert.ok(ownerItem);
-  assert.equal(
-    ownerItem.secondaryActions.some(
-      action => action.command === "enterprise.context.archive"
-    ),
-    true
-  );
+  assert.equal(ownerItem.secondaryActions?.length ?? 0, 0);
+  assert.equal(ownerItem.primaryAction.command, "enterprise.context.select");
+  const ownerOverview = createEnterpriseContextOverviewPageV010({
+    context: enterprise,
+    currentRole: "OWNER",
+    isDefault: true,
+    locale: "zh-CN"
+  });
+  const adminActions = ownerOverview.items.find(item => item.id === "enterprise-management-actions")
+    .secondaryActions;
+  assert.equal(adminActions.some(a => a.command === "enterprise.context.archive"), true);
+  const archive = adminActions.find(a => a.command === "enterprise.context.archive");
+  assert.equal(archive.requiresConfirmation, true);
+  assert.equal(archive.values.targetContextId, contextId);
 
-  const memberPage = createEnterpriseContextDirectoryPageV010({
+  const memberDirectory = createEnterpriseContextDirectoryPageV010({
     contexts: [enterprise],
     ownerContextIds: [],
     locale: "zh-CN"
   });
-  const memberItem = memberPage.items.find(item => item.id === contextId);
+  const memberItem = memberDirectory.items.find(item => item.id === contextId);
   assert.ok(memberItem);
-  assert.equal(
-    memberItem.secondaryActions.some(
-      action => action.command === "enterprise.context.archive"
-    ),
-    false
-  );
+  assert.equal(memberItem.secondaryActions?.length ?? 0, 0);
+  const memberOverview = createEnterpriseContextOverviewPageV010({
+    context: enterprise,
+    currentRole: "MEMBER",
+    isDefault: false,
+    locale: "zh-CN"
+  });
+  assert.equal(memberOverview.items.some(item => (item.secondaryActions ?? [])
+    .some(action => action.command === "enterprise.context.archive")), false);
 });
