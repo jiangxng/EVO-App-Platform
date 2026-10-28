@@ -192,3 +192,13 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - **P1 原文已读**：[manager/service.ts](https://github.com/jiangxng/EVO-App-Platform/blob/7b95c3b70d947c83476e9ca966c3252ade96e384/manager/service.ts) `listInstalledSettings()` 的来源是 Package 生命周期；[EVO-WORKBENCH](../architecture/EVO-WORKBENCH-v0.1.md) 区分插件业务应用与设置 UI。不可以以静态菜单证明插件安装或可执行。
 - **新决策与实施**：[Draft PR #1121](https://github.com/jiangxng/EVO-App-Platform/pull/1121)（独立分支 fix/evo-settings-only-effective-contributions-20261027）：仅真实 installed+configurable 的 Package 可提供设置；没有时设置页显示空状态和插件商店入口，不出现四个固定分组与 `SETTINGS_GROUP`；禁用但仍安装的包保留修复配置能力，卸载后消失。仓库 [UI 设计评审](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-settings-only-effective-contributions-20261027/docs/ui-design-reviews/evo-plugin-settings-effective-only-20261027.md) 随 PR 提交。
 - **未关闭**：准确 HEAD CI、合并、东京部署和 Human 浏览器验收各自独立；未读取东京真实安装记录，不能说已撤除后台插件；不修改 Railway、PA05/BEX/Eidos/EC 或数据卷。
+
+## 2026-10-28 新窗口：东京已真实更新 UI 修复（P1 原始部署日志）
+
+- [PR #1120](https://github.com/jiangxng/EVO-App-Platform/pull/1120) 合并到 main，提交 `834cd80fae0b9d1237ab3d444a49fbec61d5a503`，原准确 HEAD 45/45 CI SUCCESS：企业未就绪页面提示及重复导航移除。
+- [PR #1121](https://github.com/jiangxng/EVO-App-Platform/pull/1121) 合并到 main，提交 `4a1ab8d7716801bdabf9ff071597d43ec2094c18`，同步 main 后准确 HEAD 8/8 CI SUCCESS：设置页按 installed configurable Package 输出，去除四组硬编码与 SETTINGS_GROUP。
+- [PR #1122](https://github.com/jiangxng/EVO-App-Platform/pull/1122) 单次发布触发器合并，**真正 VPS 部署 SHA `35baedcad147dde9403d7bc26e2ca9734e906f5a`**。
+- **P1 2026-10-28 已读取一手日志**：[Actions #40620148375](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40620148375) 的 [Job #122591942243](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40620148375/job/122591942243)：SSH format / remote preflight / platform test / SHA 镜像 / Compose PASS；VPS localhost `/health` 真 JSON `{"ok":true,"service":"evo-app-manager"}`，`EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=35ba...`；Github Runner 严格 TLS 公网 `/health` PASS、未认证根路径 HTTP401 PASS。**这取代旧窗口的“443 不通”历史状态**，不要把历史排障作为当前阻塞。
+- [PR #1123](https://github.com/jiangxng/EVO-App-Platform/pull/1123)：发布成功后独立恢复 manual-only workflow，防止意外开启永久 main 自动部署；[完整结果 runbook](https://github.com/jiangxng/EVO-App-Platform/blob/chore/evo-tokyo-restore-manual-only-20261028/docs/runbooks/EVO-TOKYO-DEV-RELEASE-RESULT-20261028.md) 仍在独立 PR 分支，状态以确切合并结果为准。
+- **最新门禁**：代码 CI PASS、实际部署 PASS、公网 HTTPS/TLS PASS、Basic Auth 401 PASS；**真正浏览器业务点击与 Human UI 验收未完成；卷持久化、异机备份及回滚演练未完成**。原 Railway 和数据未更改。公网认证密码不会写入仓库或聊天。
+
