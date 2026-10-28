@@ -167,3 +167,11 @@
 - **P1 / 发布界限**：从 GitHub Actions `workflow_dispatch` 运行记录查询，最新成功的东京发布仍为 [Actions #40637385127](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40637385127)，SHA `821c737b7612ef6d49446bf628728ddee9ec90ce`；至本轮没有 `6380f950` 的东京手动发布记录。确认最新版 `.github/workflows/evo-tokyo-dev-deploy.yml` 为 **仅 workflow_dispatch / 仅 refs/heads/main**，无输入参数；既有 GitHub 连接不具备启动该工作流的功能，所以本轮**没有代用户发布**，只需用户于 [Actions 页面](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/evo-tokyo-dev-deploy.yml) 手动 Run workflow → main。
 - **唯一剩余门禁**：新部署 SHA 的本地 /health、公网 HTTPS/401 尚无证据，真实桌面/窄屏 Human “进入→返回”与创建资格尚未签收。M0 现有代码、准确 HEAD CI、main 合并均 PASS；**线上新版与 Human 保持待验**。不重建旧 M0，不展开 M1–M3，不改 Railway/PostgreSQL/数据卷。
 - 外部官方研究分级 P1/P2/P3 延续先前索引；此次只使用 GitHub 代码和 Actions 一手资料，不声称重新阅读全文或新页面实机验收。
+
+
+## Human 反馈 #10 · 2026-10-28 — 个人空间被过滤使创建第二个企业入口消失
+- **U / 新的两张用户东京实图**：已拥有 1 家企业时目录页只剩“查看创建资格”，没有“创建新企业”；点击后显示“需切换个人空间”，但顶部选择器只显示现有企业。用户因此询问“只能创建一个么？”。这是 M0 Human **明确负面证据**，不能标 PASS。
+- **P1 / 业务判断**：`manager/enterprise-context-creation.ts` 是 `contexts: [...snapshot.contexts, context]` 增量写入并给创建者追加 OWNER，没有一人一家限制。真实授权仍由 Personal Context + Human + Provider + 确认门禁把关。
+- **P1 / 联动根因**：`manager/desktop-workbench-runtime.ts` `loaded.options.filter(kind===ENTERPRISE)` 导致 Personal Context **从 UI 下拉中被过滤**，并把初始选择强制设为默认/首家企业；`apps/enterprise-context-governance/context-page.ts` 在任意 `allowed:false` 时隐藏“创建新企业”，却没有区分 `PERSONAL_CONTEXT_REQUIRED` 与真正 `DENIED`。问题不是数量配额，而是把上下文前置当撤权，并将恢复路径从客户端删除。
+- **修复 Draft PR [#1137](https://github.com/jiangxng/EVO-App-Platform/pull/1137)**：顶部选择器保留 personal 和 enterprise 选项并保存选择；目录在 PERSONAL_CONTEXT_REQUIRED 继续显示创建主按钮，通过既有受保护 `enterprise.context.select` 选择 **Host 可访问的本人个人空间** 后导向创建表单；资格/深链页面增加同一继续动作并移除无意义的资格空卡。服务端创建确认与权限检查不变，不扩展 M1/M2/M3。
+- **验证边界**：新 PR 准确 HEAD `58d146f6d5c082c6024313060d7df443aa761a4c` 当前处于 CI 检查中；未合并、未发布东京、无新 Human 证据。旧东京运行 SHA 的成功不代表新版成功。专项四个里程碑 M0—M3 不变，Railway/PG/现有卷不动。
