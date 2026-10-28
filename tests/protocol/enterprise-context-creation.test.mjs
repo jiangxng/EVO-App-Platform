@@ -103,7 +103,7 @@ function allowCreateProvider() {
 
 test("Tokyo preview grants only demo human enterprise creation, with explicit DENY overriding", () => {
   const compose = readFileSync("deploy/tencent-tokyo/compose.yaml", "utf8");
-  const match = compose.match(/^\\s*APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:\\s*'([^'\\n]+)'\\s*$/m);
+  const match = compose.match(/^\s*APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:\s*'([^'\n]+)'\s*$/m);
   assert.ok(match, "Tokyo Compose must have its explicitly scoped preview policy");
   const policy = parseHostStaticAuthorizationPolicyV010(match[1]);
   const provider = createHostStaticAuthorizationProviderV010(policy);
