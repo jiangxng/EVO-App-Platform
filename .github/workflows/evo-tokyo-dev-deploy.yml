@@ -4,6 +4,12 @@ name: EVO Tokyo Dev - Verified Manual Release
 # after first live smoke test, rollback check and required-CI policy are verified.
 on:
   workflow_dispatch:
+  # One-time, explicit owner-authorized Tokyo preview release via a unique marker.
+  # Ordinary main pushes do NOT deploy. Remove this trigger after verification.
+  push:
+    branches: [main]
+    paths:
+      - "docs/runbooks/EVO-TOKYO-DEV-RELEASE-REQUEST-20261028.md"
 
 permissions:
   contents: read
@@ -166,6 +172,26 @@ jobs:
           trap - ERR
           echo "EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=$sha"
           REMOTE
+      - name: Public HTTPS acceptance from independent GitHub runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          host="evo.43.167.252.197.sslip.io"
+          health="$(curl --noproxy '*' -4 --fail --silent --show-error \
+            --retry 6 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 10 --max-time 20 "https://$host/health")"
+          printf '%s\n' "$health" | grep -Fq '"ok":true'
+          printf '%s\n' "$health" | grep -Fq '"service":"evo-app-manager"'
+          echo "EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS"
+          unauth="$(curl --noproxy '*' -4 --silent --show-error \
+            --connect-timeout 10 --max-time 20 -o /dev/null \
+            -w '%{http_code}' "https://$host/")"
+          if [[ "$unauth" != "401" ]]; then
+            echo "::error title=EVO_TOKYO_BASIC_AUTH_BOUNDARY_FAIL::Expected 401, received $unauth"
+            exit 1
+          fi
+          echo "EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS"
+
       - name: Remove temporary SSH credentials from runner
         if: always()
         run: |
