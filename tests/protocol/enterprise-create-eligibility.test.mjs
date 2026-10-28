@@ -51,27 +51,49 @@ test("M0: human/personal/provider readiness fail closed and never throw raw deta
     "UNAVAILABLE");
 });
 
-test("M0: directory shows status not a create action; deep link is guidance only", async () => {
+test("M0: create eligibility stays separate from the platform permission admin page", async () => {
   const denied = await check(user(), provider("DENY"));
   const directory = createEnterpriseContextDirectoryPageV010({
     contexts: [], createEligibility: denied, locale: "zh-CN"
   });
-  const create = directory.items.find(x => x.id === "enterprise-context:create");
-  assert.ok(create);
-  assert.equal(create.primaryAction, undefined);
-  assert.match(create.summary, /联系平台管理员/);
-  assert.equal(directory.items.find(x => x.id === "enterprise-context:my-permissions")
-    .primaryAction.route, "/enterprise-contexts/my-permissions");
+  assert.deepEqual(directory.items, []);
+  assert.equal(directory.actions.find(a => a.id === "create-enterprise"), undefined);
+  assert.equal(directory.actions.find(a => a.id === "check-create-eligibility")?.route,
+    "/enterprise-contexts/my-permissions");
+  assert.match(directory.description, /联系平台管理员/);
+  assert.doesNotMatch(renderCatalogBrowserToHtml(directory), />ACTION</);
   const deepLink = createEnterpriseCreateNotAllowedPageV010(denied, "zh-CN");
   assert.equal(deepLink.kind, "catalog-browser");
   assert.deepEqual(deepLink.items, []);
   assert.match(renderCatalogBrowserToHtml(deepLink), /联系平台管理员/);
+  assert.equal(deepLink.actions[0].route, "/enterprise-contexts");
   const myPage = createEnterpriseCreateEligibilityPageV010(denied, "zh-CN");
+  assert.equal(myPage.title, "创建企业资格");
+  assert.match(myPage.description, /平台管理员/);
+  assert.equal(myPage.actions[0].route, "/enterprise-contexts");
+  assert.match(renderCatalogBrowserToHtml(myPage), /返回企业列表/);
   assert.equal(myPage.items[0].primaryAction, undefined);
-  const allowed = createEnterpriseCreateEligibilityPageV010(
-    await check(user(), provider("ALLOW")), "zh-CN"
-  );
-  assert.equal(allowed.items[0].primaryAction.route, "/enterprise-contexts/new");
+  assert.equal(myPage.items[0].status.label, "未获授权");
+  const allowed = await check(user(), provider("ALLOW"));
+  const allowedPage = createEnterpriseCreateEligibilityPageV010(allowed, "zh-CN");
+  assert.equal(allowedPage.items[0].primaryAction.route, "/enterprise-contexts/new");
+  const allowedDirectory = createEnterpriseContextDirectoryPageV010({
+    contexts: [], createEligibility: allowed, locale: "zh-CN"
+  });
+  assert.equal(allowedDirectory.actions.find(a => a.id === "create-enterprise")?.route,
+    "/enterprise-contexts/new");
+  assert.equal(allowedDirectory.items.length, 0, "actions are not represented as business records");
+});
+
+test("M0: enterprise-space requirement never impersonates an explicit permission denial", async () => {
+  const inEnterprise = await check(user(), provider("ALLOW"), {activeContextKind: "ENTERPRISE"});
+  assert.equal(inEnterprise.allowed, false);
+  assert.equal(inEnterprise.status, "PERSONAL_CONTEXT_REQUIRED");
+  const page = createEnterpriseCreateEligibilityPageV010(inEnterprise, "zh-CN");
+  assert.equal(page.items[0].status.label, "需切换个人空间");
+  assert.equal(page.items[0].primaryAction, undefined);
+  assert.match(page.items[0].summary, /不代表你没有创建资格/);
+  assert.equal(page.actions[0].route, "/enterprise-contexts");
 });
 
 test("M0: GET route uses request identity and same server provider as write; submit is not bypassed", () => {
