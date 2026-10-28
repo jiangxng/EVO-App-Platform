@@ -156,6 +156,42 @@ test("Tokyo preview grants only demo human enterprise creation, with explicit DE
   assert.equal(blocked.reasonCodes[0], "STATIC_POLICY_EXPLICIT_DENY");
 });
 
+test("Tokyo preview demo principal can complete confirmed enterprise bootstrap with owner grant", async () => {
+  const compose = readFileSync("deploy/tencent-tokyo/compose.yaml", "utf8");
+  const raw = compose.match(/APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:\s*'([^']+)'/);
+  assert.ok(raw);
+  const policy = parseHostStaticAuthorizationPolicyV010(raw[1]);
+  const store = createMemoryEnterpriseContextGovernanceStoreV010();
+  const handler = createEnterpriseContextCreationActionHandlerV010({
+    store,
+    resolveAuthorizationProvider: () => createHostStaticAuthorizationProviderV010(policy)
+  });
+  const session = {
+    contractVersion: "0.1.0",
+    sessionId: "tokyo-preview-demo-session",
+    principal: {
+      contractVersion: "0.1.0",
+      subjectId: "demo-user",
+      actorType: "HUMAN",
+      identityProviderId: "host.compatibility-local"
+    },
+    issuedAt: "1970-01-01T00:00:00.000Z"
+  };
+  const registry = createHostContextRegistryV010({
+    personalContext: {
+      contractVersion: "0.1.0", kind: "PERSONAL",
+      contextId: "personal:demo-user", ownerSubjectId: "demo-user"
+    }
+  });
+  const context = createPlatformRequestContextV010(session, registry, createAction(), {}, "zh-CN");
+  const result = await handler.execute(createAction(true), context);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(store.snapshot().contexts.length, 1);
+  assert.equal(store.snapshot().relationships[0].subjectId, "demo-user");
+  assert.equal(store.snapshot().relationships[0].kind, "OWNER");
+  assert.equal(store.snapshot().grants[0].subjectId, "demo-user");
+});
+
 test("request-bound bearer Session resolves the current Principal and rejects unknown token", () => {
   const provider = createHostBearerSessionProviderV010(
     bearerSessions(),
