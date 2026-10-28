@@ -202,3 +202,11 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - [PR #1123](https://github.com/jiangxng/EVO-App-Platform/pull/1123)：发布成功后独立恢复 manual-only workflow，防止意外开启永久 main 自动部署；[完整结果 runbook](https://github.com/jiangxng/EVO-App-Platform/blob/chore/evo-tokyo-restore-manual-only-20261028/docs/runbooks/EVO-TOKYO-DEV-RELEASE-RESULT-20261028.md) 仍在独立 PR 分支，状态以确切合并结果为准。
 - **最新门禁**：代码 CI PASS、实际部署 PASS、公网 HTTPS/TLS PASS、Basic Auth 401 PASS；**真正浏览器业务点击与 Human UI 验收未完成；卷持久化、异机备份及回滚演练未完成**。原 Railway 和数据未更改。公网认证密码不会写入仓库或聊天。
 
+
+## 2026-10-28 用户新决策：业务零默认安装、后创建企业可选（增量）
+
+- **明确要求（用户一手）**：1）不要默认安装业务插件；2）需要知道已安装的应用如何与之后创建的企业上下文关联。此项不应与“设置页去除静态分组”或“应用无企业提示”混为同一门禁。
+- **P1 仓库原文**：[Startup defaults](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/startup-defaults.ts) 默认为 compatible；[Host](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/server.ts) 通过 installBusinessDefaultOnce 安装默认业务插件；[Lifecycle Store](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/store.ts) 将 installed/active 存储至自定义 JSON；东京 Compose 的确切 state file 是 /data/platform-state.json（Docker evo-data），不是 Postgres。
+- **P1 后建企业消费机制**：[Counterparty 源码](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/apps/counterparty/package.ts) 业务插件按 INSTALLATION 激活；[Host business request](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/server.ts) 按每次请求 selected Enterprise Context 的 contextId 读取；[Workbench](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/desktop-workbench-runtime.ts) 根据 /v1/contexts/effective 提供当前企业选择。不强制重新安装插件，但不意味着外部 Provider/业务服务自动配置。
+- **决定/实施候选**：[Draft PR #1124](https://github.com/jiangxng/EVO-App-Platform/pull/1124)，独立分支 fix/evo-tokyo-no-default-business-plugins-20261028，默认 clean，compatible 仅显式开启，东京明确 clean；不删除/停用已有业务包或数据库。详细证据与门禁 [运行验收文档](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-no-default-business-plugins-20261028/docs/runbooks/EVO-TOKYO-DEV-NO-DEFAULT-PLUGINS-20261028.md)。
+- **严格未验收**：CI、合并、东京部署、现有存储自动包的可逆停用、后创建企业真实在线绑定、Human 签收均各自单列；不能只把 profile=clean 就声称“东京页面已清空”。Railway 与数据不触碰。
