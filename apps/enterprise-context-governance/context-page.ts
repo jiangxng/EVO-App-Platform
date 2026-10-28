@@ -92,21 +92,23 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     return [{
       id: contextId,
       title: displayName,
-      summary: [
-        current ? text.current : undefined,
-        isDefault ? text.default : undefined
-      ].filter(Boolean).join(" · ") || text.available,
-      badges: [
-        ...(isDefault ? [text.default] : []),
-        ...(current ? [text.current] : [])
-      ],
+      // Current, default and ownership are distinct facts, shown only once.
+      summary: isOwner
+        ? (input.locale?.toLowerCase().startsWith("zh") ? "由你管理" : "Managed by you")
+        : text.available,
+      badges: isDefault ? [text.default] : [],
       status: {
-        label: current ? text.current : (context.lifecycleState ?? text.available),
+        label: current
+          ? text.current
+          : (context.lifecycleState === "ACTIVE" ? text.available
+            : (context.lifecycleState ?? text.available)),
         tone: current ? "positive" as const : "neutral" as const
       },
       metadata: {
         ...(code ? { [text.code]: code } : {}),
-        [text.state]: context.lifecycleState ?? "ACTIVE"
+        [text.state]: context.lifecycleState === "ACTIVE"
+          ? (input.locale?.toLowerCase().startsWith("zh") ? "正常" : "Active")
+          : (context.lifecycleState ?? "—")
       },
       secondaryActions: [
         ...(!isDefault
@@ -158,42 +160,36 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     kind: "catalog-browser",
     id: "evo-enterprise-context-governance.directory",
     title: text.title,
-    description: `${text.description} ${text.count}: ${enterprises.length}`,
+    description: [
+      text.description,
+      `${text.count}: ${enterprises.length}`,
+      ...(input.createEligibility?.allowed === false ? [input.createEligibility.message] : [])
+    ].join(" · "),
     search: {
       placeholder: text.search,
       ariaLabel: text.search,
       noResultsMessage: text.empty
     },
-    items: [
-      ...enterpriseItems,
+    // Page-level actions are not enterprise records; keep them outside the directory.
+    actions: [
+      ...(input.createEligibility?.allowed === false ? [] : [{
+        id: "create-enterprise",
+        label: text.create,
+        type: "navigate" as const,
+        route: ENTERPRISE_CONTEXT_CREATE_ROUTE,
+        primary: true
+      }]),
       {
-        id: "enterprise-context:create",
-        title: text.create,
-        summary: input.createEligibility?.message ?? text.createSummary,
-        category: "ACTION",
-        ...(input.createEligibility?.allowed === false
-          ? { status: { label: input.createEligibility.message, tone: "neutral" as const } }
-          : { primaryAction: {
-          id: "create",
-          label: text.create,
-          type: "navigate",
-          route: ENTERPRISE_CONTEXT_CREATE_ROUTE,
-          requiresConfirmation: false
-        } }),
-      }, {
-        id: "enterprise-context:my-permissions",
-        title: input.locale?.toLowerCase().startsWith("zh") ? "我的权限" : "My permissions",
-        summary: input.createEligibility?.message ?? (input.locale?.toLowerCase().startsWith("zh")
-          ? "查看当前创建企业的资格。" : "View your permission to create enterprises."),
-        primaryAction: {
-          id: "open",
-          label: input.locale?.toLowerCase().startsWith("zh") ? "查看权限" : "View permissions",
-          type: "navigate",
-          route: ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE
-        }
+        id: "check-create-eligibility",
+        label: input.locale?.toLowerCase().startsWith("zh") ? "查看创建资格" : "Check creation eligibility",
+        type: "navigate" as const,
+        route: ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE
       }
     ],
-    emptyMessage: text.empty
+    items: enterpriseItems,
+    emptyMessage: input.createEligibility?.allowed === false
+      ? input.createEligibility.message
+      : text.empty
   };
 }
 
