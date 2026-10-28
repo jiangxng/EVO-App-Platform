@@ -6,7 +6,7 @@
 
 | 验收项目 | 可衡量的完成标准 | 当前状态 | 下一步 | 验收证据 |
 | --- | --- | --- | --- | --- |
-| **M0 权限预检与友好提示** | 真实服务端可判定创建资格；至少覆盖“允许、无权限、未登录、撤销后”4 种场景；未授权者提交前看到中文说明，API 仍拒绝；不暴露 STATIC_POLICY_NO_MATCH 原文。 | **已部署东京；Human 目录体验发现缺陷，未签收**：功能 PR #1130 HEAD `66df22f4` 检查 47/47 成功、合并 `fd0e5ad5`；发布修复 PR #1132 合并 `ba1498e9`，Actions #40632097615 SUCCESS、VPS 就绪和公网 HTTPS/401 PASS。 | 真实浏览器验证当前共享预览身份的创建资格、未授权引导与“我的权限”；其余身份场景已自动测试，M1 才能多人实测。 | [功能 PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130)、[部署 #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615)、4 状态自动测试；Human 待签收 |
+| **M0 权限预检与友好提示** | 真实服务端可判定创建资格；至少覆盖“允许、无权限、未登录、撤销后”4 种场景；未授权者提交前看到中文说明，API 仍拒绝；不暴露 STATIC_POLICY_NO_MATCH 原文。 | **已部署东京；Human 目录及资格页体验有缺陷，未签收**：功能 PR #1130 HEAD `66df22f4` 检查 47/47 成功、合并 `fd0e5ad5`；发布修复 PR #1132 合并 `ba1498e9`，Actions #40632097615 SUCCESS、VPS 就绪和公网 HTTPS/401 PASS。 | 真实浏览器验证当前共享预览身份的创建资格、未授权引导与“我的权限”；其余身份场景已自动测试，M1 才能多人实测。 | [功能 PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130)、[部署 #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615)、4 状态自动测试；Human 待签收 |
 | **M1 可信身份与平台管理员** | 至少验证 3 个独立主体：平台 Owner、用户 A、用户 B；仅可信部署初始化流程能设定首个 Owner；A/B 和共享 demo-user 均无法自封管理员；退出、账号禁用后不能再写入。 | **未开始开发** | 复用现有身份能力，完成平台 Owner 初始化与正反向测试 | PR、登录/禁用/越权测试、审计 |
 | **M2 权限管理页面 0→1** | 平台 Owner 可在“平台管理→权限管理”查看用户；仅能授予或撤销“创建企业”资格；授权/撤销立即生效且重启后仍有效；至少有两条授予/撤销审计记录；非 Owner 写入被拒、B 不受 A 授权影响。 | **未开始开发** | 建立可持久、可审计授权与最小管理页，验证撤销和重启 | PR、授权/撤销/重启/越权测试、管理页截图 |
 | **M3 企业创建完整闭环** | A 获权后能创建企业甲并成为甲 OWNER；刷新后仍可见；B 不能越权访问甲；撤销 A 创建资格后不能创建新企业，但甲及其 OWNER 不消失；创建过程不自动装业务插件；CI、合并、部署、公网、Human 各自验证。 | **未开始本专项端到端验收** | 完成正反向集成测试，受控东京发布并做真实浏览器验收 | PR、测试、合并 SHA、Actions、公网检查、Human 签收 |
@@ -112,3 +112,13 @@
 - **P1 / 新核验代码证据**：[context-page.ts](https://github.com/jiangxng/EVO-App-Platform/blob/e37fa1f224d8062076c25f4697b72084f8db0743/apps/enterprise-context-governance/context-page.ts) 在创建卡设置 category: "ACTION"，重复将资格提示置入两个独立卡片；[CatalogBrowser renderer](https://github.com/jiangxng/EVO-App-Platform/blob/e37fa1f224d8062076c25f4697b72084f8db0743/vendor/eidos/src/catalog-browser/render.ts) 把 category 直接渲染为可见文字。[M0 UI review](https://github.com/jiangxng/EVO-App-Platform/blob/e37fa1f224d8062076c25f4697b72084f8db0743/docs/ui-design-reviews/evo-permissions-m0-create-eligibility-20261028.md) 已完成八节，但没有 V3 三轴或浏览器截图。
 - **修复归属**：跨插件共性问题由独立 [Draft PR #1134](https://github.com/jiangxng/EVO-App-Platform/pull/1134) 强化项目 UI 开发门禁，Eidos 仍为 UI Authority。**当前 M0 具体页面缺陷**应先由当前 Enterprise Context/Eidos owner 确认现有导航契约，再在专用 M0 最小功能分支修复、实际浏览器桌面和窄屏验证。未确认 owner 不直接覆盖公共 Eidos 或其他 EC/BEX 分支。
 - **范围/环境**：不为改导航额外引入 M1/M2/M3、套餐、众包、支付、独立多租户、插件默认安装；不动当前授权策略、Railway、PostgreSQL、东京卷、SSH/443。新的外部官网证据未增加，保留原 P1/P2/P3 分级。
+
+
+## Human 页面观察 #07 · 2026-10-28 — 已证实创建成功但平台权限语义混淆、无法返回
+
+- **U 第二张用户实图**：在已选择企业空间的共享 `demo-user` 会话中，“我的权限”页面标题仅显示该名称，子卡显示“创建企业 / 暂不可用 / 请先切换到个人空间，再创建企业”，**没有应用内返回企业目录操作**。用户明确报告“已经可以创建企业”且认为这里不是所要求的“EVO 平台权限”。该报告给 M0 实际创建允许路径增加真实用户陈述证据，但未核验所建企业的 OWNER 关联和 M3 隔离验收。
+- **P1 源码根因**：`manager/enterprise-create-eligibility.ts` 在企业空间先因 `PERSONAL_CONTEXT_REQUIRED` 返回 `allowed:false`，不进行个人空间权限 Provider check。因此 UI 的“暂不可用”表示**当前前置条件不满足**，不能解释为当前主体缺少平台授权；原页面标题“我的权限”会误导为全平台权限管理，而 `CatalogBrowser` 原本就支持返回导航 `actions`。
+- **产品正确边界**：M0 只读查询 `enterprise.context.create` 当前可执行性（平台作用域资格预检），不是授予/撤销管理；真实 Platform Owner 初始化属于 M1，**EVO 平台管理→权限管理**授予撤销编辑 UI 属于 M2；新建后 OWNER 与隔离专项验收属 M3。用户本轮是**纠正现有方向误读**，不是增加第五里程碑。
+- **最小整改 Draft PR [#1135](https://github.com/jiangxng/EVO-App-Platform/pull/1135)**：把可见标题修为“创建企业资格”、解释非授权管理页；增加返回企业列表；把“需切换个人空间”状态与真正拒绝区别开；企业目录中的创建/查看资格移到页级动作，消除 ACTION 卡片。修改仅限 M0 UI 文案/导航和测试、Eidos review，不变更授权 Provider/静态策略、企业创建 Handler 或环境。**已提交待准确 HEAD CI 与真实浏览器验收，不能写已合并/已部署。**
+- **修正验收**：用户回到企业目录无需依赖浏览器历史；在企业空间，“创建资格”页应解释需个人空间但不假称撤权；在个人空间，应展示账号真实资格且有权时能进入创建表单。M0 Human 仍 **未 PASS**。保存截图原文仅在当前对话，尚未写为 GitHub 图像文件。
+- **保护边界**：不为页面缺陷重复发布已部署成功的旧 SHA；不动 Railway/PostgreSQL/持久卷/其它 owner，不提前开发 M1/M2/M3。研究 P1/P2/P3 标记不变。
