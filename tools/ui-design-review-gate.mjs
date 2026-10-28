@@ -33,12 +33,20 @@ const isPluginUI = (p,patch) => pluginPage(p)
   || (/^apps\/[^/]+\/package\.ts$/.test(p) && addedHumanUI(p,patch))
   || (/^manager\/[^/]+\.ts$/.test(p) && addedHumanUI(p,patch));
 const extraHeadings = [
-  "页面模式与导航归属", "功能、布局、颜色对照", "浏览器与 Human 证据"
+  "页面模式与导航归属", "功能、布局、颜色对照", "入口、退出与恢复矩阵", "浏览器与 Human 证据"
 ];
 function hasPluginEvidence(body) {
   return extraHeadings.every(h => new RegExp("^##\\s+"+h+"\\s*$","m").test(body))
-    && ["功能","布局","颜色","桌面","移动","Human"].every(k =>
+    && ["功能","布局","颜色","入口","退出","异常恢复","桌面","移动","Human"].every(k =>
       new RegExp("^(?:[-*]\\s*)?"+k+"\\s*[：:]\\s*\\S+","mi").test(body));
+}
+// A changed plugin route or contextual action is a journey, not an isolated button.
+// Require a same-PR regression test instead of accepting a review document alone.
+function changesHumanJourney(p, patch = "") {
+  if (!isPluginUI(p, patch)) return false;
+  return patch.split("\n").some(line =>
+    line.startsWith("+") && !line.startsWith("+++")
+    && /\b(?:contextNavigation|primaryAction|secondaryActions|navigateTo|routes|defaultRoute)\s*:|\broute\s*:/.test(line.slice(1)));
 }
 function addedRawEnum(p, patch = "") {
   if (!pluginPage(p)) return false;
@@ -53,6 +61,10 @@ function check(files, read, readPatch = () => "") {
   const enumLeaks = changed.filter(p => addedRawEnum(p,patches.get(p)));
   if (enumLeaks.length) return {ok:false,changed,message:"New raw technical category (ACTION/NAVIGATION/RESOURCE/SYSTEM) in plugin page source: "+enumLeaks.join(", ")+". Use Human-facing business language."};
   const pluginChanged = changed.filter(p => isPluginUI(p,patches.get(p)));
+  const changedJourneys = pluginChanged.filter(p => changesHumanJourney(p, patches.get(p)));
+  if (changedJourneys.length && !files.some(p => /^tests\/.*\.test\.[cm]?js$/.test(p))) {
+    return {ok:false,changed,message:"Plugin navigation/primary-action change needs an updated same-PR tests/**/*.test.mjs journey regression proving entry → destination → parent/back and failure recovery. Changed routes: "+changedJourneys.join(", ")};
+  }
   const notes = files.filter(x => x.startsWith(noteRoot) && x.endsWith(".md"));
   if (!notes.length) return {ok:false,changed,message:"Missing same-PR docs/ui-design-reviews/*.md review artifact."};
   for (const path of notes) {
@@ -65,12 +77,12 @@ function check(files, read, readPatch = () => "") {
       return {ok:true,changed,message:"Reviewed with "+path+(pluginChanged.length ? " (plugin experience evidence present; not Human PASS)" : "")};
     }
   }
-  return {ok:false,changed,message:"Review artifact needs eight Eidos headings and exact UI source path; plugin Experience pages additionally need three headings plus distinct functionality, layout, color, desktop, mobile and Human status lines. See docs/governance/PLUGIN-HUMAN-EXPERIENCE-DELIVERY-GATE-20261028.md."};
+  return {ok:false,changed,message:"Review artifact needs eight Eidos headings and exact UI source path; plugin Experience pages need four extra headings including entry/exit/recovery matrix and distinct functionality, layout, color, desktop, mobile and Human status lines. Changed navigation/actions additionally require a regression test file. See docs/governance/PLUGIN-HUMAN-EXPERIENCE-DELIVERY-GATE-20261028.md."};
 }
 if(process.argv.includes("--self-test")){
   const base=headings.map(x=>"## "+x+"\nConcrete task, review evidence, recovery.").join("\n")+"\napps/data-import/page.ts";
   const extras=extraHeadings.map(x=>"## "+x+"\nSelection, existing authority, rationale.").join("\n")
-    +"\n功能：待实测\n布局：待实测\n颜色：待实测\n桌面：未取得\n移动：未取得\nHuman：未签收";
+    +"\n功能：待实测\n布局：待实测\n颜色：待实测\n入口：待测\n退出：待测\n异常恢复：待测\n桌面：未取得\n移动：未取得\nHuman：未签收";
   const must=(v,msg)=>{if(!v)throw Error("self-test: "+msg)};
   must(check(["docs/file.md"],()=>base).ok,"docs-only change");
   must(!check(["apps/data-import/page.ts"],()=>base).ok,"missing review must fail");
@@ -82,6 +94,10 @@ if(process.argv.includes("--self-test")){
   must(!addedHumanUI("apps/example/package.ts","+      requiresCapabilities: []"),"non-UI manifest diff must not be detected");
   must(!check(["apps/example/package.ts","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>"+      category: \"ACTION\"").changed.length,"non-UI manifest not detected");
   must(!check(["apps/example/page.ts","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>"+      category: \"ACTION\"").ok,"raw ACTION category in plugin page must fail");
+  const navPatch="+      contextNavigation: { items: [] }\n+      primaryAction: { type: \"navigate\", route: \"/example\" }";
+  must(changesHumanJourney("apps/example/page.ts",navPatch),"added navigation should be detected");
+  must(!check(["apps/example/page.ts","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>navPatch).ok,"navigation change without actual test file must fail");
+  must(check(["apps/example/page.ts","tests/protocol/example-human-journey.test.mjs","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>navPatch).ok,"test + review enables navigation change");
   must(isUI("manager/app-host-shell.ts") && isUI("vendor/eidos/src/design-language/tokens.ts"),"existing UI coverage");
   console.log("Platform UI review gate self-test PASS"); process.exit(0);
 }
