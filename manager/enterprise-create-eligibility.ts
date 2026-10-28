@@ -3,6 +3,10 @@ import type {
   PlatformPrincipalV010
 } from "../contracts/platform-services.js";
 import type { CatalogBrowserV010 } from "../vendor/eidos/src/catalog-browser/contracts.js";
+import {
+  ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
+  ENTERPRISE_CONTEXT_CREATE_ROUTE
+} from "../apps/enterprise-context-governance/constants.js";
 
 export type EnterpriseCreateEligibilityStatusV010 =
   | "ALLOWED"
@@ -93,10 +97,16 @@ export function createEnterpriseCreateNotAllowedPageV010(
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo-enterprise-create.permission-guidance",
-    title: zh ? "创建企业权限" : "Enterprise creation permission",
+    title: zh ? "创建企业" : "Create enterprise",
     description: state.message,
+    actions: [{
+      id: "back-to-enterprise-directory",
+      label: zh ? "返回企业列表" : "Back to enterprises",
+      type: "navigate",
+      route: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE
+    }],
     items: [],
-    emptyMessage: state.message
+    emptyMessage: zh ? "请按上方提示处理后重试。" : "Follow the guidance above and try again."
   };
 }
 
@@ -105,30 +115,49 @@ export function createEnterpriseCreateEligibilityPageV010(
   locale = "en"
 ): CatalogBrowserV010 {
   const zh = locale.toLowerCase().startsWith("zh");
+  const stateLabels: Record<EnterpriseCreateEligibilityStatusV010, [string, string]> = {
+    ALLOWED: ["可创建", "Can create"],
+    AUTH_REQUIRED: ["请先登录", "Sign-in required"],
+    PERSONAL_CONTEXT_REQUIRED: ["需切换个人空间", "Switch to personal space"],
+    HUMAN_REQUIRED: ["需要个人账号", "Individual account required"],
+    DENIED: ["未获授权", "Not authorized"],
+    UNAVAILABLE: ["暂无法核实", "Unable to verify"]
+  };
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo-enterprise-create.my-permissions",
-    title: zh ? "我的权限" : "My permissions",
-    description: state.message,
+    title: zh ? "创建企业资格" : "Enterprise creation eligibility",
+    description: zh
+      ? "这里只查看当前账号的创建企业资格；EVO 平台用户的授权与撤销由平台管理员管理。"
+      : "This checks only your account's enterprise-creation eligibility. Platform administrators manage grants and revocations.",
+    actions: [{
+      id: "back-to-enterprise-directory",
+      label: zh ? "返回企业列表" : "Back to enterprises",
+      type: "navigate",
+      route: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE
+    }],
     items: [{
       id: "enterprise-create-permission",
-      title: zh ? "创建企业" : "Create an enterprise",
-      summary: state.message,
+      title: zh ? "创建企业" : "Create enterprise",
+      summary: state.status === "PERSONAL_CONTEXT_REQUIRED"
+        ? (zh
+          ? "当前处于企业空间。请使用顶部空间切换器选择个人空间后重新查看；这不代表你没有创建资格。"
+          : "You are in an enterprise space. Select your personal space from the top switcher and check again; this does not mean your grant was revoked.")
+        : state.message,
       status: {
-        label: state.allowed ? (zh ? "已授权" : "Allowed")
-          : (zh ? "暂不可用" : "Unavailable"),
+        label: stateLabels[state.status][zh ? 0 : 1],
         tone: state.allowed ? "positive" : "neutral"
       },
       ...(state.allowed ? {
         primaryAction: {
           id: "go-create",
-          label: zh ? "前往创建企业" : "Create an enterprise",
+          label: zh ? "创建企业" : "Create enterprise",
           type: "navigate" as const,
-          route: "/enterprise-contexts/new"
+          route: ENTERPRISE_CONTEXT_CREATE_ROUTE
         }
       } : {})
     }],
-    emptyMessage: state.message
+    emptyMessage: zh ? "暂无可展示的创建资格。" : "No eligibility information available."
   };
 }
