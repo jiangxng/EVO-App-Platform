@@ -223,3 +223,10 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - **P1 已读原文**：[Enterprise creation](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/manager/enterprise-context-creation.ts) 必须 Human+Personal Context+人类确认+授权；[Static provider](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/providers/authorization/runtime.ts) 对无匹配返回 NO_MATCH；[governance baseline](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/manager/enterprise-context-authorization.ts) 仅内建人类 Archive ALLOW、未默认授权 Create；[Tokyo Compose](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/deploy/tencent-tokyo/compose.yaml) 使用 Caddy Basic Auth、未启用 Managed Session、没有企业创建覆盖策略。
 - **选择及其局限**：[Draft PR #1126](https://github.com/jiangxng/EVO-App-Platform/pull/1126) 为东京预览 `demo-user` 增加仅 `enterprise.context.create` 的精确授权；测试真实 Compose、拒绝其它身份/AI/操作、显式 DENY 优先及真实创建+初始 OWNER/Grant。**不改变产品默认权限或生产环境，尚未部署**；[详细验收和安全边界](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-preview-enterprise-create-auth-20261028/docs/runbooks/EVO-TOKYO-DEV-ENTERPRISE-CREATE-AUTH-20261028.md)。
 - **风险与后续**：Basic Auth 并不提供人级 Principal 身份，所有持有同一预览凭据者共享 demo-user。真正的用户身份、角色管理、权限就绪预检与友好报错，仍是独立门禁。不可把 preview grant 移到 Railway 或生产。代码 CI、真实东京发布、实际企业创建、浏览器重载与 Human 签收分别记录。
+
+### 2026-10-28 同日发布核验（P1）
+
+- PR #1126 CI 10/10 PASS，已合并 main `d02491fc119bf17e91615f1f7c245b5ffc8a6986`。
+- PR #1127 single-release CI 5/5 PASS，已合并 main，发布 SHA `a47a6a6ef7116ad04a969896ce374f33c39ab2f1`。
+- **一手部署记录**：[Actions #40625798833](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40625798833) / [job #122610276054](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40625798833/job/122610276054) SUCCESS，真实 VPS local readiness PASS，独立公网严格 TLS `/health` PASS，未登录根目录 HTTP 401 PASS。
+- **未关闭**：实际 Human 点击创建企业、重新加载后上下文选中、跨用户权限和企业间隔离仍需验收，不得用健康检查代替。预览 Principal 为共享 demo-user，非正式个人认证；禁止生产数据。恢复 manual-only 的收尾 PR #1128 状态以实际 GitHub CI/合并为准。
