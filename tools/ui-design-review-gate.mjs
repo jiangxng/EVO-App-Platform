@@ -95,8 +95,9 @@ if(process.argv.includes("--self-test")){
   must(!check(["apps/example/package.ts","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>"+      category: \"ACTION\"").changed.length,"non-UI manifest not detected");
   must(!check(["apps/example/page.ts","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>"+      category: \"ACTION\"").ok,"raw ACTION category in plugin page must fail");
   const navPatch="+      contextNavigation: { items: [] }\n+      primaryAction: { type: \"navigate\", route: \"/example\" }";
+  const navReview = base+"\n"+extras+"\napps/example/page.ts";
   must(changesHumanJourney("apps/example/page.ts",navPatch),"added navigation should be detected");
-  must(!check(["apps/example/page.ts","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>navPatch).ok,"navigation change without actual test file must fail");
+  must(!check(["apps/example/page.ts","docs/ui-design-reviews/test.md"],()=>navReview,()=>navPatch).ok,"navigation change without actual test file must fail");
   must(check(["apps/example/page.ts","tests/protocol/example-human-journey.test.mjs","docs/ui-design-reviews/test.md"],()=>base+"\n"+extras,()=>navPatch).ok,"test + review enables navigation change");
   must(isUI("manager/app-host-shell.ts") && isUI("vendor/eidos/src/design-language/tokens.ts"),"existing UI coverage");
   console.log("Platform UI review gate self-test PASS"); process.exit(0);
