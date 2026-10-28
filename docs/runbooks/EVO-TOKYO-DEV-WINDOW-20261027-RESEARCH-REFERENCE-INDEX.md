@@ -210,3 +210,9 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - **P1 后建企业消费机制**：[Counterparty 源码](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/apps/counterparty/package.ts) 业务插件按 INSTALLATION 激活；[Host business request](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/server.ts) 按每次请求 selected Enterprise Context 的 contextId 读取；[Workbench](https://github.com/jiangxng/EVO-App-Platform/blob/4fd0748d5b11af7433cd7e62b86a2f798cdf5028/manager/desktop-workbench-runtime.ts) 根据 /v1/contexts/effective 提供当前企业选择。不强制重新安装插件，但不意味着外部 Provider/业务服务自动配置。
 - **决定/实施候选**：[Draft PR #1124](https://github.com/jiangxng/EVO-App-Platform/pull/1124)，独立分支 fix/evo-tokyo-no-default-business-plugins-20261028，默认 clean，compatible 仅显式开启，东京明确 clean；不删除/停用已有业务包或数据库。详细证据与门禁 [运行验收文档](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-no-default-business-plugins-20261028/docs/runbooks/EVO-TOKYO-DEV-NO-DEFAULT-PLUGINS-20261028.md)。
 - **严格未验收**：CI、合并、东京部署、现有存储自动包的可逆停用、后创建企业真实在线绑定、Human 签收均各自单列；不能只把 profile=clean 就声称“东京页面已清空”。Railway 与数据不触碰。
+
+### 2026-10-28 PR #1124 合并核验
+
+- [PR #1124](https://github.com/jiangxng/EVO-App-Platform/pull/1124) exact HEAD `b98226230a70c521599ded50645bd1ab0c7bf585` 在 Ready 后 **46/46 CI SUCCESS**，已独立 squash merge 到 main，提交 `39c27d7af7ad42712898899ac7c7e57a670bfa8a`。
+- BEX/EOG/Memory 原隔离测试之前隐式依赖兼容模式的默认安装，已明确在**测试夹具**中启用 compatible 或明确 install，未修改 BEX/PA05 产品业务代码；这保证新 Host 的 clean 默认不被测试隐藏依赖打回旧方案。
+- **尚未发布到腾讯云**；现有东京持久卷安装状态保持不变。创建企业后当前 UI 会选中新建企业，业务页面按该请求 Context 读取，外部业务运行时绑定仍需根据插件契约另行配置。不可把合并等同线上新启动策略生效。
