@@ -110,35 +110,6 @@ export function createEnterpriseContextDirectoryPageV010(input: {
           ? (input.locale?.toLowerCase().startsWith("zh") ? "正常" : "Active")
           : (context.lifecycleState ?? "—")
       },
-      secondaryActions: [
-        ...(!isDefault
-          ? [{
-              id: "set-default",
-              label: text.setDefault,
-              type: "command" as const,
-              command: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010,
-              inputVersion: "0.1.0",
-              requiresConfirmation: false,
-              values: {
-                targetContextId: contextId
-              }
-            }]
-          : []),
-        ...(isOwner
-          ? [{
-              id: "archive",
-              label: text.archive,
-              type: "command" as const,
-              command: ENTERPRISE_CONTEXT_ARCHIVE_COMMAND,
-              inputVersion: "0.1.0",
-              requiresConfirmation: true,
-              helpText: text.archiveHelp,
-              values: {
-                targetContextId: contextId
-              }
-            }]
-          : [])
-      ],
       primaryAction: {
         id: "enter",
         label: text.enter,
@@ -159,6 +130,8 @@ export function createEnterpriseContextDirectoryPageV010(input: {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo-enterprise-context-governance.directory",
+    layout: "list",
+    density: "compact",
     title: text.title,
     description: [
       text.description,
@@ -207,52 +180,85 @@ export function createEnterpriseContextOverviewPageV010(input: {
   const code = typeof input.context.attributes?.code === "string"
     ? input.context.attributes.code
     : undefined;
+  const lifecycle = input.context.lifecycleState;
+  const active = lifecycle === "ACTIVE";
+  const roleLabel = input.currentRole === "OWNER"
+    ? (zh ? "所有者" : "Owner")
+    : input.currentRole === "ADMIN"
+      ? (zh ? "管理员" : "Administrator")
+      : input.currentRole === "MEMBER"
+        ? (zh ? "成员" : "Member")
+        : (zh ? "已加入" : "Member");
+  const statusLabel = active
+    ? (zh ? "正常" : "Active")
+    : (zh ? "当前不可用" : "Unavailable");
 
+  // The overview is a child journey of the enterprise directory. Eidos owns
+  // breadcrumb / mobile parent navigation; do not depend on browser history.
   return {
     contractVersion: "0.1.0",
     kind: "catalog-browser",
     id: "evo-enterprise-context-governance.overview",
+    layout: "list",
+    density: "compact",
+    contextNavigation: {
+      items: [
+        {
+          id: "my-enterprises",
+          label: zh ? "我的企业" : "My enterprises",
+          route: "/enterprise-contexts"
+        },
+        { id: "selected-enterprise", label: displayName }
+      ]
+    },
     title: displayName,
     description: zh
-      ? "企业上下文是一个薄的企业级持久资源容器。业务能力由独立插件读取和操作这里的资源。"
-      : "An Enterprise Context is a thin persistent enterprise resource container. Independent plugins read and operate its resources.",
+      ? "查看当前企业的信息及可用操作。"
+      : "View information and available actions for the selected enterprise.",
     items: [{
       id: contextId || enterpriseId,
-      title: zh ? "容器状态" : "Container status",
+      title: zh ? "企业信息" : "Enterprise information",
       summary: input.isDefault
-        ? (zh ? "当前默认企业上下文" : "Current default Enterprise Context")
-        : (zh ? "企业级资源边界" : "Enterprise resource boundary"),
+        ? (zh ? "这是你的默认企业" : "Your default enterprise")
+        : (zh ? "当前选择的企业" : "Selected enterprise"),
       status: {
-        label: input.context.lifecycleState ?? "ACTIVE",
-        tone: input.context.lifecycleState === "ACTIVE"
-          ? "positive"
-          : "neutral"
+        label: statusLabel,
+        tone: active ? "positive" : "neutral"
       },
       metadata: {
-        [zh ? "企业 ID" : "Enterprise ID"]: enterpriseId,
-        ...(contextId
-          ? { [zh ? "Context ID" : "Context ID"]: contextId }
-          : {}),
-        ...(code
-          ? { [zh ? "企业代码" : "Enterprise code"]: code }
-          : {}),
-        [zh ? "当前角色" : "Current role"]: input.currentRole ?? "—",
-        [zh ? "默认" : "Default"]: input.isDefault ? (zh ? "是" : "Yes") : (zh ? "否" : "No"),
-        [zh ? "职责" : "Responsibility"]: zh
-          ? "存储、隔离、寻址、访问边界"
-          : "Persistence, isolation, addressing and access boundary"
+        ...(code ? { [zh ? "企业代码" : "Enterprise code"]: code } : {}),
+        [zh ? "我的身份" : "My role"]: roleLabel,
+        [zh ? "默认企业" : "Default enterprise"]:
+          input.isDefault ? (zh ? "是" : "Yes") : (zh ? "否" : "No")
       }
-    }, {
-      id: "enterprise-context:plugin-boundary",
-      title: zh ? "插件操作资源" : "Plugins operate resources",
-      summary: zh
-        ? "账本、组织、应用、文件等领域能力不属于企业上下文本体；它们由独立插件通过当前 Context 工作。"
-        : "Ledger, organization, applications, files and other domain capabilities live in independent plugins operating against the current Context.",
-      status: {
-        label: zh ? "薄容器" : "Thin container",
-        tone: "neutral"
-      }
-    }],
-    emptyMessage: zh ? "企业上下文可用。" : "Enterprise Context is available."
+    }, ...((input.isDefault !== true || input.currentRole === "OWNER")
+      ? [{
+          id: "enterprise-management-actions",
+          title: zh ? "管理操作" : "Management actions",
+          summary: zh
+            ? "只在需要时修改默认企业或归档。归档会从日常列表中移除企业，但保留历史记录。"
+            : "Change the default enterprise or archive it when needed. Archiving retains historical records.",
+          secondaryActions: [
+            ...(!input.isDefault ? [{
+              id: "set-default",
+              label: zh ? "设为默认" : "Set as default",
+              type: "command" as const,
+              command: ENTERPRISE_CONTEXT_DEFAULT_SET_COMMAND_V010,
+              inputVersion: "0.1.0",
+              requiresConfirmation: false,
+              values: { targetContextId: contextId }
+            }] : []),
+            ...(input.currentRole === "OWNER" ? [{
+              id: "archive",
+              label: zh ? "归档企业" : "Archive enterprise",
+              type: "command" as const,
+              command: ENTERPRISE_CONTEXT_ARCHIVE_COMMAND,
+              inputVersion: "0.1.0",
+              requiresConfirmation: true,
+              values: { targetContextId: contextId }
+            }] : [])
+          ]
+        }] : [])],
+    emptyMessage: zh ? "暂无企业信息。" : "No enterprise information available."
   };
 }
