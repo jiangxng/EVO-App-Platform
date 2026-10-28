@@ -1,7 +1,8 @@
 import type { SettingsStore } from "./settings-store.js";
 
 export function resolveStartupProfileV010(value: string | undefined, managedSessionEnabled: boolean) {
-  const profile = value?.trim().toLowerCase() || "compatible";
+  // New installations are intentionally empty. Legacy defaults require an explicit opt-in.
+  const profile = value?.trim().toLowerCase() || "clean";
   if (profile !== "compatible" && profile !== "clean" && profile !== "minimal") {
     throw new Error("STARTUP_PROFILE_INVALID: expected compatible, clean or minimal");
   }
