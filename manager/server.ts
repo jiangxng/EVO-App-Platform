@@ -7340,6 +7340,7 @@ const server = createServer(async (request, response) => {
             defaultContextId: defaultEnterpriseContext?.contextId,
             ownerContextIds,
             createEligibility: await checkCreateEligibilityForRequest(request, requestedLocale(url)),
+            personalContextId: contextRegistry.personal().contextId,
             locale: requestedLocale(url)
           })
         );
@@ -9359,12 +9360,21 @@ const server = createServer(async (request, response) => {
         }
         const locale = requestedLocale(url);
         const readiness = await checkCreateEligibilityForRequest(request, locale);
+        // A personal target must come from the authenticated Host registry,
+        // never a client-supplied targetContextId.
+        let personalContextId: string | undefined;
+        try {
+          const session = resolveRequestIdentitySession(request);
+          personalContextId = createContextRegistryForSession(session).personal().contextId;
+        } catch { /* An unauthenticated user cannot select a Personal Context. */ }
         response.setHeader("cache-control", "no-store");
         if (source === ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE) {
-          return json(response, 200, createEnterpriseCreateEligibilityPageV010(readiness, locale));
+          return json(response, 200,
+            createEnterpriseCreateEligibilityPageV010(readiness, locale, personalContextId));
         }
         if (!readiness.allowed) {
-          return json(response, 200, createEnterpriseCreateNotAllowedPageV010(readiness, locale));
+          return json(response, 200,
+            createEnterpriseCreateNotAllowedPageV010(readiness, locale, personalContextId));
         }
       }
       const page = manager.loadExperiencePage(source);
