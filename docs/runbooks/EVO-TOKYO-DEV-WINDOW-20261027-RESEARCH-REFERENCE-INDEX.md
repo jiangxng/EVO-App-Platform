@@ -216,3 +216,10 @@ EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=7b95c3b70d947c83476e9ca966c3252ade96e384
 - [PR #1124](https://github.com/jiangxng/EVO-App-Platform/pull/1124) exact HEAD `b98226230a70c521599ded50645bd1ab0c7bf585` 在 Ready 后 **46/46 CI SUCCESS**，已独立 squash merge 到 main，提交 `39c27d7af7ad42712898899ac7c7e57a670bfa8a`。
 - BEX/EOG/Memory 原隔离测试之前隐式依赖兼容模式的默认安装，已明确在**测试夹具**中启用 compatible 或明确 install，未修改 BEX/PA05 产品业务代码；这保证新 Host 的 clean 默认不被测试隐藏依赖打回旧方案。
 - **尚未发布到腾讯云**；现有东京持久卷安装状态保持不变。创建企业后当前 UI 会选中新建企业，业务页面按该请求 Context 读取，外部业务运行时绑定仍需根据插件契约另行配置。不可把合并等同线上新启动策略生效。
+
+## 2026-10-28 东京真实创建企业失败 — 静态授权未匹配
+
+- **U 用户真实截图**：企业创建表单提交后得到 `Enterprise Context creation denied by 'host.static-authorization': STATIC_POLICY_NO_MATCH`，当前界面显示 demo-user。拒绝不是企业名称/代码问题；无 VPS 运行时日志，不推定其它变量。
+- **P1 已读原文**：[Enterprise creation](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/manager/enterprise-context-creation.ts) 必须 Human+Personal Context+人类确认+授权；[Static provider](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/providers/authorization/runtime.ts) 对无匹配返回 NO_MATCH；[governance baseline](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/manager/enterprise-context-authorization.ts) 仅内建人类 Archive ALLOW、未默认授权 Create；[Tokyo Compose](https://github.com/jiangxng/EVO-App-Platform/blob/39c27d7af7ad42712898899ac7c7e57a670bfa8a/deploy/tencent-tokyo/compose.yaml) 使用 Caddy Basic Auth、未启用 Managed Session、没有企业创建覆盖策略。
+- **选择及其局限**：[Draft PR #1126](https://github.com/jiangxng/EVO-App-Platform/pull/1126) 为东京预览 `demo-user` 增加仅 `enterprise.context.create` 的精确授权；测试真实 Compose、拒绝其它身份/AI/操作、显式 DENY 优先及真实创建+初始 OWNER/Grant。**不改变产品默认权限或生产环境，尚未部署**；[详细验收和安全边界](https://github.com/jiangxng/EVO-App-Platform/blob/fix/evo-tokyo-preview-enterprise-create-auth-20261028/docs/runbooks/EVO-TOKYO-DEV-ENTERPRISE-CREATE-AUTH-20261028.md)。
+- **风险与后续**：Basic Auth 并不提供人级 Principal 身份，所有持有同一预览凭据者共享 demo-user。真正的用户身份、角色管理、权限就绪预检与友好报错，仍是独立门禁。不可把 preview grant 移到 Railway 或生产。代码 CI、真实东京发布、实际企业创建、浏览器重载与 Human 签收分别记录。
