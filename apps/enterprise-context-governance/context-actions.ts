@@ -42,18 +42,20 @@ export function createEnterpriseContextSelectionActionHandlerV010(input: {
       const targetContextId =
         typeof raw === "string" ? raw.trim() : "";
       const target = input.listAvailableContexts(context.principal)
-        .find(item =>
-          item.kind === "ENTERPRISE"
-          && item.contextId === targetContextId
+        .find(item => item.contextId === targetContextId
+          && (item.kind === "ENTERPRISE" || item.kind === "PERSONAL")
         );
 
-      if (!target || target.kind !== "ENTERPRISE") {
+      // Selection is constrained by the Host principal registry, never a
+      // caller-supplied arbitrary context ID. This also lets Humans return to
+      // their own Personal Context without changing authorization policy.
+      if (!target) {
         return {
           ok: false,
           correlationId: context.correlationId,
           error: {
             code: "ENTERPRISE_CONTEXT_NOT_AVAILABLE",
-            message: "The selected Enterprise Context is not available."
+            message: "The selected context is not available to this account."
           }
         };
       }
