@@ -161,7 +161,9 @@ export function createEnterpriseContextCreationActionHandlerV010(
             ok: false,
             error: {
               code: authorization.reasonCodes[0] ?? "MATERIAL_WRITE_DENIED",
-              message: `Enterprise Context creation denied by '${authorization.policyProviderId}': ${authorization.reasonCodes.join(", ")}`
+              message: requestContext.locale?.toLowerCase().startsWith("zh")
+                ? "当前账号没有创建企业的权限，请联系平台管理员。"
+                : "You do not have permission to create an enterprise. Contact the platform administrator."
             }
           };
         }

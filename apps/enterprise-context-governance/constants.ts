@@ -17,6 +17,13 @@ export const ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE =
 export const ENTERPRISE_CONTEXT_CREATE_ROUTE =
   "/enterprise-contexts/new" as const;
 
+export const ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID =
+  "evo-enterprise-context-governance.my-permissions" as const;
+export const ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE =
+  "app://evo-enterprise-context-governance/pages/my-permissions" as const;
+export const ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE =
+  "/enterprise-contexts/my-permissions" as const;
+
 export const ENTERPRISE_CONTEXT_SELECT_COMMAND =
   "enterprise.context.select" as const;
 export const ENTERPRISE_CONTEXT_ARCHIVE_COMMAND =

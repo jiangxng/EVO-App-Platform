@@ -10,6 +10,7 @@ import type {
 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
 import {
   ENTERPRISE_CONTEXT_CREATE_ROUTE,
+  ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE,
   ENTERPRISE_CONTEXT_ARCHIVE_COMMAND,
   ENTERPRISE_CONTEXT_OVERVIEW_ROUTE,
   ENTERPRISE_CONTEXT_SELECT_COMMAND
@@ -61,6 +62,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
   activeContext?: ActiveContextRefV010;
   defaultContextId?: string;
   ownerContextIds?: readonly string[];
+  createEligibility?: { allowed: boolean; message: string };
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
@@ -167,14 +169,27 @@ export function createEnterpriseContextDirectoryPageV010(input: {
       {
         id: "enterprise-context:create",
         title: text.create,
-        summary: text.createSummary,
+        summary: input.createEligibility?.message ?? text.createSummary,
         category: "ACTION",
-        primaryAction: {
+        ...(input.createEligibility?.allowed === false
+          ? { status: { label: input.createEligibility.message, tone: "neutral" as const } }
+          : { primaryAction: {
           id: "create",
           label: text.create,
           type: "navigate",
           route: ENTERPRISE_CONTEXT_CREATE_ROUTE,
           requiresConfirmation: false
+        } }),
+      }, {
+        id: "enterprise-context:my-permissions",
+        title: input.locale?.toLowerCase().startsWith("zh") ? "我的权限" : "My permissions",
+        summary: input.createEligibility?.message ?? (input.locale?.toLowerCase().startsWith("zh")
+          ? "查看当前创建企业的资格。" : "View your permission to create enterprises."),
+        primaryAction: {
+          id: "open",
+          label: input.locale?.toLowerCase().startsWith("zh") ? "查看权限" : "View permissions",
+          type: "navigate",
+          route: ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE
         }
       }
     ],
