@@ -20,10 +20,10 @@ function textFor(locale?: string) {
   const zh = (locale ?? "").toLowerCase().startsWith("zh");
   return zh
     ? {
-        title: "企业上下文",
-        description: "查看和进入你已创建或有权访问的企业上下文。",
+        title: "我的企业",
+        description: "选择要进入的企业，或在有资格时创建新企业。",
         search: "搜索企业",
-        empty: "还没有企业上下文。请先创建一家企业。",
+        empty: "暂时没有可访问的企业。",
         current: "当前企业",
         default: "默认企业",
         setDefault: "设为默认",
@@ -38,8 +38,8 @@ function textFor(locale?: string) {
         state: "状态"
       }
     : {
-        title: "Enterprise Contexts",
-        description: "See and enter the Enterprise Contexts you created or can access.",
+        title: "My enterprises",
+        description: "Select an enterprise you can access or create a new one when eligible.",
         search: "Search enterprises",
         empty: "No Enterprise Contexts yet. Create your first enterprise.",
         current: "Current enterprise",
