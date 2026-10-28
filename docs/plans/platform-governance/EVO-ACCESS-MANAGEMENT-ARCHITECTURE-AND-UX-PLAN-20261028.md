@@ -93,3 +93,16 @@
 3. 由企业治理 Experience owner 实现 UI；Host owner 提供统一权限结果与管理 API；Eidos owner 继续统一样式；PA05 owner 维持 Agent 安全/身份架构。
 4. 每一阶段保留 exact PR SHA/CI、部署、公网检查、Human 实测及权限负向测试**五种独立证据**；禁止通过健康检查冒充业务签收。
 5. 本规划属于建议方案，不将尚未实现的管理 UI 或产品决策描述为已经部署完成。
+
+
+## 2026-10-28 扩展：平台超级管理员、创建企业资格和商业套餐（必须一并阅读）
+
+用户明确要求平台超级管理员给用户 A 授权“创建企业”；用户 A 创建企业后自动成为**所创建企业的 OWNER/超级管理员**，但不是平台超级管理员；EVO 还要支持多种套餐。
+
+本文件此前专注于“现有授权引擎/企业治理 UI”。为避免另起第二套 IAM，新增两份**同一条工作线**的研究与实施提案，作为此规划的扩充而非替代：
+- [EVO SaaS 平台权限、创建企业与套餐权益方案](EVO-SAAS-PLATFORM-ROLES-PLANS-AND-ENTITLEMENTS-20261028.md) —— 平台/企业角色、Creator Grant、创建事务、OWNER、订阅、权益、席位、AI、插件使用及分阶段验收。
+- [国内外 SaaS 官方资料、等级与决策索引](EVO-SAAS-ROLES-PLANS-EXTERNAL-RESEARCH-INDEX-20261028.md) —— 2026-10-28 微软、Atlassian、Salesforce、GitHub、Vercel、Shopify、Stripe、Odoo、AWS、飞书、简道云、明道云、金蝶的原始链接；已读原文/P2 搜索摘要/P3 未验证明确分级，不把摘要等同完整原文。
+
+**核心设计新增**：平台 Tenant Creator 授权 ≠ 企业 OWNER ≠ 用户角色 ≠ 套餐 Entitlement ≠ 插件安装/企业绑定。创建资格由平台控制，创建成功自动产生新企业 OWNER 与 Grant；套餐按企业订阅且限制功能/席位/用量，不能替代用户权限。Eidos 呈现，Host/Provider 统一强制；业务应用仍按需安装。基础权限检查、企业隔离与审计不应因订阅级别被关闭。
+
+**此为产品规划文档**。当前没有平台超级管理员 UI、商业套餐 UI 或真实计费引擎，不能因规划 PR 合并而对用户声称已上线；不改 PA05/BEX/Eidos/EC 并行 owner、不迁移 Railway、不改东京现有数据。
