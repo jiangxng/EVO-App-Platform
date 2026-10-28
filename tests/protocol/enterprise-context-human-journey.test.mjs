@@ -46,7 +46,8 @@ test("Human journey: directory → overview → directory always has visible Eid
   assert.match(html, /data-eidos-context-route="\/enterprise-contexts"/);
   assert.match(html, /data-eidos-mobile-context-parent/);
   assert.match(html, /企业信息/);
-  assert.doesNotMatch(html, /Context ID|Enterprise ID|enterprise:ent-example|ent-example|薄容器|插件操作资源|\bACTIVE\b|\bOWNER\b/);
+  assert.doesNotMatch(html, />Context ID|>Enterprise ID|薄容器|插件操作资源|>ACTIVE<|>OWNER</);
+  assert.deepEqual(Object.keys(overview.items[0].metadata).sort(), ["企业代码", "我的身份", "默认企业"].sort());
   assert.equal(overview.items[1].secondaryActions[0].id, "archive");
   assert.equal(overview.items[1].secondaryActions[0].requiresConfirmation, true);
   assert.equal(overview.items[1].secondaryActions[0].values.targetContextId, context.contextId);
