@@ -31,6 +31,11 @@ services:
       APP_PLATFORM_STARTUP_PROFILE: clean
       APP_PLATFORM_CONVERSATION_AUTHORITY: POSTGRES
       APP_PLATFORM_CONVERSATION_DATABASE_URL: postgres://evo:${POSTGRES_PASSWORD}@postgres:5432/evo_dev
+      # Tokyo single-operator preview only. Basic Auth + compatibility-local
+      # Principal are NOT a production identity or authorization solution.
+      # Only this exact demo Principal may create an Enterprise Context.
+      # Never use an action wildcard or copy this rule to Railway/production.
+      APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON: '{"contractVersion":"0.1.0","rules":[{"id":"tokyo-preview-operator-enterprise-create","effect":"ALLOW","actions":["enterprise.context.create"],"subjectIds":["demo-user"],"actorTypes":["HUMAN"],"resourceTypes":["enterprise.context"],"scope":{"userId":"demo-user"}}]}'
       APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
       APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
       APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
