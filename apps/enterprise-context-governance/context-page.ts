@@ -169,9 +169,11 @@ export function createEnterpriseContextDirectoryPageV010(input: {
       {
         id: "enterprise-context:create",
         title: text.create,
-        summary: text.createSummary,
+        summary: input.createEligibility?.message ?? text.createSummary,
         category: "ACTION",
-        primaryAction: {
+        ...(input.createEligibility?.allowed === false
+          ? { status: { label: input.createEligibility.message, tone: "neutral" as const } }
+          : { primaryAction: {
           id: "create",
           label: text.create,
           type: "navigate",
