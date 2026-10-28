@@ -102,6 +102,10 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             title: "Create Enterprise Context",
             source: ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE
           }, {
+            id: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
+            title: "My permissions",
+            source: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE
+          }, {
             id: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID,
             title: "Enterprise Context",
             source: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE
