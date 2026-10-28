@@ -92,3 +92,14 @@
 4. 本窗口没有能进入 Basic Auth 及登录会话的浏览器通道，也没有收到页面实际观察或用户签收，因此 **M0 Human = 待签收**。收到证据再在本文唯一里程碑表中更新 Human；若发现缺陷，仅按 M0 范围最小独立 PR 修复。自动负向测试不得代替真人页签收。
 
 本轮不改功能代码、不授予真实权限、不重做 VPS/SSH/Docker/443，不影响 Railway、PostgreSQL、持久卷、PA05/BEX/Eidos/EC 并行 owner，不提前启动 M1/M2/M3。
+
+
+## 自动续跑 #01 · 2026-10-28 12:42:33 — 当前东京预览身份 M0 门禁再核验
+
+- 接续本专项既定范围：**只继续核验 M0 Human 页面，M1/M2/M3 均不开始**。本次没有新增套餐、角色体系或其它功能。
+- 一手 P1 源码/运行配置（[东京 Compose](https://github.com/jiangxng/EVO-App-Platform/blob/ba1498e951a5abcea1244f3b78e6a574a580c20b/deploy/tencent-tokyo/compose.yaml)、[东京创建权限验证](https://github.com/jiangxng/EVO-App-Platform/blob/ba1498e951a5abcea1244f3b78e6a574a580c20b/tests/protocol/enterprise-context-creation.test.mjs)）：预览静态策略仅对白名单 HUMAN subjectId=demo-user 允许 enterprise.context.create，未放开归档、Provider 管理、任意用户或平台 Owner 权限；managed session 关闭，Basic Auth 仍只是共享预览边界。**只能推导条件下的预期，不能从代码证明 VPS 当前身份或 Human 页面呈现。**
+- 一手 P1 页面实现：[manager/enterprise-create-eligibility.ts](https://github.com/jiangxng/EVO-App-Platform/blob/ba1498e951a5abcea1244f3b78e6a574a580c20b/manager/enterprise-create-eligibility.ts) 和 [manager/server.ts](https://github.com/jiangxng/EVO-App-Platform/blob/ba1498e951a5abcea1244f3b78e6a574a580c20b/manager/server.ts)；当当前会话为 preview demo-user、Personal Context、且授权 Provider 可用时，预期“我的权限”呈已授权，创建深链进入表单。处于企业上下文时应提示切换个人空间，权限拒绝时应为友好提示而非裸露技术错误。语言来自 API 请求 locale（未附时回退 en），**网页最终中文渲染仍须真实客户端验证**。
+- 一手 P1 现有 UI 质量门禁：[human-ui-design-review-gate.yml](https://github.com/jiangxng/EVO-App-Platform/blob/ba1498e951a5abcea1244f3b78e6a574a580c20b/.github/workflows/human-ui-design-review-gate.yml) 和 [.clinerules/03-human-ui-design-review.md](https://github.com/jiangxng/EVO-App-Platform/blob/ba1498e951a5abcea1244f3b78e6a574a580c20b/.clinerules/03-human-ui-design-review.md) 明确是静态设计评审/文档门禁，**不自动运行已认证浏览器截图或点击**。不得把 CI 设计门禁认作 Human PASS。
+- 现有工具没有现成的东京已认证浏览器会话，因此此次仍没有真实页面截图/操作证据。沿用上方 #05 的最少两页脱敏截图/实际人工观察要求，不要求真实创建企业、不撤销权限、不触发重部署。**唯一状态仍是 M0 Human 待签收**，其余代码、CI、合并、历史部署/公网门禁状态不变。
+
+来源分级仍按详细研究索引：本次新增的是仓库 P1 源码/工作流材料；外部官方来源无新查证，P2/P3 不升级。此次只追加同一固定表，无产品代码或环境变更。
