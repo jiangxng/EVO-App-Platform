@@ -181,11 +181,7 @@ export function createEnterpriseCreateEligibilityPageV010(
     items: state.status === "PERSONAL_CONTEXT_REQUIRED" ? [] : [{
       id: "enterprise-create-permission",
       title: zh ? "创建企业" : "Create enterprise",
-      summary: state.status === "PERSONAL_CONTEXT_REQUIRED"
-        ? (zh
-          ? "当前处于企业空间。请使用顶部空间切换器选择个人空间后重新查看；这不代表你没有创建资格。"
-          : "You are in an enterprise space. Select your personal space from the top switcher and check again; this does not mean your grant was revoked.")
-        : state.message,
+      summary: state.message,
       status: {
         label: stateLabels[state.status][zh ? 0 : 1],
         tone: state.allowed ? "positive" : "neutral"
