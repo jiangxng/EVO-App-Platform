@@ -62,6 +62,7 @@ export function createEnterpriseContextDirectoryPageV010(input: {
   activeContext?: ActiveContextRefV010;
   defaultContextId?: string;
   ownerContextIds?: readonly string[];
+  createEligibility?: { allowed: boolean; message: string };
   locale?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
