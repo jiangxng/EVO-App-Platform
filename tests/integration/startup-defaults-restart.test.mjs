@@ -68,6 +68,22 @@ test('real host restart preserves inactive and removed optional defaults', { tim
 });
 
 
+test('fresh Host with no startup profile never auto-installs optional business apps', { timeout: 60000 }, async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-clean-host-'));
+  try {
+    const file = path.join(directory, 'state.json');
+    const initial = await boot(file);
+    const installed = initial.installedPackages.map(item => item.packageId);
+    for (const id of ['evo-counterparty', 'evo-data-import', 'evo-object-extension', 'evo-eog-3d', 'evo-enterprise-observatory']) {
+      assert.ok(!installed.includes(id), id);
+    }
+    const restarted = await boot(file);
+    assert.deepEqual(restarted.installedPackages.map(item => item.packageId).sort(), installed.sort());
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('minimal fresh boot omits business defaults and still rejects anonymous access', { timeout: 60000 }, async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'evo-minimal-'));
   try {
