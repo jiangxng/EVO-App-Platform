@@ -41,3 +41,10 @@
 ### M0 准确 CI 核验（自动续跑 #01）
 - [Draft PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130)，准确 HEAD `66df22f4a5091f06846f86d5ea6fb307a6263f11`：GitHub CI **45/45 SUCCESS**（含 protocol-and-core、human-ui-design-review、continuity、lightweight-host）；页面、API、负面测试和设计检查已提交。
 - **代码已验证 ≠ 线上验收**：该 PR 目前仍为 Draft，未合并 main；未发布东京，尚无真实浏览器 Human 签收。不可把先前东京权限覆盖策略的健康通过当本次 M0 的业务验收。
+
+## 自动续跑 #02 · 2026-10-28 · 证据增量（不修改 M0–M3 验收定义）
+
+- M0 功能 PR [#1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130) 正式评审后 **46/46 CI SUCCESS**，已受保护 squash merge `main@fd0e5ad55040ee92de79b9652e4e4b1cd778bde0`。**代码与合并 PASS；真实东京部署和 Human 未通过/未验**。
+- 第一次单次发布 PR [#1131](https://github.com/jiangxng/EVO-App-Platform/pull/1131) 5/5 检查成功、合并 `5c000657b74f02e30f9c0ebbace7778b93e4db46`，但 Actions [#40631492619](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40631492619) 因工作流 `on.push` 重复定义被调度前拒绝，**0 jobs，未修改 VPS**。历史发布触发器的清理 PR #1128 仍未合并，导致重复键；此失败不能记作部署 PASS。
+- 最小修复 [PR #1132](https://github.com/jiangxng/EVO-App-Platform/pull/1132) 删除旧 marker 的重复 `push`，保留唯一本次 M0 marker 并更新它以产生独立重试。此 PR 仍须准确 HEAD required CI 全绿、合并后验证实际 Actions、最后关闭单次 push 触发。
+- 本轮未启动 M1/M2/M3，未修改授权策略/持久卷/Railway/并行 owner；M0 Human 四场景及真正可用个人身份仍独立待验。
