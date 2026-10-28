@@ -5,7 +5,7 @@
 ## 1. 起因与真实证据（不要把代码预期当 Human PASS）
 
 - **U / 用户页面截图，2026-10-28：**东京预览 `企业上下文` 目录，已出现一个真实企业。页面展示了技术分类 `ACTION`，当前/默认企业描述重复，归档企业与进入企业在同一卡片操作区，创建企业和“我的权限”以额外通用卡片拼接；创建/权限两卡重复显示“请先切换到个人空间”。顶部企业切换与下方创建卡的关系需用户自行猜测。原图来自当前用户对话，**未保存为仓库附件，不虚构链接**。
-- **P1 / 代码：**[企业目录页面模型](../..//apps/enterprise-context-governance/context-page.ts) 的 `category: "ACTION"`、重复 `status/summary/badges`、把权限查询加入普通 `items`；[通用 Eidos CatalogBrowser 渲染器](../../vendor/eidos/src/catalog-browser/render.ts) 原样输出 `item.category`，不会自动将内部枚举翻译成业务标签。
+- **P1 / 代码：**[企业目录页面模型](../../apps/enterprise-context-governance/context-page.ts) 的 `category: "ACTION"`、重复 `status/summary/badges`、把权限查询加入普通 `items`；[通用 Eidos CatalogBrowser 渲染器](../../vendor/eidos/src/catalog-browser/render.ts) 原样输出 `item.category`，不会自动将内部枚举翻译成业务标签。
 - **P1 / CI：**[旧 UI 门禁](../../tools/ui-design-review-gate.mjs) 只要求八个章节、任一 UI 改动路径和文档存在；[M0 审查](../ui-design-reviews/evo-permissions-m0-create-eligibility-20261028.md) 按该规则 PASS，但没有原型级布局/配色对照或已认证浏览器截图。**CI PASS ≠ Eidos 一致性 PASS ≠ Human PASS**。
 - **权限边界：**此截图来自企业上下文（非个人空间），原先拒绝创建的逻辑可能正确；截图已足以判定该目录的导航、语言和信息层级不合格，**不能据此推断权限接口失效**。M0 的“我的权限”页和创建页仍待单独真实操作；既有 M0–M3 四里程碑不扩项。
 
