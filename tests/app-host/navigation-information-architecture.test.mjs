@@ -47,7 +47,9 @@ test("primary Workbench activities contain work context, not system administrati
   );
 
   assert.match(source, /id: "apps"/);
-  assert.match(source, /id: "workspace"/);
+  // Opening the active Apps activity already collapses/reveals the side panel.
+  // Do not duplicate this operation with a separate Workspace activity.
+  assert.doesNotMatch(source, /id: "workspace"/);
   assert.match(source, /id: "help"/);
   assert.match(source, /id: "settings"/);
   assert.match(
