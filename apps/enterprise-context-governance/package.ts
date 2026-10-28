@@ -119,6 +119,10 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             path: ENTERPRISE_CONTEXT_CREATE_ROUTE,
             pageId: ENTERPRISE_CONTEXT_CREATE_PAGE_ID
           }, {
+            id: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
+            path: ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE,
+            pageId: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID
+          }, {
             id: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID,
             path: ENTERPRISE_CONTEXT_OVERVIEW_ROUTE,
             pageId: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID
