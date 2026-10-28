@@ -66,7 +66,7 @@ export function createEnterpriseContextSelectionActionHandlerV010(input: {
         result: JSON.parse(JSON.stringify({
           message: "Enterprise Context selected.",
           selectedContextId: target.contextId,
-          selectedEnterpriseId: target.enterpriseId,
+          selectedEnterpriseId: target.kind === "ENTERPRISE" ? target.enterpriseId : undefined,
           navigateTo:
             typeof request.values.navigateTo === "string"
               ? request.values.navigateTo
