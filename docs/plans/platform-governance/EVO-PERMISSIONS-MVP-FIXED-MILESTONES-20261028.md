@@ -6,11 +6,11 @@
 
 | 验收项目 | 可衡量的完成标准 | 当前状态 | 下一步 | 验收证据 |
 | --- | --- | --- | --- | --- |
-| **M0 权限预检与友好提示** | 真实服务端可判定创建资格；至少覆盖“允许、无权限、未登录、撤销后”4 种场景；未授权者提交前看到中文说明，API 仍拒绝；不暴露 STATIC_POLICY_NO_MATCH 原文。 | **旧版本已部署、新版修复已合并但未部署；Human 未签收**：功能 PR #1130 47/47 CI PASS、合并 `fd0e5ad5`、东京 Actions #40632097615 PASS（已部署 SHA `ba1498e9`）；UX 修复 [PR #1135](https://github.com/jiangxng/EVO-App-Platform/pull/1135) 精确 HEAD `1aea1dbc` 7/7 CI PASS、已合并 main `821c737b`，尚无该 SHA 东京 Actions 实际发布和 Human 证据。 | 由有 GitHub Actions 权限的用户在 main **手动运行**现有 `EVO Tokyo Dev - Verified Manual Release`（仅 workflow_dispatch），取得部署 SHA 与 HTTPS/401 证据；随后在浏览器核验“我的企业 → 查看创建资格 → 返回企业列表”和个人空间的真实资格。其它身份负向场景沿用既有自动测试，M1 再验证多人。 | [功能 PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130)、[原部署 #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615)、[UX 修复 PR #1135](https://github.com/jiangxng/EVO-App-Platform/pull/1135) 7/7 CI、[手动发布工作流](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/evo-tokyo-dev-deploy.yml) 待运行；Human 待签收 |
+| **M0 权限预检与友好提示** | 真实服务端可判定创建资格；至少覆盖“允许、无权限、未登录、撤销后”4 种场景；未授权者提交前看到中文说明，API 仍拒绝；不暴露 STATIC_POLICY_NO_MATCH 原文。 | **M0 修复已部署东京；Human 页面未签收**：功能 PR #1130 47/47 CI PASS、合并 `fd0e5ad5`；UX 修复 [PR #1135](https://github.com/jiangxng/EVO-App-Platform/pull/1135) 精确 HEAD `1aea1dbc` 7/7 CI PASS、合并 main `821c737b`；[东京 Actions #40637385127](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40637385127) SUCCESS，实际部署 SHA `821c737b7612ef6d49446bf628728ddee9ec90ce`，本地 /health、公网 HTTPS 和未认证 401 全部 PASS；真人新版导航体验仍待验收。 | 东京新版已发布。由 Human 在原预览会话刷新后实际点击“我的企业 → 查看创建资格 → 返回企业列表”；切至个人空间后确认创建资格与原有创建表单入口，反馈通过或异常截图。多主体授权/撤销实测仍须 M1/M2。 | [M0 原功能 PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130)、[UX 修复 PR #1135](https://github.com/jiangxng/EVO-App-Platform/pull/1135) 7/7 CI 与 merge `821c737b`、[东京发布 #40637385127](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40637385127) SUCCESS/本地健康/HTTPS/401；Human 新页面待签收 |
 | **M1 可信身份与平台管理员** | 至少验证 3 个独立主体：平台 Owner、用户 A、用户 B；仅可信部署初始化流程能设定首个 Owner；A/B 和共享 demo-user 均无法自封管理员；退出、账号禁用后不能再写入。 | **未开始开发** | 复用现有身份能力，完成平台 Owner 初始化与正反向测试 | PR、登录/禁用/越权测试、审计 |
 | **M2 权限管理页面 0→1** | 平台 Owner 可在“平台管理→权限管理”查看用户；仅能授予或撤销“创建企业”资格；授权/撤销立即生效且重启后仍有效；至少有两条授予/撤销审计记录；非 Owner 写入被拒、B 不受 A 授权影响。 | **未开始开发** | 建立可持久、可审计授权与最小管理页，验证撤销和重启 | PR、授权/撤销/重启/越权测试、管理页截图 |
 | **M3 企业创建完整闭环** | A 获权后能创建企业甲并成为甲 OWNER；刷新后仍可见；B 不能越权访问甲；撤销 A 创建资格后不能创建新企业，但甲及其 OWNER 不消失；创建过程不自动装业务插件；CI、合并、部署、公网、Human 各自验证。 | **未开始本专项端到端验收** | 完成正反向集成测试，受控东京发布并做真实浏览器验收 | PR、测试、合并 SHA、Actions、公网检查、Human 签收 |
-| **权限管理 0→1 整体** | M0–M3 全部逐项通过，安全负向测试无回归，记录完整后立即收口，不追加套餐/众包功能。 | **进行中**：M0 旧版功能、CI、合并与东京历史部署 PASS；UX 修复已在 main，**新版本东京部署和 Human 未完成**；M1–M3 未开始。 | M0 Human 验收后再进入 M1；不超前扩项 | 固定状态表、PR #1130/#1132、Actions #40632097615、Human 签收（未取得） |
+| **权限管理 0→1 整体** | M0–M3 全部逐项通过，安全负向测试无回归，记录完整后立即收口，不追加套餐/众包功能。 | **进行中**：M0 修复代码、准确 HEAD CI、main 合并、东京部署和公网边界均已 PASS；**只剩新版 Human 页面签收**；M1–M3 尚未开始。 | M0 Human 验收后再进入 M1；不超前扩项 | 固定状态表、PR #1130/#1132、Actions #40632097615、Human 签收（未取得） |
 
 ## 每项必须分清五个门禁
 
@@ -130,3 +130,10 @@
 - **东京原部署不等于此修复已发布**。GitHub `.github/workflows/evo-tokyo-dev-deploy.yml` 当前只有 `workflow_dispatch`、仅 main、无输入参数；本窗口 Github 连接仅支持读取/合并 PR，**没有运行 workflow_dispatch 的写操作**，因此没有触发或宣称新的部署。用户唯一必须完成的操作是进入 [EVO Tokyo Dev - Verified Manual Release](https://github.com/jiangxng/EVO-App-Platform/actions/workflows/evo-tokyo-dev-deploy.yml) → Run workflow → main → Run workflow。发布会在原环境执行 `npm run test:platform`、构建当前 main SHA 镜像、通过原有 VPS 本地健康、公网 HTTPS 与未认证 401 检查；不要在未核实 Actions 日志前宣称成功。
 - **Human 门禁仍未关闭**：发布成功后核对页面标题“我的企业”、操作“查看创建资格”、资格页实际状态（当前企业空间须提醒选择个人空间，**不等于没有授权**）、“返回企业列表”能正常返回、在个人空间的“创建企业”允许入口。保留两张脱敏截图；不需重复新建企业、不改真实授权策略。M1/M2/M3 原样未开始。
 - **环境与 owner**：未触发重新安装 SSH/Docker、443 排障、Railway、PG/持久卷变更；PR #1134 插件 UI 质量治理继续独立 Draft，不与 M0 合并混淆；P1/P2/P3 原分级保留。本次是分层工程事实核验，**并非新的人类页面视觉验收**。
+
+
+## 自动续跑 #02 · 2026-10-28 13:19:19 — 东京发布实时 SUCCESS 与唯一 Human 门禁
+- P1 **实时 GitHub Actions**：[EVO Tokyo Dev - Verified Manual Release #40637385127](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40637385127) 以 `workflow_dispatch` 从 `main@821c737b7612ef6d49446bf628728ddee9ec90ce` 执行，status=completed，conclusion=success。该工作流为真正 GitHub Actions 手动触发，不是本窗口调用的操作；本窗口仅发现并读取状态和脱敏日志。
+- 发布 job `122647386894` 实际运行日志明确有 `EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=821c737b7612ef6d49446bf628728ddee9ec90ce`、`EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS`、`EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS`；镜像构建上传、远端 Compose 就绪、临时 SSH 凭据清理也全部 SUCCESS。未改 Railway、数据卷、PostgreSQL 或权限策略。
+- **M0 代码/CI/main/东京部署/公网均已验证，但 Human 仍不合格／待新版重验**：旧用户截图证明目录信息层级与资格页返回有缺陷；#1135 已修复并上线但尚未收到新版已认证浏览器点击证据。下一步仅需在同一预览帐号操作“我的企业 → 查看创建资格 → 返回企业列表”，并在个人空间确认资格提示；不需要再次创建真实企业。
+- M1 可信平台身份、M2 平台 Owner 授予撤销资格的真正“平台管理→权限管理”、M3 OWNER 与跨主体隔离专项验收仍**未开始**；不将本次“创建企业资格”只读页冒充平台授权管理，也不因用户曾成功创建企业就直接判 M3 PASS。P1/P2/P3 研究分级和并行 owner 边界不变。
