@@ -6,11 +6,11 @@
 
 | 验收项目 | 可衡量的完成标准 | 当前状态 | 下一步 | 验收证据 |
 | --- | --- | --- | --- | --- |
-| **M0 权限预检与友好提示** | 真实服务端可判定创建资格；至少覆盖“允许、无权限、未登录、撤销后”4 种场景；未授权者提交前看到中文说明，API 仍拒绝；不暴露 STATIC_POLICY_NO_MATCH 原文。 | **已合并 main：PR #1130 HEAD 66df22f4，正式评审后 CI 46/46 成功，合并 SHA fd0e5ad5；未部署/待 Human** | 按受控流程发布东京并验收四种状态的实际页面；M1 不提前启动 | PR、4 场景自动测试、实际页面截图 |
+| **M0 权限预检与友好提示** | 真实服务端可判定创建资格；至少覆盖“允许、无权限、未登录、撤销后”4 种场景；未授权者提交前看到中文说明，API 仍拒绝；不暴露 STATIC_POLICY_NO_MATCH 原文。 | **已部署东京，待 Human 验收**：功能 PR #1130 HEAD `66df22f4` 检查 47/47 成功、合并 `fd0e5ad5`；发布修复 PR #1132 合并 `ba1498e9`，Actions #40632097615 SUCCESS、VPS 就绪和公网 HTTPS/401 PASS。 | 真实浏览器验证当前共享预览身份的创建资格、未授权引导与“我的权限”；其余身份场景已自动测试，M1 才能多人实测。 | [功能 PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130)、[部署 #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615)、4 状态自动测试；Human 待签收 |
 | **M1 可信身份与平台管理员** | 至少验证 3 个独立主体：平台 Owner、用户 A、用户 B；仅可信部署初始化流程能设定首个 Owner；A/B 和共享 demo-user 均无法自封管理员；退出、账号禁用后不能再写入。 | **未开始开发** | 复用现有身份能力，完成平台 Owner 初始化与正反向测试 | PR、登录/禁用/越权测试、审计 |
 | **M2 权限管理页面 0→1** | 平台 Owner 可在“平台管理→权限管理”查看用户；仅能授予或撤销“创建企业”资格；授权/撤销立即生效且重启后仍有效；至少有两条授予/撤销审计记录；非 Owner 写入被拒、B 不受 A 授权影响。 | **未开始开发** | 建立可持久、可审计授权与最小管理页，验证撤销和重启 | PR、授权/撤销/重启/越权测试、管理页截图 |
 | **M3 企业创建完整闭环** | A 获权后能创建企业甲并成为甲 OWNER；刷新后仍可见；B 不能越权访问甲；撤销 A 创建资格后不能创建新企业，但甲及其 OWNER 不消失；创建过程不自动装业务插件；CI、合并、部署、公网、Human 各自验证。 | **未开始本专项端到端验收** | 完成正反向集成测试，受控东京发布并做真实浏览器验收 | PR、测试、合并 SHA、Actions、公网检查、Human 签收 |
-| **权限管理 0→1 整体** | M0–M3 全部逐项通过，安全负向测试无回归，记录完整后立即收口，不追加套餐/众包功能。 | **进行中：M0 代码/CI 已验证，M0 合并与线上/Human 尚未完成；M1–M3 未开始** | 按 M0→M1→M2→M3 顺序执行 | 固定状态表及全部证据链接 |
+| **权限管理 0→1 整体** | M0–M3 全部逐项通过，安全负向测试无回归，记录完整后立即收口，不追加套餐/众包功能。 | **进行中**：M0 功能、CI、合并、东京发布已完成；M0 Human 未完成。M1–M3 未开始。 | M0 Human 验收后再进入 M1；不超前扩项 | 固定状态表、PR #1130/#1132、Actions #40632097615、Human 签收（未取得） |
 
 ## 每项必须分清五个门禁
 
@@ -48,3 +48,11 @@
 - 第一次单次发布 PR [#1131](https://github.com/jiangxng/EVO-App-Platform/pull/1131) 5/5 检查成功、合并 `5c000657b74f02e30f9c0ebbace7778b93e4db46`，但 Actions [#40631492619](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40631492619) 因工作流 `on.push` 重复定义被调度前拒绝，**0 jobs，未修改 VPS**。历史发布触发器的清理 PR #1128 仍未合并，导致重复键；此失败不能记作部署 PASS。
 - 最小修复 [PR #1132](https://github.com/jiangxng/EVO-App-Platform/pull/1132) 删除旧 marker 的重复 `push`，保留唯一本次 M0 marker 并更新它以产生独立重试。此 PR 仍须准确 HEAD required CI 全绿、合并后验证实际 Actions、最后关闭单次 push 触发。
 - 本轮未启动 M1/M2/M3，未修改授权策略/持久卷/Railway/并行 owner；M0 Human 四场景及真正可用个人身份仍独立待验。
+
+## 2026-10-28 自动续跑 #03：M0 发布证据增量
+
+- 代码：[PR #1130](https://github.com/jiangxng/EVO-App-Platform/pull/1130) 合并 `fd0e5ad55040ee92de79b9652e4e4b1cd778bde0`，准确 HEAD 47/47 CI 成功；新读 API `GET /v1/permissions/me/enterprise-create`，已有插件路由 `/enterprise-contexts/my-permissions`；服务端写入仍执行独立授权。
+- 首发 [#1131](https://github.com/jiangxng/EVO-App-Platform/pull/1131) 合并后遇到两个遗留 `on.push` 定义，GitHub **未执行 VPS job**；[PR #1132](https://github.com/jiangxng/EVO-App-Platform/pull/1132) 通过 5/5 CI，合并 `ba1498e951a5abcea1244f3b78e6a574a580c20b`，删除旧触发条件并重试。
+- 一手 [Actions #40632097615](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40632097615) **SUCCESS**：部署步骤、严格公网 HTTPS /health 与未认证根目录 401 验证均为成功。**健康检查不能证明页面内权限操作已签收**。
+- 单次发布触发器收口 [Draft PR #1133](https://github.com/jiangxng/EVO-App-Platform/pull/1133) 独立检查中，清理不重新部署。东京共享 `demo-user` 无法模拟多个正式用户，不能把其预览页面当作 M1–M3 的多用户验收。
+- 本次仍保持四项固定里程碑，不新增权限点、角色/套餐/众包任务。Railway、数据卷不变。
