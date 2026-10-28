@@ -23,3 +23,7 @@
 
 ## 证据与剩余问题
 源码与测试依据：manager/settings-page.ts，tests/settings/plugin-settings.test.mjs，docs/architecture/EVO-WORKBENCH-v0.1.md，用户上传东京设置截图。先记录 exact-HEAD CI，再分别验收部署与 Human 页面。是否已有真实自动安装包尚不能仅靠截图判断；本改动不假称已清理任何包。
+
+## 合并依赖复核（2026-10-28）
+
+应用空白和重复导航修复 PR #1120 已先行合并到 main，提交 `834cd80fae0b9d1237ab3d444a49fbec61d5a503`。本设置页 PR 与之修改不同文件；GitHub 对更新后的合并候选要求重新获得 `continuity` 等检查，**不会绕过分支保护**。本记录同时作为该增量版本的 CI 重新运行依据；待其通过后才允许合并，东京在线发布与 Human 验收仍单独记录。
