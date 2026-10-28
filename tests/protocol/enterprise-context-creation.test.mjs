@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   createHostBearerSessionProviderV010,
@@ -12,7 +13,9 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "../../dist/manager/enterprise-context-creation.js";
 import {
-  createHostStaticAuthorizationProviderV010
+  createHostStaticAuthorizationProviderV010,
+  parseHostStaticAuthorizationPolicyV010,
+  mergeHostStaticAuthorizationPoliciesV010
 } from "../../dist/providers/authorization/runtime.js";
 import {
   createHostContextRegistryV010
@@ -97,6 +100,61 @@ function allowCreateProvider() {
     }]
   });
 }
+
+test("Tokyo preview grants only demo human enterprise creation, with explicit DENY overriding", () => {
+  const compose = readFileSync("deploy/tencent-tokyo/compose.yaml", "utf8");
+  const match = compose.match(/^\\s*APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:\\s*'([^'\\n]+)'\\s*$/m);
+  assert.ok(match, "Tokyo Compose must have its explicitly scoped preview policy");
+  const policy = parseHostStaticAuthorizationPolicyV010(match[1]);
+  const provider = createHostStaticAuthorizationProviderV010(policy);
+  const decide = (subjectId, actorType, action, type = "enterprise.context") =>
+    provider.check({
+      contractVersion: "0.1.0",
+      principal: {
+        contractVersion: "0.1.0",
+        subjectId,
+        actorType,
+        identityProviderId: "host.compatibility-local"
+      },
+      scope: { contractVersion: "0.1.0", userId: subjectId },
+      action,
+      resource: { type }
+    });
+  assert.equal(policy.rules.length, 1, "Preview policy must remain narrowly scoped");
+  assert.equal(decide("demo-user", "HUMAN", "enterprise.context.create").allowed, true);
+  for (const candidate of [
+    ["other-user", "HUMAN", "enterprise.context.create"],
+    ["demo-user", "AI", "enterprise.context.create"],
+    ["demo-user", "HUMAN", "enterprise.context.archive"],
+    ["demo-user", "HUMAN", "provider.binding.update"],
+    ["demo-user", "HUMAN", "app-platform.install-package"]
+  ]) {
+    assert.equal(decide(...candidate).allowed, false, candidate.join("/"));
+  }
+  const withDeny = createHostStaticAuthorizationProviderV010(
+    mergeHostStaticAuthorizationPoliciesV010(policy, {
+      contractVersion: "0.1.0",
+      rules: [{
+        id: "explicit-tokyo-deny",
+        effect: "DENY",
+        actions: ["enterprise.context.create"],
+        subjectIds: ["demo-user"],
+        actorTypes: ["HUMAN"],
+        resourceTypes: ["enterprise.context"]
+      }]
+    })
+  );
+  const blocked = withDeny.check({
+    contractVersion: "0.1.0",
+    principal: { contractVersion: "0.1.0", subjectId: "demo-user",
+      actorType: "HUMAN", identityProviderId: "host.compatibility-local" },
+    scope: { contractVersion: "0.1.0", userId: "demo-user" },
+    action: "enterprise.context.create",
+    resource: { type: "enterprise.context" }
+  });
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.reasonCodes[0], "STATIC_POLICY_EXPLICIT_DENY");
+});
 
 test("request-bound bearer Session resolves the current Principal and rejects unknown token", () => {
   const provider = createHostBearerSessionProviderV010(
