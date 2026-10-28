@@ -1,12 +1,19 @@
-name: EVO Tokyo Dev - Verified Manual Release
+name: EVO Tokyo Dev - CI-Gated Preview Release
 
-# Intentionally manual for the first cutover. Add automatic main deployment only
-# after first live smoke test, rollback check and required-CI policy are verified.
+# A merged, trusted main commit is the only source of an automatic Tokyo
+# preview release. Production deployment is intentionally not part of this.
+# workflow_dispatch remains available for authorized recovery releases.
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Project Continuity CI"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
+  checks: read
+  actions: read
   packages: write
 
 concurrency:
@@ -14,15 +21,99 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    if: github.ref == 'refs/heads/main'
+  preflight:
+    # workflow_run holds a write-capable token; never execute PR/fork code.
+    # Pin and verify the *exact* commit that passed protected-main CI.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      should_deploy: ${{ steps.verify.outputs.should_deploy }}
+      target_sha: ${{ steps.verify.outputs.target_sha }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Verify current main and actual deployable change
+        id: verify
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          current="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          if [[ "$current" != "$TARGET_SHA" ]]; then
+            echo "EVO_TOKYO_SKIP_STALE_MAIN target=$TARGET_SHA current=$current"
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            # Only runtime/deployment changes require a new preview release.
+            if ! git diff --name-only HEAD^ HEAD -- | grep -Eq '^(apps/|manager/|providers/|actions/|contracts/|vendor/|catalog/|deploy/|public/|package(-lock)?[.]json$|Dockerfile$|tsconfig[.]json$|[.]github/workflows/evo-tokyo-dev-deploy[.]yml$)'; then
+              echo "EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE sha=$TARGET_SHA"
+              echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            # Continue only after every completed check for this exact main
+            # revision is green (unrelated SKIPPED jobs are allowed).
+            for attempt in $(seq 1 40); do
+              current="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+              if [[ "$current" != "$TARGET_SHA" ]]; then
+                echo "EVO_TOKYO_SKIP_SUPERSEDED sha=$TARGET_SHA"
+                echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              checks="$(gh api "repos/$GITHUB_REPOSITORY/commits/$TARGET_SHA/check-runs?per_page=100")"
+              if jq -e '[.check_runs[] | select(.name != "preflight" and .name != "deploy") | select(.status == "completed" and (.conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral"))] | length > 0' >/dev/null <<<"$checks"; then
+                echo "::error title=EVO_TOKYO_MAIN_CI_FAILED::A main check failed; preview was not deployed."
+                exit 1
+              fi
+              if jq -e '
+                ([.check_runs[] | select(.name != "preflight" and .name != "deploy")] | any(.status != "completed") | not)
+                and ([.check_runs[] | select(.name == "continuity" and .conclusion == "success")] | length > 0)
+                and ([.check_runs[] | select(.name == "lightweight-host" and .conclusion == "success")] | length > 0)
+                and ([.check_runs[] | select(.name == "protocol-and-core")] |
+                  (length == 0 or all(.conclusion == "success")))
+              ' >/dev/null <<<"$checks"; then
+                echo "EVO_TOKYO_MAIN_CI_VERIFIED sha=$TARGET_SHA"
+                break
+              fi
+              if [[ "$attempt" == 40 ]]; then
+                echo "::error title=EVO_TOKYO_MAIN_CI_TIMEOUT::Timed out waiting for trusted main checks."
+                exit 1
+              fi
+              sleep 15
+            done
+          fi
+          echo "target_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: preflight
+    if: needs.preflight.outputs.should_deploy == 'true'
+    runs-on: ubuntu-24.04
+    env:
+      TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
     environment: evo-tokyo-dev
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+          ref: ${{ needs.preflight.outputs.target_sha }}
+      - name: Recheck release SHA is current main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)" = "$TARGET_SHA"
       - uses: actions/setup-node@v5
         with:
           node-version: 22.22.2
@@ -83,7 +174,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/jiangxng/evo-app-platform:${{ github.sha }}
+          tags: ghcr.io/jiangxng/evo-app-platform:${{ env.TARGET_SHA }}
           cache-from: type=gha,scope=evo-tokyo-dev
           cache-to: type=gha,scope=evo-tokyo-dev,mode=max
       - name: Upload versioned Compose definition
@@ -105,7 +196,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            evo-deploy@43.167.252.197 bash -s -- "$GITHUB_SHA" <<'REMOTE'
+            evo-deploy@43.167.252.197 bash -s -- "$TARGET_SHA" <<'REMOTE'
           set -euo pipefail
           sha="$1"
           [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 1

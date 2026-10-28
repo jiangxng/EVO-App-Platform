@@ -6,6 +6,9 @@ import {
   ENTERPRISE_CONTEXT_CREATE_PAGE_ID,
   ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE,
   ENTERPRISE_CONTEXT_CREATE_ROUTE,
+  ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
+  ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE,
   ENTERPRISE_CONTEXT_DATA_ROUTE,
   ENTERPRISE_CONTEXT_DIRECTORY_PAGE_ID,
   ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
@@ -99,6 +102,10 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             title: "Create Enterprise Context",
             source: ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE
           }, {
+            id: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
+            title: "Enterprise creation eligibility",
+            source: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE
+          }, {
             id: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID,
             title: "Enterprise Context",
             source: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE
@@ -111,6 +118,10 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             id: ENTERPRISE_CONTEXT_CREATE_PAGE_ID,
             path: ENTERPRISE_CONTEXT_CREATE_ROUTE,
             pageId: ENTERPRISE_CONTEXT_CREATE_PAGE_ID
+          }, {
+            id: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
+            path: ENTERPRISE_CONTEXT_MY_PERMISSIONS_ROUTE,
+            pageId: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID
           }, {
             id: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID,
             path: ENTERPRISE_CONTEXT_OVERVIEW_ROUTE,

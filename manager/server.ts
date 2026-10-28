@@ -601,6 +601,11 @@ import {
   createEnterpriseContextCreationActionHandlerV010
 } from "./enterprise-context-creation.js";
 import {
+  checkEnterpriseCreateEligibilityV010,
+  createEnterpriseCreateNotAllowedPageV010,
+  createEnterpriseCreateEligibilityPageV010
+} from "./enterprise-create-eligibility.js";
+import {
   enterpriseContextGovernanceAuthorizationPolicyV010
 } from "./enterprise-context-authorization.js";
 import {
@@ -808,6 +813,8 @@ import {
 } from "../apps/eog-2d-designer/package.js";
 import {
   ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE,
+  ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE,
   ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID,
   ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
@@ -3103,6 +3110,36 @@ function principalContextSources() {
 
 function createContextRegistryForSession(session: IdentitySessionV010) {
   return createSessionContextRegistryV010(session, principalContextSources());
+}
+
+async function checkCreateEligibilityForRequest(
+  request: IncomingMessage,
+  locale: string
+) {
+  let session: IdentitySessionV010;
+  try {
+    session = resolveRequestIdentitySession(request);
+  } catch {
+    return checkEnterpriseCreateEligibilityV010({ locale });
+  }
+  try {
+    const registry = createContextRegistryForSession(session);
+    const selected = contextFromHeaderV010(request.headers, registry);
+    const current = registry.resolve(selected);
+    let provider: AuthorizationProviderV010 | undefined;
+    try { provider = resolveAuthorizationProvider(); } catch { /* fail closed */ }
+    return checkEnterpriseCreateEligibilityV010({
+      principal: session.principal,
+      provider,
+      activeContextKind: current.activeContext.kind,
+      locale
+    });
+  } catch {
+    return checkEnterpriseCreateEligibilityV010({
+      principal: session.principal,
+      locale
+    });
+  }
 }
 
 function externalAgentDelegatedAuthorityDependencies() {
@@ -6920,6 +6957,11 @@ const server = createServer(async (request, response) => {
         evoRuntimeRevisionBridge: evoRuntimeRevisionBridge?.diagnostics() ?? null
       });
     }
+    if (request.method === "GET" && url.pathname === "/v1/permissions/me/enterprise-create") {
+      response.setHeader("cache-control", "no-store");
+      const eligibility = await checkCreateEligibilityForRequest(request, requestedLocale(url));
+      return json(response, eligibility.status === "AUTH_REQUIRED" ? 401 : 200, eligibility);
+    }
     if (request.method === "GET" && url.pathname === "/v1/contexts/effective") {
       const session = resolveRequestIdentitySession(request);
       const contextRegistry = createContextRegistryForSession(session);
@@ -7297,6 +7339,8 @@ const server = createServer(async (request, response) => {
             activeContext,
             defaultContextId: defaultEnterpriseContext?.contextId,
             ownerContextIds,
+            createEligibility: await checkCreateEligibilityForRequest(request, requestedLocale(url)),
+            personalContextId: contextRegistry.personal().contextId,
             locale: requestedLocale(url)
           })
         );
@@ -9303,6 +9347,35 @@ const server = createServer(async (request, response) => {
           return json(response, 404, { code: "SETTINGS_NOT_AVAILABLE", packageId: settingsPackageId });
         }
         return json(response, 200, settingsPage);
+      }
+      // A direct deep link cannot bypass the same read-only preflight as
+      // the enterprise directory. The command handler remains authoritative.
+      if (source === ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE
+          || source === ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE) {
+        const effective = manager.getSnapshot().activeFeatures.some(
+          feature => feature.featureId === ENTERPRISE_CONTEXT_GOVERNANCE_APP_FEATURE_ID
+        );
+        if (!effective) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const locale = requestedLocale(url);
+        const readiness = await checkCreateEligibilityForRequest(request, locale);
+        // A personal target must come from the authenticated Host registry,
+        // never a client-supplied targetContextId.
+        let personalContextId: string | undefined;
+        try {
+          const session = resolveRequestIdentitySession(request);
+          personalContextId = createContextRegistryForSession(session).personal().contextId;
+        } catch { /* An unauthenticated user cannot select a Personal Context. */ }
+        response.setHeader("cache-control", "no-store");
+        if (source === ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE) {
+          return json(response, 200,
+            createEnterpriseCreateEligibilityPageV010(readiness, locale, personalContextId));
+        }
+        if (!readiness.allowed) {
+          return json(response, 200,
+            createEnterpriseCreateNotAllowedPageV010(readiness, locale, personalContextId));
+        }
       }
       const page = manager.loadExperiencePage(source);
       if (page === undefined) {

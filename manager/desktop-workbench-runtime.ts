@@ -393,7 +393,7 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
     function refreshGlobalControlLabelsV010(): void {
       const zh = activeLocale.toLowerCase().startsWith("zh");
       if (contextLabel) {
-        contextLabel.textContent = zh ? "当前企业" : "Current enterprise";
+        contextLabel.textContent = zh ? "当前空间" : "Current space";
       }
       if (currentUserSummary) {
         const principal = currentSession?.principal;
@@ -518,46 +518,50 @@ export async function mountDesktopWorkbenchRuntimeV010(options: {
         currentSession = loaded.session;
         refreshGlobalControlLabelsV010();
 
-        const enterpriseOptions = loaded.options.filter(
-          item => item.ref.kind === "ENTERPRISE"
+        // Personal Context is a first-class selectable scope. The old
+        // enterprise-only filter trapped users in an enterprise after creation.
+        const visibleOptions = loaded.options.filter(item =>
+          (item.ref.kind === "PERSONAL" || item.ref.kind === "ENTERPRISE")
+          && Boolean(item.ref.contextId?.trim())
+        ).sort((a, b) =>
+          a.ref.kind === b.ref.kind ? 0 : a.ref.kind === "PERSONAL" ? -1 : 1
         );
-        const persistedCandidate =
-          preferredContextId
-          ?? window.localStorage.getItem("evo.context.id")?.trim()
-          ?? loaded.defaultContextId;
-        const persisted = enterpriseOptions.some(
-          item => item.ref.contextId === persistedCandidate
-        )
-          ? persistedCandidate
-          : loaded.defaultContextId
-            && enterpriseOptions.some(
-              item => item.ref.contextId === loaded.defaultContextId
-            )
-              ? loaded.defaultContextId
-              : enterpriseOptions[0]?.ref.contextId;
+        const knownContext = (candidate?: string) => visibleOptions.some(
+          item => item.ref.contextId === candidate
+        );
+        const remembered = preferredContextId
+          ?? window.localStorage.getItem("evo.context.id")?.trim();
+        const selectedContextId = knownContext(remembered)
+          ? remembered
+          : knownContext(loaded.defaultContextId)
+            ? loaded.defaultContextId
+            : visibleOptions.find(item => item.ref.kind === "PERSONAL")
+                ?.ref.contextId ?? visibleOptions[0]?.ref.contextId;
 
         contextSelect?.replaceChildren();
-        if (contextSelect && enterpriseOptions.length === 0) {
-          const option = document.createElement("option");
-          option.value = "";
-          option.textContent = activeLocale.toLowerCase().startsWith("zh")
-            ? "暂无企业"
-            : "No enterprise";
-          contextSelect.appendChild(option);
-          contextSelect.disabled = true;
-        } else if (contextSelect) {
-          contextSelect.disabled = false;
-          for (const item of enterpriseOptions) {
+        if (contextSelect) {
+          contextSelect.disabled = visibleOptions.length === 0;
+          if (!visibleOptions.length) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = activeLocale.toLowerCase().startsWith("zh")
+              ? "暂无可用空间" : "No available spaces";
+            contextSelect.appendChild(option);
+          }
+          for (const item of visibleOptions) {
             const option = document.createElement("option");
             option.value = item.ref.contextId;
-            option.textContent = `🏢 ${item.label}`;
-            option.selected = item.ref.contextId === persisted;
+            option.textContent = item.ref.kind === "PERSONAL"
+              ? (activeLocale.toLowerCase().startsWith("zh")
+                ? "👤 个人空间" : "👤 Personal space")
+              : `🏢 ${item.label}`;
+            option.selected = item.ref.contextId === selectedContextId;
             contextSelect.appendChild(option);
           }
         }
 
-        if (persisted) {
-          window.localStorage.setItem("evo.context.id", persisted);
+        if (selectedContextId) {
+          window.localStorage.setItem("evo.context.id", selectedContextId);
         } else {
           window.localStorage.removeItem("evo.context.id");
         }
