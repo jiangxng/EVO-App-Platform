@@ -61,3 +61,10 @@
 - **只在历史文档中看到链接/摘要、尚未读外部官网**：2026-10 GitHub Node20 弃用及 Runner Ubuntu26 提示原始链接、Railway 安全披露文章。不得虚称本窗口直接阅读它们。
 - **本聊天附件而非 GitHub 仓库文件**：用户创建 `evo-tokyo-dev` 的 Environment 设置截图 `image(20261027-050549).png`，附件 ID `file_0000000072288209b0c7af58dd88c176`；后续窗口不保证能直接读取，必要时让用户重新提供**不含 Secrets 的截图**。Ubuntu 资源输出保留在详细索引。
 - 完整材料列表与未验证问题：见 [详细参考索引](EVO-TOKYO-DEV-WINDOW-20261027-RESEARCH-REFERENCE-INDEX.md)。
+
+## 最新接续更新（2026-10-28，覆盖上方旧公网失败快照）
+
+- 线上实际 SHA：`35baedcad147dde9403d7bc26e2ca9734e906f5a`，GitHub [EVO Tokyo deployment #40620148375](https://github.com/jiangxng/EVO-App-Platform/actions/runs/40620148375) **SUCCESS**。SSH/Docker 及平台测试、镜像、VPS 本地真实 HTTP `/health`、公网严格 HTTPS `/health` 及未认证根目录 HTTP401 全部 PASS；不要再沿用此前“公网 443 失败”作为当前状态。
+- 已合并功能：[PR #1120](https://github.com/jiangxng/EVO-App-Platform/pull/1120) 处理应用无企业时空白提示及冗余 Workspace 按钮；[PR #1121](https://github.com/jiangxng/EVO-App-Platform/pull/1121) 消除设置页硬编码四组及 `SETTINGS_GROUP`。通过 [PR #1122](https://github.com/jiangxng/EVO-App-Platform/pull/1122) 单次触发东京更新。
+- 后续发布治理：[PR #1123](https://github.com/jiangxng/EVO-App-Platform/pull/1123)（状态请刷新）关闭一次性 push 触发，恢复 manual-only；详情及 exact evidence 在 [发布结果文档](https://github.com/jiangxng/EVO-App-Platform/blob/chore/evo-tokyo-restore-manual-only-20261028/docs/runbooks/EVO-TOKYO-DEV-RELEASE-RESULT-20261028.md)。
+- **未关闭**：浏览器真实页面与 Human 验收、数据持久化/异地备份/回滚演练。Railway 与数据保持不变，不需重新配置 Secrets/Known Hosts 或 Docker。
