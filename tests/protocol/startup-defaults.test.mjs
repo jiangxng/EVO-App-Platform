@@ -29,7 +29,8 @@ test('unready and failed defaults retry; successful defaults run once', () => {
 
 
 test('minimal profile requires managed authentication and invalid profiles fail closed', () => {
-  assert.equal(resolveStartupProfileV010(undefined, false), 'compatible');
+  assert.equal(resolveStartupProfileV010(undefined, false), 'clean');
+  assert.equal(resolveStartupProfileV010('compatible', false), 'compatible');
   assert.equal(resolveStartupProfileV010('minimal', true), 'minimal');
   assert.throws(() => resolveStartupProfileV010('minimal', false), /REQUIRES_MANAGED/);
   assert.throws(() => resolveStartupProfileV010('typo', true), /INVALID/);
