@@ -7484,6 +7484,11 @@ const server = createServer(async (request, response) => {
             requestContext: readContext,
             enterpriseRelationshipKind: relationship?.kind
           });
+          const importRelationshipMode =
+            projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+              ? "CUSTOMER"
+              : projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+                ? "SUPPLIER" : undefined;
           return json(
             response,
             200,
@@ -7495,16 +7500,14 @@ const server = createServer(async (request, response) => {
               locale,
               readableFieldIds: projection.readableFieldIds,
               canManage,
-              ...(canManage && (
-                projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
-                || projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
-              ) && manager.listEffectiveDataImportTargets().some(target =>
+              ...(canManage && importRelationshipMode
+                && manager.listEffectiveDataImportTargets().some(target =>
                 target.targetId === "counterparty.subject"
               )
                 ? {
                     importRoute: dataImportUploadRouteV010(
                       "counterparty.subject",
-                      { relationshipMode: "SUPPLIER" }
+                      { relationshipMode: importRelationshipMode }
                     )
                   }
                 : {})

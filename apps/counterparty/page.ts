@@ -102,6 +102,10 @@ function textFor(locale?: string) {
         suppliers: "供应商",
         myCustomers: "我的客户",
         mySuppliers: "我的供应商",
+        onlyMyCustomers: "只看我负责的",
+        onlyMySuppliers: "只看我负责的",
+        allCustomers: "查看全部客户",
+        allSuppliers: "查看全部供应商",
         projectionDescription: "按业务关系与当前责任范围查看往来对象。",
         projectionEmpty: "当前视图没有可查看的往来对象。",
         customerProfile: "客户资料",
@@ -176,6 +180,10 @@ function textFor(locale?: string) {
         suppliers: "Suppliers",
         myCustomers: "My Customers",
         mySuppliers: "My Suppliers",
+        onlyMyCustomers: "Only my customers",
+        onlyMySuppliers: "Only my suppliers",
+        allCustomers: "View all customers",
+        allSuppliers: "View all suppliers",
         projectionDescription:
           "View counterparties by business relationship and current responsibility scope.",
         projectionEmpty: "No counterparties are visible in this view.",
@@ -353,6 +361,16 @@ export function createCounterpartyProjectionPageV010(input: {
       ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
       : input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
         ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
+  const scopeRoute = input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+    ? COUNTERPARTY_MY_CUSTOMERS_ROUTE
+    : input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+      ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
+      : input.projectionId === COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
+        ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_SUPPLIERS_ROUTE;
+  const scopeQuery = input.tableQuery;
+  const scopeDestination = scopeQuery?.search || scopeQuery?.sort || scopeQuery?.direction
+    ? counterpartyProjectionQueryRouteV010(scopeRoute, scopeQuery, 0)
+    : scopeRoute;
   const readable = input.readableFieldIds
     ? new Set(input.readableFieldIds)
     : undefined;
@@ -429,30 +447,20 @@ export function createCounterpartyProjectionPageV010(input: {
       }]
     },
     actions: [{
-      id: "customers",
-      label: text.customers,
+      id: "responsibility-scope",
+      label: input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+        ? text.onlyMyCustomers
+        : input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+          ? text.onlyMySuppliers
+          : input.projectionId === COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
+            ? text.allCustomers : text.allSuppliers,
       type: "navigate",
-      route: COUNTERPARTY_CUSTOMERS_ROUTE,
+      route: scopeDestination,
       requiresConfirmation: false
-    }, {
-      id: "suppliers",
-      label: text.suppliers,
-      type: "navigate",
-      route: COUNTERPARTY_SUPPLIERS_ROUTE,
-      requiresConfirmation: false
-    }, {
-      id: "my-customers",
-      label: text.myCustomers,
-      type: "navigate",
-      route: COUNTERPARTY_MY_CUSTOMERS_ROUTE,
-      requiresConfirmation: false
-    }, {
-      id: "my-suppliers",
-      label: text.mySuppliers,
-      type: "navigate",
-      route: COUNTERPARTY_MY_SUPPLIERS_ROUTE,
-      requiresConfirmation: false
-    }, ...(input.canManage && input.importRoute
+    }, ...(input.canManage && input.importRoute && (
+      input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
+      || input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+    )
       ? [{
           id: "import",
           label: text.import,

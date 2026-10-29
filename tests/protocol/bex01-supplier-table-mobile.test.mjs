@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createCounterpartyProjectionPageV010 } from "../../dist/apps/counterparty/page.js";
 import { COUNTERPARTY_SUPPLIER_PROJECTION_V010 } from "../../dist/apps/counterparty/projections.js";
-import { COUNTERPARTY_SUPPLIERS_ROUTE } from "../../dist/apps/counterparty/constants.js";
+import { COUNTERPARTY_MY_SUPPLIERS_ROUTE, COUNTERPARTY_SUPPLIERS_ROUTE } from "../../dist/apps/counterparty/constants.js";
 import { renderCatalogBrowserToHtml } from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 import {
  parseCounterpartyProjectionRouteQueryV010
@@ -26,7 +26,8 @@ test("BEX-01 supplier page is a real bounded table with visible columns and mobi
  assert.deepEqual(page.table.columns.map(x=>x.id),["displayName","code"]);
  assert.equal(page.search,undefined);
  assert.equal(page.table.pageInfo.nextRoute,COUNTERPARTY_SUPPLIERS_ROUTE+"?page=1&pageSize=25");
- assert.ok(page.actions.some(a=>a.id==="suppliers"));
+ assert.equal(page.actions.find(a=>a.id==="responsibility-scope")?.route,
+   COUNTERPARTY_MY_SUPPLIERS_ROUTE);
  assert.ok(page.items.every(x=>!Object.hasOwn(x.metadata,"email")));
  const html=renderCatalogBrowserToHtml(page);
  assert.match(html, /<table data-eidos-catalog-table>/);
