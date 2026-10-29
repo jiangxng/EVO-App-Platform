@@ -42,9 +42,10 @@ function zh(locale?: string): boolean {
 function text(locale?: string) {
   return zh(locale)
     ? {
-        title: "数据导入",
+        title: "导入中心",
         description:
-          "通过预检查、字段映射和明确确认，把 CSV / XLSX 数据安全导入当前企业。原始文件不会绕过业务对象校验。",
+          "从已启用的数据对象中选择导入目标，通过预检查、字段映射和明确确认，把 CSV / XLSX 数据安全导入当前企业。",
+        unavailableTarget: "当前未启用的导入对象",
         chooseTarget: "选择要导入的数据对象",
         import: "开始导入",
         importTarget: (name: string) => "导入" + name,
@@ -85,7 +86,7 @@ function text(locale?: string) {
         commit: "确认导入",
         remap: "调整字段映射",
         downloadErrors: "下载错误清单",
-        back: "返回数据导入",
+        back: "返回导入中心",
         row: "第 {n} 行",
         source: "来源",
         target: "目标对象",
@@ -114,9 +115,10 @@ function text(locale?: string) {
         ecLearningUnavailable: "暂未记录"
       }
     : {
-        title: "Data Import",
+        title: "Import Center",
         description:
-          "Safely import CSV / XLSX data into the current enterprise through explicit mapping, dry run and confirmation. Files never bypass domain validation.",
+          "Choose an enabled data object, then import CSV / XLSX data into the current enterprise through mapping, validation and explicit confirmation.",
+        unavailableTarget: "Import target not currently enabled",
         chooseTarget: "Choose data to import",
         import: "Start import",
         importTarget: (name: string) => "Import " + name,
@@ -157,7 +159,7 @@ function text(locale?: string) {
         commit: "Confirm import",
         remap: "Adjust mapping",
         downloadErrors: "Download error list",
-        back: "Back to Data Import",
+        back: "Back to Import Center",
         row: "Row {n}",
         source: "Source",
         target: "Target",
@@ -332,6 +334,9 @@ export function createDataImportDirectoryPageV010(input: {
 }): CatalogBrowserV010 {
   const t = text(input.locale);
   const availableTargets = new Set(input.targets.map(target => target.targetId));
+  const targetLabels = new Map(input.targets.map(target => [
+    target.targetId, localizedTextV010(target.label, input.locale)
+  ]));
   // Read-only resume: only eligible current-target unfinished jobs. A committed
   // or partially committed job must never be exposed as a safe "resume" action.
   const isResumable = (job: DataImportJobV010): boolean =>
@@ -365,7 +370,8 @@ export function createDataImportDirectoryPageV010(input: {
       return {
         id: "job:" + job.importJobId,
         title: job.source.name || job.importJobId,
-        summary: job.targetId + " · " + job.source.kind,
+        summary: (targetLabels.get(job.targetId) ?? t.unavailableTarget)
+          + " · " + job.source.kind,
         category: isResumable(job) ? t.unfinished : t.recent,
         status,
         metadata: {

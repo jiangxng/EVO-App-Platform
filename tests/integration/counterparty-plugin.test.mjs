@@ -91,8 +91,8 @@ test("Counterparty package requires Enterprise Resource Library and exposes Chin
     && item.bundle.locale === "zh-CN"
   );
   assert.equal(
-    zh.bundle.messages["navigation.evo-counterparty.nav.label"],
-    "往来对象"
+    zh.bundle.messages["navigation.evo-counterparty.customers.nav.label"],
+    "客户"
   );
 });
 

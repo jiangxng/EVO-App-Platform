@@ -377,7 +377,7 @@ test("CP-04 projection path handles 10k records without duplicate identities", (
   assert.ok(elapsed < 2_000, "10k projection should remain interactive");
 });
 
-test("CP-04 role projections are discoverable under Counterparty navigation", () => {
+test("CP-04 business projections use navigation while personal scopes remain in-page", () => {
   assert.equal(
     counterpartyPackage.features[0].requiresCapabilities.includes(
       "enterprise.responsibility"
@@ -386,13 +386,10 @@ test("CP-04 role projections are discoverable under Counterparty navigation", ()
   );
   const experience = counterpartyPackage.features[0].contributions
     .find(item => item.kind === "eidos.experience").manifest;
-  const children = experience.navigation
-    .filter(item => item.parentId === "evo-counterparty.nav")
-    .map(item => [item.label, item.route]);
-  assert.deepEqual(children, [
+  assert.deepEqual(experience.navigation.map(item => [item.label, item.route]), [
     ["Customers", "/counterparties/customers"],
-    ["Suppliers", "/counterparties/suppliers"],
-    ["My Customers", "/counterparties/my-customers"],
-    ["My Suppliers", "/counterparties/my-suppliers"]
+    ["Suppliers", "/counterparties/suppliers"]
   ]);
+  assert.ok(experience.routes.some(item => item.path === "/counterparties/my-customers"));
+  assert.ok(experience.routes.some(item => item.path === "/counterparties/my-suppliers"));
 });

@@ -173,7 +173,7 @@ test("Data Import Human experience exposes target selection, file upload and tar
     jobs: [],
     locale: "zh-CN"
   });
-  assert.equal(directory.title, "数据导入");
+  assert.equal(directory.title, "导入中心");
   assert.equal(directory.density, "compact");
   assert.equal(directory.itemActivation, "primary-action");
   assert.equal(directory.collectionTitle, "导入历史");
@@ -195,7 +195,7 @@ test("Data Import Human experience exposes target selection, file upload and tar
   assert.deepEqual(
     upload.contextNavigation.items.map(item => [item.label, item.route]),
     [["返回往来对象", "/counterparties"],
-      ["数据导入", "/data-import"], ["上传数据文件", undefined]]
+      ["导入中心", "/data-import"], ["上传数据文件", undefined]]
   );
   assert.match(upload.description, /CSV \/ XLSX/);
 
@@ -274,7 +274,7 @@ test("mapping and review pages keep validation and commit explicit", () => {
   assert.equal(mappingPage.command.code, "data-import.review");
   assert.deepEqual(
     mappingPage.contextNavigation.items.map(item => [item.label, item.route]),
-    [["数据导入", "/data-import"], ["字段映射", undefined]]
+    [["导入中心", "/data-import"], ["字段映射", undefined]]
   );
   assert.match(mappingPage.description, /先恢复本企业之前的映射/);
   assert.equal(
@@ -330,7 +330,7 @@ test("mapping and review pages keep validation and commit explicit", () => {
   assert.deepEqual(
     reviewPage.contextNavigation.items.map(item => [item.label, item.route]),
     [
-      ["数据导入", "/data-import"],
+      ["导入中心", "/data-import"],
       ["字段映射", "/data-import/jobs/import-human-1/map"],
       ["导入预检查", undefined]
     ]
