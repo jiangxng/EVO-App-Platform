@@ -1157,6 +1157,12 @@ with sync_playwright() as pw:
     expect(final_confirm).to_be_visible(timeout=30000)
     expect(final_confirm.locator('[data-eidos-form-review-table-row]')).to_have_count(1)
     final_confirm.locator('button[data-eidos-action="create-extension-batch"]').click()
+    page.wait_for_timeout(800)
+    print("BEX01_V3_CONFIRM_ACTION_DIAGNOSTIC="+json.dumps(page.evaluate("""() => ({
+      hash:location.hash,
+      actionStatus:document.querySelector('[data-eidos-action-status]')?.textContent,
+      bodyEnd:document.body.innerText.slice(-1600)
+    })"""),ensure_ascii=False),flush=True)
     expect(page.locator('form[data-eidos-id="evo-data-import.review"]')).to_be_visible(
       timeout=30000)
     assert page.evaluate("location.hash").endswith("/review")
