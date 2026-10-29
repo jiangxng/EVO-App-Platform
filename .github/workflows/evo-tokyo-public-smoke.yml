@@ -1,0 +1,111 @@
+name: EVO Tokyo Dev - External Public Entry Acceptance
+
+# Diagnostic only: no SSH credentials, GitHub Environment, server mutations,
+# database access, or release/image operations.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/evo-tokyo-public-smoke.yml"
+      - "docs/runbooks/EVO-TOKYO-DEV-PUBLIC-ACCEPTANCE-20261027.md"
+      - "deploy/tencent-tokyo/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-public-entry:
+    name: public-dns-tls-auth-health
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Verify DNS, certificate, HTTPS health, Basic Auth boundary
+        shell: bash
+        run: |
+          # GitHub bash defaults to -e; keep collecting all gates after a failing curl.
+          set +e
+          set -u
+          host="evo.43.167.252.197.sslip.io"
+          ip="43.167.252.197"
+          failures=0
+
+          echo "::group::Public DNS A lookup"
+          dns="$(dig +short +time=3 +tries=1 "$host" A | grep -E '^[0-9.]+$' || true)"
+          echo "SYSTEM_RESOLVER_A=$dns"
+          if [[ "$dns" == *"$ip"* ]]; then
+            echo "EVO_TOKYO_PUBLIC_DNS_PASS"
+          else
+            echo "::error title=EVO_TOKYO_PUBLIC_DNS_FAIL::A record did not return expected VPS public IPv4"
+            failures=$((failures+1))
+          fi
+          echo "::endgroup::"
+
+          echo "::group::TCP 443 from GitHub hosted runner"
+          if timeout 10 bash -c "echo >/dev/tcp/$ip/443" 2>/dev/null; then
+            echo "EVO_TOKYO_PUBLIC_TCP443_PASS"
+          else
+            echo "::error title=EVO_TOKYO_PUBLIC_TCP443_FAIL::Public IP TCP 443 could not be connected"
+            failures=$((failures+1))
+          fi
+          echo "::endgroup::"
+
+          echo "::group::HTTPS /health with strict certificate verification"
+          health_code="$(curl --noproxy '*' -4 -sS --connect-timeout 8 --max-time 20 \
+            -o /tmp/tokyo-health-response -w '%{http_code}' "https://$host/health")"
+          health_exit=$?
+          if [[ "$health_exit" -eq 0 && "$health_code" == "200" ]] &&
+             grep -q '"ok":true' /tmp/tokyo-health-response &&
+             grep -q '"service":"evo-app-manager"' /tmp/tokyo-health-response; then
+            echo "EVO_TOKYO_PUBLIC_HEALTH_PASS status=200 tls=verified"
+          else
+            echo "::error title=EVO_TOKYO_PUBLIC_HEALTH_FAIL::health_exit=$health_exit status=$health_code"
+            failures=$((failures+1))
+          fi
+          echo "::endgroup::"
+
+          echo "::group::HTTPS /health with pinned IP to isolate DNS from TCP/TLS"
+          pinned_code="$(curl --noproxy '*' -4 -sS --connect-timeout 8 --max-time 20 \
+            --resolve "$host:443:$ip" \
+            -o /tmp/tokyo-health-pinned -w '%{http_code}' "https://$host/health")"
+          pinned_exit=$?
+          if [[ "$pinned_exit" -eq 0 && "$pinned_code" == "200" ]] &&
+             grep -q '"ok":true' /tmp/tokyo-health-pinned; then
+            echo "EVO_TOKYO_PINNED_HEALTH_PASS status=200 tls=verified"
+          else
+            echo "::error title=EVO_TOKYO_PINNED_HEALTH_FAIL::pinned_exit=$pinned_exit status=$pinned_code"
+            failures=$((failures+1))
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Root should be protected with Basic Auth"
+          root_code="$(curl --noproxy '*' -4 -sS --connect-timeout 8 --max-time 20 \
+            -o /dev/null -w '%{http_code}' "https://$host/")"
+          root_exit=$?
+          if [[ "$root_exit" -eq 0 && "$root_code" == "401" ]]; then
+            echo "EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS status=401"
+          else
+            echo "::error title=EVO_TOKYO_BASIC_AUTH_BOUNDARY_FAIL::root_exit=$root_exit status=$root_code"
+            failures=$((failures+1))
+          fi
+          echo "::endgroup::"
+
+          echo "::group::IP HTTP should redirect to TLS hostname"
+          header_file="$(mktemp)"
+          ip_code="$(curl --noproxy '*' -4 -sS --connect-timeout 8 --max-time 20 \
+            -o /dev/null -D "$header_file" -w '%{http_code}' "http://$ip/")"
+          ip_exit=$?
+          if [[ "$ip_exit" -eq 0 && "$ip_code" == "302" ]] &&
+             grep -Fqi "location: https://$host/" "$header_file"; then
+            echo "EVO_TOKYO_HTTP_IP_REDIRECT_PASS status=302"
+          else
+            echo "::error title=EVO_TOKYO_HTTP_IP_REDIRECT_FAIL::ip_exit=$ip_exit status=$ip_code"
+            failures=$((failures+1))
+          fi
+          rm -f "$header_file"
+          echo "::endgroup::"
+
+          if (( failures > 0 )); then
+            echo "::error title=EVO_TOKYO_PUBLIC_ACCEPTANCE_OPEN::$failures public gates failed; local HTTP health is not public acceptance"
+            exit 1
+          fi
+          echo "EVO_TOKYO_PUBLIC_ACCEPTANCE_PASS"
