@@ -3163,6 +3163,25 @@ form[data-eidos-id] button:hover,
 
 
 /* Generic compact Human review rows; field labels remain screen-reader visible. */
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+  [data-eidos-form-review-table]{min-width:600px}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+  [data-eidos-form-review-table] th:first-child{width:30%}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+  [data-eidos-form-review-table] th:nth-child(2){width:40%}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+  [data-eidos-form-review-table] th:nth-child(3){width:30%}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+  [data-eidos-review-table-evidence]{color:var(--eidos-fg)}
+[data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+  [data-eidos-review-table-choice-label]{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0
+}
+@media(max-width:700px){
+ [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
+   [data-eidos-form-review-table]{min-width:0}
+}
 [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="compact"]
   [data-eidos-review-table-choice-label]{
   position:absolute;width:1px;height:1px;padding:0;margin:-1px;
@@ -3674,6 +3693,36 @@ form[data-eidos-id] [data-eidos-form-task-save-hint]{
    commands, other forms and other Eidos experiences retain their own skin. */
 [data-eidos-workspace-content]:has(form[data-eidos-id="evo-data-import.mapping"]){
   background:#f5f7fa;
+}
+[data-eidos-workspace-content]:has(form[data-eidos-id="evo-object-extension.batch-import"] [data-eidos-review-table-presentation="confirmation"]){
+  background:#f5f7fa;
+}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"]){
+  --eidos-fg:#172b44;
+  --eidos-fg-muted:#6a7c91;
+  --eidos-fg-subtle:#718196;
+  --eidos-bg:#ffffff;
+  --eidos-bg-subtle:#f5f7fa;
+  --eidos-bg-hover:#f4f8fc;
+  --eidos-border:#e3e9ef;
+  --eidos-border-strong:#ced9e4;
+  --eidos-focus:#73aaf4;
+  --eidos-primary:#2563a6;
+  --eidos-primary-hover:#1d538d;
+  --eidos-success:#18765a;
+  --eidos-success-bg:#eaf7f1;
+  --eidos-warning:#a66712;
+  --eidos-warning-bg:#fff6e7;
+  width:min(1200px,100%);
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--eidos-fg);
+}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-review-table-wrap]{
+  border-radius:10px;
+  box-shadow:0 2px 9px #13284006;
 }
 form[data-eidos-id="evo-data-import.mapping"]{
   --eidos-fg:#172b44;

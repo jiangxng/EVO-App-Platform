@@ -8,6 +8,7 @@ test("V3 wide review scopes only actual mapping and authorized batch route shape
   assert.equal(focus("/data-import/jobs/import-abc/map?source=review"),true);
   assert.equal(focus("/object-extensions/from-import?job=import-abc&mode=batch"),true);
   assert.equal(focus("/object-extensions/from-import?mode=batch&job=import-abc"),true);
+  assert.equal(focus("/object-extensions/from-import?job=import-abc&mode=confirm"),true);
   for(const wrong of [
     "/data-import",
     "/data-import/jobs/import-abc",
@@ -17,6 +18,7 @@ test("V3 wide review scopes only actual mapping and authorized batch route shape
     "/object-extensions/from-import?job=import-abc",
     "/object-extensions/from-import?mode=batch",
     "/object-extensions/from-import?mode=batch&job=",
+    "/object-extensions/from-import?mode=confirm&job=",
     "/object-extensions/from-import?job=import-abc&mode=single",
     "/counterparties/suppliers",
     "/enterprise-agent",

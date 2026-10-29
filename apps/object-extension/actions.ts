@@ -1,6 +1,7 @@
 import { executeObjectExtensionBatchImportV010 } from "./batch-action.js";
 import { createObjectExtensionBatchReviewDraftV010 } from "./batch-draft.js";
 import { batchReviewSourceRevisionV010, type BexImportTargetField } from "./batch-page.js";
+import { dataImportReviewRouteV010 } from "../data-import/constants.js";
 import type { DataImportJobV010, DataImportMappingV010, DataImportBatchReviewDraftV010 } from "../data-import/types.js";
 import type {
   AppActionExecutionResultV010,
@@ -116,6 +117,8 @@ export interface ObjectExtensionImportServicesV010 {
     ignoredSourceColumns?: string[];
     actorSubjectId: string; recordedAt: string;
   }): void;
+  dryRunImport?(input: { contextId: string; importJobId: string;
+    actorSubjectId: string; recordedAt: string }): DataImportJobV010;
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
   saveBatchReviewDraft?(input:{
     contextId:string; importJobId:string;
@@ -142,6 +145,8 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
     ignoredSourceColumns?: string[];
     actorSubjectId: string; recordedAt: string;
   }): void;
+  dryRunImport?(input: { contextId: string; importJobId: string;
+    actorSubjectId: string; recordedAt: string }): DataImportJobV010;
   getImportableTargets?(contextId: string, job: DataImportJobV010): BexImportTargetField[];
   saveBatchReviewDraft?(input:{
     contextId:string; importJobId:string;
@@ -304,6 +309,9 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
           if (!importServices.applyImportMapping) {
             throw new Error("OBJECT_EXTENSION_BATCH_MAPPING_SERVICE_REQUIRED");
           }
+          if (request.values.confirmAndPrecheck === "YES" && !importServices.dryRunImport) {
+            throw new Error("OBJECT_EXTENSION_BATCH_PRECHECK_SERVICE_REQUIRED");
+          }
           const result = executeObjectExtensionBatchImportV010({
             repository, job,
             contextId: active.contextId,
@@ -314,6 +322,24 @@ export function createObjectExtensionActionHandlersV010(input: ({ repository: Ob
             getCurrentJob: () => getImportJob?.(active.contextId,jobId),
             applyMapping: importServices.applyImportMapping
           });
+          const batchResult = result as Record<string, JsonValue>;
+          if (request.values.confirmAndPrecheck === "YES" && batchResult.state === "MAPPED") {
+            try {
+              const checked = importServices.dryRunImport!({
+                contextId: active.contextId, importJobId: jobId,
+                actorSubjectId: context.principal.subjectId,
+                recordedAt: now().toISOString()
+              });
+              return { ok: true, correlationId: context.correlationId,
+                result: { ...batchResult, validationState: checked.state,
+                  navigateTo: dataImportReviewRouteV010(jobId) } };
+            } catch (error) {
+              const code = error instanceof Error ? error.message : "DATA_IMPORT_PRECHECK_FAILED";
+              return { ok: true, correlationId: context.correlationId,
+                result: { ...batchResult, precheckErrorCode: code,
+                  message: "Fields and mapping were saved. Validation failed; reopen mapping and retry: " + code } };
+            }
+          }
           return {
             ok: true, correlationId: context.correlationId, result
           };

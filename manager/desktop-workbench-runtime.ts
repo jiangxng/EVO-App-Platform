@@ -69,7 +69,8 @@ export function shouldFocusBex01V3ReviewWorkspaceRouteV010(route: string): boole
   if (path !== "/object-extensions/from-import") return false;
   if (question < 0) return false;
   const params = new URLSearchParams(route.slice(question+1));
-  return params.get("mode") === "batch" && Boolean(params.get("job")?.trim());
+  return ["batch","confirm"].includes(params.get("mode") ?? "")
+    && Boolean(params.get("job")?.trim());
 }
 
 export function currentUserDisplayNameV010(
