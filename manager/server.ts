@@ -8241,6 +8241,9 @@ const server = createServer(async (request, response) => {
                   x.contextId===active.contextId && x.state==="ACTIVE"
                   && (x.kind==="OWNER"||x.kind==="ADMIN")
                 ),
+              canUsePersonalAgent: manager.getSnapshot().activeFeatures.some(x =>
+                x.featureId === ENTERPRISE_AGENT_FEATURE_ID
+              ),
               schema: target.describe({
                 contextId: active.contextId,
                 locale,

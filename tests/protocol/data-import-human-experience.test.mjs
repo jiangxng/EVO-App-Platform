@@ -269,7 +269,8 @@ test("mapping and review pages keep validation and commit explicit", () => {
   const mappingPage = createDataImportMappingPageV010({
     job,
     schema,
-    locale: "zh-CN"
+    locale: "zh-CN",
+    canUsePersonalAgent: true
   });
   assert.equal(mappingPage.command.code, "data-import.review");
   assert.deepEqual(
@@ -297,6 +298,11 @@ test("mapping and review pages keep validation and commit explicit", () => {
   const mappingHtml = renderToHtml(mappingPage);
   assert.match(mappingHtml, /data-eidos-agent-action="ai-auto-map"/);
   assert.match(mappingHtml, />AI 自动匹配<\/button>/);
+  assert.doesNotMatch(mappingHtml, /data-eidos-review-table-agent-action/,
+    "optional Agent assistance must not occupy the V3 field-filter toolbar");
+  const withoutAgent = createDataImportMappingPageV010({job, schema, locale:"zh-CN"});
+  assert.equal(withoutAgent.actions.some(action=>action.type==="agent"),false);
+  assert.doesNotMatch(renderToHtml(withoutAgent), /AI 自动匹配/);
 
   const reviewPage = createDataImportReviewPageV010({
     job: {
@@ -960,7 +966,7 @@ test("Counterparty import target remains the first Foundation Object consumer, n
 });
 
 
-test("BEX mapping: preserve all source columns, suggest creation instead of ignore, and expose batch B entry", async () => {
+test("BEX mapping: preserve source columns and reach batch review through the primary action", async () => {
   const resources = createMemoryEnterpriseResourceRepositoryV010();
   const counterparts = createCounterpartyRepositoryV010(resources);
   const roles = createCounterpartyRoleRepositoryV010(resources,counterparts);
@@ -1122,13 +1128,13 @@ test("BEX mapping: preserve all source columns, suggest creation instead of igno
   assert.match(mapHtml,/data-eidos-field-context-link/);
   assert.equal(page.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__CREATE__");
-  const batchReviewLink=page.reviewTable.utilityNavigation.items.find(x=>x.id==="batch-review");
-  assert.ok(batchReviewLink,"Batch B remains available beside mapping decisions");
+  assert.equal(page.reviewTable.utilityNavigation,undefined,
+    "the primary review action opens field confirmation without an extra tools menu");
   assert.ok(!page.contextNavigation.items.some(x=>x.id==="batch-review"),
     "secondary actions must not be masqueraded as breadcrumbs");
-  assert.match(batchReviewLink.label,/集中审核/);
-  assert.match(batchReviewLink.route,/mode=batch/);
-  assert.ok(page.actions.some(x=>x.id==="ai-auto-map"));
+  assert.ok(!page.actions.some(x=>x.id==="ai-auto-map"));
+  assert.equal(page.fields.find(x=>x.key==="map_2").options.find(x=>x.value==="__CREATE__").label,
+    "新建字段： 结算方式");
   assert.ok(page.fields.find(x=>x.key==="map_2").options.some(x=>x.value==="__IGNORE__"));
   const review=handlers.find(x=>x.commandCode===DATA_IMPORT_REVIEW_COMMAND_V010);
   const result=await review.execute(request(DATA_IMPORT_REVIEW_COMMAND_V010,{

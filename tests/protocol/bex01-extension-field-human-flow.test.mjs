@@ -70,7 +70,8 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
   activeRelationshipRoles:["SUPPLIER"],extensions:[]
  });
  const mappingWithEntry=createDataImportMappingPageV010({
-  job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:true
+  job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:true,
+  canUsePersonalAgent:true
  });
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,objectExtensionImportRouteV010(job.importJobId,"开户银行"));
  const prefilled=createObjectExtensionImportPageV010({job,locale:"zh-CN",sourceColumn:"开户银行"});
@@ -81,10 +82,9 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
    job,locale:"zh-CN",sourceColumn:"系统编码"
  }),/OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED/);
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
-   "＋ 为本列创建企业扩展字段");
+   "新建字段：开户银行");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
- assert.ok(mappingWithEntry.reviewTable.utilityNavigation.items.some(x=>
-   x.id==="batch-review" && x.route.includes("mode=batch")));
+ assert.equal(mappingWithEntry.reviewTable.utilityNavigation,undefined);
  assert.equal(mappingWithEntry.contextNavigation.items.some(x=>
    x.id==="batch-review" || x.id==="create-extension"),false);
  const exclusive = mappingWithEntry.fields.filter(x=>x.semanticType==="data-import-field-mapping");
