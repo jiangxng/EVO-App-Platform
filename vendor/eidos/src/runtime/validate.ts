@@ -909,9 +909,9 @@ export function validateUidl(
       }
       if (table.presentation !== undefined
         && (!nonEmpty(table.presentation)
-          || !["standard","compact"].includes(table.presentation))) {
+          || !["standard","compact","confirmation"].includes(table.presentation))) {
         out.push(d("EIDOS_REVIEW_TABLE_PRESENTATION_INVALID",p+".presentation",
-          "Review-table presentation must be standard or compact"));
+          "Review-table presentation must be standard, compact or confirmation"));
       }
       if (table.evidenceLayout !== undefined
         && (typeof table.evidenceLayout !== "string"
@@ -1040,6 +1040,7 @@ export function validateUidl(
               ...(typeof table.heading.description === "string"
                 ? {description:table.heading.description} : {})}} : {}),
         ...(table.presentation==="compact" || table.presentation==="standard"
+          || table.presentation==="confirmation"
           ? {presentation:table.presentation} : {}),
         ...(table.evidenceLayout==="stacked" || table.evidenceLayout==="inline-collapsed"
           ? {evidenceLayout:table.evidenceLayout} : {}),

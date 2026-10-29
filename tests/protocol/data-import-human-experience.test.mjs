@@ -1156,6 +1156,12 @@ test("BEX mapping: preserve source columns and reach batch review through the pr
     "Original 4 columns must survive save / reopen even when filtered out");
   assert.equal(reopened.fields.find(x=>x.key==="map_2").initialValue,"__CREATE__");
   assert.equal(extensions.list("enterprise-context:a",target.targetId).length,0);
+  const completeResult=await review.execute(request(DATA_IMPORT_REVIEW_COMMAND_V010,{
+    importJobId:"batch-proposals",
+    map_0:"code",map_1:"__IGNORE__",map_2:"__CREATE__",map_3:"__IGNORE__"
+  }),platformContext());
+  assert.equal(completeResult.ok,true,JSON.stringify(completeResult));
+  assert.match(completeResult.result.navigateTo,/mode=confirm/);
   const complete={
     ...saved,ignoredSourceColumns:[],
     mapping:[

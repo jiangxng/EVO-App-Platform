@@ -637,7 +637,8 @@ export function createDataImportActionHandlersV010(input: {
             result: JSON.parse(JSON.stringify({
               contractVersion: "0.1.0",
               message: "Existing selections saved. Review proposed enterprise fields together; source rows remain preserved. No supplier data imported.",
-              navigateTo: objectExtensionImportRouteV010(importJobId) + "&mode=batch",
+              navigateTo: objectExtensionImportRouteV010(importJobId)
+                + (unresolvedColumns.length ? "&mode=batch" : "&mode=confirm"),
               job: actorVisibleJobV010(staged,context.principal.subjectId)
             })) as JsonValue
           };

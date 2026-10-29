@@ -96,6 +96,8 @@ export function createObjectExtensionBatchImportPageV010(input: {
   /** Only a draft belonging to the authorized Human may be shown. */
   actorSubjectId?: string;
   locale?: string;
+  /** V3 confirmation reached from a complete mapping decision. */
+  confirmationOnly?: boolean;
 }) {
   const { job } = input;
   const zh = input.locale?.startsWith("zh") ?? false;
@@ -231,6 +233,70 @@ export function createObjectExtensionBatchImportPageV010(input: {
       ];
     })
   ];
+  if (input.confirmationOnly) {
+    const proposed = columns.map((column, index) => ({ column, index,
+      choice: fields.find(field => field.key === "choice_" + index)?.initialValue
+    })).filter(item => item.choice === BEX_BATCH_CREATE);
+    const hasOtherDecisions = columns.some((_, index) => {
+      const choice = fields.find(field => field.key === "choice_" + index)?.initialValue;
+      return choice !== BEX_BATCH_CREATE && choice !== BEX_BATCH_IGNORE;
+    });
+    if (proposed.length > 0 && !hasOtherDecisions) {
+      const visibleTypeKeys = new Set(proposed.map(item => "type_" + item.index));
+      const confirmationFields = fields.filter(field =>
+        field.key === "importJobId" || field.key === "batchMode"
+        || field.key.startsWith("choice_") || field.key.startsWith("label_")
+        || visibleTypeKeys.has(field.key)
+      ).map(field => ({...field, hidden: !visibleTypeKeys.has(field.key)}));
+      confirmationFields.push({ key: "confirmAndPrecheck", label: zh ? "确认后预检查" : "Validate after confirmation",
+        semanticType: "object-extension-confirm-and-precheck", control: "text" as const,
+        required: true, hidden: true, initialValue: "YES" });
+      return {
+        contractVersion: "0.1.1" as const, kind: "form" as const,
+        id: "evo-object-extension.batch-import",
+        title: zh ? "确认新增字段" : "Confirm new fields",
+        description: zh ? "检查新字段的名称与类型。" : "Review the new field names and types.",
+        contextNavigation: { items: [
+          { id: "data-import", label: zh ? "数据导入" : "Data Import", route: DATA_IMPORT_DIRECTORY_ROUTE },
+          { id: "mapping", label: zh ? "字段映射" : "Field mapping", route: dataImportMappingRouteV010(job.importJobId) },
+          { id: "confirm", label: zh ? "确认新增字段" : "Confirm new fields" }
+        ] },
+        purpose: "execute-command" as const,
+        command: { code: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010, inputVersion: "0.1.0" },
+        reviewTask: {
+          presentation: "workbench" as const,
+          subject: { title: job.source.name ?? (zh ? "当前导入文件" : "Current import file"),
+            subtitle: (zh ? "共 " : "") + job.source.rows.length
+              + (zh ? " 条记录 · " : " rows · ") + job.source.headers.length
+              + (zh ? " 列" : " columns") },
+          steps: [
+            { id: "upload", label: zh ? "选择文件" : "Choose file", state: "complete" as const },
+            { id: "review", label: zh ? "核对并导入" : "Review and import", state: "current" as const }
+          ],
+          footer: { back: { label: zh ? "← 返回核对" : "← Back to mapping",
+            route: dataImportMappingRouteV010(job.importJobId) } }
+        },
+        reviewGroups: proposed.map(({column,index}) => ({
+          id: "source-" + index, title: column,
+          summary: String(fields.find(field => field.key === "label_" + index)?.initialValue ?? column),
+          primaryFieldKey: "type_" + index, detailFieldKeys: [],
+          reviewStatus: { key: "proposed", label: zh ? "待新增" : "Proposed", tone: "neutral" as const }
+        })),
+        reviewTable: { presentation: "confirmation" as const,
+          columnLabels: { subject: zh ? "Excel 列" : "Excel column",
+            evidence: zh ? "新增字段名称" : "New field name",
+            decision: zh ? "字段类型" : "Field type",
+            status: zh ? "状态" : "Status" } },
+        fields: confirmationFields,
+        actions: [{ id: "create-extension-batch",
+          label: zh ? "确认创建并预检查" : "Confirm creation and validate",
+          type: "submit" as const, command: OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
+          requiresConfirmation: true }],
+        metadata: { packageId: "evo-object-extension", featureId: "evo-object-extension.default",
+          importJobId: job.importJobId, unmatchedColumns: columns.length }
+      };
+    }
+  }
   // A suggestion is NOT an approved field definition. The same concrete
   // choice values flow unchanged to the governed Host batch-create action.
   // Every status is based on this saved Job, not a guessed browser state.

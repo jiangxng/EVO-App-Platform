@@ -84,6 +84,73 @@ test("BEX batch page provides one screen, review gating, type suggestions, and A
   assert.equal(page.fields.find(x=>x.key==="choice_0").exclusiveSelect.group,"bex-batch-targets");
 });
 
+test("V3 confirmation shows only proposed names and editable types, then validates the saved mapping",async()=>{
+  let job={...fixture(),ignoredSourceColumns:["系统编码"]};
+  const page=createObjectExtensionBatchImportPageV010({
+    job,definitions:[],locale:"zh-CN",confirmationOnly:true
+  });
+  assert.equal(page.title,"确认新增字段");
+  assert.equal(page.reviewTable.presentation,"confirmation");
+  assert.equal(page.reviewGroups.length,4);
+  assert.equal(page.reviewGroups[0].title,"默认支付方式");
+  assert.equal(page.reviewGroups[0].summary,"默认支付方式");
+  assert.equal(page.fields.find(x=>x.key==="choice_0").hidden,true);
+  assert.equal(page.fields.find(x=>x.key==="type_0").hidden,false);
+  assert.equal(page.fields.find(x=>x.key==="confirmAndPrecheck").initialValue,"YES");
+  assert.equal(page.actions.length,1);
+  assert.equal(page.actions[0].label,"确认创建并预检查");
+  assert.equal(page.reviewTask.footer.back.route,"/data-import/jobs/batch-bex-01/map");
+  assert.equal(validateUidl(page).ok,true,JSON.stringify(validateUidl(page).diagnostics));
+  const html=renderToHtml(page);
+  assert.match(html,/data-eidos-review-table-presentation="confirmation"/);
+  assert.match(html,/<th scope="col">Excel 列<\/th>/);
+  assert.match(html,/<th scope="col">新增字段名称<\/th>/);
+  assert.match(html,/<th scope="col">字段类型<\/th>/);
+  assert.doesNotMatch(html,/<th scope="col">状态<\/th>/);
+  assert.doesNotMatch(html,/本批字段处理方案预览|批次固定值|来源样本：/);
+  const repo=createObjectExtensionRepositoryV010(createMemoryEnterpriseResourceRepositoryV010());
+  let checked=0;
+  const action=createObjectExtensionActionHandlersV010({
+    repository:repo,canManageEnterpriseContext:()=>true,
+    getImportJob:(_,id)=>id===job.importJobId?job:undefined,
+    applyImportMapping:values=>{job={...job,mapping:structuredClone(values.mapping),
+      ignoredSourceColumns:structuredClone(values.ignoredSourceColumns??[])};},
+    dryRunImport:values=>{checked++;assert.equal(values.importJobId,job.importJobId);
+      job={...job,state:"DRY_RUN_READY"};return job;}
+  }).find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010);
+  assert.ok(action);
+  const submitted=request(job);
+  submitted.values.confirmAndPrecheck="YES";
+  const result=await action.execute(submitted,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.validationState,"DRY_RUN_READY");
+  assert.match(result.result.navigateTo,/\/review$/);
+  assert.equal(checked,1);
+  assert.equal(repo.list(contextId,"counterparty.subject").length,4);
+});
+
+test("V3 confirmation keeps created definitions and a recoverable route when precheck fails",async()=>{
+  let job={...fixture(),ignoredSourceColumns:["系统编码"]};
+  const repo=createObjectExtensionRepositoryV010(createMemoryEnterpriseResourceRepositoryV010());
+  const action=createObjectExtensionActionHandlersV010({
+    repository:repo,canManageEnterpriseContext:()=>true,
+    getImportJob:(_,id)=>id===job.importJobId?job:undefined,
+    applyImportMapping:values=>{job={...job,mapping:structuredClone(values.mapping),
+      ignoredSourceColumns:structuredClone(values.ignoredSourceColumns??[])};},
+    dryRunImport:()=>{throw new Error("VALIDATION_TEMPORARILY_UNAVAILABLE");}
+  }).find(x=>x.commandCode===OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010);
+  assert.ok(action);
+  const submitted=request(job);
+  submitted.values.confirmAndPrecheck="YES";
+  const result=await action.execute(submitted,ctx());
+  assert.equal(result.ok,true,JSON.stringify(result));
+  assert.equal(result.result.state,"MAPPED");
+  assert.equal(result.result.precheckErrorCode,"VALIDATION_TEMPORARILY_UNAVAILABLE");
+  assert.match(result.result.navigateTo,/\/map$/);
+  assert.equal(repo.list(contextId,"counterparty.subject").length,4);
+  assert.equal(job.mapping.length,6);
+});
+
 test("BEX batch Human confirmation creates four extension fields, saves all mappings, but never imports or invents subjectType",async()=>{
   const x=setup();
   const before=structuredClone(x.getJob().source.rows);

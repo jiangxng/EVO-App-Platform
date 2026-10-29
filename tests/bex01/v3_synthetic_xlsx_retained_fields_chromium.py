@@ -235,7 +235,7 @@ with sync_playwright() as pw:
     for col in range(4,21):
         choice["map_"+str(col)]="__CREATE__"
     reviewed=command("data-import.review",choice)
-    assert "mode=batch" in reviewed["navigateTo"],reviewed
+    assert "mode=confirm" in reviewed["navigateTo"],reviewed
     assert reviewed["job"]["state"]=="STAGED"
     assert reviewed["job"]["source"]["rows"]==job["source"]["rows"]
     assert reviewed["job"]["mapping"] and any(
@@ -424,7 +424,20 @@ with sync_playwright() as pw:
       return {sidePanelVisible:value.sidePanelVisible,sidePanelWidth:value.sidePanelWidth};
     }""")==saved_layout, (
       "route exit must not persist a new panel preference")
-    batch=reviewed["navigateTo"]
+    confirmation=reviewed["navigateTo"]
+    page.goto(HOST+"/?surface=desktop#"+confirmation,wait_until="domcontentloaded")
+    confirm_form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
+    expect(confirm_form).to_be_visible(timeout=30000)
+    expect(confirm_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
+      'data-eidos-review-table-presentation','confirmation')
+    expect(confirm_form.locator('[data-eidos-form-review-table] thead th')).to_have_count(3)
+    expect(confirm_form.locator('[data-eidos-form-review-table-row]')).to_have_count(17)
+    expect(confirm_form.locator('[data-eidos-form-task-metrics]')).to_have_count(0)
+    expect(confirm_form.locator('[data-eidos-form-review-plan]')).to_have_count(0)
+    expect(confirm_form.locator('button[data-eidos-action="create-extension-batch"]')).to_have_text(
+      "确认创建并预检查")
+    page.screenshot(path=str(OUT/"v3-confirm-new-fields-1280.png"),full_page=False)
+    batch=confirmation.replace("&mode=confirm","&mode=batch")
     page.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     form=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(form).to_be_visible(timeout=30000)
@@ -626,6 +639,14 @@ with sync_playwright() as pw:
     capture_map_scroll_evidence(small,mobile_map,"phone")
     small.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-phone.png"),full_page=True)
     print("BEX01_V3_E2_ACTUAL_MAP_22_TABLE_ROWS_PASS:PHONE",flush=True)
+    small.goto(HOST+"/?surface=desktop#"+confirmation,wait_until="domcontentloaded")
+    mobile_confirm=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
+    expect(mobile_confirm).to_be_visible(timeout=30000)
+    expect(mobile_confirm.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
+      'data-eidos-review-table-presentation','confirmation')
+    assert mobile_confirm.locator('[data-eidos-review-table-choice] select').first.evaluate(
+      '(element) => element.getBoundingClientRect().height')>=44
+    small.screenshot(path=str(OUT/"v3-confirm-new-fields-390.png"),full_page=False)
     small.goto(HOST+"/?surface=desktop#"+batch,wait_until="domcontentloaded")
     mobile_form=small.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
     expect(mobile_form).to_be_visible(timeout=30000)
@@ -1115,6 +1136,31 @@ with sync_playwright() as pw:
     assert visual_phone.evaluate("location.hash")== "#/data-import", "PHONE_RETURN_TO_FILE_LIST_ROUTE_REQUIRED"
     print("BEX01_V3_FOOTER_RESET_AND_NAV_PHONE_PASS",flush=True)
     visual_phone_context.close()
+
+    # Complete a separate synthetic confirmation through the actual mounted
+    # button and Host dry-run. The preceding 22-column fixture remains intact.
+    confirm_csv=("往来编码,名称,主体类型,V3确认流程验收字段\n"
+      "V3-CHECK-999,确认流程测试供应商,ORGANIZATION,演示值\n").encode("utf-8")
+    confirm_staged=command("data-import.stage-file",{
+      "targetId":"counterparty.subject",
+      "file":{"name":"BEX-V3-CONFIRM-SYNTHETIC.csv","mediaType":"text/csv",
+        "size":len(confirm_csv),"contentBase64":base64.b64encode(confirm_csv).decode()},
+      "parameter__relationshipMode":"SUPPLIER"})
+    confirm_id=confirm_staged["job"]["importJobId"]
+    confirm_reviewed=command("data-import.review",{
+      "importJobId":confirm_id,"map_0":"code","map_1":"displayName",
+      "map_2":"subjectType","map_3":"__CREATE__"})
+    assert "mode=confirm" in confirm_reviewed["navigateTo"],confirm_reviewed
+    page.goto(HOST+"/?surface=desktop#"+confirm_reviewed["navigateTo"],
+      wait_until="domcontentloaded")
+    final_confirm=page.locator('form[data-eidos-id="evo-object-extension.batch-import"]')
+    expect(final_confirm).to_be_visible(timeout=30000)
+    expect(final_confirm.locator('[data-eidos-form-review-table-row]')).to_have_count(1)
+    final_confirm.locator('button[data-eidos-action="create-extension-batch"]').click()
+    expect(page.get_by_role("heading",name="导入预检查").first).to_be_visible(timeout=30000)
+    assert page.evaluate("location.hash").endswith("/review")
+    assert "预检查通过" in page.locator("body").inner_text()
+    print("BEX01_V3_CONFIRM_TO_REAL_PRECHECK_PASS",flush=True)
 
     context.close()
     browser.close()

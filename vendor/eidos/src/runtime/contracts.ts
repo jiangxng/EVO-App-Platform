@@ -59,7 +59,8 @@ export interface UidlFormReviewGroupV010 {
 /** Optional table realization of existing reviewGroups, preserving form field identity. */
 export interface UidlFormReviewTableV010 {
   /** Opt-in compact Human decision rows; default remains standard. */
-  presentation?: "standard" | "compact";
+  /** Three-column confirmation: source, proposed name, editable type. */
+  presentation?: "standard" | "compact" | "confirmation";
   /** Optional wide-screen same-line collapsed evidence; default stacked. */
   evidenceLayout?: "stacked" | "inline-collapsed";
   /** Optional section context preceding the original decision table. */

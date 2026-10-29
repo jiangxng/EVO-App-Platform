@@ -5490,6 +5490,10 @@ const actionRouter = createAppActionRouter(
                   assertAvailable();
                   batchImportService.updateMapping({ ...values, mappingOrigin: "HUMAN" });
                 },
+                dryRunImport: values => {
+                  assertAvailable();
+                  return batchImportService.dryRun(values);
+                },
                 saveBatchReviewDraft: values => {
                   assertAvailable();
                   if (values.actorSubjectId!==values.draft.actorSubjectId)
@@ -8062,7 +8066,7 @@ const server = createServer(async (request, response) => {
         });
         const module=await import("../apps/object-extension/page.js");
         const importRoute = new URL(url.searchParams.get("route") ?? "/", "https://evo.invalid");
-        if (importRoute.searchParams.get("mode") === "batch") {
+        if (["batch","confirm"].includes(importRoute.searchParams.get("mode") ?? "")) {
           const batch = await import("../apps/object-extension/batch-page.js");
           const targets = await resolveEffectiveDataImportTargetsV010(job.targetId);
           const target = targets.find(x => x.targetId === job.targetId);
@@ -8079,6 +8083,7 @@ const server = createServer(async (request, response) => {
             }));
           return json(response,200,batch.createObjectExtensionBatchImportPageV010({
             job,locale:requestedLocale(url),importableTargets,
+            confirmationOnly: importRoute.searchParams.get("mode") === "confirm",
             actorSubjectId:session.principal.subjectId,
             definitions:(await extensionManagement.resolveRead()).list(active.contextId,"counterparty.subject")
           }));
