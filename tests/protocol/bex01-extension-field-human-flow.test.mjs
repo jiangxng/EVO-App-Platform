@@ -73,7 +73,8 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
   job,schema:schemaBefore,locale:"zh-CN",canCreateExtension:true,
   canUsePersonalAgent:true
  });
- assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.route,objectExtensionImportRouteV010(job.importJobId,"开户银行"));
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink,undefined,
+   "V3 mapping decisions have no extra per-row creation button");
  const prefilled=createObjectExtensionImportPageV010({job,locale:"zh-CN",sourceColumn:"开户银行"});
  assert.equal(prefilled.fields.find(x=>x.key==="label").initialValue,"开户银行");
  assert.equal(prefilled.fields.find(x=>x.key==="sourceColumn").options.length,1);
@@ -81,8 +82,8 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  assert.throws(()=>createObjectExtensionImportPageV010({
    job,locale:"zh-CN",sourceColumn:"系统编码"
  }),/OBJECT_EXTENSION_SOURCE_NOT_UNMAPPED/);
- assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.contextLink?.label,
-   "新建字段：开户银行");
+ assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_2")?.options.find(x=>x.value==="__CREATE__")?.label,
+   "新建字段： 开户银行");
  assert.equal(mappingWithEntry.fields.find(x=>x.key==="map_0")?.contextLink,undefined);
  assert.equal(mappingWithEntry.reviewTable.utilityNavigation,undefined);
  assert.equal(mappingWithEntry.contextNavigation.items.some(x=>
@@ -135,9 +136,10 @@ test("BEX-01 human extension flow uses existing CP-03 owner and refreshes import
  }]};
  const ambiguous=createDataImportMappingPageV010({job,schema:ambiguousSchema,locale:"zh-CN"});
  assert.equal(ambiguous.fields.find(x=>x.key==="map_2").initialValue,"__PENDING__");
- assert.match(ambiguous.fields.find(x=>x.key==="sourceEvidence_2").initialValue,/汇丰/);
- assert.match(ambiguous.fields.find(x=>x.key==="candidateEvidence_2").initialValue,
-   /ext_duplicate_same_label/);
+ assert.equal(ambiguous.reviewGroups.find(x=>x.primaryFieldKey==="map_2").summary,"汇丰");
+ assert.equal(ambiguous.reviewGroups.find(x=>x.primaryFieldKey==="map_2").detailFieldKeys.length,0);
+ assert.ok(ambiguous.fields.find(x=>x.key==="map_2").options.some(x=>
+   x.label.includes("ext_duplicate_same_label")));
  assert.ok(ambiguous.fields.find(x=>x.key==="map_2").options.some(x=>
    x.label.includes("业务用途待核对")));
  const duplicate=await action.execute(request("开户银行","另一个名称","STRING"),ctx());
