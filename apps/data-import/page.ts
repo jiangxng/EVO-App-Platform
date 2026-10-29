@@ -66,7 +66,7 @@ function text(locale?: string) {
         relationshipRole: "关系角色",
         mappingTitle: "字段映射",
         mappingDescription:
-          "先恢复本企业之前的映射，再按字段名建议匹配；可点击 AI 自动匹配。没有目标的列默认建议创建企业字段而非忽略，原始 Excel 全列保留。审核后再预检查和明确提交，允许后续修改映射。AI 设置的批次固定值和值转换仍会保留。",
+          "先恢复本企业之前的映射，再按字段名建议匹配。没有目标的列默认建议新建字段而非忽略，原始 Excel 全列保留。审核后再预检查和明确提交，允许后续修改映射。批次固定值和值转换仍会保留。",
         ignore: "忽略此列",
         batchConstant: "批次固定值",
         valueTransform: "值转换",
@@ -105,7 +105,7 @@ function text(locale?: string) {
         evidenceDescription:
           "原始表头和行数据保留在本次导入记录中；未映射列不会因为本次未使用而被丢弃。成功确认导入后，可沉淀为企业导入规则供同结构文件复用。",
         recipeAppliedDescription:
-          "系统已复用此前确认成功的企业导入规则并完成预检查。你可以直接核对结果；只有需要调整时才重新映射或请求 AI 辅助。",
+          "系统已复用此前确认成功的企业导入规则并完成预检查。你可以直接核对结果；需要调整时再修改字段对应关系。",
         ecRecommendation: "EC 经验建议",
         ecRecommendationDescription:
           "Experience Compiler 根据以前由人工确认并成功导入的经验给出了字段建议。建议仍需你确认，EC 不会直接执行导入。",
@@ -139,7 +139,7 @@ function text(locale?: string) {
         relationshipRole: "Relationship role",
         mappingTitle: "Field mapping",
         mappingDescription:
-          "Confirm how each source column maps to EVO fields. Matching by field ID and localized labels is suggested automatically. AI-provided batch constants and value transforms are shown below and are preserved unless explicitly replaced.",
+          "Confirm how each source column maps to EVO fields. Matching by field ID and localized labels is suggested automatically. Saved batch constants and value transforms remain available unless explicitly replaced.",
         ignore: "Ignore this column",
         batchConstant: "Batch constant",
         valueTransform: "Value transform",
@@ -178,7 +178,7 @@ function text(locale?: string) {
         evidenceDescription:
           "Original headers and row values remain preserved with this import job. Unmapped columns are not discarded. A successful confirmed import can become an enterprise import recipe for later files with the same structure.",
         recipeAppliedDescription:
-          "A previously confirmed enterprise import recipe was reused and validation has already run. Review the result directly; remap or ask AI only when an adjustment is needed.",
+          "A previously confirmed enterprise import recipe was reused and validation has already run. Review the result directly; adjust field mappings only when needed.",
         ecRecommendation: "EC experience recommendation",
         ecRecommendationDescription:
           "Experience Compiler suggested fields from prior Human-confirmed successful imports. You still confirm the mapping; EC never executes the import.",
@@ -506,6 +506,7 @@ export function createDataImportMappingPageV010(input: {
   target?: FoundationObjectImportTargetV010;
   locale?: string;
   canCreateExtension?: boolean;
+  canUsePersonalAgent?: boolean;
   createdMapping?: {sourceColumn: string; fieldId: string};
 }) {
   const t = text(input.locale);
@@ -781,20 +782,6 @@ export function createDataImportMappingPageV010(input: {
     }] : [])
   ];
   const utilityNavigationItems = [
-    ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
-        && unmapped.length>0 ? [{
-      id:"batch-review",
-      label:zh(input.locale)
-        ? "集中审核 "+unmapped.length+" 个未匹配字段"
-        : "Review "+unmapped.length+" unmatched fields together",
-      route:objectExtensionImportRouteV010(input.job.importJobId)+"&mode=batch"
-    },{
-      id:"create-extension",
-      label:zh(input.locale)
-        ? "创建企业扩展字段（未匹配列）"
-        : "Create extension from unmatched columns",
-      route:objectExtensionImportRouteV010(input.job.importJobId)
-    }] : []),
     ...(!unmapped.length && canReviewBatchConstant ? [{
       id:"batch-constant",
       label:zh(input.locale) ? "核对本次导入的批次固定值" : "Review batch constants",
@@ -807,10 +794,9 @@ export function createDataImportMappingPageV010(input: {
     // Only BEX enables compact desktop evidence; default remains stacked.
     evidenceLayout: "inline-collapsed" as const,
     ...(utilityNavigationItems.length ? {utilityNavigation:{
-      label:zh(input.locale) ? "字段处理工具" : "Field tools",
+      label:zh(input.locale) ? "批次固定值" : "Batch constants",
       items:utilityNavigationItems
     }} : {}),
-    agentActionId: "ai-auto-map",
     toolbarHint: zh(input.locale)
       ? "优先显示需要确认的来源字段；可切换查看全部原始列。"
       : "Priority source decisions first; switch the filter to inspect all original columns.",
@@ -1159,8 +1145,8 @@ export function createDataImportMappingPageV010(input: {
         ? {
             contextLink: {
               label: zh(input.locale)
-                ? "＋ 为本列创建企业扩展字段"
-                : "+ Create enterprise field for this column",
+                ? "新建字段：" + sourceColumn
+                : "Create field: " + sourceColumn,
               route: objectExtensionImportRouteV010(input.job.importJobId, sourceColumn)
             }
           }
@@ -1170,8 +1156,8 @@ export function createDataImportMappingPageV010(input: {
         label: zh(input.locale) ? "— 待处理（原始列已保留） —" : "— Pending (source preserved) —"
       }, ...(input.canCreateExtension && input.job.targetId === "counterparty.subject"
         ? [{value: "__CREATE__", label: zh(input.locale)
-          ? "＋ 建议新建企业字段（集中审核确认）"
-          : "+ Propose enterprise field (confirm in batch review)"}]
+          ? "新建字段： " + sourceColumn
+          : "Create field: " + sourceColumn}]
         : []), {
         value: "__IGNORE__",
         label: "— " + t.ignore + " —"
@@ -1193,7 +1179,7 @@ export function createDataImportMappingPageV010(input: {
       type: "submit" as const,
       command: DATA_IMPORT_REVIEW_COMMAND_V010,
       requiresConfirmation: false
-    }, {
+    }, ...(input.canUsePersonalAgent ? [{
       id: "ai-auto-map",
       label: t.aiMap,
       type: "agent" as const,
@@ -1205,7 +1191,7 @@ export function createDataImportMappingPageV010(input: {
         targetId: input.job.targetId
       },
       refreshSourceOnComplete: true
-    }],
+    }] : [])],
     metadata: {
       description: input.job.mappingOrigin === "RECIPE"
         ? t.recipeAppliedDescription

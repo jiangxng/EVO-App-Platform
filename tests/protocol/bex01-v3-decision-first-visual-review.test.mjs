@@ -150,30 +150,26 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     presentation:"standard",evidenceLayout:"inline-collapsed"}}).ok,false);
   assert.match(renderToHtml({...mapping,reviewTable:{...mapping.reviewTable,
     evidenceLayout:undefined}}),/data-eidos-review-table-evidence-layout="stacked"/);
-  assert.equal(mapping.reviewTable.utilityNavigation.label,"字段处理工具");
-  assert.deepEqual(mapping.reviewTable.utilityNavigation.items.map(item=>item.id),
-    ["batch-review","create-extension"]);
+  assert.equal(mapping.reviewTable.utilityNavigation,undefined);
   assert.equal(mapping.contextNavigation.items.some(item=>item.id==="batch-review"
     || item.id==="create-extension"),false);
   const utilityHtml=renderToHtml(mapping);
-  assert.match(utilityHtml,/data-eidos-form-review-table-utility-nav/);
-  assert.match(utilityHtml,/data-eidos-form-review-table-utility-id="batch-review"/);
-  assert.match(utilityHtml,/data-eidos-context-route="\/object-extensions\/from-import\?/);
+  assert.doesNotMatch(utilityHtml,/data-eidos-form-review-table-utility-nav/);
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     utilityNavigation:{label:"Unsafe",items:[{id:"bad",label:"Unsafe",
       route:"https://example.invalid"}]}}}).ok,false);
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     utilityNavigation:{label:"Duplicate",items:[
-      mapping.reviewTable.utilityNavigation.items[0],
-      mapping.reviewTable.utilityNavigation.items[0]]}}}).ok,false);
-  assert.equal(mapping.reviewTable.agentActionId,"ai-auto-map");
-  const htmlWithAgent=renderToHtml(mapping);
-  assert.match(htmlWithAgent,/data-eidos-review-table-agent-action/);
+      {id:"same",label:"Same",route:"/data-import"},
+      {id:"same",label:"Same",route:"/data-import"}]}}}).ok,false);
+  assert.equal(mapping.reviewTable.agentActionId,undefined);
+  assert.doesNotMatch(utilityHtml,/data-eidos-agent-action="ai-auto-map"/);
+  const htmlWithAgent=renderToHtml(createDataImportMappingPageV010({
+    job,schema,locale:"zh-CN",canCreateExtension:true,canUsePersonalAgent:true
+  }));
+  assert.doesNotMatch(htmlWithAgent,/data-eidos-review-table-agent-action/);
   assert.equal((htmlWithAgent.match(/data-eidos-agent-action="ai-auto-map"/g)??[]).length,1,
-    "the existing Host Agent action must have exactly one real button");
-  assert.doesNotMatch(htmlWithAgent.split("<footer data-eidos-form-actions>")[1],
-    /data-eidos-agent-action="ai-auto-map"/,
-    "AI mapping belongs beside mapping decisions rather than extra footer actions");
+    "the installed Personal Agent may offer one secondary action outside the V3 filter toolbar");
   assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
     agentActionId:"nonexistent-agent-action"}}).ok,false,
     "inert toolbar buttons must be rejected rather than faked");

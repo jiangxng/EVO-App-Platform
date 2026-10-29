@@ -422,7 +422,7 @@ with sync_playwright() as pw:
     map_filter.select_option("all")
     expect(map_rows.nth(21)).to_be_visible()
     print("BEX01_V3_E2_ACTUAL_MAP_TABLE_FILTER_PRESERVES_22_VALUES",flush=True)
-    assert map_form.locator('[data-eidos-agent-action="ai-auto-map"]').count()==1
+    assert map_form.locator('[data-eidos-review-table-agent-action]').count()==0
     entry=map_form.locator('[data-eidos-field-context-link]')
     expect(entry.first).to_be_visible()
     assert "B 方案" not in map_form.inner_text()
@@ -906,19 +906,11 @@ with sync_playwright() as pw:
     expect(visual_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
     expect(visual_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
     options_menu=visual_form.locator('[data-eidos-form-review-table-utility-nav]')
-    expect(options_menu.locator("summary")).to_have_text("字段处理工具")
-    options_menu.locator("summary").click()
-    expect(options_menu.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
-    expect(options_menu.locator('[data-eidos-form-review-table-utility-id="create-extension"]')).to_be_visible()
-    visual_page.screenshot(path=str(OUT/"v3-secondary-field-tools-desktop.png"),full_page=False)
-    options_menu.locator("summary").click()
+    expect(options_menu).to_have_count(0)
     expect(visual_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(visual_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
     toolbar_ai=visual_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
-    expect(toolbar_ai).to_have_count(1)
-    expect(toolbar_ai).to_have_text("AI 自动匹配")
-    expect(visual_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
-    assert toolbar_ai.evaluate("(el)=>el.getAttribute('type')")=="button"
+    expect(toolbar_ai).to_have_count(0)
     expect(visual_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
     filter_choice=visual_form.locator('[data-eidos-form-review-table-filter]')
     expected_count=visual_form.locator('[data-eidos-form-review-table-count]')
@@ -1104,21 +1096,11 @@ with sync_playwright() as pw:
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
     expect(phone_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
     phone_tools=phone_form.locator('[data-eidos-form-review-table-utility-nav]')
-    expect(phone_tools.locator("summary")).to_have_text("字段处理工具")
-    assert phone_tools.locator("summary").evaluate("(el)=>el.getBoundingClientRect().height")>=44
-    phone_tools.locator("summary").click()
-    expect(phone_tools.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
-    expect(phone_tools.locator('[data-eidos-form-review-table-utility-id="create-extension"]')).to_be_visible()
-    assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX_V3_PHONE_UTILITIES_OVERFLOW"
-    visual_phone.screenshot(path=str(OUT/"v3-secondary-field-tools-phone.png"),full_page=False)
-    phone_tools.locator("summary").click()
+    expect(phone_tools).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
     expect(phone_form.locator('[data-eidos-form-review-table-toolbar-hint]')).to_contain_text("优先显示需要确认的来源字段")
     phone_ai=phone_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
-    expect(phone_ai).to_have_count(1)
-    expect(phone_ai).to_have_text("AI 自动匹配")
-    assert phone_ai.evaluate("(el)=>el.getBoundingClientRect().height")>=44
-    expect(phone_form.locator('footer[data-eidos-form-actions] [data-eidos-agent-action]')).to_have_count(0)
+    expect(phone_ai).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
     # Compact mobile source content remains readable while its disclosure
     # sits on the same visual row; opening restores full-width source detail.

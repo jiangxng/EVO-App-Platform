@@ -240,15 +240,13 @@ with sync_playwright() as p:
    print("BEX_EXT_MAP_FIRST="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:600]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
-   # Create from the unmapped column itself, without changing the Agent entry.
+   # Create from the unmapped column itself. Optional Agent assistance stays
+   # outside the V3 field-filter toolbar.
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
-   expect(mapping_form.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
-   # Batch B is now visible beside the original per-column action.
+   expect(mapping_form.locator('[data-eidos-review-table-agent-action]')).to_have_count(0)
    expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
    utility=mapping_form.locator('[data-eidos-form-review-table-utility-nav]')
-   expect(utility.locator("summary")).to_have_text("字段处理工具")
-   utility.locator("summary").click()
-   expect(utility.locator('[data-eidos-form-review-table-utility-id="batch-review"]')).to_be_visible()
+   expect(utility).to_have_count(0)
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
    expect(inline).to_have_count(1)
    expect(inline.first).to_have_attribute("data-eidos-context-route",
@@ -336,13 +334,11 @@ with sync_playwright() as p:
    mapping="/data-import/jobs/"+job+"/map"
    page.goto(HOST+"/?surface=desktop#"+mapping,wait_until="domcontentloaded")
    expect(page.locator('form[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=30000)
-   expect(page.locator('[data-eidos-agent-action="ai-auto-map"]')).to_be_visible()
+   expect(page.locator('[data-eidos-review-table-agent-action]')).to_have_count(0)
    expect(page.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="&mode=batch"]')).to_have_count(0)
    tools=page.locator('form[data-eidos-id="evo-data-import.mapping"] [data-eidos-form-review-table-utility-nav]')
-   tools.locator("summary").click()
-   entry=tools.locator('[data-eidos-form-review-table-utility-id="batch-review"]')
-   expect(entry).to_be_visible()
-   entry.click()
+   expect(tools).to_have_count(0)
+   page.locator('form[data-eidos-id="evo-data-import.mapping"] button[data-eidos-action="review"]').click()
    page.wait_for_timeout(850)
    print("BEX_BATCH_ROUTE_AFTER_CLICK="+json.dumps(page.evaluate("""() => ({
      url: location.href,
