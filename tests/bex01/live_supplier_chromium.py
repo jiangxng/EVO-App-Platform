@@ -240,23 +240,19 @@ with sync_playwright() as p:
    print("BEX_EXT_MAP_FIRST="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:600]},ensure_ascii=False),flush=True)
    expect(page.locator('[data-eidos-id="evo-data-import.mapping"]')).to_be_visible(timeout=15000)
-   # Create from the unmapped column itself. Optional Agent assistance stays
-   # outside the V3 field-filter toolbar.
+   # V3 keeps the source sample as plain text. Single-field creation remains
+   # reachable by a guarded deep link, while the visible V3 path uses batch review.
    mapping_form=page.locator('form[data-eidos-id="evo-data-import.mapping"]')
    expect(mapping_form.locator('[data-eidos-review-table-agent-action]')).to_have_count(0)
    expect(mapping_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
    utility=mapping_form.locator('[data-eidos-form-review-table-utility-nav]')
    expect(utility).to_have_count(0)
    inline=mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')
-   expect(inline).to_have_count(1)
-   expect(inline.first).to_have_attribute("data-eidos-context-route",
-     "/object-extensions/from-import?job="+job+"&column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C")
-   # In generic Eidos compact ReviewTable, source-bound actions are available
-   # in that same source row's accessible evidence disclosure.
+   expect(inline).to_have_count(0)
    bank_row=mapping_form.locator('[data-eidos-form-review-table-row="map-source-3"]')
-   bank_row.locator('[data-eidos-review-group-detail] summary').click()
-   expect(inline.first).to_be_visible()
-   inline.first.click()
+   expect(bank_row.locator('[data-eidos-review-group-detail]')).to_have_count(0)
+   page.goto(HOST+"/?surface=desktop#/object-extensions/from-import?job="+job
+     +"&column=%E5%BC%80%E6%88%B7%E9%93%B6%E8%A1%8C",wait_until="domcontentloaded")
    print("BEX_EXT_OPEN="+json.dumps({"url":page.url,
       "text":page.locator("body").inner_text()[:400]},ensure_ascii=False),flush=True)
    expect(page.locator('form[data-eidos-id="evo-object-extension.import"]')).to_be_visible(timeout=15000)

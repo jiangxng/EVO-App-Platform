@@ -55,11 +55,7 @@ def verify_two_same_label_bank_choices(page, form, device):
         "BEX_V3_BANK_MUST_NOT_INVENT_PURPOSE",device,candidates)
     expect(form.locator('[data-eidos-form-task-issues]')).to_contain_text(
         "无法确认时不要提交")
-    evidence=row.locator('input[name="candidateEvidence_20"]')
-    expect(evidence).to_be_visible()
-    full=evidence.input_value()
-    assert all(fieldId in full for fieldId in ids),(
-        "BEX_V3_BANK_CANDIDATE_EVIDENCE_COMPLETE",device,full)
+    expect(row.locator('[data-eidos-review-group-detail]')).to_have_count(0)
     source=row.locator('[data-eidos-review-table-sample]')
     expect(source).to_contain_text("招商银行深圳科技园支行")
     original=source.inner_text()
@@ -377,7 +373,7 @@ with sync_playwright() as pw:
     assert map_form.locator('[data-eidos-review-table-detail-row]').count()==0, (
         "Pinned Eidos E4 must not reserve an extra row for collapsed source details")
     expect(map_rows.first.locator(
-        '[data-eidos-review-table-evidence] [data-eidos-review-group-detail]')).to_have_count(1)
+        '[data-eidos-review-table-evidence] [data-eidos-review-group-detail]')).to_have_count(0)
     expect(map_form.locator('[data-eidos-review-table-choice] select')).to_have_count(22)
     map_filter=map_form.locator('[data-eidos-form-review-table-filter]')
     expect(map_filter).to_have_value("needs")
@@ -401,20 +397,9 @@ with sync_playwright() as pw:
     # still carry the original stable schema field ID.
     code_option=map_rows.first.locator('select[name="map_0"] option[value="code"]')
     assert " · code" not in code_option.inner_text()
-    map_rows.first.locator('[data-eidos-review-group-detail] summary').click()
-    expect(map_rows.first.locator('input[name="sourceEvidence_0"]')).to_be_visible()
-    assert "RET-0002" in map_rows.first.locator(
-        'input[name="sourceEvidence_0"]').input_value()
-    map_rows.nth(4).locator('[data-eidos-review-group-detail] summary').click()
-    expect(map_rows.nth(4).locator('input[name="sourceEvidence_4"]')).to_be_visible()
-    # The direct single-field create action still exists but is no longer a
-    # repetitive long line below every visible select in compact V3 rows.
-    expect(map_rows.nth(4).locator(
-      '[data-eidos-review-table-evidence] [data-eidos-field-context-link]')).to_be_visible()
-    expect(map_rows.nth(4).locator(
-      '[data-eidos-review-table-choice] [data-eidos-field-context-link]')).to_have_count(0)
-    assert "synthetic-4-0002" in map_rows.nth(4).locator(
-        'input[name="sourceEvidence_4"]').input_value()
+    expect(map_rows.first.locator('[data-eidos-review-table-sample]')).to_be_visible()
+    expect(map_rows.nth(4).locator('[data-eidos-review-group-detail]')).to_have_count(0)
+    expect(map_rows.nth(4).locator('[data-eidos-field-context-link]')).to_have_count(0)
     expect(map_rows.nth(21).locator('select[name="map_21"]')).to_have_value("__IGNORE__")
     map_filter.select_option("needs")
     expect(map_rows.first).to_be_hidden()
@@ -423,8 +408,7 @@ with sync_playwright() as pw:
     expect(map_rows.nth(21)).to_be_visible()
     print("BEX01_V3_E2_ACTUAL_MAP_TABLE_FILTER_PRESERVES_22_VALUES",flush=True)
     assert map_form.locator('[data-eidos-review-table-agent-action]').count()==0
-    entry=map_form.locator('[data-eidos-field-context-link]')
-    expect(entry.first).to_be_visible()
+    expect(map_form.locator('[data-eidos-field-context-link]')).to_have_count(0)
     assert "B 方案" not in map_form.inner_text()
     capture_map_scroll_evidence(page,map_form,"desktop")
     page.screenshot(path=str(OUT/"v3-e2-actual-map-22-rows-desktop.png"),full_page=True)
@@ -589,8 +573,8 @@ with sync_playwright() as pw:
     expect(mobile_filter).to_have_value("needs")
     mobile_map_group=mobile_map.locator('[data-eidos-form-review-table-row]').nth(4)
     expect(mobile_map_group.locator('select[name="map_4"]')).to_be_visible()
-    mobile_map_group.locator('[data-eidos-review-group-detail] summary').click()
-    expect(mobile_map_group.locator('input[name="sourceEvidence_4"]')).to_be_visible()
+    expect(mobile_map_group.locator('[data-eidos-review-group-detail]')).to_have_count(0)
+    expect(mobile_map_group.locator('[data-eidos-review-table-sample]')).to_be_visible()
     mobile_map.locator('[data-eidos-form-task-overview]').screenshot(
         path=str(OUT/"v3-e4-task-overview-phone.png"))
     mobile_filter.select_option("all")
@@ -840,43 +824,12 @@ with sync_playwright() as pw:
     visual_page.screenshot(path=str(OUT/"v3-connected-issues-desktop.png"),full_page=False)
     table=visual_form.locator('[data-eidos-form-review-table-wrap]')
     expect(table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
-    collapsed=table.locator('[data-eidos-form-review-table-row]:not([hidden]) [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
-    assert collapsed.count()>=2, "BEX_V3_COLLAPSED_EVIDENCE_REQUIRED"
-    assert collapsed.first.evaluate("el=>getComputedStyle(el).display==='inline-block'"),(
-      "BEX_V3_DESKTOP_INLINE_EVIDENCE_REQUIRED")
-    row=collapsed.first.locator('xpath=ancestor::tr')
-    print("BEX_V3_DESKTOP_INLINE_ROW_MEASUREMENT="+json.dumps(row.evaluate("""el=>{
-      const td=el.querySelector('[data-eidos-review-table-evidence]');
-      const details=td.querySelector('details'), summary=details.querySelector('summary');
-      const sample=td.querySelector('[data-eidos-review-table-sample]');
-      const target=el.querySelector('[data-eidos-review-table-choice] select');
-      const info=e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return {
-        h:r.height,w:r.width,x:r.x,y:r.y,display:s.display,
-        lineHeight:s.lineHeight,paddingTop:s.paddingTop,paddingBottom:s.paddingBottom,
-        verticalAlign:s.verticalAlign,marginTop:s.marginTop,marginBottom:s.marginBottom};};
-      return {row:info(el),cell:info(td),details:info(details),
-        summary:info(summary),sample:info(sample),target:info(target),
-        field:info(target.closest('[data-eidos-form-field]')),
-        label:info(target.closest('label')),
-        choiceCell:info(target.closest('td')),
-        th:info(el.querySelector('th')),
-        statusCell:info(el.querySelector('[data-eidos-review-table-status]')),
-        title:el.querySelector('th')?.textContent};
-    }"""),ensure_ascii=False),flush=True)
-    visual_page.screenshot(path=str(OUT/"v3-inline-evidence-measurement-desktop.png"),full_page=False)
+    expect(table.locator('[data-eidos-review-group-detail]')).to_have_count(0)
+    row=table.locator('[data-eidos-form-review-table-row]:not([hidden]) tr').first
+    expect(row.locator('[data-eidos-review-table-sample]')).to_be_visible()
     assert row.evaluate('el=>el.getBoundingClientRect().height')<=68,(
       "BEX_V3_DESKTOP_MAPPING_ROW_TOO_TALL")
-    # Pin this exact source group: :not([open]) would reselect the next row
-    # immediately after the user expands this one.
-    row_id=row.locator('xpath=..').get_attribute('data-eidos-form-review-table-row')
-    assert row_id, "BEX_V3_STABLE_ROW_ID_REQUIRED"
-    stable=table.locator('[data-eidos-form-review-table-row="'+row_id+'"] [data-eidos-review-group-detail]')
-    stable.locator('summary').click()
-    expect(stable).to_have_attribute('open','')
-    expect(stable.locator('[data-eidos-review-group-fields]')).to_be_visible()
-    stable.locator('summary').click()
-    expect(stable).not_to_have_attribute('open','')
-    table.locator('[data-eidos-form-review-table-row="'+row_id+'"]').scroll_into_view_if_needed()
+    row.scroll_into_view_if_needed()
     visual_page.screenshot(path=str(OUT/"v3-inline-evidence-density-desktop.png"),full_page=False)
     row_issue=issue_list.filter(has_text="3 条记录缺少主体类型")
     row_disclosure=row_issue.locator('[data-eidos-form-task-issue-related]')
@@ -1045,11 +998,9 @@ with sync_playwright() as pw:
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_PHONE_CONNECTED_ISSUES_OVERFLOW"
     phone_table=phone_form.locator('[data-eidos-form-review-table-wrap]')
     expect(phone_table).to_have_attribute('data-eidos-review-table-evidence-layout','inline-collapsed')
-    phone_collapsed=phone_table.locator('[data-eidos-form-review-table-row]:not([hidden]) [data-eidos-review-table-evidence] [data-eidos-review-group-detail]:not([open])')
-    assert phone_collapsed.count()>=2
-    assert phone_collapsed.first.evaluate("el=>getComputedStyle(el).display!=='inline-block'"),(
-      "BEX_V3_PHONE_MUST_KEEP_STACKED_EVIDENCE")
-    assert phone_collapsed.first.locator('summary').evaluate('el=>el.getBoundingClientRect().height')>=44
+    expect(phone_table.locator('[data-eidos-review-group-detail]')).to_have_count(0)
+    expect(phone_table.locator('[data-eidos-form-review-table-row]:not([hidden]) '
+      '[data-eidos-review-table-sample]').first).to_be_visible()
     # #909 phone: metric cards are roughly 86px high, pending count sits
     # below the explanation and issue actions have useful breathing room.
     # Do not enlarge genuine filenames or shrink real evidence controls.
@@ -1102,36 +1053,14 @@ with sync_playwright() as pw:
     phone_ai=phone_form.locator('[data-eidos-review-table-agent-action][data-eidos-agent-action="ai-auto-map"]')
     expect(phone_ai).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-footnote]')).to_contain_text("原始文件内容仍会保留")
-    # Compact mobile source content remains readable while its disclosure
-    # sits on the same visual row; opening restores full-width source detail.
+    # V3 shows the source example directly on the mobile row.
     phone_evidence=phone_form.locator(
         '[data-eidos-form-review-table-row]:not([hidden]) '
-        '[data-eidos-review-table-evidence]:has(>details)').first
+        '[data-eidos-review-table-evidence]').first
     expect(phone_evidence.locator('[data-eidos-review-table-sample]')).to_be_visible()
-    phone_details=phone_evidence.locator('[data-eidos-review-group-detail]')
-    expect(phone_details.locator('summary')).to_be_visible()
-    evidence_rhythm=phone_evidence.evaluate("""el=>{
-      const sample=el.querySelector('[data-eidos-review-table-sample]').getBoundingClientRect();
-      const summary=el.querySelector('details>summary').getBoundingClientRect();
-      const cell=el.getBoundingClientRect();
-      return {cellHeight:Math.round(cell.height),sampleY:Math.round(sample.y),
-        summaryY:Math.round(summary.y),summaryHeight:Math.round(summary.height),
-        xGap:Math.round(summary.left-sample.right)};
-    }""")
-    assert abs(evidence_rhythm["sampleY"]-evidence_rhythm["summaryY"])<=20,(
-        "V3_PHONE_EVIDENCE_SAME_VISUAL_ROW",evidence_rhythm)
-    assert evidence_rhythm["summaryHeight"]>=44 and evidence_rhythm["xGap"]>=0,(
-        "V3_PHONE_SOURCE_DISCLOSURE_TOUCH_AND_NO_OVERLAP",evidence_rhythm)
-    phone_details.locator('summary').click()
-    expect(phone_details).to_have_attribute("open","")
-    assert phone_evidence.evaluate("""el=>{
-      const details=el.querySelector('details');
-      return details.getBoundingClientRect().width>=el.getBoundingClientRect().width-30;
-    }"""),"V3_PHONE_OPEN_SOURCE_FULL_WIDTH"
+    expect(phone_evidence.locator('[data-eidos-review-group-detail]')).to_have_count(0)
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),(
-        "V3_PHONE_OPEN_SOURCE_OVERFLOW")
-    phone_details.locator('summary').click()
-    print("BEX_V3_PHONE_EVIDENCE_RHYTHM="+json.dumps(evidence_rhythm,ensure_ascii=False),flush=True)
+        "V3_PHONE_SOURCE_OVERFLOW")
 
     phone_filter=phone_form.locator('[data-eidos-form-review-table-filter]')
     phone_count=phone_form.locator('[data-eidos-form-review-table-count]')

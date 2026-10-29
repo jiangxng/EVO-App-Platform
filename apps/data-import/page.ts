@@ -533,11 +533,9 @@ export function createDataImportMappingPageV010(input: {
   const sourceProfiles = input.job.source.headers.map(sourceColumn => {
     const examples: string[] = [];
     const seen = new Set<string>();
-    let nonempty = 0;
     for (const row of input.job.source.rows) {
       const value = row[sourceColumn];
       if (value === null || value === undefined || value === "") continue;
-      nonempty++;
       const literal = String(value);
       if (!seen.has(literal) && examples.length < 3) {
         seen.add(literal);
@@ -545,16 +543,8 @@ export function createDataImportMappingPageV010(input: {
       }
     }
     return {
-      nonempty,
-      examples,
-      // The four-column table needs a quick visual sample; the expanded evidence
-      // remains available even on already-mapped source columns.
       summary: examples[0]
-        ?? (zh(input.locale) ? "来源数据为空" : "Blank source data"),
-      detailSummary: (zh(input.locale) ? "非空 " : "Nonempty ")
-        + nonempty + " / " + input.job.source.rows.length + " · "
-        + (examples.length ? examples.join(" · ")
-          : (zh(input.locale) ? "来源数据为空" : "Blank source data"))
+        ?? (zh(input.locale) ? "来源数据为空" : "Blank source data")
     };
   });
   const usedTargets = new Set(input.job.mapping.map(item => item.targetFieldId));
@@ -709,7 +699,6 @@ export function createDataImportMappingPageV010(input: {
   const reviewGroups = input.job.source.headers.map((sourceColumn, index) => {
     const candidates = candidatesFor(sourceColumn);
     const target = current.get(sourceColumn);
-    const ambiguous = candidates.length > 1;
     const unavailable = Boolean(target)
       && !importFields.some(field => field.fieldId === target);
     return {
@@ -727,16 +716,9 @@ export function createDataImportMappingPageV010(input: {
         ...(unavailable && target ? [target] : []),
         ...importFields.map(field => field.fieldId)
       ].map(value => [value, choiceStatusFor(sourceColumn, value)])),
-      // One row = one short visible sample, plus complete source preview on demand.
-      // Keep original column/row values in the unchanged, durable Import Job.
-      detailFieldKeys: [
-        "sourceEvidence_" + index,
-        ...(ambiguous ? ["candidateEvidence_" + index] : [])
-      ],
-      ...(ambiguous || unavailable ? { defaultExpanded: true } : {}),
-      detailsLabel: zh(input.locale)
-        ? (ambiguous ? "查看来源与候选用途" : "查看来源样本")
-        : (ambiguous ? "Source and candidate uses" : "View source samples")
+      // V3 shows the source example directly, without another per-row button.
+      // The complete original rows remain in the durable Import Job.
+      detailFieldKeys: []
     };
   });
 
@@ -1105,32 +1087,7 @@ export function createDataImportMappingPageV010(input: {
         label: input.job.source.name
           ?? (zh(input.locale) ? "已保存的导入任务" : "Saved import task")
       }]
-    }, ...input.job.source.headers.flatMap((sourceColumn, index) => {
-      const candidates = candidatesFor(sourceColumn);
-
-      return [
-        {
-          key:"sourceEvidence_" + index,
-          label:sourceColumn + (zh(input.locale) ? " · 原始样本" : " · Source examples"),
-          semanticType:"data-import-original-source-evidence",
-          control:"text" as const,readOnly:true,required:false,
-          initialValue: sourceProfiles[index].detailSummary
-        },
-        ...(candidates.length > 1 ? [{
-          key:"candidateEvidence_" + index,
-          label:sourceColumn + (zh(input.locale)
-            ? " · 同名目标用途核对" : " · Compare same-name target purpose"),
-          semanticType:"data-import-target-purpose-review",
-          control:"text" as const,readOnly:true,required:false,
-          initialValue:candidates.map(field => field.resolvedLabel + " · "
-            + (field.resolvedDescription?.trim()
-              || (zh(input.locale) ? "业务用途待确认" : "Purpose needs confirmation"))
-            + " · " + field.fieldId
-            + (input.job.mapping.some(item => item.targetFieldId === field.fieldId)
-              ? (zh(input.locale) ? " · 已被其他来源占用" : " · Already assigned")
-              : "")).join(" ； ")
-        }] : []),
-        {
+    }, ...input.job.source.headers.map((sourceColumn, index) => ({
       key: "map_" + index,
       label: sourceColumn,
       semanticType: "data-import-field-mapping",
@@ -1138,19 +1095,6 @@ export function createDataImportMappingPageV010(input: {
       exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"] },
       required: true,
       initialValue: mappingSelectionFor(sourceColumn),
-      ...(input.canCreateExtension === true
-        && input.job.targetId === "counterparty.subject"
-        && unmapped.includes(sourceColumn)
-        && candidatesFor(sourceColumn).length === 0
-        ? {
-            contextLink: {
-              label: zh(input.locale)
-                ? "新建字段：" + sourceColumn
-                : "Create field: " + sourceColumn,
-              route: objectExtensionImportRouteV010(input.job.importJobId, sourceColumn)
-            }
-          }
-        : {}),
       options: [{
         value: "__PENDING__",
         label: zh(input.locale) ? "— 待处理（原始列已保留） —" : "— Pending (source preserved) —"
@@ -1170,9 +1114,7 @@ export function createDataImportMappingPageV010(input: {
         value: field.fieldId,
         label: fieldLabel.get(field.fieldId) ?? field.fieldId
       }))]
-        }
-      ];
-    }), ...advisoryFields, ...advancedFields],
+    })), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
       label: t.validate,

@@ -123,19 +123,19 @@ test("M04: actual XLSX stage Host keeps two same-label enterprise bank fields un
   assert.ok(bankSelect);
   assert.equal(bankSelect.initialValue,"__PENDING__",
     "existing Human mapping view must expose ambiguity, never claim approved bank target");
-  const evidence=page.fields.find(f=>f.key==="candidateEvidence_"+bankIndex);
-  assert.ok(evidence,"same-name bank candidates must have in-context purpose evidence");
+  const choices=bankSelect.options;
   for(const {fieldId,description} of bankDefs){
-    assert.ok(evidence.initialValue.includes(fieldId));
-    assert.ok(evidence.initialValue.includes(description));
+    assert.ok(choices.some(choice=>choice.label.includes(fieldId)
+      && choice.label.includes(description)),
+      "same-name bank candidates must have in-context purpose evidence");
   }
   const reviewRow=page.reviewGroups.find(g=>
     g.primaryFieldKey==="map_"+bankIndex);
   assert.ok(reviewRow,"the actual /map review row must remain available");
   assert.equal(reviewRow.reviewStatus.key,"attention",
     "duplicate bank candidates require Human attention");
-  assert.equal(reviewRow.defaultExpanded,true,
-    "candidate-purpose evidence opens in-place for Human review");
+  assert.deepEqual(reviewRow.detailFieldKeys,[],
+    "V3 shows source samples directly without an extra row disclosure");
   for(const index of [164,168,171]){
     assert.equal(job.source.rows[index]["主体类型"],"",
       "synthetic row "+(index+1)+" must remain unresolved for Human correction");

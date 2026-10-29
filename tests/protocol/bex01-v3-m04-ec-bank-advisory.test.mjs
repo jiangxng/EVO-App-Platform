@@ -112,10 +112,10 @@ test("M04: EC high-confidence advice must not preselect one of two same-name ban
   assert.equal(page.fields.find(x=>x.key==="map_3").initialValue,"__PENDING__");
   const row=page.reviewGroups.find(x=>x.primaryFieldKey==="map_3");
   assert.equal(row?.reviewStatus?.key,"attention");
-  assert.equal(row?.defaultExpanded,true);
-  const field=page.fields.find(x=>x.key==="candidateEvidence_3");
-  assert.ok(field);
+  assert.deepEqual(row?.detailFieldKeys,[],
+    "the V3 sample cell must not add a disclosure button");
+  const options=page.fields.find(x=>x.key==="map_3").options;
   for(const id of ["test.bank.receiving","test.bank.settlement"]){
-    assert.ok(field.initialValue.includes(id));
+    assert.ok(options.some(option=>option.label.includes(id)));
   }
 });
