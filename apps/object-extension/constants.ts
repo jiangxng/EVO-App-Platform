@@ -44,3 +44,9 @@ export function parseObjectExtensionImportRouteV010(path: string | undefined): s
   const job = url.searchParams.get("job");
   return job && /^[a-zA-Z0-9_-]{1,128}$/.test(job) ? job : undefined;
 }
+
+/** Import-linked, Human-reviewed Object Extension model lifecycle (MD-02). */
+export const OBJECT_EXTENSION_MODEL_PROPOSE_COMMAND_V010 = "object-extension.model.propose" as const;
+export const OBJECT_EXTENSION_MODEL_GET_COMMAND_V010 = "object-extension.model.draft.get" as const;
+export const OBJECT_EXTENSION_MODEL_DRAFT_COMMAND_V010 = "object-extension.model.draft.save" as const;
+export const OBJECT_EXTENSION_MODEL_PUBLISH_COMMAND_V010 = "object-extension.model.publish" as const;
