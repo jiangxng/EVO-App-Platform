@@ -9,8 +9,8 @@
 
 | 序号 | 固定范围 / 原计划 ID | 当前状态 | 完成的实际证据 | 尚未关闭的验收关口 |
 | --- | --- | --- | --- | --- |
-| #01/06 | 业务样例与增量基线（FM-00） | **IN_REVIEW** | Counterparty 的真实核心字段和共享插件边界已核对；本 PR 提交可复现合成迁移文件、来源列映射和差距表 | 确认第一条真实业务场景字段语义；此样例非客户生产数据；合并后更新准确状态 |
-| #02/06 | 业务字典（RD-01、RD-02） | **IN_PROGRESS — RD-01 局部** | 本 PR 建立企业作用域、稳定编码、显式别名、状态/版本的只读公共契约及确定性解析回归 | RD-02 真正可选装插件、Enterprise Context 持久化、草稿/发布、授权、批量导入、真实 Host |
+| #01/06 | 业务样例与增量基线（FM-00） | **DEV_COMPLETE；Human 待签** | PR #1149 已合入 main `f1199096`，真实 Counterparty 核心字段、共享插件边界与合成迁移样例已核对；相关 Platform CI 通过 | 客户真实字段及桌面/手机 Human 验收不在本轮代码结论内 |
+| #02/06 | 业务字典（RD-01、RD-02） | **IN_REVIEW — RD-02** | RD-01 已通过 #1149；PR #1150 实现可选装包、企业资源持久化/草稿/历史/Human 发布、批量解析、ActionHost 按需加载及安全/恢复测试 | #1150 精确最终 HEAD CI、main 合并、受权真实 Host 及 Human 界面签收分别核对；字典管理 UI 仍属于 HX 交付 |
 | #03/06 | 组织（OR-01、OR-02） | **PLANNED** | 已发现 Enterprise Context 资源与 Responsibility 公共边界可复用 | 组织稳定引用/层级、失效与跨企业拒绝，批量初始化及真实 Host |
 | #04/06 | 业务人员（PE-01、PE-02） | **PLANNED** | 已确认 Host 登录身份不能代替业务人员主数据 | 同名人员稳定引用、组织任职、离职、源编码映射及权限测试 |
 | #05/06 | 有效模型发布（MD-01、MD-02；HX-01 设计前置） | **PLANNED** | 复用现有 Foundation Object Schema 编译与 Object Extension | 引用字段及版本、模型草稿/发布、依赖防悬空、Eidos 业务旅程设计前置 |
@@ -49,12 +49,13 @@
 
 当前 GitHub 开放 PR 均属 IAM、Tokyo 或 BEX 既有 owner；未发现本工作线的竞争开发 PR。这里的“未发现”仅限核查到的开放 PR 和上述现有源码，不代表全仓逐行已审计。
 
-## 本轮 #02/06 局部实现的准确范围
+## #02/06 RD-02 实际实现及尚待证据
 
-- 公共接口：\`contracts/reference-data/dictionary.ts\`，只定义受管字典快照、版本、显式别名与只读批量解析操作。
-- 纯函数：\`foundation/reference-resolution/dictionary.ts\`，在 **owner 已授权** 的快照上拒绝跨企业、错字典、过期版本、未发布、停用、歧义和未知值；不使用 LLM 猜测或暗中写数据。
-- 测试：\`tests/protocol/business-dictionary-resolution.test.mjs\`，覆盖字典编码不随显示标签变化、别名冲突和作用域/版本拒绝。
-- **不具备**：插件包安装、真实企业数据库、操作权限授权、管理 UI、模型字段引用或数据导入提交。不得把上述契约与纯函数说成 RD-02 已完成。
+- **已合并复用：** PR #1149 的 `contracts/reference-data/dictionary.ts` 和 `foundation/reference-resolution/dictionary.ts`（稳定字典键、显式别名、版本、拒绝歧义与跨企业）。
+- **本次 PR #1150：** `catalog/seed.ts` 声明纯元数据的可选业务字典包；`apps/business-dictionary/repository.ts` 通过 Enterprise Resource Library 原子事务保存草稿、发布版本与历史；`apps/business-dictionary/actions.ts` 允许授权的 Human 草稿/发布和成员读取；`manager/business-dictionary-runtime.ts` 在操作时才按需加载业务模块。Host 动作通过公开声明和生命周期保护连接，不默认安装。
+- **测试：** `tests/integration/business-dictionary-plugin.test.mjs` 覆盖企业隔离、Human 权限、重复请求与版本冲突、别名歧义、文件重开恢复、Feature 停用及真实 ActionRouter 的懒加载路径，并由 `npm run test:platform` 执行。
+- **架构止损：** 初次实现增加了 Host 对插件代码的静态依赖，被 Lightweight Host Architecture CI 正确拒绝；已在原 PR 内将元数据移至目录、操作 ID 移至公开契约、运行时改为按需导入，未修改放宽 CI 门禁。
+- **仍未签收：** 发布到 Tokyo 或生产、客户真实字典数据、完整 Eidos 字典管理 UI、手机体验与 Human 签收均未据此声称完成。归属 #05/#06 对应 UI/完整旅程验收，不额外设第七里程碑。
 
 ## 固定执行与合并规则
 
@@ -66,4 +67,4 @@
 
 ## 下次继续的最小入口
 
-完成本 PR 的准确 HEAD CI/合并后，以最新 \`main\` 进入 **#02/06 的 RD-02**：沿用 \`BusinessDictionaryReadCapabilityV010\`，增加可安装应用、Enterprise Resource 版本化持久化和授权的发布/初始化操作；先验证两个不同企业及失败重试。没有这些真实 Host 证据，第 #02/06 步保持 IN_PROGRESS。
+先以 #1150 最终 HEAD 证明 Platform CI、Lightweight Host、Continuity、权限/恢复受影响检查全部通过，再合并 main 并通过 Branch Hygiene 自动安全删除过程分支。合并后从最新 main 直接进入 **#03/06 组织插件 OR-01/OR-02**，明确稳定组织身份、部门层级与跨企业/循环/失效引用；复用企业资源与字典的版本/发布经验，不复制其业务语义。不得跳过 Human 及真实部署的分级门禁。
