@@ -174,3 +174,12 @@ test("MD-01: actual owner projection enforces enterprise context, plugin lifecyc
       reader: { getEffective() { return undefined; } } }
   }), /FOUNDATION_REFERENCE_ENTERPRISE_CONTEXT_REQUIRED/);
 });
+
+
+test("MD-01: MANY cardinality is a future contract, not a writable value-store capability", () => {
+  const multi = { ...field(), reference: { ...field().reference, cardinality: "MANY" } };
+  assert.equal(assertObjectExtensionDefinitionV010(multi).reference.cardinality, "MANY");
+  assert.throws(() => compile([multi], {
+    resolvePublishedReference() { return true; }
+  }), /FOUNDATION_OBJECT_REFERENCE_MULTI_VALUE_NOT_READY/);
+});
