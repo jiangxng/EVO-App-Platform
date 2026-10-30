@@ -23,6 +23,18 @@ import {
   type DataImportRecipeRepositoryV010
 } from "./recipe.js";
 
+/** Bind Human-confirmed preflight to the exact staged source and mapping. */
+function dataImportManagedSourceDigestV010(job: DataImportJobV010): string {
+  return createHash("sha256").update(JSON.stringify({
+    targetId: job.targetId,
+    targetParameters: job.targetParameters,
+    source: job.source,
+    mapping: job.mapping,
+    ignoredSourceColumns: job.ignoredSourceColumns ?? [],
+    rowCorrections: job.rowCorrections ?? []
+  })).digest("hex");
+}
+
 export function dataImportRowCorrectionRevisionV010(
   job: DataImportJobV010, rowNumber: number, sourceColumn: string
 ): string {
@@ -363,6 +375,16 @@ export function createDataImportServiceV010(input: {
   targets?: readonly FoundationObjectImportTargetV010[];
   resolveTargets?: () => readonly FoundationObjectImportTargetV010[];
   recipeRepository?: DataImportRecipeRepositoryV010;
+  /** Optional Host-composed owner reader, called once for the whole dry-run. */
+  resolveManagedReferences?: (input: {
+    contextId: string;
+    schema: EffectiveObjectSchemaV010;
+    rows: readonly { rowNumber: number; values: Record<string, FoundationObjectImportCellV010> }[];
+  }) => readonly {
+    rowNumber: number;
+    resolved: Readonly<Record<string, string>>;
+    issues: readonly { code: string; message: string; fieldId?: string }[];
+  }[];
 }): DataImportServiceV010 {
   function currentTargets(): Map<string, FoundationObjectImportTargetV010> {
     const resolved = input.resolveTargets?.() ?? input.targets ?? [];
@@ -783,22 +805,47 @@ export function createDataImportServiceV010(input: {
           throw new Error("DATA_IMPORT_MAPPING_TARGET_NOT_IMPORTABLE");
         }
       }
+      const mappedRows = job.source.rows.map((_row, index) => ({
+        rowNumber: index + 1,
+        values: mappedValues({
+          sourceRow: dataImportCorrectedRowV010(job, index + 1),
+          mapping: job.mapping
+        })
+      }));
+      const includesReferences = schema.fields.some(field =>
+        field.valueType === "REFERENCE" && field.surfaces.includes("IMPORT"));
+      const resolveReferences = input.resolveManagedReferences
+        ?? target.resolveManagedReferences;
+      if (includesReferences && !resolveReferences) {
+        throw new Error("DATA_IMPORT_REFERENCE_OWNER_NOT_AVAILABLE");
+      }
+      const referenceRows = resolveReferences?.({
+        contextId: dryRunInput.contextId,
+        schema,
+        rows: mappedRows
+      }) ?? [];
+      if (includesReferences &&
+        (referenceRows.length !== mappedRows.length
+        || referenceRows.some((row, index) => row.rowNumber !== index + 1))) {
+        throw new Error("DATA_IMPORT_REFERENCE_BATCH_RESULT_INVALID");
+      }
       const seenDedupeKeys = new Set<string>();
-      const rows = job.source.rows.map((_sourceRow, index) => {
-        const sourceRow = dataImportCorrectedRowV010(job, index + 1);
-        const rowNumber = index + 1;
+      const rows = mappedRows.map(({ rowNumber, values }, index) => {
         const validation = target.validateRow({
           contextId: dryRunInput.contextId,
           importJobId: job.importJobId,
           schema,
           rowNumber,
-          values: mappedValues({
-            sourceRow,
-            mapping: job.mapping
-          }),
+          values,
+          ...(includesReferences ? {
+            resolvedReferenceValues: referenceRows[index]?.resolved ?? {}
+          } : {}),
           parameters: job.targetParameters
         });
-        const issues = [...validation.issues];
+        const issues = [
+          ...validation.issues,
+          ...(referenceRows[index]?.issues ?? [])
+        ];
         if (
           validation.prepared?.dedupeKey
           && seenDedupeKeys.has(validation.prepared.dedupeKey)
@@ -826,6 +873,9 @@ export function createDataImportServiceV010(input: {
         state: invalidRows === 0 ? "DRY_RUN_READY" : "DRY_RUN_FAILED",
         dryRun: {
           schemaDigest: dataImportTargetSchemaDigestV010(schema),
+          ...(includesReferences ? {
+            sourceDigest: dataImportManagedSourceDigestV010(job)
+          } : {}),
           totalRows: rows.length,
           validRows: rows.length - invalidRows,
           invalidRows,
@@ -892,6 +942,11 @@ export function createDataImportServiceV010(input: {
         !== job.dryRun.schemaDigest
       ) {
         throw new Error("DATA_IMPORT_SCHEMA_CHANGED_AFTER_DRY_RUN");
+      }
+      if (schema.fields.some(field => field.valueType === "REFERENCE"
+        && field.surfaces.includes("IMPORT"))
+        && job.dryRun.sourceDigest !== dataImportManagedSourceDigestV010(job)) {
+        throw new Error("DATA_IMPORT_REFERENCE_SOURCE_CHANGED_AFTER_DRY_RUN");
       }
 
       let receiptRows;
