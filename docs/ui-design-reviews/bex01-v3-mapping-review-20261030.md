@@ -39,6 +39,13 @@ V3's 22 columns and three resolved issues are synthetic fixture content. Current
 ## 浏览器与 Human 证据
 Code and unit checks will establish source semantics. Desktop Chinese screenshot: pending. 390px mobile control reachability: pending. Human visual acceptance: pending. CI compliance does not establish any of those.
 
+功能：定向 UIDL 与 BEX 测试通过；真实浏览器操作待核对。
+布局：原型 DOM 顺序与页面模型已对照；实际渲染截图待核对。
+颜色：Eidos 受限映射页色值已与 V3 源码核对；实际浏览器颜色待核对。
+桌面：真实中文截图未取得。
+移动：390px 实际按钮与筛选器操作证据未取得。
+Human：用户本人尚未签收。
+
 ## 入口、退出与恢复矩阵
 | Context | 入口 | 操作 / 目标 | 退出 | 异常恢复 |
 | --- | --- | --- | --- | --- |
