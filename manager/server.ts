@@ -69,6 +69,7 @@ import { createDataImportRuntimeHostV010 } from "./data-import-runtime.js";
 import { createObjectExtensionDefinitionRuntimeHostV010, createObjectExtensionValueRuntimeHostV010 } from "./object-extension-runtime.js";
 import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
 import { createBusinessDictionaryRuntimeHostV010 } from "./business-dictionary-runtime.js";
+import { createOrganizationRuntimeHostV010 } from "./organization-runtime.js";
 import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -783,6 +784,7 @@ import {
   objectExtensionPackage,
   responsibilityPackage,
   businessDictionaryPackage,
+  organizationPackage,
   referenceExperienceAssets,
   templateStorePackage,
   tradingLitePackage
@@ -899,6 +901,11 @@ import {
 import {
   warehouseAuthorizationPolicyV010
 } from "../apps/warehouse/authorization.js";
+import {
+  ORGANIZATION_PACKAGE_ID_V010, ORGANIZATION_FEATURE_ID_V010,
+  ORGANIZATION_LIST_COMMAND_V010, ORGANIZATION_DRAFT_COMMAND_V010,
+  ORGANIZATION_PUBLISH_COMMAND_V010, ORGANIZATION_RESOLVE_COMMAND_V010
+} from "../contracts/reference-data/organization.js";
 import {
   BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
@@ -1038,6 +1045,7 @@ const catalog = createPackageCatalog([
   objectExtensionPackage,
   responsibilityPackage,
   businessDictionaryPackage,
+  organizationPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
@@ -1118,6 +1126,12 @@ const enterpriseResourceRepository =
 const responsibilityRuntimeHost = createResponsibilityRuntimeHostV010({
   isActive: () => store.snapshot().activeFeatures.some(feature =>
     feature.packageId === RESPONSIBILITY_PACKAGE_ID && feature.featureId === RESPONSIBILITY_FEATURE_ID),
+  resources: enterpriseResourceRepository
+});
+const organizationRuntimeHost = createOrganizationRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === ORGANIZATION_PACKAGE_ID_V010
+    && feature.featureId === ORGANIZATION_FEATURE_ID_V010),
   resources: enterpriseResourceRepository
 });
 const businessDictionaryRuntimeHost = createBusinessDictionaryRuntimeHostV010({
@@ -2180,6 +2194,22 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
       resourceTypes: ["business-dictionary.definition"]
     }]
   },
+  {
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "evo.organization.read",
+      effect: "ALLOW",
+      actions: ["organization.read"],
+      actorTypes: ["HUMAN", "AI"],
+      resourceTypes: ["organization.definition"]
+    }, {
+      id: "evo.organization.write",
+      effect: "ALLOW",
+      actions: ["organization.write", "organization.publish"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["organization.definition"]
+    }]
+  },
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
@@ -2382,6 +2412,9 @@ const manager = createAppManagerService(
       }
       if (event.packageId === BUSINESS_DICTIONARY_PACKAGE_ID) {
         void businessDictionaryRuntimeHost.stop().catch(error => console.error("Dictionary runtime stop failed", error));
+      }
+      if (event.packageId === ORGANIZATION_PACKAGE_ID_V010) {
+        void organizationRuntimeHost.stop().catch(error => console.error("Organization runtime stop failed", error));
       }
       if (event.packageId === DATA_IMPORT_PACKAGE_ID) {
         void dataImportRuntimeHost.stop().catch(error => console.error("Data Import runtime stop failed", error));
@@ -5430,6 +5463,35 @@ const actionRouter = createAppActionRouter(
           if (!handler) {
             throw new Error("WAREHOUSE_PROJECTION_HANDLER_NOT_FOUND");
           }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      ORGANIZATION_LIST_COMMAND_V010,
+      ORGANIZATION_DRAFT_COMMAND_V010,
+      ORGANIZATION_PUBLISH_COMMAND_V010,
+      ORGANIZATION_RESOLVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: ORGANIZATION_PACKAGE_ID_V010,
+        featureId: ORGANIZATION_FEATURE_ID_V010,
+        commandCode,
+        async load() {
+          const module = await import("../apps/organization/actions.js");
+          const relation = (principal: PlatformPrincipalV010, contextId: string) =>
+            (resolveEnterpriseContextRelationshipProvider()?.listForPrincipal(principal) ?? [])
+            .find(item => item.contextId === contextId && item.state === "ACTIVE");
+          const handlers = module.createOrganizationActionHandlersV010({
+            resolveRepository: () => organizationRuntimeHost.resolve(),
+            canRead(principal, contextId) { return Boolean(relation(principal, contextId)); },
+            canManage(principal, contextId) {
+              const kind = relation(principal, contextId)?.kind;
+              return kind === "OWNER" || kind === "ADMIN";
+            }
+          });
+          const handler = handlers.find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("ORGANIZATION_HANDLER_NOT_FOUND");
           return handler;
         }
       })
@@ -10419,6 +10481,7 @@ async function shutdown(signal: string): Promise<void> {
     {name: "Counterparty runtime", run: () => counterpartyRuntimeHost.stop()},
     {name: "Responsibility runtime", run: () => responsibilityRuntimeHost.stop()},
     {name: "Business dictionary runtime", run: () => businessDictionaryRuntimeHost.stop()},
+    {name: "Organization runtime", run: () => organizationRuntimeHost.stop()},
     {name: "Data import runtime", run: () => dataImportRuntimeHost.stop()},
     {name: "Extension management", run: () => extensionManagement.stop()},
     {name: "Counterparty extension definitions", run: () => counterpartyExtensionDefinitions.stop()},

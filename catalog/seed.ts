@@ -1,4 +1,10 @@
 import type { PackageManifestV010, PlatformCapabilityOperationContributionV010 } from "../contracts/package.js";
+import {
+  ORGANIZATION_PACKAGE_ID_V010, ORGANIZATION_FEATURE_ID_V010,
+  ORGANIZATION_CAPABILITY_V010, ORGANIZATION_LIST_COMMAND_V010,
+  ORGANIZATION_DRAFT_COMMAND_V010, ORGANIZATION_PUBLISH_COMMAND_V010,
+  ORGANIZATION_RESOLVE_COMMAND_V010
+} from "../contracts/reference-data/organization.js";
 import { ENTERPRISE_RESOURCE_CAPABILITY_V010 } from "../contracts/enterprise-resource.js";
 import {
   enterpriseAgentExperienceAssets,
@@ -547,3 +553,79 @@ export const businessDictionaryPackage: PackageManifestV010 = {
   }]
 };
 
+
+
+// Inert organization catalog metadata. No static import of org runtime/application.
+const organizationUnitSchemaV010 = {
+  type: "object", required: ["unitId", "code", "displayName", "kind", "status"],
+  properties: {
+    unitId: { type: "string", minLength: 1 },
+    code: { type: "string", minLength: 1 },
+    displayName: { type: "object" },
+    kind: { enum: ["DEPARTMENT", "DIVISION", "TEAM", "OTHER"] },
+    parentUnitId: { type: "string" },
+    aliases: { type: "array", items: { type: "string" } },
+    status: { enum: ["ACTIVE", "INACTIVE"] },
+    effectiveFrom: { type: "string" },
+    effectiveTo: { type: "string" }
+  }
+} as const;
+const organizationOperationV010 = (command:string,effect:"READ"|"WRITE",
+  properties:Record<string,unknown>,required:string[]=[]):
+  PlatformCapabilityOperationContributionV010 => ({
+  kind:"platform.capability-operation",
+  operation:{
+    contractVersion:"0.1.0",operationId:command,
+    capability:ORGANIZATION_CAPABILITY_V010,
+    operationVersion:"0.1.0",
+    title:command,
+    description:"Enterprise-scoped organization hierarchy and stable identity operation",
+    effect,dataScope:"ENTERPRISE",
+    authorization:{
+      action:effect==="READ"?"organization.read":command===ORGANIZATION_PUBLISH_COMMAND_V010
+        ?"organization.publish":"organization.write",
+      resource:{type:"organization.definition",idSource:"DATA_SCOPE"}
+    },
+    inputSchema:{type:"object",additionalProperties:false,required,properties},
+    outputSchema:{type:"object"},
+    binding:{type:"ACTION_HOST",commandCode:command,inputVersion:"0.1.0"},
+    exposure:effect==="READ"?["HUMAN","PERSONAL_AGENT"]:["HUMAN"],
+    ...(effect==="WRITE"?{writeSafety:{idempotency:"HOST_REQUIRED",receipt:"HOST_REQUIRED"}}:{})
+  }
+});
+export const organizationPackage:PackageManifestV010={
+  contractVersion:"0.1.0",packageId:ORGANIZATION_PACKAGE_ID_V010,
+  displayName:"EVO Organization",
+  description:"维护企业部门与组织关系、稳定身份和版本化发布。",
+  displayNameTranslations:{
+    en:"EVO Organization","zh-CN":"EVO 组织管理",
+    ja:"EVO 組織管理","zh-TW":"EVO 組織管理"
+  },
+  version:"0.1.0",type:"APPLICATION",
+  publisher:{id:"evo",displayName:"EVO",trust:"FIRST_PARTY",source:"built-in"},
+  compatibility:{appPlatform:">=0.1.0 <0.2.0",eidos:"^1.3.0",pluginProtocol:"0.1.0"},
+  features:[{
+    contractVersion:"0.1.0",featureId:ORGANIZATION_FEATURE_ID_V010,
+    packageId:ORGANIZATION_PACKAGE_ID_V010,version:"0.1.0",
+    activationScope:"INSTALLATION",defaultActivation:true,
+    requiresCapabilities:["enterprise.resource.repository"],
+    providesCapabilities:[ORGANIZATION_CAPABILITY_V010],
+    contributions:[
+      organizationOperationV010(ORGANIZATION_LIST_COMMAND_V010,"READ",
+        {organizationId:{type:"string"}}),
+      organizationOperationV010(ORGANIZATION_RESOLVE_COMMAND_V010,"READ",
+        {organizationId:{type:"string",minLength:1},
+         sourceValues:{type:"array",items:{type:"string"}},
+         expectedVersion:{type:"integer"},
+         effectiveAt:{type:"string"}},["organizationId","sourceValues"]),
+      organizationOperationV010(ORGANIZATION_DRAFT_COMMAND_V010,"WRITE",
+        {organizationId:{type:"string",minLength:1},
+         expectedVersion:{type:"integer",minimum:0},
+         units:{type:"array",items:organizationUnitSchemaV010}},
+         ["organizationId","expectedVersion","units"]),
+      organizationOperationV010(ORGANIZATION_PUBLISH_COMMAND_V010,"WRITE",
+        {organizationId:{type:"string",minLength:1},
+         expectedVersion:{type:"integer",minimum:1}},["organizationId","expectedVersion"])
+    ]
+  }]
+};
