@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { compileEffectiveObjectSchemaV010 } from "../../dist/foundation/schema-compiler/index.js";
 import { normalizeFoundationObjectImportCellV010 } from "../../dist/foundation/import-values.js";
+import { createManagedReferencePublicationResolverV010 } from "../../dist/foundation/reference-resolution/model.js";
 import { fieldsForSurfaceV010, agentFieldsFromEffectiveSchemaV010 } from "../../dist/contracts/foundation-object/schema.js";
 import { assertObjectExtensionDefinitionV010 } from "../../dist/contracts/foundation-object/extension.js";
 import { createMemoryEnterpriseResourceRepositoryV010 } from "../../dist/providers/enterprise-context/resources.js";
@@ -126,4 +127,50 @@ test("MD-01 import remains fail-closed until IM-01 supplies a verified stable re
   const referenceField = schema.fields.find(x => x.fieldId === "customerLevelRef");
   assert.throws(() => normalizeFoundationObjectImportCellV010(referenceField, "重点"),
     /DATA_IMPORT_REFERENCE_RESOLVER_REQUIRED/);
+});
+
+
+test("MD-01: actual owner projection enforces enterprise context, plugin lifecycle and exact published version", () => {
+  const dictionaryReads = [];
+  let active = true;
+  const resolver = createManagedReferencePublicationResolverV010({
+    contextId: "enterprise:a",
+    businessDictionary: {
+      isActive: () => active,
+      reader: { getEffective(contextId, key) {
+        dictionaryReads.push([contextId, key]);
+        return contextId === "enterprise:a" && key === "counterparty.customer-level"
+          ? { version: 3, state: "PUBLISHED" } : undefined;
+      } }
+    },
+    organization: { isActive: () => true, reader: {
+      getEffective(contextId, key) { return contextId === "enterprise:a" && key === "org.main"
+        ? { version: 2, state: "PUBLISHED" } : undefined; }
+    } },
+    personnel: { isActive: () => true, reader: {
+      getEffective(contextId, key) { return contextId === "enterprise:a" && key === "staff"
+        ? { version: 5, state: "PUBLISHED" } : undefined; }
+    } }
+  });
+  const reference = field().reference;
+  assert.equal(resolver({ fieldId: "customerLevelRef", reference }), true);
+  assert.deepEqual(dictionaryReads, [["enterprise:a", "counterparty.customer-level"]]);
+  assert.equal(resolver({ fieldId: "customerLevelRef",
+    reference: { ...reference, expectedVersion: 4 } }), false);
+  active = false;
+  assert.equal(resolver({ fieldId: "customerLevelRef", reference }), false);
+  active = true;
+  assert.equal(compile([field()], { resolvePublishedReference: resolver })
+    .fields.find(x => x.fieldId === "customerLevelRef").reference.sourceId,
+    "counterparty.customer-level");
+  assert.equal(resolver({ fieldId: "org",
+    reference: { sourceKind: "ORGANIZATION", sourceId: "org.main",
+      expectedVersion: 2, cardinality: "ONE" } }), true);
+  assert.equal(resolver({ fieldId: "person",
+    reference: { sourceKind: "PERSONNEL", sourceId: "staff",
+      expectedVersion: 5, cardinality: "ONE" } }), true);
+  assert.throws(() => createManagedReferencePublicationResolverV010({
+    contextId: " ", businessDictionary: { isActive: () => true,
+      reader: { getEffective() { return undefined; } } }
+  }), /FOUNDATION_REFERENCE_ENTERPRISE_CONTEXT_REQUIRED/);
 });
