@@ -960,6 +960,10 @@ import {
   OBJECT_EXTENSION_DEFINITION_UPSERT_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_CREATE_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_DRAFT_SAVE_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_PROPOSE_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_GET_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_DRAFT_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_PUBLISH_COMMAND_V010,
   OBJECT_EXTENSION_IMPORT_PAGE_SOURCE_V010,
   parseObjectExtensionImportRouteV010,
   OBJECT_EXTENSION_FEATURE_ID,
@@ -5618,6 +5622,84 @@ const actionRouter = createAppActionRouter(
           if (!handler) {
             throw new Error("RESPONSIBILITY_HANDLER_NOT_FOUND");
           }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      OBJECT_EXTENSION_MODEL_PROPOSE_COMMAND_V010,
+      OBJECT_EXTENSION_MODEL_GET_COMMAND_V010,
+      OBJECT_EXTENSION_MODEL_DRAFT_COMMAND_V010,
+      OBJECT_EXTENSION_MODEL_PUBLISH_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: OBJECT_EXTENSION_PACKAGE_ID,
+        featureId: OBJECT_EXTENSION_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/object-extension/model-actions.js");
+          const handlers = module.createObjectExtensionModelActionHandlersV010({
+            async resolveModel(contextId) {
+              const featureIsActive = (packageId: string, featureId: string) =>
+                store.snapshot().activeFeatures.some(feature =>
+                  feature.packageId === packageId && feature.featureId === featureId);
+              const assertAvailable = () => {
+                if (!featureIsActive(OBJECT_EXTENSION_PACKAGE_ID, OBJECT_EXTENSION_FEATURE_ID)) {
+                  throw new Error("ACTION_FEATURE_NOT_ACTIVE");
+                }
+                if (!dataImportFeatureActiveV010()) {
+                  throw new Error("DATA_IMPORT_FEATURE_NOT_ACTIVE");
+                }
+              };
+              assertAvailable();
+              const [runtime, modelModule, dictionaryModule, orgModule, personModule,
+                referenceModule] = await Promise.all([
+                dataImportRuntimeHost.resolve(),
+                import("../apps/object-extension/model-publication.js"),
+                import("../apps/business-dictionary/repository.js"),
+                import("../apps/organization/repository.js"),
+                import("../apps/personnel/repository.js"),
+                import("../foundation/reference-resolution/model.js")
+              ]);
+              assertAvailable();
+              const orgReader = orgModule.createOrganizationRepositoryV010(enterpriseResourceRepository);
+              const resolver = referenceModule.createManagedReferencePublicationResolverV010({
+                contextId,
+                businessDictionary: {
+                  isActive: () => featureIsActive(
+                    BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID),
+                  reader: dictionaryModule.createBusinessDictionaryRepositoryV010(
+                    enterpriseResourceRepository)
+                },
+                organization: {
+                  isActive: () => featureIsActive(
+                    ORGANIZATION_PACKAGE_ID_V010, ORGANIZATION_FEATURE_ID_V010),
+                  reader: orgReader
+                },
+                personnel: {
+                  isActive: () => featureIsActive(
+                    PERSONNEL_PACKAGE_ID_V010, PERSONNEL_FEATURE_ID_V010),
+                  reader: personModule.createPersonnelRepositoryV010(
+                    enterpriseResourceRepository, orgReader)
+                }
+              });
+              return modelModule.createObjectExtensionModelPublicationV010({
+                resources: enterpriseResourceRepository,
+                getImportJob: (scope, id) => runtime.repository.get(scope, id),
+                isPublishedReference: (scope, reference) =>
+                  scope === contextId && resolver({ fieldId: "model-publish", reference }),
+                assertAvailable
+              });
+            },
+            canManageEnterpriseContext(principal, contextId) {
+              return (resolveEnterpriseContextRelationshipProvider()
+                ?.listForPrincipal(principal) ?? []).some(item =>
+                item.contextId === contextId && item.state === "ACTIVE"
+                && (item.kind === "OWNER" || item.kind === "ADMIN"));
+            }
+          });
+          const handler = handlers.find(item => item.commandCode === commandCode);
+          if (!handler) throw new Error("OBJECT_EXTENSION_MODEL_HANDLER_NOT_FOUND");
           return handler;
         }
       })
