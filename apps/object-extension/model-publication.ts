@@ -126,7 +126,7 @@ export function createObjectExtensionModelPublicationV010(input: {
   function persisted(record: ObjectExtensionModelDraftV010, collectionId: string) {
     resources.put({
       ...address(record.contextId, collectionId, collectionId === HISTORY
-        ? record.modelDraftId + "::" + record.version : record.modelDraftId),
+        ? record.modelDraftId + "::" + record.version + "::" + record.state : record.modelDraftId),
       ownerPackageId: PACKAGE, schemaRef: SCHEMA, storageKind: "DOCUMENT",
       payload: JSON.parse(JSON.stringify(record)) as EnterpriseResourceJsonV010,
       actorSubjectId: record.actorSubjectId, recordedAt: record.recordedAt
