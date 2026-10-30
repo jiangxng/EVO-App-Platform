@@ -10,8 +10,8 @@
 | 序号 | 固定范围 / 原计划 ID | 当前状态 | 完成的实际证据 | 尚未关闭的验收关口 |
 | --- | --- | --- | --- | --- |
 | #01/06 | 业务样例与增量基线（FM-00） | **DEV_COMPLETE；Human 待签** | PR #1149 已合入 main `f1199096`，真实 Counterparty 核心字段、共享插件边界与合成迁移样例已核对；相关 Platform CI 通过 | 客户真实字段及桌面/手机 Human 验收不在本轮代码结论内 |
-| #02/06 | 业务字典（RD-01、RD-02） | **IN_REVIEW — RD-02** | RD-01 已通过 #1149；PR #1150 实现可选装包、企业资源持久化/草稿/历史/Human 发布、批量解析、ActionHost 按需加载及安全/恢复测试 | #1150 精确最终 HEAD CI、main 合并、受权真实 Host 及 Human 界面签收分别核对；字典管理 UI 仍属于 HX 交付 |
-| #03/06 | 组织（OR-01、OR-02） | **PLANNED** | 已发现 Enterprise Context 资源与 Responsibility 公共边界可复用 | 组织稳定引用/层级、失效与跨企业拒绝，批量初始化及真实 Host |
+| #02/06 | 业务字典（RD-01、RD-02） | **DEV_COMPLETE；Human 待签** | #1149 / #1150 已合并 main `0a82ac63`；最终 CI Platform 1279/1279 PASS、Lightweight Host/Continuity/UI 自动门禁成功；合并后过程分支经 Branch Hygiene Actions 已删除 | 真实部署、字典管理 Human UI 和手机体验仍依原 HX/EV 验收 |
+| #03/06 | 组织（OR-01、OR-02） | **IN_REVIEW** | 本 PR 建立企业作用域组织集合、多个根/集合、稳定单位身份、草稿/发布历史、循环/失效/跨企业拒绝、批量编码解析和懒加载 Host 操作；集成测试加入 Platform CI | 精确最终 HEAD CI、main 合并、管理 UI、真实 Host 浏览器/手机及 Human 分级证据 |
 | #04/06 | 业务人员（PE-01、PE-02） | **PLANNED** | 已确认 Host 登录身份不能代替业务人员主数据 | 同名人员稳定引用、组织任职、离职、源编码映射及权限测试 |
 | #05/06 | 有效模型发布（MD-01、MD-02；HX-01 设计前置） | **PLANNED** | 复用现有 Foundation Object Schema 编译与 Object Extension | 引用字段及版本、模型草稿/发布、依赖防悬空、Eidos 业务旅程设计前置 |
 | #06/06 | 导入与整体验收（IM-01、HX-01、EV-01） | **PLANNED** | 复用现有 Data Import Job/Mapping/Precheck/Receipt | 引用批量解析、版本重预检、幂等恢复、真实 Host/桌面/手机/Human 分级签收 |
@@ -57,6 +57,16 @@
 - **架构止损：** 初次实现增加了 Host 对插件代码的静态依赖，被 Lightweight Host Architecture CI 正确拒绝；已在原 PR 内将元数据移至目录、操作 ID 移至公开契约、运行时改为按需导入，未修改放宽 CI 门禁。
 - **仍未签收：** 发布到 Tokyo 或生产、客户真实字典数据、完整 Eidos 字典管理 UI、手机体验与 Human 签收均未据此声称完成。归属 #05/#06 对应 UI/完整旅程验收，不额外设第七里程碑。
 
+
+## #03/06 OR-01/OR-02 本轮交付范围与复用
+
+- 共享组织身份契约：`contracts/reference-data/organization.ts`，明确稳定 `unitId` 和 `code`、多层级/多根、`parentUnitId`、组织类型、源别名、有效期及版本。不能拿 Host 的登录账号或企业成员关系替代业务组织。
+- 组织插件 owner：`apps/organization/repository.ts` 消费**现有** Enterprise Resource Library 的事务能力，持久化不可覆盖的发布历史与可恢复草稿；发布时检测重复 ID/编码、歧义别名、循环引用、缺失/失效父节点。
+- `apps/organization/actions.ts` 通过 Human 权限和企业上下文双重检查公开读取、批量初始化草稿及发布操作；`manager/organization-runtime.ts` 在插件激活后才延迟加载并正确停机。
+- `catalog/seed.ts` 仅保留惯用元数据，无静态导入业务插件模块。该工作线**不**实现人员、建模和导入的后续领域语义，也不强制单一企业树；Responsibility 的组织引用将在后续 PE/MD 通过正式能力对接。
+- `tests/integration/organization-plugin.test.mjs` 覆盖组织森林、循环、缺失/失效父节点、企业隔离、有效期、重启恢复、发布重试及 ActionRouter 懒加载；由现有 required Platform CI 运行。
+- 界面导航与 Human 签收仍交由原 HX-01 / EV-01 门禁，不能用后端单测宣告页面已经完整交付。
+
 ## 固定执行与合并规则
 
 1. 严格按 #01→#06 顺序收口；业务字典先于依赖它的模型，组织先于人员，模型发布先于真正写入。已有无依赖的基础类型导入保留。
@@ -67,4 +77,4 @@
 
 ## 下次继续的最小入口
 
-先以 #1150 最终 HEAD 证明 Platform CI、Lightweight Host、Continuity、权限/恢复受影响检查全部通过，再合并 main 并通过 Branch Hygiene 自动安全删除过程分支。合并后从最新 main 直接进入 **#03/06 组织插件 OR-01/OR-02**，明确稳定组织身份、部门层级与跨企业/循环/失效引用；复用企业资源与字典的版本/发布经验，不复制其业务语义。不得跳过 Human 及真实部署的分级门禁。
+待 #03/06 OR-01/OR-02 的最终精确 HEAD CI 及 main 合并通过后，核验安全分支清理，从最新 main 直接进入 **#04/06 人员 PE-01/PE-02**。人员需有稳定业务身份（不是 Host principal），引用已发布的组织单位，覆盖同名、在/离职和跨企业拒绝；不复制组织的层级模型或开发另一套企业持久化框架。字典/组织/人员 UI 与真实导入的 Human 验收仍按原 #05/#06 顺序。
