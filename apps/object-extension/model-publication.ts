@@ -3,6 +3,7 @@ import { assertObjectExtensionDefinitionV010, type ObjectExtensionDefinitionV010
 import type { FoundationObjectManagedReferenceV010 } from "../../contracts/foundation-object/schema.js";
 import type { DataImportJobV010 } from "../data-import/types.js";
 import { dataImportMappingRouteV010 } from "../data-import/constants.js";
+import { createHash } from "node:crypto";
 import { batchReviewSourceRevisionV010 } from "./batch-page.js";
 import { createObjectExtensionRepositoryV010, OBJECT_EXTENSION_COLLECTION_V010, OBJECT_EXTENSION_NAMESPACE_V010, OBJECT_EXTENSION_RESOURCE_TYPE_V010, OBJECT_EXTENSION_SCHEMA_V010 } from "./repository.js";
 
@@ -104,6 +105,17 @@ export function createObjectExtensionModelPublicationV010(input: {
     }
     return existing;
   }
+  function revision(current: DataImportJobV010): string {
+    // Existing BEX review revision pins column choices; MD-02 additionally
+    // pins original file rows, workbook identity, target and staged source.
+    const original = createHash("sha256").update(JSON.stringify({
+      targetId: current.targetId,
+      targetParameters: current.targetParameters,
+      source: current.source,
+      stagedAt: current.stagedAt
+    })).digest("hex").slice(0, 20);
+    return batchReviewSourceRevisionV010(current) + "::" + original;
+  }
   function assertColumn(current: DataImportJobV010, sourceColumn: string): void {
     if (!current.source.headers.includes(sourceColumn)
       || current.mapping.some(item => item.sourceColumn === sourceColumn)
@@ -137,7 +149,7 @@ export function createObjectExtensionModelPublicationV010(input: {
       ]);
       return {
         importJobId: current.importJobId,
-        sourceRevision: batchReviewSourceRevisionV010(current),
+        sourceRevision: revision(current),
         targetId: current.targetId,
         columns: current.source.headers.filter(column => !used.has(column))
           .map(sourceColumn => ({
@@ -155,7 +167,7 @@ export function createObjectExtensionModelPublicationV010(input: {
         const column = required(request.sourceColumn, "MODEL_SOURCE_COLUMN_REQUIRED");
         const current = job(contextId, required(request.importJobId, "MODEL_IMPORT_JOB_REQUIRED"));
         assertColumn(current, column);
-        if (batchReviewSourceRevisionV010(current) !== request.sourceRevision) {
+        if (revision(current) !== request.sourceRevision) {
           throw new Error("MODEL_SOURCE_REVISION_STALE");
         }
         const definition = assertObjectExtensionDefinitionV010(request.definition);
@@ -197,7 +209,7 @@ export function createObjectExtensionModelPublicationV010(input: {
         if (current.version !== request.expectedVersion) throw new Error("MODEL_VERSION_CONFLICT");
         const staged = job(current.contextId, current.importJobId);
         assertColumn(staged, current.sourceColumn);
-        if (current.sourceRevision !== batchReviewSourceRevisionV010(staged)) {
+        if (current.sourceRevision !== revision(staged)) {
           throw new Error("MODEL_SOURCE_REVISION_STALE");
         }
         const existing = createObjectExtensionRepositoryV010(resources);
