@@ -2570,14 +2570,15 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
 
   const form = container.querySelector<HTMLFormElement>("form[data-eidos-id]");
   if (form) {
-    // Opt-in dependent selects: a selected option disappears from other
-    // selectors in the group, while exempt placeholders remain available.
+    // Opt-in dependent selects: a selected option becomes unavailable in other
+    // selectors. Callers may retain it with an explicit occupied label.
     // Snapshots preserve the original option order and allow release/restore.
     const doc = assertValidUidl(page.definition);
     const exclusiveGroups = new Map<string, Array<{
       select: HTMLSelectElement;
       originals: HTMLOptionElement[];
       exempt: Set<string>;
+      occupiedLabel?: string;
     }>>();
     for (const field of doc.fields) {
       if (!field.exclusiveSelect || field.control !== "select") continue;
@@ -2587,7 +2588,8 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       group.push({
         select,
         originals: Array.from(select.options).map(option => option.cloneNode(true) as HTMLOptionElement),
-        exempt: new Set(field.exclusiveSelect.exemptValues)
+        exempt: new Set(field.exclusiveSelect.exemptValues),
+        occupiedLabel: field.exclusiveSelect.occupiedLabel
       });
       exclusiveGroups.set(field.exclusiveSelect.group,group);
     }
@@ -2604,10 +2606,18 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
           // Preserve the current value even if a legacy job has conflicting
           // selections: reject it at the import service rather than silently
           // changing business data.
-          const available=item.originals.filter(option=>
-            item.exempt.has(option.value) || option.value===selected || !reserved.has(option.value)
-          );
-          item.select.replaceChildren(...available.map(option=>option.cloneNode(true)));
+          const available=item.originals.flatMap(option=>{
+            const occupied=!item.exempt.has(option.value)
+              && option.value!==selected && reserved.has(option.value);
+            if (occupied && !item.occupiedLabel) return [];
+            const copy=option.cloneNode(true) as HTMLOptionElement;
+            if (occupied) {
+              copy.disabled=true;
+              copy.textContent=`${option.textContent} · ${item.occupiedLabel}`;
+            }
+            return [copy];
+          });
+          item.select.replaceChildren(...available);
           item.select.value=selected;
         }
       }

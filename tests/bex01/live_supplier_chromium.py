@@ -273,14 +273,18 @@ with sync_playwright() as p:
    expect(mapping_form.locator('select[name="map_3"]')).to_have_value(expected_field)
    expect(mapping_form.locator('[data-eidos-field-context-link][data-eidos-context-route*="column="]')).to_have_count(0)
    mapping_form.locator('select[name="map_0"]').select_option("code")
-   # A mapped system field must disappear from every other Excel column.
-   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
-   expect(mapping_form.locator('select[name="map_3"] option[value="code"]')).to_have_count(0)
+   # V3 keeps a mapped target visible, labelled and disabled in other columns.
+   occupied=mapping_form.locator('select[name="map_1"] option[value="code"]')
+   expect(occupied).to_have_attribute("disabled","")
+   expect(occupied).to_contain_text("· 已占用")
+   expect(mapping_form.locator('select[name="map_3"] option[value="code"]')).to_have_attribute("disabled","")
    # Release restores original option order and availability without refresh.
    mapping_form.locator('select[name="map_0"]').select_option("__IGNORE__")
-   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(1)
+   expect(occupied).not_to_have_attribute("disabled","")
+   expect(occupied).not_to_contain_text("已占用")
    mapping_form.locator('select[name="map_0"]').select_option("code")
-   expect(mapping_form.locator('select[name="map_1"] option[value="code"]')).to_have_count(0)
+   expect(occupied).to_have_attribute("disabled","")
+   expect(occupied).to_contain_text("· 已占用")
    expect(mapping_form.locator('select[name="map_0"] option[value="__IGNORE__"]')).to_have_count(1)
    expect(mapping_form.locator('select[name="map_1"] option[value="__IGNORE__"]')).to_have_count(1)
    mapping_form.locator('select[name="map_1"]').select_option("displayName")

@@ -268,14 +268,17 @@ function parseField(
     if (!isPlainObject(exclusiveSelect)) {
       out.push(d("EIDOS_EXCLUSIVE_SELECT_INVALID", `${path}.exclusiveSelect`, "exclusiveSelect must be object"));
     } else {
-      extraKeys(exclusiveSelect, new Set(["group", "exemptValues"]), `${path}.exclusiveSelect`, out);
+      extraKeys(exclusiveSelect, new Set(["group", "exemptValues", "occupiedLabel"]), `${path}.exclusiveSelect`, out);
       const group=exclusiveSelect.group;
       const exempt=exclusiveSelect.exemptValues;
+      const occupiedLabel=exclusiveSelect.occupiedLabel;
       if (control !== "select" || !nonEmpty(group) || !group.trim()
-        || !Array.isArray(exempt) || exempt.some(item=>typeof item!=="string")) {
+        || !Array.isArray(exempt) || exempt.some(item=>typeof item!=="string")
+        || (occupiedLabel !== undefined && (!nonEmpty(occupiedLabel) || !occupiedLabel.trim()))) {
         out.push(d("EIDOS_EXCLUSIVE_SELECT_INVALID", `${path}.exclusiveSelect`, "Select requires a group and string exempt values"));
       } else {
-        parsedExclusiveSelect={group,exemptValues:[...new Set(exempt)]};
+        parsedExclusiveSelect={group,exemptValues:[...new Set(exempt)],
+          ...(occupiedLabel === undefined ? {} : {occupiedLabel})};
       }
     }
   }

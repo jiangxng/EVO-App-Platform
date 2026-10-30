@@ -1092,7 +1092,7 @@ export function createDataImportMappingPageV010(input: {
       label: sourceColumn,
       semanticType: "data-import-field-mapping",
       control: "select" as const,
-      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"] },
+      exclusiveSelect: { group: "data-import-targets", exemptValues: ["__IGNORE__", "__CREATE__", "__PENDING__"], occupiedLabel: zh(input.locale) ? "已占用" : "In use" },
       required: true,
       initialValue: mappingSelectionFor(sourceColumn),
       options: [{
