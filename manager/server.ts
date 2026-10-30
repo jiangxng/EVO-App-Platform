@@ -70,6 +70,7 @@ import { createObjectExtensionDefinitionRuntimeHostV010, createObjectExtensionVa
 import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
 import { createBusinessDictionaryRuntimeHostV010 } from "./business-dictionary-runtime.js";
 import { createOrganizationRuntimeHostV010 } from "./organization-runtime.js";
+import { createPersonnelRuntimeHostV010 } from "./personnel-runtime.js";
 import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -785,6 +786,7 @@ import {
   responsibilityPackage,
   businessDictionaryPackage,
   organizationPackage,
+  personnelPackage,
   referenceExperienceAssets,
   templateStorePackage,
   tradingLitePackage
@@ -901,6 +903,11 @@ import {
 import {
   warehouseAuthorizationPolicyV010
 } from "../apps/warehouse/authorization.js";
+import {
+  PERSONNEL_PACKAGE_ID_V010, PERSONNEL_FEATURE_ID_V010,
+  PERSONNEL_LIST_COMMAND_V010, PERSONNEL_DRAFT_COMMAND_V010,
+  PERSONNEL_PUBLISH_COMMAND_V010, PERSONNEL_RESOLVE_COMMAND_V010
+} from "../contracts/reference-data/personnel.js";
 import {
   ORGANIZATION_PACKAGE_ID_V010, ORGANIZATION_FEATURE_ID_V010,
   ORGANIZATION_LIST_COMMAND_V010, ORGANIZATION_DRAFT_COMMAND_V010,
@@ -1046,6 +1053,7 @@ const catalog = createPackageCatalog([
   responsibilityPackage,
   businessDictionaryPackage,
   organizationPackage,
+  personnelPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
@@ -1133,6 +1141,13 @@ const organizationRuntimeHost = createOrganizationRuntimeHostV010({
     feature.packageId === ORGANIZATION_PACKAGE_ID_V010
     && feature.featureId === ORGANIZATION_FEATURE_ID_V010),
   resources: enterpriseResourceRepository
+});
+const personnelRuntimeHost = createPersonnelRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === PERSONNEL_PACKAGE_ID_V010
+    && feature.featureId === PERSONNEL_FEATURE_ID_V010),
+  resources: enterpriseResourceRepository,
+  organization: () => organizationRuntimeHost.resolve()
 });
 const businessDictionaryRuntimeHost = createBusinessDictionaryRuntimeHostV010({
   isActive: () => store.snapshot().activeFeatures.some(feature =>
@@ -2210,6 +2225,22 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
       resourceTypes: ["organization.definition"]
     }]
   },
+  {
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "evo.personnel.read",
+      effect: "ALLOW",
+      actions: ["personnel.read"],
+      actorTypes: ["HUMAN", "AI"],
+      resourceTypes: ["personnel.directory"]
+    }, {
+      id: "evo.personnel.manage",
+      effect: "ALLOW",
+      actions: ["personnel.write", "personnel.publish"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["personnel.directory"]
+    }]
+  },
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
@@ -2415,6 +2446,9 @@ const manager = createAppManagerService(
       }
       if (event.packageId === ORGANIZATION_PACKAGE_ID_V010) {
         void organizationRuntimeHost.stop().catch(error => console.error("Organization runtime stop failed", error));
+      }
+      if (event.packageId === PERSONNEL_PACKAGE_ID_V010) {
+        void personnelRuntimeHost.stop().catch(error => console.error("Personnel runtime stop failed", error));
       }
       if (event.packageId === DATA_IMPORT_PACKAGE_ID) {
         void dataImportRuntimeHost.stop().catch(error => console.error("Data Import runtime stop failed", error));
@@ -5463,6 +5497,35 @@ const actionRouter = createAppActionRouter(
           if (!handler) {
             throw new Error("WAREHOUSE_PROJECTION_HANDLER_NOT_FOUND");
           }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      PERSONNEL_LIST_COMMAND_V010,
+      PERSONNEL_DRAFT_COMMAND_V010,
+      PERSONNEL_PUBLISH_COMMAND_V010,
+      PERSONNEL_RESOLVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: PERSONNEL_PACKAGE_ID_V010,
+        featureId: PERSONNEL_FEATURE_ID_V010,
+        commandCode,
+        async load() {
+          const module = await import("../apps/personnel/actions.js");
+          const relation = (principal: PlatformPrincipalV010, contextId: string) =>
+            (resolveEnterpriseContextRelationshipProvider()?.listForPrincipal(principal) ?? [])
+            .find(item => item.contextId === contextId && item.state === "ACTIVE");
+          const handlers = module.createPersonnelActionHandlersV010({
+            resolveRepository: () => personnelRuntimeHost.resolve(),
+            canRead(principal, contextId) { return Boolean(relation(principal, contextId)); },
+            canManage(principal, contextId) {
+              const kind = relation(principal, contextId)?.kind;
+              return kind === "OWNER" || kind === "ADMIN";
+            }
+          });
+          const handler = handlers.find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("PERSONNEL_HANDLER_NOT_FOUND");
           return handler;
         }
       })
@@ -10482,6 +10545,7 @@ async function shutdown(signal: string): Promise<void> {
     {name: "Responsibility runtime", run: () => responsibilityRuntimeHost.stop()},
     {name: "Business dictionary runtime", run: () => businessDictionaryRuntimeHost.stop()},
     {name: "Organization runtime", run: () => organizationRuntimeHost.stop()},
+    {name: "Personnel runtime", run: () => personnelRuntimeHost.stop()},
     {name: "Data import runtime", run: () => dataImportRuntimeHost.stop()},
     {name: "Extension management", run: () => extensionManagement.stop()},
     {name: "Counterparty extension definitions", run: () => counterpartyExtensionDefinitions.stop()},

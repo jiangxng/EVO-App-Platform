@@ -1,5 +1,11 @@
 import type { PackageManifestV010, PlatformCapabilityOperationContributionV010 } from "../contracts/package.js";
 import {
+  PERSONNEL_PACKAGE_ID_V010, PERSONNEL_FEATURE_ID_V010,
+  PERSONNEL_CAPABILITY_V010, PERSONNEL_LIST_COMMAND_V010,
+  PERSONNEL_DRAFT_COMMAND_V010, PERSONNEL_PUBLISH_COMMAND_V010,
+  PERSONNEL_RESOLVE_COMMAND_V010
+} from "../contracts/reference-data/personnel.js";
+import {
   ORGANIZATION_PACKAGE_ID_V010, ORGANIZATION_FEATURE_ID_V010,
   ORGANIZATION_CAPABILITY_V010, ORGANIZATION_LIST_COMMAND_V010,
   ORGANIZATION_DRAFT_COMMAND_V010, ORGANIZATION_PUBLISH_COMMAND_V010,
@@ -626,6 +632,88 @@ export const organizationPackage:PackageManifestV010={
       organizationOperationV010(ORGANIZATION_PUBLISH_COMMAND_V010,"WRITE",
         {organizationId:{type:"string",minLength:1},
          expectedVersion:{type:"integer",minimum:1}},["organizationId","expectedVersion"])
+    ]
+  }]
+};
+
+
+/** Metadata-only optional personnel plugin. No business runtime import at startup. */
+const personnelPersonSchemaV010 = {
+  type: "object", required: ["personId", "code", "displayName", "state", "assignments"],
+  properties: {
+    personId: { type: "string", minLength: 1 },
+    code: { type: "string", minLength: 1 },
+    displayName: { type: "object" },
+    aliases: { type: "array", items: { type: "string" } },
+    state: { enum: ["ACTIVE", "INACTIVE"] },
+    linkedPrincipalSubjectId: { type: "string" },
+    assignments: { type: "array", items: { type: "object", required: [
+      "organizationId", "unitId", "organizationVersion"
+    ], properties: {
+      organizationId: { type: "string", minLength: 1 },
+      unitId: { type: "string", minLength: 1 },
+      organizationVersion: { type: "integer", minimum: 1 },
+      effectiveFrom: { type: "string" },
+      effectiveTo: { type: "string" }
+    } } }
+  }
+} as const;
+const personnelOperationV010 = (
+  commandCode: string, effect: "READ" | "WRITE",
+  properties: Record<string, unknown>, required: string[] = []
+): PlatformCapabilityOperationContributionV010 => ({
+  kind: "platform.capability-operation",
+  operation: {
+    contractVersion: "0.1.0", operationId: commandCode,
+    capability: PERSONNEL_CAPABILITY_V010, operationVersion: "0.1.0",
+    title: commandCode, description: "Enterprise business personnel directory operations",
+    effect, dataScope: "ENTERPRISE",
+    authorization: {
+      action: effect === "READ" ? "personnel.read" : commandCode === PERSONNEL_PUBLISH_COMMAND_V010
+        ? "personnel.publish" : "personnel.write",
+      resource: { type: "personnel.directory", idSource: "DATA_SCOPE" }
+    },
+    inputSchema: { type: "object", additionalProperties: false, required, properties },
+    outputSchema: { type: "object" },
+    binding: { type: "ACTION_HOST", commandCode, inputVersion: "0.1.0" },
+    exposure: effect === "READ" ? ["HUMAN", "PERSONAL_AGENT"] : ["HUMAN"],
+    ...(effect === "WRITE" ? { writeSafety: {
+      idempotency: "HOST_REQUIRED", receipt: "HOST_REQUIRED"
+    } } : {})
+  }
+});
+export const personnelPackage: PackageManifestV010 = {
+  contractVersion: "0.1.0", packageId: PERSONNEL_PACKAGE_ID_V010,
+  displayName: "EVO Personnel",
+  description: "维护企业业务人员及部门任职、稳定业务编码和版本化发布。",
+  displayNameTranslations: { en: "EVO Personnel", "zh-CN": "EVO 人员管理",
+    ja: "EVO 人員管理", "zh-TW": "EVO 人員管理" },
+  version: "0.1.0", type: "APPLICATION",
+  publisher: { id: "evo", displayName: "EVO", trust: "FIRST_PARTY", source: "built-in" },
+  compatibility: { appPlatform: ">=0.1.0 <0.2.0", eidos: "^1.3.0", pluginProtocol: "0.1.0" },
+  features: [{
+    contractVersion: "0.1.0", featureId: PERSONNEL_FEATURE_ID_V010,
+    packageId: PERSONNEL_PACKAGE_ID_V010, version: "0.1.0",
+    activationScope: "INSTALLATION", defaultActivation: true,
+    requiresCapabilities: ["enterprise.resource.repository", "enterprise.organization"],
+    providesCapabilities: [PERSONNEL_CAPABILITY_V010],
+    contributions: [
+      personnelOperationV010(PERSONNEL_LIST_COMMAND_V010, "READ",
+        { personnelDirectoryId: { type: "string" } }),
+      personnelOperationV010(PERSONNEL_RESOLVE_COMMAND_V010, "READ",
+        { personnelDirectoryId: { type: "string", minLength: 1 },
+          sourceValues: { type: "array", items: { type: "string" } },
+          expectedVersion: { type: "integer", minimum: 1 } },
+        ["personnelDirectoryId", "sourceValues"]),
+      personnelOperationV010(PERSONNEL_DRAFT_COMMAND_V010, "WRITE",
+        { personnelDirectoryId: { type: "string", minLength: 1 },
+          expectedVersion: { type: "integer", minimum: 0 },
+          persons: { type: "array", items: personnelPersonSchemaV010 } },
+        ["personnelDirectoryId", "expectedVersion", "persons"]),
+      personnelOperationV010(PERSONNEL_PUBLISH_COMMAND_V010, "WRITE",
+        { personnelDirectoryId: { type: "string", minLength: 1 },
+          expectedVersion: { type: "integer", minimum: 1 } },
+        ["personnelDirectoryId", "expectedVersion"])
     ]
   }]
 };
