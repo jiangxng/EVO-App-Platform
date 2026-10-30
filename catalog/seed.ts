@@ -1,4 +1,5 @@
 import type { PackageManifestV010, PlatformCapabilityOperationContributionV010 } from "../contracts/package.js";
+import { ENTERPRISE_RESOURCE_CAPABILITY_V010 } from "../contracts/enterprise-resource.js";
 import {
   enterpriseAgentExperienceAssets,
   enterpriseAgentPackage
@@ -466,7 +467,7 @@ const businessDictionarySchema = {
     contractVersion: { const: "0.1.0" },
     contextId: { type: "string" }, dictionaryId: { type: "string" },
     version: { type: "integer" },
-    state: { enum: ["DRAFT", "PUBLISHED"] },
+    state: { enum: ["BUSINESS_DICTIONARY_DRAFT_COMMAND_V010", "PUBLISHED"] },
     options: { type: "array", items: businessDictionaryOptionSchema }
   }
 } as const;
@@ -476,11 +477,11 @@ const businessDictionaryOp = (operationId: string, effect: "READ" | "WRITE", act
   kind: "platform.capability-operation" as const,
   operation: {
     contractVersion: "0.1.0" as const,
-    operationId, capability: CAPABILITY, operationVersion: "0.1.0",
+    operationId, capability: BUSINESS_DICTIONARY_CAPABILITY_V010, operationVersion: "0.1.0",
     title: operationId, description: "Enterprise-scoped governed business dictionary operation",
     effect, dataScope: "ENTERPRISE" as const,
     authorization: { action, resource: {
-      type: RESOURCE, idSource: "DATA_SCOPE" as const
+      type: BUSINESS_DICTIONARY_AUTH_RESOURCE_V010, idSource: "DATA_SCOPE" as const
     } },
     inputSchema: {
       type: "object", additionalProperties: false, required, properties
@@ -498,19 +499,19 @@ const businessDictionaryOp = (operationId: string, effect: "READ" | "WRITE", act
 
 export const businessDictionaryCapabilityContributionsV010:
   PlatformCapabilityOperationContributionV010[] = [
-    businessDictionaryOp(LIST, "READ", READ_ACTION, LIST,
+    businessDictionaryOp(BUSINESS_DICTIONARY_LIST_COMMAND_V010, "READ", BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_LIST_COMMAND_V010,
       { dictionaryId: { type: "string" } }),
-    businessDictionaryOp(RESOLVE, "READ", READ_ACTION, RESOLVE, {
+    businessDictionaryOp(BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010, "READ", BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer" },
       sourceValues: { type: "array", items: { type: "string" } }
     }, ["dictionaryId", "sourceValues"]),
-    businessDictionaryOp(DRAFT, "WRITE", WRITE_ACTION, DRAFT, {
+    businessDictionaryOp(BUSINESS_DICTIONARY_DRAFT_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_WRITE_ACTION_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer", minimum: 0 },
       options: { type: "array", items: businessDictionaryOptionSchema }
     }, ["dictionaryId", "expectedVersion", "options"]),
-    businessDictionaryOp(PUBLISH, "WRITE", PUBLISH_ACTION, PUBLISH, {
+    businessDictionaryOp(BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_PUBLISH_ACTION_V010, BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer", minimum: 1 }
     }, ["dictionaryId", "expectedVersion"])
