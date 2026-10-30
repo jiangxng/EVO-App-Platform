@@ -802,10 +802,12 @@ export function createDataImportServiceV010(input: {
       }));
       const includesReferences = schema.fields.some(field =>
         field.valueType === "REFERENCE" && field.surfaces.includes("IMPORT"));
-      if (includesReferences && !input.resolveManagedReferences) {
+      const resolveReferences = input.resolveManagedReferences
+        ?? target.resolveManagedReferences;
+      if (includesReferences && !resolveReferences) {
         throw new Error("DATA_IMPORT_REFERENCE_OWNER_NOT_AVAILABLE");
       }
-      const referenceRows = input.resolveManagedReferences?.({
+      const referenceRows = resolveReferences?.({
         contextId: dryRunInput.contextId,
         schema,
         rows: mappedRows
