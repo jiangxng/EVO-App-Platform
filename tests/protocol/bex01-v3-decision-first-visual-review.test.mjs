@@ -174,6 +174,14 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
     agentActionId:"nonexistent-agent-action"}}).ok,false,
     "inert toolbar buttons must be rejected rather than faked");
   assert.equal(mapping.reviewTable.heading.title,"字段对应关系");
+  assert.equal(mapping.reviewTable.heading.totalLabel,"列");
+  assert.equal(mapping.reviewTable.heading.allFieldsAction.filterId,"all");
+  assert.equal(mapping.reviewTable.heading.allFieldsAction.returnFilterId,"needs");
+  assert.match(renderToHtml(mapping),/data-eidos-form-review-table-total>\d+ 列/);
+  assert.match(renderToHtml(mapping),/data-eidos-form-review-table-all-fields="all"/);
+  assert.equal(validateUidl({...mapping,reviewTable:{...mapping.reviewTable,
+    heading:{...mapping.reviewTable.heading,allFieldsAction:{
+      ...mapping.reviewTable.heading.allFieldsAction,filterId:"missing"}}}}).ok,false);
   assert.match(mapping.reviewTable.toolbarHint,/优先显示需要确认/);
   assert.match(mapping.reviewTable.footnote,/原始文件内容仍会保留/);
   assert.match(renderToHtml(mapping),/data-eidos-form-review-table-toolbar-context/);
@@ -212,6 +220,10 @@ test("V3 real Host mapping and batch forms visibly present real source and issue
   assert.doesNotMatch(separateMarkup,/data-eidos-task-issues-layout/,
     "other Eidos workbenches retain their independent issue-card layout");
   assert.equal(mapping.reviewTask.issuesCountSuffix,"项待处理");
+  const zeroIssueMarkup=renderToHtml({...mapping,reviewTask:{...mapping.reviewTask,
+    issues:[],issuesLayout:undefined,issuesCountSuffix:undefined}});
+  assert.match(zeroIssueMarkup,/data-eidos-form-task-issues-empty role="status">没有待处理问题/);
+  assert.doesNotMatch(zeroIssueMarkup,/data-eidos-form-task-issue="/);
   assert.ok(renderToHtml(mapping).includes('data-eidos-task-steps-presentation="workbench"'));
   assert.ok(renderToHtml(mapping).includes('aria-current="step"'));
   assert.match(eidosProductiveWorkbenchCss,/counter-reset:eidos-workbench-step/);

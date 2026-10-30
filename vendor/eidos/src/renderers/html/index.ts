@@ -123,13 +123,15 @@ function renderReviewTask(task: import("../../runtime/contracts.js").UidlFormRev
       </details>`;
     }).join("")
     : "";
-  const issues=issueRows.length ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
+  const issues=issueRows.length || task.issuesEmptyLabel ? `<section data-eidos-form-task-issues${task.presentation === "workbench"
     && task.issuesLayout === "connected" ? ' data-eidos-task-issues-layout="connected"' : ""}>
     <header><h2>${esc(task.issuesTitle ?? "Needs review")}</h2>
     ${task.issuesDescription ? `<p>${esc(task.issuesDescription)}</p>` : ""}
-    ${task.presentation === "workbench" && task.issuesCountSuffix
-      ? `<span data-eidos-form-task-issue-count aria-label="${esc(issueRows.length + " " + task.issuesCountSuffix)}">${esc(issueRows.length + " " + task.issuesCountSuffix)}</span>` : ""}</header>
-    <ol>${issueRows.slice(0,firstPageSize).map(renderIssue).join("")}</ol>
+    ${task.presentation === "workbench" && task.issuesCountSuffix && issueRows.length
+      ? `<span data-eidos-form-task-issue-count aria-label="${esc(issueRows.length + " " + task.issuesCountSuffix)}">${esc(issueRows.length + " " + task.issuesCountSuffix)}</span>` : ""}
+    ${!issueRows.length && task.issuesEmptyLabel
+      ? `<span data-eidos-form-task-issues-empty role="status">${esc(task.issuesEmptyLabel)}</span>` : ""}</header>
+    ${issueRows.length ? `<ol>${issueRows.slice(0,firstPageSize).map(renderIssue).join("")}</ol>` : ""}
     ${extraIssuePages}
   </section>` : "";
   const help=task.helpText ? `<p data-eidos-form-task-help>${esc(task.helpText)}</p>` : "";
@@ -275,6 +277,11 @@ export function renderToHtml(document: unknown): string {
           <h2>${esc(model.reviewTable.heading.title)}</h2>
           ${model.reviewTable.heading.description
             ? `<p>${esc(model.reviewTable.heading.description)}</p>` : ""}
+          ${model.reviewTable.heading.totalLabel || model.reviewTable.heading.allFieldsAction
+            ? `<div data-eidos-form-review-table-heading-actions>
+                ${model.reviewTable.heading.totalLabel ? `<span data-eidos-form-review-table-total>${esc(model.reviewGroups?.length ?? 0)} ${esc(model.reviewTable.heading.totalLabel)}</span>` : ""}
+                ${model.reviewTable.heading.allFieldsAction ? `<button type="button" data-eidos-form-review-table-all-fields="${esc(model.reviewTable.heading.allFieldsAction.filterId)}" data-eidos-form-review-table-return-filter="${esc(model.reviewTable.heading.allFieldsAction.returnFilterId)}" data-eidos-form-review-table-all-label="${esc(model.reviewTable.heading.allFieldsAction.label)}" data-eidos-form-review-table-return-label="${esc(model.reviewTable.heading.allFieldsAction.returnLabel)}">${esc(model.reviewTable.heading.allFieldsAction.label)}</button>` : ""}
+              </div>` : ""}
           ${utilityMenu}
         </header>` : utilityMenu;
     return `${heading}<section data-eidos-form-review-table-wrap data-eidos-review-table-presentation="${esc(model.reviewTable?.presentation ?? "standard")}" data-eidos-review-table-evidence-layout="${esc(model.reviewTable?.evidenceLayout ?? "stacked")}">
