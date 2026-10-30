@@ -13,7 +13,7 @@
 | #02/06 | 业务字典（RD-01、RD-02） | **DEV_COMPLETE；Human 待签** | #1149 / #1150 已合并 main `0a82ac63`；最终 CI Platform 1279/1279 PASS、Lightweight Host/Continuity/UI 自动门禁成功；合并后过程分支经 Branch Hygiene Actions 已删除 | 真实部署、字典管理 Human UI 和手机体验仍依原 HX/EV 验收 |
 | #03/06 | 组织（OR-01、OR-02） | **DEV_COMPLETE；Human 待签** | PR #1151 已合入 main `a0357bba`；1,286 项 Platform CI PASS、轻量 Host/连续性/UI 自动门禁成功；Branch Hygiene 确认删除过程分支 | 真实部署、管理 UI 和 Human 体验签收仍待原 HX/EV 门禁 |
 | #04/06 | 业务人员（PE-01、PE-02） | **DEV_COMPLETE；Human 待签** | PR #1152 合入 main `e10e06b4`；最终 Platform CI 1296/1296、Lightweight Host/Continuity/Human 自动门禁通过；Branch Hygiene 安全删除过程分支 | 真实 HR 数据、管理界面与手机 Human 签收仍保留 |
-| #05/06 | 有效模型发布（MD-01、MD-02；HX-01 设计前置） | **IN_PROGRESS — MD-01 局部** | 本 PR 在现有 Foundation Object Field / Object Extension / Schema Compiler 中增加受管字典、组织和人员引用契约与编译门禁；拒绝旧式直接发布引用 | MD-02 草稿、审核、授权正式发布与审计；源文件建议、Eidos UI、完整 Human 旅程与 CI 合并 |
+| #05/06 | 有效模型发布（MD-01、MD-02；HX-01 设计前置） | **IN_REVIEW — MD-02** | MD-01 PR #1153 已合并 main `464ad055`；本 PR #1154 实现基于原 Object Extension / Data Import 的模型建议、草稿/版本/审核、Human 授权发布、原导入任务回跳和源文件漂移拒绝 | 精确最终 CI / main 合并；Eidos 管理界面、真实浏览器/手机与 Human 验收仍由 HX/EV 关口关闭 |
 | #06/06 | 导入与整体验收（IM-01、HX-01、EV-01） | **PLANNED** | 复用现有 Data Import Job/Mapping/Precheck/Receipt | 引用批量解析、版本重预检、幂等恢复、真实 Host/桌面/手机/Human 分级签收 |
 
 **状态口径：** \`PLANNED\` 尚未实现；\`IN_PROGRESS\` 实现中；\`IN_REVIEW\` 有变更尚未完成目标门禁；\`DEV_COMPLETE\` 仅在本里程碑实际功能、定向测试、准确 HEAD CI 和合并核验后使用；\`HUMAN_PASS\`、\`DEPLOYED\` 另列，绝不从 CI 自动推定。
@@ -83,6 +83,16 @@
 - `tests/protocol/foundation-managed-reference-schema.test.mjs` 直接覆盖三类引用、不可用依赖、错版本、旧接口绕过、兼容性和页面/导入/Agent 共用的有效 Schema 身份。
 - **仍待**：MD-02 真正的人类审批、草稿持久化/授权发布、源文件内入口/返回/取消、值存储多选和 IM-01 解析接入。仅凭字段契约与测试不得宣称完整模型管理 UI 已完成。
 
+## #05/06 MD-02：基于原 Object Extension 的受控模型发布
+
+- 只在 `apps/object-extension/model-publication.ts` 增加**同一 owner** 的草稿/发布记录及不可覆盖的事件审计；不创建第二套字段管理服务或 Host 权限。
+- `object-extension.model.propose` 从原 Data Import Job 返回未映射列的保守 STRING 建议（`REQUIRES_HUMAN_REVIEW`）；任何字典/组织/人员引用必须由 Human 显式选择 `sourceKind/sourceId/expectedVersion`。
+- `object-extension.model.draft.save` 在 Enterprise Resource Library 原子事务中保存草稿；绑定现有 Data Import 的来源文件全量行内容、导入目标、映射及阶段，且同一作业/来源列稳定定位草稿版本。草稿不进入有效 Schema。
+- `object-extension.model.publish` 只接受有 OWNER/ADMIN 角色的 Human，通过 Host 现有公开 ActionRouter；复核插件激活、企业上下文、真实作业状态/来源版本及原引用 owner 的当前已发布版本，原子写入现有 `evo.object-extension/definitions` + 审计，并返回原来的 `/data-import/jobs/:id/map` 映射路径。发布本身不擅自修改映射、dry-run、源文件或自动提交。
+- `model.draft.get` 允许受权管理者恢复编辑；禁止跨企业、已提交作业、重复 ID、旧版本、未安装/已停用业务引用，失败不产生部分定义。
+- `tests/integration/object-extension-model-publication.test.mjs` 覆盖可复现真实资源持久化、源文件漂移/重启恢复、Human 权限、旧协议引用发布门禁及 Host ActionRouter；纳入现有 Platform CI。
+- 本阶段是后台模型闭环；完整 Eidos 中文桌面/窄屏 UI 与客户 Human 签收仍属原 HX-01/EV-01，不能用自动 UI gate 代替人工验收。
+
 ## 固定执行与合并规则
 
 1. 严格按 #01→#06 顺序收口；业务字典先于依赖它的模型，组织先于人员，模型发布先于真正写入。已有无依赖的基础类型导入保留。
@@ -93,4 +103,4 @@
 
 ## 下次继续的最小入口
 
-MD-01 先完成精确 HEAD 的 Platform/轻量 Host/Continuity CI 并合并、删除过程分支，随后在同一个 #05/06 里程碑收口 **MD-02**：沿现有 Object Extension 语义做受权的模型草稿→Human 审核→发布；必须从现有 Data Import Job 进入并返回，不生成第二字段系统。最后才进入 #06/06 IM/HX/EV。未取得真实浏览器/客户数据证据前，Human 签收保持待验。
+先完成 MD-02 的精确最终 HEAD Platform/Lightweight Host/Continuity CI，合并 main 并经 Branch Hygiene 删除过程分支；然后直接开始固定的 **#06/06 导入、HX、EV**：沿已有 Data Import Job/Mapping/Precheck/Receipt 接入受管引用列的逐行批量解析、锁定发布 Schema/字典/组织/人员版本，并在原导入/准备模型体验中完成实际 UI 与 Human 验收。禁止用另一个导入框架、未经用户批准的自动发布或跳过预检来代替真实闭环。
