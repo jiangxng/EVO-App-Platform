@@ -68,6 +68,7 @@ import { createAppActionRouter } from "../actions/router.js";
 import { createDataImportRuntimeHostV010 } from "./data-import-runtime.js";
 import { createObjectExtensionDefinitionRuntimeHostV010, createObjectExtensionValueRuntimeHostV010 } from "./object-extension-runtime.js";
 import { createResponsibilityRuntimeHostV010 } from "./responsibility-runtime.js";
+import { createBusinessDictionaryRuntimeHostV010 } from "./business-dictionary-runtime.js";
 import { createCounterpartyRuntimeHostV010 } from "./counterparty-runtime.js";
 import { createLazyAppActionHandlerV010 } from "../actions/lazy-handler.js";
 import type { AppActionRequestV010 } from "../actions/contracts.js";
@@ -781,6 +782,7 @@ import {
   ledgerRuntimeConfiguratorPackage,
   objectExtensionPackage,
   responsibilityPackage,
+  businessDictionaryPackage,
   referenceExperienceAssets,
   templateStorePackage,
   tradingLitePackage
@@ -897,6 +899,11 @@ import {
 import {
   warehouseAuthorizationPolicyV010
 } from "../apps/warehouse/authorization.js";
+import {
+  BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID,
+  BUSINESS_DICTIONARY_LIST_COMMAND_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
+  BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010
+} from "../contracts/reference-data/dictionary-operations.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
@@ -1030,6 +1037,7 @@ const catalog = createPackageCatalog([
   ledgerRuntimeConfiguratorPackage,
   objectExtensionPackage,
   responsibilityPackage,
+  businessDictionaryPackage,
   openAiLlmProviderPackage,
   deepSeekLlmProviderPackage,
   hostRemoteCredentialProviderPackage,
@@ -1110,6 +1118,12 @@ const enterpriseResourceRepository =
 const responsibilityRuntimeHost = createResponsibilityRuntimeHostV010({
   isActive: () => store.snapshot().activeFeatures.some(feature =>
     feature.packageId === RESPONSIBILITY_PACKAGE_ID && feature.featureId === RESPONSIBILITY_FEATURE_ID),
+  resources: enterpriseResourceRepository
+});
+const businessDictionaryRuntimeHost = createBusinessDictionaryRuntimeHostV010({
+  isActive: () => store.snapshot().activeFeatures.some(feature =>
+    feature.packageId === BUSINESS_DICTIONARY_PACKAGE_ID
+    && feature.featureId === BUSINESS_DICTIONARY_FEATURE_ID),
   resources: enterpriseResourceRepository
 });
 const counterpartyRuntimeHost = createCounterpartyRuntimeHostV010({
@@ -2150,6 +2164,22 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   itemAuthorizationPolicyV010,
   warehouseAuthorizationPolicyV010,
   objectExtensionAuthorizationPolicyV010,
+  {
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "evo.business-dictionary.read",
+      effect: "ALLOW",
+      actions: ["dictionary.read"],
+      actorTypes: ["HUMAN", "AI"],
+      resourceTypes: ["business-dictionary.definition"]
+    }, {
+      id: "evo.business-dictionary.manage",
+      effect: "ALLOW",
+      actions: ["dictionary.write", "dictionary.publish"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["business-dictionary.definition"]
+    }]
+  },
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
@@ -2349,6 +2379,9 @@ const manager = createAppManagerService(
       }
       if (event.packageId === RESPONSIBILITY_PACKAGE_ID) {
         void responsibilityRuntimeHost.stop().catch(error => console.error("Responsibility runtime stop failed", error));
+      }
+      if (event.packageId === BUSINESS_DICTIONARY_PACKAGE_ID) {
+        void businessDictionaryRuntimeHost.stop().catch(error => console.error("Dictionary runtime stop failed", error));
       }
       if (event.packageId === DATA_IMPORT_PACKAGE_ID) {
         void dataImportRuntimeHost.stop().catch(error => console.error("Data Import runtime stop failed", error));
@@ -5397,6 +5430,36 @@ const actionRouter = createAppActionRouter(
           if (!handler) {
             throw new Error("WAREHOUSE_PROJECTION_HANDLER_NOT_FOUND");
           }
+          return handler;
+        }
+      })
+    ),
+    ...[
+      BUSINESS_DICTIONARY_LIST_COMMAND_V010,
+      BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
+      BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010,
+      BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010
+    ].map(commandCode =>
+      createLazyAppActionHandlerV010({
+        packageId: BUSINESS_DICTIONARY_PACKAGE_ID,
+        featureId: BUSINESS_DICTIONARY_FEATURE_ID,
+        commandCode,
+        async load() {
+          const module = await import("../apps/business-dictionary/actions.js");
+          const relation = (principal: PlatformPrincipalV010, contextId: string) =>
+            (resolveEnterpriseContextRelationshipProvider()
+              ?.listForPrincipal(principal) ?? [])
+              .find(item => item.contextId === contextId && item.state === "ACTIVE");
+          const handlers = module.createBusinessDictionaryActionHandlersV010({
+            resolveRepository: () => businessDictionaryRuntimeHost.resolve(),
+            canRead(principal, contextId) { return Boolean(relation(principal, contextId)); },
+            canManage(principal, contextId) {
+              const kind = relation(principal, contextId)?.kind;
+              return kind === "OWNER" || kind === "ADMIN";
+            }
+          });
+          const handler = handlers.find(candidate => candidate.commandCode === commandCode);
+          if (!handler) throw new Error("BUSINESS_DICTIONARY_HANDLER_NOT_FOUND");
           return handler;
         }
       })
@@ -10355,6 +10418,7 @@ async function shutdown(signal: string): Promise<void> {
     {name: "Bottleneck runtime", run: () => bottleneckRuntime.stop()},
     {name: "Counterparty runtime", run: () => counterpartyRuntimeHost.stop()},
     {name: "Responsibility runtime", run: () => responsibilityRuntimeHost.stop()},
+    {name: "Business dictionary runtime", run: () => businessDictionaryRuntimeHost.stop()},
     {name: "Data import runtime", run: () => dataImportRuntimeHost.stop()},
     {name: "Extension management", run: () => extensionManagement.stop()},
     {name: "Counterparty extension definitions", run: () => counterpartyExtensionDefinitions.stop()},
