@@ -619,6 +619,9 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
     "[data-eidos-form-review-table-filter]"
   );
   if (reviewTableFilter) {
+    const allFieldsButton = container.querySelector<HTMLButtonElement>(
+      "[data-eidos-form-review-table-all-fields]"
+    );
     const rows = Array.from(container.querySelectorAll<HTMLElement>(
       "[data-eidos-form-review-table-row]"
     ));
@@ -644,7 +647,23 @@ export function mountAppHostLoadedPage(options: MountAppHostPageOptions): Mounte
       }
       if (count) count.textContent = visible + " / " + rows.length;
       if (empty) empty.hidden = visible !== 0;
+      if (allFieldsButton) {
+        const isAll = reviewTableFilter.value === allFieldsButton.dataset.eidosFormReviewTableAllFields;
+        allFieldsButton.textContent = isAll
+          ? allFieldsButton.dataset.eidosFormReviewTableReturnLabel ?? ""
+          : allFieldsButton.dataset.eidosFormReviewTableAllLabel ?? "";
+      }
     };
+    const toggleAllFields = () => {
+      if (!allFieldsButton) return;
+      const allId = allFieldsButton.dataset.eidosFormReviewTableAllFields;
+      reviewTableFilter.value = reviewTableFilter.value === allId
+        ? allFieldsButton.dataset.eidosFormReviewTableReturnFilter ?? ""
+        : allId ?? "";
+      reviewTableFilter.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    allFieldsButton?.addEventListener("click", toggleAllFields);
+    listeners.push(() => allFieldsButton?.removeEventListener("click", toggleAllFields));
     reviewTableFilter.addEventListener("change", applyReviewTableFilter);
     listeners.push(() =>
       reviewTableFilter.removeEventListener("change", applyReviewTableFilter));

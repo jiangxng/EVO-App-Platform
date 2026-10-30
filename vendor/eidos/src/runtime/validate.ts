@@ -907,7 +907,7 @@ export function validateUidl(
           out.push(d("EIDOS_REVIEW_TABLE_HEADING_INVALID",p+".heading",
             "Heading requires a bounded nonempty title and optional description"));
         } else {
-          extraKeys(table.heading,new Set(["title","description"]),p+".heading",out);
+          extraKeys(table.heading,new Set(["title","description","totalLabel","allFieldsAction"]),p+".heading",out);
         }
       }
       if (table.presentation !== undefined
@@ -986,6 +986,49 @@ export function validateUidl(
             noMatchesMessage:f.noMatchesMessage,options};
         }
       }
+      let heading: import("./contracts.js").UidlFormReviewTableV010["heading"];
+      if (isPlainObject(table.heading) && nonEmpty(table.heading.title)
+        && table.heading.title.length <= 120
+        && (table.heading.description === undefined
+          || typeof table.heading.description === "string"
+            && table.heading.description.length <= 600)) {
+        const h=table.heading;
+        let allFieldsAction: NonNullable<typeof heading>["allFieldsAction"];
+        if (h.allFieldsAction !== undefined) {
+          const action=h.allFieldsAction;
+          const option=isPlainObject(action)
+            ? filter?.options.find(item=>item.id===action.filterId) : undefined;
+          const keys=new Set(reviewGroups.flatMap(group=>[
+            group.reviewStatus!.key,
+            ...Object.values(group.statusByChoice??{}).map(status=>status.key)
+          ]));
+          if (!isPlainObject(action) || !nonEmpty(action.label)
+            || !nonEmpty(action.filterId) || !nonEmpty(action.returnLabel)
+            || !nonEmpty(action.returnFilterId) || !option
+            || option.choiceValues !== undefined
+            || ![...keys].every(key=>option.statusKeys.includes(key))
+            || !filter?.options.some(item=>item.id===action.returnFilterId)
+            || action.returnFilterId===action.filterId) {
+            out.push(d("EIDOS_REVIEW_TABLE_HEADING_INVALID",p+".heading.allFieldsAction",
+              "View-all action must select an existing full-data filter"));
+          } else {
+            extraKeys(action,new Set(["label","filterId","returnLabel","returnFilterId"]),
+              p+".heading.allFieldsAction",out);
+            allFieldsAction={label:action.label,filterId:action.filterId,
+              returnLabel:action.returnLabel,returnFilterId:action.returnFilterId};
+          }
+        }
+        if (h.totalLabel !== undefined && (!nonEmpty(h.totalLabel)
+          || h.totalLabel.length>32)) {
+          out.push(d("EIDOS_REVIEW_TABLE_HEADING_INVALID",p+".heading.totalLabel",
+            "Column-count label must be short and nonempty"));
+        }
+        heading={title:h.title as string,
+          ...(typeof h.description==="string"?{description:h.description}:{}),
+          ...(nonEmpty(h.totalLabel)&&h.totalLabel.length<=32
+            ?{totalLabel:h.totalLabel}:{}),
+          ...(allFieldsAction?{allFieldsAction}:{})};
+      }
       if (table.agentActionId !== undefined
         && (!nonEmpty(table.agentActionId)
           || table.agentActionId.length > 128)) {
@@ -1034,14 +1077,7 @@ export function validateUidl(
           && table.toolbarHint.length<=240 ? {toolbarHint:table.toolbarHint} : {}),
         ...(typeof table.footnote==="string" && table.footnote.trim()
           && table.footnote.length<=400 ? {footnote:table.footnote} : {}),
-        ...(isPlainObject(table.heading) && nonEmpty(table.heading.title)
-          && table.heading.title.length <= 120
-          && (table.heading.description === undefined
-            || typeof table.heading.description === "string"
-              && table.heading.description.length <= 600)
-          ? {heading:{title:table.heading.title,
-              ...(typeof table.heading.description === "string"
-                ? {description:table.heading.description} : {})}} : {}),
+        ...(heading ? {heading} : {}),
         ...(table.presentation==="compact" || table.presentation==="standard"
           || table.presentation==="confirmation"
           ? {presentation:table.presentation} : {}),
@@ -1145,7 +1181,7 @@ export function validateUidl(
       fail(path, "Review task requires a subject title");
     } else {
       extraKeys(task, new Set(["subject","steps","metrics","issuesTitle",
-        "issuesDescription","issues","issuesCountSuffix","issuesLayout","issuesPageSize","helpText","presentation","footer"]),path,out);
+        "issuesDescription","issuesEmptyLabel","issues","issuesCountSuffix","issuesLayout","issuesPageSize","helpText","presentation","footer"]),path,out);
       if (task.presentation !== undefined
         && (typeof task.presentation !== "string"
           || !["full","decision-first","workbench"].includes(task.presentation))) {
@@ -1280,7 +1316,7 @@ export function validateUidl(
         fail(path+".issuesCountSuffix",
           "Issue count badge needs nonempty workbench issues and a bounded suffix");
       }
-      for (const key of ["issuesTitle","issuesDescription","helpText"] as const) {
+      for (const key of ["issuesTitle","issuesDescription","issuesEmptyLabel","helpText"] as const) {
         if (task[key]!==undefined && typeof task[key]!=="string") {
           fail(path+"."+key,"Review task copy must be text");
         }

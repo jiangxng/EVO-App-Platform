@@ -64,7 +64,9 @@ export interface UidlFormReviewTableV010 {
   /** Optional wide-screen same-line collapsed evidence; default stacked. */
   evidenceLayout?: "stacked" | "inline-collapsed";
   /** Optional section context preceding the original decision table. */
-  heading?: { title: string; description?: string };
+  heading?: { title: string; description?: string; totalLabel?: string;
+    allFieldsAction?: { label: string; filterId: string;
+      returnLabel: string; returnFilterId: string } };
   /** Optional factual guidance near the live filter count and source-integrity footer. */
   toolbarHint?: string;
   footnote?: string;
@@ -118,6 +120,8 @@ export interface UidlFormReviewTaskV010 {
   }[];
   issuesTitle?: string;
   issuesDescription?: string;
+  /** App-owned truthful zero-issue feedback; never invent resolved history. */
+  issuesEmptyLabel?: string;
   /** Opt-in connected visual grouping; defaults to independent numbered cards. */
   issuesLayout?: "connected";
   /** Short app-owned suffix; Eidos derives the issue count from the list. */

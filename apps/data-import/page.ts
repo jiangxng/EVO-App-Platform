@@ -789,7 +789,14 @@ export function createDataImportMappingPageV010(input: {
       title: zh(input.locale) ? "字段对应关系" : "Field mappings",
       description: zh(input.locale)
         ? "系统已保留原有匹配结果。您可以检查、调整，或选择不导入。"
-        : "Existing mappings are preserved. Review, adjust or exclude columns."
+        : "Existing mappings are preserved. Review, adjust or exclude columns.",
+      totalLabel: zh(input.locale) ? "列" : "columns",
+      allFieldsAction: {
+        label: zh(input.locale) ? "查看全部字段" : "View all fields",
+        filterId: "all",
+        returnLabel: zh(input.locale) ? "只看需要关注" : "Only attention",
+        returnFilterId: "needs"
+      }
     },
     columnLabels: {
       subject: zh(input.locale) ? "来源列名" : "Source column",
@@ -1014,15 +1021,21 @@ export function createDataImportMappingPageV010(input: {
       tone:reviewIssues.length > 0 ? "warning" as const : "neutral" as const
     }],
     issuesTitle: zh(input.locale) ? "需要处理" : "Requires attention",
+    issuesEmptyLabel: zh(input.locale)
+      ? "没有待处理问题" : "No issues need attention",
     ...(reviewIssues.length > 0 ? {issuesLayout:"connected" as const} : {}),
     ...(reviewIssues.length > 0
       ? { issuesCountSuffix: zh(input.locale) ? "项待处理" : "pending" }
       : {}),
     issuesDescription: zh(input.locale)
-      ? (reviewIssues.length > 12
+      ? (reviewIssues.length === 0
+        ? "先解决可能影响导入结果的问题。"
+        : reviewIssues.length > 12
         ? "优先显示前 12 项，其余按每组 12 项展开；可定位来源列或查看已授权的行纠错入口。"
         : "只显示需要人工判断的来源列；可直接跳到对应的字段选择。")
-      : (reviewIssues.length > 12
+      : (reviewIssues.length === 0
+        ? "Resolve issues that could affect import results first."
+        : reviewIssues.length > 12
         ? "First 12 tasks are shown; expand groups of 12 for the rest. Source and authorized row links remain available."
         : "Review only uncertain sources; jump directly to the relevant choice."),
     ...(reviewIssues.length > 12 ? { issuesPageSize:12 as const } : {}),
