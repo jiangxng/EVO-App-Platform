@@ -118,3 +118,16 @@ test("RD-01: malformed version and empty option codes are rejected", () => {
     /BUSINESS_DICTIONARY_OPTION_CODE_REQUIRED/
   );
 });
+
+test("RD-01: noncanonical option codes and non-string source values fail before matching", () => {
+  const invalidCode = snapshot();
+  invalidCode.options[0].code = " A ";
+  assert.throws(
+    () => resolveBusinessDictionarySnapshotV010(invalidCode, request(["A"])),
+    /BUSINESS_DICTIONARY_OPTION_CODE_NOT_CANONICAL/
+  );
+  assert.throws(
+    () => resolveBusinessDictionarySnapshotV010(snapshot(), request([42])),
+    /BUSINESS_DICTIONARY_SOURCE_VALUES_INVALID/
+  );
+});
