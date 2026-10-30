@@ -60,7 +60,7 @@ Eidos 现有 Form / Review Table 工作台；Data Import 任务内的字段映�
 
 ## 浏览器与 Human 证据
 
-功能：构建与定向协议测试 13/13 PASS；Chromium 实测未取得。现有 `tests/bex01/live_supplier_chromium.py` 已改为验证禁用标签、释放和重新占用，待 CI 执行。
+功能：构建与定向协议测试 13/13 PASS。首轮 CI 的真实 Chromium DOM 已出现 `<option disabled>往来编码 · 已占用</option>`；Playwright 对 `option` 的 `to_be_disabled()` 断言却报告 enabled，属测试断言错误，本轮改为直接检查 `disabled` 属性。首轮后续列表总数错误由该用例提前退出、未提交测试记录引发；完整最终 HEAD 浏览器 CI 待重跑。
 
 布局：桌面及 390px 实图待取得。
 
