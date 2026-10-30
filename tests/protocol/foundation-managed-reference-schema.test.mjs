@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { compileEffectiveObjectSchemaV010 } from "../../dist/foundation/schema-compiler/index.js";
+import { normalizeFoundationObjectImportCellV010 } from "../../dist/foundation/import-values.js";
 import { fieldsForSurfaceV010, agentFieldsFromEffectiveSchemaV010 } from "../../dist/contracts/foundation-object/schema.js";
 import { assertObjectExtensionDefinitionV010 } from "../../dist/contracts/foundation-object/extension.js";
 import { createMemoryEnterpriseResourceRepositoryV010 } from "../../dist/providers/enterprise-context/resources.js";
@@ -117,4 +118,12 @@ test("MD-01: existing scalar and static ENUM extensions retain original behavior
   assert.equal(value.valueType, "STRING");
   const schema = compile([scalar]);
   assert.equal(schema.fields.find(x => x.fieldId === "customerLevelRef").valueType, "STRING");
+});
+
+
+test("MD-01 import remains fail-closed until IM-01 supplies a verified stable reference", () => {
+  const schema = compile([field()], { resolvePublishedReference: () => true });
+  const referenceField = schema.fields.find(x => x.fieldId === "customerLevelRef");
+  assert.throws(() => normalizeFoundationObjectImportCellV010(referenceField, "重点"),
+    /DATA_IMPORT_REFERENCE_RESOLVER_REQUIRED/);
 });
