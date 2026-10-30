@@ -391,7 +391,11 @@ test("Object Extension publishes governed capability operations after CP-03 wiri
     [
       "enterprise.object-extension.definition.archive",
       "enterprise.object-extension.definition.list",
-      "enterprise.object-extension.definition.upsert"
+      "enterprise.object-extension.definition.upsert",
+      "object-extension.model.draft.get",
+      "object-extension.model.draft.save",
+      "object-extension.model.propose",
+      "object-extension.model.publish"
     ]
   );
   assert.equal(

@@ -3,7 +3,8 @@ import {
   ENTERPRISE_RESOURCE_CAPABILITY_V010
 } from "../../contracts/enterprise-resource.js";
 import {
-  objectExtensionCapabilityContributionsV010
+  objectExtensionCapabilityContributionsV010,
+  objectExtensionModelCapabilityContributionsV010
 } from "./capability-manifest.js";
 import {
   OBJECT_EXTENSION_IMPORT_PAGE_ID_V010,
@@ -61,6 +62,7 @@ export const objectExtensionPackage: PackageManifestV010 = {
     ],
     contributions: [
       ...objectExtensionCapabilityContributionsV010,
+      ...objectExtensionModelCapabilityContributionsV010,
       {
         kind:"eidos.experience",
         manifest:{
