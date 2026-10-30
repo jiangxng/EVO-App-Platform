@@ -83,6 +83,8 @@ export interface FoundationObjectImportTargetV010 {
     schema: EffectiveObjectSchemaV010;
     rowNumber: number;
     values: Record<string, FoundationObjectImportCellV010>;
+    /** Only Data Import's authorized batch owner may populate this after resolution. */
+    resolvedReferenceValues?: Readonly<Record<string, string>>;
     parameters?: FoundationObjectImportTargetParametersV010;
   }): FoundationObjectImportValidationV010;
   commitRow(input: {
