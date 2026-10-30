@@ -75,11 +75,18 @@ export function createPersonnelActionHandlersV010(input: ({
     }
   });
   return [
-    handler(LIST, false, (repo, _ctx, id, values) => {
+    handler(LIST, false, (repo, ctx, id, values) => {
+      // Ordinary members may only read published personnel. Draft HR changes
+      // remain visible to OWNER/ADMIN managing the active enterprise.
+      const manage = input.canManage(ctx.principal, id);
       if (values.personnelDirectoryId) {
-        return publicSnapshot(repo.get(id, required(values.personnelDirectoryId, "PERSONNEL_DIRECTORY_ID_REQUIRED")));
+        const key = required(values.personnelDirectoryId, "PERSONNEL_DIRECTORY_ID_REQUIRED");
+        return publicSnapshot(manage ? repo.get(id, key) : repo.getEffective(id, key));
       }
-      return repo.list(id).map(publicSnapshot);
+      const directories = repo.list(id);
+      return directories.map(x => publicSnapshot(
+        manage ? x : repo.getEffective(id, x.personnelDirectoryId)
+      )).filter(Boolean);
     }),
     handler(DRAFT, true, (repo, ctx, id, values) => repo.saveDraft({
       contextId: id,
