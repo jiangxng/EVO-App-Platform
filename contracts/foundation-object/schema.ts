@@ -3,7 +3,8 @@ export type FoundationObjectValueTypeV010 =
   | "NUMBER"
   | "BOOLEAN"
   | "DATE"
-  | "ENUM";
+  | "ENUM"
+  | "REFERENCE";
 
 export type FoundationObjectFieldSurfaceV010 =
   | "CREATE"
@@ -36,6 +37,18 @@ export interface FoundationObjectEnumOptionV010 {
    * Agents may normalize these values without Human review.
    */
   aliases?: string[];
+}
+
+/**
+ * A governed business-data reference, resolved by the existing owning plugin.
+ * The active Enterprise Context is supplied by the Host; a field cannot
+ * select another enterprise's reference namespace or invent access rights.
+ */
+export interface FoundationObjectManagedReferenceV010 {
+  sourceKind: "BUSINESS_DICTIONARY" | "ORGANIZATION" | "PERSONNEL";
+  sourceId: string;
+  expectedVersion: number;
+  cardinality: "ONE" | "MANY";
 }
 
 export interface FoundationObjectFieldApplicabilityV010 {
@@ -98,6 +111,8 @@ export interface FoundationObjectFieldDefinitionV010 {
   order: number;
   surfaces: FoundationObjectFieldSurfaceV010[];
   enumOptions?: FoundationObjectEnumOptionV010[];
+  /** Only REFERENCE fields may declare a governed source. */
+  reference?: FoundationObjectManagedReferenceV010;
   applicability?: FoundationObjectFieldApplicabilityV010;
   destination?: FoundationObjectFieldDestinationV010;
 }

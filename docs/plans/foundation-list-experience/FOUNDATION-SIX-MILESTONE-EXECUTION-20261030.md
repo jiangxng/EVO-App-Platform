@@ -12,8 +12,8 @@
 | #01/06 | 业务样例与增量基线（FM-00） | **DEV_COMPLETE；Human 待签** | PR #1149 已合入 main `f1199096`，真实 Counterparty 核心字段、共享插件边界与合成迁移样例已核对；相关 Platform CI 通过 | 客户真实字段及桌面/手机 Human 验收不在本轮代码结论内 |
 | #02/06 | 业务字典（RD-01、RD-02） | **DEV_COMPLETE；Human 待签** | #1149 / #1150 已合并 main `0a82ac63`；最终 CI Platform 1279/1279 PASS、Lightweight Host/Continuity/UI 自动门禁成功；合并后过程分支经 Branch Hygiene Actions 已删除 | 真实部署、字典管理 Human UI 和手机体验仍依原 HX/EV 验收 |
 | #03/06 | 组织（OR-01、OR-02） | **DEV_COMPLETE；Human 待签** | PR #1151 已合入 main `a0357bba`；1,286 项 Platform CI PASS、轻量 Host/连续性/UI 自动门禁成功；Branch Hygiene 确认删除过程分支 | 真实部署、管理 UI 和 Human 体验签收仍待原 HX/EV 门禁 |
-| #04/06 | 业务人员（PE-01、PE-02） | **IN_REVIEW** | 本 PR 提交业务人员稳定身份/同名区分、已发布组织任职版本引用、企业资源草稿/发布、批量源编码解析、ActionHost 懒加载、隐私关联遮盖与集成测试 | 最终 HEAD CI、main 合并和安全分支清理；真实业务数据、UI 与 Human 分级验收 |
-| #05/06 | 有效模型发布（MD-01、MD-02；HX-01 设计前置） | **PLANNED** | 复用现有 Foundation Object Schema 编译与 Object Extension | 引用字段及版本、模型草稿/发布、依赖防悬空、Eidos 业务旅程设计前置 |
+| #04/06 | 业务人员（PE-01、PE-02） | **DEV_COMPLETE；Human 待签** | PR #1152 合入 main `e10e06b4`；最终 Platform CI 1296/1296、Lightweight Host/Continuity/Human 自动门禁通过；Branch Hygiene 安全删除过程分支 | 真实 HR 数据、管理界面与手机 Human 签收仍保留 |
+| #05/06 | 有效模型发布（MD-01、MD-02；HX-01 设计前置） | **IN_PROGRESS — MD-01 局部** | 本 PR 在现有 Foundation Object Field / Object Extension / Schema Compiler 中增加受管字典、组织和人员引用契约与编译门禁；拒绝旧式直接发布引用 | MD-02 草稿、审核、授权正式发布与审计；源文件建议、Eidos UI、完整 Human 旅程与 CI 合并 |
 | #06/06 | 导入与整体验收（IM-01、HX-01、EV-01） | **PLANNED** | 复用现有 Data Import Job/Mapping/Precheck/Receipt | 引用批量解析、版本重预检、幂等恢复、真实 Host/桌面/手机/Human 分级签收 |
 
 **状态口径：** \`PLANNED\` 尚未实现；\`IN_PROGRESS\` 实现中；\`IN_REVIEW\` 有变更尚未完成目标门禁；\`DEV_COMPLETE\` 仅在本里程碑实际功能、定向测试、准确 HEAD CI 和合并核验后使用；\`HUMAN_PASS\`、\`DEPLOYED\` 另列，绝不从 CI 自动推定。
@@ -75,6 +75,14 @@
 - `manager/personnel-runtime.ts` 保留可选插件按需加载、组织激活依赖和生命周期停机；`catalog/seed.ts` 只有包元数据，遵守轻量 Host 启动边界。
 - `tests/integration/personnel-plugin.test.mjs` + 常规 Platform CI 证明同名/无账号人员、任职与发布、失效、跨企业、旧版本拒绝、文件重开、真实 ActionRouter/停用隔离、源值确定性解析。当前为待 CI 的实现声明，不是正式 Human 验收。
 
+## #05/06：MD-01 受管引用最小契约及安全门禁
+
+- 在既有 `contracts/foundation-object/schema.ts` 增加 `REFERENCE` 类型和 `FoundationObjectManagedReferenceV010`，不造平行模型表。绑定已有字典、组织、人员 owner 的 `sourceKind`/`sourceId`/`expectedVersion`/`cardinality`，业务数据只能使用稳定源编码/ID，不以标签推断身份。
+- `contracts/foundation-object/extension.ts` 严格校验引用字段来源、版本、单/多值、排斥混合固定 ENUM 配置；`foundation/schema-compiler/index.ts` 沿用有效 Schema，并强制由**受信的企业作用域 provider resolver** 确认已发布的源版本，缺依赖/不一致一律禁止编译。正常基础字段及已存在 ENUM 保持兼容。
+- 旧 `apps/object-extension/repository.ts` 的即时 `save` 路径不得直接将 REFERENCE 定义投入运行，避免绕过 MD-02 Human 模型发布及权限/审计。
+- `tests/protocol/foundation-managed-reference-schema.test.mjs` 直接覆盖三类引用、不可用依赖、错版本、旧接口绕过、兼容性和页面/导入/Agent 共用的有效 Schema 身份。
+- **仍待**：MD-02 真正的人类审批、草稿持久化/授权发布、源文件内入口/返回/取消、值存储多选和 IM-01 解析接入。仅凭字段契约与测试不得宣称完整模型管理 UI 已完成。
+
 ## 固定执行与合并规则
 
 1. 严格按 #01→#06 顺序收口；业务字典先于依赖它的模型，组织先于人员，模型发布先于真正写入。已有无依赖的基础类型导入保留。
@@ -85,4 +93,4 @@
 
 ## 下次继续的最小入口
 
-待 #04/06 PE-01/PE-02 在最终精确 HEAD 的相关 CI 成功后合并 main 并核实 Branch Hygiene 删除本过程分支，再从最新 main 进入 **#05/06 基础对象建模（MD-01/MD-02）**。该阶段必须复用现有 Foundation Object Schema / Object Extension，新增由引用提供者验证的确定性字段类型及发布版本约束，不再建设第二套字段模型或导入。UI、手机、真实 Host 与 Human 验收仍按原 HX/EV 分级签收。
+MD-01 先完成精确 HEAD 的 Platform/轻量 Host/Continuity CI 并合并、删除过程分支，随后在同一个 #05/06 里程碑收口 **MD-02**：沿现有 Object Extension 语义做受权的模型草稿→Human 审核→发布；必须从现有 Data Import Job 进入并返回，不生成第二字段系统。最后才进入 #06/06 IM/HX/EV。未取得真实浏览器/客户数据证据前，Human 签收保持待验。

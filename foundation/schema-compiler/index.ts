@@ -13,7 +13,8 @@ import {
   type FoundationObjectCoreSchemaV010,
   type FoundationObjectFieldControlV010,
   type FoundationObjectFieldDefinitionV010,
-  type FoundationObjectValueTypeV010
+  type FoundationObjectValueTypeV010,
+  type FoundationObjectManagedReferenceV010
 } from "../../contracts/foundation-object/schema.js";
 
 export interface FoundationObjectFieldAuthorizationInputV010 {
@@ -52,6 +53,11 @@ export interface CompileEffectiveObjectSchemaInputV010 {
   activeRelationshipRoles?: readonly string[];
   locale?: string;
   authorizeField?: FoundationObjectFieldAuthorizationV010;
+  /** Trusted provider and Enterprise Context scoped publication check. */
+  resolvePublishedReference?: (input: {
+    fieldId: string;
+    reference: FoundationObjectManagedReferenceV010;
+  }) => boolean;
 }
 
 function required(value: string, code: string): string {
@@ -132,6 +138,7 @@ function defaultControl(
     case "DATE":
       return "date";
     case "ENUM":
+    case "REFERENCE":
       return "select";
     default:
       return "text";
@@ -395,6 +402,33 @@ export function compileEffectiveObjectSchemaV010(
     descriptor.extensionSlots.map(slot => [slot.slotId, slot])
   );
 
+  const assertReferenceReady = (field: FoundationObjectFieldDefinitionV010) => {
+    if (field.valueType !== "REFERENCE") {
+      if (field.reference) throw new Error("FOUNDATION_OBJECT_REFERENCE_TYPE_MISMATCH");
+      return;
+    }
+    const reference = field.reference;
+    if (!reference || !["BUSINESS_DICTIONARY", "ORGANIZATION", "PERSONNEL"].includes(
+      reference.sourceKind
+    ) || !reference.sourceId?.trim() || !Number.isSafeInteger(reference.expectedVersion)
+      || reference.expectedVersion < 1
+      || !["ONE", "MANY"].includes(reference.cardinality)) {
+      throw new Error("FOUNDATION_OBJECT_REFERENCE_INVALID");
+    }
+    if (field.enumOptions?.length) throw new Error("FOUNDATION_OBJECT_REFERENCE_ENUM_CONFLICT");
+    // The old Object Extension value store holds only scalar values. Keep
+    // MANY as a contract-level plan, not a silently writable capability.
+    if (reference.cardinality === "MANY") {
+      throw new Error("FOUNDATION_OBJECT_REFERENCE_MULTI_VALUE_NOT_READY");
+    }
+    if (!input.resolvePublishedReference) {
+      throw new Error("FOUNDATION_OBJECT_REFERENCE_PROVIDER_REQUIRED");
+    }
+    if (!input.resolvePublishedReference({ fieldId: field.fieldId, reference })) {
+      throw new Error("FOUNDATION_OBJECT_REFERENCE_NOT_PUBLISHED");
+    }
+  };
+
   const coreFields = core.fields
     .filter(field =>
       applicabilityMode === "DISCOVERY"
@@ -404,9 +438,10 @@ export function compileEffectiveObjectSchemaV010(
         activeQualifiers
       )
     )
-    .map(field =>
-      effectiveField(field, "CORE", locale, authorize)
-    );
+    .map(field => {
+      assertReferenceReady(field);
+      return effectiveField(field, "CORE", locale, authorize);
+    });
 
   const extensionFields = [...(input.extensions ?? [])]
     .map(assertObjectExtensionDefinitionV010)
@@ -449,8 +484,10 @@ export function compileEffectiveObjectSchemaV010(
           : {}),
         ...(definition.enumOptions
           ? { enumOptions: definition.enumOptions }
-          : {})
+          : {}),
+        ...(definition.reference ? { reference: definition.reference } : {})
       };
+      assertReferenceReady(field);
       return effectiveField(
         field,
         "ENTERPRISE_EXTENSION",

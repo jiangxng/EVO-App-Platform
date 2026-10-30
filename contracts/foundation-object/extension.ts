@@ -3,6 +3,7 @@ import type {
   FoundationObjectFieldControlV010,
   FoundationObjectFieldSurfaceV010,
   FoundationObjectLocalizedTextV010,
+  FoundationObjectManagedReferenceV010,
   FoundationObjectValueTypeV010
 } from "./schema.js";
 
@@ -35,6 +36,7 @@ export interface ObjectExtensionDefinitionV010 {
   applicability?: ObjectExtensionApplicabilityV010;
   control?: FoundationObjectFieldControlV010;
   enumOptions?: FoundationObjectEnumOptionV010[];
+  reference?: FoundationObjectManagedReferenceV010;
   surfaces: FoundationObjectFieldSurfaceV010[];
   permissions?: {
     readCapability?: string;
@@ -96,6 +98,34 @@ export function assertObjectExtensionDefinitionV010(
         }
       : {})
   }));
+  if (value.valueType !== "REFERENCE" && value.reference !== undefined) {
+    throw new Error("OBJECT_EXTENSION_REFERENCE_TYPE_MISMATCH");
+  }
+  if (value.valueType === "REFERENCE" && !value.reference) {
+    throw new Error("OBJECT_EXTENSION_REFERENCE_REQUIRED");
+  }
+  if (value.valueType === "REFERENCE" && enumOptions) {
+    throw new Error("OBJECT_EXTENSION_REFERENCE_ENUM_OPTIONS_FORBIDDEN");
+  }
+  let reference: FoundationObjectManagedReferenceV010 | undefined;
+  if (value.reference) {
+    if (!["BUSINESS_DICTIONARY", "ORGANIZATION", "PERSONNEL"].includes(
+      value.reference.sourceKind
+    )) throw new Error("OBJECT_EXTENSION_REFERENCE_SOURCE_KIND_INVALID");
+    if (!Number.isSafeInteger(value.reference.expectedVersion)
+      || value.reference.expectedVersion < 1) {
+      throw new Error("OBJECT_EXTENSION_REFERENCE_VERSION_INVALID");
+    }
+    if (!["ONE", "MANY"].includes(value.reference.cardinality)) {
+      throw new Error("OBJECT_EXTENSION_REFERENCE_CARDINALITY_INVALID");
+    }
+    reference = {
+      sourceKind: value.reference.sourceKind,
+      sourceId: required(value.reference.sourceId, "OBJECT_EXTENSION_REFERENCE_SOURCE_REQUIRED"),
+      expectedVersion: value.reference.expectedVersion,
+      cardinality: value.reference.cardinality
+    };
+  }
   if (value.valueType === "ENUM" && (!enumOptions || enumOptions.length === 0)) {
     throw new Error("OBJECT_EXTENSION_ENUM_OPTIONS_REQUIRED");
   }
@@ -153,6 +183,7 @@ export function assertObjectExtensionDefinitionV010(
       : {}),
     ...(value.control ? { control: value.control } : {}),
     ...(enumOptions ? { enumOptions } : {}),
+    ...(reference ? { reference } : {}),
     surfaces: [...new Set(value.surfaces)].sort(),
     ...(value.permissions ? { permissions: { ...value.permissions } } : {}),
     searchable: Boolean(value.searchable),
