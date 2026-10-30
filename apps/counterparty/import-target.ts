@@ -506,6 +506,10 @@ export function createCounterpartyImportTargetV010(input: {
           continue;
         }
         if (raw === undefined) continue;
+        if (field.valueType === "REFERENCE" && foundationObjectImportCellBlankV010(raw)) {
+          normalizedValues[field.fieldId] = null;
+          continue;
+        }
         try {
           if (field.valueType === "REFERENCE") {
             const stable = validateInput.resolvedReferenceValues?.[field.fieldId];
