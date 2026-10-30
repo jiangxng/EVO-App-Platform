@@ -903,7 +903,7 @@ import {
   BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010
-} from "../apps/business-dictionary/constants.js";
+} from "../contracts/reference-data/dictionary-operations.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
@@ -954,7 +954,6 @@ import {
 import {
   objectExtensionAuthorizationPolicyV010
 } from "../apps/object-extension/authorization.js";
-import { businessDictionaryAuthorizationPolicyV010 } from "../apps/business-dictionary/authorization.js";
 import {
   LEDGER_MANAGER_DEFINITION_KIND,
   LEDGER_MANAGER_DETAIL_PAGE_SOURCE,
@@ -2165,7 +2164,22 @@ const authorizationPolicy = mergeHostStaticAuthorizationPoliciesV010(
   itemAuthorizationPolicyV010,
   warehouseAuthorizationPolicyV010,
   objectExtensionAuthorizationPolicyV010,
-  businessDictionaryAuthorizationPolicyV010,
+  {
+    contractVersion: "0.1.0",
+    rules: [{
+      id: "evo.business-dictionary.read",
+      effect: "ALLOW",
+      actions: ["dictionary.read"],
+      actorTypes: ["HUMAN", "AI"],
+      resourceTypes: ["business-dictionary.definition"]
+    }, {
+      id: "evo.business-dictionary.manage",
+      effect: "ALLOW",
+      actions: ["dictionary.write", "dictionary.publish"],
+      actorTypes: ["HUMAN"],
+      resourceTypes: ["business-dictionary.definition"]
+    }]
+  },
   ledgerManagerAuthorizationPolicyV010,
   templateStoreAuthorizationPolicyV010,
   parseHostStaticAuthorizationPolicyV010(
