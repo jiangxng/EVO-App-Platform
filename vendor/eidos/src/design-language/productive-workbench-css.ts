@@ -3163,6 +3163,55 @@ form[data-eidos-id] button:hover,
 
 
 /* Generic compact Human review rows; field labels remain screen-reader visible. */
+[data-eidos-form-confirmation-panel]{
+  min-width:0;margin-top:var(--eidos-space-md);
+  padding:var(--eidos-space-section);
+  background:var(--eidos-bg);border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-lg);
+  box-shadow:0 2px 9px color-mix(in srgb,var(--eidos-fg) 3%,transparent)
+}
+[data-eidos-form-confirmation-panel] [data-eidos-form-fields]{margin-top:0}
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table-heading]{margin-top:0}
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table-heading] h2{
+  font-size:var(--eidos-font-section);font-weight:650
+}
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table-heading] p{
+  margin-top:var(--eidos-space-xs);line-height:1.55
+}
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table-wrap]{
+  margin:var(--eidos-space-section) 0 0;border:0;border-radius:0;box-shadow:none
+}
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table-scroll]{
+  border-top:1px solid var(--eidos-border)
+}
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table] th,
+[data-eidos-form-confirmation-panel] [data-eidos-form-review-table] td{
+  padding:var(--eidos-space-lg) var(--eidos-space-xl)
+}
+[data-eidos-form-confirmation-panel] [data-eidos-review-table-choice] select{
+  min-height:var(--eidos-touch-target);margin-top:0
+}
+form[data-eidos-id] [data-eidos-form-confirmation-panel] [data-eidos-form-actions]{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+  gap:var(--eidos-space-sm);margin-top:var(--eidos-space-section);
+  padding-top:var(--eidos-space-xxl);border-top:1px solid var(--eidos-border)
+}
+form[data-eidos-id] [data-eidos-form-confirmation-panel] [data-eidos-form-actions] button{
+  min-height:40px
+}
+form[data-eidos-id] [data-eidos-form-confirmation-panel] [data-eidos-form-task-back]{
+  margin-right:auto;padding-left:0;border:0;background:transparent;
+  color:var(--eidos-fg-muted)
+}
+form[data-eidos-id] [data-eidos-form-confirmation-panel] [data-eidos-form-task-back]:hover{
+  color:var(--eidos-primary);background:transparent
+}
+@media(max-width:700px){
+  [data-eidos-form-confirmation-panel]{padding:var(--eidos-space-xl)}
+  form[data-eidos-id] [data-eidos-form-confirmation-panel] [data-eidos-form-actions] button{
+    min-height:var(--eidos-touch-target)
+  }
+}
 [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
   [data-eidos-form-review-table]{min-width:600px}
 [data-eidos-form-review-table-wrap][data-eidos-review-table-presentation="confirmation"]
@@ -3720,10 +3769,24 @@ form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-t
   color:var(--eidos-fg);
 }
 form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
-  [data-eidos-form-review-table-wrap]{
+  [data-eidos-form-confirmation-panel]{
   border-radius:10px;
   box-shadow:0 2px 9px #13284006;
 }
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-task-overview]{margin-bottom:0}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-confirmation-panel]{margin-top:0}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-task-context]{box-shadow:0 2px 9px #13284006}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-task-icon]{background:#eaf5ed;color:#198354;border-radius:9px}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-task-source-status][data-tone="positive"]{
+  background:var(--eidos-success-bg);color:var(--eidos-success)
+}
+form[data-eidos-id="evo-object-extension.batch-import"]:has([data-eidos-review-table-presentation="confirmation"])
+  [data-eidos-form-review-table] thead{background:#f7f9fb}
 form[data-eidos-id="evo-data-import.mapping"]{
   --eidos-fg:#172b44;
   --eidos-fg-muted:#6a7c91;

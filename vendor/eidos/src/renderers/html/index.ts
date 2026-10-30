@@ -326,6 +326,13 @@ export function renderToHtml(document: unknown): string {
       `<button type="button" data-eidos-action="${esc(action.id)}">${esc(action.label)}</button>`
     )
     .join("");
+  const actionFooter=`<footer data-eidos-form-actions>
+${footerHint}${footerNavigation}${footerReset}
+${model.submitActions.map((action,index)=>`<button type="submit" data-eidos-action="${esc(action.id)}" data-eidos-declared-command="${esc(action.command)}"${index===0 ? ` data-eidos-primary="true"` : ""}>${esc(action.label)}</button>`).join("")}
+${agentActions}${cancels}
+</footer>`;
+  const decisionContent=`<div data-eidos-form-fields>${fields}</div>${preview}${actionFooter}`;
+  const confirmation=model.reviewTable?.presentation === "confirmation";
 
   return `<form data-eidos-id="${esc(model.id)}" data-command="${esc(model.command.code)}" data-model-version="${model.modelVersion}">
 <header data-eidos-page-header>
@@ -339,12 +346,6 @@ ${workbenchSteps}
 </div>
 </header>
 ${taskOverview}
-<div data-eidos-form-fields>${fields}</div>
-${preview}
-<footer data-eidos-form-actions>
-${footerHint}${footerNavigation}${footerReset}
-${model.submitActions.map((action,index)=>`<button type="submit" data-eidos-action="${esc(action.id)}" data-eidos-declared-command="${esc(action.command)}"${index===0 ? ` data-eidos-primary="true"` : ""}>${esc(action.label)}</button>`).join("")}
-${agentActions}${cancels}
-</footer>
+${confirmation ? `<section data-eidos-form-confirmation-panel>${decisionContent}</section>` : decisionContent}
 </form>`;
 }

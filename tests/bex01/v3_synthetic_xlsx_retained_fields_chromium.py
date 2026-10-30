@@ -430,6 +430,16 @@ with sync_playwright() as pw:
     expect(confirm_form).to_be_visible(timeout=30000)
     expect(confirm_form.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
       'data-eidos-review-table-presentation','confirmation')
+    confirm_panel=confirm_form.locator('[data-eidos-form-confirmation-panel]')
+    expect(confirm_panel).to_be_visible()
+    expect(confirm_panel.locator('[data-eidos-form-review-table-heading] h2')).to_have_text('确认新增字段')
+    expect(confirm_panel.locator('[data-eidos-form-review-table-heading] p')).to_contain_text('当前企业中创建')
+    expect(confirm_form.locator('[data-eidos-form-task-icon]')).to_have_text('XLSX')
+    expect(confirm_form.locator('[data-eidos-form-task-source-status]')).to_have_text('文件已读取')
+    expect(confirm_panel.locator('[data-eidos-form-actions] [data-eidos-form-task-back]')).to_be_visible()
+    colors=confirm_panel.evaluate("""el=>({panel:getComputedStyle(el).backgroundColor,
+      primary:getComputedStyle(el.querySelector('[data-eidos-primary="true"]')).backgroundColor})""")
+    assert colors=={'panel':'rgb(255, 255, 255)','primary':'rgb(37, 99, 166)'},colors
     expect(confirm_form.locator('[data-eidos-form-review-table] thead th')).to_have_count(3)
     expect(confirm_form.locator('[data-eidos-form-review-table-row]')).to_have_count(17)
     expect(confirm_form.locator('[data-eidos-form-task-metrics]')).to_have_count(0)
@@ -644,6 +654,10 @@ with sync_playwright() as pw:
     expect(mobile_confirm).to_be_visible(timeout=30000)
     expect(mobile_confirm.locator('[data-eidos-form-review-table-wrap]')).to_have_attribute(
       'data-eidos-review-table-presentation','confirmation')
+    expect(mobile_confirm.locator('[data-eidos-form-confirmation-panel]')).to_be_visible()
+    expect(mobile_confirm.locator('[data-eidos-form-task-icon]')).to_have_text('XLSX')
+    assert mobile_confirm.locator('[data-eidos-form-confirmation-panel] [data-eidos-form-actions] button').first.evaluate(
+      '(element) => element.getBoundingClientRect().height')>=44
     assert mobile_confirm.locator('[data-eidos-review-table-choice] select').first.evaluate(
       '(element) => element.getBoundingClientRect().height')>=44
     small.screenshot(path=str(OUT/"v3-confirm-new-fields-390.png"),full_page=False)
