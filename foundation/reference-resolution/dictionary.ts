@@ -21,7 +21,8 @@ export function resolveBusinessDictionarySnapshotV010(
   if (!Number.isSafeInteger(snapshot.version) || snapshot.version < 0) {
     throw new Error("BUSINESS_DICTIONARY_SNAPSHOT_VERSION_INVALID");
   }
-  if (!Array.isArray(request.sourceValues)) {
+  if (!Array.isArray(request.sourceValues)
+    || !request.sourceValues.every(value => typeof value === "string")) {
     throw new Error("BUSINESS_DICTIONARY_SOURCE_VALUES_INVALID");
   }
 
@@ -44,6 +45,9 @@ export function resolveBusinessDictionarySnapshotV010(
   for (const option of snapshot.options) {
     const code = option.code.trim();
     if (!code) throw new Error("BUSINESS_DICTIONARY_OPTION_CODE_REQUIRED");
+    if (code !== option.code) {
+      throw new Error("BUSINESS_DICTIONARY_OPTION_CODE_NOT_CANONICAL");
+    }
     for (const value of [code, ...(option.aliases ?? [])]) {
       const key = normalize(value);
       if (!key) throw new Error("BUSINESS_DICTIONARY_ALIAS_INVALID");
