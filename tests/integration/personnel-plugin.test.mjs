@@ -254,3 +254,25 @@ test("PE-02: lazy Host router refuses inactive personnel or organization depende
   await staffHost.stop();
   await orgHost.stop();
 });
+
+
+test("PE-01 privacy: ordinary enterprise members never see draft-only personnel or login bindings", async () => {
+  const { directory } = setup();
+  directory.saveDraft({ ...params, expectedVersion: 0, persons: people });
+  const publicHandlers = createPersonnelActionHandlersV010({
+    repository: directory, canRead: () => true, canManage: () => false
+  });
+  const list = publicHandlers.find(x => x.commandCode === "personnel.list");
+  assert.deepEqual((await list.execute(command("personnel.list", {}), ctx())).result.data, []);
+  assert.equal((await list.execute(command("personnel.list", {
+    personnelDirectoryId: directoryId
+  }), ctx())).result.data, undefined);
+  directory.publish({ ...params, expectedVersion: 1, actorType: "HUMAN" });
+  directory.saveDraft({ ...params, expectedVersion: 1,
+    persons: [{ ...people[0], code: "NEW-CODE", linkedPrincipalSubjectId: "private-login" }] });
+  const result = await list.execute(command("personnel.list", {
+    personnelDirectoryId: directoryId
+  }), ctx());
+  assert.equal(result.result.data.persons[0].code, "EMP-101");
+  assert.equal(result.result.data.persons[0].linkedPrincipalSubjectId, undefined);
+});
