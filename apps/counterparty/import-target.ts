@@ -236,6 +236,11 @@ export function createCounterpartyImportTargetV010(input: {
   profileRepository?: CounterpartyProfileRepositoryV010;
   extensionRepository: ObjectExtensionDefinitionReaderV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
+  /** Enterprise- and plugin-scoped owner publication check from Host. */
+  resolvePublishedReference?: (contextId: string, reference: {
+    sourceKind: "BUSINESS_DICTIONARY" | "ORGANIZATION" | "PERSONNEL";
+    sourceId: string; expectedVersion: number; cardinality: "ONE" | "MANY";
+  }) => boolean;
 }): FoundationObjectImportTargetV010 {
   const existingCodeCache = new Map<string, Set<string>>();
   const extensionDefinitionCache = new Map<
@@ -250,7 +255,12 @@ export function createCounterpartyImportTargetV010(input: {
       extensions: input.extensionRepository.list(
         contextId,
         "counterparty.subject"
-      )
+      ),
+      ...(input.resolvePublishedReference ? {
+        resolvePublishedReference: ({ reference }: { reference: NonNullable<
+          EffectiveObjectSchemaV010["fields"][number]["reference"]
+        > }) => input.resolvePublishedReference!(contextId, reference)
+      } : {})
     });
   }
 
@@ -480,7 +490,15 @@ export function createCounterpartyImportTargetV010(input: {
         }
         if (raw === undefined) continue;
         try {
-          normalizedValues[field.fieldId] = normalizeFoundationObjectImportCellV010(field, raw);
+          if (field.valueType === "REFERENCE") {
+            const stable = validateInput.resolvedReferenceValues?.[field.fieldId];
+            if (!stable?.trim()) {
+              throw new Error("DATA_IMPORT_REFERENCE_UNRESOLVED");
+            }
+            normalizedValues[field.fieldId] = stable;
+          } else {
+            normalizedValues[field.fieldId] = normalizeFoundationObjectImportCellV010(field, raw);
+          }
         } catch (error) {
           const code = error instanceof Error
             ? error.message
