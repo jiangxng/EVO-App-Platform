@@ -47,6 +47,10 @@ export function normalizeFoundationObjectImportCellV010(
       }
       return normalized;
     }
+    case "REFERENCE":
+      // IM-01 must call the authorized published-source resolver and record
+      // per-row issues. Never persist raw source labels as stable IDs.
+      throw new Error("DATA_IMPORT_REFERENCE_RESOLVER_REQUIRED");
     case "ENUM": {
       const normalized = String(value).trim();
       const match = field.enumOptions?.find(option =>
