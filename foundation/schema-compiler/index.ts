@@ -416,6 +416,11 @@ export function compileEffectiveObjectSchemaV010(
       throw new Error("FOUNDATION_OBJECT_REFERENCE_INVALID");
     }
     if (field.enumOptions?.length) throw new Error("FOUNDATION_OBJECT_REFERENCE_ENUM_CONFLICT");
+    // The old Object Extension value store holds only scalar values. Keep
+    // MANY as a contract-level plan, not a silently writable capability.
+    if (reference.cardinality === "MANY") {
+      throw new Error("FOUNDATION_OBJECT_REFERENCE_MULTI_VALUE_NOT_READY");
+    }
     if (!input.resolvePublishedReference) {
       throw new Error("FOUNDATION_OBJECT_REFERENCE_PROVIDER_REQUIRED");
     }
