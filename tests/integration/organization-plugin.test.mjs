@@ -94,7 +94,7 @@ test("OR-01: cycle, missing and inactive parent cannot be published",()=>{
 test("OR-01: alias collisions reject publication and source labels never become IDs",()=>{
   const db=repo();
   db.saveDraft({...base,expectedVersion:0,units:[
-    options[0],{...options[1],aliases:["SUPPORT"]},options[2],options[3]
+    options[0],{...options[1],aliases:["DEPT-02"]},options[2],options[3]
   ]});
   assert.throws(()=>db.publish({...base,expectedVersion:1,actorType:"HUMAN"}),
     /ORGANIZATION_SOURCE_MAPPING_AMBIGUOUS/);
