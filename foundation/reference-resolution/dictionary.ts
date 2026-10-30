@@ -41,13 +41,20 @@ export function resolveBusinessDictionarySnapshotV010(
   if (snapshot.state !== "PUBLISHED") return all("NOT_PUBLISHED");
 
   const lookup = new Map<string, Set<string>>();
-  const byCode = new Map(snapshot.options.map(option => [option.code, option]));
+  const byCode = new Map<string, BusinessDictionarySnapshotV010["options"][number]>();
+  const normalizedCodes = new Set<string>();
   for (const option of snapshot.options) {
     const code = option.code.trim();
     if (!code) throw new Error("BUSINESS_DICTIONARY_OPTION_CODE_REQUIRED");
     if (code !== option.code) {
       throw new Error("BUSINESS_DICTIONARY_OPTION_CODE_NOT_CANONICAL");
     }
+    const normalizedCode = normalize(code);
+    if (normalizedCodes.has(normalizedCode)) {
+      throw new Error("BUSINESS_DICTIONARY_DUPLICATE_OPTION_CODE");
+    }
+    normalizedCodes.add(normalizedCode);
+    byCode.set(code, option);
     for (const value of [code, ...(option.aliases ?? [])]) {
       const key = normalize(value);
       if (!key) throw new Error("BUSINESS_DICTIONARY_ALIAS_INVALID");
