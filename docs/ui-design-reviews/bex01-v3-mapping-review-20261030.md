@@ -53,4 +53,6 @@ Human：用户本人尚未签收。
 | No current issue | Same mapping route | Read “没有待处理问题”; inspect all columns | Return to import directory | A later Host dry-run issue renders its real actionable row |
 | Unauthorized / wrong context | Existing Host route admission | No mapping mutation | Existing authorized parent | Host denial remains authoritative |
 
-入口：导入任务目录进入真实 Job 的字段映射页。退出：页脚返回文件/导入目录。异常恢复：重置未保存选择、保留原始来源和 Host 预检问题。
+入口：导入任务目录进入真实 Job 的字段映射页。
+退出：页脚返回文件/导入目录。
+异常恢复：重置未保存选择、保留原始来源和 Host 预检问题。
