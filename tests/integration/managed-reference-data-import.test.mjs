@@ -229,3 +229,17 @@ test("IM-01: optional blank reference cells do not become false failures",()=>{
   assert.equal(dry.state,"DRY_RUN_READY");
   assert.equal(dry.dryRun.rows[0].prepared.values.customerLevelRef,null);
 });
+
+
+test("IM-01: staged raw values changed after successful dry-run cannot reuse the receipt-ready snapshot",()=>{
+  const f=fixture();
+  const dry=f.service.dryRun({contextId,importJobId:f.importJobId,...owner});
+  assert.equal(dry.state,"DRY_RUN_READY");
+  assert.ok(dry.dryRun.sourceDigest);
+  const changed=f.importRepository.get(contextId,f.importJobId);
+  changed.source.rows[0]["客户等级"]="普通";
+  f.importRepository.save({contextId,job:changed,...owner});
+  assert.throws(()=>f.service.commit({contextId,importJobId:f.importJobId,...owner}),
+    /DATA_IMPORT_REFERENCE_SOURCE_CHANGED_AFTER_DRY_RUN/);
+  assert.equal(f.counterpartyRepository.list(contextId).length,0);
+});
