@@ -16,6 +16,10 @@ import {
   foundationObjectImportCellBlankV010,
   normalizeFoundationObjectImportCellV010
 } from "../../foundation/import-values.js";
+import {
+  prepareManagedReferenceImportRowsV010,
+  type ManagedReferenceImportReadersV010
+} from "../../foundation/reference-resolution/import.js";
 import type {
   ObjectExtensionDefinitionReaderV010
 } from "../../contracts/foundation-object/extension.js";
@@ -236,6 +240,7 @@ export function createCounterpartyImportTargetV010(input: {
   profileRepository?: CounterpartyProfileRepositoryV010;
   extensionRepository: ObjectExtensionDefinitionReaderV010;
   extensionValueRepository: ObjectExtensionValueRepositoryV010;
+  referenceReaders?: ManagedReferenceImportReadersV010;
   /** Enterprise- and plugin-scoped owner publication check from Host. */
   resolvePublishedReference?: (contextId: string, reference: {
     sourceKind: "BUSINESS_DICTIONARY" | "ORGANIZATION" | "PERSONNEL";
@@ -468,6 +473,18 @@ export function createCounterpartyImportTargetV010(input: {
       );
     },
 
+    ...(input.referenceReaders ? {
+      resolveManagedReferences: (request: {
+        contextId: string;
+        schema: EffectiveObjectSchemaV010;
+        rows: readonly {
+          rowNumber: number;
+          values: Record<string, FoundationObjectImportCellV010>;
+        }[];
+      }) => prepareManagedReferenceImportRowsV010({
+        ...request, readers: input.referenceReaders!
+      })
+    } : {}),
     validateRow(validateInput): FoundationObjectImportValidationV010 {
       const schema = validateInput.schema;
       const importFields = fieldsForSurfaceV010(schema, "IMPORT")
