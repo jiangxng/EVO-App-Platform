@@ -266,9 +266,16 @@ export function createObjectExtensionBatchImportPageV010(input: {
         reviewTask: {
           presentation: "workbench" as const,
           subject: { title: job.source.name ?? (zh ? "当前导入文件" : "Current import file"),
-            subtitle: (zh ? "共 " : "") + job.source.rows.length
-              + (zh ? " 条记录 · " : " rows · ") + job.source.headers.length
-              + (zh ? " 列" : " columns") },
+            subtitle: (job.source.kind === "XLSX" && job.source.worksheetName
+              ? (zh ? "工作表：" : "Worksheet: ") + job.source.worksheetName
+                + (zh ? " · 共 " : " · ")
+              : (zh ? "共 " : "")) + job.source.rows.length
+                + (zh ? " 条记录 · " : " rows · ") + job.source.headers.length
+                + (zh ? " 列" : " columns"),
+            statusLabel: zh ? "文件已读取" : "File read",
+            statusTone: "positive" as const,
+            ...(job.source.kind === "XLSX" || job.source.kind === "CSV"
+              ? {iconLabel:job.source.kind} : {}) },
           steps: [
             { id: "upload", label: zh ? "选择文件" : "Choose file", state: "complete" as const },
             { id: "review", label: zh ? "核对并导入" : "Review and import", state: "current" as const }
@@ -283,6 +290,10 @@ export function createObjectExtensionBatchImportPageV010(input: {
           reviewStatus: { key: "proposed", label: zh ? "待新增" : "Proposed", tone: "neutral" as const }
         })),
         reviewTable: { presentation: "confirmation" as const,
+          heading: { title: zh ? "确认新增字段" : "Confirm new fields",
+            description: zh
+              ? "下列字段将在当前企业中创建，并用于本次导入。请核对字段名称和类型。"
+              : "These fields will be created for the current enterprise and used in this import. Review their names and types." },
           columnLabels: { subject: zh ? "Excel 列" : "Excel column",
             evidence: zh ? "新增字段名称" : "New field name",
             decision: zh ? "字段类型" : "Field type",

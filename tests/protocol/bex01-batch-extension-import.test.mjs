@@ -91,6 +91,10 @@ test("V3 confirmation shows only proposed names and editable types, then validat
   });
   assert.equal(page.title,"确认新增字段");
   assert.equal(page.reviewTable.presentation,"confirmation");
+  assert.equal(page.reviewTable.heading.title,"确认新增字段");
+  assert.match(page.reviewTable.heading.description,/当前企业中创建/);
+  assert.equal(page.reviewTask.subject.iconLabel,"XLSX");
+  assert.equal(page.reviewTask.subject.statusLabel,"文件已读取");
   assert.equal(page.reviewGroups.length,4);
   assert.equal(page.reviewGroups[0].title,"默认支付方式");
   assert.equal(page.reviewGroups[0].summary,"默认支付方式");
@@ -102,6 +106,10 @@ test("V3 confirmation shows only proposed names and editable types, then validat
   assert.equal(page.reviewTask.footer.back.route,"/data-import/jobs/batch-bex-01/map");
   assert.equal(validateUidl(page).ok,true,JSON.stringify(validateUidl(page).diagnostics));
   const html=renderToHtml(page);
+  assert.match(html,/<section data-eidos-form-confirmation-panel>[\s\S]*<footer data-eidos-form-actions>/);
+  assert.match(html,/<\/footer>\s*<\/section>\s*<\/form>/);
+  assert.match(html,/data-eidos-form-task-icon[^>]*>XLSX<\/span>/);
+  assert.match(html,/data-eidos-form-task-source-status[^>]*>文件已读取<\/span>/);
   assert.match(html,/data-eidos-review-table-presentation="confirmation"/);
   assert.match(html,/<th scope="col">Excel 列<\/th>/);
   assert.match(html,/<th scope="col">新增字段名称<\/th>/);
