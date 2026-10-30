@@ -114,7 +114,7 @@ test("MD-02: Human draft persists separately; publication atomically adds existi
     modelDraftId:draft.modelDraftId,expectedVersion:1,actorType:"HUMAN" });
   assert.equal(publication.published.state,"PUBLISHED");
   assert.equal(existing.get(scope,definition().extensionId).reference.expectedVersion,3);
-  assert.equal(publication.navigateTo,"/data-import/mapping?job=import-100");
+  assert.equal(publication.navigateTo,"/data-import/jobs/import-100/map");
   assert.deepEqual(imports.get(scope,original.importJobId).mapping,original.mapping);
   assert.equal(model.publish({ ...author,contextId:scope,
     modelDraftId:draft.modelDraftId,expectedVersion:1,actorType:"HUMAN" }).published.state,
