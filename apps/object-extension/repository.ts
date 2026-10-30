@@ -98,6 +98,13 @@ export function createObjectExtensionRepositoryV010(
 
     save(input) {
       const definition = assertObjectExtensionDefinitionV010(input.definition);
+      // Existing active extension upsert predates model publication. New
+      // references cannot be smuggled through this legacy immediate-write API.
+      // MD-02 will introduce an explicitly authorized, validated publication
+      // step with version/audit and an atomic reference gate.
+      if (definition.valueType === "REFERENCE") {
+        throw new Error("OBJECT_EXTENSION_REFERENCE_REQUIRES_MODEL_PUBLICATION");
+      }
       const duplicate = this.list(input.contextId, definition.targetObjectType)
         .find(existing =>
           existing.extensionId !== definition.extensionId
