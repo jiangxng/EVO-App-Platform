@@ -21,7 +21,7 @@ export interface UidlField {
   /** Optional local navigation beside a form input; never submits. */
   contextLink?: { label: string; route: string };
   /** Opt-in select-only choice exclusivity within the mounted form. */
-  exclusiveSelect?: { group: string; exemptValues: string[] };
+  exclusiveSelect?: { group: string; exemptValues: string[]; occupiedLabel?: string };
 }
 export interface UidlAction {
   id: string;

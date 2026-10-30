@@ -282,6 +282,11 @@ test("mapping and review pages keep validation and commit explicit", () => {
     mappingPage.fields.find(field => field.key === "map_0").initialValue,
     "code"
   );
+  assert.equal(mappingPage.fields.find(field => field.key === "map_1")
+    .exclusiveSelect.occupiedLabel,"已占用");
+  assert.ok(mappingPage.fields.find(field => field.key === "map_1")
+    .options.some(option=>option.value==="code"),
+    "occupied target remains declared so Eidos can show its disabled option");
   const agentAction = mappingPage.actions.find(
     action => action.type === "agent"
   );
