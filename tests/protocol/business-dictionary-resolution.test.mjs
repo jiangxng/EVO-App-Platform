@@ -131,3 +131,12 @@ test("RD-01: noncanonical option codes and non-string source values fail before 
     /BUSINESS_DICTIONARY_SOURCE_VALUES_INVALID/
   );
 });
+
+test("RD-01: duplicate stable option codes differing only by case are rejected", () => {
+  const changed = snapshot();
+  changed.options[1].code = "a";
+  assert.throws(
+    () => resolveBusinessDictionarySnapshotV010(changed, request(["A"])),
+    /BUSINESS_DICTIONARY_DUPLICATE_OPTION_CODE/
+  );
+});
