@@ -23,6 +23,18 @@ import {
   type DataImportRecipeRepositoryV010
 } from "./recipe.js";
 
+/** Bind Human-confirmed preflight to the exact staged source and mapping. */
+function dataImportManagedSourceDigestV010(job: DataImportJobV010): string {
+  return createHash("sha256").update(JSON.stringify({
+    targetId: job.targetId,
+    targetParameters: job.targetParameters,
+    source: job.source,
+    mapping: job.mapping,
+    ignoredSourceColumns: job.ignoredSourceColumns ?? [],
+    rowCorrections: job.rowCorrections ?? []
+  })).digest("hex");
+}
+
 export function dataImportRowCorrectionRevisionV010(
   job: DataImportJobV010, rowNumber: number, sourceColumn: string
 ): string {
@@ -861,6 +873,9 @@ export function createDataImportServiceV010(input: {
         state: invalidRows === 0 ? "DRY_RUN_READY" : "DRY_RUN_FAILED",
         dryRun: {
           schemaDigest: dataImportTargetSchemaDigestV010(schema),
+          ...(includesReferences ? {
+            sourceDigest: dataImportManagedSourceDigestV010(job)
+          } : {}),
           totalRows: rows.length,
           validRows: rows.length - invalidRows,
           invalidRows,
@@ -927,6 +942,11 @@ export function createDataImportServiceV010(input: {
         !== job.dryRun.schemaDigest
       ) {
         throw new Error("DATA_IMPORT_SCHEMA_CHANGED_AFTER_DRY_RUN");
+      }
+      if (schema.fields.some(field => field.valueType === "REFERENCE"
+        && field.surfaces.includes("IMPORT"))
+        && job.dryRun.sourceDigest !== dataImportManagedSourceDigestV010(job)) {
+        throw new Error("DATA_IMPORT_REFERENCE_SOURCE_CHANGED_AFTER_DRY_RUN");
       }
 
       let receiptRows;
