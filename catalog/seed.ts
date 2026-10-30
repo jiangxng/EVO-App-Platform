@@ -43,6 +43,7 @@ import {
 import {
   responsibilityPackage
 } from "../apps/responsibility/package.js";
+import { businessDictionaryPackage } from "../apps/business-dictionary/package.js";
 import {
   eog2dPackage
 } from "../apps/eog-2d/package.js";
@@ -84,6 +85,7 @@ export {
 export {
   responsibilityPackage
 } from "../apps/responsibility/package.js";
+export { businessDictionaryPackage } from "../apps/business-dictionary/package.js";
 export {
   ledgerManagerPackage
 } from "../apps/ledger-manager/package.js";
