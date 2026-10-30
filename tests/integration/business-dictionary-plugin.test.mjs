@@ -16,7 +16,7 @@ import {
 } from "../../dist/apps/business-dictionary/actions.js";
 import {
   businessDictionaryPackage
-} from "../../dist/apps/business-dictionary/package.js";
+} from "../../dist/catalog/seed.js";
 import {
   createBusinessDictionaryRuntimeHostV010
 } from "../../dist/manager/business-dictionary-runtime.js";
