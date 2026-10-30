@@ -3,10 +3,12 @@ import type { PlatformPrincipalV010, PlatformRequestContextV010 } from "../../co
 import type { ObjectExtensionDefinitionV010 } from "../../contracts/foundation-object/extension.js";
 import type { ObjectExtensionModelPublicationV010 } from "./model-publication.js";
 
-export const OBJECT_MODEL_PROPOSE_COMMAND_V010 = "object-extension.model.propose" as const;
-export const OBJECT_MODEL_GET_COMMAND_V010 = "object-extension.model.draft.get" as const;
-export const OBJECT_MODEL_DRAFT_COMMAND_V010 = "object-extension.model.draft.save" as const;
-export const OBJECT_MODEL_PUBLISH_COMMAND_V010 = "object-extension.model.publish" as const;
+import {
+  OBJECT_EXTENSION_MODEL_PROPOSE_COMMAND_V010 as OBJECT_MODEL_PROPOSE_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_GET_COMMAND_V010 as OBJECT_MODEL_GET_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_DRAFT_COMMAND_V010 as OBJECT_MODEL_DRAFT_COMMAND_V010,
+  OBJECT_EXTENSION_MODEL_PUBLISH_COMMAND_V010 as OBJECT_MODEL_PUBLISH_COMMAND_V010
+} from "./constants.js";
 
 function required(v: unknown, error: string): string {
   if (typeof v !== "string" || !v.trim()) throw new Error(error);
