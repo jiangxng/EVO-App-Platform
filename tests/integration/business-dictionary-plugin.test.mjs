@@ -1,4 +1,6 @@
 import test from "node:test";
+import { createAppActionRouter } from "../../dist/actions/router.js";
+import { createLazyAppActionHandlerV010 } from "../../dist/actions/lazy-handler.js";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -194,4 +196,51 @@ test("RD-02: lazy runtime blocks disabled plugin, and reacts to shutdown", async
   assert.throws(() => repo.list(contextId), /PROVIDER_NOT_ACTIVE_OR_STOPPING/);
   await runtime.stop();
   await assert.rejects(runtime.resolve(), /PROVIDER_NOT_ACTIVE_OR_STOPPING/);
+});
+
+test("RD-02: actual Host ActionRouter composes opt-in lazy operation lifecycle", async () => {
+  let active = false;
+  let loads = 0;
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const runtime = createBusinessDictionaryRuntimeHostV010({
+    isActive: () => active, resources
+  });
+  const commands = ["dictionary.list", "dictionary.draft.save",
+    "dictionary.publish", "dictionary.resolve.batch"];
+  const handlers = commands.map(code => createLazyAppActionHandlerV010({
+    packageId: "evo-business-dictionary",
+    featureId: "evo-business-dictionary.default",
+    commandCode: code,
+    async load() {
+      loads++;
+      return createBusinessDictionaryActionHandlersV010({
+        resolveRepository: () => runtime.resolve(),
+        canRead: () => true,
+        canManage: () => true
+      }).find(x => x.commandCode === code);
+    }
+  }));
+  const router = createAppActionRouter(handlers,
+    id => active && id === "evo-business-dictionary.default");
+  const draft = request("dictionary.draft.save", {
+    dictionaryId: fixed.dictionaryId, expectedVersion: 0, options
+  });
+  assert.equal((await router.execute(draft, ctx())).error.code,
+    "ACTION_FEATURE_NOT_ACTIVE");
+  assert.equal(loads, 0);
+  active = true;
+  assert.equal((await router.execute(draft, ctx())).ok, true);
+  assert.equal(loads, 1);
+  assert.equal((await router.execute(request("dictionary.publish", {
+    dictionaryId: fixed.dictionaryId, expectedVersion: 1
+  }), ctx())).ok, true);
+  const resolved = await router.execute(request("dictionary.resolve.batch", {
+    dictionaryId: fixed.dictionaryId, sourceValues: ["重点"]
+  }), ctx());
+  assert.equal(resolved.ok, true);
+  assert.equal(resolved.result.data[0].optionCode, "A");
+  active = false;
+  assert.equal((await router.execute(draft, ctx())).error.code,
+    "ACTION_FEATURE_NOT_ACTIVE");
+  await runtime.stop();
 });
