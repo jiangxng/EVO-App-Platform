@@ -819,8 +819,7 @@ export function createDataImportMappingPageV010(input: {
     reviewGroups.filter(group => group.reviewStatus.key === key).length;
   const attentionColumns = reviewGroups.filter(group =>
     group.reviewStatus.key === "attention"
-      || group.reviewStatus.key === "suggested"
-      || group.reviewStatus.key === "proposed");
+      || group.reviewStatus.key === "suggested");
   const reviewIssues: {
     id: string;
     title: string;
@@ -856,22 +855,12 @@ export function createDataImportMappingPageV010(input: {
         actionLabel: zh(input.locale) ? "处理此列" : "Handle column"
       };
     }
-    // Use the existing, authorized Object Extension journey for model
-    // preparation. The link preserves this exact Import Job and column:
-    // no draft is published and no mapping is silently changed on navigation.
-    const mayPrepare = input.canCreateExtension === true
-      && input.job.targetId === "counterparty.subject"
-      && group.reviewStatus.key === "proposed";
     return {
       id: group.id,
       title: group.title,
       description: group.reviewStatus.label + " · " + group.summary,
       focusGroupId: group.id,
-      actionLabel: zh(input.locale) ? "核对本列" : "Review column",
-      ...(mayPrepare ? { relatedRoutes: [{
-        label: zh(input.locale) ? "准备并审核目标字段" : "Prepare and review target field",
-        route: objectExtensionImportRouteV010(input.job.importJobId, group.title)
-      }] } : {})
+      actionLabel: zh(input.locale) ? "核对本列" : "Review column"
     };
   });
 
@@ -1141,7 +1130,11 @@ export function createDataImportMappingPageV010(input: {
     })), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
-      label: t.validate,
+      label: input.canCreateExtension === true
+        && input.job.targetId === "counterparty.subject"
+        && reviewGroups.some(group => group.reviewStatus.key === "proposed")
+        ? (zh(input.locale) ? "保存选择并准备目标字段" : "Save choices and prepare target fields")
+        : t.validate,
       type: "submit" as const,
       command: DATA_IMPORT_REVIEW_COMMAND_V010,
       requiresConfirmation: false
