@@ -1130,7 +1130,11 @@ export function createDataImportMappingPageV010(input: {
     })), ...advisoryFields, ...advancedFields],
     actions: [{
       id: "review",
-      label: t.validate,
+      label: input.canCreateExtension === true
+        && input.job.targetId === "counterparty.subject"
+        && reviewGroups.some(group => group.reviewStatus.key === "proposed")
+        ? (zh(input.locale) ? "保存选择并准备目标字段" : "Save choices and prepare target fields")
+        : t.validate,
       type: "submit" as const,
       command: DATA_IMPORT_REVIEW_COMMAND_V010,
       requiresConfirmation: false
