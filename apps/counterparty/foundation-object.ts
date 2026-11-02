@@ -10,7 +10,8 @@ import type {
 } from "../../contracts/foundation-object/schema.js";
 import {
   compileEffectiveObjectSchemaV010,
-  type FoundationObjectFieldAuthorizationV010
+  type FoundationObjectFieldAuthorizationV010,
+  type CompileEffectiveObjectSchemaInputV010
 } from "../../foundation/schema-compiler/index.js";
 import {
   COUNTERPARTY_ARCHIVE_COMMAND,
@@ -652,6 +653,7 @@ export function createCounterpartyEffectiveObjectSchemaV010(input: {
   activeRelationshipRoles?: readonly string[];
   extensions?: readonly ObjectExtensionDefinitionV010[];
   authorizeField?: FoundationObjectFieldAuthorizationV010;
+  resolvePublishedReference?: CompileEffectiveObjectSchemaInputV010["resolvePublishedReference"];
 } = {}): EffectiveObjectSchemaV010 {
   return compileEffectiveObjectSchemaV010({
     descriptor: counterpartyFoundationObjectDescriptorV010,
@@ -659,6 +661,7 @@ export function createCounterpartyEffectiveObjectSchemaV010(input: {
     locale: input.locale,
     activeRelationshipRoles: input.activeRelationshipRoles,
     extensions: input.extensions,
-    authorizeField: input.authorizeField
+    authorizeField: input.authorizeField,
+    resolvePublishedReference: input.resolvePublishedReference
   });
 }

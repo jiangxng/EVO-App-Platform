@@ -83,6 +83,8 @@ export interface DataImportDryRunRowV010 {
 
 export interface DataImportDryRunV010 {
   schemaDigest: string;
+  /** Immutable preflight source+mapping+correction identity, required for managed references. */
+  sourceDigest?: string;
   totalRows: number;
   validRows: number;
   invalidRows: number;

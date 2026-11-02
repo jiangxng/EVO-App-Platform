@@ -2605,8 +2605,38 @@ Promise<FoundationObjectImportTargetV010[]> {
       if (ref === "evo-counterparty.import-target.v0.1") {
         pending = Promise.all([
           import("../apps/counterparty/import-target.js"), counterpartyRuntimeHost.resolve(),
-          counterpartyExtensionDefinitions.resolveRead(), counterpartyExtensionValues.resolveWrite()
-        ]).then(([module, runtime, extensionRepository, extensionValueRepository]) => module.createCounterpartyImportTargetV010({
+          counterpartyExtensionDefinitions.resolveRead(), counterpartyExtensionValues.resolveWrite(),
+          import("../apps/business-dictionary/repository.js"),
+          import("../apps/organization/repository.js"),
+          import("../apps/personnel/repository.js"),
+          import("../foundation/reference-resolution/model.js")
+        ]).then(([module, runtime, extensionRepository, extensionValueRepository,
+          dictionaryModule, orgModule, personModule, referenceModule]) => {
+          const featureActive = (pkg: string, id: string) =>
+            store.snapshot().activeFeatures.some(feature =>
+              feature.packageId === pkg && feature.featureId === id);
+          const orgRepository =
+            orgModule.createOrganizationRepositoryV010(enterpriseResourceRepository);
+          const dictionaryRepository =
+            dictionaryModule.createBusinessDictionaryRepositoryV010(enterpriseResourceRepository);
+          const personnelRepository =
+            personModule.createPersonnelRepositoryV010(enterpriseResourceRepository, orgRepository);
+          const businessDictionary = {
+            isActive: () => featureActive(BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID),
+            repository: dictionaryRepository,
+            reader: dictionaryRepository
+          };
+          const organization = {
+            isActive: () => featureActive(ORGANIZATION_PACKAGE_ID_V010, ORGANIZATION_FEATURE_ID_V010),
+            repository: orgRepository,
+            reader: orgRepository
+          };
+          const personnel = {
+            isActive: () => featureActive(PERSONNEL_PACKAGE_ID_V010, PERSONNEL_FEATURE_ID_V010),
+            repository: personnelRepository,
+            reader: personnelRepository
+          };
+          return module.createCounterpartyImportTargetV010({
             resources: enterpriseResourceRepository,
             repository: runtime.repository,
             roleRepository: runtime.roleRepository,
@@ -2614,8 +2644,15 @@ Promise<FoundationObjectImportTargetV010[]> {
             addressRepository: runtime.addressRepository,
             profileRepository: runtime.profileRepository,
             extensionRepository,
-            extensionValueRepository
-          }));
+            extensionValueRepository,
+            referenceReaders: { businessDictionary, organization, personnel },
+            resolvePublishedReference(contextId, reference) {
+              return referenceModule.createManagedReferencePublicationResolverV010({
+                contextId, businessDictionary, organization, personnel
+              })({ fieldId: "counterparty-import", reference });
+            }
+          });
+        });
       } else if (ref === "evo-item.import-target.v0.1") {
         pending = Promise.all([
           import("../apps/item/import-target.js"),

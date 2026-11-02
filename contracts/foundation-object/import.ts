@@ -77,12 +77,27 @@ export interface FoundationObjectImportTargetV010 {
     locale?: string;
     parameters?: FoundationObjectImportTargetParametersV010;
   }): EffectiveObjectSchemaV010;
+  /** Optional batch hook owned by the activated import target and reference providers. */
+  resolveManagedReferences?(input: {
+    contextId: string;
+    schema: EffectiveObjectSchemaV010;
+    rows: readonly {
+      rowNumber: number;
+      values: Record<string, FoundationObjectImportCellV010>;
+    }[];
+  }): readonly {
+    rowNumber: number;
+    resolved: Readonly<Record<string, string>>;
+    issues: readonly FoundationObjectImportIssueV010[];
+  }[];
   validateRow(input: {
     contextId: string;
     importJobId: string;
     schema: EffectiveObjectSchemaV010;
     rowNumber: number;
     values: Record<string, FoundationObjectImportCellV010>;
+    /** Only Data Import's authorized batch owner may populate this after resolution. */
+    resolvedReferenceValues?: Readonly<Record<string, string>>;
     parameters?: FoundationObjectImportTargetParametersV010;
   }): FoundationObjectImportValidationV010;
   commitRow(input: {
