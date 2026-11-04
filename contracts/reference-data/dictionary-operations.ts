@@ -4,6 +4,7 @@ export const BUSINESS_DICTIONARY_CAPABILITY_V010 = "enterprise.business-dictiona
 
 export const BUSINESS_DICTIONARY_LIST_COMMAND_V010 = "dictionary.list" as const;
 export const BUSINESS_DICTIONARY_DRAFT_COMMAND_V010 = "dictionary.draft.save" as const;
+export const BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 = "dictionary.option.draft.save" as const;
 export const BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 = "dictionary.publish" as const;
 export const BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010 = "dictionary.resolve.batch" as const;
 
@@ -11,3 +12,10 @@ export const BUSINESS_DICTIONARY_READ_ACTION_V010 = "dictionary.read" as const;
 export const BUSINESS_DICTIONARY_WRITE_ACTION_V010 = "dictionary.write" as const;
 export const BUSINESS_DICTIONARY_PUBLISH_ACTION_V010 = "dictionary.publish" as const;
 export const BUSINESS_DICTIONARY_AUTH_RESOURCE_V010 = "business-dictionary.definition" as const;
+
+export const BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010 = "/business-dictionaries" as const;
+export const BUSINESS_DICTIONARY_DETAIL_ROUTE_V010 = "/business-dictionaries/view" as const;
+export const BUSINESS_DICTIONARY_OPTION_ROUTE_V010 = "/business-dictionaries/option" as const;
+export const BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010 = "app://evo-business-dictionary/pages/directory" as const;
+export const BUSINESS_DICTIONARY_DETAIL_SOURCE_V010 = "app://evo-business-dictionary/pages/detail" as const;
+export const BUSINESS_DICTIONARY_OPTION_SOURCE_V010 = "app://evo-business-dictionary/pages/option" as const;

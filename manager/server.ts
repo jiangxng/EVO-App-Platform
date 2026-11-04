@@ -916,7 +916,10 @@ import {
 import {
   BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
-  BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010
+  BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010,
+  BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010,
+  BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010, BUSINESS_DICTIONARY_DETAIL_SOURCE_V010,
+  BUSINESS_DICTIONARY_OPTION_SOURCE_V010
 } from "../contracts/reference-data/dictionary-operations.js";
 import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
@@ -5603,6 +5606,7 @@ const actionRouter = createAppActionRouter(
     ...[
       BUSINESS_DICTIONARY_LIST_COMMAND_V010,
       BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
+      BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010,
       BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010,
       BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010
     ].map(commandCode =>
@@ -7601,6 +7605,64 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (source === BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010
+          || source === BUSINESS_DICTIONARY_DETAIL_SOURCE_V010
+          || source === BUSINESS_DICTIONARY_OPTION_SOURCE_V010) {
+        if (!manager.getSnapshot().activeFeatures.some(feature =>
+          feature.packageId === BUSINESS_DICTIONARY_PACKAGE_ID
+          && feature.featureId === BUSINESS_DICTIONARY_FEATURE_ID)) {
+          return json(response, 404, { code: "PAGE_NOT_EFFECTIVE_OR_NOT_FOUND" });
+        }
+        const session = resolveRequestIdentitySession(request);
+        const registry = createContextRegistryForSession(session);
+        const resolved = registry.resolve(contextFromHeaderV010(request.headers, registry));
+        const page = await import("../apps/business-dictionary/page.js");
+        const locale = requestedLocale(url);
+        if (resolved.activeContext.kind !== "ENTERPRISE") {
+          return json(response, 200, page.createBusinessDictionaryContextRequiredPageV010(locale));
+        }
+        const contextId = resolved.activeContext.contextId;
+        const relation = (resolveEnterpriseContextRelationshipProvider()
+          ?.listForPrincipal(session.principal) ?? [])
+          .find(item => item.contextId === contextId && item.state === "ACTIVE");
+        if (!relation) return json(response, 403, { code: "BUSINESS_DICTIONARY_PERMISSION_DENIED" });
+        const canManage = relation.kind === "OWNER" || relation.kind === "ADMIN";
+        if (source === BUSINESS_DICTIONARY_OPTION_SOURCE_V010 && !canManage) {
+          return json(response, 403, { code: "BUSINESS_DICTIONARY_PERMISSION_DENIED" });
+        }
+        const repository = await businessDictionaryRuntimeHost.resolve();
+        if (source === BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010) {
+          const dictionaries = repository.list(contextId);
+          const effectiveVersions = Object.fromEntries(dictionaries.flatMap(dictionary => {
+            const effective = repository.getEffective(contextId, dictionary.dictionaryId);
+            return effective ? [[dictionary.dictionaryId, effective.version]] : [];
+          }));
+          return json(response, 200, page.createBusinessDictionaryDirectoryPageV010({
+            dictionaries, effectiveVersions, canManage, locale
+          }));
+        }
+        const route = page.parseBusinessDictionaryRouteV010(
+          url.searchParams.get("route") ?? undefined,
+          source === BUSINESS_DICTIONARY_DETAIL_SOURCE_V010 ? "detail" : "option"
+        );
+        if (!route) return json(response, 404, { code: "BUSINESS_DICTIONARY_ROUTE_INVALID" });
+        const dictionary = route.dictionaryId ? repository.get(contextId, route.dictionaryId) : undefined;
+        if (route.dictionaryId && !dictionary) {
+          return json(response, 404, { code: "BUSINESS_DICTIONARY_NOT_FOUND" });
+        }
+        if (source === BUSINESS_DICTIONARY_DETAIL_SOURCE_V010) {
+          return json(response, 200, page.createBusinessDictionaryDetailPageV010({
+            dictionary: dictionary!, canManage, locale,
+            effectiveVersion: repository.getEffective(contextId, dictionary!.dictionaryId)?.version
+          }));
+        }
+        if (route.code && !dictionary?.options.some(option => option.code === route.code)) {
+          return json(response, 404, { code: "BUSINESS_DICTIONARY_OPTION_NOT_FOUND" });
+        }
+        return json(response, 200, page.createBusinessDictionaryOptionPageV010({
+          dictionary, code: route.code, locale
+        }));
+      }
       if (source === ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE) {
         const effective = manager.getSnapshot().activeFeatures.some(
           feature =>

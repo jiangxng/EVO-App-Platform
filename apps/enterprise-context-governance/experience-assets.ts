@@ -10,7 +10,7 @@ export const enterpriseContextGovernanceExperienceAssets =
         contractVersion: "0.1.1",
         kind: "form",
         id: "evo-enterprise-context-governance.create",
-        title: "Create Enterprise Context",
+        title: "Create Enterprise Content Library",
         purpose: "execute-command",
         command: {
           code: "enterprise.context.create",

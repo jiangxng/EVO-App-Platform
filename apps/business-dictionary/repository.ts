@@ -26,6 +26,7 @@ export interface BusinessDictionaryRepositoryV010 {
   history(contextId: string, dictionaryId: string): BusinessDictionarySnapshotV010[];
   saveDraft(input: {
     contextId: string; dictionaryId: string; expectedVersion: number;
+    displayName?: string;
     options: BusinessDictionaryOptionV010[];
     actorSubjectId: string; recordedAt: string;
   }): BusinessDictionarySnapshotV010;
@@ -91,6 +92,8 @@ function fromPayload(payload: EnterpriseResourceJsonV010 | undefined):
     contractVersion: "0.1.0",
     contextId: value.contextId,
     dictionaryId: value.dictionaryId,
+    ...(typeof value.displayName === "string" && value.displayName.trim()
+      ? { displayName: value.displayName.trim() } : {}),
     version: value.version,
     state: value.state,
     options: validateOptions(value.options)
@@ -177,6 +180,8 @@ export function createBusinessDictionaryRepositoryV010(resources: EnterpriseReso
             JSON.stringify(previous.options) === JSON.stringify(options)) return previous;
         const next: BusinessDictionarySnapshotV010 = {
           contractVersion: "0.1.0", contextId, dictionaryId,
+          ...(input.displayName?.trim() || previous?.displayName
+            ? { displayName: input.displayName?.trim() || previous?.displayName } : {}),
           version: (previous?.version ?? 0) + 1, state: "DRAFT", options
         };
         return store(next, required(input.actorSubjectId, "BUSINESS_DICTIONARY_ACTOR_REQUIRED"), input.recordedAt);

@@ -8,12 +8,14 @@ import type { BusinessDictionaryOptionV010 } from "../../contracts/reference-dat
 import type { BusinessDictionaryRepositoryV010 } from "./repository.js";
 import {
   BUSINESS_DICTIONARY_DRAFT_COMMAND_V010 as DRAFT,
+  BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 as OPTION_SAVE,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010 as LIST,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 as PUBLISH,
   BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010 as RESOLVE,
   BUSINESS_DICTIONARY_FEATURE_ID as FEATURE,
   BUSINESS_DICTIONARY_PACKAGE_ID as PACKAGE
 } from "./constants.js";
+import { businessDictionaryDetailRouteV010 } from "./page.js";
 
 function required(value: unknown, error: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(error);
@@ -62,8 +64,12 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
         const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
         if (!allowed()) throw new Error("BUSINESS_DICTIONARY_PERMISSION_DENIED");
         const result = action(repository, context!, contextId, request.values);
+        const navigateTo = commandCode === OPTION_SAVE || commandCode === PUBLISH
+          ? businessDictionaryDetailRouteV010(required(request.values.dictionaryId,
+            "BUSINESS_DICTIONARY_ID_REQUIRED")) : undefined;
         return { ok: true, correlationId: context!.correlationId,
-          result: JSON.parse(JSON.stringify({ contractVersion: "0.1.0", data: result })) as JsonValue };
+          result: JSON.parse(JSON.stringify({ contractVersion: "0.1.0", data: result,
+            ...(navigateTo ? { navigateTo } : {}) })) as JsonValue };
       } catch (error) {
         return failure(error, context);
       }
@@ -89,11 +95,56 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
       repo.saveDraft({
         contextId, dictionaryId: required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED"),
         expectedVersion: integer(values.expectedVersion, "BUSINESS_DICTIONARY_VERSION_INVALID"),
+        ...(typeof values.displayName === "string" && values.displayName.trim()
+          ? { displayName: values.displayName.trim() } : {}),
         options: Array.isArray(values.options)
           ? values.options as unknown as BusinessDictionaryOptionV010[]
           : (() => { throw new Error("BUSINESS_DICTIONARY_OPTIONS_REQUIRED"); })(),
         actorSubjectId: context.principal.subjectId, recordedAt: now().toISOString()
       })),
+    handler(OPTION_SAVE, true, (repo, context, contextId, values) => {
+      const dictionaryId = required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED");
+      const displayName = required(values.displayName, "BUSINESS_DICTIONARY_NAME_REQUIRED");
+      const expectedVersion = integer(values.expectedVersion, "BUSINESS_DICTIONARY_VERSION_INVALID");
+      const optionCode = required(values.optionCode, "BUSINESS_DICTIONARY_CODE_REQUIRED");
+      const originalCode = typeof values.originalCode === "string" ? values.originalCode.trim() : "";
+      const optionLabel = required(values.optionLabel, "BUSINESS_DICTIONARY_LABEL_REQUIRED");
+      const status = values.optionStatus;
+      if (status !== "ACTIVE" && status !== "INACTIVE") {
+        throw new Error("BUSINESS_DICTIONARY_STATUS_INVALID");
+      }
+      const current = repo.get(contextId, dictionaryId);
+      if ((current?.version ?? 0) !== expectedVersion) {
+        throw new Error("BUSINESS_DICTIONARY_VERSION_CONFLICT");
+      }
+      if (originalCode && originalCode !== optionCode) {
+        throw new Error("BUSINESS_DICTIONARY_CODE_IMMUTABLE");
+      }
+      const existingIndex = current?.options.findIndex(option => option.code === optionCode) ?? -1;
+      if (originalCode && existingIndex < 0) throw new Error("BUSINESS_DICTIONARY_OPTION_NOT_FOUND");
+      if (!originalCode && existingIndex >= 0) throw new Error("BUSINESS_DICTIONARY_OPTION_EXISTS");
+      const previousOption = existingIndex >= 0 ? current!.options[existingIndex] : undefined;
+      const rawAliases = typeof values.optionAliases === "string" ? values.optionAliases : "";
+      const aliases = previousOption?.aliases?.join("，") === rawAliases
+        ? previousOption.aliases ?? []
+        : [...new Set(rawAliases.split(/[,，]/u).map(value => value.trim()).filter(Boolean))];
+      const translations = { ...(previousOption?.label.translations ?? {}) };
+      if (typeof values.optionLabelZh === "string") {
+        const chinese = values.optionLabelZh.trim();
+        if (chinese) translations["zh-CN"] = chinese;
+        else delete translations["zh-CN"];
+      }
+      const option: BusinessDictionaryOptionV010 = {
+        code: optionCode, label: { default: optionLabel,
+          ...(Object.keys(translations).length ? { translations } : {}) },
+        ...(aliases.length ? { aliases } : {}), status
+      };
+      const options = current ? [...current.options] : [];
+      if (existingIndex >= 0) options[existingIndex] = option;
+      else options.push(option);
+      return repo.saveDraft({ contextId, dictionaryId, displayName, expectedVersion,
+        options, actorSubjectId: context.principal.subjectId, recordedAt: now().toISOString() });
+    }),
     handler(PUBLISH, true, (repo, context, contextId, values) => {
       if (context.principal.actorType !== "HUMAN") {
         throw new Error("BUSINESS_DICTIONARY_PUBLISH_HUMAN_REQUIRED");
