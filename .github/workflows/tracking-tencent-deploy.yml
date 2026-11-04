@@ -1,0 +1,80 @@
+name: Tracking Tencent - Isolated Sidecar Deploy
+
+# Reuse the existing, pinned EVO Tokyo SSH identity without changing EVO's
+# Compose services, database, or release workflow. A merged workflow change
+# deploys one reviewed tracking commit; workflow_dispatch supports recovery.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/tracking-tencent-deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tracking-tencent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: evo-tokyo-dev
+    env:
+      TRACKING_SHA: d2dbd6ee18f424346ee327ffc146607677756cae
+    steps:
+      - name: Prepare pinned EVO SSH identity
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          ssh-keygen -y -P '' -f "$HOME/.ssh/id_ed25519" >/dev/null
+      - name: Verify server and source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TRACKING_SHA" =~ ^[0-9a-f]{40}$ ]]
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 \
+            'test "$(id -un)" = evo-deploy && test -f /opt/evo-tokyo/Caddyfile && docker info >/dev/null && docker network inspect evo-tokyo-dev_internal >/dev/null'
+          git clone --quiet https://github.com/jiangxng/tracking.git tracking
+          git -C tracking checkout --quiet --detach "$TRACKING_SHA"
+          test "$(git -C tracking rev-parse HEAD)" = "$TRACKING_SHA"
+          test -f tracking/scraper/tencent/install.sh
+      - name: Deploy tracking without modifying EVO services
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            tracking/scraper/tencent/install.sh \
+            evo-deploy@43.167.252.197:/home/evo-deploy/tracking-install.sh
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 \
+            "bash /home/evo-deploy/tracking-install.sh '$TRACKING_SHA'"
+      - name: Verify both tracking URLs and existing EVO
+        shell: bash
+        run: |
+          set -euo pipefail
+          for url in \
+            https://tracking.43.167.252.197.sslip.io/health \
+            https://scraper.43.167.252.197.sslip.io/health \
+            https://evo.43.167.252.197.sslip.io/health; do
+            curl --fail --silent --show-error --retry 8 --retry-all-errors \
+              --retry-delay 3 --max-time 10 "$url"
+            echo
+          done
+          curl --fail --silent --show-error \
+            https://tracking.43.167.252.197.sslip.io/api/config \
+            | grep -q '"id":"scraper","name":"网页抓取","enabled":true'
+          echo 'TRACKING_TENCENT_PUBLIC_HEALTH_PASS'
