@@ -13,6 +13,9 @@ import {
   createBusinessDictionaryContextRequiredPageV010
 } from "../../dist/apps/business-dictionary/page.js";
 import { validateUidl } from "../../dist/vendor/eidos/src/runtime/validate.js";
+import { createPackageCatalog } from "../../dist/catalog/catalog.js";
+import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
+import { createAppManagerService } from "../../dist/manager/service.js";
 
 const contextId = "enterprise-context:dictionary-ui";
 const command = {
@@ -61,6 +64,21 @@ test("business dictionary declares one discoverable Eidos management journey", (
     { dictionaryId: "sales.level", code: "A" });
   assert.equal(parseBusinessDictionaryRouteV010(
     "/business-dictionaries/view?dictionaryId=x&contextId=other", "detail"), undefined);
+});
+
+test("an already installed dictionary receives its new page from the current catalog", () => {
+  const store = createMemoryLifecycleStore();
+  store.saveInstalledPackage({ packageId: businessDictionaryPackage.packageId,
+    version: "0.1.0", installedAt: "2026-10-30T00:00:00.000Z",
+    trustApproved: true, grantedPermissions: [] });
+  store.saveActiveFeature({ featureId: businessDictionaryPackage.features[0].featureId,
+    packageId: businessDictionaryPackage.packageId, version: "0.1.0",
+    activatedAt: "2026-10-30T00:00:00.000Z" });
+  const manager = createAppManagerService(
+    createPackageCatalog([businessDictionaryPackage, hostEnterpriseContextProviderPackage]), store);
+  const experiences = manager.listEffectiveExperiences();
+  assert.equal(experiences.length, 1);
+  assert.equal(experiences[0].defaultRoute, "/business-dictionaries");
 });
 
 test("owner creates, edits and publishes dictionary through the page journey; member remains read-only", async () => {
