@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 35
     environment: evo-tokyo-dev
     env:
-      TRACKING_SHA: d2dbd6ee18f424346ee327ffc146607677756cae
+      TRACKING_SHA: 02d93adef8ec9f4990fd374ccf689f1ec016d288
     steps:
       - name: Prepare pinned EVO SSH identity
         shell: bash
