@@ -21,6 +21,8 @@ export interface BusinessDictionarySnapshotV010 {
   /** Enterprise Context resource boundary, not the login principal ID. */
   contextId: string;
   dictionaryId: string;
+  /** Human-readable name; older dictionaries without it remain readable. */
+  displayName?: string;
   /** Published revisions are immutable; drafts are not executable as lookup truth. */
   version: number;
   state: "DRAFT" | "PUBLISHED";

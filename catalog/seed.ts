@@ -60,7 +60,11 @@ import {
   BUSINESS_DICTIONARY_CAPABILITY_V010, BUSINESS_DICTIONARY_FEATURE_ID,
   BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_AUTH_RESOURCE_V010,
   BUSINESS_DICTIONARY_DRAFT_COMMAND_V010, BUSINESS_DICTIONARY_LIST_COMMAND_V010,
+  BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010,
+  BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010, BUSINESS_DICTIONARY_DETAIL_ROUTE_V010,
+  BUSINESS_DICTIONARY_OPTION_ROUTE_V010, BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010,
+  BUSINESS_DICTIONARY_DETAIL_SOURCE_V010, BUSINESS_DICTIONARY_OPTION_SOURCE_V010,
   BUSINESS_DICTIONARY_PUBLISH_ACTION_V010, BUSINESS_DICTIONARY_READ_ACTION_V010,
   BUSINESS_DICTIONARY_WRITE_ACTION_V010
 } from "../contracts/reference-data/dictionary-operations.js";
@@ -521,8 +525,20 @@ export const businessDictionaryCapabilityContributionsV010:
     businessDictionaryOp(BUSINESS_DICTIONARY_DRAFT_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_WRITE_ACTION_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer", minimum: 0 },
+      displayName: { type: "string" },
       options: { type: "array", items: businessDictionaryOptionSchema }
     }, ["dictionaryId", "expectedVersion", "options"]),
+    businessDictionaryOp(BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_WRITE_ACTION_V010, BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010, {
+      dictionaryId: { type: "string", minLength: 1 },
+      displayName: { type: "string", minLength: 1 },
+      expectedVersion: { type: "integer", minimum: 0 },
+      optionCode: { type: "string", minLength: 1 },
+      originalCode: { type: "string" },
+      optionLabel: { type: "string", minLength: 1 },
+      optionLabelZh: { type: "string" },
+      optionAliases: { type: "string" },
+      optionStatus: { enum: ["ACTIVE", "INACTIVE"] }
+    }, ["dictionaryId", "displayName", "expectedVersion", "optionCode", "optionLabel", "optionStatus"]),
     businessDictionaryOp(BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_PUBLISH_ACTION_V010, BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer", minimum: 1 }
@@ -555,7 +571,49 @@ export const businessDictionaryPackage: PackageManifestV010 = {
     defaultActivation: true,
     requiresCapabilities: [ENTERPRISE_RESOURCE_CAPABILITY_V010],
     providesCapabilities: [BUSINESS_DICTIONARY_CAPABILITY_V010],
-    contributions: [...businessDictionaryCapabilityContributionsV010]
+    contributions: [...businessDictionaryCapabilityContributionsV010, {
+      kind: "eidos.experience",
+      manifest: {
+        contractVersion: "0.1.0", experienceId: BUSINESS_DICTIONARY_PACKAGE_ID,
+        packageId: BUSINESS_DICTIONARY_PACKAGE_ID,
+        featureId: BUSINESS_DICTIONARY_FEATURE_ID,
+        defaultRoute: BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010,
+        pages: [{
+          id: "evo-business-dictionary.directory", title: "Business dictionaries",
+          source: BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010
+        }, {
+          id: "evo-business-dictionary.detail", title: "Business dictionary",
+          source: BUSINESS_DICTIONARY_DETAIL_SOURCE_V010
+        }, {
+          id: "evo-business-dictionary.option", title: "Edit dictionary option",
+          source: BUSINESS_DICTIONARY_OPTION_SOURCE_V010
+        }],
+        routes: [{
+          id: "evo-business-dictionary.directory",
+          path: BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010,
+          pageId: "evo-business-dictionary.directory"
+        }, {
+          id: "evo-business-dictionary.detail",
+          path: BUSINESS_DICTIONARY_DETAIL_ROUTE_V010,
+          pageId: "evo-business-dictionary.detail"
+        }, {
+          id: "evo-business-dictionary.option",
+          path: BUSINESS_DICTIONARY_OPTION_ROUTE_V010,
+          pageId: "evo-business-dictionary.option"
+        }],
+        navigation: [{
+          id: "evo-business-dictionary.nav", label: "Business dictionaries",
+          route: BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010, order: 65
+        }]
+      }
+    }, {
+      kind: "eidos.localization-bundle", bundle: {
+        contractVersion: "0.1.0", namespace: BUSINESS_DICTIONARY_PACKAGE_ID,
+        locale: "zh-CN", messages: {
+          "navigation.evo-business-dictionary.nav.label": "业务字典"
+        }
+      }
+    }]
   }]
 };
 

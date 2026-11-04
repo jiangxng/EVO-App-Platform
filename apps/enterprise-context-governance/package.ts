@@ -49,13 +49,13 @@ const legacyContextRoutes = [
 export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
   contractVersion: "0.1.0",
   packageId: ENTERPRISE_CONTEXT_GOVERNANCE_APP_PACKAGE_ID,
-  displayName: "Enterprise Context",
-  description: "管理企业上下文、成员关系与共享资源，组织企业协作空间。",
+  displayName: "Enterprise Content Library",
+  description: "为每个企业建立独立的内容与数据结构空间，并管理成员和共享资源。",
   displayNameTranslations: {
-    "en": "Enterprise Context",
-    "zh-CN": "企业上下文",
-    "ja": "企業コンテキスト",
-    "zh-TW": "企業上下文"
+    "en": "Enterprise Content Library",
+    "zh-CN": "企业内容库",
+    "ja": "企業コンテンツライブラリ",
+    "zh-TW": "企業內容庫"
   },
   version: "0.2.0",
   type: "APPLICATION",
@@ -95,11 +95,11 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
           defaultRoute: ENTERPRISE_CONTEXT_DIRECTORY_ROUTE,
           pages: [{
             id: ENTERPRISE_CONTEXT_DIRECTORY_PAGE_ID,
-            title: "Enterprise Contexts",
+            title: "Enterprise Content Libraries",
             source: ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE
           }, {
             id: ENTERPRISE_CONTEXT_CREATE_PAGE_ID,
-            title: "Create Enterprise Context",
+            title: "Create Enterprise Content Library",
             source: ENTERPRISE_CONTEXT_CREATE_PAGE_SOURCE
           }, {
             id: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_ID,
@@ -107,7 +107,7 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
             source: ENTERPRISE_CONTEXT_MY_PERMISSIONS_PAGE_SOURCE
           }, {
             id: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_ID,
-            title: "Enterprise Context",
+            title: "Enterprise Content Library",
             source: ENTERPRISE_CONTEXT_OVERVIEW_PAGE_SOURCE
           }],
           routes: [{
@@ -140,8 +140,8 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
           namespace: "evo-enterprise-context-governance",
           locale: "en",
           messages: {
-            "navigation.evo-enterprise-context-governance.nav.label": "Enterprise Contexts",
-            "page.evo-enterprise-context-governance.create.title": "Create Enterprise Context",
+            "navigation.evo-enterprise-context-governance.nav.label": "Enterprise Content Library",
+            "page.evo-enterprise-context-governance.create.title": "Create Enterprise Content Library",
             "field.evo-enterprise-context-governance.create.displayName.label": "Enterprise name",
             "field.evo-enterprise-context-governance.create.code.label": "Enterprise code",
             "action.evo-enterprise-context-governance.create.create.label": "Create enterprise"
@@ -155,8 +155,8 @@ export const enterpriseContextGovernanceAppPackage: PackageManifestV010 = {
           namespace: "evo-enterprise-context-governance",
           locale: "zh-CN",
           messages: {
-            "navigation.evo-enterprise-context-governance.nav.label": "企业上下文",
-            "page.evo-enterprise-context-governance.create.title": "创建企业上下文",
+            "navigation.evo-enterprise-context-governance.nav.label": "企业内容库",
+            "page.evo-enterprise-context-governance.create.title": "创建企业内容库",
             "field.evo-enterprise-context-governance.create.displayName.label": "企业名称",
             "field.evo-enterprise-context-governance.create.code.label": "企业代码",
             "action.evo-enterprise-context-governance.create.create.label": "创建企业"

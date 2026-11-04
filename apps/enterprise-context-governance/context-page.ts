@@ -32,7 +32,7 @@ function textFor(locale?: string) {
         available: "可进入",
         enter: "进入企业",
         create: "创建新企业",
-        createSummary: "新增一个企业上下文。",
+        createSummary: "为新企业建立独立的内容库。",
         count: "企业数量",
         code: "企业代码",
         state: "状态"
@@ -50,7 +50,7 @@ function textFor(locale?: string) {
         available: "Available",
         enter: "Enter enterprise",
         create: "Create enterprise",
-        createSummary: "Create another Enterprise Context.",
+        createSummary: "Create an independent content library for another enterprise.",
         count: "Enterprise count",
         code: "Enterprise code",
         state: "State"
