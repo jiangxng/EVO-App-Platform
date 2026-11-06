@@ -60,6 +60,7 @@ import {
   BUSINESS_DICTIONARY_CAPABILITY_V010, BUSINESS_DICTIONARY_FEATURE_ID,
   BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_AUTH_RESOURCE_V010,
   BUSINESS_DICTIONARY_DRAFT_COMMAND_V010, BUSINESS_DICTIONARY_LIST_COMMAND_V010,
+  BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010,
   BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010,
   BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010, BUSINESS_DICTIONARY_DETAIL_ROUTE_V010,
@@ -517,6 +518,14 @@ export const businessDictionaryCapabilityContributionsV010:
   PlatformCapabilityOperationContributionV010[] = [
     businessDictionaryOp(BUSINESS_DICTIONARY_LIST_COMMAND_V010, "READ", BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_LIST_COMMAND_V010,
       { dictionaryId: { type: "string" } }),
+    businessDictionaryOp(BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010, "READ",
+      BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010, {
+        search: { type: "string", maxLength: 120 },
+        sort: { type: "string", enum: ["dictionaryId", "displayName", "state", "version"] },
+        direction: { type: "string", enum: ["asc", "desc"] },
+        page: { type: "integer", minimum: 0, maximum: 100000 },
+        pageSize: { type: "integer", minimum: 1, maximum: 100 }
+      }),
     businessDictionaryOp(BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010, "READ", BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer" },
