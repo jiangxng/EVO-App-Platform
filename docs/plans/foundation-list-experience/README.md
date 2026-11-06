@@ -7,9 +7,10 @@
 
 **方向已确认；CV-00～CV-07 工程里程碑尚未实施。** 在已有 Eidos + EVO App Platform 能力上增量建设数据集合与多视图，**不创建第二套框架**；Personal Agent 通过受管 Capability Operations 执行有权 READ/PLAN，并通过 Host 现有治理渠道进行必要的 WRITE、回执和恢复。
 
-1. [Eidos × Platform 数据集合与多视图架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)：职责边界、方案取舍、Agent/AI 原生权限与恢复、数据源/视图/渲染/动作划分。
-2. [近期八步可验收工作计划（CV-00～CV-07）](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)：每步 owner、最小真实功能、自动测试、Agent/桌面/手机 Human 验收、CI、回滚。
-3. [原始参考资料、历史研究与源码证据索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)：SharePoint 2019、Odoo、Power Apps、SAP、明道云、WAI-ARIA 及 EVO 内部研究与当前代码定位。
+4. [CV-00 最新代码与 Agent READ/WRITE 权威核验](CV00-COLLECTION-EIDOS-AGENT-CODE-AUDIT-20261106.md)：2026-11-06 真实源码复核、Eidos 固定快照与 Platform overlay、两个异构 owner 的 READ 入口和 CV-01 最小纵切。**仅代码审查；仍待 owner/真实可执行验收**。
+5. [Eidos × Platform 数据集合与多视图架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)：职责边界、方案取舍、Agent/AI 原生权限与恢复、数据源/视图/渲染/动作划分。
+6. [近期八步可验收工作计划（CV-00～CV-07）](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)：每步 owner、最小真实功能、自动测试、Agent/桌面/手机 Human 验收、CI、回滚。
+7. [原始参考资料、历史研究与源码证据索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)：SharePoint 2019、Odoo、Power Apps、SAP、明道云、WAI-ARIA 及 EVO 内部研究与当前代码定位。
 
 原有 2026-10-12 方案和 2026-10-30 Foundation 任务继续保留，不以本次计划文档合并标记业务功能完成。
 
