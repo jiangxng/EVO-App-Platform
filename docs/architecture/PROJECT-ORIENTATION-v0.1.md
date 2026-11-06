@@ -100,6 +100,8 @@ Authority: `docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md`,
 6. this orientation + `docs/architecture/PROJECT-ARCHITECTURE-AND-DEVELOPMENT-INDEX-v0.1.md`
 7. the task-specific authority documents linked from `LLM.md`
 
+**2026-11-06 near-term task index (planned, not completed):** For common data collection/list experiences and Personal Agent operation, see [Eidos × Platform collection design](COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md), [CV-00–07 execution plan](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md) and [research/evidence index](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md). These are implementation-design/work-plan documents and do not replace the Plugin Protocol, Eidos owner authority or current status.
+
 ## 7. Delivery workflow
 
 One bounded task → one active branch → one PR with successive commits; merge after the relevant
