@@ -40,3 +40,12 @@
 ## 5. 下一窗口最小接续
 
 从当前 PR 的准确 head 及最新 main、Eidos main 重新核对：先修 CI -> 确认 Dictionary READ 与 Legacy 并存 -> 再增加 Counterparty **兼容投影**作为第二 owner -> 复查 Agent 授权调用路径和权限负例 -> 才关闭 CV-01 的机器门禁；随后由 Eidos owner 开 CV-02 公用表格/过滤器 PR。研发应在实际测试与真实 Host 里按账号/企业权限执行，不从代码存在推断 Human 签收。
+
+## 6. 后续事实追加：CV-01 第二业务 owner 已实现并合并（2026-11-06）
+
+本文件 §3、§5 原先写“Counterparty 适配待完成”，是 **PR #1163 的历史切片状态**；保留原句作当时证据。最新事实：
+
+- [PR #1165](https://github.com/jiangxng/EVO-App-Platform/pull/1165) 已合 `main`，合并 SHA `d3076e9dc037bc85f2508aa515d2296cddaa520f`，45/45 GitHub CI 成功。
+- `apps/counterparty/collection-query.ts` 接受现有 `CounterpartyProjectionResultV010` 经 owner 授权/职责过滤和分页后的结果，将有权原始字段映射成 `DataCollectionResultV010`；既有两个 Projection READ 不变。
+- `counterparty.collection.my-customers.query` 与 `counterparty.collection.my-suppliers.query` 通过**原有** `counterparty.read`、ACTION_HOST 和动态 loader 暴露给有权 HUMAN/PERSONAL_AGENT；停用、非法排序、未分页适配和字段泄漏有回归测试。
+- 因此，**Dictionary + Counterparty 两个不同 owner 的结果结构已有机器级兼容证据**。但缺实际 Personal Agent Run、跨浏览器/手机 Human 签收和 Eidos UI owner 采用证据，故 CV-00/CV-01 继续按[唯一执行状态表](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)区分代码合并与验收，勿将此条当生产完成宣告。

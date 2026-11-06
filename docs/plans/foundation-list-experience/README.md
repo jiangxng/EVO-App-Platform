@@ -5,7 +5,7 @@
 
 ## 2026-11-06 近期执行入口：Collection / 多视图 / Personal Agent（新增）
 
-**方向已确认；CV-00～CV-07 工程里程碑尚未实施。** 在已有 Eidos + EVO App Platform 能力上增量建设数据集合与多视图，**不创建第二套框架**；Personal Agent 通过受管 Capability Operations 执行有权 READ/PLAN，并通过 Host 现有治理渠道进行必要的 WRITE、回执和恢复。
+**方向已确认；CV-01 的 Dictionary + Counterparty 两个 owner READ 工程变更已合 main（#1163/#1165），真实 Agent 与 Human 验收未签；CV-02～CV-07 尚未开始实施。** 在已有 Eidos + EVO App Platform 能力上增量建设数据集合与多视图，**不创建第二套框架**；Personal Agent 通过受管 Capability Operations 执行有权 READ/PLAN，并通过 Host 现有治理渠道进行必要的 WRITE、回执和恢复。
 
 1. [Eidos × Platform 数据集合与多视图架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)：职责边界、方案取舍、Agent/AI 原生权限与恢复、数据源/视图/渲染/动作划分。
 2. [近期八步可验收工作计划（CV-00～CV-07）](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)：每步 owner、最小真实功能、自动测试、Agent/桌面/手机 Human 验收、CI、回滚。
