@@ -1,6 +1,6 @@
 # 近期实施计划：Eidos 数据集合/视图复用 × EVO 插件平台 × Personal Agent（2026-11-06）
 
-> **状态：APPROVED_DIRECTION / PARTIAL_IMPLEMENTATION — CV-00 代码对账进入复核、CV-01 两个业务 owner 的首轮 READ 代码与 CI 已合入；CV-02～07 仍为 PLANNED。** 本文是“近期可执行的分步工作包”，不是 Feature 已完成或 Human 验收证明。用户确定：**基于现有 Eidos 和 Platform 演进、不建第二框架；个人 Agent 可操作，AI 原生能力是验收的一部分。**
+> **状态：APPROVED_DIRECTION / PARTIAL_IMPLEMENTATION — CV-00 代码对账进入复核、CV-01 两个业务 owner 的首轮 READ 代码与 CI 已合入；CV-02 已开始且 Eidos 上游/Platform 定向采用代码已合入（完整业务页面/真实 Human 尚待）；CV-03～07 仍为 PLANNED。** 本文是“近期可执行的分步工作包”，不是 Feature 已完成或 Human 验收证明。用户确定：**基于现有 Eidos 和 Platform 演进、不建第二框架；个人 Agent 可操作，AI 原生能力是验收的一部分。**
 >
 > **实施基线：** EVO-App-Platform main `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-06）；实际开发必须重查 main/Eidos HEAD、最新 owner PR 和权限。前置[架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)；[研究与资料索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)。原[基础对象和列表计划](PLAN.md)、[Business Experience](BUSINESS-EXPERIENCE-FRAMEWORK.md)、[Foundation 六步](FOUNDATION-SIX-MILESTONE-EXECUTION-20261030.md)继续各守自己的状态与实施责任。
 >
@@ -12,7 +12,7 @@
 - **Platform owner：** 使用当前 Plugin Protocol / Capability Operation / Agent Capability Fabric / ActionHost 接入轻量声明、授权发现、上下文与受管视图配置；**不得**向 Core 引入业务 repository 或静态大依赖。
 - **领域 owner：** Counterparty 第一适配、Business Dictionary 第二异构适配、Item/Warehouse 第三复用；业务字段、合法筛选排序/聚合、读取/写入规则、归档/发布和版本仍归业务 owner。
 - **Data Import owner：** 原 ImportTarget、源文件、预检、Recipe、结果/回执继续使用；集合仅声明导入入口和跳转恢复，禁止重复导入引擎。
-- **Personal Agent owner：** 通过授权 `search/describe/invoke`、READ/PLAN 与现有 Host WRITE/Receipt/Run 协作。**Fabric v0.1 不是 WRITE 通道**；不得先假设模型拥有保存共享视图、发布、批量业务写入的权限。
+- **Personal Agent owner：** 通过授权 `search/describe/invoke`、READ/PLAN 与现有 Host WRITE/Receipt/Run 协作。**外部 Agent Fabric v0.1 不是 WRITE 通道**；内部 Personal Agent 已有单独的受管 `invoke.write` 工具，但不得假设模型拥有保存共享视图、发布或批量业务写入的权限，必须经过对应 owner 的实际 Operation、授权及 Host 回执。
 - **验证负责人/CI：** Eidos 独立 UI/键盘/移动测试；Platform 插件协议、轻量宿主、真实业务插件集成；真实 Agent 人机闭环；按需单插件测试与最小平台公共 CI。
 
 ## 2. 固定八步近期里程碑
@@ -21,7 +21,7 @@
 | --- | --- | --- | --- |
 | **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
-| **CV-02** | Eidos 共用表格/列表与查询体验 | **PLANNED** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
+| **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 / Platform #1167 可选视图导航已合 main、9/9 Platform 相关检查成功；真实业务页面、Agent/390px/Human 待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
 | **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
@@ -31,6 +31,8 @@
 **2026-11-06 实施证据：** [CV-00 重复开发对账](CV00-20261106-COLLECTION-CONTRACT-REUSE-REVIEW.md)、[PR #1163](https://github.com/jiangxng/EVO-App-Platform/pull/1163)（45/45 CI；merge `8ff2932013e25f63382a25606dfacc254a03c3dc`）、[PR #1165](https://github.com/jiangxng/EVO-App-Platform/pull/1165)（45/45 CI；merge `d3076e9dc037bc85f2508aa515d2296cddaa520f`）。已实现轻量 owner READ 和两数据源标准结果，但未取得真实 Agent 查找/调用、浏览器/手机、Eidos owner 签收，不得标 CV-01 全通过。
 
 **不启动平行八条长期 Draft 分支。** 优先连续完成 CV-00～CV-02 的最小可用纵切，再扩展功能；Eidos 和 Platform 变更必须各有 owner PR，按真实依赖做短周期兼容集成。每步验收通过才进入下一项，无法通过时修复当前阶段而非叠加新功能。
+
+**CV-02 第一项可复用代码证据（2026-11-06）：** [Eidos owner #209](https://github.com/jiangxng/eidos/pull/209) 已合并 upstream `127150c30193b57b38d1d9cc62443ddfa90e2349`，给现有 Catalog Browser 增加可选、声明式 `table.views` 与导航安全验证；[Platform #1167](https://github.com/jiangxng/EVO-App-Platform/pull/1167) 在全部 **9/9 相关 CI 通过**后合并 `ef9275cad7f02af786b424801a282733bbe8e746`，按 scoped upstream pin 定向采用并保留 Eidos Host overlay。证据文档：[实际 Platform 采用 UI 设计/缺口](../../ui-design-reviews/cv02-eidos-catalog-view-adoption-20261106.md)。**此证据只证明 Eidos 通用组件可被 Platform 复用，尚未证明 Counterparty/Dictionary 的视图导航由授权数据源驱动，也没有 Saved View、桌面/手机 Human 或真实 Agent 全链路**；CV-02 仍在实施中。
 
 ## 3. 各步骤实施任务、测试和退出门槛
 
