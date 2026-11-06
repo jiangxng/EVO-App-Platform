@@ -244,3 +244,81 @@ test("RD-02: actual Host ActionRouter composes opt-in lazy operation lifecycle",
     "ACTION_FEATURE_NOT_ACTIVE");
   await runtime.stop();
 });
+
+test("CV-01: dictionary Collection READ reuses current permission, lazy ActionHost and Agent-visible operation", async () => {
+  const resources = createMemoryEnterpriseResourceRepositoryV010();
+  const repository = createBusinessDictionaryRepositoryV010(resources);
+  for (const [dictionaryId, displayName, version] of [
+    ["customer-level", "Customer Level", 1],
+    ["supplier-level", "Supplier Level", 1],
+    ["risk-level", "Risk Level", 1]
+  ]) {
+    const result = repository.saveDraft({
+      ...fixed, dictionaryId, displayName, expectedVersion: 0, options
+    });
+    assert.equal(result.version, version);
+  }
+  const operation = businessDictionaryPackage.features[0].contributions
+    .find(item => item.kind === "platform.capability-operation"
+      && item.operation.operationId === "dictionary.collection.query")?.operation;
+  assert.equal(operation.effect, "READ");
+  assert.ok(operation.exposure.includes("PERSONAL_AGENT"));
+  assert.equal(operation.authorization.action, "dictionary.read");
+  assert.equal(operation.binding.commandCode, "dictionary.collection.query");
+  assert.equal(operation.inputSchema.properties.sort.enum.includes("options"), false);
+
+  const handlers = createBusinessDictionaryActionHandlersV010({
+    repository,
+    canRead: (_principal, id) => id === contextId,
+    canManage: () => false
+  });
+  const collectionHandler = handlers.find(h => h.commandCode === "dictionary.collection.query");
+  const execute = (values, context = ctx()) =>
+    collectionHandler.execute(request("dictionary.collection.query", values), context);
+  const first = await execute({
+    search: "level", sort: "displayName", direction: "asc", page: 0, pageSize: 2
+  });
+  assert.equal(first.ok, true);
+  assert.equal(first.result.data.collectionId,"evo.business-dictionary.directory");
+  assert.equal(first.result.data.pageInfo.total, 3);
+  assert.equal(first.result.data.pageInfo.hasMore, true);
+  assert.deepEqual(first.result.data.rows.map(row => row.rowId),
+    ["customer-level", "risk-level"]);
+  assert.equal("options" in first.result.data.rows[0].cells, false);
+  assert.equal("contextId" in first.result.data.rows[0].cells, false);
+  const second = await execute({
+    search: "level", sort: "displayName", page: 1, pageSize: 2
+  });
+  assert.deepEqual(second.result.data.rows.map(row => row.rowId), ["supplier-level"]);
+  assert.equal((await execute({sort:"options"})).error.code,"COLLECTION_QUERY_SORT_INVALID");
+  assert.equal((await execute({filter:"1=1"})).error.code,"COLLECTION_QUERY_FIELD_UNSUPPORTED");
+  assert.equal((await execute({search:"重点"})).result.data.pageInfo.total,0,
+    "dictionary option alias is not a searchable directory field");
+  assert.equal((await execute({},ctx("OWNER","enterprise-context:b"))).error.code,
+    "BUSINESS_DICTIONARY_PERMISSION_DENIED");
+  assert.equal((await collectionHandler.execute(request("dictionary.collection.query",{}))).error.code,
+    "BUSINESS_DICTIONARY_ENTERPRISE_CONTEXT_REQUIRED");
+
+  const legacy = handlers.find(h => h.commandCode === "dictionary.list");
+  const legacyResult = await legacy.execute(request("dictionary.list",{}),ctx());
+  assert.equal(legacyResult.ok,true);
+  assert.ok(Array.isArray(legacyResult.result.data));
+  assert.equal(legacyResult.result.data[0].options.length,3,
+    "legacy authorized list remains backward-compatible");
+
+  let active = false;
+  const lazy = createLazyAppActionHandlerV010({
+    packageId:"evo-business-dictionary",
+    featureId:"evo-business-dictionary.default",
+    commandCode:"dictionary.collection.query",
+    load:async () => collectionHandler
+  });
+  const router = createAppActionRouter([lazy], () => active);
+  assert.equal((await router.execute(
+    request("dictionary.collection.query",{}),ctx()
+  )).error.code,"ACTION_FEATURE_NOT_ACTIVE");
+  active=true;
+  assert.equal((await router.execute(
+    request("dictionary.collection.query",{}),ctx()
+  )).ok,true);
+});
