@@ -1,7 +1,7 @@
 # EVO 项目组合里程碑与架构决策背景（2026-11-06）
 
 > **Document class:** HISTORICAL_SNAPSHOT / architecture decision briefing  
-> **Scope:** EVO-App-Platform 仓库可查的项目组合、架构边界、里程碑证据与未决事项；非逐模块代码审查。  
+> **Scope:** EVO-App-Platform 的项目组合与里程碑，以及 EVO / Eidos / Experience-Compiler 现行项目入口的跨仓核对；非逐模块代码审查或跨仓完整产品验收。  
 > **Repository baseline:** `main@58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-04）。核查日：2026-11-06。  
 > **权威限制：** 本文是**有日期的跨工作线导航和证据摘要**，不取代 `project.status.json`、各 owner 专项里程碑、当前有效架构宪法或线上实时查询；不将旧证据自动外推为今天的部署或 Human 签收。不修改任何现行里程碑的既定范围。
 
@@ -17,6 +17,19 @@ EVO 不是单一 ERP 前端，也不是把 LLM 作为业务事实权威的聊天
 | Experience-Compiler | 企业/行业知识、研究、学习、经验与受治理建议 | 不替代企业正式定义、运行事实或授权 |
 
 其他不可变的架构思路：**Package → Feature → Contribution**；安装不等于激活；平台是 control plane，普通组件数据流经稳定公开接口；企业 Business Definitions 由 Enterprise Context 治理；EOG 是投影/导航/聚合，不是企业本体的唯一设计器；Personal Agent 模型可替换，确定性系统负责权限和写入。详见 [项目哲学](../../PHILOSOPHY.md)、[Package 模型](../architecture/PACKAGE-FEATURE-CONTRIBUTION-MODEL-v0.1.md)、[Agent 状态宪法](../architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md) 和 [EOG/知识边界](../architecture/ENTERPRISE-DEFINITION-EOG-INTELLIGENCE-BOUNDARIES-v0.1.md)。
+
+### 四个 owner 仓库的独立成熟度口径（非单一产品版本）
+
+为避免将 App Platform 的成功误推成四仓库同一版本已生产可用，本次还独立读取了其余三个仓库的 `main`、README 和当前职责文档：
+
+| 仓库与核查 main | 文档描述的现有阶段 | 限制 |
+| --- | --- | --- |
+| [EVO](https://github.com/jiangxng/EVO/tree/d5ce051325c4572c7a5fd713560d7d7d06e4b401) `d5ce051` | [README](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/README.md) 标示 alpha.2 兼容实现；[project.status](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/project.status.json) 仍将目标最小 Ledger Runtime 归为收敛进行中 | 仓库中保留的宽业务实现不代表目标 Core 权威无限扩大 |
+| [Eidos](https://github.com/jiangxng/eidos/tree/a6dc71a3390b5c22c4b4c91581866f8aa540b038) `a6dc71a` | [COMPLETE-STATE](https://github.com/jiangxng/eidos/blob/a6dc71a3390b5c22c4b4c91581866f8aa540b038/COMPLETE-STATE.md) 描述 v1.2.0 complete RC，具有已声明范围的端到端交付能力 | 不代表所有候选或规划能力都是稳定生产级渲染器；旧 ROADMAP/STATUS 版本不应直接当作今天的唯一成熟度 |
+| [Experience-Compiler](https://github.com/jiangxng/Experience-Compiler/tree/5f06a6224b6ffe434a9a3c0793b0384943121ac9) `5f06a62` | [README](https://github.com/jiangxng/Experience-Compiler/blob/5f06a6224b6ffe434a9a3c0793b0384943121ac9/README.md) 描述 v1.0.1 可执行制造业智能参考系统 | [成熟度表](https://github.com/jiangxng/Experience-Compiler/blob/5f06a6224b6ffe434a9a3c0793b0384943121ac9/docs/05-RELEASE-MATURITY.md) 仍将分布式规模列为架构/部署路线，不是已完成生产集群 |
+| [EVO-App-Platform](https://github.com/jiangxng/EVO-App-Platform/tree/58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e) `58c49da` | 多工作线并行，详见下一节 | 当前单一主线快照和各 owner 专项阶段并不完全同步 |
+
+这只是当前权威与文档成熟度姿态的**跨仓校对**，没有对其他三个仓库执行最新代码/部署/CI 验收。发生跨仓新架构决策时，应按 [EVO](https://github.com/jiangxng/EVO/blob/d5ce051325c4572c7a5fd713560d7d7d06e4b401/docs/architecture/EVO-CURRENT-AUTHORITY-BOUNDARY-v0.1.md)、[Eidos](https://github.com/jiangxng/eidos/blob/a6dc71a3390b5c22c4b4c91581866f8aa540b038/docs/architecture/EIDOS-CURRENT-AUTHORITY-BOUNDARY-v0.1.md)、[EC](https://github.com/jiangxng/Experience-Compiler/blob/5f06a6224b6ffe434a9a3c0793b0384943121ac9/docs/architecture/EC-CURRENT-AUTHORITY-BOUNDARY-v0.1.md) 各自当前 authority 再核对。
 
 ## 2. 各工作线里程碑：区分代码、合并、部署与 Human
 
