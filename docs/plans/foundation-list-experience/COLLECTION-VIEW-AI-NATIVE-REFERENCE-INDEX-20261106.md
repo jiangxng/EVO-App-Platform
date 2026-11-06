@@ -34,7 +34,7 @@
 | H07 | [插件平台主线](../../architecture/PLUGIN-PLATFORM-MAINLINE-v0.1.md)、[Plugin Protocol](../../architecture/PLUGIN-PROTOCOL-v0.1.md)、[扩展边界宪章](../../architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md) | Platform 负责发现/治理/公开受管操作；Eidos 负责 Experience；MCP 不是插件协议的替代 | 新 Collection 只增量接入原有 Feature/Contribution/Capability 体系 |
 | H08 | [Agent Capability Fabric](../../architecture/AGENT-CAPABILITY-FABRIC-v0.1.md) §3–§12、[Agent WRITE Receipt](../../architecture/AGENT-ACTION-RECEIPT-P1.5B-v0.1.md) | Agent 授权 search/describe/invoke 的 v0.1 只支持 READ/PLAN；Host WRITE 要求 durable receipt；READ 与业务事实同权 | Agent 不能直连私有数据库，也不能把 v0.1 Fabric 当自动写操作通道 |
 | H09 | [AI 原生 Agent 状态宪章](../../architecture/AI-NATIVE-AGENT-STATE-CONTEXT-CONSTITUTION-v1.0.md) §10–§11 | 模型可替换、Run/Context/Receipt 可恢复、Human 有最终权威、EC 不成为业务数据权威 | 每个 CV 阶段加入 Agent 无模型时可降级与授权/恢复负例 |
-| H10 | [插件体验 Human 交付门禁](../platform-governance/../../governance/PLUGIN-HUMAN-EXPERIENCE-DELIVERY-GATE-20261028.md) | Eidos/V3 作为 UI 权威，功能/布局/颜色、桌面/390px、往返与失败恢复需 Human 证据 | CV-02/03/05/07 必须有真实 UI/Agent 验收，不能只通过文件检查 |
+| H10 | [插件体验 Human 交付门禁](../../governance/PLUGIN-HUMAN-EXPERIENCE-DELIVERY-GATE-20261028.md) | Eidos/V3 作为 UI 权威，功能/布局/颜色、桌面/390px、往返与失败恢复需 Human 证据 | CV-02/03/05/07 必须有真实 UI/Agent 验收，不能只通过文件检查 |
 
 ## 3. 本轮核对的源码位置（固定读取日，实施前复查）
 
