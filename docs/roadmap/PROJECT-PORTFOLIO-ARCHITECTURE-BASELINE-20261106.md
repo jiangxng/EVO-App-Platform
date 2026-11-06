@@ -2,8 +2,8 @@
 
 > **Document class:** HISTORICAL_SNAPSHOT / architecture decision briefing  
 > **Scope:** EVO-App-Platform 仓库可查的项目组合、架构边界、里程碑证据与未决事项；非逐模块代码审查。  
-> **Repository baseline:** \`main@58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e\`（2026-11-04）。核查日：2026-11-06。  
-> **权威限制：** 本文是**有日期的跨工作线导航和证据摘要**，不取代 \`project.status.json\`、各 owner 专项里程碑、当前有效架构宪法或线上实时查询；不将旧证据自动外推为今天的部署或 Human 签收。不修改任何现行里程碑的既定范围。
+> **Repository baseline:** `main@58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-04）。核查日：2026-11-06。  
+> **权威限制：** 本文是**有日期的跨工作线导航和证据摘要**，不取代 `project.status.json`、各 owner 专项里程碑、当前有效架构宪法或线上实时查询；不将旧证据自动外推为今天的部署或 Human 签收。不修改任何现行里程碑的既定范围。
 
 ## 1. 项目是什么，以及未来架构讨论的固定起点
 
@@ -35,18 +35,18 @@ EVO 不是单一 ERP 前端，也不是把 LLM 作为业务事实权威的聊天
 
 ## 3. 工程与部署的跨线现实
 
-- 本仓库 \`main\` 精确 HEAD 为 \`58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e\`，对应 [PR #1160](https://github.com/jiangxng/EVO-App-Platform/pull/1160) 的追踪 sidecar 工作流更新；不是所有工作线同日发布版本。
+- 本仓库 `main` 精确 HEAD 为 `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`，对应 [PR #1160](https://github.com/jiangxng/EVO-App-Platform/pull/1160) 的追踪 sidecar 工作流更新；不是所有工作线同日发布版本。
 - 东京开发预览现有 [CI-gated 自动发布机制](../operations/EVO-TOKYO-CI-GATED-PREVIEW-RELEASE-20261028.md)。[run #41761112690](https://github.com/jiangxng/EVO-App-Platform/actions/runs/41761112690) 的 deploy job SUCCESS；而较新的 [run #41768336702](https://github.com/jiangxng/EVO-App-Platform/actions/runs/41768336702) 尽管工作流 conclusion SUCCESS，**deploy job 是 SKIPPED**。因此不能拿后一个绿色状态宣称最新 main 已在东京完成部署，也不能据此断言当前在线的实际 SHA。
 - 项目技术主线遵守 [开发交付工作流](../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md)：短闭环独立 PR、复用已有能力、定向反馈、完整必要门禁、先合并再清理过程分支，禁止将历史快照当当前 owner PR。
 - 2026-11-04/05 定时 Ecosystem Certification 的全量 suite 存在未通过测试；这是跨仓库质量/回归线索，**不属于本架构基线对某业务功能的最终诊断**。正式设计若涉及共享协议，需另核对应目标场景与最新 CI。
 
 ## 4. 项目状态连续性中最需要治理的缺口
 
-[项目连续性协议](../architecture/PROJECT-CONTINUITY-PROTOCOL-v0.1.md) 将 \`project.status.json\` 与生成的 \`docs/roadmap/HANDOFF-LATEST.md\` 作为全局入口。但是截至本次核查，\`projectContinuity.snapshotAt\` 仍是 **2026-10-10**，\`currentMilestone\` 仍为 TR-01，而 README 的「Current continuation point」仍以 P1.4X 为中心。它们不一定对应同一个层级，却尚未为多个并行工作线提供可靠统一视图。
+[项目连续性协议](../architecture/PROJECT-CONTINUITY-PROTOCOL-v0.1.md) 将 `project.status.json` 与生成的 `docs/roadmap/HANDOFF-LATEST.md` 作为全局入口。但是截至本次核查，`projectContinuity.snapshotAt` 仍是 **2026-10-10**，`currentMilestone` 仍为 TR-01，而 README 的「Current continuation point」仍以 P1.4X 为中心。它们不一定对应同一个层级，却尚未为多个并行工作线提供可靠统一视图。
 
 [project-continuity.mjs](../../tools/project-continuity.mjs) 核验的是状态 JSON、引用与生成文件的**内部一致性**，不能证明状态及时吸收了新合并和实际部署。整改应由各 owner 先核准自己的真实阶段，再设计组合级状态汇聚：同一工作线各自有里程碑、合并证据、部署和 Human gate；全局概览只索引、不自行修改业务签收。
 
-本文件**不直接更新** \`project.status.json\` 或各 owner 里程碑，避免在缺乏实时生产/Human 证据时破坏权威账本。
+本文件**不直接更新** `project.status.json` 或各 owner 里程碑，避免在缺乏实时生产/Human 证据时破坏权威账本。
 
 ## 5. 后续架构决策前需优先回答的问题
 
