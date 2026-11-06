@@ -2,7 +2,7 @@
 
 > **文档类别：IMPLEMENTATION_DESIGN / 已确认方向、待按里程碑实现的设计。** 用户已明确要求：复用现有 Eidos 和 EVO App Platform，不另建一套框架；个人代理须能够操作，符合 AI 原生产品原则。本文件不是已发布的 Plugin Protocol，也不表示新增能力已在代码中完成。
 >
-> **基准：** EVO-App-Platform main `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-06）。Eidos 以各项实施时的最新独立仓库 main / 对应 owner PR 为准；不直接在 Platform 建第二份 Eidos 核心实现。**当前状态：DESIGN_APPROVED / IMPLEMENTATION_NOT_STARTED**，执行进度权威由本工作线的[近期计划](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)按真实证据更新。
+> **基准：** EVO-App-Platform main `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-06）。Eidos 以各项实施时的最新独立仓库 main / 对应 owner PR 为准；不直接在 Platform 建第二份 Eidos 核心实现。**当前状态：DESIGN_APPROVED / PARTIAL_IMPLEMENTATION（CV-01 两业务 owner READ 已按 PR #1163/#1165 合并；Agent/Human 实验与多视图未完成）**，执行进度权威由本工作线的[近期计划](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)按真实证据更新。
 >
 > **研究与出处：** [参考资料与已查代码索引](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)。保留此前[列表与基础对象计划](../plans/foundation-list-experience/PLAN.md)和[跨业务应用体验提案](../plans/foundation-list-experience/BUSINESS-EXPERIENCE-FRAMEWORK.md)的历史、约束与内容；本文件仅针对集合/视图具体化，并不将旧计划标成已验收。
 
@@ -166,3 +166,10 @@ Human：“列出我负责的香港供应商，按名称排序，保存为我的
 每批必须具有：准确源代码基线、owner 映射、合同版本与边界、正反测试、真实页面或真实 Agent 完整任务、桌面/390px、权限/换企业/停用/恢复、性能/资源证据、PR/CI 合并结果和**独立 Human 验收状态**。不以 Mock、CI 或仅文档证明产品完成。测试按 Eidos 与 Platform owner 运行，不把全部新插件 CI 绑定在单一核心工作流。
 
 具体工作分片、逐步 acceptance、依赖与退出门槛见[近期工作计划](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)。该计划是**新增近期任务**，不改写历史 Foundation 六步、PA05、BEX 或 Eidos owner 状态。
+
+## 10. 2026-11-06 首轮实施记录（权威进度仍归近期计划）
+
+- [Dictionary READ PR #1163](https://github.com/jiangxng/EVO-App-Platform/pull/1163) 合并 `8ff2932013e25f63382a25606dfacc254a03c3dc`，最终 45/45 CI 通过；新增标准数据集合结果、受限小集合 parser 与 `dictionary.collection.query`，旧 `dictionary.list` 不变。
+- [Counterparty READ PR #1165](https://github.com/jiangxng/EVO-App-Platform/pull/1165) 合并 `d3076e9dc037bc85f2508aa515d2296cddaa520f`，最终 45/45 CI 通过；复用原权限/职责投影及分页、类型化转换为同一 Collection Result，提供我的客户/供应商受管 Agent-visible READ；不新造权限或存储。
+- **待验**：Eidos owner 设计/契约签收；真实个人代理的 authorized discover→invoke→READ 数据对照及跨企业拒绝；浏览器 Human/390px、多视图、个人视图保存、Eidos 源码对接。不能将已提交代码、静态元数据或 CI 等同这些验收。
+- 第二个业务 owner 已证明**结果契约复用**，但 Query 参数仍由各自已有领域 parser 白名单执行；不能宣称全类型多条件查询协议成熟。完整阶段差距以[近期状态表](../plans/foundation-list-experience/COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)为准。
