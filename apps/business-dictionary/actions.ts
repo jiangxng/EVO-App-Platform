@@ -6,10 +6,12 @@ import type {
 } from "../../contracts/platform-services.js";
 import type { BusinessDictionaryOptionV010 } from "../../contracts/reference-data/dictionary.js";
 import type { BusinessDictionaryRepositoryV010 } from "./repository.js";
+import { queryBusinessDictionaryCollectionV010 } from "./collection-query.js";
 import {
   BUSINESS_DICTIONARY_DRAFT_COMMAND_V010 as DRAFT,
   BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 as OPTION_SAVE,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010 as LIST,
+  BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010 as COLLECTION_QUERY,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 as PUBLISH,
   BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010 as RESOLVE,
   BUSINESS_DICTIONARY_FEATURE_ID as FEATURE,
@@ -80,6 +82,10 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
       values.dictionaryId
         ? repo.get(contextId, required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED"))
         : repo.list(contextId)),
+    handler(COLLECTION_QUERY, false, (repo, _ctx, contextId, values) =>
+      queryBusinessDictionaryCollectionV010({
+        dictionaries: repo.list(contextId), query: values
+      })),
     handler(RESOLVE, false, (repo, _ctx, contextId, values) =>
       repo.resolveBatch({
         contextId, dictionaryId: required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED"),
