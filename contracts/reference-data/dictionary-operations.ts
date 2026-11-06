@@ -3,6 +3,8 @@ export const BUSINESS_DICTIONARY_FEATURE_ID = "evo-business-dictionary.default" 
 export const BUSINESS_DICTIONARY_CAPABILITY_V010 = "enterprise.business-dictionary" as const;
 
 export const BUSINESS_DICTIONARY_LIST_COMMAND_V010 = "dictionary.list" as const;
+/** CV-01: optional bounded READ collection; legacy dictionary.list is unchanged. */
+export const BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010 = "dictionary.collection.query" as const;
 export const BUSINESS_DICTIONARY_DRAFT_COMMAND_V010 = "dictionary.draft.save" as const;
 export const BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 = "dictionary.option.draft.save" as const;
 export const BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 = "dictionary.publish" as const;
