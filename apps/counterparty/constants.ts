@@ -118,6 +118,12 @@ export const COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010 =
 export const COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010 =
   "counterparty.projection.my-suppliers.read" as const;
 
+/** CV-01 optional normalized READ operations, coexist with legacy projections. */
+export const COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010 =
+  "counterparty.collection.my-customers.query" as const;
+export const COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010 =
+  "counterparty.collection.my-suppliers.query" as const;
+
 // Lightweight resource identity; repository.ts retains compatibility re-exports.
 export const COUNTERPARTY_NAMESPACE_V010 = "evo.counterparty" as const;
 export const COUNTERPARTY_COLLECTION_V010 = "counterparties" as const;
