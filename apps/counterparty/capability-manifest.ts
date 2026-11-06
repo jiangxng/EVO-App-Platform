@@ -6,6 +6,8 @@ import {
   COUNTERPARTY_MY_CUSTOMERS_READ_OPERATION_V010,
   COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
   COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010,
+  COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
+  COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
   COUNTERPARTY_PROJECTION_CAPABILITY_V010
 } from "./constants.js";
 import {
@@ -36,11 +38,25 @@ const projectionOutputSchema = {
   }
 } as const;
 
+const collectionOutputSchema = {
+  type: "object",
+  required: ["contractVersion", "collectionId", "schemaRef", "rows", "readableFieldIds", "pageInfo"],
+  properties: {
+    contractVersion: { const: "0.1.0" },
+    collectionId: { type: "string" },
+    schemaRef: { type: "string" },
+    rows: { type: "array", items: { type: "object" } },
+    readableFieldIds: { type: "array", items: { type: "string" } },
+    pageInfo: { type: "object", required: ["page", "pageSize", "total", "hasMore", "countKind"] }
+  }
+} as const;
+
 function readOperation(input: {
   operationId: string;
   commandCode: string;
   title: string;
   description: string;
+  collectionQuery?: boolean;
 }): PlatformCapabilityOperationContributionV010 {
   return {
     kind: "platform.capability-operation",
@@ -71,7 +87,7 @@ function readOperation(input: {
           pageSize: { type: "integer", minimum: 1, maximum: 100 }
         }
       },
-      outputSchema: projectionOutputSchema,
+      outputSchema: input.collectionQuery ? collectionOutputSchema : projectionOutputSchema,
       binding: {
         type: "ACTION_HOST",
         commandCode: input.commandCode,
@@ -97,5 +113,19 @@ export const counterpartyProjectionCapabilityContributionsV010:
       title: "Read My Suppliers",
       description:
         "Read the governed My Suppliers projection for the current Enterprise Context. The result is the same responsibility-scoped and authorization-filtered projection used by the Human Counterparty experience."
+    }),
+    readOperation({
+      operationId: COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
+      commandCode: COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
+      title: "Query My Customers Collection",
+      description: "Read the existing authorized My Customers projection as a bounded data collection with stable row IDs and permitted fields.",
+      collectionQuery: true
+    }),
+    readOperation({
+      operationId: COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+      commandCode: COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+      title: "Query My Suppliers Collection",
+      description: "Read the existing authorized My Suppliers projection as a bounded data collection with stable row IDs and permitted fields.",
+      collectionQuery: true
     })
   ];
