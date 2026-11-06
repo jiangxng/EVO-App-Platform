@@ -3,6 +3,16 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-06 近期执行入口：Collection / 多视图 / Personal Agent（新增）
+
+**方向已确认；CV-00～CV-07 工程里程碑尚未实施。** 在已有 Eidos + EVO App Platform 能力上增量建设数据集合与多视图，**不创建第二套框架**；Personal Agent 通过受管 Capability Operations 执行有权 READ/PLAN，并通过 Host 现有治理渠道进行必要的 WRITE、回执和恢复。
+
+1. [Eidos × Platform 数据集合与多视图架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)：职责边界、方案取舍、Agent/AI 原生权限与恢复、数据源/视图/渲染/动作划分。
+2. [近期八步可验收工作计划（CV-00～CV-07）](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)：每步 owner、最小真实功能、自动测试、Agent/桌面/手机 Human 验收、CI、回滚。
+3. [原始参考资料、历史研究与源码证据索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)：SharePoint 2019、Odoo、Power Apps、SAP、明道云、WAI-ARIA 及 EVO 内部研究与当前代码定位。
+
+原有 2026-10-12 方案和 2026-10-30 Foundation 任务继续保留，不以本次计划文档合并标记业务功能完成。
+
 ## 建议采用的产品结构
 
 统一“列表工作页 + 对象详情页 + 导入工作区”，列表支持紧凑列表和数据表格两种呈现。基础对象插件拥有业务语义；Eidos 提供共用页面布局与控件；LLM 在确定位置提供快捷辅助。高级分析通过“跳转独立页面”和“向受控插槽贡献页面部件”两条路径接入。
