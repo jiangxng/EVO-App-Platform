@@ -1,10 +1,10 @@
 # 近期实施计划：Eidos 数据集合/视图复用 × EVO 插件平台 × Personal Agent（2026-11-06）
 
-> **状态：APPROVED_DIRECTION / PLANNED — 尚未开始工程实现。** 本文是“近期可执行的分步工作包”，不是 Feature 已完成证明。用户确定：**基于现有 Eidos 和 Platform 演进、不建第二框架；个人 Agent 可操作，AI 原生能力是验收的一部分。**
+> **状态：APPROVED_DIRECTION / PARTIAL_IMPLEMENTATION — CV-00 代码对账进入复核、CV-01 两个业务 owner 的首轮 READ 代码与 CI 已合入；CV-02～07 仍为 PLANNED。** 本文是“近期可执行的分步工作包”，不是 Feature 已完成或 Human 验收证明。用户确定：**基于现有 Eidos 和 Platform 演进、不建第二框架；个人 Agent 可操作，AI 原生能力是验收的一部分。**
 >
 > **实施基线：** EVO-App-Platform main `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-06）；实际开发必须重查 main/Eidos HEAD、最新 owner PR 和权限。前置[架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)；[研究与资料索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)。原[基础对象和列表计划](PLAN.md)、[Business Experience](BUSINESS-EXPERIENCE-FRAMEWORK.md)、[Foundation 六步](FOUNDATION-SIX-MILESTONE-EXECUTION-20261030.md)继续各守自己的状态与实施责任。
 >
-> **进度规则：** 本次只交付计划文档，所有工程里程碑均为 **PLANNED**；后续只能由对应 owner 的 PR、准确 HEAD CI、真实 Host/浏览器/Agent 证据和 Human 验收分别推进状态。新阶段拆分不得覆盖正在开展的 BEX V3、权限、PA05 或 Eidos 主线。
+> **进度规则：** 原 2026-11-06 首次版本只交付计划；随后 [PR #1163](https://github.com/jiangxng/EVO-App-Platform/pull/1163) 与 [PR #1165](https://github.com/jiangxng/EVO-App-Platform/pull/1165) 已合 main。代码/CI/合并不等于真实 Agent/浏览器/Human 签收；后续只能由 owner 的 PR、准确 HEAD CI、真实 Host/浏览器/Agent 证据和 Human 验收分别推进状态。新阶段拆分不得覆盖正在开展的 BEX V3、权限、PA05 或 Eidos 主线。
 
 ## 1. 一眼可见的分工与前置约束
 
@@ -19,14 +19,16 @@
 
 | 步骤 | 计划任务 | 当前 | 必须形成的可验收结果 |
 | --- | --- | --- | --- |
-| **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **PLANNED** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
-| **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **PLANNED** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
+| **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
+| **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
 | **CV-02** | Eidos 共用表格/列表与查询体验 | **PLANNED** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
 | **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
 | **CV-06** | 按需看板与聚合图表（首个受控样例） | **PLANNED** | 一个看板和一个合法聚合图；不从当前页虚构全集指标 |
 | **CV-07** | 第三插件复用、负载、安全、CI 与交付认证 | **PLANNED** | Item/Warehouse 至少其一接入，独立开发模板和真实验收矩阵 |
+
+**2026-11-06 实施证据：** [CV-00 重复开发对账](CV00-20261106-COLLECTION-CONTRACT-REUSE-REVIEW.md)、[PR #1163](https://github.com/jiangxng/EVO-App-Platform/pull/1163)（45/45 CI；merge `8ff2932013e25f63382a25606dfacc254a03c3dc`）、[PR #1165](https://github.com/jiangxng/EVO-App-Platform/pull/1165)（45/45 CI；merge `d3076e9dc037bc85f2508aa515d2296cddaa520f`）。已实现轻量 owner READ 和两数据源标准结果，但未取得真实 Agent 查找/调用、浏览器/手机、Eidos owner 签收，不得标 CV-01 全通过。
 
 **不启动平行八条长期 Draft 分支。** 优先连续完成 CV-00～CV-02 的最小可用纵切，再扩展功能；Eidos 和 Platform 变更必须各有 owner PR，按真实依赖做短周期兼容集成。每步验收通过才进入下一项，无法通过时修复当前阶段而非叠加新功能。
 
