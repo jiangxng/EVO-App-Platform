@@ -14,6 +14,8 @@ import {
   COUNTERPARTY_FEATURE_ID,
   COUNTERPARTY_MY_CUSTOMERS_READ_COMMAND_V010,
   COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
+  COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
+  COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
   COUNTERPARTY_PACKAGE_ID
 } from "./constants.js";
 import {
@@ -65,7 +67,8 @@ export function createCounterpartyProjectionActionHandlersV010(input: (
 }): AppActionHandler[] {
   const create = (
     commandCode: string,
-    projectionId: CounterpartyProjectionIdV010
+    projectionId: CounterpartyProjectionIdV010,
+    collectionQuery = false
   ): AppActionHandler => ({
     packageId: COUNTERPARTY_PACKAGE_ID,
     featureId: COUNTERPARTY_FEATURE_ID,
@@ -81,7 +84,7 @@ export function createCounterpartyProjectionActionHandlersV010(input: (
         const result = await service.read({
           contextId: active.contextId,
           projectionId,
-          ...(Object.keys(request.values).length
+          ...(collectionQuery || Object.keys(request.values).length
             ? { query: parseCounterpartyProjectionQueryV010(request.values) }
             : {}),
           requestContext: context,
@@ -91,10 +94,13 @@ export function createCounterpartyProjectionActionHandlersV010(input: (
               active.contextId
             )
         });
+        const output = collectionQuery
+          ? (await import("./collection-query.js")).counterpartyProjectionCollectionResultV010(result)
+          : result;
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: JSON.parse(JSON.stringify(result)) as JsonValue
+          result: JSON.parse(JSON.stringify(output)) as JsonValue
         };
       } catch (error) {
         return failure(error, context);
@@ -110,6 +116,16 @@ export function createCounterpartyProjectionActionHandlersV010(input: (
     create(
       COUNTERPARTY_MY_SUPPLIERS_READ_COMMAND_V010,
       COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010
+    ),
+    create(
+      COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
+      COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010,
+      true
+    ),
+    create(
+      COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+      COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+      true
     )
   ];
 }
