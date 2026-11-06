@@ -4,7 +4,7 @@
 >
 > **实施基线：** EVO-App-Platform main `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-06）；实际开发必须重查 main/Eidos HEAD、最新 owner PR 和权限。前置[架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)；[研究与资料索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)。原[基础对象和列表计划](PLAN.md)、[Business Experience](BUSINESS-EXPERIENCE-FRAMEWORK.md)、[Foundation 六步](FOUNDATION-SIX-MILESTONE-EXECUTION-20261030.md)继续各守自己的状态与实施责任。
 >
-> **进度规则：** 本次只交付计划文档，所有工程里程碑均为 **PLANNED**；后续只能由对应 owner 的 PR、准确 HEAD CI、真实 Host/浏览器/Agent 证据和 Human 验收分别推进状态。新阶段拆分不得覆盖正在开展的 BEX V3、权限、PA05 或 Eidos 主线。
+> **进度规则：** 本次只交付计划文档，CV-00 进入 **IN_REVIEW（代码对账完成、owner/可执行证据待验）**，CV-01～CV-07 均为 **PLANNED**；后续只能由对应 owner 的 PR、准确 HEAD CI、真实 Host/浏览器/Agent 证据和 Human 验收分别推进状态。新阶段拆分不得覆盖正在开展的 BEX V3、权限、PA05 或 Eidos 主线。
 
 ## 1. 一眼可见的分工与前置约束
 
@@ -19,7 +19,7 @@
 
 | 步骤 | 计划任务 | 当前 | 必须形成的可验收结果 |
 | --- | --- | --- | --- |
-| **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **PLANNED** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
+| **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW — 代码对账完成；owner 决策待验** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **PLANNED** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
 | **CV-02** | Eidos 共用表格/列表与查询体验 | **PLANNED** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
 | **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
@@ -29,6 +29,8 @@
 | **CV-07** | 第三插件复用、负载、安全、CI 与交付认证 | **PLANNED** | Item/Warehouse 至少其一接入，独立开发模板和真实验收矩阵 |
 
 **不启动平行八条长期 Draft 分支。** 优先连续完成 CV-00～CV-02 的最小可用纵切，再扩展功能；Eidos 和 Platform 变更必须各有 owner PR，按真实依赖做短周期兼容集成。每步验收通过才进入下一项，无法通过时修复当前阶段而非叠加新功能。
+
+**CV-00 实际进展证据（2026-11-06）：** [现有代码、Eidos Pin 与 Personal Agent READ/WRITE 边界对账](CV00-COLLECTION-EIDOS-AGENT-CODE-AUDIT-20261106.md)。本次已证实 Counterparty 和 Dictionary 均有受管 READ、内部 Personal Agent 有独立受治理 WRITE 工具；尚无两种 owner 共用的 Collection Query 协议与完整 Saved View。CV-00 仍有 owner 审核与实际兼容证据未闭合，不将研究文档冒充 DEV_COMPLETE。
 
 ## 3. 各步骤实施任务、测试和退出门槛
 
