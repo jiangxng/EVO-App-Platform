@@ -74,6 +74,26 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
     ids.add(item.id);
   }
   if (input.table) {
+    // Eidos PR #209: views are navigation only; Host/domain owns authorization.
+    if (input.table.views) {
+      const views = input.table.views;
+      if (!Array.isArray(views) || views.length > 12) {
+        throw new Error("EIDOS_CATALOG_TABLE_VIEWS_INVALID");
+      }
+      const ids = new Set<string>();
+      let selectedCount = 0;
+      for (const view of views) {
+        if (!view.id?.trim() || !view.label?.trim() || ids.has(view.id)
+          || !view.route?.startsWith("/") || view.route.startsWith("//")
+          || view.route.includes("\\") || typeof view.selected !== "undefined"
+          && typeof view.selected !== "boolean") {
+          throw new Error("EIDOS_CATALOG_TABLE_VIEW_INVALID");
+        }
+        ids.add(view.id);
+        if (view.selected === true) selectedCount++;
+      }
+      if (selectedCount > 1) throw new Error("EIDOS_CATALOG_TABLE_VIEW_SELECTION_INVALID");
+    }
     if (input.table.search && (!input.table.search.route.startsWith("/")
       || input.table.search.route.startsWith("//")
       || !input.table.search.label || !input.table.search.submitLabel)) {
@@ -116,7 +136,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   return input;
 }
 
-function actionButton(itemId: string | undefined, action: import("./contracts.js").CatalogBrowserActionV010, primary: boolean): string {
+function actionButton(itemId: string | undefined, action: import("./contracts.js").CatalogBrowserActionV010, primary: boolean, isCurrentView = false): string {
   if (action.type === "download") {
     if (!action.href?.startsWith("/")) {
       throw new Error("EIDOS_CATALOG_DOWNLOAD_HREF_INVALID");
@@ -139,7 +159,7 @@ function actionButton(itemId: string | undefined, action: import("./contracts.js
   const disabled = enabled ? "" : " disabled";
   const reason = action.disabledReason ? ` data-eidos-disabled-reason="${esc(action.disabledReason)}" title="${esc(action.disabledReason)}"` : "";
   const help = action.helpText ? `<span data-eidos-action-help data-action-id="${esc(action.id)}">${esc(action.helpText)}</span>` : "";
-  return `<span data-eidos-action-wrap><button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}"${itemId ? ` data-eidos-item-id="${esc(itemId)}"` : ""} data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${command}${inputVersion}${route}${values}${reason}${disabled}>${esc(action.label)}</button>${help}</span>`;
+  return `<span data-eidos-action-wrap><button type="button" data-eidos-catalog-action="${esc(action.id)}" data-eidos-action-type="${esc(action.type)}"${itemId ? ` data-eidos-item-id="${esc(itemId)}"` : ""} data-eidos-confirm="${action.requiresConfirmation === true ? "true" : "false"}" data-eidos-primary="${primary ? "true" : "false"}"${isCurrentView ? ' aria-current="page"' : ""}${command}${inputVersion}${route}${values}${reason}${disabled}>${esc(action.label)}</button>${help}</span>`;
 }
 
 export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
@@ -224,6 +244,17 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     return `<nav data-eidos-catalog-pagination aria-label="Pagination"><span data-eidos-page-summary>${esc(page.summary)}</span><div>${previous}${next}</div></nav>`;
   })() : "";
 
+  const viewNavigation = model.table?.views?.length
+    ? `<nav data-eidos-catalog-view-navigation aria-label="Views">${model.table.views.map(view =>
+        `<span data-eidos-catalog-view-id="${esc(view.id)}" data-eidos-catalog-view-selected="${view.selected === true ? "true" : "false"}">${actionButton(undefined, {
+          id: "select-view-" + view.id,
+          label: view.label,
+          type: "navigate",
+          route: view.route
+        }, false, view.selected === true)}</span>`
+      ).join("")}</nav>`
+    : "";
+
   const serverSearch = model.table?.search ? `<form data-eidos-catalog-server-search data-eidos-search-route="${esc(model.table.search.route)}" role="search"><label><span data-eidos-catalog-search-label>${esc(model.table.search.label)}</span> <input type="search" name="search" value="${esc(model.table.search.value ?? "")}" maxlength="120" placeholder="${esc(model.table.search.placeholder)}"></label><button type="submit">${esc(model.table.search.submitLabel)}</button></form>` : "";
   const search = model.search
     ? `<div data-eidos-catalog-search><input type="search" data-eidos-catalog-search-input placeholder="${esc(model.search.placeholder ?? "Search")}" aria-label="${esc(model.search.ariaLabel ?? model.search.placeholder ?? "Search catalog")}"></div>`
@@ -250,6 +281,7 @@ ${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
 </div>
 </header>
 ${search}
+${viewNavigation}
 ${serverSearch}
 ${table}
 ${model.collectionTitle

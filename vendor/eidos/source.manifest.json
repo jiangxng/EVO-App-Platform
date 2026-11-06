@@ -106,6 +106,17 @@
   ],
   "componentPins": [
     {
+      "component": "eidos.catalog-browser-views",
+      "sourceRepository": "jiangxng/eidos",
+      "sourceCommit": "127150c30193b57b38d1d9cc62443ddfa90e2349",
+      "sourcePath": "src/catalog-browser",
+      "vendoredPath": "vendor/eidos/src/catalog-browser",
+      "ownerPullRequest": "https://github.com/jiangxng/eidos/pull/209",
+      "status": "SCOPED_SEMANTIC_FORWARD_PORT_WITH_PLATFORM_OVERLAY",
+      "files": ["contracts.ts", "render.ts"],
+      "note": "Only the optional Eidos CatalogBrowserTableV010.views declaration and governed view navigation/validation from Eidos PR #209 are forward-ported. Existing App Platform Context Navigation, page actions, density and Host overlays are intentionally retained. This is not byte-for-byte upstream parity; the broad sourceCommit remains the older snapshot."
+    },
+    {
       "component": "eidos.2d-core",
       "sourceRepository": "jiangxng/eidos",
       "sourceCommit": "79e124d32fa5435a645968617d3147358518cb4f",

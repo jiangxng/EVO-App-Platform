@@ -2,6 +2,13 @@
 export interface CatalogBrowserTableV010 {
   columns: { id: string; label: string; sortRoute?: string }[];
   search?: { route: string; label: string; placeholder: string; value?: string; submitLabel: string };
+  /** Eidos owner PR #209: optional authorized view navigation; no query or permission logic. */
+  views?: {
+    id: string;
+    label: string;
+    route: string;
+    selected?: boolean;
+  }[];
   rows: { itemId: string; cells: Record<string, string | number | boolean | null> }[];
   pageInfo?: {
     page: number;
