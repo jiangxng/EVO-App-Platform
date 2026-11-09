@@ -1,6 +1,6 @@
 # CV-03 / C3-01：现有 Enterprise Resource Provider 的条件写入纵切（2026-11-09）
 
-> **状态：IMPLEMENTATION_IN_PR / PRODUCTION_MULTI_HOST_NOT_CERTIFIED。** 实际代码和测试位于 [PR #1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177)；按该 PR 的最终准确 HEAD/CI 判定。**本文件不代表 Saved View 已保存成功，不授权生产 Agent WRITE，不关闭完整 C3-01 跨主机正式后端门禁。**
+> **状态：CODE_MERGED / CI_PASS / PRODUCTION_MULTI_HOST_NOT_CERTIFIED。** 实际代码和测试位于 [PR #1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177)；按该 PR 的最终准确 HEAD/CI 判定。**本文件不代表 Saved View 已保存成功，不授权生产 Agent WRITE，不关闭完整 C3-01 跨主机正式后端门禁。**
 >
 > **来源**：[CV-03 技术决策](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)、[唯一 CV-00~07 状态表](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)、[旧窗口恢复索引](CV-20261109-RECOVERY-HANDOFF-ENTRY.md)。
 
@@ -37,3 +37,12 @@
 3. 再启动 C3-02 Personal Saved View：当前 Principal/Enterprise scope、来源 owner query/字段/schema 校验和真实 Host `invoke.write` + receipt；Eidos 只消费有权视图配置。共享视图 C3-03、自然语言与 Human 390px C3-04 独立验收。
 
 **禁止误报**：本 PR 仅解除“存储合同完全没有条件写入”的第一段代码缺口，不能把 Memory/`SAME_FILESYSTEM_LOCK` 当正式多主机原子性，不能因此将 CV-03 从 PLANNED 直接标 HUMAN_PASS。
+
+## 5. 已合并工程与正式环境实况（2026-11-09 本窗口复查）
+
+- **实际合并**：[Platform #1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177) 已合并到 `main@1cb6730841e8b3fd8841360c947b71bfc28c84f5`。最终 PR HEAD `b6328fb3a5c9f5c927d511491f92abec1beec268` **9/9 GitHub 检查完成且成功**：Platform `protocol-and-core`、`lightweight-host`、连续性、UI 设计门禁及相关插件 CI。此为机器证据，不是生产部署/真实 Agent/Human 证明。
+- **GitHub Host 路径**：[manager/server.ts](../../../manager/server.ts) 中 `APP_PLATFORM_STATE_FILE` 决定生命周期 State Store；`APP_PLATFORM_ENTERPRISE_RESOURCES_FILE` 若未设置，则资源文件路径为该 state file 同目录 `enterprise-resources.json`；两者都未配置则退回**进程内存**资源。若正式环境真实文件路径不在持久挂载卷内，则重启读回仍不成立。
+- **Railway 配置只读观察**：本窗口通过已连接的 Railway 项目 `EVO Ledger Runtime MVP` 的 `production` 环境核对 `Ledger Configurator` 服务：源仓 `jiangxng/EVO-App-Platform` main、地区 `sfo`、部署配置单副本、挂载卷 `ledger-configurator-state` 至 `/data`；该服务变量**名称**包含 `APP_PLATFORM_STATE_FILE`，未列出独立 `APP_PLATFORM_ENTERPRISE_RESOURCES_FILE`。未读取/存储任何 secrets 值，**故不能确认实际 State 文件路径是否在 /data**；也未登录该 Host 执行保存/恢复测试。
+- **部署结果与限制**：Railway 该服务返回的最近部署记录为 `FAILED`（创建时间 2026-10-08），不是本次 PR 发布证明。单副本 + Volume **不等于**多副本共享持久存储；File Provider `SAME_FILESYSTEM_LOCK` 不具备跨节点不同本地卷的全局 CAS 保证。
+- **C3-01 结论**：条件写入公共 API、单机/同文件系统互斥与测试已合入；**正式存储拓扑认证仍 OPEN**。C3-02 Human/Agent Saved View WRITE 不得据此默认打开；首先需要验证部署文件路径/重启恢复/跨 Worker 共享性，或由已认证的数据库 Provider 提供真正跨实例的条件提交。即使单实例可读回，也不等于未来横向扩容安全。
+
