@@ -50,7 +50,10 @@ test("C3-02 existing Eidos Dictionary table renders a Host-provided private view
   assert.equal(views[3].route,
     "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&page=0&pageSize=25");
   assert.deepEqual(authorized.table.rows.map(r=>r.itemId),original.table.rows.map(r=>r.itemId));
-  assert.deepEqual(authorized.table.columns,original.table.columns);
+  // Column identities and labels remain unchanged; only their routes gain
+  // the authorized personal selection hint to preserve sort navigation.
+  assert.deepEqual(authorized.table.columns.map(({id,label})=>({id,label})),
+    original.table.columns.map(({id,label})=>({id,label})));
   assert.deepEqual(authorized.items.map(r=>r.id),original.items.map(r=>r.id));
   const html=renderCatalogBrowserToHtml(authorized);
   assert.match(html,/data-eidos-catalog-view-id="personal:hk-suppliers"/);
@@ -71,16 +74,17 @@ test("C3-02 saved route hint survives search/sort/page/detail return and system-
   for (const route of [
     selected.table.search.route,
     selected.table.columns.find(c=>c.id==="dictionaryId").sortRoute,
-    selected.table.pageInfo.nextRoute,
-    selected.items[0].primaryAction.route
+    selected.table.pageInfo.nextRoute
   ]) {
     assert.ok(route?.includes("personalViewId=hk-suppliers"),String(route));
   }
   for (const system of selected.table.views.filter(v=>!v.id.startsWith("personal:"))) {
     assert.equal(system.route.includes("personalViewId"),false);
   }
-  const detailReturn=decodeURIComponent(new URL(selected.items[0].primaryAction.route,"https://evo.invalid")
-    .searchParams.get("returnTo"));
+  // Detail returnTo is nested URL-encoded: check the decoded route, not the
+  // outer URL where raw personalViewId should NOT appear.
+  const detailReturn=new URL(selected.items[0].primaryAction.route,"https://evo.invalid")
+    .searchParams.get("returnTo");
   assert.ok(detailReturn.includes("personalViewId=hk-suppliers"));
   const paged=page({
     directorySelection:selection(selected.table.pageInfo.nextRoute),
