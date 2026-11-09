@@ -1,6 +1,14 @@
 import postgres from "postgres";
 import type {
+  AgentActionReceiptBeginInputV010,
+  AgentActionReceiptV010
+} from "../../contracts/agent-action-receipt.js";
+import { digestConditionalResourcePutV010, sha256ResourceReceiptV010 }
+  from "./resource-receipt-digest.js";
+import type {
   EnterpriseResourceAddressV010,
+  EnterpriseResourceCommittedWriteLookupV010,
+  EnterpriseResourceCommittedWriteV010,
   EnterpriseResourceConditionalArchiveInputV010,
   EnterpriseResourceConditionalAsyncRepositoryV010,
   EnterpriseResourceConditionalPutInputV010,
@@ -97,7 +105,8 @@ function database(input: { connectionString: string; schema: string }) {
   const sql = postgres(connectionString, {
     max: 5, connect_timeout: 10, idle_timeout: 15, prepare: false
   });
-  return { sql, table: schema + ".resources", schema };
+  return { sql, table: schema + ".resources",
+    receipts: schema + ".cv03_resource_receipts", schema };
 }
 
 /**
@@ -108,7 +117,7 @@ export async function preparePostgresConditionalResourceSchemaV010(input: {
   connectionString: string;
   schema: string;
 }): Promise<void> {
-  const { sql, schema, table } = database(input);
+  const { sql, schema, table, receipts } = database(input);
   try {
     await sql.unsafe("CREATE SCHEMA IF NOT EXISTS " + schema);
     await sql.unsafe(
@@ -119,9 +128,105 @@ export async function preparePostgresConditionalResourceSchemaV010(input: {
       "resource jsonb NOT NULL CHECK(jsonb_typeof(resource)='object'), " +
       "PRIMARY KEY(context_id, namespace, collection_id, resource_type, resource_id))"
     );
+    // Deliberate explicit opt-in schema, never a Host startup migration.
+    await sql.unsafe(
+      "CREATE TABLE IF NOT EXISTS " + receipts + " (" +
+      "context_id text NOT NULL, idempotency_hash text NOT NULL, " +
+      "receipt_id text NOT NULL UNIQUE, approval_digest text NOT NULL, " +
+      "input_digest text NOT NULL, " +
+      "receipt jsonb NOT NULL CHECK(jsonb_typeof(receipt)='object'), " +
+      "resource jsonb NOT NULL CHECK(jsonb_typeof(resource)='object'), " +
+      "PRIMARY KEY(context_id,idempotency_hash))"
+    );
+    await sql.unsafe("CREATE OR REPLACE FUNCTION " + schema +
+      ".cv03_reject_receipt_mutation() RETURNS trigger LANGUAGE plpgsql AS " +
+      "$ BEGIN RAISE EXCEPTION 'CV03_RESOURCE_RECEIPT_IMMUTABLE'; END $");
+    await sql.unsafe("CREATE OR REPLACE TRIGGER cv03_resource_receipts_immutable " +
+      "BEFORE UPDATE OR DELETE ON " + receipts +
+      " FOR EACH ROW EXECUTE FUNCTION " + schema + ".cv03_reject_receipt_mutation()");
   } finally {
     await sql.end();
   }
+}
+
+
+function verifyHostReceiptBinding(
+  input: EnterpriseResourceConditionalPutInputV010,
+  approval: AgentActionReceiptBeginInputV010
+): void {
+  if (!input.namespace.startsWith("evo.saved-view.personal.") ||
+      input.resourceType !== "saved-collection-view" ||
+      input.ownerPackageId !== "host-enterprise-context-provider" ||
+      approval.ownerPackageId !== input.ownerPackageId ||
+      approval.sourceActionId !== "collection.saved-view.personal.save" ||
+      approval.toolId !== approval.sourceActionId ||
+      approval.principalSubjectId !== input.actorSubjectId ||
+      (approval.principalActorType !== "AI" && approval.principalActorType !== "HUMAN") ||
+      approval.context?.kind !== "ENTERPRISE" ||
+      approval.context.contextId !== input.contextId ||
+      typeof approval.context.enterpriseId !== "string" ||
+      !(input.payload && typeof input.payload === "object" && !Array.isArray(input.payload)) ||
+      (input.payload as Record<string, unknown>).enterpriseId !== approval.context.enterpriseId ||
+      (input.payload as Record<string, unknown>).ownerSubjectId !== approval.principalSubjectId ||
+      typeof approval.idempotencyKey !== "string" || !approval.idempotencyKey.trim() ||
+      typeof approval.receiptId !== "string" || !approval.receiptId.trim() ||
+      typeof approval.invocationId !== "string" || !approval.invocationId.trim() ||
+      typeof approval.sourceInteractionId !== "string" || !approval.sourceInteractionId.trim() ||
+      typeof approval.requestedAt !== "string" ||
+      !Number.isFinite(Date.parse(approval.requestedAt))) {
+    throw new Error("CV03_RESOURCE_HOST_RECEIPT_BINDING_INVALID");
+  }
+  if (approval.inputDigest !== digestConditionalResourcePutV010(input)) {
+    throw new Error("CV03_RESOURCE_HOST_RECEIPT_DIGEST_MISMATCH");
+  }
+}
+
+/** Historical receipt evidence, independent of later updates to the live view. */
+function committedFromReceiptRow(
+  row: Record<string, unknown>,
+  replayed: boolean
+): EnterpriseResourceCommittedWriteV010 {
+  const receipt = JSON.parse(String(row.receipt)) as AgentActionReceiptV010;
+  const resource = validateEnterpriseResourceV010(
+    JSON.parse(String(row.resource)) as EnterpriseResourceV010
+  );
+  if (sha256ResourceReceiptV010(receipt) !== row.receipt_digest &&
+      // Legacy test schemas created by earlier PR versions have no receipt_digest.
+      row.receipt_digest !== undefined) {
+    throw new Error("CV03_RESOURCE_RECEIPT_EVIDENCE_INTEGRITY");
+  }
+  if (receipt.status !== "SUCCEEDED" ||
+      receipt.resultDigest !== sha256ResourceReceiptV010(resource) ||
+      receipt.inputDigest !== row.input_digest ||
+      resource.lifecycleState !== "ACTIVE") {
+    throw new Error("CV03_RESOURCE_RECEIPT_EVIDENCE_INTEGRITY");
+  }
+  return {resource, receipt, replayed};
+}
+
+function completedReceipt(
+  approval: AgentActionReceiptBeginInputV010,
+  resource: EnterpriseResourceV010
+): AgentActionReceiptV010 {
+  return {
+    contractVersion: "0.1.0", receiptId: approval.receiptId,
+    invocationId: approval.invocationId,
+    idempotencyKey: approval.idempotencyKey,
+    sourceInteractionId: approval.sourceInteractionId,
+    sourceActionId: approval.sourceActionId,
+    principalSubjectId: approval.principalSubjectId,
+    principalActorType: approval.principalActorType,
+    context: structuredClone(approval.context),
+    toolId: approval.toolId, ownerPackageId: approval.ownerPackageId,
+    ...(approval.capability ? {capability: approval.capability}: {}),
+    effect: "WRITE", inputDigest: approval.inputDigest,
+    status: "SUCCEEDED", requestedAt: approval.requestedAt,
+    completedAt: resource.updatedAt,
+    resultDigest: sha256ResourceReceiptV010(resource),
+    resultEntityRefs: ["enterprise-resource:" + resource.resourceId],
+    resultSummary: "Saved view resource and immutable receipt committed atomically",
+    latestEventId: "cv03-resource-commit:" + approval.receiptId
+  };
 }
 
 /** Independent clients and processes share PostgreSQL row locks/uniqueness. */
@@ -129,7 +234,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
   connectionString: string;
   schema: string;
 }): EnterpriseResourceConditionalAsyncRepositoryV010 {
-  const { sql, table } = database(input);
+  const { sql, table, receipts } = database(input);
   const selectAddress = (forUpdate: boolean): string =>
     "SELECT revision, resource::text AS resource FROM " + table +
     " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3" +
@@ -198,6 +303,124 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         if (committed.length !== 1) throw new Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
         return resourceFromRow(committed[0] as Record<string, unknown>);
       });
+    },
+
+    async putIfRevisionWithReceipt(
+      input: EnterpriseResourceConditionalPutInputV010,
+      approval: AgentActionReceiptBeginInputV010
+    ): Promise<EnterpriseResourceCommittedWriteV010> {
+      verifyHostReceiptBinding(input, approval);
+      const address = addressValues(input);
+      const keyHash = sha256ResourceReceiptV010(approval.idempotencyKey);
+      const approvalDigest = sha256ResourceReceiptV010(approval);
+      return sql.begin(async tx => {
+        // One scoped idempotency serialization point shared by ALL PG clients.
+        // Hash collisions only over-serialize; they cannot approve a wrong key.
+        await tx.unsafe(
+          "SELECT pg_advisory_xact_lock(hashtextextended($1::text,0))",
+          [input.contextId + "|" + keyHash]
+        );
+        const previous = await tx.unsafe(
+          "SELECT receipt::text AS receipt,resource::text AS resource," +
+          " input_digest,approval_digest FROM " + receipts +
+          " WHERE context_id=$1 AND idempotency_hash=$2",
+          [input.contextId, keyHash]
+        );
+        if (previous.length) {
+          if (previous[0].input_digest !== approval.inputDigest ||
+              previous[0].approval_digest !== approvalDigest) {
+            throw new Error("CV03_RESOURCE_RECEIPT_IDEMPOTENCY_CONFLICT");
+          }
+          const committed = committedFromReceiptRow(
+            {...previous[0],
+              receipt_digest: sha256ResourceReceiptV010(
+                JSON.parse(String(previous[0].receipt))
+              )},
+            true
+          );
+          if (committed.receipt.receiptId !== approval.receiptId ||
+              addressValues(committed.resource).some((v,i) => v !== address[i])) {
+            throw new Error("CV03_RESOURCE_RECEIPT_IDEMPOTENCY_CONFLICT");
+          }
+          return committed;
+        }
+        let resource: EnterpriseResourceV010;
+        if (input.expectedRevision === null) {
+          const first = makeResource(input,undefined,0);
+          const created = await tx.unsafe(
+            "INSERT INTO " + table +
+            " (context_id,namespace,collection_id,resource_type,resource_id,revision,resource)" +
+            " VALUES ($1,$2,$3,$4,$5,0,$6::text::jsonb)" +
+            " ON CONFLICT DO NOTHING RETURNING revision,resource::text AS resource",
+            [...address,JSON.stringify(first)]
+          );
+          if (created.length !== 1) {
+            throw new Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
+          }
+          resource = resourceFromRow(created[0] as Record<string,unknown>);
+        } else {
+          const expected = revisionNumber(input.expectedRevision);
+          const rows = await tx.unsafe(selectAddress(true),address);
+          if(rows.length !== 1 || Number(rows[0].revision) !== expected) {
+            throw new Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
+          }
+          const prior = resourceFromRow(rows[0] as Record<string,unknown>);
+          if(prior.lifecycleState === "ARCHIVED") {
+            throw new Error("ENTERPRISE_RESOURCE_ALREADY_ARCHIVED");
+          }
+          const next = makeResource(input,prior,expected+1);
+          const updated = await tx.unsafe(
+            "UPDATE " + table + " SET revision=$6,resource=$7::text::jsonb" +
+            " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3" +
+            " AND resource_type=$4 AND resource_id=$5 AND revision=$8" +
+            " RETURNING revision,resource::text AS resource",
+            [...address,expected+1,JSON.stringify(next),expected]
+          );
+          if(updated.length !== 1)throw Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
+          resource = resourceFromRow(updated[0] as Record<string,unknown>);
+        }
+        const receipt=completedReceipt(approval,resource);
+        // The INSERT is intentionally AFTER the business CAS in the SAME tx.
+        // A failed receipt INSERT (or a killed Worker) rolls back the resource.
+        await tx.unsafe(
+          "INSERT INTO " + receipts +
+          " (context_id,idempotency_hash,receipt_id,approval_digest,input_digest," +
+          " receipt,resource) VALUES ($1,$2,$3,$4,$5,$6::text::jsonb,$7::text::jsonb)",
+          [input.contextId,keyHash,approval.receiptId,approvalDigest,
+           approval.inputDigest,JSON.stringify(receipt),JSON.stringify(resource)]
+        );
+        return {resource,receipt,replayed:false};
+      });
+    },
+    async getCommittedWriteByIdempotencyKey(
+      query: EnterpriseResourceCommittedWriteLookupV010
+    ): Promise<EnterpriseResourceCommittedWriteV010 | undefined> {
+      const address=addressValues(query.address);
+      if (!query.idempotencyKey?.trim() || !query.receiptId?.trim() ||
+          !query.inputDigest?.trim() || !query.principalSubjectId?.trim() ||
+          !["AI","HUMAN"].includes(query.principalActorType)) {
+        throw new Error("CV03_RESOURCE_RECEIPT_LOOKUP_INVALID");
+      }
+      const rows=await sql.unsafe(
+        "SELECT receipt::text AS receipt,resource::text AS resource,input_digest,"+
+        "approval_digest FROM " + receipts +
+        " WHERE context_id=$1 AND idempotency_hash=$2",
+        [address[0],sha256ResourceReceiptV010(query.idempotencyKey)]
+      );
+      if(rows.length!==1)return undefined;
+      const item=rows[0] as Record<string,unknown>;
+      const result=committedFromReceiptRow({
+        ...item,receipt_digest:sha256ResourceReceiptV010(
+          JSON.parse(String(item.receipt))
+        )
+      },false);
+      if(result.receipt.receiptId!==query.receiptId ||
+        result.receipt.idempotencyKey!==query.idempotencyKey ||
+        result.receipt.inputDigest!==query.inputDigest ||
+        result.receipt.principalSubjectId!==query.principalSubjectId ||
+        result.receipt.principalActorType!==query.principalActorType ||
+        addressValues(result.resource).some((v,i)=>v!==address[i]))return undefined;
+      return result;
     },
     async archiveIfRevision(input: EnterpriseResourceConditionalArchiveInputV010) {
       const expected = revisionNumber(input.expectedRevision);
