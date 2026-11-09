@@ -393,8 +393,27 @@ export function createCounterpartyProjectionPageV010(input: {
   const query = input.tableQuery ?? {};
   const pageInfo = input.pageInfo;
   const totalStart = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
+  // CV-02: owner-governed projection routes, rendered by the existing Eidos
+  // CatalogBrowser table. These links do not grant a different read scope.
+  const myScope = input.projectionId === COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
+    || input.projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010;
+  const supplierScope = input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
+    || input.projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010;
+  const allRoute = supplierScope ? COUNTERPARTY_SUPPLIERS_ROUTE : COUNTERPARTY_CUSTOMERS_ROUTE;
+  const myRoute = supplierScope ? COUNTERPARTY_MY_SUPPLIERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
+  const scopeViewRoute = (path: string) => query.search || query.sort || query.direction
+    || query.pageSize !== undefined
+    ? counterpartyProjectionQueryRouteV010(path, query, 0)
+    : path;
   const table: CatalogBrowserV010["table"] | undefined = pageInfo ? {
     columns,
+    views: [{
+      id: "all", label: supplierScope ? text.suppliers : text.customers,
+      route: scopeViewRoute(allRoute), selected: !myScope
+    }, {
+      id: "mine", label: supplierScope ? text.mySuppliers : text.myCustomers,
+      route: scopeViewRoute(myRoute), selected: myScope
+    }],
     search: {
       route: counterpartyProjectionQueryRouteV010(route,query,0),
       label: text.search,
@@ -446,7 +465,7 @@ export function createCounterpartyProjectionPageV010(input: {
         label: title
       }]
     },
-    actions: [{
+    actions: [...(table ? [] : [{
       id: "responsibility-scope",
       label: input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
         ? text.onlyMyCustomers
@@ -457,7 +476,7 @@ export function createCounterpartyProjectionPageV010(input: {
       type: "navigate",
       route: scopeDestination,
       requiresConfirmation: false
-    }, ...(input.canManage && input.importRoute && (
+    }]), ...(input.canManage && input.importRoute && (
       input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
       || input.projectionId === COUNTERPARTY_SUPPLIER_PROJECTION_V010
     )
