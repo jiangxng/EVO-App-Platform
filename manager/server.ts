@@ -7638,13 +7638,27 @@ const server = createServer(async (request, response) => {
         }
         const repository = await businessDictionaryRuntimeHost.resolve();
         if (source === BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010) {
+          // CV-02: the route is presentation intent, not an access grant.
+          // Membership/feature checks above must run before reading any rows.
+          let directorySelection: ReturnType<
+            typeof page.parseBusinessDictionaryDirectoryRouteV010
+          >;
+          try {
+            directorySelection = page.parseBusinessDictionaryDirectoryRouteV010(
+              url.searchParams.get("route")
+            );
+          } catch {
+            return json(response, 400, {
+              code: "BUSINESS_DICTIONARY_DIRECTORY_QUERY_INVALID"
+            });
+          }
           const dictionaries = repository.list(contextId);
           const effectiveVersions = Object.fromEntries(dictionaries.flatMap(dictionary => {
             const effective = repository.getEffective(contextId, dictionary.dictionaryId);
             return effective ? [[dictionary.dictionaryId, effective.version]] : [];
           }));
           return json(response, 200, page.createBusinessDictionaryDirectoryPageV010({
-            dictionaries, effectiveVersions, canManage, locale
+            dictionaries, effectiveVersions, canManage, locale, directorySelection
           }));
         }
         const route = page.parseBusinessDictionaryRouteV010(
