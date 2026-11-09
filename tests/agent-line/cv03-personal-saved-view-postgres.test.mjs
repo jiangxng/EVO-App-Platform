@@ -309,7 +309,7 @@ test("CV-03 C3-02 Host-resolved private view READ feeds real Eidos Dictionary ta
     const env=fixture(store);
     const alice=context("owner-a","one");
     const selection=parseBusinessDictionaryDirectoryRouteV010(
-      "/business-dictionaries?view=all&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=25"
+      "/business-dictionaries?view=all&personalViewId=hk-views&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=25"
     );
     assert.equal(dataOf(await env.router.execute(command(
       PERSONAL_SAVED_VIEW_WRITE_V010,save("hk-views",null)

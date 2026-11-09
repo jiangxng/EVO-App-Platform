@@ -28,6 +28,7 @@ export async function createCv03AuthorizedDictionarySavedViewPageV010(input: {
   context?: PlatformRequestContextV010;
   /** Already authorized by the real Business Dictionary Host owner. */
   dictionaries: readonly BusinessDictionarySnapshotV010[];
+  effectiveVersions?: Readonly<Record<string, number>>;
   directorySelection: BusinessDictionaryDirectorySelectionV010;
   canManage: boolean;
   locale?: string;
@@ -49,6 +50,7 @@ export async function createCv03AuthorizedDictionarySavedViewPageV010(input: {
   }
   const base = {
     dictionaries:input.dictionaries,
+    ...(input.effectiveVersions ? {effectiveVersions:input.effectiveVersions} : {}),
     directorySelection:input.directorySelection,
     canManage:input.canManage,
     locale:input.locale
