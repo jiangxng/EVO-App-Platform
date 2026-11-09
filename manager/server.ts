@@ -925,6 +925,11 @@ import {
   BUSINESS_DICTIONARY_OPTION_SOURCE_V010
 } from "../contracts/reference-data/dictionary-operations.js";
 import {
+  assertCv03HumanSaveNotEnabledV010,
+  isCv03HumanSaveFormSourceV010,
+  cv03UnadmittedWriteDenialV010
+} from "./cv03-personal-saved-view-host-admission.js";
+import {
   RESPONSIBILITY_ARCHIVE_COMMAND_V010,
   RESPONSIBILITY_ASSIGN_COMMAND_V010,
   RESPONSIBILITY_FEATURE_ID,
@@ -1138,6 +1143,10 @@ const cv03SavedViewDictionaryPageMode =
 if (!["OFF", "READ_ONLY"].includes(cv03SavedViewDictionaryPageMode)) {
   throw new Error("CV03_SAVED_VIEW_PAGE_MODE_INVALID");
 }
+// Read-only Eidos navigation does NOT certify a Human Saved View WRITE.
+// Until the SQL/Host receipt/PA05 registration and real Human gates pass,
+// any explicit attempt to enable this write fails before HTTP startup.
+assertCv03HumanSaveNotEnabledV010(process.env);
 const enterpriseResourceStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_RESOURCES_FILE?.trim()
   || (lifecycleStateFile
@@ -7619,6 +7628,11 @@ const server = createServer(async (request, response) => {
     if (request.method === "GET" && url.pathname === "/v1/experience-pages") {
       const source = url.searchParams.get("source");
       if (!source) return json(response, 400, { code: "SOURCE_REQUIRED" });
+      if (isCv03HumanSaveFormSourceV010(source)) {
+        // Never expose the isolated Eidos form through a production Host
+        // before the Postgres/Host receipt/identity admission is complete.
+        return json(response, 404, {code:"CV03_HUMAN_SAVE_PAGE_NOT_ADMITTED"});
+      }
       if (source === BUSINESS_DICTIONARY_DIRECTORY_SOURCE_V010
           || source === BUSINESS_DICTIONARY_DETAIL_SOURCE_V010
           || source === BUSINESS_DICTIONARY_OPTION_SOURCE_V010) {
@@ -9965,6 +9979,10 @@ const server = createServer(async (request, response) => {
       }
 
       const action = body as AppActionRequestV010;
+      const cv03WriteDenial = cv03UnadmittedWriteDenialV010(action);
+      if (cv03WriteDenial) {
+        return json(response, 403, cv03WriteDenial);
+      }
       const itemId = typeof action.values.itemId === "string" ? action.values.itemId : undefined;
       const pa05ProtectedOperation = pa05E01fProtectedActions.get(
         action.command.code
