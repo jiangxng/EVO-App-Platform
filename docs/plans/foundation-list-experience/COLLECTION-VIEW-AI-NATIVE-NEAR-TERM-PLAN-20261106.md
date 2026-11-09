@@ -22,7 +22,7 @@
 | **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
 | **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 + Platform #1167/#1169/#1170 代码合 main；#1172 两业务 Owner 的真实内部 Personal Agent/Host READ 集成 5/5 CI PASS；真实登录/LLM 对话、390px/Human 与焦点恢复待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
-| **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
+| **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED — 存储跨实例 CAS / 权限与 Agent WRITE owner 门禁待实现（[代码决策](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)）** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
 | **CV-06** | 按需看板与聚合图表（首个受控样例） | **PLANNED** | 一个看板和一个合法聚合图；不从当前页虚构全集指标 |
@@ -66,6 +66,10 @@
 **机器验收：** 同输入得到确定结果；两个 owner 通过同一契约测试；不同企业、三角色、隐藏字段、禁止排序/过滤字段、无插件、Feature 停用、Context 过期、schema 漂移、未授权 operationId、猜测 ID 均失败封闭；空集合/大量结果/重复键/稳定分页一致。**真实验收：** 人和 Personal Agent 从同一授权条件获得相同记录/计数口径；Agent 无该权限时既不能查询也不能发现。
 
 **退出证据：** Platform owner PR、真实两业务插件 READ 纵切、准确 HEAD CI、非 Mock Host 的至少一条 Agent READ/PLAN 记录；独立记录 Human 结果。
+
+**2026-11-09 CV-02 必跑授权回归补充：** [Platform #1173](https://github.com/jiangxng/EVO-App-Platform/pull/1173) 在最新 HEAD **5/5 相关检查成功**后合并 `870bd80bbe3279e5ebe60ee356f598870ede708b`。新增 [Mandatory Protocol Test](../../../tests/protocol/cv02-real-owner-agent-human-collection.test.mjs)，验证真实 Business Dictionary Repository、Host ActionRouter、Personal Agent 的 search/describe/READ invoke 与 Human 获得相同当前授权行，以及跨企业/撤权/插件停用/READ-WRITE 效果隔离。与 #1172 的字典+往来两 owner 真实集成测试互补；**此用例属于每次 `npm run test:platform` 必跑的 Protocol suite**。不改变真实登录模型与 Human/390px 缺口。
+
+**CV-03 前置代码决策（2026-11-09）：** [Saved View 原子存储与 Agent WRITE 权威门禁](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)。现有 `EnterpriseResourceRepositoryV010.put()` 无 `expectedRevision`，可选内存事务不证明跨实例原子性；首先补足生产存储后端的比较写/冲突与 readback，随后通过现有 Capability Operation/ActionHost + 内部 Personal Agent `invoke.write` 实现个人私有视图，最后扩展企业共享权限。文档完成不代表 CV-03 工程完成。
 
 ### CV-02｜Eidos 通用表格与列表
 
