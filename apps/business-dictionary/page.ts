@@ -148,7 +148,9 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         // Presentation is never an authorization step. These exact checks
         // defend the owner result from stale schema, hidden columns, invalid
         // query routes and accidental untrusted Host wiring.
-        if(saved.collectionId !== result.collectionId ||
+        if(!saved || !saved.query || typeof saved.query!=="object" ||
+           Object.keys(saved.query).some(k=>!["view","search","sort","direction"].includes(k)) ||
+           saved.collectionId !== result.collectionId ||
            saved.schemaRef !== result.schemaRef ||
            !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,79}$/.test(saved.viewId) ||
            !saved.title?.trim() || saved.title.length > 120 ||
@@ -169,6 +171,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           }};
           const route = businessDictionaryDirectoryQueryRouteV010(selected,0);
           // Owner's allowlisted route parser, never construct arbitrary links.
+          if(route.length > 650) return [];
           const parsed = parseBusinessDictionaryDirectoryRouteV010(route);
           if(parsed.view !== v) return [];
           const currentRoute=businessDictionaryDirectoryQueryRouteV010(
@@ -179,6 +182,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         } catch {return [];}
       })
     : [];
+  const personalSelected = savedViews.some(view=>view.selected);
   const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
     columns: [
       {id:"displayName",label:t.name,sortRoute:businessDictionaryDirectoryQueryRouteV010(
@@ -202,13 +206,13 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
     views: [
       {id:"all",label:(input.locale ?? "").startsWith("zh") ? "全部" : "All",
         route:businessDictionaryDirectoryQueryRouteV010(viewSelection("all")),
-        selected:selection.view === "all"},
+        selected:selection.view === "all" && !personalSelected},
       {id:"draft",label:t.draft,
         route:businessDictionaryDirectoryQueryRouteV010(viewSelection("draft")),
-        selected:selection.view === "draft"},
+        selected:selection.view === "draft" && !personalSelected},
       {id:"published",label:t.published,
         route:businessDictionaryDirectoryQueryRouteV010(viewSelection("published")),
-        selected:selection.view === "published"},
+        selected:selection.view === "published" && !personalSelected},
       ...savedViews
     ],
     search: {
