@@ -156,7 +156,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
            !saved.title?.trim() || saved.title.length > 120 ||
            !Array.isArray(saved.columns) || saved.columns.length === 0 ||
            saved.columns.length > 20 ||
-           saved.columns.some(c=>!result.readableFieldIds.includes(c)) ||
+           saved.columns.some(c=>!result.readableFieldIds.includes(c) ||
+             !["displayName","dictionaryId","state","version","optionCount"].includes(c)) ||
            new Set(saved.columns).size !== saved.columns.length)
           return [];
         try {
@@ -176,6 +177,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           const parsed = parseBusinessDictionaryDirectoryRouteV010(route);
           if(parsed.view !== v) return [];
           return [{id:"personal:"+saved.viewId,label:saved.title.trim(),route,
+            columns:[...saved.columns],
             selected:selection.personalViewId===saved.viewId &&
               (input.selectedPersonalViewId===undefined ||
                 input.selectedPersonalViewId===saved.viewId) &&
@@ -187,11 +189,14 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
   // Host did not return that authorized view. The only effect of the URL hint
   // is selection after current Authorization + Domain Owner validation.
   const personalSelected = savedViews.some(view=>view.selected);
+  // Only a currently Host-authorized and owner/schema-validated personal
+  // selection may change the visible column set or order. System and legacy
+  // views always retain their original table shape.
+  const personalColumns = savedViews.find(view=>view.selected)?.columns;
   const effectiveSelection: BusinessDictionaryDirectorySelectionV010 = personalSelected
     ? selection!
     : {view: selection?.view ?? "all",query: selection?.query ?? {}};
-  const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
-    columns: [
+  const baseColumns: NonNullable<CatalogBrowserV010["table"]>["columns"] = [
       {id:"displayName",label:t.name,sortRoute:businessDictionaryDirectoryQueryRouteV010(
         {...effectiveSelection,query:{...query,sort:"displayName",
           direction:query.sort === "displayName" && query.direction !== "desc"
@@ -209,7 +214,11 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           direction:query.sort === "version" && query.direction !== "desc"
             ? "desc" : "asc"}})},
       {id:"optionCount",label:t.detail}
-    ],
+    ];
+  const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
+    columns: personalColumns
+      ? personalColumns.flatMap(id => baseColumns.filter(column=>column.id===id))
+      : baseColumns,
     views: [
       {id:"all",label:(input.locale ?? "").startsWith("zh") ? "全部" : "All",
         route:businessDictionaryDirectoryQueryRouteV010(viewSelection("all")),
@@ -220,23 +229,27 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
       {id:"published",label:t.published,
         route:businessDictionaryDirectoryQueryRouteV010(viewSelection("published")),
         selected:selection.view === "published" && !personalSelected},
-      ...savedViews
+      ...savedViews.map(({columns: _columns,...navigation})=>navigation)
     ],
     search: {
       route:businessDictionaryDirectoryQueryRouteV010(effectiveSelection),
       label:t.list, placeholder:t.list, value:query.search ?? "",
       submitLabel:(input.locale ?? "").startsWith("zh") ? "搜索" : "Search"
     },
-    rows: result.rows.map(row => ({
-      itemId:row.rowId,
-      cells:{
+    rows: result.rows.map(row => {
+      const cells = {
         displayName:row.cells.displayName,
         dictionaryId:row.cells.dictionaryId,
         state:row.cells.state === "DRAFT" ? t.draft : t.published,
         version:row.cells.version,
         optionCount:row.cells.optionCount
-      }
-    })),
+      };
+      return {itemId:row.rowId,
+        cells:personalColumns
+          ? Object.fromEntries(personalColumns.map(id =>
+              [id,cells[id as keyof typeof cells]]))
+          : cells};
+    }),
     pageInfo:{
       page:pageInfo.page,pageSize:pageInfo.pageSize,total:pageInfo.total,
       summary:`${pageInfo.total === 0 ? 0 : start + 1}–${Math.min(
