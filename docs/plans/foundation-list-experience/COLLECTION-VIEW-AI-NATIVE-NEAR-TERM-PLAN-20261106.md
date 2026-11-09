@@ -22,7 +22,7 @@
 | **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
 | **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 + Platform #1167/#1169/#1170 代码合 main；#1172 两业务 Owner 的真实内部 Personal Agent/Host READ 集成 5/5 CI PASS；真实登录/LLM 对话、390px/Human 与焦点恢复待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
-| **CV-03** | 系统/个人/企业视图保存与恢复 | **IN_PROGRESS — C3-01 文件/共享 PG 原子性 #1177/#1179 已合并；C3-02 隔离私有 Saved View #1180/#1181 已合并；同事务持久回执与重复写恢复 [#1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182) 在测试/合并中。生产 Host 真实独立签发器、正式 PG/业务迁移、Eidos 入口及 Human/390px 仍 OPEN；C3-03/04 未实现** | 保证资源 CAS 和 immutable receipt 同一 PG 事务、两 Worker/idempotency/丢 ACK；再独立认证 Host 发行/签收、正式 Provider 与 Eidos UI |
+| **CV-03** | 系统/个人/企业视图保存与恢复 | **IN_PROGRESS — C3-01 文件/PG 原子性 #1177/#1179 已合；C3-02 私有视图 #1180/#1181 和 PG 同事务资源+回执 #1182 已合；Host 授权签名准入 [#1183](https://github.com/jiangxng/EVO-App-Platform/pull/1183) 正在验证。生产 Host/签发密钥/SQL 物理授权、PG 切换、Eidos 保存入口及真实 Human/390px 仍 OPEN；C3-03/04 未实现** | 签名 Host Principal/Operation 与同事务 receipt 双方独立验收，生产 Source Owner/Provider 认证后再接入 Eidos/真实用户 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
 | **CV-06** | 按需看板与聚合图表（首个受控样例） | **PLANNED** | 一个看板和一个合法聚合图；不从当前页虚构全集指标 |
@@ -78,6 +78,8 @@
 **2026-11-09 C3-02 个人私有视图隔离 Host 纵切（#1180 已合并）：** [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180) 在**原 Enterprise Resource Provider、原受管 Capability Operation、原 Business Dictionary Collection READ 与 Personal Agent `invoke.write`** 上新增显式 opt-in 的私有保存配置，依赖共享 PostgreSQL CAS；当前 **不注册生产 Feature**。真实数据库/授权/撤权/两企业两用户回归及生产 durable receipt 尚未接入的边界见 [C3-02 工程证据](CV03-C302-PERSONAL-SAVED-VIEW-ISOLATED-HOST-20261109.md)。不得以 CI 的隔离 Host receipt stub 冒充正式已签发持久回执，亦不等于桌面/390px Human 或自然语言签收。最终 HEAD `de94a32397afc196e8f4c07f7349cb1f6a63136e` 9/9 CI、PostgreSQL 18 专项 5/5 PASS，合并提交 `9a181dd64703c74f89590f33383337ad1a966e68`；**C3-03/04 仍未实现**。
 
 **2026-11-09 C3-02 同事务 Agent 回执纵切：** [#1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182) 将原个人视图 WRITE 的测试 Host 前置 `Promise<void>` 桩改为**完整 Host 发行材料 + 同一 PostgreSQL 事务的 Resource CAS 和不可变 AgentActionReceiptV010**；可信事务结果有历史 readback / 同 key 重放 / 冲突拒绝 / 回执失败回滚实证，真实 PostgreSQL 18 专项覆盖两独立 Node 进程。详见 [C3-02 同事务回执实现与边界](CV03-C302-ATOMIC-HOST-RECEIPT-POSTGRES-20261109.md)。**真实 Host 的发行 authority 仍未接线；生产 Feature 仍未注册；不能因这一隔离 CI 直接开放 Saved View WRITE 或宣告 Human 成功。** 本阶段只闭合存储层同事务证据，不替代 C3-03/04。
+
+**2026-11-09 C3-02 Host 签发准入追加：** [#1183](https://github.com/jiangxng/EVO-App-Platform/pull/1183) 是在 #1182 已合并的原子回执之上的独立安全收口：只有已授权、仍激活的 Platform WRITE Operation 可由 Host 专用 issuer 签署含完整 inputDigest 的批准材料；PG Owner 未获可信 HMAC verifier key 或 proof 被伪造时不允许写。此处测试使用**明确标记的隔离用密钥**，不部署任何真实 secret。证据及未完成物理 SQL permit、生产 Host+JSONL receipt 相互不原子、Human UI 的限制见 [同事务回执工程记录 §5](CV03-C302-ATOMIC-HOST-RECEIPT-POSTGRES-20261109.md) 与 [同 PR UI Review](../../ui-design-reviews/cv03-host-signed-receipt-admission-20261109.md)。**CI 状态按 #1183 最终 HEAD 核查，不提前标 C3-02 HUMAN_PASS。**
 
 ### CV-02｜Eidos 通用表格与列表
 
