@@ -5,6 +5,7 @@ import {
   type BusinessDictionaryDirectorySelectionV010
 } from "./directory-query.js";
 import type { CatalogBrowserV010 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
+export { parseBusinessDictionaryDirectoryRouteV010 } from "./directory-query.js";
 import type { UidlFormV011 } from "../../vendor/eidos/src/runtime/contracts.js";
 import {
   BUSINESS_DICTIONARY_DETAIL_ROUTE_V010 as DETAIL,
