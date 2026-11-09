@@ -1,3 +1,4 @@
+import type { AgentActionReceiptBeginInputV010, AgentActionReceiptV010 } from "./agent-action-receipt.js";
 export const ENTERPRISE_RESOURCE_CAPABILITY_V010 =
   "enterprise.resource.repository" as const;
 export const ENTERPRISE_RESOURCE_CONTRACT_V010 =
@@ -137,6 +138,37 @@ export interface EnterpriseResourceConditionalAsyncRepositoryV010 {
   get(address: EnterpriseResourceAddressV010): Promise<EnterpriseResourceV010 | undefined>;
   list(input: EnterpriseResourceListInputV010): Promise<EnterpriseResourceV010[]>;
   putIfRevision(input: EnterpriseResourceConditionalPutInputV010): Promise<EnterpriseResourceV010>;
+  /**
+   * Optional: immutable Host receipt and resource CAS in ONE durable transaction.
+   * No fallback to putIfRevision is permitted for a receipt-required WRITE.
+   */
+  putIfRevisionWithReceipt?(
+    input: EnterpriseResourceConditionalPutInputV010,
+    hostReceipt: AgentActionReceiptBeginInputV010
+  ): Promise<EnterpriseResourceCommittedWriteV010>;
+  /**
+   * Historical committed receipt readback, scoped to original resource and actor.
+   * Absence/ambiguous result must not be interpreted as a failed database commit.
+   */
+  getCommittedWriteByIdempotencyKey?(
+    query: EnterpriseResourceCommittedWriteLookupV010
+  ): Promise<EnterpriseResourceCommittedWriteV010 | undefined>;
   archiveIfRevision(input: EnterpriseResourceConditionalArchiveInputV010): Promise<EnterpriseResourceV010>;
   close(): Promise<void>;
+}
+
+/** Immutable result of one committed resource revision + Host-approved receipt. */
+export interface EnterpriseResourceCommittedWriteV010 {
+  resource: EnterpriseResourceV010;
+  receipt: AgentActionReceiptV010;
+  replayed: boolean;
+}
+
+export interface EnterpriseResourceCommittedWriteLookupV010 {
+  address: EnterpriseResourceAddressV010;
+  idempotencyKey: string;
+  receiptId: string;
+  inputDigest: string;
+  principalSubjectId: string;
+  principalActorType: "HUMAN" | "AI";
 }
