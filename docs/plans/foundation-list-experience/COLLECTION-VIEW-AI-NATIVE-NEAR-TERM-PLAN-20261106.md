@@ -21,7 +21,7 @@
 | --- | --- | --- | --- |
 | **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
-| **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 + Platform #1167/#1169/#1170 代码合 main，最后两项各 45/45 CI；真实 Human/390px、Agent 对话运行与焦点恢复待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
+| **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 + Platform #1167/#1169/#1170 代码合 main；#1172 两业务 Owner 的真实内部 Personal Agent/Host READ 集成 5/5 CI PASS；真实登录/LLM 对话、390px/Human 与焦点恢复待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
 | **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
@@ -37,6 +37,8 @@
 **2026-11-09 CV-02 真实业务接入证据：** [Platform #1169](https://github.com/jiangxng/EVO-App-Platform/pull/1169) 在准确 HEAD 45/45 相关 CI 成功后合入 `main@79d2fe3f1789b20ced440dff031815694961c654`。原 Counterparty 客户/供应商/我的受权投影已提供 Eidos 视图导航，Dictionary 已由原有 Collection Query 驱动表格/三个系统视图；业务 `dictionary.collection.query` 的 allowlisted `view=all|draft|published` 对 Human 与 Personal Agent 受管 READ 共同开放，仍不授权字典发布。详情返回上下文的下一段实现/验证进入本期后续 PR，真实 Agent/桌面/390px/Human 均未签收。参考 [业务列表 UI 证据](../../ui-design-reviews/CV02-REAL-OWNER-LIST-VIEWS-20261109.md) 和 [列表→详情→返回设计与正反测试](../../ui-design-reviews/CV02-COLLECTION-DETAIL-RETURN-20261109.md)。不将此标为 CV-02 HUMAN_PASS。
 
 **2026-11-09 CV-02 第二条工程闭环：** [Platform #1170](https://github.com/jiangxng/EVO-App-Platform/pull/1170) 在最终准确 HEAD **45/45 相关 CI 成功**后合入 `main@33d32d5dbb240974edb2e4eb3ccf2bc73f99d3dc`。原客户/供应商投影与业务字典系统视图可把合法 `search/sort/page/view` 作为限定的 returnTo 传到详情 Eidos Context Navigation，返回原列表仍重新由 Host / Domain owner 授权。禁止其他域路径和恶意 URL；无全局 History/导航框架重建。证据：[CV-02 真实返回 Eidos 设计/风险](../../ui-design-reviews/CV02-COLLECTION-DETAIL-RETURN-20261109.md)、[对应协议测试](../../../tests/protocol/cv02-collection-detail-return.test.mjs)。这不等同“浏览器焦点恢复”或所有真实 Human/Agent 任务已经签收。**接下来的最小用户验收**：两企业实际角色、一个供应商或字典 View → 搜索分页 → 详情 → 返回、390px 浏览器、登录后的 Personal Agent READ 结果对齐；仍记录 CV-02 IN_PROGRESS。
+
+**2026-11-09 CV-02 个人代理集成证据：** [Platform #1172](https://github.com/jiangxng/EVO-App-Platform/pull/1172) 于精确 HEAD 的 **5/5 CI 通过**后合入 `main@03a9f68751e7e25c2a9f62d46b00adadbee8ab77`。新增测试 [cv02-personal-agent-authorized-collection.test.mjs](../../../tests/integration/cv02-personal-agent-authorized-collection.test.mjs) 在隔离的内存 Enterprise Resources 上使用真实内部 Personal Agent `search/describe/invoke.read-plan`、Host Capability 授权和实际 Business Dictionary/Counterparty Repository/ProjectionService：字典已发布视图、我的供应商与 Human ActionRouter 的合法行数/字段逐项一致，跨企业及停用 Feature 后发现/调用失败封闭。**这是无外部大模型的确定性 Host/Agent 工具集成测试，不是真实登录后的自然语言模型 Run，不等于 Human PASS 或真实 390px/浏览器验收。** 详细限制及后续：[个人代理真实工具链测试报告](CV02-PERSONAL-AGENT-AUTHORIZED-READ-RUN-20261109.md)。
 
 ## 3. 各步骤实施任务、测试和退出门槛
 
