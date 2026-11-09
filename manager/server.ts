@@ -7698,7 +7698,7 @@ const server = createServer(async (request, response) => {
               );
               const viewPage = await presentation.createCv03AuthorizedDictionarySavedViewPageV010({
                 actionRouter,context:requestContext,
-                dictionaries,directorySelection,canManage,locale,
+                dictionaries,effectiveVersions,directorySelection,canManage,locale,
                 selectedPersonalViewId:directorySelection.personalViewId
               });
               return json(response,200,viewPage);
