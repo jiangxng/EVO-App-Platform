@@ -83,21 +83,17 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
 }): CatalogBrowserV010 {
   const t = labels(input.locale);
   const selection = input.directorySelection;
-  const scoped = selection
-    ? input.dictionaries.filter(dictionary =>
-        selection.view === "all"
-        || (selection.view === "draft" && dictionary.state === "DRAFT")
-        || (selection.view === "published" && dictionary.state === "PUBLISHED"))
-    : input.dictionaries;
   const result = selection ? queryBusinessDictionaryCollectionV010({
-    dictionaries: scoped, query: {...selection.query}
+    dictionaries: input.dictionaries,
+    query: {...selection.query, view: selection.view}
   }) : undefined;
-  const byId = new Map(scoped.map(dictionary => [dictionary.dictionaryId, dictionary]));
+  const byId = new Map(input.dictionaries.map(dictionary =>
+    [dictionary.dictionaryId, dictionary]));
   const visible = result ? result.rows.map(row => {
     const dictionary = byId.get(row.rowId);
     if (!dictionary) throw new Error("BUSINESS_DICTIONARY_COLLECTION_ROW_INVALID");
     return dictionary;
-  }) : scoped;
+  }) : input.dictionaries;
   const query = selection?.query ?? {};
   const pageInfo = result?.pageInfo;
   const start = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
