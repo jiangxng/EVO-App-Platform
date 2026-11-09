@@ -1,0 +1,44 @@
+name: CV-03 Enterprise Resource PostgreSQL Atomic CAS
+
+on:
+  pull_request:
+    paths:
+      - "contracts/enterprise-resource.ts"
+      - "providers/enterprise-context/resources.ts"
+      - "providers/enterprise-context/resources-postgres.ts"
+      - "tests/agent-line/cv03-resource-postgres-conditional.test.mjs"
+      - "tests/fixtures/cv03-resource-postgres-child.mjs"
+      - ".github/workflows/cv03-resource-postgres-atomic.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-postgres-resource-cas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cv03proof
+          POSTGRES_PASSWORD: cv03proof
+          POSTGRES_DB: cv03proof
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cv03proof -d cv03proof"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CV03_RESOURCE_PROOF_DATABASE_URL: postgres://cv03proof:cv03proof@127.0.0.1:5432/cv03proof
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs

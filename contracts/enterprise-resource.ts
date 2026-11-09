@@ -92,7 +92,9 @@ export interface EnterpriseResourceConditionalArchiveInputV010 {
  */
 export type EnterpriseResourceConditionalConsistencyV010 =
   | "PROCESS_LOCAL"
-  | "SAME_FILESYSTEM_LOCK";
+  | "SAME_FILESYSTEM_LOCK"
+  /** Exactly one PostgreSQL primary authority shared by all writers; not a production deployment certification. */
+  | "SHARED_POSTGRES_TRANSACTION";
 
 export interface EnterpriseResourceRepositoryV010 {
   /** Explicitly scoped conditional-write guarantee; do not infer from method presence. */
@@ -122,4 +124,19 @@ export interface EnterpriseResourceRepositoryV010 {
     actorSubjectId: string;
     recordedAt: string;
   }): EnterpriseResourceV010;
+}
+
+/**
+ * Asynchronous conditional-only resource adapter for a shared PostgreSQL authority.
+ * It does NOT implement the legacy synchronous EnterpriseResourceRepositoryV010.
+ * Callers must not fall back to ordinary get/put when this store is unavailable.
+ * A separately governed Host/Feature owner must authorize every use.
+ */
+export interface EnterpriseResourceConditionalAsyncRepositoryV010 {
+  readonly conditionalWriteConsistency: "SHARED_POSTGRES_TRANSACTION";
+  get(address: EnterpriseResourceAddressV010): Promise<EnterpriseResourceV010 | undefined>;
+  list(input: EnterpriseResourceListInputV010): Promise<EnterpriseResourceV010[]>;
+  putIfRevision(input: EnterpriseResourceConditionalPutInputV010): Promise<EnterpriseResourceV010>;
+  archiveIfRevision(input: EnterpriseResourceConditionalArchiveInputV010): Promise<EnterpriseResourceV010>;
+  close(): Promise<void>;
 }
