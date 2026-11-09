@@ -47,7 +47,7 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-function validateResource(value: EnterpriseResourceV010): EnterpriseResourceV010 {
+export function validateEnterpriseResourceV010(value: EnterpriseResourceV010): EnterpriseResourceV010 {
   if (value.contractVersion !== "0.1.0") {
     throw new Error("ENTERPRISE_RESOURCE_CONTRACT_VERSION_INVALID");
   }
@@ -219,7 +219,7 @@ function createRepository(
         input.actorSubjectId,
         "ENTERPRISE_RESOURCE_ACTOR_REQUIRED"
       );
-      const next = validateResource({
+      const next = validateEnterpriseResourceV010({
         contractVersion: "0.1.0",
         contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
         namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
@@ -282,7 +282,7 @@ function createRepository(
           input.actorSubjectId,
           "ENTERPRISE_RESOURCE_ACTOR_REQUIRED"
         );
-        const next = validateResource({
+        const next = validateEnterpriseResourceV010({
           contractVersion: "0.1.0",
           contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
           namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
@@ -341,7 +341,7 @@ function createRepository(
         ) throw new Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
         const recordedAt = timestamp(input.recordedAt, "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID");
         const actorSubjectId = required(input.actorSubjectId, "ENTERPRISE_RESOURCE_ACTOR_REQUIRED");
-        const next = validateResource({
+        const next = validateEnterpriseResourceV010({
           contractVersion: "0.1.0",
           contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
           namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
@@ -382,7 +382,7 @@ function createRepository(
         if (previous.lifecycleState === "ARCHIVED") {
           throw new Error("ENTERPRISE_RESOURCE_ALREADY_ARCHIVED");
         }
-        const next = validateResource({
+        const next = validateEnterpriseResourceV010({
           ...clone(previous),
           revision: input.expectedRevision + 1,
           lifecycleState: "ARCHIVED",
@@ -406,7 +406,7 @@ function createRepository(
       if (previous.revision !== undefined) {
         throw new Error("ENTERPRISE_RESOURCE_CONDITIONAL_WRITE_REQUIRED");
       }
-      const next = validateResource({
+      const next = validateEnterpriseResourceV010({
         ...clone(previous),
         lifecycleState: "ARCHIVED",
         updatedAt: timestamp(
