@@ -50,16 +50,48 @@ test("C3-02 existing Eidos Dictionary table renders a Host-provided private view
   assert.equal(views[3].route,
     "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&page=0&pageSize=25");
   assert.deepEqual(authorized.table.rows.map(r=>r.itemId),original.table.rows.map(r=>r.itemId));
-  // Column identities and labels remain unchanged; only their routes gain
-  // the authorized personal selection hint to preserve sort navigation.
-  assert.deepEqual(authorized.table.columns.map(({id,label})=>({id,label})),
-    original.table.columns.map(({id,label})=>({id,label})));
+  // Only currently authorized, requested columns are shown, in saved order;
+  // original system/legacy columns remain unchanged.
+  assert.deepEqual(authorized.table.columns.map(col=>col.id),
+    ["dictionaryId","displayName"]);
+  assert.deepEqual(original.table.columns.map(col=>col.id),
+    ["displayName","dictionaryId","state","version","optionCount"]);
+  assert.deepEqual(authorized.table.rows.map(row=>Object.keys(row.cells)),
+    [["dictionaryId","displayName"],["dictionaryId","displayName"]]);
   assert.deepEqual(authorized.items.map(r=>r.id),original.items.map(r=>r.id));
   const html=renderCatalogBrowserToHtml(authorized);
   assert.match(html,/data-eidos-catalog-view-id="personal:hk-suppliers"/);
   assert.match(html,/aria-current="page"/);
   assert.doesNotMatch(html,/Never leak this private label/);
+  assert.doesNotMatch(html,/data-eidos-col="optionCount"/);
+  assert.doesNotMatch(html,/data-eidos-col="state"/);
   assert.doesNotMatch(html,/data-eidos-catalog-view-id="private-data"/);
+});
+
+test("C3-02 authenticated saved view restores exact owner-readable column order",()=>{
+  const scoped=page({
+    directorySelection:selection(
+      "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&page=0&pageSize=25"
+    ),
+    authorizedPersonalViews:[saved({columns:["version","displayName","dictionaryId"]})]
+  });
+  assert.deepEqual(scoped.table.columns.map(c=>c.id),
+    ["version","displayName","dictionaryId"]);
+  assert.deepEqual(Object.keys(scoped.table.rows[0].cells),
+    ["version","displayName","dictionaryId"]);
+  assert.equal(scoped.table.rows[0].cells.version,1);
+  assert.equal("optionCount" in scoped.table.rows[0].cells,false);
+  assert.equal("state" in scoped.table.rows[0].cells,false);
+  const html=renderCatalogBrowserToHtml(scoped);
+  assert.match(html,/data-eidos-col="version"/);
+  assert.doesNotMatch(html,/data-eidos-col="optionCount"/);
+  assert.doesNotMatch(html,/Never leak this private label/);
+  const system=page({
+    directorySelection:selection("/business-dictionaries?view=all&page=0&pageSize=25"),
+    authorizedPersonalViews:[saved({columns:["version","displayName","dictionaryId"]})]
+  });
+  assert.deepEqual(system.table.columns.map(c=>c.id),
+    ["displayName","dictionaryId","state","version","optionCount"]);
 });
 
 test("C3-02 saved route hint survives search/sort/page/detail return and system-tab exit",()=>{
