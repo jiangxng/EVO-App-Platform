@@ -206,7 +206,7 @@ export function createPersonalSavedViewActionHandlersV010(input:{
     }
   };
   const now=input.now??(()=>new Date());
-  const execute=(op:string,run:(request:AppActionRequestV010,ctx:PlatformRequestContextV010)=>Promise<JsonValue>):AppActionHandler=>({
+  const execute=(op:string,run:(request:AppActionRequestV010,ctx:PlatformRequestContextV010)=>Promise<unknown>):AppActionHandler=>({
     packageId:HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
     featureId:PERSONAL_SAVED_VIEW_FEATURE_V010,
     commandCode:op,
@@ -216,9 +216,8 @@ export function createPersonalSavedViewActionHandlersV010(input:{
         principalScope(ctx);
         requireStore();
         const data=await run(request,ctx);
-        return {ok:true,correlationId:ctx.correlationId,result:{
-          contractVersion:"0.1.0",data
-        }};
+        return {ok:true,correlationId:ctx.correlationId,
+          result:JSON.parse(JSON.stringify({contractVersion:"0.1.0",data})) as JsonValue};
       } catch(e) {return errorResult(e,ctx);}
     }
   });
