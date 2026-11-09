@@ -11,11 +11,15 @@ const repo = createPostgresConditionalResourceRepositoryV010({
   schema
 });
 try {
-  if (mode === "barrier-write") {
+  if (mode === "barrier-write" || mode === "receipt-barrier-write") {
     process.send?.({type: "ready"});
     await new Promise(resolve => process.once("message", resolve));
   }
-  if (mode === "lost-ack") {
+  if (mode === "receipt-barrier-write") {
+    const saved = await repo.putIfRevisionWithReceipt(request.input, request.receipt);
+    process.send?.({type:"result", revision:saved.resource.revision,
+      replayed:saved.replayed, receiptId:saved.receipt.receiptId});
+  } else if (mode === "lost-ack") {
     await repo.putIfRevision(request);
     process.exitCode = 19;
   } else {
