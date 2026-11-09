@@ -36,6 +36,9 @@ test("C3-02 existing Eidos Dictionary table renders a Host-provided private view
   const original=page();
   assert.deepEqual(original.table.views.map(v=>v.id),["all","draft","published"]);
   const authorized=page({
+    directorySelection:selection(
+      "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&page=0&pageSize=25"
+    ),
     authorizedPersonalViews:[saved()],
     selectedPersonalViewId:"hk-suppliers"
   });
@@ -43,7 +46,7 @@ test("C3-02 existing Eidos Dictionary table renders a Host-provided private view
   assert.deepEqual(views.map(v=>v.id),["all","draft","published","personal:hk-suppliers"]);
   assert.deepEqual(views.filter(v=>v.selected).map(v=>v.id),["personal:hk-suppliers"]);
   assert.equal(views[3].route,
-    "/business-dictionaries?view=published&search=Hong+Kong&page=0&pageSize=25");
+    "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&page=0&pageSize=25");
   assert.deepEqual(authorized.table.rows.map(r=>r.itemId),original.table.rows.map(r=>r.itemId));
   assert.deepEqual(authorized.table.columns,original.table.columns);
   assert.deepEqual(authorized.items.map(r=>r.id),original.items.map(r=>r.id));
@@ -52,6 +55,60 @@ test("C3-02 existing Eidos Dictionary table renders a Host-provided private view
   assert.match(html,/aria-current="page"/);
   assert.doesNotMatch(html,/Never leak this private label/);
   assert.doesNotMatch(html,/data-eidos-catalog-view-id="private-data"/);
+});
+
+test("C3-02 saved route hint survives search/sort/page/detail return and system-tab exit",()=>{
+  const selected=page({
+    directorySelection:selection(
+      "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=1"
+    ),
+    authorizedPersonalViews:[saved()]
+  });
+  assert.deepEqual(selected.table.views.filter(v=>v.selected).map(v=>v.id),
+    ["personal:hk-suppliers"]);
+  for (const route of [
+    selected.table.search.route,
+    selected.table.columns.find(c=>c.id==="dictionaryId").sortRoute,
+    selected.table.pageInfo.nextRoute,
+    selected.items[0].primaryAction.route
+  ]) {
+    assert.ok(route?.includes("personalViewId=hk-suppliers"),String(route));
+  }
+  for (const system of selected.table.views.filter(v=>!v.id.startsWith("personal:"))) {
+    assert.equal(system.route.includes("personalViewId"),false);
+  }
+  const detailReturn=decodeURIComponent(new URL(selected.items[0].primaryAction.route,"https://evo.invalid")
+    .searchParams.get("returnTo"));
+  assert.ok(detailReturn.includes("personalViewId=hk-suppliers"));
+  const paged=page({
+    directorySelection:selection(selected.table.pageInfo.nextRoute),
+    authorizedPersonalViews:[saved()]
+  });
+  assert.deepEqual(paged.table.views.filter(v=>v.selected).map(v=>v.id),
+    ["personal:hk-suppliers"]);
+});
+
+test("C3-02 forged/deleted personal-view hint does not grant rights or propagate in routes",()=>{
+  const forged=page({
+    directorySelection:selection(
+      "/business-dictionaries?view=published&personalViewId=not-owned&search=Hong+Kong&page=0&pageSize=25"
+    ),authorizedPersonalViews:[saved()]
+  });
+  assert.deepEqual(forged.table.views.filter(v=>v.selected).map(v=>v.id),["published"]);
+  assert.equal(forged.table.search.route.includes("personalViewId"),false);
+  assert.equal(forged.items[0].primaryAction.route.includes("personalViewId"),false);
+  const removed=page({
+    directorySelection:selection(
+      "/business-dictionaries?view=published&personalViewId=hk-suppliers&search=Hong+Kong&page=0&pageSize=25"
+    ),authorizedPersonalViews:[]
+  });
+  assert.deepEqual(removed.table.views.map(v=>v.id),["all","draft","published"]);
+  assert.equal(removed.table.search.route.includes("personalViewId"),false);
+  for (const bad of ["..%2F..%2Fsecret","", "a".repeat(90)]) {
+    assert.throws(()=>selection(
+      "/business-dictionaries?view=all&personalViewId="+bad
+    ),/BUSINESS_DICTIONARY_PERSONAL_VIEW_ID_INVALID/);
+  }
 });
 
 test("C3-02 unselected private tab does not change active system view",()=>{
