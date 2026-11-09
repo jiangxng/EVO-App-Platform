@@ -28,3 +28,14 @@
 ## 阶段与下一轮
 
 真实 PostgreSQL 18 新专项 + 原 C3-01/02 tests 必须以 #1182 **最终 SHA 的 CI**为准；核验后可以将“原子 Resource+Receipt 同事务”和“隔离 Host/Agent 调用”列为 CODE_TEST_PASS，不能将 **C3-02/HUMAN_PASS** 或 **CV-03/DONE**。下一步由现有 Host/PA05 Owner 接线真实签发器、应用级权限再校验与生产回执对账；随后由 Eidos Owner 做有权视图入口、桌面/390px Human 验收。共享视图 C3-03 与真实自然语言 C3-04 均未实现。
+
+## 5. Host 签名准入补充（PR #1183，2026-11-09）
+
+初版 #1182 强制使用 `AgentActionReceiptBeginInputV010` 与 PG 同事务不可变证据，但此 Plain-Object 仍能由**未经授权的进程内调用方**构造，所以 **Host 身份准入没有自动解决**。后续 [PR #1183](https://github.com/jiangxng/EVO-App-Platform/pull/1183) 为这项隔离 Owner Write 增设：
+
+- [Host 专用签发器](../../../manager/cv03-personal-saved-view-host-issuer.ts)：由当前 `AppManagerService` + `AuthorizationProviderV010` 复查已安装且激活的 `WRITE` Capability Operation、`writeSafety`、HUMAN/PERSONAL_AGENT exposure、真实 Principal/Enterprise 与完整 Input digest；按 `sourceInteractionId` 等上下文确定幂等身份，签出域隔离 HMAC-SHA256 proof。
+- [原 PG 资源 Owner](../../../providers/enterprise-context/resources-postgres.ts) 只有注入可信 verifier key 后，才接受 `{receipt,proof}`；使用固定域、`keyId`、32 字节以上密钥下限与恒定时间签名比较，**缺密钥、未知 keyId、篡改签名均在数据库写入前 fail closed**。未影响原 C3-01 READ 或非回执版 CAS。
+- [真实 PG18/Host 集成测试](../../../tests/agent-line/cv03-personal-saved-view-postgres.test.mjs) 验证当前授权、撤权、插件停用、跨主体和签名等负例；[原同事务测试](../../../tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs) 也验证无 verifier 或伪造 proof 的拒绝；继续保留两个 OS 进程的同一事务竞赛与 lost ACK。
+- [同 PR 的 Human UI 设计边界审核](../../ui-design-reviews/cv03-host-signed-receipt-admission-20261109.md) 明确 **未更改 UI、不能视为 Human 验收**。
+
+**重要保留门禁**：`manager/server.ts` 当前正式 Agent Receipt Service 采用 JSONL/Memory（配置 `APP_PLATFORM_AGENT_ACTION_RECEIPT_FILE`），并**没有**与 CV-03 PostgreSQL 在一个数据库事务里自动关联；#1183 是隔离 Host 签名代码，不是生产签发许可/PA05 跨数据库物理授权。生产 secret/key rotation、业务 SQL 登录物理权限、正式 PG/备份/迁移、Eidos/390px/真实模型调用仍然 OPEN，生产 Feature 继续不注册。**以 PR 最终准确 HEAD CI/合并结果为准**，不能用 #1182 的 10/10 结果代替 #1183。
