@@ -140,7 +140,7 @@ export async function preparePostgresConditionalResourceSchemaV010(input: {
     );
     await sql.unsafe("CREATE OR REPLACE FUNCTION " + schema +
       ".cv03_reject_receipt_mutation() RETURNS trigger LANGUAGE plpgsql AS " +
-      "$ BEGIN RAISE EXCEPTION 'CV03_RESOURCE_RECEIPT_IMMUTABLE'; END $");
+      "'BEGIN RAISE EXCEPTION ''CV03_RESOURCE_RECEIPT_IMMUTABLE''; END'");
     await sql.unsafe("CREATE OR REPLACE TRIGGER cv03_resource_receipts_immutable " +
       "BEFORE UPDATE OR DELETE ON " + receipts +
       " FOR EACH ROW EXECUTE FUNCTION " + schema + ".cv03_reject_receipt_mutation()");
