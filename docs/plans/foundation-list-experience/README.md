@@ -3,6 +3,16 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-09 旧窗口恢复入口（本次更新）
+
+本阶段保留了原有 CV-00～CV-07 单一计划、2026-11-06 原始研究来源与架构决策，补充了**明确要求、采用/放弃方案理由、PR/源码/CI/Human 不同证据等级以及 CV-03 条件写入门禁**的可追溯专项交接：
+
+- [CV 旧窗口恢复与专项交接入口](CV-20261109-RECOVERY-HANDOFF-ENTRY.md)：先读此文件；含当前准确 main、已合并交付、未完成事项和下一窗口实施顺序。
+- [CV 历史研究网址/取舍/源码证据交叉索引](CV-20261109-RECOVERY-RESEARCH-EVIDENCE-INDEX.md)：完整链接复用历史 EX01～EX08、H01～H10，不重复做竞品研究。
+- [CV-03 保存视图原子存储与 Agent WRITE 门禁](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)：**保存视图尚未开发完成**；先证明 Provider 跨实例条件写入。
+
+**截至 Platform main `d5eb20f1b7ef4a682855e857cc33681b56e40d82`：** #1169、#1170、#1172、#1173、#1175 均已合并；CV-02 仍缺真实用户/LLM/390px/Human，CV-03 为 PLANNED。下方 2026-11-06 与更早段落是其**当时的历史进度快照**，不能覆盖最新的[唯一 CV 八步状态表](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)。
+
 ## 2026-11-06 近期执行入口：Collection / 多视图 / Personal Agent（新增）
 
 **方向已确认；CV-01 的 Dictionary + Counterparty 两个 owner READ 工程变更已合 main（#1163/#1165），真实 Agent 与 Human 验收未签；CV-02～CV-07 尚未开始实施。** 在已有 Eidos + EVO App Platform 能力上增量建设数据集合与多视图，**不创建第二套框架**；Personal Agent 通过受管 Capability Operations 执行有权 READ/PLAN，并通过 Host 现有治理渠道进行必要的 WRITE、回执和恢复。
