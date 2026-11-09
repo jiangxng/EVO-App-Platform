@@ -48,6 +48,7 @@ test("C3-01 process-local provider enforces create/update/archive CAS and isolat
   assert.equal(archived.revision, 2);
   assert.equal(archived.lifecycleState, "ARCHIVED");
   assert.throws(() => repo.putIfRevision(input("reuse archived ID", null)), /ENTERPRISE_RESOURCE_REVISION_CONFLICT/);
+  assert.throws(() => repo.putIfRevision(input("revive archived ID", 2)), /ENTERPRISE_RESOURCE_ALREADY_ARCHIVED/);
   assert.throws(() => repo.archiveIfRevision({address,expectedRevision:2,actorSubjectId:"person:owner",recordedAt:"2026-11-09T06:00:00.000Z"}), /ENTERPRISE_RESOURCE_ALREADY_ARCHIVED/);
 });
 
