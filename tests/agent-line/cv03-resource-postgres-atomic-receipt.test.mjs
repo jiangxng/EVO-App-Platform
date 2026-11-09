@@ -98,8 +98,25 @@ test("CV-03 real PG: CAS and immutable Agent receipt commit atomically; replay, 
   const db=postgres(url,{max:3,connect_timeout:10});
   const a=createSignedTestStore(schema);
   const b=createSignedTestStore(schema);
+  const noVerifier=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema
+  });
+  const rawVerifier=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
   try{
     const first=input("香港供应商",null),approval=receipt(first);
+    await assert.rejects(noVerifier.putIfRevisionWithReceipt(
+      first,signed(approval)),/CV03_RESOURCE_HOST_SIGNED_PROOF_REQUIRED/);
+    await assert.rejects(rawVerifier.putIfRevisionWithReceipt(first,{
+      ...signed(approval),proof:{...signed(approval).proof,
+        signature:"0".repeat(64)}
+    }),/CV03_RESOURCE_HOST_SIGNED_PROOF_INVALID/);
+    await assert.rejects(rawVerifier.putIfRevisionWithReceipt(first,{
+      ...signed(approval),proof:{...signed(approval).proof,keyId:"unknown-host"}
+    }),/CV03_RESOURCE_HOST_SIGNED_PROOF_REQUIRED/);
+    assert.equal(await a.get(addr),undefined,
+      "missing/invalid Host signature cannot mutate a resource");
     await assert.rejects(a.putIfRevisionWithReceipt(first,receipt(first,{
       principalSubjectId:"owner-forged"
     })),/CV03_RESOURCE_HOST_RECEIPT_BINDING_INVALID/);
@@ -159,7 +176,7 @@ test("CV-03 real PG: CAS and immutable Agent receipt commit atomically; replay, 
       "DROP CONSTRAINT cv03_reject_fault");
     console.log("CV03_ATOMIC_HOST_RECEIPT_PG_PROOF=PASS");
   }finally{
-    await Promise.all([a.close(),b.close()]);
+    await Promise.all([a.close(),b.close(),noVerifier.close(),rawVerifier.close()]);
     await db.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
     await db.end();
   }
