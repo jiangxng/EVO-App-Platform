@@ -104,7 +104,7 @@ function validateSnapshot(
     throw new Error("ENTERPRISE_RESOURCE_STORE_SNAPSHOT_INVALID");
   }
   const seen = new Set<string>();
-  const resources = snapshot.resources.map(validateResource);
+  const resources = snapshot.resources.map(validateEnterpriseResourceV010);
   for (const resource of resources) {
     const key = addressKey(resource);
     if (seen.has(key)) throw new Error("ENTERPRISE_RESOURCE_DUPLICATE");
