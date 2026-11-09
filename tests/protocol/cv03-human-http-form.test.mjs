@@ -74,9 +74,10 @@ async function harness({enabled=true,denySource=false}={}){
   };
 }
 async function fetchJson(host,path,options={}){
+  const {headers={},...rest}=options;
   const r=await fetch(host.base+path,{
-    headers:{authorization:"Bearer alice",...options.headers},
-    ...options,signal:AbortSignal.timeout(3500)
+    ...rest,headers:{authorization:"Bearer alice",...headers},
+    signal:AbortSignal.timeout(3500)
   });
   return {status:r.status,headers:r.headers,body:await r.json()};
 }
