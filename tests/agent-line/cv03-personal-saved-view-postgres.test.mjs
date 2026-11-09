@@ -160,6 +160,16 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
   try{
     const env=fixture(storage);
     const alice=context();
+    // This is a real PG authority: without a trusted Host receipt issuer,
+    // the feature must still reject writes even when source/storage are valid.
+    const missingReceipt=createPersonalSavedViewActionHandlersV010({
+      storage,allowedSourceOperationIds:[dictionaryOp],
+      readSource:async()=>{throw Error("SOURCE_MUST_NOT_BE_INVOKED_WITHOUT_RECEIPT");}
+    })[1];
+    const noReceipt=await missingReceipt.execute(command(
+      PERSONAL_SAVED_VIEW_WRITE_V010,save("without-receipt",null)
+    ),alice);
+    assert.equal(noReceipt.error.code,"SAVED_VIEW_HOST_WRITE_RECEIPT_REQUIRED");
     const bob=context("owner-b");
     const otherEnterprise=context("owner-a","two");
     const human=dataOf(await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save()),alice));
