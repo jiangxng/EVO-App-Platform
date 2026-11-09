@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type {AgentActionReceiptBeginInputV010} from "../../contracts/agent-action-receipt.js";
+
 import {digestConditionalResourcePutV010} from "./resource-receipt-digest.js";
 import type { AppActionHandler, AppActionRequestV010, JsonValue } from "../../actions/contracts.js";
 import type { DataCollectionResultV010 } from "../../contracts/data-collection/query.js";
@@ -7,6 +7,7 @@ import type {
   EnterpriseResourceConditionalAsyncRepositoryV010,
   EnterpriseResourceAddressV010,
   EnterpriseResourceConditionalPutInputV010,
+  EnterpriseResourceSignedHostReceiptV010,
   EnterpriseResourceJsonV010
 } from "../../contracts/enterprise-resource.js";
 import type { FeatureManifestV010, PlatformCapabilityOperationContributionV010 } from "../../contracts/package.js";
@@ -198,7 +199,7 @@ export function createPersonalSavedViewActionHandlersV010(input:{
     ctx:PlatformRequestContextV010,
     request:AppActionRequestV010,
     material:{input:EnterpriseResourceConditionalPutInputV010;inputDigest:string}
-  ):Promise<AgentActionReceiptBeginInputV010>;
+  ):Promise<EnterpriseResourceSignedHostReceiptV010>;
   now?:()=>Date;
 }):AppActionHandler[] {
   const source = async (ctx:PlatformRequestContextV010,op:string,q:SavedQuery) => {
@@ -306,10 +307,10 @@ export function createPersonalSavedViewActionHandlersV010(input:{
         expectedRevision:expected,
         actorSubjectId:ctx.principal.subjectId,recordedAt:now().toISOString()
       };
-      const approval=await input.issueHostWriteReceipt(ctx,request,{
+      const signedApproval=await input.issueHostWriteReceipt(ctx,request,{
         input:writeInput,inputDigest:digestConditionalResourcePutV010(writeInput)
       });
-      const committed=await store.putIfRevisionWithReceipt(writeInput,approval);
+      const committed=await store.putIfRevisionWithReceipt(writeInput,signedApproval);
       const committedView=parseDefinition(committed.resource.payload);
       return {
         view:{...committedView,revision:committed.resource.revision},

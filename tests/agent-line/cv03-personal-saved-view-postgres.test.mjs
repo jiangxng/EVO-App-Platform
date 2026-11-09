@@ -7,6 +7,8 @@ import {createPackageCatalog} from "../../dist/catalog/catalog.js";
 import {businessDictionaryPackage} from "../../dist/catalog/seed.js";
 import {createMemoryLifecycleStore} from "../../dist/manager/store.js";
 import {createAppManagerService} from "../../dist/manager/service.js";
+import {createCv03PersonalSavedViewHostReceiptIssuerV010}
+  from "../../dist/manager/cv03-personal-saved-view-host-issuer.js";
 import {createCapabilityOperationActionPreExecuteV010}
   from "../../dist/manager/capability-operation-access.js";
 import {hostEnterpriseContextProviderPackage}
@@ -35,6 +37,8 @@ import {
 } from "../../dist/agents/enterprise-agent/capability-fabric-tools.js";
 
 const url=process.env.CV03_RESOURCE_PROOF_DATABASE_URL;
+const TEST_SIGNER={keyId:"cv03-test-v1",
+  secret:"CV03-ISOLATED-TEST-KEY-NOT-A-PRODUCTION-SECRET-01"};
 const dbRequired={skip:!url&&"Set CV03_RESOURCE_PROOF_DATABASE_URL for isolated PostgreSQL 18",
   timeout:60000};
 const dictionaryOp="dictionary.collection.query";
@@ -93,6 +97,11 @@ function fixture(storage){
         reasonCodes:[allowed?"CV03_ALLOWED":"CV03_DENIED"]};
     }
   };
+  const hostIssue=createCv03PersonalSavedViewHostReceiptIssuerV010({
+    manager,resolveAuthorizationProvider:()=>policy,
+    signingKeyId:TEST_SIGNER.keyId,signingSecret:TEST_SIGNER.secret
+  });
+  let issuedMaterial;
   let router;
   const dictionaryHandlers=createBusinessDictionaryActionHandlersV010({
     repository:dictionary,
@@ -105,26 +114,12 @@ function fixture(storage){
     allowedSourceOperationIds:[dictionaryOp],
     now:()=>new Date("2026-11-09T05:00:00.000Z"),
     issueHostWriteReceipt:async (ctx,request,material)=>{
-      // Test-only trusted Host issuer. Never provided by model inputs or
-      // registered by the production Host; the PG Owner persists the actual
-      // receipt in the SAME SQL transaction as the CAS.
+      // The real Host-specific issuer rechecks live Capability Operation
+      // authorization and signs exact material. This remains isolated test
+      // wiring, NOT a registration in production manager/server.ts.
       if(!receiptAllowed)throw Error("SAVED_VIEW_HOST_RECEIPT_DENIED");
-      const key="cv03-isolated-test:"+material.inputDigest;
-      return {
-        receiptId:"receipt:"+material.inputDigest,
-        invocationId:"invoke:"+material.inputDigest,
-        idempotencyKey:key,
-        sourceInteractionId:request.sourceInteractionId,
-        sourceActionId:request.actionId,
-        principalSubjectId:ctx.principal.subjectId,
-        principalActorType:ctx.principal.actorType,
-        context:ctx.context.activeContext,
-        toolId:request.command.code,
-        ownerPackageId:"host-enterprise-context-provider",
-        capability:"enterprise.collection.saved-view",
-        inputDigest:material.inputDigest,
-        requestedAt:"2026-11-09T05:00:00.000Z"
-      };
+      issuedMaterial={ctx,request,material};
+      return hostIssue(ctx,request,material);
     },
     async readSource(ctx,op,query) {
       if(op!==dictionaryOp)throw Error("SAVED_VIEW_SOURCE_NOT_ALLOWED");
@@ -142,7 +137,7 @@ function fixture(storage){
       manager,resolveAuthorizationProvider:()=>policy
     }));
   return {
-    manager,router,agents:ctx=>createPersonalAgentCapabilityToolRegistrationsV010({
+    manager,router,hostIssue,lastIssued:()=>issuedMaterial,agents:ctx=>createPersonalAgentCapabilityToolRegistrationsV010({
       manager,actionRouter:router,requestContext:ctx,
       resolveAuthorizationProvider:()=>policy
     }),
@@ -172,7 +167,9 @@ async function toolInvoke(env,ctx,id,op,input){
 test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, live Host grants, private scope, durable PG",dbRequired,async()=>{
   const schema="cv03_saved_"+randomUUID().replaceAll("-","").slice(0,16);
   await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
-  const storage=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
+  const storage=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
   const sql=postgres(url,{max:2,connect_timeout:10});
   try{
     const env=fixture(storage);
@@ -193,6 +190,16 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     assert.equal(human.view.revision,0);
     assert.equal(human.replayed,false);
     assert.equal(human.receipt.status,"SUCCEEDED");
+    const issued=env.lastIssued();
+    assert.match((await env.hostIssue(issued.ctx,issued.request,issued.material))
+      .proof.signature,/^[a-f0-9]{64}$/);
+    await assert.rejects(
+      ()=>env.hostIssue(issued.ctx,issued.request,{
+        ...issued.material,inputDigest:"0".repeat(64)
+      }),/CV03_HOST_RECEIPT_CONTEXT_OR_DIGEST_INVALID/);
+    await assert.rejects(
+      ()=>env.hostIssue(context("owner-b"),issued.request,issued.material),
+      /CV03_HOST_RECEIPT_CONTEXT_OR_DIGEST_INVALID/);
     const repeat=dataOf(await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save()),alice));
     assert.equal(repeat.replayed,true);
     assert.equal(repeat.receipt.receiptId,human.receipt.receiptId);
@@ -245,6 +252,8 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     assert.equal(wrongSource.error.code,"SAVED_VIEW_SOURCE_NOT_ALLOWED");
 
     env.control.revokeWrite();
+    await assert.rejects(()=>env.hostIssue(issued.ctx,issued.request,issued.material),
+      /CV03_HOST_RECEIPT_AUTHORIZATION_DENIED/);
     const revoked=await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save("revoked",null)),alice);
     assert.equal(revoked.ok,false);
     await assert.rejects(()=>toolInvoke(env,alice,PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID,
@@ -258,11 +267,15 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     // Dictionary before its Enterprise Context provider package.
     env.manager.disable(businessDictionaryPackage.packageId);
     env.manager.disable(hostEnterpriseContextProviderPackage.packageId);
+    await assert.rejects(()=>env.hostIssue(issued.ctx,issued.request,issued.material),
+      /CV03_HOST_RECEIPT_OPERATION_INACTIVE/);
     assert.equal((await env.router.execute(command(PERSONAL_SAVED_VIEW_READ_V010,{}),alice)).error.code,
       "ACTION_FEATURE_NOT_ACTIVE");
 
     // Restart with independent database connection, no in-process saved-view data.
-    const reopened=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
+    const reopened=createPostgresConditionalResourceRepositoryV010({
+      connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+    });
     try {
       const next=fixture(reopened);
       assert.equal(dataOf(await next.router.execute(command(PERSONAL_SAVED_VIEW_READ_V010,{}),alice)).views[0].revision,1);

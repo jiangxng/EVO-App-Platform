@@ -8,10 +8,26 @@ import {
   preparePostgresConditionalResourceSchemaV010,
   createPostgresConditionalResourceRepositoryV010
 } from "../../dist/providers/enterprise-context/resources-postgres.js";
-import {digestConditionalResourcePutV010} from
+import {digestConditionalResourcePutV010,hmacCv03HostResourceReceiptV010} from
   "../../dist/providers/enterprise-context/resource-receipt-digest.js";
 
 const url=process.env.CV03_RESOURCE_PROOF_DATABASE_URL;
+const TEST_SIGNER={keyId:"cv03-test-v1",
+  secret:"CV03-ISOLATED-TEST-KEY-NOT-A-PRODUCTION-SECRET-01"};
+function signed(receipt){
+  return {receipt,proof:{contractVersion:"0.1.0",
+    purpose:"cv03.enterprise-resource.host-write",keyId:TEST_SIGNER.keyId,
+    algorithm:"HMAC-SHA256",
+    signature:hmacCv03HostResourceReceiptV010(receipt,TEST_SIGNER.keyId,TEST_SIGNER.secret)}};
+}
+function createSignedTestStore(schema){
+  const raw=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
+  return {...raw,
+    putIfRevisionWithReceipt:(input,receipt)=>raw.putIfRevisionWithReceipt(input,signed(receipt))
+  };
+}
 const requiresDB={skip:!url&&"Set CV03_RESOURCE_PROOF_DATABASE_URL for real Postgres",
   timeout:60000};
 const fixture=fileURLToPath(new URL("../fixtures/cv03-resource-postgres-child.mjs",import.meta.url));
@@ -80,10 +96,27 @@ test("CV-03 real PG: CAS and immutable Agent receipt commit atomically; replay, 
   const schema="cv03_receipt_"+randomUUID().replaceAll("-","").slice(0,14);
   await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
   const db=postgres(url,{max:3,connect_timeout:10});
-  const a=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
-  const b=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
+  const a=createSignedTestStore(schema);
+  const b=createSignedTestStore(schema);
+  const noVerifier=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema
+  });
+  const rawVerifier=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
   try{
     const first=input("香港供应商",null),approval=receipt(first);
+    await assert.rejects(noVerifier.putIfRevisionWithReceipt(
+      first,signed(approval)),/CV03_RESOURCE_HOST_SIGNED_PROOF_REQUIRED/);
+    await assert.rejects(rawVerifier.putIfRevisionWithReceipt(first,{
+      ...signed(approval),proof:{...signed(approval).proof,
+        signature:"0".repeat(64)}
+    }),/CV03_RESOURCE_HOST_SIGNED_PROOF_INVALID/);
+    await assert.rejects(rawVerifier.putIfRevisionWithReceipt(first,{
+      ...signed(approval),proof:{...signed(approval).proof,keyId:"unknown-host"}
+    }),/CV03_RESOURCE_HOST_SIGNED_PROOF_REQUIRED/);
+    assert.equal(await a.get(addr),undefined,
+      "missing/invalid Host signature cannot mutate a resource");
     await assert.rejects(a.putIfRevisionWithReceipt(first,receipt(first,{
       principalSubjectId:"owner-forged"
     })),/CV03_RESOURCE_HOST_RECEIPT_BINDING_INVALID/);
@@ -143,7 +176,7 @@ test("CV-03 real PG: CAS and immutable Agent receipt commit atomically; replay, 
       "DROP CONSTRAINT cv03_reject_fault");
     console.log("CV03_ATOMIC_HOST_RECEIPT_PG_PROOF=PASS");
   }finally{
-    await Promise.all([a.close(),b.close()]);
+    await Promise.all([a.close(),b.close(),noVerifier.close(),rawVerifier.close()]);
     await db.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
     await db.end();
   }
@@ -153,7 +186,7 @@ test("CV-03 actual OS processes: same receipt key replays once, distinct keys lo
   const schema="cv03_ack_"+randomUUID().replaceAll("-","").slice(0,14);
   await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
   const admin=postgres(url,{max:2,connect_timeout:10});
-  const db=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
+  const db=createSignedTestStore(schema);
   try{
     const base=input("base",null),proof=receipt(base);
     const writers=[
@@ -189,7 +222,7 @@ test("CV-03 actual OS processes: same receipt key replays once, distinct keys lo
       {input:lostInput,receipt:lostReceipt},schema).done;
     assert.equal(lost.code,19);
     assert.deepEqual(lost.messages,[]);
-    const restarted=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
+    const restarted=createSignedTestStore(schema);
     try{
       const durable=await restarted.getCommittedWriteByIdempotencyKey(
         lookup(lostInput,lostReceipt));

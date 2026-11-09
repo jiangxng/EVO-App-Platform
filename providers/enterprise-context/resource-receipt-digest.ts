@@ -1,4 +1,5 @@
-import {createHash} from "node:crypto";
+import {createHash,createHmac} from "node:crypto";
+import type {AgentActionReceiptBeginInputV010} from "../../contracts/agent-action-receipt.js";
 import type {EnterpriseResourceConditionalPutInputV010} from "../../contracts/enterprise-resource.js";
 
 /**
@@ -28,4 +29,25 @@ export function digestConditionalResourcePutV010(
   input:EnterpriseResourceConditionalPutInputV010
 ):string {
   return sha256ResourceReceiptV010(input);
+}
+
+/**
+ * Host-only proof token, domain-separated from all other Agent/PA05 permits.
+ * The verifier must be given a trusted secret by the Host owner; no secret is
+ * embedded in a Feature/Action request or returned with the public receipt.
+ */
+export function hmacCv03HostResourceReceiptV010(
+  receipt: AgentActionReceiptBeginInputV010,
+  keyId: string,
+  secret: string
+): string {
+  if (!/^[a-zA-Z0-9_-]{1,48}$/.test(keyId) ||
+      Buffer.byteLength(secret, "utf8") < 32) {
+    throw new Error("CV03_HOST_RECEIPT_SIGNING_CONFIG_INVALID");
+  }
+  return createHmac("sha256",secret).update(stableResourceReceiptJsonV010({
+    domain:"cv03.enterprise-resource.host-write/0.1.0",
+    keyId,
+    receipt
+  })).digest("hex");
 }

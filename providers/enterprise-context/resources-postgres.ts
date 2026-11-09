@@ -1,14 +1,18 @@
 import postgres from "postgres";
+import {timingSafeEqual} from "node:crypto";
 import type {
   AgentActionReceiptBeginInputV010,
   AgentActionReceiptV010
 } from "../../contracts/agent-action-receipt.js";
-import { digestConditionalResourcePutV010, sha256ResourceReceiptV010 }
-  from "./resource-receipt-digest.js";
+import {
+  digestConditionalResourcePutV010, sha256ResourceReceiptV010,
+  hmacCv03HostResourceReceiptV010
+} from "./resource-receipt-digest.js";
 import type {
   EnterpriseResourceAddressV010,
   EnterpriseResourceCommittedWriteLookupV010,
   EnterpriseResourceCommittedWriteV010,
+  EnterpriseResourceSignedHostReceiptV010,
   EnterpriseResourceConditionalArchiveInputV010,
   EnterpriseResourceConditionalAsyncRepositoryV010,
   EnterpriseResourceConditionalPutInputV010,
@@ -231,8 +235,32 @@ function completedReceipt(
 export function createPostgresConditionalResourceRepositoryV010(input: {
   connectionString: string;
   schema: string;
+  /**
+   * Privileged Host-only verifier keys. Without a configured verifier, the
+   * receipt-bearing WRITE is unavailable; ordinary READ and C3-01 CAS remain.
+   * Real credentials are never passed through an Action request or saved view.
+   */
+  trustedHostReceiptKeys?: readonly {keyId:string;secret:string}[];
 }): EnterpriseResourceConditionalAsyncRepositoryV010 {
   const { sql, table, receipts } = database(input);
+  const verifierKeys = new Map<string,string>();
+  for (const key of input.trustedHostReceiptKeys ?? []) {
+    if (verifierKeys.has(key.keyId)) {
+      throw Error("CV03_HOST_RECEIPT_SIGNING_CONFIG_INVALID");
+    }
+    // Validate key format and entropy floor before allowing any WRITE.
+    hmacCv03HostResourceReceiptV010({
+      receiptId:"validation",invocationId:"validation",
+      idempotencyKey:"validation",sourceInteractionId:"validation",
+      sourceActionId:"validation",principalSubjectId:"validation",
+      principalActorType:"HUMAN",
+      context:{contractVersion:"0.1.0",kind:"ENTERPRISE",
+        contextId:"validation",enterpriseId:"validation"},
+      toolId:"validation",ownerPackageId:"validation",
+      inputDigest:"validation",requestedAt:"2026-11-09T05:00:00.000Z"
+    },key.keyId,key.secret);
+    verifierKeys.set(key.keyId,key.secret);
+  }
   const selectAddress = (forUpdate: boolean): string =>
     "SELECT revision, resource::text AS resource FROM " + table +
     " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3" +
@@ -305,8 +333,23 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
 
     async putIfRevisionWithReceipt(
       input: EnterpriseResourceConditionalPutInputV010,
-      approval: AgentActionReceiptBeginInputV010
+      signedApproval: EnterpriseResourceSignedHostReceiptV010
     ): Promise<EnterpriseResourceCommittedWriteV010> {
+      const approval=signedApproval?.receipt;
+      const proof=signedApproval?.proof;
+      const key=proof?.keyId && verifierKeys.get(proof.keyId);
+      if(!key || proof.contractVersion!=="0.1.0" ||
+        proof.purpose!=="cv03.enterprise-resource.host-write" ||
+        proof.algorithm!=="HMAC-SHA256" ||
+        typeof proof.signature!=="string" ||
+        !/^[a-f0-9]{64}$/.test(proof.signature)){
+        throw Error("CV03_RESOURCE_HOST_SIGNED_PROOF_REQUIRED");
+      }
+      const expected=hmacCv03HostResourceReceiptV010(approval,proof.keyId,key);
+      if(!timingSafeEqual(Buffer.from(proof.signature,"hex"),
+                          Buffer.from(expected,"hex"))){
+        throw Error("CV03_RESOURCE_HOST_SIGNED_PROOF_INVALID");
+      }
       verifyHostReceiptBinding(input, approval);
       const address = addressValues(input);
       const keyHash = sha256ResourceReceiptV010(approval.idempotencyKey);

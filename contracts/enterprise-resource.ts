@@ -144,7 +144,7 @@ export interface EnterpriseResourceConditionalAsyncRepositoryV010 {
    */
   putIfRevisionWithReceipt?(
     input: EnterpriseResourceConditionalPutInputV010,
-    hostReceipt: AgentActionReceiptBeginInputV010
+    signedApproval: EnterpriseResourceSignedHostReceiptV010
   ): Promise<EnterpriseResourceCommittedWriteV010>;
   /**
    * Historical committed receipt readback, scoped to original resource and actor.
@@ -171,4 +171,21 @@ export interface EnterpriseResourceCommittedWriteLookupV010 {
   inputDigest: string;
   principalSubjectId: string;
   principalActorType: "HUMAN" | "AI";
+}
+
+/**
+ * Host-issued signed admission for one exact conditional resource write.
+ * The receipt keeps the original Agent Action Receipt data contract; proof
+ * is a separate envelope, never user/model action values or an authorization
+ * substitute. PostgreSQL Owner verifies the signature before its CAS tx.
+ */
+export interface EnterpriseResourceSignedHostReceiptV010 {
+  receipt: AgentActionReceiptBeginInputV010;
+  proof: {
+    contractVersion: "0.1.0";
+    purpose: "cv03.enterprise-resource.host-write";
+    keyId: string;
+    algorithm: "HMAC-SHA256";
+    signature: string;
+  };
 }

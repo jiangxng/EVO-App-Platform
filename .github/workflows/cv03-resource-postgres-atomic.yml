@@ -8,6 +8,7 @@ on:
       - "providers/enterprise-context/resources-postgres.ts"
       - "tests/agent-line/cv03-resource-postgres-conditional.test.mjs"
       - "providers/enterprise-context/personal-saved-views.ts"
+      - "manager/cv03-personal-saved-view-host-issuer.ts"
       - "providers/enterprise-context/resource-receipt-digest.ts"
       - "tests/agent-line/cv03-personal-saved-view-postgres.test.mjs"
       - "tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs"
