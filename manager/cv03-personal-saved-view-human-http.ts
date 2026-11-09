@@ -26,9 +26,7 @@ import {
 export const CV03_HUMAN_SAVED_VIEW_FORM_SOURCE_V010 =
   "app://evo-business-dictionary/pages/personal-view-new" as const;
 
-type HttpOutput = {code:string;message?:string} | Record<string,unknown>;
-
-function reply(res:ServerResponse,status:number,body:HttpOutput) {
+function reply(res:ServerResponse,status:number,body:unknown) {
   res.statusCode=status;
   res.setHeader("content-type","application/json; charset=utf-8");
   res.setHeader("cache-control","private, no-store");
