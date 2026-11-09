@@ -7673,6 +7673,7 @@ const server = createServer(async (request, response) => {
         if (source === BUSINESS_DICTIONARY_DETAIL_SOURCE_V010) {
           return json(response, 200, page.createBusinessDictionaryDetailPageV010({
             dictionary: dictionary!, canManage, locale,
+            ...(route.returnTo ? {returnTo:route.returnTo} : {}),
             effectiveVersion: repository.getEffective(contextId, dictionary!.dictionaryId)?.version
           }));
         }
