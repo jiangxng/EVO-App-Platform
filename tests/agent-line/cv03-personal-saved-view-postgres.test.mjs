@@ -2,6 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import postgres from "postgres";
+import {renderCatalogBrowserToHtml}
+  from "../../dist/vendor/eidos/src/catalog-browser/render.js";
+import {parseBusinessDictionaryDirectoryRouteV010}
+  from "../../dist/apps/business-dictionary/directory-query.js";
+import {createCv03AuthorizedDictionarySavedViewPageV010}
+  from "../../dist/manager/cv03-personal-saved-view-dictionary-presentation.js";
 import {createAppActionRouter} from "../../dist/actions/router.js";
 import {createPackageCatalog} from "../../dist/catalog/catalog.js";
 import {businessDictionaryPackage} from "../../dist/catalog/seed.js";
@@ -137,7 +143,7 @@ function fixture(storage){
       manager,resolveAuthorizationProvider:()=>policy
     }));
   return {
-    manager,router,hostIssue,lastIssued:()=>issuedMaterial,agents:ctx=>createPersonalAgentCapabilityToolRegistrationsV010({
+    manager,router,dictionary,hostIssue,lastIssued:()=>issuedMaterial,agents:ctx=>createPersonalAgentCapabilityToolRegistrationsV010({
       manager,actionRouter:router,requestContext:ctx,
       resolveAuthorizationProvider:()=>policy
     }),
@@ -287,6 +293,63 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     console.log("CV03_C302_PERSONAL_VIEW_REAL_HOST_AGENT_PG_PROOF=PASS");
   }finally{
     await storage.close();
+    await sql.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
+    await sql.end();
+  }
+});
+
+test("CV-03 C3-02 Host-resolved private view READ feeds real Eidos Dictionary table without leaking cross-principal tabs",dbRequired,async()=>{
+  const schema="cv03_page_"+randomUUID().replaceAll("-","").slice(0,16);
+  await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
+  const store=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
+  const sql=postgres(url,{max:2,connect_timeout:10});
+  try {
+    const env=fixture(store);
+    const alice=context("owner-a","one");
+    const selection=parseBusinessDictionaryDirectoryRouteV010(
+      "/business-dictionaries?view=all&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=25"
+    );
+    assert.equal(dataOf(await env.router.execute(command(
+      PERSONAL_SAVED_VIEW_WRITE_V010,save("hk-views",null)
+    ),alice)).view.revision,0);
+    const render=ctx=>createCv03AuthorizedDictionarySavedViewPageV010({
+      actionRouter:env.router,context:ctx,
+      dictionaries:env.dictionary.list("enterprise-context:one"),
+      directorySelection:selection,
+      canManage:false,locale:"zh-CN",selectedPersonalViewId:"hk-views"
+    });
+    const page=await render(alice);
+    assert.deepEqual(page.table.views.map(v=>v.id),[
+      "all","draft","published","personal:hk-views"
+    ]);
+    assert.deepEqual(page.table.views.filter(v=>v.selected).map(v=>v.id),["personal:hk-views"]);
+    assert.equal(page.table.rows.length,1);
+    const html=renderCatalogBrowserToHtml(page);
+    assert.match(html,/data-eidos-catalog-view-id="personal:hk-views"/);
+    assert.doesNotMatch(html,/Internal private option/);
+    const bob=await render(context("owner-b","one"));
+    assert.deepEqual(bob.table.views.map(v=>v.id),["all","draft","published"]);
+    const other=await render(context("owner-a","two"));
+    assert.deepEqual(other.table.views.map(v=>v.id),["all","draft","published"]);
+    env.control.revokeSource();
+    const revoked=await render(alice);
+    assert.deepEqual(revoked.table.views.map(v=>v.id),["all","draft","published"]);
+    env.control.allowSource();
+    env.manager.disable(businessDictionaryPackage.packageId);
+    env.manager.disable(hostEnterpriseContextProviderPackage.packageId);
+    const disabled=await render(alice);
+    assert.deepEqual(disabled.table.views.map(v=>v.id),["all","draft","published"]);
+    const missingContext=await createCv03AuthorizedDictionarySavedViewPageV010({
+      actionRouter:env.router,dictionaries:env.dictionary.list("enterprise-context:one"),
+      directorySelection:selection,canManage:false
+    });
+    assert.equal(missingContext.table,undefined);
+    assert.equal(missingContext.id,"evo-business-dictionary.context-required");
+    console.log("CV03_C302_EIDOS_REAL_HOST_PG_PRIVATE_VIEW_PROOF=PASS");
+  }finally{
+    await store.close();
     await sql.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
     await sql.end();
   }
