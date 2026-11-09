@@ -104,10 +104,27 @@ function fixture(storage){
     storage,
     allowedSourceOperationIds:[dictionaryOp],
     now:()=>new Date("2026-11-09T05:00:00.000Z"),
-    assertHostWriteReceipt:async()=>{
-      // This is ONLY an injected isolated-test trusted gate. Not a durable
-      // production receipt or a real Human confirmation.
+    issueHostWriteReceipt:async (ctx,request,material)=>{
+      // Test-only trusted Host issuer. Never provided by model inputs or
+      // registered by the production Host; the PG Owner persists the actual
+      // receipt in the SAME SQL transaction as the CAS.
       if(!receiptAllowed)throw Error("SAVED_VIEW_HOST_RECEIPT_DENIED");
+      const key="cv03-isolated-test:"+material.inputDigest;
+      return {
+        receiptId:"receipt:"+material.inputDigest,
+        invocationId:"invoke:"+material.inputDigest,
+        idempotencyKey:key,
+        sourceInteractionId:request.sourceInteractionId,
+        sourceActionId:request.actionId,
+        principalSubjectId:ctx.principal.subjectId,
+        principalActorType:ctx.principal.actorType,
+        context:ctx.context.activeContext,
+        toolId:request.command.code,
+        ownerPackageId:"host-enterprise-context-provider",
+        capability:"enterprise.collection.saved-view",
+        inputDigest:material.inputDigest,
+        requestedAt:"2026-11-09T05:00:00.000Z"
+      };
     },
     async readSource(ctx,op,query) {
       if(op!==dictionaryOp)throw Error("SAVED_VIEW_SOURCE_NOT_ALLOWED");
@@ -174,6 +191,12 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     const otherEnterprise=context("owner-a","two");
     const human=dataOf(await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save()),alice));
     assert.equal(human.view.revision,0);
+    assert.equal(human.replayed,false);
+    assert.equal(human.receipt.status,"SUCCEEDED");
+    const repeat=dataOf(await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save()),alice));
+    assert.equal(repeat.replayed,true);
+    assert.equal(repeat.receipt.receiptId,human.receipt.receiptId);
+    assert.equal(repeat.view.revision,0);
     assert.equal(human.view.ownerSubjectId,"owner-a");
     assert.equal(human.view.visibility,"PERSONAL");
     assert.equal(human.view.schemaRef,"evo.business-dictionary.directory/0.1.0");
@@ -188,6 +211,12 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
       PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID,PERSONAL_SAVED_VIEW_WRITE_V010,
       save("hk-sup",0,{title:"香港供应商｜代理更新"}));
     assert.equal(agentUpdate.result.data.view.revision,1);
+    assert.equal(agentUpdate.result.data.replayed,false);
+    const repeatedAgent=await toolInvoke(env,alice,
+      PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID,PERSONAL_SAVED_VIEW_WRITE_V010,
+      save("hk-sup",0,{title:"香港供应商｜代理更新"}));
+    assert.equal(repeatedAgent.result.data.replayed,true);
+    assert.equal(repeatedAgent.result.data.view.revision,1);
     assert.equal(agentUpdate.result.data.view.title,"香港供应商｜代理更新");
     const readAgent=await toolInvoke(env,alice,
       PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID,PERSONAL_SAVED_VIEW_READ_V010,{});

@@ -1,9 +1,12 @@
 import { createHash } from "node:crypto";
+import type {AgentActionReceiptBeginInputV010} from "../../contracts/agent-action-receipt.js";
+import {digestConditionalResourcePutV010} from "./resource-receipt-digest.js";
 import type { AppActionHandler, AppActionRequestV010, JsonValue } from "../../actions/contracts.js";
 import type { DataCollectionResultV010 } from "../../contracts/data-collection/query.js";
 import type {
   EnterpriseResourceConditionalAsyncRepositoryV010,
   EnterpriseResourceAddressV010,
+  EnterpriseResourceConditionalPutInputV010,
   EnterpriseResourceJsonV010
 } from "../../contracts/enterprise-resource.js";
 import type { FeatureManifestV010, PlatformCapabilityOperationContributionV010 } from "../../contracts/package.js";
@@ -186,12 +189,16 @@ export function createPersonalSavedViewActionHandlersV010(input:{
     Promise<DataCollectionResultV010>;
   allowedSourceOperationIds: readonly string[];
   /**
-   * Mandatory trusted, durable Host write approval/receipt gate. Never
-   * populated from user/model input; until integrated with a real Host
-   * receipt authority the feature MUST remain unregistered in production.
+   * Trust-bound Host-only issuance of exact material for the PostgreSQL Owner.
+   * No action values / model input can supply an approval. The Owner commits
+   * the immutable receipt and resource revision in the SAME PostgreSQL tx.
+   * Until wired to the REAL Host receipt issuer, keep this feature unregistered.
    */
-  assertHostWriteReceipt?(ctx:PlatformRequestContextV010,request:AppActionRequestV010):
-    Promise<void>;
+  issueHostWriteReceipt?(
+    ctx:PlatformRequestContextV010,
+    request:AppActionRequestV010,
+    material:{input:EnterpriseResourceConditionalPutInputV010;inputDigest:string}
+  ):Promise<AgentActionReceiptBeginInputV010>;
   now?:()=>Date;
 }):AppActionHandler[] {
   const source = async (ctx:PlatformRequestContextV010,op:string,q:SavedQuery) => {
@@ -268,8 +275,8 @@ export function createPersonalSavedViewActionHandlersV010(input:{
       if (Object.keys(request.values).some(k=>![
         "viewId","title","queryOperationId","query","columns","presentation","expectedRevision"
       ].includes(k))) throw Error("SAVED_VIEW_INPUT_INVALID");
-      if(!input.assertHostWriteReceipt) throw Error("SAVED_VIEW_HOST_WRITE_RECEIPT_REQUIRED");
-      await input.assertHostWriteReceipt(ctx,request);
+      if(!input.issueHostWriteReceipt || !store.putIfRevisionWithReceipt)
+        throw Error("SAVED_VIEW_HOST_WRITE_RECEIPT_REQUIRED");
       const id=viewId(request.values.viewId);
       const title=requiredText(request.values.title,"SAVED_VIEW_TITLE_INVALID");
       const op=requiredText(request.values.queryOperationId,"SAVED_VIEW_SOURCE_NOT_ALLOWED",100);
@@ -292,14 +299,26 @@ export function createPersonalSavedViewActionHandlersV010(input:{
         columns.some(column=>!latest.readableFieldIds.includes(column))){
         throw Error("SAVED_VIEW_SOURCE_SCHEMA_CHANGED");
       }
-      const record=await store.putIfRevision({
+      const writeInput:EnterpriseResourceConditionalPutInputV010={
         ...address(ctx,id),schemaRef:"evo.saved-view.personal/0.1.0",
         ownerPackageId:HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,storageKind:"DOCUMENT",
         payload:payload as unknown as EnterpriseResourceJsonV010,
         expectedRevision:expected,
         actorSubjectId:ctx.principal.subjectId,recordedAt:now().toISOString()
+      };
+      const approval=await input.issueHostWriteReceipt(ctx,request,{
+        input:writeInput,inputDigest:digestConditionalResourcePutV010(writeInput)
       });
-      return {view:{...payload,revision:record.revision}};
+      const committed=await store.putIfRevisionWithReceipt(writeInput,approval);
+      const committedView=parseDefinition(committed.resource.payload);
+      return {
+        view:{...committedView,revision:committed.resource.revision},
+        receipt:{
+          receiptId:committed.receipt.receiptId,status:committed.receipt.status,
+          resultDigest:committed.receipt.resultDigest
+        },
+        replayed:committed.replayed
+      };
     })
   ];
 }
