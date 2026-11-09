@@ -36,3 +36,13 @@
 - 真实 PostgreSQL 18 专项用例 **5/5 PASS、0 FAIL、0 SKIP**，其中两个 C3-02 用例覆盖真实 Dictionary Repository + Host ActionRouter + 内部 Personal Agent 工具、Private scope、Schema 漂移、重启 readback、未接入持久回执/非认证 Provider 的 fail-closed；另三个保持 C3-01 PG 原子性覆盖。
 - **状态层级不得上调**：这个 isolated CI 的 `assertHostWriteReceipt` 是显式**测试夹具**，无真实 Host durable receipt 签发/确认；Feature 没有加入生产 catalog 或 Server；Eidos 保存入口、真实自然语言模型工具选择、390px 与 Human signoff 都没有完成。
 - 旧版本基线在本目录的 C3-01 决策中保留，合并后不重复竞品调研。下一窗口先读本文件及[唯一八步计划](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)，由现有 Host Receipt owner 和 Eidos owner 分别继续后续门禁。
+
+## 5. C3-02 可信回执原子事务补充（PR #1182）
+
+本文件前文准确描述了 **#1180 初版** 的独立 Host `assertHostWriteReceipt` 测试桩，当时该桩只做写前许可，**不能证明资源与 receipt 同事务**。后续 [PR #1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182) **修改了这条实现边界**：
+
+- 将可独立授权的 `issueHostWriteReceipt(ctx,request,{input,inputDigest})` 作为严格注入点，使用既有 `AgentActionReceiptBeginInputV010`；资源提交必须使用 `putIfRevisionWithReceipt`，**无回执数据库方法时 fail closed**。
+- PostgreSQL 保存视图资源与不可变 `AgentActionReceiptV010` **同一个事务提交**；持久 receipt 与历史资源 snapshot 可供未知结果后独立核对，重复 idempotencyKey 不能第二次产生效果。
+- 真实 PG18 测试包含不同 Node 进程竞争、同 key 重放、回执 INSERT 失败回滚业务资源、历史回执拒绝 UPDATE/DELETE。见 [同事务回执专属证据](CV03-C302-ATOMIC-HOST-RECEIPT-POSTGRES-20261109.md)。
+- **尚不代表真实 Host 发行、正式生产注册与 Eidos/Human/LLM 验收**。#1182 的准确合并状态由最终 HEAD CI 判断，不将 #1180 的 9/9 结果冒充 #1182。
+
