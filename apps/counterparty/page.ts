@@ -473,7 +473,7 @@ export function createCounterpartyProjectionPageV010(input: {
           ? text.onlyMySuppliers
           : input.projectionId === COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
             ? text.allCustomers : text.allSuppliers,
-      type: "navigate",
+      type: "navigate" as const,
       route: scopeDestination,
       requiresConfirmation: false
     }]), ...(input.canManage && input.importRoute && (
