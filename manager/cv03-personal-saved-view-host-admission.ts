@@ -20,7 +20,7 @@ export const CV03_PERSONAL_SAVED_VIEW_SAVE_COMMAND_V010 =
  * PA05 before replacing this gate.
  */
 export function assertCv03HumanSaveNotEnabledV010(
-  config: Pick<NodeJS.ProcessEnv,"APP_PLATFORM_CV03_HUMAN_SAVE_MODE">
+  config: {APP_PLATFORM_CV03_HUMAN_SAVE_MODE?:string}
 ):void {
   const value=config.APP_PLATFORM_CV03_HUMAN_SAVE_MODE?.trim().toUpperCase() || "OFF";
   if(value!=="OFF")throw Error("CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED");
