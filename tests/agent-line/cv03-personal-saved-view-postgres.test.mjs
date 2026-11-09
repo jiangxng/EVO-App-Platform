@@ -101,6 +101,7 @@ function fixture(storage){
     manager,resolveAuthorizationProvider:()=>policy,
     signingKeyId:TEST_SIGNER.keyId,signingSecret:TEST_SIGNER.secret
   });
+  let issuedMaterial;
   let router;
   const dictionaryHandlers=createBusinessDictionaryActionHandlersV010({
     repository:dictionary,
@@ -117,6 +118,7 @@ function fixture(storage){
       // authorization and signs exact material. This remains isolated test
       // wiring, NOT a registration in production manager/server.ts.
       if(!receiptAllowed)throw Error("SAVED_VIEW_HOST_RECEIPT_DENIED");
+      issuedMaterial={ctx,request,material};
       return hostIssue(ctx,request,material);
     },
     async readSource(ctx,op,query) {
@@ -135,7 +137,7 @@ function fixture(storage){
       manager,resolveAuthorizationProvider:()=>policy
     }));
   return {
-    manager,router,agents:ctx=>createPersonalAgentCapabilityToolRegistrationsV010({
+    manager,router,hostIssue,lastIssued:()=>issuedMaterial,agents:ctx=>createPersonalAgentCapabilityToolRegistrationsV010({
       manager,actionRouter:router,requestContext:ctx,
       resolveAuthorizationProvider:()=>policy
     }),
@@ -188,6 +190,16 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     assert.equal(human.view.revision,0);
     assert.equal(human.replayed,false);
     assert.equal(human.receipt.status,"SUCCEEDED");
+    const issued=env.lastIssued();
+    assert.match((await env.hostIssue(issued.ctx,issued.request,issued.material))
+      .proof.signature,/^[a-f0-9]{64}$/);
+    await assert.rejects(
+      ()=>env.hostIssue(issued.ctx,issued.request,{
+        ...issued.material,inputDigest:"0".repeat(64)
+      }),/CV03_HOST_RECEIPT_CONTEXT_OR_DIGEST_INVALID/);
+    await assert.rejects(
+      ()=>env.hostIssue(context("owner-b"),issued.request,issued.material),
+      /CV03_HOST_RECEIPT_CONTEXT_OR_DIGEST_INVALID/);
     const repeat=dataOf(await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save()),alice));
     assert.equal(repeat.replayed,true);
     assert.equal(repeat.receipt.receiptId,human.receipt.receiptId);
@@ -240,6 +252,8 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     assert.equal(wrongSource.error.code,"SAVED_VIEW_SOURCE_NOT_ALLOWED");
 
     env.control.revokeWrite();
+    await assert.rejects(()=>env.hostIssue(issued.ctx,issued.request,issued.material),
+      /CV03_HOST_RECEIPT_AUTHORIZATION_DENIED/);
     const revoked=await env.router.execute(command(PERSONAL_SAVED_VIEW_WRITE_V010,save("revoked",null)),alice);
     assert.equal(revoked.ok,false);
     await assert.rejects(()=>toolInvoke(env,alice,PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID,
@@ -253,6 +267,8 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     // Dictionary before its Enterprise Context provider package.
     env.manager.disable(businessDictionaryPackage.packageId);
     env.manager.disable(hostEnterpriseContextProviderPackage.packageId);
+    await assert.rejects(()=>env.hostIssue(issued.ctx,issued.request,issued.material),
+      /CV03_HOST_RECEIPT_OPERATION_INACTIVE/);
     assert.equal((await env.router.execute(command(PERSONAL_SAVED_VIEW_READ_V010,{}),alice)).error.code,
       "ACTION_FEATURE_NOT_ACTIVE");
 
