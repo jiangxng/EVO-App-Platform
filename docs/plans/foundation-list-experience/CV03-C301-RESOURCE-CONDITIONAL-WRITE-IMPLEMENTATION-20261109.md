@@ -46,3 +46,7 @@
 - **部署结果与限制**：Railway 该服务返回的最近部署记录为 `FAILED`（创建时间 2026-10-08），不是本次 PR 发布证明。单副本 + Volume **不等于**多副本共享持久存储；File Provider `SAME_FILESYSTEM_LOCK` 不具备跨节点不同本地卷的全局 CAS 保证。
 - **C3-01 结论**：条件写入公共 API、单机/同文件系统互斥与测试已合入；**正式存储拓扑认证仍 OPEN**。C3-02 Human/Agent Saved View WRITE 不得据此默认打开；首先需要验证部署文件路径/重启恢复/跨 Worker 共享性，或由已认证的数据库 Provider 提供真正跨实例的条件提交。即使单实例可读回，也不等于未来横向扩容安全。
 
+
+## 6. 共享 PostgreSQL 的下一条工程证据（2026-11-09）
+
+[PR #1179](https://github.com/jiangxng/EVO-App-Platform/pull/1179) 提供已有 Enterprise Resource 地址/资源形状的**独立异步 Postgres 条件写入 Provider**，使用真实 PostgreSQL 18 CI 和多进程同版本冲突测试。这既不改变 #1177 的 Memory/File 保证等级，也不意味着正式 Host 当前已由 File 切换为 Postgres。详细实现、JSONB 参数编码失败与修复记录、生产单一写入权威的门禁见 [C3-01 PostgreSQL 实证](CV03-C301-POSTGRES-ATOMIC-RESOURCE-PROOF-20261109.md)。仍须由 Provider/部署 owner 验证生产数据库路由/备份/迁移/回滚，C3-02～04 不因此自动通过。
