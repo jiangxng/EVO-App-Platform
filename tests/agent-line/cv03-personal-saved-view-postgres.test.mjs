@@ -301,7 +301,9 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
 test("CV-03 C3-02 Host-resolved private view READ feeds real Eidos Dictionary table without leaking cross-principal tabs",dbRequired,async()=>{
   const schema="cv03_page_"+randomUUID().replaceAll("-","").slice(0,16);
   await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
-  const store=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
+  const store=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
   const sql=postgres(url,{max:2,connect_timeout:10});
   try {
     const env=fixture(store);
