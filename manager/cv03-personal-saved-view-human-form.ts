@@ -30,7 +30,7 @@ const ownerColumns = [
 ] as const;
 const viewIdPattern = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,79}$/;
 
-function requireHumanEnterprise(ctx?: PlatformRequestContextV010) {
+export function assertCv03HumanEnterpriseContextV010(ctx?: PlatformRequestContextV010) {
   const active=ctx?.context?.activeContext;
   if (!ctx || ctx.delegatedActor || ctx.principal.actorType!=="HUMAN" ||
     !ctx.principal.subjectId?.trim() ||
@@ -101,7 +101,7 @@ export async function executeCv03HumanSavedViewFormV010(input:{
 }):Promise<AppActionExecutionResultV010> {
   try {
     const {router,request,context}=input;
-    requireHumanEnterprise(context);
+    assertCv03HumanEnterpriseContextV010(context);
     if(request.contractVersion!=="0.1.0" || request.type!=="command" ||
       request.command.code!==PERSONAL_SAVED_VIEW_WRITE_V010 ||
       request.command.inputVersion!=="0.1.0" ||
