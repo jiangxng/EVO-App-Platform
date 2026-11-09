@@ -87,7 +87,7 @@ function fixture(storage){
     check({principal,scope,action}){
       const allowed=Boolean(principal.subjectId && ["one","two"].includes(scope.enterpriseId))
         && ((action==="dictionary.read"&&readAllowed) ||
-          (action==="collection.saved-view.read"&&readAllowed) ||
+          action==="collection.saved-view.read" ||
           (action==="collection.saved-view.write"&&writeAllowed));
       return {contractVersion:"0.1.0",allowed,policyProviderId:"cv03.test.authority",
         reasonCodes:[allowed?"CV03_ALLOWED":"CV03_DENIED"]};
@@ -215,6 +215,9 @@ test("CV-03 C3-02: Human and Personal Agent WRITE share real Dictionary owner, l
     env.control.allowSource();
     env.control.schemaChanged();
     assert.equal(dataOf(await env.router.execute(command(PERSONAL_SAVED_VIEW_READ_V010,{}),alice)).views.length,0);
+    // Respect the existing dependency lifecycle: disable the dependent
+    // Dictionary before its Enterprise Context provider package.
+    env.manager.disable(businessDictionaryPackage.packageId);
     env.manager.disable(hostEnterpriseContextProviderPackage.packageId);
     assert.equal((await env.router.execute(command(PERSONAL_SAVED_VIEW_READ_V010,{}),alice)).error.code,
       "ACTION_FEATURE_NOT_ACTIVE");
