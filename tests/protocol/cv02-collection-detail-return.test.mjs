@@ -51,7 +51,7 @@ test("CV-02 supplier: list→detail→parent restores exact validated My Supplie
     readableFieldIds:["displayName","code"],returnRoute:back
   });
   assert.equal(detail.contextNavigation.items[0].route,back);
-  assert.match(renderCatalogBrowserToHtml(detail),/data-eidos-route/);
+  assert.match(renderCatalogBrowserToHtml(detail),/data-eidos-context-route="\/counterparties\/my-suppliers/);
   const legacy=createCounterpartyDetailPageV010({
     counterparty:supplier,locale:"zh-CN",canManage:false
   });
