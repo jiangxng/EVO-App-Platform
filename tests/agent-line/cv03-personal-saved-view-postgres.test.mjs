@@ -2,6 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import postgres from "postgres";
+import {createServer} from "node:http";
+import {
+  createCv03IsolatedHumanHttpHandlerV010,
+  CV03_HUMAN_SAVED_VIEW_FORM_SOURCE_V010
+} from "../../dist/manager/cv03-personal-saved-view-human-http.js";
 import {renderCatalogBrowserToHtml}
   from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 import {parseBusinessDictionaryDirectoryRouteV010}
@@ -445,6 +450,89 @@ test("CV-03 C3-02 real PG: Human Eidos save-as form → Dictionary Owner READ �
     console.log("CV03_C302_HUMAN_EIDOS_SIGNED_PG_SAVE_RESTORE_PROOF=PASS");
   } finally {
     await storage.close();
+    await sql.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
+    await sql.end();
+  }
+});
+
+test("CV-03 C3-02 real PG: isolated HTTP Human Eidos GET→POST saves with signed receipt and restores Host Eidos page",dbRequired,async()=>{
+  const schema="cv03_http_"+randomUUID().replaceAll("-","").slice(0,16);
+  await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
+  const store=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
+  const sql=postgres(url,{max:2,connect_timeout:10});
+  let server;
+  try{
+    const env=fixture(store),alice=context("owner-a","one");
+    const handler=createCv03IsolatedHumanHttpHandlerV010({
+      router:env.router,isEnabled:()=>true,newViewId:()=>"http-personal-hk",
+      async resolveContext(request){
+        if(request.headers.authorization!=="Bearer alice")throw Error("CV03_UNAUTHORIZED");
+        return alice;
+      }
+    });
+    server=createServer((req,res)=>{
+      void handler(req,res).then(handled=>{
+        if(!handled){res.statusCode=404;res.end("{}");}
+      }).catch(error=>{res.statusCode=500;res.end(String(error));});
+    });
+    await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+    const base="http://127.0.0.1:"+server.address().port;
+    const route="/business-dictionaries?view=all&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=25";
+    const url=base+"/v1/experience-pages?source="+encodeURIComponent(
+      CV03_HUMAN_SAVED_VIEW_FORM_SOURCE_V010)+"&route="+encodeURIComponent(route);
+    const get=await fetch(url,{headers:{authorization:"Bearer alice"}});
+    assert.equal(get.status,200);
+    const form=await get.json();
+    assert.equal(form.kind,"form");
+    const request={
+      ...command(PERSONAL_SAVED_VIEW_WRITE_V010,{
+        title:"HTTP Human Supplier View",viewId:form.fields.find(f=>f.key==="viewId").initialValue,
+        returnTo:form.fields.find(f=>f.key==="returnTo").initialValue
+      }),actionId:"save-personal-view",
+      sourceInteractionId:"cv03-human-http-signed-1",requiresConfirmation:true
+    };
+    const post=await fetch(base+"/v1/actions",{
+      method:"POST",headers:{authorization:"Bearer alice","content-type":"application/json"},
+      body:JSON.stringify(request)
+    });
+    assert.equal(post.status,200);
+    const response=await post.json();
+    assert.equal(response.ok,true,JSON.stringify(response.error));
+    assert.equal(response.result.data.view.revision,0);
+    assert.equal(response.result.data.view.ownerSubjectId,"owner-a");
+    assert.equal(env.lastIssued().request.actionId,PERSONAL_SAVED_VIEW_WRITE_V010);
+    assert.equal(response.result.navigateTo.includes("personalViewId=http-personal-hk"),true);
+    const view=await createCv03AuthorizedDictionarySavedViewPageV010({
+      actionRouter:env.router,context:alice,
+      dictionaries:env.dictionary.list("enterprise-context:one"),
+      directorySelection:parseBusinessDictionaryDirectoryRouteV010(response.result.navigateTo),
+      canManage:false,locale:"zh-CN"
+    });
+    assert.deepEqual(view.table.views.filter(x=>x.selected).map(x=>x.id),
+      ["personal:http-personal-hk"]);
+    assert.equal(view.table.rows.length,1);
+    assert.doesNotMatch(renderCatalogBrowserToHtml(view),/Internal private option/);
+    const raw=await fetch(base+"/v1/actions",{
+      method:"POST",headers:{authorization:"Bearer attacker","content-type":"application/json"},
+      body:JSON.stringify({...request,values:{...request.values,viewId:"attack"}})
+    });
+    assert.equal(raw.status,403);
+    env.control.revokeSource();
+    const after=await fetch(url,{headers:{authorization:"Bearer alice"}});
+    assert.equal(after.status,403);
+    const stale=await createCv03AuthorizedDictionarySavedViewPageV010({
+      actionRouter:env.router,context:alice,
+      dictionaries:env.dictionary.list("enterprise-context:one"),
+      directorySelection:parseBusinessDictionaryDirectoryRouteV010(response.result.navigateTo),
+      canManage:false
+    });
+    assert.deepEqual(stale.table.views.map(x=>x.id),["all","draft","published"]);
+    console.log("CV03_C302_REAL_HTTP_HUMAN_SIGNED_PG_AND_EIDOS_RESTORE=PASS");
+  }finally{
+    if(server)await new Promise(resolve=>server.close(resolve));
+    await store.close();
     await sql.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
     await sql.end();
   }
