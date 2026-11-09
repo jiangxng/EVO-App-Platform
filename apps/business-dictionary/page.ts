@@ -122,7 +122,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
     };
     columns: readonly string[];
   }[];
-  /** Host-resolved selected id only; URL may not self-authorize a view. */
+  /** Optional Host cross-check. Selection hint from URL is NOT authorization. */
   selectedPersonalViewId?: string;
 }): CatalogBrowserV010 {
   const t = labels(input.locale);
@@ -163,7 +163,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           const v = saved.query.view ?? "all";
           if(v !== "all" && v !== "draft" && v !== "published")
             return [];
-          const selected: BusinessDictionaryDirectorySelectionV010 = {view: v,query: {
+          const selected: BusinessDictionaryDirectorySelectionV010 = {view: v,
+            personalViewId: saved.viewId, query: {
             ...(saved.query.search ? {search:saved.query.search} : {}),
             ...(saved.query.sort ? {sort:saved.query.sort} : {}),
             ...(saved.query.direction ? {direction:saved.query.direction} : {}),
@@ -174,31 +175,37 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           if(route.length > 650) return [];
           const parsed = parseBusinessDictionaryDirectoryRouteV010(route);
           if(parsed.view !== v) return [];
-          const currentRoute=businessDictionaryDirectoryQueryRouteV010(
-            {view:selection.view,query:{...selection.query,page:0}},0);
           return [{id:"personal:"+saved.viewId,label:saved.title.trim(),route,
-            selected:input.selectedPersonalViewId===saved.viewId &&
-              businessDictionaryDirectoryQueryRouteV010(parsed,0)===currentRoute}];
+            selected:selection.personalViewId===saved.viewId &&
+              (input.selectedPersonalViewId===undefined ||
+                input.selectedPersonalViewId===saved.viewId) &&
+              selection.view===parsed.view}];
         } catch {return [];}
       })
     : [];
+  // A forged/stale personalViewId is never carried into new links when the
+  // Host did not return that authorized view. The only effect of the URL hint
+  // is selection after current Authorization + Domain Owner validation.
   const personalSelected = savedViews.some(view=>view.selected);
+  const effectiveSelection: BusinessDictionaryDirectorySelectionV010 = personalSelected
+    ? selection!
+    : {view: selection?.view ?? "all",query: selection?.query ?? {}};
   const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
     columns: [
       {id:"displayName",label:t.name,sortRoute:businessDictionaryDirectoryQueryRouteV010(
-        {view:selection.view,query:{...query,sort:"displayName",
+        {...effectiveSelection,query:{...query,sort:"displayName",
           direction:query.sort === "displayName" && query.direction !== "desc"
             ? "desc" : "asc"}})},
       {id:"dictionaryId",label:t.id,sortRoute:businessDictionaryDirectoryQueryRouteV010(
-        {view:selection.view,query:{...query,sort:"dictionaryId",
+        {...effectiveSelection,query:{...query,sort:"dictionaryId",
           direction:query.sort === "dictionaryId" && query.direction !== "desc"
             ? "desc" : "asc"}})},
       {id:"state",label:t.status,sortRoute:businessDictionaryDirectoryQueryRouteV010(
-        {view:selection.view,query:{...query,sort:"state",
+        {...effectiveSelection,query:{...query,sort:"state",
           direction:query.sort === "state" && query.direction !== "desc"
             ? "desc" : "asc"}})},
       {id:"version",label:t.version,sortRoute:businessDictionaryDirectoryQueryRouteV010(
-        {view:selection.view,query:{...query,sort:"version",
+        {...effectiveSelection,query:{...query,sort:"version",
           direction:query.sort === "version" && query.direction !== "desc"
             ? "desc" : "asc"}})},
       {id:"optionCount",label:t.detail}
@@ -216,7 +223,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
       ...savedViews
     ],
     search: {
-      route:businessDictionaryDirectoryQueryRouteV010(viewSelection(selection.view)),
+      route:businessDictionaryDirectoryQueryRouteV010(effectiveSelection),
       label:t.list, placeholder:t.list, value:query.search ?? "",
       submitLabel:(input.locale ?? "").startsWith("zh") ? "搜索" : "Search"
     },
@@ -237,9 +244,9 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
       previousLabel:(input.locale ?? "").startsWith("zh") ? "上一页" : "Previous",
       nextLabel:(input.locale ?? "").startsWith("zh") ? "下一页" : "Next",
       ...(pageInfo.page > 0 ? {previousRoute:businessDictionaryDirectoryQueryRouteV010(
-        selection,pageInfo.page - 1)} : {}),
+        effectiveSelection,pageInfo.page - 1)} : {}),
       ...(pageInfo.hasMore ? {nextRoute:businessDictionaryDirectoryQueryRouteV010(
-        selection,pageInfo.page + 1)} : {})
+        effectiveSelection,pageInfo.page + 1)} : {})
     }
   } : undefined;
   return { contractVersion: "0.1.0", kind: "catalog-browser", layout: "list", density: "compact",
@@ -264,7 +271,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         route: businessDictionaryDetailRouteV010(
           dictionary.dictionaryId,
           selection && pageInfo
-            ? businessDictionaryDirectoryQueryRouteV010(selection, pageInfo.page)
+            ? businessDictionaryDirectoryQueryRouteV010(effectiveSelection, pageInfo.page)
             : undefined),
         requiresConfirmation: false }
     })) };
