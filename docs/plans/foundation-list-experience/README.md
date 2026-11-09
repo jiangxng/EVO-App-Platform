@@ -3,6 +3,12 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-09 CV-03 / C3-02 七次续跑最新工程交接（优先阅读）
+
+**新入口：[C3-02 真实 PG、Host 签名、Eidos Human/HTTP 及正式生产门禁最终交接](CV03-C302-WINDOW07-FINAL-HANDOFF-20261109.md)**。截至 Platform `main` `8095f8c0709af58f661d3ed4d0ee1c1f67ed7cea`，#1180～#1191 中相关工程 PR 已按最终 CI 实证合并；最新 #1191 **45/45 PASS**，明确要求正式 Host WRITE/未注册 Human Page 仍保持拒绝。隔离 PG18/Human HTTP 正例 **10/10 PASS** 不代表生产上线。下方的旧窗口恢复、2026-11-06 计划与 2026-10-12 进展为历史快照，**不是本时点生产可用状态**。
+
+下一窗口先核验真实 PostgreSQL 物理 SQL 权限、Host signer/verifier 密钥、PA05 Feature 与真实身份，再在现有 Eidos/Platform 中注册可用 Human 保存页和 Agent Write；最后补桌面/390px Human 签收。不得重复造第二套列表框架，也不得直接解除 `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF` 的拒绝门禁。
+
 ## 2026-11-09 旧窗口恢复入口（本次更新）
 
 本阶段保留了原有 CV-00～CV-07 单一计划、2026-11-06 原始研究来源与架构决策，补充了**明确要求、采用/放弃方案理由、PR/源码/CI/Human 不同证据等级以及 CV-03 条件写入门禁**的可追溯专项交接：
