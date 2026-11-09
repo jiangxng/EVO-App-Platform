@@ -1,13 +1,17 @@
+import { randomUUID } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
   readFileSync,
   renameSync,
+  rmdirSync,
+  unlinkSync,
   writeFileSync
 } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import type {
   EnterpriseResourceAddressV010,
+  EnterpriseResourceConditionalConsistencyV010,
   EnterpriseResourceListInputV010,
   EnterpriseResourcePutInputV010,
   EnterpriseResourceRepositoryV010,
@@ -68,6 +72,12 @@ function validateResource(value: EnterpriseResourceV010): EnterpriseResourceV010
       "ENTERPRISE_RESOURCE_UPDATED_BY_REQUIRED"
     )
   };
+  if (
+    resource.revision !== undefined
+    && (!Number.isSafeInteger(resource.revision) || resource.revision < 0)
+  ) {
+    throw new Error("ENTERPRISE_RESOURCE_REVISION_INVALID");
+  }
   if (!["ACTIVE", "ARCHIVED"].includes(resource.lifecycleState)) {
     throw new Error("ENTERPRISE_RESOURCE_LIFECYCLE_INVALID");
   }
@@ -105,7 +115,9 @@ function validateSnapshot(
 
 function createRepository(
   read: () => EnterpriseResourceStoreSnapshotV010,
-  write: (snapshot: EnterpriseResourceStoreSnapshotV010) => void
+  write: (snapshot: EnterpriseResourceStoreSnapshotV010) => void,
+  runExclusive: <T>(work: () => T) => T = work => work(),
+  conditionalWriteConsistency: EnterpriseResourceConditionalConsistencyV010 = "PROCESS_LOCAL"
 ): EnterpriseResourceRepositoryV010 {
   let transactionSnapshot: EnterpriseResourceStoreSnapshotV010 | undefined;
   let transactionDepth = 0;
@@ -122,7 +134,12 @@ function createRepository(
     write(valid);
   };
 
+  // Reuse the enclosing transaction's exclusive scope, never acquire a nested file lock.
+  const exclusive = <T>(work: () => T): T =>
+    transactionSnapshot ? work() : runExclusive(work);
+
   return {
+    conditionalWriteConsistency,
     transaction<T>(work: () => T): T {
       if (transactionSnapshot) {
         transactionDepth += 1;
@@ -132,20 +149,22 @@ function createRepository(
           transactionDepth -= 1;
         }
       }
-      transactionSnapshot = validateSnapshot(clone(read()));
-      transactionDepth = 1;
-      try {
-        const result = work();
-        const committed = validateSnapshot(clone(transactionSnapshot));
-        transactionDepth = 0;
-        transactionSnapshot = undefined;
-        write(committed);
-        return result;
-      } catch (error) {
-        transactionDepth = 0;
-        transactionSnapshot = undefined;
-        throw error;
-      }
+      return runExclusive(() => {
+        transactionSnapshot = validateSnapshot(clone(read()));
+        transactionDepth = 1;
+        try {
+          const result = work();
+          const committed = validateSnapshot(clone(transactionSnapshot));
+          transactionDepth = 0;
+          transactionSnapshot = undefined;
+          write(committed);
+          return result;
+        } catch (error) {
+          transactionDepth = 0;
+          transactionSnapshot = undefined;
+          throw error;
+        }
+      });
     },
     get(address) {
       const key = addressKey(address);
@@ -185,9 +204,13 @@ function createRepository(
     },
 
     put(input: EnterpriseResourcePutInputV010) {
+      return exclusive(() => {
       const current = readCurrent();
       const key = addressKey(input);
       const previous = current.resources.find(item => addressKey(item) === key);
+      if (previous?.revision !== undefined) {
+        throw new Error("ENTERPRISE_RESOURCE_CONDITIONAL_WRITE_REQUIRED");
+      }
       const recordedAt = timestamp(
         input.recordedAt,
         "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID"
@@ -228,10 +251,12 @@ function createRepository(
         ]
       });
       return clone(next);
+      });
     },
 
     putMany(inputs: EnterpriseResourcePutInputV010[]) {
       if (inputs.length === 0) return [];
+      return exclusive(() => {
       const current = readCurrent();
       const byKey = new Map(
         current.resources.map(resource => [addressKey(resource), resource])
@@ -246,6 +271,9 @@ function createRepository(
         }
         inputKeys.add(key);
         const previous = byKey.get(key);
+        if (previous?.revision !== undefined) {
+          throw new Error("ENTERPRISE_RESOURCE_CONDITIONAL_WRITE_REQUIRED");
+        }
         const recordedAt = timestamp(
           input.recordedAt,
           "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID"
@@ -287,13 +315,97 @@ function createRepository(
         resources: [...byKey.values()]
       });
       return results;
+      });
+    },
+
+    /**
+     * Atomically create when missing (expectedRevision=null), or replace one
+     * exact version. An archived address still exists and cannot be recreated.
+     */
+    putIfRevision(input) {
+      return exclusive(() => {
+        const { expectedRevision } = input;
+        if (expectedRevision !== null && (
+          !Number.isSafeInteger(expectedRevision) || expectedRevision < 0
+        )) throw new Error("ENTERPRISE_RESOURCE_REVISION_INVALID");
+        const current = readCurrent();
+        const key = addressKey(input);
+        const previous = current.resources.find(item => addressKey(item) === key);
+        const revision = previous?.revision ?? 0;
+        if (previous?.lifecycleState === "ARCHIVED" && expectedRevision !== null) {
+          throw new Error("ENTERPRISE_RESOURCE_ALREADY_ARCHIVED");
+        }
+        if (
+          (expectedRevision === null && previous !== undefined)
+          || (expectedRevision !== null && (!previous || revision !== expectedRevision))
+        ) throw new Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
+        const recordedAt = timestamp(input.recordedAt, "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID");
+        const actorSubjectId = required(input.actorSubjectId, "ENTERPRISE_RESOURCE_ACTOR_REQUIRED");
+        const next = validateResource({
+          contractVersion: "0.1.0",
+          contextId: required(input.contextId, "ENTERPRISE_RESOURCE_CONTEXT_REQUIRED"),
+          namespace: required(input.namespace, "ENTERPRISE_RESOURCE_NAMESPACE_REQUIRED"),
+          collectionId: required(input.collectionId, "ENTERPRISE_RESOURCE_COLLECTION_REQUIRED"),
+          resourceType: required(input.resourceType, "ENTERPRISE_RESOURCE_TYPE_REQUIRED"),
+          resourceId: required(input.resourceId, "ENTERPRISE_RESOURCE_ID_REQUIRED"),
+          schemaRef: required(input.schemaRef, "ENTERPRISE_RESOURCE_SCHEMA_REQUIRED"),
+          ...(input.ownerPackageId?.trim() ? { ownerPackageId: input.ownerPackageId.trim() } : {}),
+          storageKind: input.storageKind ?? "DOCUMENT",
+          ...(input.payload !== undefined ? { payload: clone(input.payload) } : {}),
+          ...(input.payloadRef?.trim() ? { payloadRef: input.payloadRef.trim() } : {}),
+          ...(input.metadata ? { metadata: clone(input.metadata) } : {}),
+          lifecycleState: "ACTIVE",
+          revision: previous ? revision + 1 : 0,
+          createdAt: previous?.createdAt ?? recordedAt,
+          createdBySubjectId: previous?.createdBySubjectId ?? actorSubjectId,
+          updatedAt: recordedAt,
+          updatedBySubjectId: actorSubjectId
+        });
+        writeCurrent({
+          contractVersion: "0.1.0",
+          resources: [...current.resources.filter(item => addressKey(item) !== key), next]
+        });
+        return clone(next);
+      });
+    },
+    archiveIfRevision(input) {
+      return exclusive(() => {
+        if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0) {
+          throw new Error("ENTERPRISE_RESOURCE_REVISION_INVALID");
+        }
+        const current = readCurrent();
+        const key = addressKey(input.address);
+        const previous = current.resources.find(item => addressKey(item) === key);
+        if (!previous || (previous.revision ?? 0) !== input.expectedRevision) {
+          throw new Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
+        }
+        if (previous.lifecycleState === "ARCHIVED") {
+          throw new Error("ENTERPRISE_RESOURCE_ALREADY_ARCHIVED");
+        }
+        const next = validateResource({
+          ...clone(previous),
+          revision: input.expectedRevision + 1,
+          lifecycleState: "ARCHIVED",
+          updatedAt: timestamp(input.recordedAt, "ENTERPRISE_RESOURCE_RECORDED_AT_INVALID"),
+          updatedBySubjectId: required(input.actorSubjectId, "ENTERPRISE_RESOURCE_ACTOR_REQUIRED")
+        });
+        writeCurrent({
+          contractVersion: "0.1.0",
+          resources: current.resources.map(item => addressKey(item) === key ? next : item)
+        });
+        return clone(next);
+      });
     },
 
     archive(input) {
+      return exclusive(() => {
       const current = readCurrent();
       const key = addressKey(input.address);
       const previous = current.resources.find(item => addressKey(item) === key);
       if (!previous) throw new Error("ENTERPRISE_RESOURCE_NOT_FOUND");
+      if (previous.revision !== undefined) {
+        throw new Error("ENTERPRISE_RESOURCE_CONDITIONAL_WRITE_REQUIRED");
+      }
       const next = validateResource({
         ...clone(previous),
         lifecycleState: "ARCHIVED",
@@ -313,6 +425,7 @@ function createRepository(
         )
       });
       return clone(next);
+      });
     }
   };
 }
@@ -332,23 +445,50 @@ export function createMemoryEnterpriseResourceRepositoryV010(
   );
 }
 
+/**
+ * Shared-file single-node/process CAS is serialized through atomic mkdir.
+ * This is not a certified distributed datastore across separate host volumes.
+ * A crashed writer leaves a lock: subsequent writes fail closed until recovery.
+ */
 export function createFileEnterpriseResourceRepositoryV010(
   path: string
 ): EnterpriseResourceRepositoryV010 {
+  const filePath = resolve(path);
+  const lockPath = filePath + ".write-lock";
+  const runExclusive = <T>(work: () => T): T => {
+    mkdirSync(dirname(filePath), { recursive: true });
+    try {
+      mkdirSync(lockPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+        throw new Error("ENTERPRISE_RESOURCE_STORE_BUSY");
+      }
+      throw error;
+    }
+    try {
+      return work();
+    } finally {
+      // Do not delete another process's lock or automatically steal stale locks.
+      rmdirSync(lockPath);
+    }
+  };
   const read = (): EnterpriseResourceStoreSnapshotV010 => {
-    if (!existsSync(path)) {
+    if (!existsSync(filePath)) {
       return { contractVersion: "0.1.0", resources: [] };
     }
     return validateSnapshot(
-      JSON.parse(readFileSync(path, "utf8")) as EnterpriseResourceStoreSnapshotV010
+      JSON.parse(readFileSync(filePath, "utf8")) as EnterpriseResourceStoreSnapshotV010
     );
   };
   const write = (snapshot: EnterpriseResourceStoreSnapshotV010): void => {
     const valid = validateSnapshot(snapshot);
-    mkdirSync(dirname(path), { recursive: true });
-    const temp = path + ".tmp";
-    writeFileSync(temp, JSON.stringify(valid, null, 2) + "\n", "utf8");
-    renameSync(temp, path);
+    const temp = filePath + "." + randomUUID() + ".tmp";
+    try {
+      writeFileSync(temp, JSON.stringify(valid, null, 2) + "\n", { encoding: "utf8", flag: "wx" });
+      renameSync(temp, filePath);
+    } finally {
+      if (existsSync(temp)) unlinkSync(temp);
+    }
   };
-  return createRepository(read, write);
+  return createRepository(read, write, runExclusive, "SAME_FILESYSTEM_LOCK");
 }
