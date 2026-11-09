@@ -33,6 +33,8 @@ export interface EnterpriseResourceV010
   extends EnterpriseResourceAddressV010 {
   contractVersion: "0.1.0";
   schemaRef: string;
+  /** Present only for resources governed by conditional writes. Legacy records remain unversioned. */
+  revision?: number;
   ownerPackageId?: string;
   storageKind: EnterpriseResourceStorageKindV010;
   payload?: EnterpriseResourceJsonV010;
@@ -65,8 +67,44 @@ export interface EnterpriseResourcePutInputV010
   recordedAt: string;
 }
 
+/**
+ * A null expectedRevision is an atomic create-if-absent (including archived IDs).
+ * A numeric expectedRevision is an atomic compare-and-update against current revision.
+ * Legacy unversioned records have effective revision 0 for conditional migration.
+ * Conflict: ENTERPRISE_RESOURCE_REVISION_CONFLICT. Unknown result: read back before retry.
+ */
+export interface EnterpriseResourceConditionalPutInputV010
+  extends EnterpriseResourcePutInputV010 {
+  expectedRevision: number | null;
+}
+
+export interface EnterpriseResourceConditionalArchiveInputV010 {
+  address: EnterpriseResourceAddressV010;
+  expectedRevision: number;
+  actorSubjectId: string;
+  recordedAt: string;
+}
+
+/**
+ * PROCESS_LOCAL cannot prove a shared multi-Worker authority.
+ * SAME_FILESYSTEM_LOCK is an OS-filesystem lock, NOT a cross-host datastore guarantee.
+ * A future production store must declare its separately certified authority.
+ */
+export type EnterpriseResourceConditionalConsistencyV010 =
+  | "PROCESS_LOCAL"
+  | "SAME_FILESYSTEM_LOCK";
+
 export interface EnterpriseResourceRepositoryV010 {
+  /** Explicitly scoped conditional-write guarantee; do not infer from method presence. */
+  readonly conditionalWriteConsistency?: EnterpriseResourceConditionalConsistencyV010;
   transaction?<T>(work: () => T): T;
+  /** Optional: unsupported implementations must fail closed, not emulate get→put. */
+  putIfRevision?(
+    input: EnterpriseResourceConditionalPutInputV010
+  ): EnterpriseResourceV010;
+  archiveIfRevision?(
+    input: EnterpriseResourceConditionalArchiveInputV010
+  ): EnterpriseResourceV010;
   get(
     address: EnterpriseResourceAddressV010
   ): EnterpriseResourceV010 | undefined;
