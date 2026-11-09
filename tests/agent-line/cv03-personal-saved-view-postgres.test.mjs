@@ -326,6 +326,9 @@ test("CV-03 C3-02 Host-resolved private view READ feeds real Eidos Dictionary ta
     ]);
     assert.deepEqual(page.table.views.filter(v=>v.selected).map(v=>v.id),["personal:hk-views"]);
     assert.equal(page.table.rows.length,1);
+    assert.deepEqual(page.table.columns.map(c=>c.id),["dictionaryId","displayName"]);
+    assert.deepEqual(Object.keys(page.table.rows[0].cells),
+      ["dictionaryId","displayName"]);
     const html=renderCatalogBrowserToHtml(page);
     assert.match(html,/data-eidos-catalog-view-id="personal:hk-views"/);
     assert.doesNotMatch(html,/Internal private option/);
