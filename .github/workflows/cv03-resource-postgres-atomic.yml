@@ -7,6 +7,8 @@ on:
       - "providers/enterprise-context/resources.ts"
       - "providers/enterprise-context/resources-postgres.ts"
       - "tests/agent-line/cv03-resource-postgres-conditional.test.mjs"
+      - "providers/enterprise-context/personal-saved-views.ts"
+      - "tests/agent-line/cv03-personal-saved-view-postgres.test.mjs"
       - "tests/fixtures/cv03-resource-postgres-child.mjs"
       - ".github/workflows/cv03-resource-postgres-atomic.yml"
   workflow_dispatch:
@@ -41,4 +43,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs
+      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs
