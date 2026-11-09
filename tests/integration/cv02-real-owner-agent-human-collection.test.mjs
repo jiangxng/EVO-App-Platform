@@ -96,7 +96,7 @@ function fixture() {
   });
   const router = createAppActionRouter(
     handlers,
-    id => manager.getSnapshot().activatedFeatures.some(feature => feature.featureId === id),
+    id => manager.getSnapshot().activeFeatures.some(feature => feature.featureId === id),
     createCapabilityOperationActionPreExecuteV010({
       manager,resolveAuthorizationProvider:()=>provider
     })
