@@ -520,6 +520,7 @@ export const businessDictionaryCapabilityContributionsV010:
       { dictionaryId: { type: "string" } }),
     businessDictionaryOp(BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010, "READ",
       BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010, {
+        view: { type: "string", enum: ["all", "draft", "published"] },
         search: { type: "string", maxLength: 120 },
         sort: { type: "string", enum: ["dictionaryId", "displayName", "state", "version"] },
         direction: { type: "string", enum: ["asc", "desc"] },
