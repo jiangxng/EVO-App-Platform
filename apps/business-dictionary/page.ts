@@ -178,7 +178,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
             {view:selection.view,query:{...selection.query,page:0}},0);
           return [{id:"personal:"+saved.viewId,label:saved.title.trim(),route,
             selected:input.selectedPersonalViewId===saved.viewId &&
-              route===currentRoute}];
+              businessDictionaryDirectoryQueryRouteV010(parsed,0)===currentRoute}];
         } catch {return [];}
       })
     : [];
