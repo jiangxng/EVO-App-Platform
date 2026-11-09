@@ -7673,6 +7673,7 @@ const server = createServer(async (request, response) => {
         if (source === BUSINESS_DICTIONARY_DETAIL_SOURCE_V010) {
           return json(response, 200, page.createBusinessDictionaryDetailPageV010({
             dictionary: dictionary!, canManage, locale,
+            ...(route.returnTo ? {returnTo:route.returnTo} : {}),
             effectiveVersion: repository.getEffective(contextId, dictionary!.dictionaryId)?.version
           }));
         }
@@ -7982,6 +7983,27 @@ const server = createServer(async (request, response) => {
               : "COUNTERPARTY_DETAIL_ROUTE_INVALID"
           });
         }
+        // ReturnTo controls only a navigation link; a new page request still
+        // goes through the current Enterprise Context and the domain READ.
+        let counterpartyReturnRoute: string | undefined;
+        if (source === COUNTERPARTY_DETAIL_PAGE_SOURCE && routeValue) {
+          const routeParams = new URL(routeValue, "https://evo.invalid").searchParams;
+          if ([...routeParams.keys()].some(key =>
+              key !== "counterpartyId" && key !== "returnTo")
+              || routeParams.getAll("counterpartyId").length !== 1
+              || routeParams.getAll("returnTo").length > 1) {
+            return json(response, 400, { code: "COUNTERPARTY_DETAIL_ROUTE_INVALID" });
+          }
+          try {
+            const { parseCounterpartyProjectionReturnRouteV010 } =
+              await import("../apps/counterparty/projection-query.js");
+            counterpartyReturnRoute = parseCounterpartyProjectionReturnRouteV010(
+              routeParams.get("returnTo") || undefined
+            );
+          } catch {
+            return json(response, 400, { code: "COUNTERPARTY_RETURN_ROUTE_INVALID" });
+          }
+        }
         const counterparty =
           runtime.repository.get(active.contextId, counterpartyId);
         if (
@@ -8050,7 +8072,8 @@ const server = createServer(async (request, response) => {
                 ),
                 locale,
                 readableFieldIds: access.readableFieldIds,
-                canManage
+                canManage,
+                ...(counterpartyReturnRoute ? { returnRoute: counterpartyReturnRoute } : {})
               })
         );
       }

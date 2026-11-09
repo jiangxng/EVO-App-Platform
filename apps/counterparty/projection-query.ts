@@ -1,4 +1,8 @@
 import type { CounterpartySubjectV010 } from "./repository.js";
+import {
+  COUNTERPARTY_CUSTOMERS_ROUTE, COUNTERPARTY_SUPPLIERS_ROUTE,
+  COUNTERPARTY_MY_CUSTOMERS_ROUTE, COUNTERPARTY_MY_SUPPLIERS_ROUTE
+} from "./constants.js";
 
 /** BEX-01: bounded read-side query, never an authority or SQL expression. */
 export interface CounterpartyProjectionQueryV010 {
@@ -142,4 +146,25 @@ export function readableCounterpartyProjectionRowsV010(
       || key === "displayName" || fields.has(key)
     )
   ) as CounterpartyProjectionRecordV010);
+}
+
+/** Allowlisted, bounded return navigation. It is never a read/permission grant. */
+export function parseCounterpartyProjectionReturnRouteV010(
+  route: string | undefined
+): string | undefined {
+  if (!route) return undefined;
+  if (!route.startsWith("/") || route.startsWith("//")
+    || route.includes("#") || route.includes("\\") || route.length > 650) {
+    throw new Error("COUNTERPARTY_RETURN_ROUTE_INVALID");
+  }
+  const target = new URL(route, "https://evo.invalid");
+  const allowed = [
+    COUNTERPARTY_CUSTOMERS_ROUTE, COUNTERPARTY_SUPPLIERS_ROUTE,
+    COUNTERPARTY_MY_CUSTOMERS_ROUTE, COUNTERPARTY_MY_SUPPLIERS_ROUTE
+  ];
+  if (!allowed.includes(target.pathname as typeof allowed[number])) {
+    throw new Error("COUNTERPARTY_RETURN_ROUTE_INVALID");
+  }
+  parseCounterpartyProjectionRouteQueryV010(route, target.pathname);
+  return route;
 }

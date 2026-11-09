@@ -34,6 +34,8 @@
 
 **CV-02 第一项可复用代码证据（2026-11-06）：** [Eidos owner #209](https://github.com/jiangxng/eidos/pull/209) 已合并 upstream `127150c30193b57b38d1d9cc62443ddfa90e2349`，给现有 Catalog Browser 增加可选、声明式 `table.views` 与导航安全验证；[Platform #1167](https://github.com/jiangxng/EVO-App-Platform/pull/1167) 在全部 **9/9 相关 CI 通过**后合并 `ef9275cad7f02af786b424801a282733bbe8e746`，按 scoped upstream pin 定向采用并保留 Eidos Host overlay。证据文档：[实际 Platform 采用 UI 设计/缺口](../../ui-design-reviews/cv02-eidos-catalog-view-adoption-20261106.md)。**此证据只证明 Eidos 通用组件可被 Platform 复用，尚未证明 Counterparty/Dictionary 的视图导航由授权数据源驱动，也没有 Saved View、桌面/手机 Human 或真实 Agent 全链路**；CV-02 仍在实施中。
 
+**2026-11-09 CV-02 真实业务接入证据：** [Platform #1169](https://github.com/jiangxng/EVO-App-Platform/pull/1169) 在准确 HEAD 45/45 相关 CI 成功后合入 `main@79d2fe3f1789b20ced440dff031815694961c654`。原 Counterparty 客户/供应商/我的受权投影已提供 Eidos 视图导航，Dictionary 已由原有 Collection Query 驱动表格/三个系统视图；业务 `dictionary.collection.query` 的 allowlisted `view=all|draft|published` 对 Human 与 Personal Agent 受管 READ 共同开放，仍不授权字典发布。详情返回上下文的下一段实现/验证进入本期后续 PR，真实 Agent/桌面/390px/Human 均未签收。参考 [业务列表 UI 证据](../../ui-design-reviews/CV02-REAL-OWNER-LIST-VIEWS-20261109.md) 和 [列表→详情→返回设计与正反测试](../../ui-design-reviews/CV02-COLLECTION-DETAIL-RETURN-20261109.md)。不将此标为 CV-02 HUMAN_PASS。
+
 ## 3. 各步骤实施任务、测试和退出门槛
 
 ### CV-00｜现状与契约锁定（最优先，纯对账/最小设计）

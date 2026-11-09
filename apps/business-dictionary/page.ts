@@ -2,6 +2,7 @@ import type { BusinessDictionarySnapshotV010 } from "../../contracts/reference-d
 import { queryBusinessDictionaryCollectionV010 } from "./collection-query.js";
 import {
   businessDictionaryDirectoryQueryRouteV010,
+  parseBusinessDictionaryDirectoryRouteV010,
   type BusinessDictionaryDirectorySelectionV010
 } from "./directory-query.js";
 import type { CatalogBrowserV010 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
@@ -39,8 +40,15 @@ function labels(locale?: string) {
   };
 }
 
-export function businessDictionaryDetailRouteV010(dictionaryId: string): string {
-  return DETAIL + "?dictionaryId=" + encodeURIComponent(dictionaryId);
+export function businessDictionaryDetailRouteV010(
+  dictionaryId: string, returnTo?: string
+): string {
+  const params = new URLSearchParams({dictionaryId});
+  if (returnTo) {
+    parseBusinessDictionaryDirectoryRouteV010(returnTo);
+    params.set("returnTo", returnTo);
+  }
+  return DETAIL + "?" + params.toString();
 }
 
 export function businessDictionaryOptionRouteV010(dictionaryId?: string, code?: string): string {
@@ -51,18 +59,34 @@ export function businessDictionaryOptionRouteV010(dictionaryId?: string, code?: 
 }
 
 export function parseBusinessDictionaryRouteV010(route: string | undefined,
-  kind: "detail" | "option"): { dictionaryId?: string; code?: string } | undefined {
-  if (!route || route.length > 700 || !route.startsWith("/")) return undefined;
+  kind: "detail" | "option"): { dictionaryId?: string; code?: string; returnTo?: string } | undefined {
+  if (!route || route.length > (kind === "detail" && route.includes("returnTo=") ? 2400 : 700)
+      || !route.startsWith("/") || route.startsWith("//")
+      || route.includes("#") || route.includes("\\")) return undefined;
   const url = new URL(route, "https://evo.invalid");
   if (url.pathname !== (kind === "detail" ? DETAIL : OPTION)) return undefined;
-  if ([...url.searchParams.keys()].some(key => key !== "dictionaryId" && key !== "code")) return undefined;
-  if (url.searchParams.getAll("dictionaryId").length > 1 || url.searchParams.getAll("code").length > 1) return undefined;
+  if ([...url.searchParams.keys()].some(key =>
+    key !== "dictionaryId" && key !== "code"
+    && !(kind === "detail" && key === "returnTo"))) return undefined;
+  if (url.searchParams.getAll("dictionaryId").length > 1
+      || url.searchParams.getAll("code").length > 1
+      || url.searchParams.getAll("returnTo").length > 1) return undefined;
   const dictionaryId = url.searchParams.get("dictionaryId")?.trim();
   const code = url.searchParams.get("code")?.trim();
+  const returnTo = url.searchParams.get("returnTo") ?? undefined;
   if (kind === "detail" && (!dictionaryId || code)) return undefined;
   if (code && !dictionaryId) return undefined;
   if ((dictionaryId?.length ?? 0) > 200 || (code?.length ?? 0) > 100) return undefined;
-  return { ...(dictionaryId ? { dictionaryId } : {}), ...(code ? { code } : {}) };
+  if (returnTo !== undefined) {
+    if (!returnTo.trim()) return undefined;
+    try { parseBusinessDictionaryDirectoryRouteV010(returnTo); }
+    catch { return undefined; }
+  }
+  return {
+    ...(dictionaryId ? { dictionaryId } : {}),
+    ...(code ? { code } : {}),
+    ...(returnTo ? { returnTo } : {})
+  };
 }
 
 export function createBusinessDictionaryContextRequiredPageV010(locale?: string): CatalogBrowserV010 {
@@ -176,14 +200,18 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         ...(input.effectiveVersions?.[dictionary.dictionaryId]
           ? { [t.effective]: input.effectiveVersions[dictionary.dictionaryId] } : {}) },
       primaryAction: { id: "view", label: t.detail, type: "navigate" as const,
-        route: businessDictionaryDetailRouteV010(dictionary.dictionaryId),
+        route: businessDictionaryDetailRouteV010(
+          dictionary.dictionaryId,
+          selection && pageInfo
+            ? businessDictionaryDirectoryQueryRouteV010(selection, pageInfo.page)
+            : undefined),
         requiresConfirmation: false }
     })) };
 }
 
 export function createBusinessDictionaryDetailPageV010(input: {
   dictionary: BusinessDictionarySnapshotV010;
-  effectiveVersion?: number; canManage: boolean; locale?: string;
+  effectiveVersion?: number; canManage: boolean; locale?: string; returnTo?: string;
 }): CatalogBrowserV010 {
   const t = labels(input.locale);
   const dictionary = input.dictionary;
@@ -191,7 +219,8 @@ export function createBusinessDictionaryDetailPageV010(input: {
     itemActivation: input.canManage ? "primary-action" : undefined,
     id: "evo-business-dictionary.detail", title: dictionary.displayName || dictionary.dictionaryId,
     description: dictionary.state === "DRAFT" ? t.publishHelp : t.optionHelp,
-    contextNavigation: { items: [{ id: "dictionaries", label: t.list, route: DIRECTORY },
+    contextNavigation: { items: [{ id: "dictionaries", label: t.list,
+      route: input.returnTo ?? DIRECTORY },
       { id: "dictionary", label: dictionary.displayName || dictionary.dictionaryId }] },
     actions: input.canManage ? [{ id: "add-option", label: t.add, type: "navigate",
       route: businessDictionaryOptionRouteV010(dictionary.dictionaryId), requiresConfirmation: false,
