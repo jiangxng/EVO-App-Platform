@@ -26,13 +26,21 @@ test("BEX-01 supplier page is a real bounded table with visible columns and mobi
  assert.deepEqual(page.table.columns.map(x=>x.id),["displayName","code"]);
  assert.equal(page.search,undefined);
  assert.equal(page.table.pageInfo.nextRoute,COUNTERPARTY_SUPPLIERS_ROUTE+"?page=1&pageSize=25");
- assert.equal(page.actions.find(a=>a.id==="responsibility-scope")?.route,
-   COUNTERPARTY_MY_SUPPLIERS_ROUTE);
+ assert.equal(page.actions.some(a=>a.id==="responsibility-scope"),false,
+   "the legacy scope action is replaced by Eidos native view navigation");
+ assert.deepEqual(page.table.views.map(view=>[view.id,view.selected]),
+   [["all",true],["mine",false]]);
+ assert.equal(page.table.views.find(view=>view.id==="mine")?.route,
+   COUNTERPARTY_MY_SUPPLIERS_ROUTE+"?page=0&pageSize=25");
+ assert.equal(page.actions.filter(a=>a.id==="import").length,0,
+   "no import route was granted, so the primary action is not fabricated");
  assert.ok(page.items.every(x=>!Object.hasOwn(x.metadata,"email")));
  const html=renderCatalogBrowserToHtml(page);
  assert.match(html, /<table data-eidos-catalog-table>/);
  assert.match(html, /data-eidos-catalog-has-table="true"/);
  assert.match(html, /data-eidos-catalog-server-search/);
+ assert.match(html, /data-eidos-catalog-view-navigation/);
+ assert.match(html, /data-eidos-catalog-view-id="mine"/);
  assert.match(html, /data-eidos-catalog-item="s0"/);
  assert.match(html, /data-eidos-catalog-pagination/);
  assert.doesNotMatch(html,/secret@example.com/);

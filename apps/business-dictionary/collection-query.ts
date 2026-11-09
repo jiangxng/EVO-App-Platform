@@ -20,11 +20,20 @@ export function queryBusinessDictionaryCollectionV010(input: {
   dictionaries: readonly BusinessDictionarySnapshotV010[];
   query: Record<string, unknown>;
 }): DataCollectionResultV010 {
-  const query = parseDataCollectionQueryV010(input.query, {
+  // The same owner-defined system view is available to Human and Personal Agent
+  // through the existing authorized Collection READ operation.
+  const { view = "all", ...queryValues } = input.query;
+  if (view !== "all" && view !== "draft" && view !== "published") {
+    throw new Error("BUSINESS_DICTIONARY_COLLECTION_VIEW_INVALID");
+  }
+  const query = parseDataCollectionQueryV010(queryValues, {
     sortableFields: ["dictionaryId", "displayName", "state", "version"]
   });
+  const authorizedViewRows = input.dictionaries.filter(dictionary =>
+    view === "all" || (view === "draft" && dictionary.state === "DRAFT")
+    || (view === "published" && dictionary.state === "PUBLISHED"));
   const paged = pageAuthorizedCollectionRowsV010({
-    authorizedRows: input.dictionaries,
+    authorizedRows: authorizedViewRows,
     query,
     stableId: dictionary => dictionary.dictionaryId,
     searchText: dictionary =>

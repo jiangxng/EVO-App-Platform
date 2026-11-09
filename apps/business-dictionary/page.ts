@@ -1,5 +1,11 @@
 import type { BusinessDictionarySnapshotV010 } from "../../contracts/reference-data/dictionary.js";
+import { queryBusinessDictionaryCollectionV010 } from "./collection-query.js";
+import {
+  businessDictionaryDirectoryQueryRouteV010,
+  type BusinessDictionaryDirectorySelectionV010
+} from "./directory-query.js";
 import type { CatalogBrowserV010 } from "../../vendor/eidos/src/catalog-browser/contracts.js";
+export { parseBusinessDictionaryDirectoryRouteV010 } from "./directory-query.js";
 import type { UidlFormV011 } from "../../vendor/eidos/src/runtime/contracts.js";
 import {
   BUSINESS_DICTIONARY_DETAIL_ROUTE_V010 as DETAIL,
@@ -72,16 +78,95 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
   dictionaries: readonly BusinessDictionarySnapshotV010[];
   effectiveVersions?: Readonly<Record<string, number>>;
   canManage: boolean; locale?: string;
+  /** Provided only after the Host has checked the active enterprise membership. */
+  directorySelection?: BusinessDictionaryDirectorySelectionV010;
 }): CatalogBrowserV010 {
   const t = labels(input.locale);
+  const selection = input.directorySelection;
+  const result = selection ? queryBusinessDictionaryCollectionV010({
+    dictionaries: input.dictionaries,
+    query: {...selection.query, view: selection.view}
+  }) : undefined;
+  const byId = new Map(input.dictionaries.map(dictionary =>
+    [dictionary.dictionaryId, dictionary]));
+  const visible = result ? result.rows.map(row => {
+    const dictionary = byId.get(row.rowId);
+    if (!dictionary) throw new Error("BUSINESS_DICTIONARY_COLLECTION_ROW_INVALID");
+    return dictionary;
+  }) : input.dictionaries;
+  const query = selection?.query ?? {};
+  const pageInfo = result?.pageInfo;
+  const start = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
+  const viewSelection = (view: "all" | "draft" | "published") =>
+    ({view, query: {...query}});
+  const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
+    columns: [
+      {id:"displayName",label:t.name,sortRoute:businessDictionaryDirectoryQueryRouteV010(
+        {view:selection.view,query:{...query,sort:"displayName",
+          direction:query.sort === "displayName" && query.direction !== "desc"
+            ? "desc" : "asc"}})},
+      {id:"dictionaryId",label:t.id,sortRoute:businessDictionaryDirectoryQueryRouteV010(
+        {view:selection.view,query:{...query,sort:"dictionaryId",
+          direction:query.sort === "dictionaryId" && query.direction !== "desc"
+            ? "desc" : "asc"}})},
+      {id:"state",label:t.status,sortRoute:businessDictionaryDirectoryQueryRouteV010(
+        {view:selection.view,query:{...query,sort:"state",
+          direction:query.sort === "state" && query.direction !== "desc"
+            ? "desc" : "asc"}})},
+      {id:"version",label:t.version,sortRoute:businessDictionaryDirectoryQueryRouteV010(
+        {view:selection.view,query:{...query,sort:"version",
+          direction:query.sort === "version" && query.direction !== "desc"
+            ? "desc" : "asc"}})},
+      {id:"optionCount",label:t.detail}
+    ],
+    views: [
+      {id:"all",label:(input.locale ?? "").startsWith("zh") ? "全部" : "All",
+        route:businessDictionaryDirectoryQueryRouteV010(viewSelection("all")),
+        selected:selection.view === "all"},
+      {id:"draft",label:t.draft,
+        route:businessDictionaryDirectoryQueryRouteV010(viewSelection("draft")),
+        selected:selection.view === "draft"},
+      {id:"published",label:t.published,
+        route:businessDictionaryDirectoryQueryRouteV010(viewSelection("published")),
+        selected:selection.view === "published"}
+    ],
+    search: {
+      route:businessDictionaryDirectoryQueryRouteV010(viewSelection(selection.view)),
+      label:t.list, placeholder:t.list, value:query.search ?? "",
+      submitLabel:(input.locale ?? "").startsWith("zh") ? "搜索" : "Search"
+    },
+    rows: result.rows.map(row => ({
+      itemId:row.rowId,
+      cells:{
+        displayName:row.cells.displayName,
+        dictionaryId:row.cells.dictionaryId,
+        state:row.cells.state === "DRAFT" ? t.draft : t.published,
+        version:row.cells.version,
+        optionCount:row.cells.optionCount
+      }
+    })),
+    pageInfo:{
+      page:pageInfo.page,pageSize:pageInfo.pageSize,total:pageInfo.total,
+      summary:`${pageInfo.total === 0 ? 0 : start + 1}–${Math.min(
+        start + visible.length,pageInfo.total)} / ${pageInfo.total}`,
+      previousLabel:(input.locale ?? "").startsWith("zh") ? "上一页" : "Previous",
+      nextLabel:(input.locale ?? "").startsWith("zh") ? "下一页" : "Next",
+      ...(pageInfo.page > 0 ? {previousRoute:businessDictionaryDirectoryQueryRouteV010(
+        selection,pageInfo.page - 1)} : {}),
+      ...(pageInfo.hasMore ? {nextRoute:businessDictionaryDirectoryQueryRouteV010(
+        selection,pageInfo.page + 1)} : {})
+    }
+  } : undefined;
   return { contractVersion: "0.1.0", kind: "catalog-browser", layout: "list", density: "compact",
     itemActivation: "primary-action", id: "evo-business-dictionary.directory",
     title: t.list, description: t.listHelp,
     actions: input.canManage ? [{ id: "create", label: t.create, type: "navigate",
       route: OPTION, requiresConfirmation: false, primary: true }] : [],
-    search: { placeholder: t.list, ariaLabel: t.list, noResultsMessage: t.empty },
+    ...(table ? {table} : {}),
+    ...(table ? {} : {search: { placeholder: t.list, ariaLabel: t.list,
+      noResultsMessage: t.empty }}),
     emptyMessage: t.empty,
-    items: input.dictionaries.map(dictionary => ({
+    items: visible.map(dictionary => ({
       id: dictionary.dictionaryId,
       title: dictionary.displayName || dictionary.dictionaryId,
       summary: `${t.detail}: ${dictionary.options.length}`,
