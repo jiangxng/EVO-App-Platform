@@ -169,7 +169,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         const result = await sql.unsafe(
           "INSERT INTO " + table +
           " (context_id,namespace,collection_id,resource_type,resource_id,revision,resource)" +
-          " VALUES ($1,$2,$3,$4,$5,0,$6::jsonb)" +
+          " VALUES ($1,$2,$3,$4,$5,0,$6::text::jsonb)" +
           " ON CONFLICT DO NOTHING RETURNING revision,resource::text AS resource",
           [...address, JSON.stringify(resource)]
         );
@@ -189,7 +189,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         const next = makeResource(input, previous, expected + 1);
         const committed = await tx.unsafe(
           "UPDATE " + table +
-          " SET revision=$6, resource=$7::jsonb" +
+          " SET revision=$6, resource=$7::text::jsonb" +
           " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3" +
           " AND resource_type=$4 AND resource_id=$5 AND revision=$8" +
           " RETURNING revision,resource::text AS resource",
@@ -218,7 +218,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         });
         const committed = await tx.unsafe(
           "UPDATE " + table +
-          " SET revision=$6, resource=$7::jsonb" +
+          " SET revision=$6, resource=$7::text::jsonb" +
           " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3" +
           " AND resource_type=$4 AND resource_id=$5 AND revision=$8" +
           " RETURNING revision,resource::text AS resource",
