@@ -22,7 +22,7 @@
 | **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
 | **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 + Platform #1167/#1169/#1170 代码合 main；#1172 两业务 Owner 的真实内部 Personal Agent/Host READ 集成 5/5 CI PASS；真实登录/LLM 对话、390px/Human 与焦点恢复待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
-| **CV-03** | 系统/个人/企业视图保存与恢复 | **IN_PROGRESS — C3-01 内存/文件条件写入 [#1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177) 已合并；共享 PostgreSQL 隔离适配与跨进程原子性实测见 [#1179](https://github.com/jiangxng/EVO-App-Platform/pull/1179)。正式 Host/多主机存储切换尚未认证；C3-02～04 未实现** | 先证明正式存储单一权威和跨 Worker 原子写；再完成个人/共享视图 Human/Agent WRITE 和真实签收 |
+| **CV-03** | 系统/个人/企业视图保存与恢复 | **IN_PROGRESS — C3-01 原子写入 #1177/#1179 已合并且 PG18 专项通过；C3-02 个人私有 Saved View Host/Agent **隔离纵切 [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180) 待最终 CI/合并**，生产 Feature 未注册、durable receipt/真实用户/Eidos 仍 OPEN；C3-03/04 未实现** | 受权私有 SAVE + 版本冲突 + 隔离 Agent READ/WRITE 实证；生产 PG/Receipt 准入、390px 与 Human 签收分别关闭后方可推广 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
 | **CV-06** | 按需看板与聚合图表（首个受控样例） | **PLANNED** | 一个看板和一个合法聚合图；不从当前页虚构全集指标 |
@@ -74,6 +74,8 @@
 **2026-11-09 CV-03 / C3-01 条件存储已合并补充：** [PR #1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177) 在既有 `EnterpriseResourceRepositoryV010` 引入可选 `putIfRevision/archiveIfRevision` 与显式一致性作用域；Memory 仅 `PROCESS_LOCAL`，File 仅 `SAME_FILESYSTEM_LOCK`，以两独立 Node 进程对同一文件 revision 的测试核对唯一成功。归档、冲突、旧无版本记录迁移、重启读回、遗留写锁 fail-closed 都在 [C3-01 工程证据](CV03-C301-RESOURCE-CONDITIONAL-WRITE-IMPLEMENTATION-20261109.md) 中记录。**此代码仍不能证明部署到不同主机/独立本地磁盘时的全局 CAS；不得因此开放正式 Saved View WRITE，C3-02～04 仍未开始。** 最终 PR HEAD `b6328fb3a5c9f5c927d511491f92abec1beec268` 9/9 CI 通过并合并 `1cb6730841e8b3fd8841360c947b71bfc28c84f5`；仍不代表生产认证。
 
 **2026-11-09 C3-01 PostgreSQL 真实后端验证追加：** [#1179](https://github.com/jiangxng/EVO-App-Platform/pull/1179) 在原 Enterprise Resource 契约之外提供**隔离的异步条件写入适配**，沿用项目已经使用的 PostgreSQL 驱动和 PA-02 事务测试模式；显式 `cv03_*` schema，真实 PG18 对两独立 Node 进程同 revision 冲突与丢 ACK 读回进行验证。参见[完整实现证据、JSONB 编码失败与修复、正式 Host 启用门禁](CV03-C301-POSTGRES-ATOMIC-RESOURCE-PROOF-20261109.md)。**本功能未默认接入 Host，不影响旧同步资源仓库；不等于 Saved View WRITE、Railway 部署或 Human 验收。** 合并/CI 状态随 PR 准确 HEAD 核查，不提前关闭生产门禁。
+
+**2026-11-09 C3-02 个人私有视图隔离 Host 纵切：** [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180) 在**原 Enterprise Resource Provider、原受管 Capability Operation、原 Business Dictionary Collection READ 与 Personal Agent `invoke.write`** 上新增显式 opt-in 的私有保存配置，依赖共享 PostgreSQL CAS；当前 **不注册生产 Feature**。真实数据库/授权/撤权/两企业两用户回归及生产 durable receipt 尚未接入的边界见 [C3-02 工程证据](CV03-C302-PERSONAL-SAVED-VIEW-ISOLATED-HOST-20261109.md)。不得以 CI 的隔离 Host receipt stub 冒充正式已签发持久回执，亦不等于桌面/390px Human 或自然语言签收。以 #1180 最终 HEAD/CI 为准；**C3-03/04 仍未实现**。
 
 ### CV-02｜Eidos 通用表格与列表
 
