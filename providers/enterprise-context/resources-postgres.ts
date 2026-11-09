@@ -133,7 +133,7 @@ export async function preparePostgresConditionalResourceSchemaV010(input: {
       "CREATE TABLE IF NOT EXISTS " + receipts + " (" +
       "context_id text NOT NULL, idempotency_hash text NOT NULL, " +
       "receipt_id text NOT NULL UNIQUE, approval_digest text NOT NULL, " +
-      "input_digest text NOT NULL, " +
+      "input_digest text NOT NULL, receipt_digest text NOT NULL, " +
       "receipt jsonb NOT NULL CHECK(jsonb_typeof(receipt)='object'), " +
       "resource jsonb NOT NULL CHECK(jsonb_typeof(resource)='object'), " +
       "PRIMARY KEY(context_id,idempotency_hash))"
@@ -190,9 +190,7 @@ function committedFromReceiptRow(
   const resource = validateEnterpriseResourceV010(
     JSON.parse(String(row.resource)) as EnterpriseResourceV010
   );
-  if (sha256ResourceReceiptV010(receipt) !== row.receipt_digest &&
-      // Legacy test schemas created by earlier PR versions have no receipt_digest.
-      row.receipt_digest !== undefined) {
+  if (sha256ResourceReceiptV010(receipt) !== row.receipt_digest) {
     throw new Error("CV03_RESOURCE_RECEIPT_EVIDENCE_INTEGRITY");
   }
   if (receipt.status !== "SUCCEEDED" ||
@@ -322,7 +320,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         );
         const previous = await tx.unsafe(
           "SELECT receipt::text AS receipt,resource::text AS resource," +
-          " input_digest,approval_digest FROM " + receipts +
+          " input_digest,approval_digest,receipt_digest FROM " + receipts +
           " WHERE context_id=$1 AND idempotency_hash=$2",
           [input.contextId, keyHash]
         );
@@ -332,11 +330,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
             throw new Error("CV03_RESOURCE_RECEIPT_IDEMPOTENCY_CONFLICT");
           }
           const committed = committedFromReceiptRow(
-            {...previous[0],
-              receipt_digest: sha256ResourceReceiptV010(
-                JSON.parse(String(previous[0].receipt))
-              )},
-            true
+            previous[0] as Record<string,unknown>, true
           );
           if (committed.receipt.receiptId !== approval.receiptId ||
               addressValues(committed.resource).some((v,i) => v !== address[i])) {
@@ -385,9 +379,11 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         await tx.unsafe(
           "INSERT INTO " + receipts +
           " (context_id,idempotency_hash,receipt_id,approval_digest,input_digest," +
-          " receipt,resource) VALUES ($1,$2,$3,$4,$5,$6::text::jsonb,$7::text::jsonb)",
+          " receipt_digest,receipt,resource) " +
+          "VALUES ($1,$2,$3,$4,$5,$6,$7::text::jsonb,$8::text::jsonb)",
           [input.contextId,keyHash,approval.receiptId,approvalDigest,
-           approval.inputDigest,JSON.stringify(receipt),JSON.stringify(resource)]
+           approval.inputDigest,sha256ResourceReceiptV010(receipt),
+           JSON.stringify(receipt),JSON.stringify(resource)]
         );
         return {resource,receipt,replayed:false};
       });
@@ -403,17 +399,13 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
       }
       const rows=await sql.unsafe(
         "SELECT receipt::text AS receipt,resource::text AS resource,input_digest,"+
-        "approval_digest FROM " + receipts +
+        "approval_digest,receipt_digest FROM " + receipts +
         " WHERE context_id=$1 AND idempotency_hash=$2",
         [address[0],sha256ResourceReceiptV010(query.idempotencyKey)]
       );
       if(rows.length!==1)return undefined;
       const item=rows[0] as Record<string,unknown>;
-      const result=committedFromReceiptRow({
-        ...item,receipt_digest:sha256ResourceReceiptV010(
-          JSON.parse(String(item.receipt))
-        )
-      },false);
+      const result=committedFromReceiptRow(item,false);
       if(result.receipt.receiptId!==query.receiptId ||
         result.receipt.idempotencyKey!==query.idempotencyKey ||
         result.receipt.inputDigest!==query.inputDigest ||
