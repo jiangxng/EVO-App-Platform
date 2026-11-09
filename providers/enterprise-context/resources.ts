@@ -332,6 +332,9 @@ function createRepository(
         const key = addressKey(input);
         const previous = current.resources.find(item => addressKey(item) === key);
         const revision = previous?.revision ?? 0;
+        if (previous?.lifecycleState === "ARCHIVED" && expectedRevision !== null) {
+          throw new Error("ENTERPRISE_RESOURCE_ALREADY_ARCHIVED");
+        }
         if (
           (expectedRevision === null && previous !== undefined)
           || (expectedRevision !== null && (!previous || revision !== expectedRevision))
