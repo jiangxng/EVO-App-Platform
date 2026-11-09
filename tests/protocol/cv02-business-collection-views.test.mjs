@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { renderCatalogBrowserToHtml } from "../../dist/vendor/eidos/src/catalog-browser/render.js";
+import { queryBusinessDictionaryCollectionV010 } from "../../dist/apps/business-dictionary/collection-query.js";
+import { businessDictionaryPackage } from "../../dist/catalog/seed.js";
 import {
   createBusinessDictionaryDirectoryPageV010,
   parseBusinessDictionaryDirectoryRouteV010
@@ -128,4 +130,25 @@ test("CV-02 counterparty: reuse current Eidos table, no duplicate scope button",
   assert.deepEqual(old.actions.map(a=>a.id),["responsibility-scope"],
     "unpaged legacy UI keeps the old navigation action");
   assert.equal(old.table,undefined);
+});
+
+test("CV-02 Personal Agent and Human share one owner-authorized dictionary system-view READ", () => {
+  const operation=businessDictionaryPackage.features[0].contributions
+    .filter(x=>x.kind==="platform.capability-operation")
+    .map(x=>x.operation).find(x=>x.operationId==="dictionary.collection.query");
+  assert.equal(operation.effect,"READ");
+  assert.ok(operation.exposure.includes("PERSONAL_AGENT"));
+  assert.equal(operation.authorization.action,"dictionary.read");
+  assert.deepEqual(operation.inputSchema.properties.view.enum,["all","draft","published"]);
+  const human=dictionaryPage("/business-dictionaries?view=published&page=0&pageSize=25");
+  const agent=queryBusinessDictionaryCollectionV010({
+    dictionaries,query:{view:"published",page:0,pageSize:25}
+  });
+  assert.deepEqual(human.table.rows.map(x=>x.itemId),agent.rows.map(x=>x.rowId));
+  assert.equal(human.table.pageInfo.total,agent.pageInfo.total);
+  assert.deepEqual(agent.rows.map(x=>x.rowId),["d-beta"]);
+  assert.ok(!("options" in agent.rows[0].cells));
+  assert.throws(()=>queryBusinessDictionaryCollectionV010({
+    dictionaries,query:{view:"unapproved"}
+  }),/BUSINESS_DICTIONARY_COLLECTION_VIEW_INVALID/);
 });
