@@ -6,6 +6,10 @@ import {renderCatalogBrowserToHtml}
   from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 import {parseBusinessDictionaryDirectoryRouteV010}
   from "../../dist/apps/business-dictionary/directory-query.js";
+import {
+  createCv03PersonalSavedViewHumanFormV010,
+  executeCv03HumanSavedViewFormV010
+} from "../../dist/manager/cv03-personal-saved-view-human-form.js";
 import {createCv03AuthorizedDictionarySavedViewPageV010}
   from "../../dist/manager/cv03-personal-saved-view-dictionary-presentation.js";
 import {createAppActionRouter} from "../../dist/actions/router.js";
@@ -353,6 +357,94 @@ test("CV-03 C3-02 Host-resolved private view READ feeds real Eidos Dictionary ta
     console.log("CV03_C302_EIDOS_REAL_HOST_PG_PRIVATE_VIEW_PROOF=PASS");
   }finally{
     await store.close();
+    await sql.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
+    await sql.end();
+  }
+});
+
+test("CV-03 C3-02 real PG: Human Eidos save-as form → Dictionary Owner READ → signed Host WRITE → authorized Eidos restore",dbRequired,async()=>{
+  const schema="cv03_human_"+randomUUID().replaceAll("-","").slice(0,16);
+  await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
+  const storage=createPostgresConditionalResourceRepositoryV010({
+    connectionString:url,schema,trustedHostReceiptKeys:[TEST_SIGNER]
+  });
+  const sql=postgres(url,{max:2,connect_timeout:10});
+  try {
+    const env=fixture(storage),alice=context("owner-a","one");
+    const currentRoute="/business-dictionaries?view=all&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=25";
+    const form=createCv03PersonalSavedViewHumanFormV010({
+      viewId:"human-hk-suppliers",currentDirectoryRoute:currentRoute,
+      locale:"zh-CN"
+    });
+    assert.equal(form.actions[0].requiresConfirmation,true);
+    const formAction={
+      ...command(PERSONAL_SAVED_VIEW_WRITE_V010,{
+        title:"Human 保存的供应商视图",
+        viewId:form.fields.find(f=>f.key==="viewId").initialValue,
+        returnTo:form.fields.find(f=>f.key==="returnTo").initialValue
+      }),
+      actionId:"save-personal-view",sourceInteractionId:"cv03-human-eidos-form",
+      requiresConfirmation:true
+    };
+    const result=await executeCv03HumanSavedViewFormV010({
+      router:env.router,context:alice,request:formAction
+    });
+    assert.equal(result.ok,true,JSON.stringify(result.error));
+    assert.equal(result.result.data.view.revision,0);
+    assert.equal(result.result.data.view.visibility,"PERSONAL");
+    assert.equal(result.result.data.view.ownerSubjectId,"owner-a");
+    assert.deepEqual(result.result.data.view.columns,[
+      "displayName","dictionaryId","state","version","optionCount"
+    ]);
+    assert.deepEqual(result.result.data.view.query,{
+      view:"all",search:"Hong Kong",sort:"displayName",direction:"asc"
+    });
+    assert.equal(result.result.navigateTo.includes("personalViewId=human-hk-suppliers"),true);
+    const formMaterial=env.lastIssued();
+    assert.equal(formMaterial.request.actionId,PERSONAL_SAVED_VIEW_WRITE_V010,
+      "real Host issuer must only sign canonical Capability Operation");
+    assert.equal(formMaterial.request.values.expectedRevision,null);
+    const record=dataOf(await env.router.execute(command(
+      PERSONAL_SAVED_VIEW_READ_V010,{viewId:"human-hk-suppliers"}
+    ),alice));
+    assert.equal(record.views[0].title,"Human 保存的供应商视图");
+    assert.equal(dataOf(await env.router.execute(command(
+      PERSONAL_SAVED_VIEW_READ_V010,{viewId:"human-hk-suppliers"}
+    ),context("owner-b","one"))).views.length,0);
+    assert.equal(dataOf(await env.router.execute(command(
+      PERSONAL_SAVED_VIEW_READ_V010,{viewId:"human-hk-suppliers"}
+    ),context("owner-a","two"))).views.length,0);
+    const rendered=await createCv03AuthorizedDictionarySavedViewPageV010({
+      actionRouter:env.router,context:alice,
+      dictionaries:env.dictionary.list("enterprise-context:one"),
+      directorySelection:parseBusinessDictionaryDirectoryRouteV010(
+        result.result.navigateTo
+      ),canManage:false,locale:"zh-CN",
+      selectedPersonalViewId:"human-hk-suppliers"
+    });
+    assert.deepEqual(rendered.table.views.filter(v=>v.selected).map(v=>v.id),
+      ["personal:human-hk-suppliers"]);
+    assert.deepEqual(rendered.table.columns.map(c=>c.id),
+      ["displayName","dictionaryId","state","version","optionCount"]);
+    assert.equal(rendered.table.rows.length,1);
+    assert.doesNotMatch(renderCatalogBrowserToHtml(rendered),/Internal private option/);
+    env.control.revokeSource();
+    const revoked=await executeCv03HumanSavedViewFormV010({
+      router:env.router,context:alice,
+      request:{...formAction,values:{...formAction.values,viewId:"denied"}}
+    });
+    assert.equal(revoked.error.code,"CV03_HUMAN_FORM_SOURCE_READ_DENIED");
+    const afterRevoke=await createCv03AuthorizedDictionarySavedViewPageV010({
+      actionRouter:env.router,context:alice,
+      dictionaries:env.dictionary.list("enterprise-context:one"),
+      directorySelection:parseBusinessDictionaryDirectoryRouteV010(
+        result.result.navigateTo
+      ),canManage:false
+    });
+    assert.deepEqual(afterRevoke.table.views.map(x=>x.id),["all","draft","published"]);
+    console.log("CV03_C302_HUMAN_EIDOS_SIGNED_PG_SAVE_RESTORE_PROOF=PASS");
+  } finally {
+    await storage.close();
     await sql.unsafe('DROP SCHEMA "'+schema+'" CASCADE');
     await sql.end();
   }
