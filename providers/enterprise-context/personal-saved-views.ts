@@ -236,6 +236,9 @@ export function createPersonalSavedViewActionHandlersV010(input:{
   };
   return [
     execute(PERSONAL_SAVED_VIEW_READ_V010,async (request,ctx)=>{
+      if (Object.keys(request.values).some(k=>k!=="viewId")) {
+        throw Error("SAVED_VIEW_INPUT_INVALID");
+      }
       const rawId=request.values.viewId;
       if(rawId!==undefined){
         const id=viewId(rawId);
@@ -263,6 +266,9 @@ export function createPersonalSavedViewActionHandlersV010(input:{
       return {views};
     }),
     execute(PERSONAL_SAVED_VIEW_WRITE_V010,async (request,ctx)=>{
+      if (Object.keys(request.values).some(k=>![
+        "viewId","title","queryOperationId","query","columns","presentation","expectedRevision"
+      ].includes(k))) throw Error("SAVED_VIEW_INPUT_INVALID");
       if(!input.assertHostWriteReceipt) throw Error("SAVED_VIEW_HOST_WRITE_RECEIPT_REQUIRED");
       await input.assertHostWriteReceipt(ctx,request);
       const id=viewId(request.values.viewId);
@@ -282,7 +288,11 @@ export function createPersonalSavedViewActionHandlersV010(input:{
         ownerSubjectId:scope.subjectId,enterpriseId:scope.enterpriseId
       };
       // Re-check current source READ before the commit, never persist rows.
-      await source(ctx,op,query);
+      const latest=await source(ctx,op,query);
+      if(latest.collectionId!==current.collectionId || latest.schemaRef!==current.schemaRef ||
+        columns.some(column=>!latest.readableFieldIds.includes(column))){
+        throw Error("SAVED_VIEW_SOURCE_SCHEMA_CHANGED");
+      }
       const record=await store.putIfRevision({
         ...address(ctx,id),schemaRef:"evo.saved-view.personal/0.1.0",
         ownerPackageId:HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,storageKind:"DOCUMENT",
