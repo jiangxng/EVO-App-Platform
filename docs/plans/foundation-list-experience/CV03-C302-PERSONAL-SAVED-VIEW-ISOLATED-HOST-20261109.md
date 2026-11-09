@@ -1,6 +1,6 @@
 # CV-03 / C3-02：个人私有 Saved View 隔离 Host/Agent 纵切（2026-11-09）
 
-> **状态：ISOLATED_IMPLEMENTATION_IN_PR / NO_PRODUCTION_REGISTRATION / RECEIPT_CERTIFICATION_OPEN。** 工程 PR [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180)；本文件不构成生产 Enabled、自然语言真实模型成功、Eidos UI 或 390px Human 验收的证明。依据：[#1179 PostgreSQL 条件写](CV03-C301-POSTGRES-ATOMIC-RESOURCE-PROOF-20261109.md)、[CV-03 设计门禁](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)、[唯一八步计划](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)。
+> **状态：ISOLATED_CODE_MERGED / REAL_POSTGRES_CI_PASS / NO_PRODUCTION_REGISTRATION / RECEIPT_CERTIFICATION_OPEN。** 工程 PR [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180)；本文件不构成生产 Enabled、自然语言真实模型成功、Eidos UI 或 390px Human 验收的证明。依据：[#1179 PostgreSQL 条件写](CV03-C301-POSTGRES-ATOMIC-RESOURCE-PROOF-20261109.md)、[CV-03 设计门禁](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)、[唯一八步计划](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)。
 
 ## 1. 设计与实现：不重建任何框架
 
@@ -28,3 +28,11 @@
 4. C3-03 企业共享视图、C3-04 真实自然语言和完整恢复闭环均不在本阶段。窗口接续时读准确 main/PR SHA、审查设计 owner，禁止静默开启生产 Feature。
 
 **实现安全基线：** 只有 Person 的真实 Enterprise Context、当前合法源 READ、可信 Host WRITE receipt + 原子 PG 版本提交全部成立，保存才被视为成功。该 PR 的隔离测试并未闭合所有生产前置。
+
+## 4. 本轮真实合并证据（2026-11-09）
+
+- [PR #1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180) **已合 main**；最终 HEAD `de94a32397afc196e8f4c07f7349cb1f6a63136e`，合并 SHA `9a181dd64703c74f89590f33383337ad1a966e68`。
+- HEAD 的 **9/9 GitHub CI checks 全部成功**，含 `isolated-postgres-resource-cas`、Platform/插件自动检查、Human UI Design Review Gate 与 Lightweight Host。
+- 真实 PostgreSQL 18 专项用例 **5/5 PASS、0 FAIL、0 SKIP**，其中两个 C3-02 用例覆盖真实 Dictionary Repository + Host ActionRouter + 内部 Personal Agent 工具、Private scope、Schema 漂移、重启 readback、未接入持久回执/非认证 Provider 的 fail-closed；另三个保持 C3-01 PG 原子性覆盖。
+- **状态层级不得上调**：这个 isolated CI 的 `assertHostWriteReceipt` 是显式**测试夹具**，无真实 Host durable receipt 签发/确认；Feature 没有加入生产 catalog 或 Server；Eidos 保存入口、真实自然语言模型工具选择、390px 与 Human signoff 都没有完成。
+- 旧版本基线在本目录的 C3-01 决策中保留，合并后不重复竞品调研。下一窗口先读本文件及[唯一八步计划](COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md)，由现有 Host Receipt owner 和 Eidos owner 分别继续后续门禁。
