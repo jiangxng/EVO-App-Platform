@@ -1130,6 +1130,14 @@ if (lifecycleStateFile) {
   }
 }
 
+// C3-02: optional, read-only Eidos composition. This flag does NOT install
+// the Saved View Feature, configure Postgres, or authorize any WRITE; the
+// default Host keeps its exact original Dictionary page behavior.
+const cv03SavedViewDictionaryPageMode =
+  process.env.APP_PLATFORM_CV03_PERSONAL_VIEW_PAGE_MODE?.trim().toUpperCase() || "OFF";
+if (!["OFF", "READ_ONLY"].includes(cv03SavedViewDictionaryPageMode)) {
+  throw new Error("CV03_SAVED_VIEW_PAGE_MODE_INVALID");
+}
 const enterpriseResourceStateFile =
   process.env.APP_PLATFORM_ENTERPRISE_RESOURCES_FILE?.trim()
   || (lifecycleStateFile
@@ -7657,6 +7665,45 @@ const server = createServer(async (request, response) => {
             const effective = repository.getEffective(contextId, dictionary.dictionaryId);
             return effective ? [[dictionary.dictionaryId, effective.version]] : [];
           }));
+          if (cv03SavedViewDictionaryPageMode === "READ_ONLY") {
+            // Existing login, Enterprise relationship, active Feature, Owner
+            // route and business Collection checks already passed above.
+            // The opt-in adapter additionally performs a fresh Saved View
+            // READ through the same actionRouter/Principal, never trusts a
+            // browser personalViewId to grant access or ownership.
+            const readIntent: AppActionRequestV010 = {
+              contractVersion: "0.1.0",type: "command",
+              command: {
+                code: "collection.saved-view.personal.list",inputVersion: "0.1.0"
+              },
+              values: {},actionId: "collection.saved-view.personal.list",
+              sourceInteractionId: "cv03.dictionary.page:" + randomUUID(),
+              requiresConfirmation: false
+            };
+            let requestContext: PlatformRequestContextV010 | undefined;
+            try {
+              requestContext = createPlatformRequestContextV010(
+                session,registry,readIntent,request.headers,locale
+              );
+            } catch {
+              // A missing/mismatched Saved View context cannot expose a
+              // previously cached private tab. Keep only authorized system
+              // views already read through the Dictionary Owner.
+            }
+            if (requestContext?.context?.activeContext.kind === "ENTERPRISE" &&
+                requestContext.context.activeContext.contextId === contextId &&
+                requestContext.principal.subjectId === session.principal.subjectId) {
+              const presentation = await import(
+                "./cv03-personal-saved-view-dictionary-presentation.js"
+              );
+              const viewPage = await presentation.createCv03AuthorizedDictionarySavedViewPageV010({
+                actionRouter,context:requestContext,
+                dictionaries,directorySelection,canManage,locale,
+                selectedPersonalViewId:directorySelection.personalViewId
+              });
+              return json(response,200,viewPage);
+            }
+          }
           return json(response, 200, page.createBusinessDictionaryDirectoryPageV010({
             dictionaries, effectiveVersions, canManage, locale, directorySelection
           }));
