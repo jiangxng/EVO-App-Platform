@@ -141,12 +141,14 @@ export async function executeCv03HumanSavedViewFormV010(input:{
       throw Error("CV03_HUMAN_FORM_SOURCE_READ_DENIED");
     }
     const projection=collection as Record<string,unknown>;
+    const readableFieldIds=projection.readableFieldIds;
     if(projection.collectionId!==BUSINESS_DICTIONARY_COLLECTION_ID_V010 ||
       projection.schemaRef!==BUSINESS_DICTIONARY_COLLECTION_SCHEMA_V010 ||
-      !Array.isArray(projection.readableFieldIds)) {
+      !Array.isArray(readableFieldIds) ||
+      readableFieldIds.some(field=>typeof field!=="string")) {
       throw Error("CV03_HUMAN_FORM_SOURCE_SCHEMA_INVALID");
     }
-    const columns=ownerColumns.filter(id=>projection.readableFieldIds.includes(id));
+    const columns=ownerColumns.filter(id=>readableFieldIds.includes(id));
     if(!columns.includes("displayName") || !columns.includes("dictionaryId")) {
       throw Error("CV03_HUMAN_FORM_COLUMNS_UNAVAILABLE");
     }
