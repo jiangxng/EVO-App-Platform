@@ -449,8 +449,20 @@ export function createCounterpartyProjectionPageV010(input: {
         : {})
     }
   } : undefined;
+  const rowReturnRoute = pageInfo
+    ? counterpartyProjectionQueryRouteV010(route, query, pageInfo.page)
+    : undefined;
   return {
     ...page,
+    ...(rowReturnRoute ? {items: page.items.map(item => ({
+      ...item,
+      ...(item.primaryAction?.type === "navigate"
+        ? { primaryAction: {
+            ...item.primaryAction,
+            route: counterpartyDetailRouteV010(item.id)
+              + "&returnTo=" + encodeURIComponent(rowReturnRoute)
+          } } : {})
+    }))} : {}),
     id: "evo-counterparty.projection." + input.projectionId,
     ...(table ? {table} : {}),
     title,
@@ -510,6 +522,7 @@ export function createCounterpartyDetailPageV010(input: {
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
+  returnRoute?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const subject = input.counterparty;
@@ -689,7 +702,7 @@ export function createCounterpartyDetailPageV010(input: {
       items: [{
         id: "counterparties",
         label: text.title,
-        route: COUNTERPARTY_DIRECTORY_ROUTE
+        route: input.returnRoute ?? COUNTERPARTY_DIRECTORY_ROUTE
       }, {
         id: "counterparty",
         label: subject.displayName
