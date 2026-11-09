@@ -14,7 +14,9 @@ const dictionaries=[
     displayName:"Hong Kong Suppliers",version:1,state:"PUBLISHED",
     options:[{code:"P",label:{default:"Never leak this private label"},status:"ACTIVE"}]},
   {contractVersion:"0.1.0",contextId:"enterprise:test",dictionaryId:"other",
-    displayName:"Other",version:1,state:"DRAFT",options:[]}
+    displayName:"Other",version:1,state:"DRAFT",options:[]},
+  {contractVersion:"0.1.0",contextId:"enterprise:test",dictionaryId:"hk-second",
+    displayName:"Hong Kong Vendors",version:1,state:"PUBLISHED",options:[]}
 ];
 const selection=(query="/business-dictionaries?view=published&search=Hong+Kong&page=0&pageSize=25")=>
   parseBusinessDictionaryDirectoryRouteV010(query);
