@@ -1,6 +1,6 @@
 # 近期实施计划：Eidos 数据集合/视图复用 × EVO 插件平台 × Personal Agent（2026-11-06）
 
-> **状态：APPROVED_DIRECTION / PARTIAL_IMPLEMENTATION — CV-00 代码对账进入复核、CV-01 两个业务 owner 的首轮 READ 代码与 CI 已合入；CV-02 已开始且 Eidos 上游/Platform 定向采用代码已合入（完整业务页面/真实 Human 尚待）；CV-03～07 仍为 PLANNED。** 本文是“近期可执行的分步工作包”，不是 Feature 已完成或 Human 验收证明。用户确定：**基于现有 Eidos 和 Platform 演进、不建第二框架；个人 Agent 可操作，AI 原生能力是验收的一部分。**
+> **状态：APPROVED_DIRECTION / PARTIAL_IMPLEMENTATION — CV-00 代码对账进入复核、CV-01 两个业务 owner 的首轮 READ 代码与 CI 已合入；CV-02 已开始且 Eidos 上游/Platform 定向采用代码已合入（完整业务页面/真实 Human 尚待）；CV-03 C3-01 条件资源写入在 PR #1177 实施并等待最终 CI，C3-02～04 与 CV-04～07 仍为 PLANNED。** 本文是“近期可执行的分步工作包”，不是 Feature 已完成或 Human 验收证明。用户确定：**基于现有 Eidos 和 Platform 演进、不建第二框架；个人 Agent 可操作，AI 原生能力是验收的一部分。**
 >
 > **实施基线：** EVO-App-Platform main `58c49dadda57e7f260c9cc7ebad8bf9a4c0e0e1e`（2026-11-06）；实际开发必须重查 main/Eidos HEAD、最新 owner PR 和权限。前置[架构设计](../../architecture/COLLECTION-VIEW-EIDOS-PLATFORM-ADOPTION-20261106.md)；[研究与资料索引](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)。原[基础对象和列表计划](PLAN.md)、[Business Experience](BUSINESS-EXPERIENCE-FRAMEWORK.md)、[Foundation 六步](FOUNDATION-SIX-MILESTONE-EXECUTION-20261030.md)继续各守自己的状态与实施责任。
 >
@@ -22,7 +22,7 @@
 | **CV-00** | 现状代码/合同盘点与最小 ADR 定稿 | **IN_REVIEW（源码对账记录已合入；Eidos owner / ADR 签收待补）** | 确认已有与缺失的能力、owner、端到端样例、兼容/回滚 |
 | **CV-01** | 受治理的 Collection READ / Schema / Query 契约 | **CODE_MERGED + CI_PASS（Dictionary/Counterparty 两 owner；真实 Agent/Human 待验）** | Counterparty + Dictionary 使用同一受限查询语义；Agent 有权 READ |
 | **CV-02** | Eidos 共用表格/列表与查询体验 | **IN_PROGRESS — Eidos #209 + Platform #1167/#1169/#1170 代码合 main；#1172 两业务 Owner 的真实内部 Personal Agent/Host READ 集成 5/5 CI PASS；真实登录/LLM 对话、390px/Human 与焦点恢复待验** | 两真实插件不复制 UI，PC/390px、详情返回和筛选保持 |
-| **CV-03** | 系统/个人/企业视图保存与恢复 | **PLANNED — 存储跨实例 CAS / 权限与 Agent WRITE owner 门禁待实现（[代码决策](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)）** | 有权限边界、版本/冲突处理、Human/Agent 能按合法步骤保存 |
+| **CV-03** | 系统/个人/企业视图保存与恢复 | **IN_PROGRESS — C3-01 已提交 [#1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177)：可选 resource revision/CAS、Memory 与同一文件系统锁、两进程仅一写成功的测试；正式多主机存储尚未认证。C3-02～04 未实现** | 先证明正式存储单一权威和跨 Worker 原子写；再完成个人/共享视图 Human/Agent WRITE 和真实签收 |
 | **CV-04** | 导入入口复用、导出与跨视图安全 | **PLANNED** | 真实 Import Job/Recipe/receipt 不退化；导出和 Agent 同权 |
 | **CV-05** | Agent 原生自然语言查询/计划/可恢复任务 | **PLANNED** | 完整“查询→预览→保存视图/启动合法操作→核验”回执闭环 |
 | **CV-06** | 按需看板与聚合图表（首个受控样例） | **PLANNED** | 一个看板和一个合法聚合图；不从当前页虚构全集指标 |
@@ -70,6 +70,8 @@
 **2026-11-09 CV-02 必跑授权回归补充：** [Platform #1173](https://github.com/jiangxng/EVO-App-Platform/pull/1173) 在最新 HEAD **5/5 相关检查成功**后合并 `870bd80bbe3279e5ebe60ee356f598870ede708b`。新增 [Mandatory Protocol Test](../../../tests/protocol/cv02-real-owner-agent-human-collection.test.mjs)，验证真实 Business Dictionary Repository、Host ActionRouter、Personal Agent 的 search/describe/READ invoke 与 Human 获得相同当前授权行，以及跨企业/撤权/插件停用/READ-WRITE 效果隔离。与 #1172 的字典+往来两 owner 真实集成测试互补；**此用例属于每次 `npm run test:platform` 必跑的 Protocol suite**。不改变真实登录模型与 Human/390px 缺口。
 
 **CV-03 前置代码决策（2026-11-09）：** [Saved View 原子存储与 Agent WRITE 权威门禁](CV03-SAVED-VIEW-STORAGE-AND-AGENT-WRITE-DECISION-20261109.md)。现有 `EnterpriseResourceRepositoryV010.put()` 无 `expectedRevision`，可选内存事务不证明跨实例原子性；首先补足生产存储后端的比较写/冲突与 readback，随后通过现有 Capability Operation/ActionHost + 内部 Personal Agent `invoke.write` 实现个人私有视图，最后扩展企业共享权限。文档完成不代表 CV-03 工程完成。
+
+**2026-11-09 CV-03 / C3-01 条件存储工程补充（待 PR 最终 HEAD 验收）：** [PR #1177](https://github.com/jiangxng/EVO-App-Platform/pull/1177) 在既有 `EnterpriseResourceRepositoryV010` 引入可选 `putIfRevision/archiveIfRevision` 与显式一致性作用域；Memory 仅 `PROCESS_LOCAL`，File 仅 `SAME_FILESYSTEM_LOCK`，以两独立 Node 进程对同一文件 revision 的测试核对唯一成功。归档、冲突、旧无版本记录迁移、重启读回、遗留写锁 fail-closed 都在 [C3-01 工程证据](CV03-C301-RESOURCE-CONDITIONAL-WRITE-IMPLEMENTATION-20261109.md) 中记录。**此代码仍不能证明部署到不同主机/独立本地磁盘时的全局 CAS；不得因此开放正式 Saved View WRITE，C3-02～04 仍未开始。** 本段只记录当前 PR 事实，不预先宣布合 main 或生产认证。
 
 ### CV-02｜Eidos 通用表格与列表
 
