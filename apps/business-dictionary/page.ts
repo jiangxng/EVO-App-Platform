@@ -163,7 +163,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           const v = saved.query.view ?? "all";
           if(v !== "all" && v !== "draft" && v !== "published")
             return [];
-          const selected = {view: v,query: {
+          const selected: BusinessDictionaryDirectorySelectionV010 = {view: v,query: {
             ...(saved.query.search ? {search:saved.query.search} : {}),
             ...(saved.query.sort ? {sort:saved.query.sort} : {}),
             ...(saved.query.direction ? {direction:saved.query.direction} : {}),
