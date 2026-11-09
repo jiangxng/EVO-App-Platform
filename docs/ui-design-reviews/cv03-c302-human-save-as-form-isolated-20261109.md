@@ -2,6 +2,8 @@
 
 > **状态：ISOLATED_FORM_AND_HOST_NORMALIZATION / REAL_PG_TEST / NOT_PRODUCTION_REGISTERED / HUMAN_NOT_SIGNED。** 本批只实现既有 Eidos UidlForm 与 Host 到原 Capability Operation 的可信桥接。**不在 `manager/server.ts` 注册页面或开放正式 WRITE、不向 `catalog/seed.ts` 注入额外业务应用、不添加独立视图框架**。依据：#1180/#1182/#1183 真实签名 PostgreSQL Owner，#1185～#1188 只读 Eidos Tab、路由和列恢复。
 
+**被审查的 Human UI 源码路径：** `manager/cv03-personal-saved-view-human-form.ts`。表单使用 Eidos 现有 UidlForm；真实浏览器与生产路由仍未认证。
+
 ## 目标与完成条件
 
 Human 从一个**当前有权业务字典列表**发起“保存我的视图”：输入有语义的名称，确认后保存当前筛选/排序，读取回当前个人 Tab，能继续查看现有 Eidos 表格。此阶段严格区分**可部署前的隔离 UI 纵切**与正式生产页面发布：当前仅后者的前置材料，不能宣称线上已出现按钮。
