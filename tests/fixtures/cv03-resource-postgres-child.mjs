@@ -19,6 +19,9 @@ try {
     const saved = await repo.putIfRevisionWithReceipt(request.input, request.receipt);
     process.send?.({type:"result", revision:saved.resource.revision,
       replayed:saved.replayed, receiptId:saved.receipt.receiptId});
+  } else if (mode === "receipt-lost-ack") {
+    await repo.putIfRevisionWithReceipt(request.input, request.receipt);
+    process.exitCode = 19;
   } else if (mode === "lost-ack") {
     await repo.putIfRevision(request);
     process.exitCode = 19;
