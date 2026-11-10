@@ -103,3 +103,6 @@
 - **本轮独立实现分支**：`fix/cv03-n104e-namespace-actor-sql-20261110`；[具体协议及负面关口](CV03-N104E-DOMAIN-OWNER-ACTOR-SQL-AND-PA05-OUTBOX-PROTOCOL-20261110.md)。原 N1-04d PG18 20/20 是历史事实，**不可用于声称 N1-04e 已 PASS**。此项最终 PR/CI/合并提交在完成后按 exact HEAD 续填。
 - **Outbox 研究结论等级 D**：现有 PA05 Lifecycle callback 不与真实授权权威持久事务原子；T0 权威状态+outbox 同事务、T1 验签投递/DB ACK、T2 epoch 连续性+租约失联关闭、T3 可信 snapshot 恢复，是本轮提出的待签收协议设计，**不是已运行生产实现，也没有新访问的外部网页**。
 - **仍 OPEN**：生产 Primary Owner 身份、DB session/pool 主体、GRANT/迁移、KMS/轮换、可靠事件事实源与快照、真实多 Host/人类/外部 LLM；正式 `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`，Save 403、Page 404 不得解除；并行 #1184 的三份 Owner 文件未改。
+
+- **实现 PR / 初版实测（G / 2026-11-10）**：[N1-04e PR #1202](https://github.com/jiangxng/EVO-App-Platform/pull/1202)，独立分支从 `7898c6b5...` 创建；早期 HEAD `fc95e8684854c54c85e66977fac49f9a8a16ef83` 的 [PG18 Actions #42754171632](https://github.com/jiangxng/EVO-App-Platform/actions/runs/42754171632) 确认为 **20 tests / 20 pass / 0 fail / 0 skipped**。随后继续增加了已签名旧 namespace 与跨企业/主体拒绝、AI/Human 双向独立授权 epoch 的 PostgreSQL 断言，早期 PASS **不代替最终 HEAD**；合并前必须再次查完整 GitHub checks。
+- **重要新增未决（SOURCE+CODE）**：N1-04b `cv03_n1_read_scope` 使用 SQL `session_user` 键且没有 actorType，N1-04e 新加的 actorType policy 是 WRITE Operation 边界；不能由此把 Human 只读 SQL scope 自动视为已隔离 AI 的可信读授权。生产 READ actor 身份与连接池方案仍待 Owner 签收。
