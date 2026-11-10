@@ -234,8 +234,11 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     const restarted=postgres(url,{max:1,connect_timeout:10,prepare:false});
     try{
       const recoveredOutbox=await restarted.unsafe(
-        "SELECT event_json FROM "+outbox+" WHERE acked=false");
-      assert.equal(recoveredOutbox.length,1);
+        "SELECT event_json FROM "+outbox+
+        " WHERE acked=false AND context_id=$1 AND actor_type=$2",
+        [a.context.activeContext.contextId,a.principal.actorType]);
+      assert.equal(recoveredOutbox.length,1,
+        "only the ORIGINAL owner scope is replayed, not an unrelated concurrent scope");
       assert.equal(recoveredOutbox[0].event_json,canonical(initial));
       assert.equal(await send(a,1,{acknowledge:true}),"STALE_IGNORED");
       assert.equal((await mirrorFor(a)).lease_until.getTime(),
