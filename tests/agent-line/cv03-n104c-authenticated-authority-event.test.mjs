@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {randomUUID} from "node:crypto";
+import {randomUUID,createHash} from "node:crypto";
 import postgres from "postgres";
 import {preparePostgresConditionalResourceSchemaV010}
   from "../../dist/providers/enterprise-context/resources-postgres.js";
@@ -24,6 +24,8 @@ const allowed=(process.env.CV03_N1_ONLY_ISOLATED_GATEWAY_TEST==="YES_CI_LOCAL"&&
   }catch{return false;}})());
 const isolated={skip:!allowed&&"CI-only PostgreSQL localhost/cv03proof",
   timeout:90000};
+const ns=(e,s)=>"evo.saved-view.personal."+createHash("sha256")
+  .update(JSON.stringify([e,s])).digest("hex");
 const op="collection.saved-view.personal.save";
 const ownerPkg="host-enterprise-context-provider";
 const ctx="enterprise-context:company-a";
@@ -61,7 +63,7 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
   const ingestName=qSchema+".cv03_n104c_ingest_signed_event";
   const event=(epoch,enabled,override={})=>({
     source:"PA05_OWNER_TEST_ONLY",
-    contextId:ctx,principalSubjectId:subject,
+    contextId:ctx,principalSubjectId:subject,evaluatedActorType:"HUMAN",
     operationId:op,authorityEpoch:epoch,enabled,
     issuedAt:new Date().toISOString(),...override
   });
@@ -75,7 +77,7 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
   const signedWrite=(id,title,actorType="HUMAN")=>{
     const when=new Date().toISOString();
     const input={
-      contextId:ctx,namespace:"evo.saved-view.personal."+subject,
+      contextId:ctx,namespace:ns("company-a",subject),
       collectionId:"collection-views",resourceType:"saved-collection-view",
       resourceId:id,schemaRef:"evo.saved-view.personal/0.1.0",
       ownerPackageId:ownerPkg,storageKind:"DOCUMENT",
@@ -171,7 +173,7 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     }
     for(const fn of [
       "cv03_n1_signed_save(text,text,text,text,text,text)",
-      "cv03_n1_apply_owner_policy_epoch(text,text,text,bigint,boolean)",
+      "cv03_n1_apply_owner_policy_epoch(text,text,text,text,bigint,boolean)",
       "cv03_n104c_ingest_signed_event(text,text)",
       "cv03_reject_receipt_mutation()"
     ]){
@@ -204,7 +206,7 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     ),/permission denied/i);
     await assert.rejects(deliverySql.unsafe(
       "SELECT "+qSchema+".cv03_n1_apply_owner_policy_epoch("+
-        "$1,$2,$3,1,true)",[ctx,subject,op]
+        "$1,$2,'HUMAN',$3,1,true)",[ctx,subject,op]
     ),/permission denied/i);
     await assert.rejects(deliverySql.unsafe(
       "SELECT "+functionName+"($1,$2,$3,$4,$5,$6)",
@@ -233,7 +235,16 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     })),/CV03_N104C_EVENT_EXPIRED/);
     assert.equal(await send(goodEvent),"APPLIED");
     assert.equal((await write("human","HUMAN authorized","HUMAN")).resource.revision,0);
-    assert.equal((await write("agent","AI authorized","AI")).receipt.status,"SUCCEEDED");
+    await assert.rejects(write("agent-denied","Human grant is not AI","AI"),
+      /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    assert.equal(await send(event(1,true,{evaluatedActorType:"AI"})),"APPLIED");
+    assert.equal((await write("agent","AI separately authorized","AI")).receipt.status,"SUCCEEDED");
+    assert.equal(await send(event(2,false,{evaluatedActorType:"AI"})),"APPLIED");
+    await assert.rejects(write("agent-revoked","AI revoked while HUMAN valid","AI"),
+      /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    assert.equal((await write("human-still","Human independently valid")).receipt.status,"SUCCEEDED");
+    await assert.rejects(send(event(3,true,{evaluatedActorType:"ROBOT"})),
+      /CV03_N104C_EVENT_INVALID/);
     // The valid signed proof from earlier remains cryptographically valid,
     // but a physical revoked epoch must deny a new WRITE.
     assert.equal(await send(event(2,false)),"APPLIED");
@@ -252,7 +263,7 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_operation_policy SET lease_until=clock_timestamp()-"+
       " interval '1 second' WHERE context_id=$1 AND principal_subject_id=$2"+
-      " AND operation_id=$3",[ctx,subject,op]);
+      " AND actor_type=\'HUMAN\' AND operation_id=$3",[ctx,subject,op]);
     await assert.rejects(write("outage","never delivered revoke"),
       /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
     assert.equal(await send(event(4,true)),"APPLIED");
@@ -274,14 +285,16 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     assert.equal(await send(event(8,true),eventKeyIdB,eventSecretB),"APPLIED");
     await assert.rejects(write("gap","still unhealthy"),
       /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
-    const facts=await admin.unsafe("SELECT enabled,mirror_healthy,"+
+    const facts=await admin.unsafe("SELECT actor_type,enabled,mirror_healthy,"+
       "delivery_required,authority_epoch,lease_until FROM "+qSchema+
       ".cv03_n1_operation_policy WHERE context_id=$1"+
       " AND principal_subject_id=$2",[ctx,subject]);
-    assert.equal(facts.length,1);
-    assert.equal(facts[0].mirror_healthy,false);
-    assert.equal(facts[0].delivery_required,true);
-    assert.equal(Number(facts[0].authority_epoch),8);
+    assert.equal(facts.length,2);
+    const human=facts.find(x=>x.actor_type==="HUMAN");
+    assert.ok(human);
+    assert.equal(human.mirror_healthy,false);
+    assert.equal(human.delivery_required,true);
+    assert.equal(Number(human.authority_epoch),8);
     console.log("CV03_N104C_SIGNED_AUTHORITY_DELIVERY_LEASE=PASS");
     console.log("CV03_N104C_HUMAN_AI_REVOKE_REPLAY_AND_EVENT_GAP=PASS");
     console.log("CV03_N104C_LIVE_PA05_DELIVERY=NOT_CERTIFIED");
