@@ -143,6 +143,7 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     const dbOwner=await admin.unsafe("SELECT "+qSchema+
       ".cv03_n1_saved_view_namespace($1,$2) AS namespace",["company-a","owner-a"]);
     assert.equal(dbOwner[0].namespace,observed[0].namespace);
+    console.log("CV03_N104E_REAL_DOMAIN_OWNER_NAMESPACE_PG18=PASS");
     for(const item of fixtures){
       const r=item.resource;
       await admin.unsafe("INSERT INTO "+resourceTable+
