@@ -44,6 +44,10 @@
 | SQL 授权镜像恢复 | 已有 N1-04h SQL Owner generation fencing；扩大为文件存储失联回归 | 生产 Host 可信启动阻断、自动主动 fencing/核对完整 Scope |
 | 生产安全准入 | **NOT_CERTIFIED** | 实际 AuthorizationProvider 持久源、跨库 outbox/原子性、真实多 Host SQL/KMS 身份、快照全 Scope watermark/tombstone、DB Owner、真实 Human/外部 LLM |
 
-本 PR 不改并行 #1184 的 `COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md` 等三份 Owner 文件，不部署 CI SQL fixture，不动正式 CV-03 SAVE/Post/Get 路由。扩展原 PG18 workflow：始终执行 `tests/manager/manager.test.mjs` 和原 PostgreSQL security suite，避免新增测试仅在未运行的脚本里伪绿。
+本 PR 不改并行 #1184 的 `COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md` 等三份 Owner 文件，不部署 CI SQL fixture，不动正式 CV-03 SAVE/Post/Get 路由。扩展原 PG18 workflow：始终执行 `tests/agent-line/cv03-n104i-file-lifecycle-io.test.mjs` 和原 PostgreSQL security suite，避免新增测试仅在未运行的脚本里伪绿。
 
 **必须以 PR 最终 HEAD 的 Actions 日志确定通过/跳过数量**。成功后才合并 main、由既有 `branch-hygiene.yml` 验证 SHA 清理独立分支。未获得真实 PA05/AuthorizationProvider/DB 安全 Owner 对跨源事务和 startup fencing 的决定前，N1 不得提升为 production READY。
+
+
+### 追加的 CI 范围诊断（同日）
+首个中间提交的 PG18 workflow 误包含旧 `tests/manager/manager.test.mjs` 全量套件：该运行报告 38 tests / 31 pass / 7 fail / 0 skip。新增单次 I/O 回归和真实重启 SQL 用例本身成功；其余 7 个失败包括旧 Proof B `enterprise.application-runtime-binding` 缺失、旧体验投影期望，与本轮新文件测试不同。**不能直接声称这些失败已在 main 基线确认存在，亦不能标记为新代码回归通过**。已撤销对旧 Manager 测试文件的修改，并将新增 I/O 回归单独置于 `tests/agent-line/cv03-n104i-file-lifecycle-io.test.mjs` 由 PG18 workflow 执行。旧全量 Manager 套件的基线对齐留给管理器 Owner 专项，不在本 N1 修复窗口偷偷重写断言。最终以最新 HEAD 的 PostgreSQL + Platform CI 全绿作为本轮门禁。
