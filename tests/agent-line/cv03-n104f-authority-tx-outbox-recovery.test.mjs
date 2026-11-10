@@ -22,6 +22,8 @@ import {cv03N104fIsolatedAuthorityTxOutboxSqlV010}
   from "../../tools/cv03-n104f-isolated-authority-tx-outbox.mjs";
 import {cv03N104gIsolatedOutboxBoundDeliverySqlV010}
   from "../../tools/cv03-n104g-isolated-outbox-bound-delivery.mjs";
+import {cv03N104hIsolatedProducerFenceSqlV010}
+  from "../../tools/cv03-n104h-isolated-producer-fence.mjs";
 import {evaluateCv03N104dRealManagerAuthorityV010}
   from "../../tools/cv03-n104d-isolated-pa05-manager-authority.mjs";
 
@@ -104,6 +106,8 @@ function snapshotProof(event,override={}){
 test("N1-04f fixture rejects untrusted SQL namespace",()=>{
   assert.throws(()=>cv03N104fIsolatedAuthorityTxOutboxSqlV010(
     'cv03_wrong"; DROP TABLE x'),/CV03_N1_ISOLATED_SCHEMA_REQUIRED/);
+  assert.throws(()=>cv03N104hIsolatedProducerFenceSqlV010(
+    "cv03_bad; DROP TABLE policy"),/CV03_N1_ISOLATED_SCHEMA_REQUIRED/);
 });
 
 test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and signed snapshot recovery",isolated,async()=>{
@@ -111,10 +115,15 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
   const schema="cv03_tx_"+suffix,q=quote(schema);
   const owner="cv03_tx_owner_"+suffix;
   const deliver="cv03_tx_deliver_"+suffix;
+  const producerA="cv03_tx_producer_a_"+suffix;
+  const producerB="cv03_tx_producer_b_"+suffix;
   const password="ci-tx-"+randomUUID().replaceAll("-","");
+  const pwdA="ci-producer-a-"+randomUUID().replaceAll("-","");
+  const pwdB="ci-producer-b-"+randomUUID().replaceAll("-","");
   const u=new URL(url);u.username=deliver;u.password=password;
   const admin=postgres(url,{max:2,connect_timeout:10,prepare:false});
-  let delivery,ownerMade=false,roleMade=false,schemaMade=false;
+  let delivery,clientA,clientB,ownerMade=false,roleMade=false,schemaMade=false;
+  const createdProducerRoles=[];
   const f=fixture(),a=context(),ai=context("company-a","AI"),b=context("company-b");
   const state=q+".cv03_n104f_test_authority_state";
   const outbox=q+".cv03_n104f_test_authority_outbox";
@@ -123,6 +132,10 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
   const ingest=q+".cv03_n104g_ingest_committed_authority";
   const unguarded=q+".cv03_n104c_ingest_signed_event";
   const recoverFn=q+".cv03_n104f_test_recover_snapshot";
+  const fenceTable=q+".cv03_n104h_test_producer_fence";
+  const fencedCommit=q+".cv03_n104h_test_commit_fenced";
+  const fencedIngest=q+".cv03_n104h_ingest_fenced";
+  const rotateFn=q+".cv03_n104h_test_rotate_generation";
   const canonical=event=>stableResourceReceiptJsonV010(event);
   const commit=(event,fault=false)=>admin.unsafe(
     "SELECT "+txFn+"($1::text,$2::boolean) AS result",
@@ -171,12 +184,22 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     await admin.unsafe("CREATE ROLE "+quote(deliver)+
       " LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD '"+password+"'");
     roleMade=true;
+    for(const [role,pwd] of [[producerA,pwdA],[producerB,pwdB]]){
+      await admin.unsafe("CREATE ROLE "+quote(role)+
+        " LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD '"+pwd+"'");
+      createdProducerRoles.push(role);
+    }
     await preparePostgresConditionalResourceSchemaV010({connectionString:url,schema});
     schemaMade=true;
     await admin.unsafe(cv03N1GatewaySqlV010(schema));
     await admin.unsafe(cv03N104cIsolatedAuthorityBridgeSqlV010(schema));
     await admin.unsafe(cv03N104fIsolatedAuthorityTxOutboxSqlV010(schema));
     await admin.unsafe(cv03N104gIsolatedOutboxBoundDeliverySqlV010(schema));
+    await admin.unsafe(cv03N104hIsolatedProducerFenceSqlV010(schema));
+    await admin.unsafe("INSERT INTO "+fenceTable+
+      "(source,active_generation,fence_epoch,producer_login) "+
+      "VALUES('PA05_OWNER_TEST_ONLY','CI_GENERATION_1',1,$1::name)",
+      [producerA]);
     await admin.unsafe("INSERT INTO "+q+
       ".cv03_n104c_event_keys(key_id,secret) VALUES($1,$2)",
       [eventKey,eventSecret]);
@@ -184,7 +207,8 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     for(const table of ["resources","cv03_resource_receipts",
       "cv03_n1_signing_keys","cv03_n1_operation_policy",
       "cv03_n104c_event_keys","cv03_n104f_test_authority_state",
-      "cv03_n104f_test_authority_outbox"]){
+      "cv03_n104f_test_authority_outbox",
+      "cv03_n104h_test_producer_fence"]){
       await admin.unsafe("ALTER TABLE "+q+"."+quote(table)+
         " OWNER TO "+quote(owner));
       await admin.unsafe("REVOKE ALL ON TABLE "+q+"."+quote(table)+" FROM PUBLIC");
@@ -196,7 +220,10 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
       "cv03_n104c_ingest_signed_event(text,text)",
       "cv03_n104f_test_commit_authority(text,boolean)",
       "cv03_n104f_test_recover_snapshot(text,text)",
-      "cv03_n104g_ingest_committed_authority(text,text)"
+      "cv03_n104g_ingest_committed_authority(text,text)",
+      "cv03_n104h_test_commit_fenced(text)",
+      "cv03_n104h_test_rotate_generation(text,bigint,name)",
+      "cv03_n104h_ingest_fenced(text,text)"
     ]){
       await admin.unsafe("ALTER FUNCTION "+q+"."+sig+" OWNER TO "+quote(owner));
       await admin.unsafe("REVOKE ALL ON FUNCTION "+q+"."+sig+" FROM PUBLIC");
@@ -205,6 +232,15 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     await admin.unsafe("GRANT USAGE ON SCHEMA "+q+" TO "+quote(deliver));
     await admin.unsafe("GRANT EXECUTE ON FUNCTION "+ingest+
       "(text,text) TO "+quote(deliver));
+    for(const role of [producerA,producerB]){
+      await admin.unsafe("GRANT USAGE ON SCHEMA "+q+" TO "+quote(role));
+      await admin.unsafe("GRANT EXECUTE ON FUNCTION "+fencedCommit+
+        "(text) TO "+quote(role));
+    }
+    const connectAs=(role,pwd)=>{const c=new URL(url);
+      c.username=role;c.password=pwd;return c.toString();};
+    clientA=postgres(connectAs(producerA,pwdA),{max:1,connect_timeout:10,prepare:false});
+    clientB=postgres(connectAs(producerB,pwdB),{max:1,connect_timeout:10,prepare:false});
     delivery=postgres(u.toString(),{max:1,connect_timeout:10,prepare:false});
     for(const table of [outbox,state,policy]){
       await assert.rejects(delivery.unsafe("SELECT * FROM "+table),
@@ -370,11 +406,120 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
       ".cv03_n104c_event_keys SET enabled=false WHERE key_id=$1",[eventKey]);
     await assert.rejects(send(a,1),/CV03_N104G_SIGNER_DENIED/);
     console.log("CV03_N104G_KEY_DISABLE_STALE_ACK_FAIL_CLOSED=PASS");
+
+    // N1-04h: re-enable the TEST signer only to exercise producer fencing.
+    await admin.unsafe("UPDATE "+q+
+      ".cv03_n104c_event_keys SET enabled=true WHERE key_id=$1",[eventKey]);
+    await admin.unsafe("REVOKE EXECUTE ON FUNCTION "+ingest+
+      "(text,text) FROM "+quote(deliver));
+    await admin.unsafe("GRANT EXECUTE ON FUNCTION "+fencedIngest+
+      "(text,text) TO "+quote(deliver));
+    const publish=(client,event)=>client.unsafe("SELECT "+fencedCommit+
+      "($1::text) AS status",[canonical(event)]).then(x=>x[0].status);
+    const deliverFenced=async(ctx,epoch)=>{
+      const persisted=await pending(ctx,epoch);
+      assert.ok(persisted,"fenced consumer must read an already committed outbox row");
+      const proof=cv03N104cTestEventProofV010(
+        JSON.parse(persisted.event_json),eventKey,eventSecret);
+      return delivery.unsafe("SELECT "+fencedIngest+
+        "($1::text,$2::text) AS status",
+        [proof.envelope,proof.signature]).then(x=>x[0].status);
+    };
+    const fenceInfo=async()=>admin.unsafe("SELECT active_generation,fence_epoch,"+
+      "producer_login FROM "+fenceTable+
+      " WHERE source='PA05_OWNER_TEST_ONLY'").then(x=>x[0]);
+    const oldDecision=await f.evaluate(ai,2);
+    const oldProducerEvent={...oldDecision,
+      producerLogin:producerA,producerFenceEpoch:1};
+    assert.equal(await publish(clientA,oldProducerEvent),"COMMITTED_WITH_OUTBOX");
+    await assert.rejects(publish(clientB,oldProducerEvent),
+      /CV03_N104H_PRODUCER_FENCED/);
+    await assert.rejects(clientA.unsafe("SELECT "+txFn+"('{}',false)"),
+      /permission denied/i);
+    await assert.rejects(clientA.unsafe("SELECT * FROM "+fenceTable),
+      /permission denied/i);
+    assert.equal(await deliverFenced(ai,2),"APPLIED");
+    // Re-authenticated SQL delivery has no path back to un-fenced N1-04g.
+    await assert.rejects(delivery.unsafe("SELECT "+ingest+"('{}','0')"),
+      /permission denied/i);
+
+    // Emulate a still-live old mirror permit. Generation rotation must
+    // disable it in the SAME COMMIT as authority/outbox deny tombstones.
+    await admin.unsafe("UPDATE "+policy+
+      " SET enabled=true,mirror_healthy=true,delivery_required=true,"+
+      "lease_until=clock_timestamp()+interval '90 seconds'"+
+      " WHERE context_id=$1 AND actor_type='HUMAN'",
+      [a.context.activeContext.contextId]);
+    assert.equal((await mirrorFor(a)).enabled,true);
+    const rotated=await admin.unsafe("SELECT "+rotateFn+
+      "($1::text,$2::bigint,$3::name) AS scopes",
+      ["CI_GENERATION_1",1,producerB]);
+    assert.equal(Number(rotated[0].scopes),4,
+      "generation switch must deny every existing actor/enterprise scope");
+    assert.equal((await fenceInfo()).active_generation,"CI_GENERATION_2");
+    assert.equal(Number((await fenceInfo()).fence_epoch),2);
+    assert.equal((await fenceInfo()).producer_login,producerB);
+    assert.equal((await mirrorFor(a)).enabled,false);
+    assert.equal((await mirrorFor(a)).mirror_healthy,false);
+    assert.equal((await mirrorFor(a)).lease_until,null);
+    assert.equal(Number((await stateFor(a)).authority_epoch),6);
+    const tombstone=await pending(a,6);
+    assert.equal(JSON.parse(tombstone.event_json).rotationDenyTombstone,true);
+    assert.equal(JSON.parse(tombstone.event_json).generation,"CI_GENERATION_2");
+    assert.equal(JSON.parse(tombstone.event_json).enabled,false);
+    console.log("CV03_N104H_ROTATE_ATOMIC_DENY_ALL_SCOPES=PASS");
+
+    await assert.rejects(admin.unsafe("SELECT "+rotateFn+
+      "($1::text,$2::bigint,$3::name)",["CI_GENERATION_1",1,producerB]),
+      /CV03_N104H_ROTATION_STALE_OR_UNSAFE/);
+    await assert.rejects(publish(clientA,{...oldProducerEvent,authorityEpoch:4}),
+      /CV03_N104H_PRODUCER_FENCED/);
+    await assert.rejects(publish(clientB,oldProducerEvent),
+      /CV03_N104H_PRODUCER_FENCED/);
+    await assert.rejects(deliverFenced(ai,2),
+      /CV03_N104H_GENERATION_FENCED/);
+    await assert.rejects(recover(snapshotProof(heartbeat)),
+      /CV03_N104F_SNAPSHOT_NOT_AUTHORITATIVE/);
+    assert.equal(await deliverFenced(a,6),"STALE_IGNORED");
+    assert.equal((await mirrorFor(a)).mirror_healthy,false,
+      "generation tombstone never automatically clears unhealthy latch");
+    // Verify generation survives a new database process/connection.
+    const restartedFence=postgres(url,{max:1,connect_timeout:10,prepare:false});
+    try{
+      const persistedFence=await restartedFence.unsafe(
+        "SELECT fence_epoch FROM "+fenceTable);
+      assert.equal(Number(persistedFence[0].fence_epoch),2);
+    }finally{await restartedFence.end();}
+    console.log("CV03_N104H_OLD_PRODUCER_AND_OLD_SNAPSHOT_FENCED=PASS");
+
+    // The true Manager is re-enabled; only new SQL producer B may append
+    // new generation epoch7. Mirror stays unhealthy until signed T3 restore.
+    f.manager.enable(f.pkg.packageId);
+    const decisionNew=await f.evaluate(a,7);
+    assert.equal(decisionNew.enabled,true);
+    const newEvent={...decisionNew,generation:"CI_GENERATION_2",
+      producerLogin:producerB,producerFenceEpoch:2};
+    assert.equal(await publish(clientB,newEvent),"COMMITTED_WITH_OUTBOX");
+    assert.equal(await deliverFenced(a,7),"APPLIED");
+    assert.equal((await mirrorFor(a)).enabled,true);
+    assert.equal((await mirrorFor(a)).mirror_healthy,false,
+      "ordinary new-generation ALLOW must not silently clear fail-closed latch");
+    assert.equal(await recover(snapshotProof(newEvent)),"FULL_ACTOR_SNAPSHOT_APPLIED");
+    assert.equal((await mirrorFor(a)).mirror_healthy,true);
+    assert.equal((await mirrorFor(a)).enabled,true);
+    assert.equal((await mirrorFor(ai)).enabled,false,
+      "recovering one Human cannot release another actor's scope");
+    console.log("CV03_N104H_NEW_PRODUCER_T3_RESTORE_ACTOR_ISOLATED=PASS");
+    console.log("CV03_N104H_REAL_PA05_PRODUCER=NOT_CERTIFIED");
     console.log("CV03_N104F_REAL_LIFECYCLE_ATOMIC_OUTBOX=NOT_CERTIFIED");
     console.log("CV03_N104F_PRODUCTION_SQL_KMS_PA05_OWNER=NOT_CERTIFIED");
   }finally{
     if(delivery)await delivery.end();
+    if(clientA)await clientA.end();
+    if(clientB)await clientB.end();
     if(schemaMade)await admin.unsafe("DROP SCHEMA "+q+" CASCADE");
+    for(const role of createdProducerRoles.slice().reverse())
+      await admin.unsafe("DROP ROLE "+quote(role));
     if(roleMade)await admin.unsafe("DROP ROLE "+quote(deliver));
     if(ownerMade)await admin.unsafe("DROP ROLE "+quote(owner));
     await admin.end();
