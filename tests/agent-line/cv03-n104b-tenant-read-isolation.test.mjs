@@ -35,16 +35,18 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
   const schema="cv03_read_"+suffix,qSchema='"'+schema+'"';
   const owner="cv03_read_owner_"+suffix;
   const a="cv03_read_a_"+suffix,b="cv03_read_b_"+suffix;
+  const ai="cv03_read_ai_"+suffix;
   const quote=v=>'"'+v+'"';
   const pwdA="cv03-ci-a-"+randomUUID().replaceAll("-","");
   const pwdB="cv03-ci-b-"+randomUUID().replaceAll("-","");
+  const pwdAI="cv03-ci-ai-"+randomUUID().replaceAll("-","");
   const admin=postgres(url,{max:1,prepare:false,connect_timeout:10});
   const grants=["cv03_n1_scoped_get(text,text,text,text,text)",
     "cv03_n1_scoped_list(text,text,text,text,text)",
     "cv03_n1_scoped_receipt(text,text)"];
   const conn=(role,password)=>{const u=new URL(url);
     u.username=role;u.password=password;return u.toString();};
-  let repoA,repoB;
+  let repoA,repoB,repoAI;
   const createdRoles=[],schemaCreated={value:false};
   const resourceTable=qSchema+".resources",receiptTable=qSchema+".cv03_resource_receipts";
   const ctx=id=>"enterprise-context:"+id;
@@ -90,7 +92,7 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     await admin.unsafe("CREATE ROLE "+quote(owner)+
       " NOLOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB");
     createdRoles.push(owner);
-    for(const [role,pwd] of [[a,pwdA],[b,pwdB]]){
+    for(const [role,pwd] of [[a,pwdA],[b,pwdB],[ai,pwdAI]]){
       await admin.unsafe("CREATE ROLE "+quote(role)+
         " LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB PASSWORD '"+pwd+"'");
       createdRoles.push(role);
@@ -162,9 +164,14 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     }
     await admin.unsafe("INSERT INTO "+qSchema+
       ".cv03_n1_read_scope(runtime_role,context_id,owner_subject_id,"+
-      "enterprise_id,enabled) VALUES ($1,$2,$3,$4,true),($5,$6,$7,$8,true)",
+      "enterprise_id,actor_type,operation_id,authority_epoch,mirror_healthy,"+
+      "enabled,delivery_required,lease_until) VALUES "+
+      "($1,$2,$3,$4,'HUMAN','collection.saved-view.personal.list',1,true,true,true,clock_timestamp()+interval '90 seconds'),"+
+      "($5,$6,$7,$8,'HUMAN','collection.saved-view.personal.list',1,true,true,true,clock_timestamp()+interval '90 seconds'),"+
+      "($9,$10,$11,$12,'AI','collection.saved-view.personal.list',1,true,false,true,clock_timestamp()+interval '90 seconds')",
       [a,ctx("company-a"),"owner-a","company-a",
-       b,ctx("company-b"),"owner-b","company-b"]);
+       b,ctx("company-b"),"owner-b","company-b",
+       ai,ctx("company-a"),"owner-a","company-a"]);
     await admin.unsafe("ALTER SCHEMA "+qSchema+" OWNER TO "+quote(owner));
     for(const name of ["resources","cv03_resource_receipts",
       "cv03_n1_read_scope"]){
@@ -180,7 +187,7 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
         " FROM PUBLIC");
     }
     await admin.unsafe("REVOKE ALL ON SCHEMA "+qSchema+" FROM PUBLIC");
-    for(const role of [a,b]){
+    for(const role of [a,b,ai]){
       await admin.unsafe("GRANT USAGE ON SCHEMA "+qSchema+
         " TO "+quote(role));
       for(const fn of grants)await admin.unsafe(
@@ -189,8 +196,9 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     }
     const sqlA=postgres(conn(a,pwdA),{max:1,prepare:false});
     const sqlB=postgres(conn(b,pwdB),{max:1,prepare:false});
+    const sqlAI=postgres(conn(ai,pwdAI),{max:1,prepare:false});
     try{
-      for(const [role,client] of [[a,sqlA],[b,sqlB]]){
+      for(const [role,client] of [[a,sqlA],[b,sqlB],[ai,sqlAI]]){
         const privileges=await client.unsafe(`
           SELECT session_user AS login, current_user AS runtime,
            has_table_privilege(current_user,$1,'SELECT') AS can_read_resources,
@@ -212,7 +220,9 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
         await assert.rejects(client.unsafe("SELECT * FROM "+qSchema+
           ".cv03_n1_read_scope"),/permission denied/i);
       }
-    }finally{await sqlA.end();await sqlB.end();}
+      await assert.rejects(sqlAI.unsafe("SET ROLE "+quote(a)),
+        /permission denied|must be member/i);
+    }finally{await sqlA.end();await sqlB.end();await sqlAI.end();}
     assert.throws(()=>createPostgresConditionalResourceRepositoryV010({
       connectionString:conn(a,pwdA),schema,
       readMode:"SQL_ROLE_SCOPED_ISOLATED_V010"
@@ -227,11 +237,19 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
       receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010",
       readMode:"SQL_ROLE_SCOPED_ISOLATED_V010"
     });
+    repoAI=createPostgresConditionalResourceRepositoryV010({
+      connectionString:conn(ai,pwdAI),schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010",
+      readMode:"SQL_ROLE_SCOPED_ISOLATED_V010"
+    });
     const [fa,fb,fc]=fixtures;
     assert.equal((await repoA.get(fa.addr))?.payload?.title,"香港供应商");
     assert.equal(await repoA.get(fb.addr),undefined);
     assert.equal(await repoA.get(fc.addr),undefined);
     assert.equal((await repoB.get(fb.addr))?.payload?.title,"東京字典");
+    assert.equal(await repoAI.get(fa.addr),undefined,
+      "Human actor's SQL scope does not confer AI READ");
+    assert.deepEqual(await repoAI.list({contextId:ctx("company-a")}),[]);
     assert.equal(await repoB.get(fa.addr),undefined);
     assert.deepEqual((await repoA.list({contextId:ctx("company-a")}))
       .map(z=>z.resourceId),["a-one"]);
@@ -249,6 +267,28 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     assert.equal(await historic(repoA,fc),undefined);
     assert.equal(await historic(repoB,fa),undefined);
     assert.equal((await historic(repoB,fb))?.receipt?.receiptId,fb.receiptId);
+    assert.equal(await historic(repoAI,fa),undefined,
+      "AI may not claim Human's immutable historical write receipt");
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_read_scope SET enabled=true,authority_epoch=2"+
+      " WHERE runtime_role=$1 AND actor_type='AI'",[ai]);
+    assert.equal((await repoAI.get(fa.addr))?.resourceId,"a-one",
+      "AI can read shared owner's Saved View only AFTER independent AI READ grant");
+    assert.deepEqual((await repoAI.list({contextId:ctx("company-a")}))
+      .map(z=>z.resourceId),["a-one"]);
+    assert.equal(await historic(repoAI,fa),undefined,
+      "AI READ never inherits a Human WRITE historical receipt");
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_read_scope SET lease_until=clock_timestamp()-interval '1 second'"+
+      " WHERE runtime_role=$1",[ai]);
+    assert.equal(await repoAI.get(fa.addr),undefined);
+    assert.equal((await repoA.get(fa.addr))?.resourceId,"a-one",
+      "AI delivery outage must not revoke Human independently");
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_read_scope SET lease_until=clock_timestamp()+interval '90 seconds'"+
+      " WHERE runtime_role=$1",[ai]);
+    assert.equal((await repoAI.get(fa.addr))?.resourceId,"a-one");
+    console.log("CV03_N104F_ACTOR_SCOPED_READ_DENY_GRANT_LEASE=PASS");
     // The app SQL runtime cannot flip tenant read admission; only owner/admin.
     // Opt-in authority-delivery lease: a SQL read scope that still says
     // enabled=true MUST fail closed when its identity lease has expired.
@@ -273,6 +313,9 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     assert.equal(await historic(repoA,fa),undefined);
     assert.equal((await repoB.get(fb.addr))?.resourceId,"b-one",
       "other SQL login remains isolated and unaffected");
+    assert.equal((await repoAI.get(fa.addr))?.resourceId,"a-one",
+      "Human revocation does not revoke separately granted AI READ");
+    assert.equal(await historic(repoAI,fa),undefined);
     // Fail closed: removing the scoped function MUST NOT let Provider use raw
     // table SELECT, even though the original SQL table still holds row A.
     await admin.unsafe("DROP FUNCTION "+qSchema+
@@ -283,6 +326,7 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
   }finally{
     if(repoA)await repoA.close();
     if(repoB)await repoB.close();
+    if(repoAI)await repoAI.close();
     if(schemaCreated.value)await admin.unsafe("DROP SCHEMA "+qSchema+" CASCADE");
     for(const role of createdRoles.reverse())
       await admin.unsafe("DROP ROLE "+quote(role));
