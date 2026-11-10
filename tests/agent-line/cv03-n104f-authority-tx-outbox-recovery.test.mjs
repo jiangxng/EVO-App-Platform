@@ -225,6 +225,11 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
       "($1::text,$2::text)",[uncommittedProof.envelope,uncommittedProof.signature]),
       /CV03_N104G_UNCOMMITTED_AUTHORITY_DENIED/);
     assert.equal(await commit(initial),"COMMITTED_WITH_OUTBOX");
+    const actorSpoof=cv03N104cTestEventProofV010(
+      {...initial,evaluatedActorType:"AI"},eventKey,eventSecret);
+    await assert.rejects(delivery.unsafe("SELECT "+ingest+
+      "($1::text,$2::text)",[actorSpoof.envelope,actorSpoof.signature]),
+      /CV03_N104G_UNCOMMITTED_AUTHORITY_DENIED/);
     assert.equal((await stateFor(a)).enabled,true);
     assert.equal((await pending(a,1)).acked,false);
     assert.equal(await commit(initial),"DUPLICATE");
@@ -360,6 +365,11 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     console.log("CV03_N104F_REVOKE_ACTOR_SWITCH_ENTERPRISE_DISABLE=PASS");
     console.log("CV03_N104G_COMMITTED_OUTBOX_BOUND_SIGNED_DELIVERY=PASS");
     console.log("CV03_N104G_NO_STALE_ALLOW_REFRESH_AFTER_REVOKE=PASS");
+    // Disabled signer must also prevent even a 'safe' superseded-event ACK.
+    await admin.unsafe("UPDATE "+q+
+      ".cv03_n104c_event_keys SET enabled=false WHERE key_id=$1",[eventKey]);
+    await assert.rejects(send(a,1),/CV03_N104G_SIGNER_DENIED/);
+    console.log("CV03_N104G_KEY_DISABLE_STALE_ACK_FAIL_CLOSED=PASS");
     console.log("CV03_N104F_REAL_LIFECYCLE_ATOMIC_OUTBOX=NOT_CERTIFIED");
     console.log("CV03_N104F_PRODUCTION_SQL_KMS_PA05_OWNER=NOT_CERTIFIED");
   }finally{
