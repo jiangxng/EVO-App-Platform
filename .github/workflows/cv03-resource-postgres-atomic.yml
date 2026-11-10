@@ -18,6 +18,7 @@ on:
       - "tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs"
       - "tests/agent-line/cv03-n104d-pa05-real-manager-authority.test.mjs"
       - "tools/cv03-n104d-isolated-pa05-manager-authority.mjs"
+      - "tools/cv03-n104e-domain-owner-namespace.mjs"
       - "tools/cv03-n104c-isolated-authority-event-bridge.mjs"
       - "tools/cv03-n1-isolated-tenant-read-gateway.mjs"
       - "tools/cv03-n1-isolated-signed-sql-gateway.mjs"
