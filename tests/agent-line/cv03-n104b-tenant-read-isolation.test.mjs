@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {randomUUID} from "node:crypto";
+import {randomUUID,createHash} from "node:crypto";
 import postgres from "postgres";
 import {
   preparePostgresConditionalResourceSchemaV010,
@@ -11,6 +11,8 @@ import {sha256ResourceReceiptV010}
 import {cv03N1ScopedReadGatewaySqlV010}
   from "../../tools/cv03-n1-isolated-tenant-read-gateway.mjs";
 
+const ns=(e,s)=>"evo.saved-view.personal."+createHash("sha256")
+  .update(JSON.stringify([e,s])).digest("hex");
 const url=process.env.CV03_RESOURCE_PROOF_DATABASE_URL;
 const approved=(process.env.CV03_N1_ONLY_ISOLATED_GATEWAY_TEST==="YES_CI_LOCAL"&&
   !!url&&(()=>{try{const u=new URL(url);
@@ -46,7 +48,7 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
   const makeFixture=(enterpriseId,subject,id,title)=>{
     const at=new Date().toISOString();
     const addr={contextId:ctx(enterpriseId),
-      namespace:"evo.saved-view.personal."+subject,
+      namespace:ns(enterpriseId,subject),
       collectionId:"collection-views",resourceType:"saved-collection-view",
       resourceId:id};
     const resource={
@@ -94,7 +96,18 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
       connectionString:url,schema
     });
     schemaCreated.value=true;
+    await admin.unsafe("CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public");
     await admin.unsafe(cv03N1ScopedReadGatewaySqlV010(schema));
+    for(const [enterprise,subject] of [
+      ["company-a","owner-a"],["company-b","owner-b"],
+      ["汉字, and quote \\"","subject:🔒"],["company-a","owner-other"]
+    ]) {
+      const actual=await admin.unsafe("SELECT "+qSchema+
+        ".cv03_n1_saved_view_namespace($1,$2) AS namespace",
+        [enterprise,subject]);
+      assert.equal(actual[0].namespace,ns(enterprise,subject),
+        "SQL hash MUST match Domain Owner JSON.stringify UTF-8 algorithm");
+    }
     const fixtures=[
       makeFixture("company-a","owner-a","a-one","香港供应商"),
       makeFixture("company-b","owner-b","b-one","東京字典"),
