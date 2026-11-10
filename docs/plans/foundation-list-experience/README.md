@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1-04c 已认证的隔离授权事件与短租约
+
+[N1-04c PostgreSQL 签名事件入口、Human/Agent 授权镜像租约与断链拒绝](CV03-N104C-AUTHENTICATED-EVENT-LEASE-ISOLATED-HANDOFF-20261110.md)：在原 N1-04b epoch 镜像上加入受控的 SQL HMAC 验签事件投递与 DB clock 90 秒候选租约；模拟失联会拒绝受控写入和读取。**模拟来源不是真实 PA05；N1 仍 NOT_CERTIFIED，Saved View WRITE 继续 OFF。**
+
 ## 2026-11-10 CV-03 N1-04b 双企业只读隔离与撤权 epoch 顺序栅栏
 
 [N1-04b 原 Provider SQL 登录绑定 get/list/receipt、隔离授权事件 epoch 防乱序](CV03-N104B-TENANT-SCOPED-SQL-READ-AUTHORITY-EPOCH-20261110.md)：独立 PostgreSQL 登录不允许跨企业/跨主体读取其他人的资源或回执；测试专用授权镜像只能按 epoch 顺序推进，缺事件即失败关闭。**尚未接入真实 PA05/Host 身份或事件源，N1=NOT_CERTIFIED、Saved View WRITE=OFF。**
