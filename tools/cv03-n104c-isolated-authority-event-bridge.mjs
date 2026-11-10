@@ -64,6 +64,8 @@ BEGIN
     operation IS DISTINCT FROM 'collection.saved-view.personal.save' OR
     ctx IS NULL OR length(ctx)=0 OR length(ctx)>160 OR
     subject IS NULL OR length(subject)=0 OR length(subject)>160 OR
+     ev->>'evaluatedActorType' IS NULL OR
+     ev->>'evaluatedActorType' NOT IN ('HUMAN','AI') OR
     ev->>'enabled' NOT IN ('true','false') OR
     jsonb_typeof(ev->'enabled') IS DISTINCT FROM 'boolean' OR
     (ev->>'authorityEpoch') IS NULL OR
@@ -96,7 +98,8 @@ BEGIN
  -- Owner-only applicator preserves monotonic epoch, duplicate rejection,
  -- gap poisoning, and write-policy row locks. All updates are atomic.
  applied:=${s}.cv03_n1_apply_owner_policy_epoch(
-   ctx,subject,operation,event_epoch,(ev->>'enabled')::boolean
+   ctx,subject,ev->>'evaluatedActorType',operation,event_epoch,
+    (ev->>'enabled')::boolean
  );
  IF applied='STALE_IGNORED' THEN RETURN applied; END IF;
  UPDATE ${s}.cv03_n1_operation_policy
@@ -105,6 +108,7 @@ BEGIN
          THEN clock_timestamp()+interval '90 seconds'
          ELSE NULL END
  WHERE context_id=ctx AND principal_subject_id=subject
+   AND actor_type=ev->>'evaluatedActorType'
    AND operation_id=operation;
  RETURN applied;
 END;
