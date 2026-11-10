@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
+import {fork} from "node:child_process";
+import {fileURLToPath} from "node:url";
 import postgres from "postgres";
 import {preparePostgresConditionalResourceSchemaV010,
   createPostgresConditionalResourceRepositoryV010}
@@ -24,6 +26,35 @@ const op="collection.saved-view.personal.save";
 const ownerPkg="host-enterprise-context-provider";
 const keyId="cv03-n1-test-signing-key";
 const secret="CV03-ISOLATED-PG18-GATEWAY-TEST-SECRET-NOT-FOR-PRODUCTION-01";
+const fixture=fileURLToPath(new URL("../fixtures/cv03-n1-gateway-provider-child.mjs",import.meta.url));
+function worker(mode,request,schema,runtimeUrl){
+  const child=fork(fixture,[mode,Buffer.from(JSON.stringify(request)).toString("base64")],{
+    stdio:["ignore","pipe","pipe","ipc"],
+    env:{...process.env,CV03_N1_CHILD_SCHEMA:schema,
+      CV03_N1_CHILD_RUNTIME_DATABASE_URL:runtimeUrl.toString()}
+  });
+  let stderr="",settled=false;
+  child.stderr.on("data",d=>stderr+=String(d));
+  const messages=[];
+  let resolveReady,rejectReady;
+  const ready=new Promise((resolve,reject)=>{
+    resolveReady=resolve;rejectReady=reject;
+  });
+  child.on("message",m=>{
+    messages.push(m);
+    if(m?.type==="ready"){settled=true;resolveReady();}
+  });
+  const done=new Promise((resolve,reject)=>{
+    child.once("error",err=>{if(!settled)rejectReady(err);reject(err);});
+    child.once("exit",(code,signal)=>{
+      if(!settled){settled=true;rejectReady(Error("worker not ready: "+stderr));}
+      resolve({code,signal,messages,stderr});
+    });
+  });
+  // Avoid unhandled rejections for workers which intentionally do not signal READY.
+  void ready.catch(()=>{});
+  return {child,ready,done};
+}
 
 test("CV03 N1-02 rejects unsafe schema names without SQL",()=>{
   assert.throws(()=>cv03N1GatewaySqlV010('cv03_ok"; DROP TABLE x'),
@@ -254,13 +285,136 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await assert.rejects(admin.unsafe("UPDATE "+qSchema+
       ".cv03_resource_receipts SET receipt='{}'::jsonb"),
       /CV03_RESOURCE_RECEIPT_IMMUTABLE/);
+    // N1-03: the current enterprise PG Provider now has an EXPLICIT
+    // SQL-only mode. The runtime receives table SELECT but never DML or
+    // verifier key SELECT; no un-signed write / archive is permitted.
+    await admin.unsafe("GRANT SELECT ON "+qSchema+
+      ".resources, "+qSchema+".cv03_resource_receipts TO "+qRuntime);
+    const runtimeConn=runtimeUrl.toString();
+    assert.throws(()=>createPostgresConditionalResourceRepositoryV010({
+      connectionString:runtimeConn,schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010",
+      trustedHostReceiptKeys:[{keyId,secret}]
+    }),/CV03_N1_GATEWAY_RUNTIME_MUST_NOT_HOLD_VERIFIER_SECRET/);
+    const provider=createPostgresConditionalResourceRepositoryV010({
+      connectionString:runtimeConn,schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010"
+    });
+    const originalPgRead=createPostgresConditionalResourceRepositoryV010({
+      connectionString:runtimeConn,schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010"
+    });
+    const pack=p=>({receipt:p.receipt,proof:{
+      contractVersion:"0.1.0",
+      purpose:"cv03.enterprise-resource.host-write",
+      algorithm:"HMAC-SHA256",keyId,signature:p.signature
+    }});
+    const providerInput=newInput("Provider 原生 SQL 保存",null,"provider-view");
+    const providerProof=signed(providerInput);
+    try{
+      await assert.rejects(provider.putIfRevision(providerInput),
+        /CV03_N1_GATEWAY_UNSIGNED_RESOURCE_WRITE_DENIED/);
+      await assert.rejects(provider.archiveIfRevision({
+        address:providerInput,expectedRevision:0,
+        actorSubjectId:"owner-a",recordedAt:providerInput.recordedAt
+      }),/CV03_N1_GATEWAY_UNSIGNED_RESOURCE_WRITE_DENIED/);
+      await assert.rejects(provider.putIfRevisionWithReceipt(providerInput,{
+        receipt:providerProof.receipt,proof:{...pack(providerProof).proof,
+          signature:"0".repeat(64)}
+      }),/CV03_N1_SIGNED_PROOF_INVALID/);
+      const created=await provider.putIfRevisionWithReceipt(
+        providerInput,pack(providerProof)
+      );
+      assert.equal(created.replayed,false);
+      assert.equal(created.resource.revision,0);
+      const historical=await originalPgRead.getCommittedWriteByIdempotencyKey({
+        address:providerInput,
+        idempotencyKey:providerProof.receipt.idempotencyKey,
+        receiptId:providerProof.receipt.receiptId,
+        inputDigest:providerProof.receipt.inputDigest,
+        principalSubjectId:"owner-a",principalActorType:"HUMAN"
+      });
+      assert.deepEqual(historical?.resource,created.resource);
+      assert.deepEqual(historical?.receipt,created.receipt);
+      assert.equal((await provider.putIfRevisionWithReceipt(
+        providerInput,pack(providerProof))).replayed,true);
+
+      // Two actual OS processes, both through the same SQL-only Provider
+      // with the same stale revision, must not both commit.
+      const procA=newInput("OS Worker A",0,"provider-view");
+      const procB=newInput("OS Worker B",0,"provider-view");
+      const contenderA=worker("barrier-write",{
+        input:procA,signed:pack(signed(procA,{},created.resource))
+      },schema,runtimeUrl);
+      const contenderB=worker("barrier-write",{
+        input:procB,signed:pack(signed(procB,{},created.resource))
+      },schema,runtimeUrl);
+      await Promise.all([contenderA.ready,contenderB.ready]);
+      contenderA.child.send({type:"start"});
+      contenderB.child.send({type:"start"});
+      const attempts=await Promise.all([contenderA.done,contenderB.done]);
+      assert.equal(attempts.filter(a=>a.code===0).length,1,
+        JSON.stringify(attempts));
+      assert.equal(attempts.filter(a=>a.code===2).length,1,
+        JSON.stringify(attempts));
+      assert.ok(attempts.some(a=>a.messages.some(m=>
+        m.type==="rejected" && /REVISION_CONFLICT/.test(m.code))),
+        JSON.stringify(attempts));
+      const afterRace=await originalPgRead.get(providerInput);
+      assert.equal(afterRace.revision,1);
+      // Historical first write must remain replayable even after later
+      // revisions change the live resource. Never reconstruct its old digest
+      // from the newest row.
+      const originalReplay=await provider.putIfRevisionWithReceipt(
+        providerInput,pack(providerProof)
+      );
+      assert.equal(originalReplay.replayed,true);
+      assert.equal(originalReplay.resource.revision,0);
+      assert.equal(originalReplay.receipt.receiptId,
+        providerProof.receipt.receiptId);
+
+      // Child commits, exits without ACK. New Provider reads the original
+      // historical signed receipt, then exact retry is idempotent.
+      const lostInput=newInput("ACK 丢失后重启",1,"provider-view");
+      const lostProof=signed(lostInput,{},afterRace);
+      const lost=await worker("lost-ack",{
+        input:lostInput,signed:pack(lostProof)
+      },schema,runtimeUrl).done;
+      assert.equal(lost.code,19,JSON.stringify(lost));
+      assert.equal(lost.messages.some(m=>m.type==="success"),false);
+      const restarted=createPostgresConditionalResourceRepositoryV010({
+        connectionString:runtimeConn,schema,
+        receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010"
+      });
+      try{
+        const recovered=await restarted.getCommittedWriteByIdempotencyKey({
+          address:lostInput,
+          idempotencyKey:lostProof.receipt.idempotencyKey,
+          receiptId:lostProof.receipt.receiptId,
+          inputDigest:lostProof.receipt.inputDigest,
+          principalSubjectId:"owner-a",principalActorType:"HUMAN"
+        });
+        assert.equal(recovered?.resource.revision,2);
+        assert.equal(recovered?.resource.payload.title,"ACK 丢失后重启");
+        assert.equal((await restarted.putIfRevisionWithReceipt(
+          lostInput,pack(lostProof))).replayed,true);
+      }finally{await restarted.close();}
+      console.log("CV03_N103_PROVIDER_SQL_ONLY_MULTI_PROCESS_AND_LOST_ACK=PASS");
+    }finally{
+      await provider.close();
+      await originalPgRead.close();
+    }
+
+    const beforeDisable=await admin.unsafe("SELECT count(*)::int AS n"+
+      " FROM "+qSchema+".resources");
     const revoked=signed(newInput("revoked",null,"another-view"));
     await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_signing_keys SET enabled=false WHERE key_id=$1",[keyId]);
     await assert.rejects(invoke(runtimeSql,revoked),/CV03_N1_SIGNER_NOT_TRUSTED/);
     const final=await admin.unsafe("SELECT count(*)::int AS n"+
       " FROM "+qSchema+".resources");
-    assert.equal(final[0].n,1,"disabled signing key cannot create another resource");
+    assert.equal(final[0].n,beforeDisable[0].n,
+      "disabled signing key cannot create another resource");
     console.log("CV03_N1_SQL_GATEWAY_DENIED_DIRECT_DML=PASS");
     console.log("CV03_N1_SQL_GATEWAY_HOST_HMAC_BINDING_AND_ATOMIC_CAS=PASS");
     console.log("CV03_N1_SQL_GATEWAY_ISOLATED_ONLY_PRODUCTION=NOT_CERTIFIED");

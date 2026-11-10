@@ -6,7 +6,7 @@ import type {
 } from "../../contracts/agent-action-receipt.js";
 import {
   digestConditionalResourcePutV010, sha256ResourceReceiptV010,
-  hmacCv03HostResourceReceiptV010
+  stableResourceReceiptJsonV010, hmacCv03HostResourceReceiptV010
 } from "./resource-receipt-digest.js";
 import type {
   EnterpriseResourceAddressV010,
@@ -241,8 +241,24 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
    * Real credentials are never passed through an Action request or saved view.
    */
   trustedHostReceiptKeys?: readonly {keyId:string;secret:string}[];
+  /**
+   * EXPLICIT ISOLATED N1-03 only. Never selected by the production Host.
+   * In this mode signed writes go exclusively through the DB-enforced
+   * SECURITY DEFINER gateway and cannot downgrade to raw table DML.
+   * Existing legacy direct mode is retained solely for old isolated tests.
+   */
+  receiptWriteMode?: "LEGACY_DIRECT_ISOLATED_V010" | "SQL_GATEWAY_ISOLATED_V010";
 }): EnterpriseResourceConditionalAsyncRepositoryV010 {
-  const { sql, table, receipts } = database(input);
+  if (input.receiptWriteMode !== undefined &&
+      !["LEGACY_DIRECT_ISOLATED_V010","SQL_GATEWAY_ISOLATED_V010"]
+        .includes(input.receiptWriteMode)) {
+    throw new Error("CV03_RESOURCE_RECEIPT_WRITE_MODE_INVALID");
+  }
+  const gatewayMode=input.receiptWriteMode==="SQL_GATEWAY_ISOLATED_V010";
+  if (gatewayMode && input.trustedHostReceiptKeys?.length) {
+    throw new Error("CV03_N1_GATEWAY_RUNTIME_MUST_NOT_HOLD_VERIFIER_SECRET");
+  }
+  const { sql, table, receipts, schema } = database(input);
   const verifierKeys = new Map<string,string>();
   for (const key of input.trustedHostReceiptKeys ?? []) {
     if (verifierKeys.has(key.keyId)) {
@@ -294,6 +310,9 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
       return rows.map(row => resourceFromRow(row as Record<string, unknown>));
     },
     async putIfRevision(input) {
+      if (gatewayMode) {
+        throw new Error("CV03_N1_GATEWAY_UNSIGNED_RESOURCE_WRITE_DENIED");
+      }
       const address = addressValues(input);
       if (input.expectedRevision === null) {
         const resource = makeResource(input, undefined, 0);
@@ -338,20 +357,107 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
       const approval=signedApproval?.receipt;
       const proof=signedApproval?.proof;
       const key=proof?.keyId && verifierKeys.get(proof.keyId);
-      if(!key || proof.contractVersion!=="0.1.0" ||
+      if((!gatewayMode && !key) || !proof ||
+        !/^[a-zA-Z0-9_-]{1,48}$/.test(proof.keyId ?? "") ||
+        proof.contractVersion!=="0.1.0" ||
         proof.purpose!=="cv03.enterprise-resource.host-write" ||
         proof.algorithm!=="HMAC-SHA256" ||
         typeof proof.signature!=="string" ||
         !/^[a-f0-9]{64}$/.test(proof.signature)){
         throw Error("CV03_RESOURCE_HOST_SIGNED_PROOF_REQUIRED");
       }
-      const expected=hmacCv03HostResourceReceiptV010(approval,proof.keyId,key);
-      if(!timingSafeEqual(Buffer.from(proof.signature,"hex"),
-                          Buffer.from(expected,"hex"))){
-        throw Error("CV03_RESOURCE_HOST_SIGNED_PROOF_INVALID");
+      if (!gatewayMode) {
+        const expected=hmacCv03HostResourceReceiptV010(approval,proof.keyId,key!);
+        if(!timingSafeEqual(Buffer.from(proof.signature,"hex"),
+                            Buffer.from(expected,"hex"))){
+          throw Error("CV03_RESOURCE_HOST_SIGNED_PROOF_INVALID");
+        }
       }
+      // These business/identity invariants apply to BOTH signed paths.
+      // In gateway mode PostgreSQL also authenticates the HMAC itself.
       verifyHostReceiptBinding(input, approval);
       const address = addressValues(input);
+      if (gatewayMode) {
+        // This isolated mode is intentionally narrower than the legacy
+        // Enterprise Resource contract. No raw DML or unsigned CAS fallback.
+        if ((input.storageKind && input.storageKind!=="DOCUMENT") ||
+            input.metadata || input.payloadRef) {
+          throw Error("CV03_N1_GATEWAY_UNSUPPORTED_RESOURCE_SHAPE");
+        }
+        const approvalDigest=sha256ResourceReceiptV010(approval);
+        const idHash=sha256ResourceReceiptV010(approval.idempotencyKey);
+        const old=await sql.unsafe(
+          "SELECT receipt::text AS receipt,resource::text AS resource,"+
+          " input_digest,approval_digest,receipt_digest FROM "+receipts+
+          " WHERE context_id=$1 AND idempotency_hash=$2",
+          [input.contextId,idHash]
+        );
+        // History is independent from later resource revisions: do not
+        // regenerate the old canonical result using the live resource.
+        let proposed:EnterpriseResourceV010;
+        let complete:AgentActionReceiptV010;
+        if (old.length) {
+          const historic=committedFromReceiptRow(
+            old[0] as Record<string,unknown>,true
+          );
+          proposed=historic.resource;
+          complete=historic.receipt;
+        } else {
+          const prior=await sql.unsafe(
+            "SELECT revision,resource::text AS resource FROM "+table+
+            " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3"+
+            " AND resource_type=$4 AND resource_id=$5",
+            address
+          );
+          const current=prior.length ?
+            resourceFromRow(prior[0] as Record<string,unknown>) : undefined;
+          const revision=input.expectedRevision===null?0:
+            revisionNumber(input.expectedRevision)+1;
+          proposed=makeResource(input,current,revision);
+          complete=completedReceipt(approval,proposed);
+        }
+        const envelope=stableResourceReceiptJsonV010({
+          domain:"cv03.enterprise-resource.host-write/0.1.0",
+          keyId:proof.keyId,receipt:approval
+        });
+        // NO untrusted SQL identifiers, and no DB signing secret in JS.
+        const rows=await sql.unsafe(
+          "SELECT "+schema+
+          ".cv03_n1_signed_save($1::text,$2::text,$3::text,"+
+          "$4::text,$5::text,$6::text) AS result",
+          [stableResourceReceiptJsonV010(input),envelope,proof.signature,
+           stableResourceReceiptJsonV010(proposed),
+           stableResourceReceiptJsonV010(complete),
+           stableResourceReceiptJsonV010(approval)]
+        );
+        if(rows.length!==1 || !rows[0].result ||
+           typeof rows[0].result.replayed!=="boolean") {
+          throw Error("CV03_N1_GATEWAY_RESULT_INVALID");
+        }
+        const record=await sql.unsafe(
+          "SELECT receipt::text AS receipt,resource::text AS resource,"+
+          " input_digest,approval_digest,receipt_digest FROM "+receipts+
+          " WHERE context_id=$1 AND idempotency_hash=$2",
+          [input.contextId,idHash]
+        );
+        if (record.length!==1 || record[0].approval_digest!==approvalDigest){
+          throw Error("CV03_N1_GATEWAY_COMMITTED_EVIDENCE_INVALID");
+        }
+        const committed=committedFromReceiptRow(
+          record[0] as Record<string,unknown>,
+          Boolean(rows[0].result.replayed)
+        );
+        if(sha256ResourceReceiptV010(committed.resource)!==
+           sha256ResourceReceiptV010(rows[0].result.resource) ||
+           sha256ResourceReceiptV010(committed.receipt)!==
+           sha256ResourceReceiptV010(rows[0].result.receipt) ||
+           committed.receipt.receiptId!==approval.receiptId ||
+           committed.receipt.inputDigest!==approval.inputDigest ||
+           addressValues(committed.resource).some((v,i)=>v!==address[i])){
+          throw Error("CV03_N1_GATEWAY_COMMITTED_EVIDENCE_INVALID");
+        }
+        return committed;
+      }
       const keyHash = sha256ResourceReceiptV010(approval.idempotencyKey);
       const approvalDigest = sha256ResourceReceiptV010(approval);
       return sql.begin(async tx => {
@@ -458,6 +564,9 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
       return result;
     },
     async archiveIfRevision(input: EnterpriseResourceConditionalArchiveInputV010) {
+      if (gatewayMode) {
+        throw Error("CV03_N1_GATEWAY_UNSIGNED_RESOURCE_WRITE_DENIED");
+      }
       const expected = revisionNumber(input.expectedRevision);
       const address = addressValues(input.address);
       return sql.begin(async tx => {
