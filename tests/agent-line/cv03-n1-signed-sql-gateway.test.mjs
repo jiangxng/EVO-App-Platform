@@ -90,8 +90,15 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await admin.unsafe("INSERT INTO "+qSchema+
       ".cv03_n1_signing_keys(key_id,secret) VALUES ($1,$2)",
       [keyId,secret]);
+    // Test fixture is the authority synchronizing one PA05 admission mirror.
+    // No runtime login can INSERT, SELECT or UPDATE this gate.
+    await admin.unsafe("INSERT INTO "+qSchema+
+      ".cv03_n1_operation_policy(context_id,principal_subject_id,"+
+      "operation_id,enabled) VALUES ($1,$2,$3,true)",
+      ["enterprise-context:company-a","owner-a",op]);
     await admin.unsafe("ALTER SCHEMA "+qSchema+" OWNER TO "+qOwner);
-    for(const table of ["resources","cv03_resource_receipts","cv03_n1_signing_keys"]){
+    for(const table of ["resources","cv03_resource_receipts","cv03_n1_signing_keys",
+      "cv03_n1_operation_policy"]){
       await admin.unsafe("ALTER TABLE "+qSchema+'."'+table+'" OWNER TO '+qOwner);
       await admin.unsafe("REVOKE ALL ON TABLE "+qSchema+'."'+table+'" FROM PUBLIC');
     }
@@ -117,15 +124,20 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
         has_table_privilege(current_user,$1,'INSERT') AS insert_resource,
         has_table_privilege(current_user,$2,'INSERT') AS insert_receipt,
         has_table_privilege(current_user,$3,'SELECT') AS read_key,
+        has_table_privilege(current_user,$6,'SELECT') AS read_operation_policy,
+        has_table_privilege(current_user,$6,'UPDATE') AS mutate_operation_policy,
         has_function_privilege(current_user,$4,'EXECUTE') AS can_gateway,
         has_schema_privilege(current_user,$5,'CREATE') AS create_schema_objects
       `,[schema+".resources",schema+".cv03_resource_receipts",
         schema+".cv03_n1_signing_keys",
-        functionName+"(text,text,text,text,text,text)",schema]);
+        functionName+"(text,text,text,text,text,text)",schema,
+        schema+".cv03_n1_operation_policy"]);
     assert.equal(acl[0].role,runtime);
     assert.equal(acl[0].insert_resource,false);
     assert.equal(acl[0].insert_receipt,false);
     assert.equal(acl[0].read_key,false);
+    assert.equal(acl[0].read_operation_policy,false);
+    assert.equal(acl[0].mutate_operation_policy,false);
     assert.equal(acl[0].can_gateway,true);
     assert.equal(acl[0].create_schema_objects,false);
     await assert.rejects(runtimeSql.unsafe("INSERT INTO "+qSchema+
@@ -139,6 +151,10 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       /permission denied/i);
     await assert.rejects(runtimeSql.unsafe("SELECT * FROM "+qSchema+
       ".cv03_n1_signing_keys"),/permission denied/i);
+    await assert.rejects(runtimeSql.unsafe("SELECT * FROM "+qSchema+
+      ".cv03_n1_operation_policy"),/permission denied/i);
+    await assert.rejects(runtimeSql.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_operation_policy SET enabled=true"),/permission denied/i);
     await assert.rejects(runtimeSql.unsafe("ALTER FUNCTION "+functionName+
       "(text,text,text,text,text,text) OWNER TO "+qRuntime),/must be owner|permission denied/i);
 
@@ -227,6 +243,22 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       .then(rows=>rows[0].result);
     const first=newInput("香港供应商",null);
     const valid=signed(first);
+    // Signed before any physical SQL authorization mirror exists for owner-b.
+    const unmirrored=newInput("unmirrored",null,"other-user-view");
+    unmirrored.namespace="evo.saved-view.personal.owner-b";
+    unmirrored.actorSubjectId="owner-b";
+    unmirrored.payload={...unmirrored.payload,ownerSubjectId:"owner-b"};
+    await assert.rejects(invoke(runtimeSql,signed(unmirrored,{
+      principalSubjectId:"owner-b"
+    })),/CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    const tenMinutesAgo=newInput("stale-permit",null,"stale-view");
+    tenMinutesAgo.recordedAt=new Date(Date.now()-10*60*1000).toISOString();
+    await assert.rejects(invoke(runtimeSql,signed(tenMinutesAgo)),
+      /CV03_N104_SIGNED_PERMIT_EXPIRED/);
+    const tooFuture=newInput("future-permit",null,"future-view");
+    tooFuture.recordedAt=new Date(Date.now()+2*60*1000).toISOString();
+    await assert.rejects(invoke(runtimeSql,signed(tooFuture)),
+      /CV03_N104_SIGNED_PERMIT_EXPIRED/);
     await assert.rejects(invoke(runtimeSql,{...valid,signature:"0".repeat(64)}),
       /CV03_N1_SIGNED_PROOF_INVALID/);
     await assert.rejects(invoke(runtimeSql,{
@@ -405,6 +437,49 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       await originalPgRead.close();
     }
 
+    // A valid signed proof prepared before Feature/actor revocation cannot
+    // commit when a physically authoritative DB policy is flipped OFF.
+    const preRevoked=signed(newInput("signed-before-revoke",null,"late-view"));
+    const beforeRevoke=await admin.unsafe("SELECT count(*)::int AS n"+
+      " FROM "+qSchema+".resources");
+    // Hold the owner policy row's UPDATE lock while another connection
+    // attempts the valid signed SQL gateway. The gateway waits on FOR SHARE,
+    // then observes the committed revoke (not the old enabled snapshot).
+    let inFlight;
+    await admin.begin(async tx=>{
+      await tx.unsafe("UPDATE "+qSchema+
+        ".cv03_n1_operation_policy SET enabled=false,changed_at=clock_timestamp()"+
+        " WHERE context_id=$1 AND principal_subject_id=$2 AND operation_id=$3",
+        ["enterprise-context:company-a","owner-a",op]);
+      inFlight=invoke(runtimeSql,preRevoked);
+      await tx.unsafe("SELECT pg_sleep(0.12)");
+    });
+    await assert.rejects(inFlight,/CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    const afterRevoke=await admin.unsafe("SELECT count(*)::int AS n"+
+      " FROM "+qSchema+".resources");
+    assert.equal(afterRevoke[0].n,beforeRevoke[0].n);
+    await assert.rejects(invoke(runtimeSql,valid),
+      /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    // A historical committed receipt remains available through the
+    // independent READ operation; retrying WRITE is separately blocked.
+    const readOnly=createPostgresConditionalResourceRepositoryV010({
+      connectionString:runtimeUrl.toString(),schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010"
+    });
+    try{
+      const history=await readOnly.getCommittedWriteByIdempotencyKey({
+        address:first,idempotencyKey:valid.receipt.idempotencyKey,
+        receiptId:valid.receipt.receiptId,
+        inputDigest:valid.receipt.inputDigest,
+        principalSubjectId:"owner-a",principalActorType:"HUMAN"
+      });
+      assert.equal(history?.resource.revision,0);
+    }finally{await readOnly.close();}
+    // Restore only CI mirror to exercise independent SIGNER key stop below.
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_operation_policy SET enabled=true,changed_at=clock_timestamp()"+
+      " WHERE context_id=$1 AND principal_subject_id=$2 AND operation_id=$3",
+      ["enterprise-context:company-a","owner-a",op]);
     const beforeDisable=await admin.unsafe("SELECT count(*)::int AS n"+
       " FROM "+qSchema+".resources");
     const revoked=signed(newInput("revoked",null,"another-view"));
@@ -415,6 +490,24 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       " FROM "+qSchema+".resources");
     assert.equal(final[0].n,beforeDisable[0].n,
       "disabled signing key cannot create another resource");
+    // Even an SQL superuser whose connection CAN write the tables must not
+    // downgrade the EXPLICIT gateway Provider if the governed function is
+    // unavailable: failure is mandatory and the source rows are unchanged.
+    await admin.unsafe("DROP FUNCTION "+functionName+
+      "(text,text,text,text,text,text)");
+    const noGateway=createPostgresConditionalResourceRepositoryV010({
+      connectionString:url,schema,receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010"
+    });
+    const noGatewayInput=newInput("must-not-fallback",null,"no-gateway");
+    const noGatewayProof=signed(noGatewayInput);
+    try{
+      await assert.rejects(noGateway.putIfRevisionWithReceipt(
+        noGatewayInput,pack(noGatewayProof)
+      ),/does not exist|cv03_n1_signed_save/i);
+      assert.equal((await noGateway.get(noGatewayInput)),undefined,
+        "a missing SQL gateway must not trigger raw INSERT fallback");
+    }finally{await noGateway.close();}
+    console.log("CV03_N104_EXPIRY_REVOKE_TOCTOU_AND_NO_FALLBACK=PASS");
     console.log("CV03_N1_SQL_GATEWAY_DENIED_DIRECT_DML=PASS");
     console.log("CV03_N1_SQL_GATEWAY_HOST_HMAC_BINDING_AND_ATOMIC_CAS=PASS");
     console.log("CV03_N1_SQL_GATEWAY_ISOLATED_ONLY_PRODUCTION=NOT_CERTIFIED");

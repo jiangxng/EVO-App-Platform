@@ -11,7 +11,9 @@
  * exact canonical resource input digest before committing resource + receipt.
  *
  * This POC does not implement the full read API or all production migrations,
- * key rotation, TTL/revocation race and real principal identity attestations.
+ * production key rotation, true Feature revocation/event delivery and real
+ * principal identity attestations. The isolated policy mirror is NOT the live
+ * PA05 authorization state. Failed propagation must keep live WRITE disabled.
  */
 export function cv03N1GatewaySqlV010(schema){
   if(typeof schema!=="string"||!/^cv03_[a-z0-9_]{1,58}$/.test(schema))
@@ -22,6 +24,17 @@ CREATE TABLE ${s}.cv03_n1_signing_keys (
  key_id text PRIMARY KEY, secret text NOT NULL, enabled boolean NOT NULL DEFAULT true
 );
 REVOKE ALL ON TABLE ${s}.cv03_n1_signing_keys FROM PUBLIC;
+-- Test-only owner-maintained mirror of one currently authorized operation.
+-- Missing row defaults to DENY. SQL runtime receives no DML/SELECT grant.
+CREATE TABLE ${s}.cv03_n1_operation_policy (
+ context_id text NOT NULL,
+ principal_subject_id text NOT NULL,
+ operation_id text NOT NULL,
+ enabled boolean NOT NULL DEFAULT false,
+ changed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+ PRIMARY KEY (context_id,principal_subject_id,operation_id)
+);
+REVOKE ALL ON TABLE ${s}.cv03_n1_operation_policy FROM PUBLIC;
 CREATE FUNCTION ${s}.cv03_n1_signed_save(p_input text, p_envelope text, p_signature text,
   p_resource text, p_completed text, p_approval text)
 RETURNS jsonb
@@ -47,6 +60,8 @@ DECLARE
  scope_collection text;
  scope_type text;
  scope_resource text;
+ signed_at timestamptz;
+ active_policy boolean;
 BEGIN
  IF length(p_input)>16384 OR length(p_envelope)>8192 OR
     length(p_resource)>16384 OR length(p_completed)>16384 OR
@@ -77,7 +92,8 @@ BEGIN
     a->>'principalSubjectId' IS DISTINCT FROM i->>'actorSubjectId' OR
     i->>'ownerPackageId' IS DISTINCT FROM 'host-enterprise-context-provider' OR
     i->>'resourceType' IS DISTINCT FROM 'saved-collection-view' OR
-    scope_namespace NOT LIKE 'evo.saved-view.personal.%' OR
+    scope_namespace IS DISTINCT FROM
+      ('evo.saved-view.personal.'||(a->>'principalSubjectId')) OR
     scope_collection IS NULL OR length(scope_collection)=0 OR
     scope_resource IS NULL OR length(scope_resource)=0 OR
     ctx IS NULL OR length(ctx)=0 OR
@@ -92,12 +108,39 @@ BEGIN
  THEN
    RAISE EXCEPTION 'CV03_N1_GATEWAY_BINDING_DENIED';
  END IF;
+ -- Lock signer row until the resource/receipt transaction commits: key
+ -- disable waits for an in-flight committed write, and a later write sees
+ -- disabled. Never accept a secret solely because it was recently loaded.
  SELECT secret INTO k FROM ${s}.cv03_n1_signing_keys
-    WHERE key_id=id AND enabled=true;
+    WHERE key_id=id AND enabled=true FOR SHARE;
  IF k IS NULL THEN RAISE EXCEPTION 'CV03_N1_SIGNER_NOT_TRUSTED'; END IF;
  IF encode(public.hmac(convert_to(p_envelope,'UTF8'),
        convert_to(k,'UTF8'),'sha256'),'hex')<>p_signature
  THEN RAISE EXCEPTION 'CV03_N1_SIGNED_PROOF_INVALID'; END IF;
+ -- DB wall-clock bounds (not caller-controlled recordedAt/tx start).
+ -- Historical receipts remain readable via readback. Old signed WRITE
+ -- requests are NOT fresh authority to mutate after permit expiry.
+ BEGIN
+   signed_at := (a->>'requestedAt')::timestamptz;
+ EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+   RAISE EXCEPTION 'CV03_N104_SIGNED_PERMIT_TIMESTAMP_INVALID';
+ END;
+ IF signed_at IS NULL OR
+    signed_at < clock_timestamp()-interval '5 minutes' OR
+    signed_at > clock_timestamp()+interval '30 seconds' THEN
+   RAISE EXCEPTION 'CV03_N104_SIGNED_PERMIT_EXPIRED';
+ END IF;
+ -- Physical operation gate: missing or revoked mirror row DENIES even a
+ -- cryptographically valid Host-issued receipt. This is owner-only state.
+ -- FOR SHARE serializes a concurrent admin revoke with the commit.
+ SELECT enabled INTO active_policy FROM ${s}.cv03_n1_operation_policy
+ WHERE context_id=ctx
+   AND principal_subject_id=a->>'principalSubjectId'
+   AND operation_id='collection.saved-view.personal.save'
+ FOR SHARE;
+ IF NOT FOUND OR active_policy IS DISTINCT FROM true THEN
+   RAISE EXCEPTION 'CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED';
+ END IF;
  IF p_approval::jsonb IS DISTINCT FROM a THEN
    RAISE EXCEPTION 'CV03_N1_APPROVAL_CANONICAL_MISMATCH';
  END IF;

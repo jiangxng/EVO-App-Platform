@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1-04a 隔离 SQL 签名时效与撤权物理门禁
+
+[SQL Gateway 过期 permit、撤权竞态与不降级回归](CV03-N104-SQL-PERMIT-REVOCATION-ISOLATED-GATE-20261110.md)：在 N1-03 既有受控 SQL Provider 上，新增 PostgreSQL wall-clock 有效期、数据库物理撤权镜像 FOR SHARE 锁、Personal namespace 主体严格绑定、无 Gateway 函数时拒绝写入。**仅测试镜像；并非已接通 PA05 实时撤权；N1 生产准入和 Saved View WRITE 仍未开启。**
+
 ## 2026-11-10 CV-03 N1-03 显式 SQL-only Provider + 多 Worker / 丢 ACK
 
 **[N1-03 实现、真实 PostgreSQL 18 回归、独立进程及正式准入门禁](CV03-N103-EXPLICIT-SQL-GATEWAY-PROVIDER-ISOLATED-HANDOFF-20261110.md)**。在原 Enterprise Resource Provider 中显式增加仅隔离 `SQL_GATEWAY_ISOLATED_V010`，不能回退 SQL 直写；真实 Host 仍未绑定，生产 Saved View WRITE 保持 OFF，正式数据库/签名人未验收。
