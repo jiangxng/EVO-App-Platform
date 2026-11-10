@@ -21,7 +21,7 @@
 - [新 N1-04j 实际 Host subprocess 回归](../../../tests/agent-line/cv03-n104j-real-host-startup-quarantine.test.mjs) 利用临时目录真实文件 + `dist/manager/server.js` + 独立 loopback 端口，断言：
   - 已持久化的 Saved View Active Feature，即使有 `APP_PLATFORM_CV03_PERSONAL_VIEW_PAGE_MODE=READ_ONLY`，也**在 HTTP 启动前拒绝**。
   - 活跃 Feature ID 对但 `packageId` 冒用其他包，仍拒绝。
-  - 只有普通宿主包 installed metadata（无活跃 Saved View），或宿主 Default Feature 正常活跃，仍能提供 `GET /v1/catalog` HTTP 200；确认启动不意外重写持久化文件。
+  - 只有普通宿主包 installed metadata（无活跃 Saved View），或宿主 Default Feature 正常活跃，仍能提供 `GET /v1/catalog` HTTP 200；允许 Host 原有正常启动默认服务安装写入生命周期文件，但必须保留原有 operator 安装/Default Feature 记录，并证明未激活未经认证的 Saved View Feature。
   - 检查原 Domain Owner Feature ID 与启动门禁常量一致；`APP_PLATFORM_CV03_HUMAN_SAVE_MODE=ON` 仍被原独立门禁拒绝。
 - 扩展原 [CV-03 PG18 工作流](../../../.github/workflows/cv03-resource-postgres-atomic.yml) 的路径与串行测试命令，确保新真实 Host 测试属于**必须实际执行**的回归，而不是只被加入仓库。
 
