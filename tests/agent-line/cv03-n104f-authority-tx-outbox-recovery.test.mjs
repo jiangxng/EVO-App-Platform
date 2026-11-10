@@ -216,6 +216,16 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.equal((await stateFor(a)).enabled,true);
     assert.equal((await pending(a,1)).acked,false);
     assert.equal(await commit(initial),"DUPLICATE");
+    // Two concurrent Owner submissions for a fresh, independently-scoped
+    // real Manager decision must produce exactly one state/outbox transaction.
+    const raceCtx=context("company-race");
+    const raceEvent=await f.evaluate(raceCtx,1);
+    const raceResults=await Promise.all([commit(raceEvent),commit(raceEvent)]);
+    assert.deepEqual(raceResults.slice().sort(),
+      ["COMMITTED_WITH_OUTBOX","DUPLICATE"].sort());
+    assert.equal((await stateFor(raceCtx)).enabled,false);
+    assert.equal((await pending(raceCtx,1)).acked,false);
+    console.log("CV03_N104F_CONCURRENT_T0_SINGLE_EVENT=PASS");
     await assert.rejects(commit({...initial,enabled:false}),
       /CV03_N104F_EPOCH_PAYLOAD_CONFLICT/);
     assert.equal(await send(a,1,{acknowledge:false}),"APPLIED");
@@ -242,6 +252,8 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
       /CV03_N104F_FORCED_T0_ROLLBACK/);
     assert.equal(Number((await stateFor(a)).authority_epoch),1);
     assert.equal(await pending(a,2),undefined);
+    await assert.rejects(commit({...revoked,authorityEpoch:4}),
+      /CV03_N104F_AUTHORITY_EPOCH_GAP_OR_STALE/);
     await admin.unsafe("UPDATE "+policy+
       " SET lease_until=clock_timestamp()-interval '1 second'"+
       " WHERE context_id=$1 AND actor_type='HUMAN'",[a.context.activeContext.contextId]);
@@ -287,6 +299,12 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     await assert.rejects(recover(snapshotProof(heartbeat,{
       authorityEpoch:3
     })),/CV03_N104F_SNAPSHOT_NOT_AUTHORITATIVE/);
+    await assert.rejects(recover(snapshotProof(heartbeat,{
+      enterpriseId:"company-b"
+    })),/CV03_N104F_SNAPSHOT_INVALID/);
+    await assert.rejects(recover(snapshotProof(heartbeat,{
+      evaluatedActorType:"AI"
+    })),/CV03_N104F_SNAPSHOT_NOT_AUTHORITATIVE/);
     assert.equal(await recover(snapshotProof(heartbeat)),
       "FULL_ACTOR_SNAPSHOT_APPLIED");
     assert.equal((await mirrorFor(a)).mirror_healthy,true);
@@ -310,7 +328,7 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.equal(await commit(disabledB),"COMMITTED_WITH_OUTBOX");
     assert.equal(await send(b,2),"APPLIED");
     assert.equal((await mirrorFor(b)).enabled,false);
-    assert.equal((await admin.unsafe("SELECT count(*)::int AS n FROM "+outbox))[0].n,8);
+    assert.equal((await admin.unsafe("SELECT count(*)::int AS n FROM "+outbox))[0].n,9);
     console.log("CV03_N104F_REVOKE_ACTOR_SWITCH_ENTERPRISE_DISABLE=PASS");
     console.log("CV03_N104F_REAL_LIFECYCLE_ATOMIC_OUTBOX=NOT_CERTIFIED");
     console.log("CV03_N104F_PRODUCTION_SQL_KMS_PA05_OWNER=NOT_CERTIFIED");
