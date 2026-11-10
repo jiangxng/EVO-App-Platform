@@ -1,3 +1,4 @@
+import {cv03N104eDomainOwnerNamespaceSqlV010} from "./cv03-n104e-domain-owner-namespace.mjs";
 /**
  * CV-03 N1-02: ISOLATED PostgreSQL 18 SQL-enforced signed write gateway.
  *
@@ -20,6 +21,7 @@ export function cv03N1GatewaySqlV010(schema){
     throw Error("CV03_N1_ISOLATED_SCHEMA_REQUIRED");
   const s='"'+schema+'"';
   return `
+${cv03N104eDomainOwnerNamespaceSqlV010(schema)}
 CREATE TABLE ${s}.cv03_n1_signing_keys (
  key_id text PRIMARY KEY, secret text NOT NULL, enabled boolean NOT NULL DEFAULT true
 );
@@ -29,6 +31,7 @@ REVOKE ALL ON TABLE ${s}.cv03_n1_signing_keys FROM PUBLIC;
 CREATE TABLE ${s}.cv03_n1_operation_policy (
  context_id text NOT NULL,
  principal_subject_id text NOT NULL,
+ actor_type text NOT NULL CHECK (actor_type IN ('HUMAN','AI')),
  operation_id text NOT NULL,
  enabled boolean NOT NULL DEFAULT false,
  authority_epoch bigint NOT NULL DEFAULT 0 CHECK (authority_epoch >= 0),
@@ -38,14 +41,14 @@ CREATE TABLE ${s}.cv03_n1_operation_policy (
  delivery_required boolean NOT NULL DEFAULT false,
  lease_until timestamptz,
  changed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
- PRIMARY KEY (context_id,principal_subject_id,operation_id)
+ PRIMARY KEY (context_id,principal_subject_id,actor_type,operation_id)
 );
 REVOKE ALL ON TABLE ${s}.cv03_n1_operation_policy FROM PUBLIC;
 -- ONLY the offline owner-side fixture may invoke this event applicator.
 -- No routine/app SQL login has EXECUTE; real PA05 event authenticity and
 -- delivery must be independently certified before any production use.
 CREATE FUNCTION ${s}.cv03_n1_apply_owner_policy_epoch(
- p_context text,p_subject text,p_operation text,p_epoch bigint,p_enabled boolean
+ p_context text,p_subject text,p_actor_type text,p_operation text,p_epoch bigint,p_enabled boolean
 )
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, pg_temp
@@ -54,6 +57,7 @@ DECLARE old_epoch bigint;
 BEGIN
  IF p_context IS NULL OR length(p_context)=0 OR
     p_subject IS NULL OR length(p_subject)=0 OR
+     p_actor_type IS NULL OR p_actor_type NOT IN ('HUMAN','AI') OR
     p_operation IS DISTINCT FROM 'collection.saved-view.personal.save' OR
     p_epoch IS NULL OR p_epoch<1 OR p_enabled IS NULL THEN
    RAISE EXCEPTION 'CV03_N104B_OWNER_EVENT_INVALID';
@@ -61,12 +65,12 @@ BEGIN
  SELECT authority_epoch INTO old_epoch
  FROM ${s}.cv03_n1_operation_policy
  WHERE context_id=p_context AND principal_subject_id=p_subject
-   AND operation_id=p_operation FOR UPDATE;
+   AND actor_type=p_actor_type AND operation_id=p_operation FOR UPDATE;
  IF NOT FOUND THEN
    INSERT INTO ${s}.cv03_n1_operation_policy(
-     context_id,principal_subject_id,operation_id,
+     context_id,principal_subject_id,actor_type,operation_id,
      enabled,authority_epoch,mirror_healthy
-   ) VALUES (p_context,p_subject,p_operation,
+   ) VALUES (p_context,p_subject,p_actor_type,p_operation,
      CASE WHEN p_epoch=1 THEN p_enabled ELSE false END,
      p_epoch,p_epoch=1);
    RETURN CASE WHEN p_epoch=1 THEN 'APPLIED'
@@ -80,21 +84,21 @@ BEGIN
      SET enabled=false,mirror_healthy=false,
          authority_epoch=p_epoch,changed_at=clock_timestamp()
    WHERE context_id=p_context AND principal_subject_id=p_subject
-     AND operation_id=p_operation;
+     AND actor_type=p_actor_type AND operation_id=p_operation;
    RETURN 'GAP_FAIL_CLOSED';
  END IF;
  UPDATE ${s}.cv03_n1_operation_policy
    SET enabled=p_enabled,mirror_healthy=mirror_healthy,
        authority_epoch=p_epoch,changed_at=clock_timestamp()
  WHERE context_id=p_context AND principal_subject_id=p_subject
-   AND operation_id=p_operation;
+   AND actor_type=p_actor_type AND operation_id=p_operation;
  -- Once a sequence gap was seen, only an explicit independently verified
  -- full owner snapshot may clear mirror_healthy. Normal events cannot.
  RETURN 'APPLIED';
 END;
 $cv03_apply_epoch$;
 REVOKE ALL ON FUNCTION ${s}.cv03_n1_apply_owner_policy_epoch(
- text,text,text,bigint,boolean) FROM PUBLIC;
+ text,text,text,text,bigint,boolean) FROM PUBLIC;
 CREATE FUNCTION ${s}.cv03_n1_signed_save(p_input text, p_envelope text, p_signature text,
   p_resource text, p_completed text, p_approval text)
 RETURNS jsonb
@@ -155,8 +159,10 @@ BEGIN
     a->>'principalSubjectId' IS DISTINCT FROM i->>'actorSubjectId' OR
     i->>'ownerPackageId' IS DISTINCT FROM 'host-enterprise-context-provider' OR
     i->>'resourceType' IS DISTINCT FROM 'saved-collection-view' OR
-    scope_namespace IS DISTINCT FROM
-      ('evo.saved-view.personal.'||(a->>'principalSubjectId')) OR
+    a->'context'->>'enterpriseId' IS NULL OR
+     length(a->'context'->>'enterpriseId')=0 OR
+     scope_namespace IS DISTINCT FROM ${s}.cv03_n1_saved_view_namespace(
+       a->'context'->>'enterpriseId',a->>'principalSubjectId') OR
     scope_collection IS NULL OR length(scope_collection)=0 OR
     scope_resource IS NULL OR length(scope_resource)=0 OR
     ctx IS NULL OR length(ctx)=0 OR
@@ -201,6 +207,7 @@ BEGIN
  FROM ${s}.cv03_n1_operation_policy
  WHERE context_id=ctx
    AND principal_subject_id=a->>'principalSubjectId'
+   AND actor_type=a->>'principalActorType'
    AND operation_id='collection.saved-view.personal.save'
  FOR SHARE;
  IF NOT FOUND OR active_policy IS DISTINCT FROM true OR
@@ -227,7 +234,8 @@ BEGIN
      old_receipt.receipt->>'receiptId' IS DISTINCT FROM a->>'receiptId' OR
      old_receipt.approval_digest IS DISTINCT FROM
        encode(public.digest(convert_to(p_approval,'UTF8'),'sha256'),'hex') OR
-     old_receipt.receipt->>'principalSubjectId' IS DISTINCT FROM a->>'principalSubjectId'
+     old_receipt.receipt->>'principalSubjectId' IS DISTINCT FROM a->>'principalSubjectId' OR
+      old_receipt.receipt->>'principalActorType' IS DISTINCT FROM a->>'principalActorType'
    THEN RAISE EXCEPTION 'CV03_N1_IDEMPOTENCY_CONFLICT'; END IF;
    RETURN jsonb_build_object('resource',old_receipt.resource,
      'receipt',old_receipt.receipt,'replayed',true);
