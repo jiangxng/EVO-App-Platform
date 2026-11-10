@@ -490,6 +490,24 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       " FROM "+qSchema+".resources");
     assert.equal(final[0].n,beforeDisable[0].n,
       "disabled signing key cannot create another resource");
+    // Even an SQL superuser whose connection CAN write the tables must not
+    // downgrade the EXPLICIT gateway Provider if the governed function is
+    // unavailable: failure is mandatory and the source rows are unchanged.
+    await admin.unsafe("DROP FUNCTION "+functionName+
+      "(text,text,text,text,text,text)");
+    const noGateway=createPostgresConditionalResourceRepositoryV010({
+      connectionString:url,schema,receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010"
+    });
+    const noGatewayInput=newInput("must-not-fallback",null,"no-gateway");
+    const noGatewayProof=signed(noGatewayInput);
+    try{
+      await assert.rejects(noGateway.putIfRevisionWithReceipt(
+        noGatewayInput,pack(noGatewayProof)
+      ),/does not exist|cv03_n1_signed_save/i);
+      assert.equal((await noGateway.get(noGatewayInput)),undefined,
+        "a missing SQL gateway must not trigger raw INSERT fallback");
+    }finally{await noGateway.close();}
+    console.log("CV03_N104_EXPIRY_REVOKE_TOCTOU_AND_NO_FALLBACK=PASS");
     console.log("CV03_N1_SQL_GATEWAY_DENIED_DIRECT_DML=PASS");
     console.log("CV03_N1_SQL_GATEWAY_HOST_HMAC_BINDING_AND_ATOMIC_CAS=PASS");
     console.log("CV03_N1_SQL_GATEWAY_ISOLATED_ONLY_PRODUCTION=NOT_CERTIFIED");
