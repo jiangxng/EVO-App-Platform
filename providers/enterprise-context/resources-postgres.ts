@@ -248,6 +248,12 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
    * Existing legacy direct mode is retained solely for old isolated tests.
    */
   receiptWriteMode?: "LEGACY_DIRECT_ISOLATED_V010" | "SQL_GATEWAY_ISOLATED_V010";
+  /**
+   * Explicit N1-04b CI-only SQL-login scope. Never selected by the official
+   * Host: each physical SQL login is bound to exactly one principal/enterprise.
+   * A shared multi-user connection string must NOT be treated as a principal.
+   */
+  readMode?: "SQL_ROLE_SCOPED_ISOLATED_V010";
 }): EnterpriseResourceConditionalAsyncRepositoryV010 {
   if (input.receiptWriteMode !== undefined &&
       !["LEGACY_DIRECT_ISOLATED_V010","SQL_GATEWAY_ISOLATED_V010"]
@@ -255,6 +261,14 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
     throw new Error("CV03_RESOURCE_RECEIPT_WRITE_MODE_INVALID");
   }
   const gatewayMode=input.receiptWriteMode==="SQL_GATEWAY_ISOLATED_V010";
+  if (input.readMode!==undefined &&
+      input.readMode!=="SQL_ROLE_SCOPED_ISOLATED_V010") {
+    throw Error("CV03_N104B_READ_MODE_INVALID");
+  }
+  const scopedReadMode=input.readMode==="SQL_ROLE_SCOPED_ISOLATED_V010";
+  if (scopedReadMode && !gatewayMode) {
+    throw Error("CV03_N104B_SCOPED_READ_REQUIRES_SQL_GATEWAY");
+  }
   if (gatewayMode && input.trustedHostReceiptKeys?.length) {
     throw new Error("CV03_N1_GATEWAY_RUNTIME_MUST_NOT_HOLD_VERIFIER_SECRET");
   }
@@ -282,11 +296,22 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
     " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3" +
     " AND resource_type=$4 AND resource_id=$5" +
     (forUpdate ? " FOR UPDATE" : "");
+  // Each read operation is a physical SQL function when selected. A missing
+  // scoped function or revoked runtime EXECUTE fails closed: no raw SELECT.
+  const readAddressSql=scopedReadMode ?
+    "SELECT revision,resource FROM "+schema+
+      ".cv03_n1_scoped_get($1,$2,$3,$4,$5)" : selectAddress(false);
+  const readReceiptSql=scopedReadMode ?
+    "SELECT receipt,resource,input_digest,approval_digest,receipt_digest "+
+      "FROM "+schema+".cv03_n1_scoped_receipt($1,$2)" :
+    "SELECT receipt::text AS receipt,resource::text AS resource,"+
+      "input_digest,approval_digest,receipt_digest FROM "+receipts+
+      " WHERE context_id=$1 AND idempotency_hash=$2";
 
   return {
     conditionalWriteConsistency: "SHARED_POSTGRES_TRANSACTION",
     async get(address) {
-      const rows = await sql.unsafe(selectAddress(false), addressValues(address));
+      const rows = await sql.unsafe(readAddressSql,addressValues(address));
       return rows.length ? resourceFromRow(rows[0] as Record<string, unknown>) : undefined;
     },
     async list(input: EnterpriseResourceListInputV010) {
@@ -297,13 +322,16 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
           !["ACTIVE", "ARCHIVED"].includes(input.lifecycleState)) {
         throw new Error("ENTERPRISE_RESOURCE_LIFECYCLE_INVALID");
       }
-      const rows = await sql.unsafe(
+      const query=scopedReadMode ?
+        "SELECT revision,resource FROM "+schema+
+          ".cv03_n1_scoped_list($1,$2,$3,$4,$5)" :
         "SELECT revision, resource::text AS resource FROM " + table +
         " WHERE context_id=$1 AND ($2::text IS NULL OR namespace=$2)" +
         " AND ($3::text IS NULL OR collection_id=$3)" +
         " AND ($4::text IS NULL OR resource_type=$4)" +
         " AND ($5::text IS NULL OR resource->>'lifecycleState'=$5)" +
-        " ORDER BY namespace, collection_id, resource_type, resource_id",
+        " ORDER BY namespace, collection_id, resource_type, resource_id";
+      const rows = await sql.unsafe(query,
         [contextId, filter(input.namespace), filter(input.collectionId),
          filter(input.resourceType), input.lifecycleState ?? null]
       );
@@ -386,12 +414,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
         }
         const approvalDigest=sha256ResourceReceiptV010(approval);
         const idHash=sha256ResourceReceiptV010(approval.idempotencyKey);
-        const old=await sql.unsafe(
-          "SELECT receipt::text AS receipt,resource::text AS resource,"+
-          " input_digest,approval_digest,receipt_digest FROM "+receipts+
-          " WHERE context_id=$1 AND idempotency_hash=$2",
-          [input.contextId,idHash]
-        );
+        const old=await sql.unsafe(readReceiptSql,[input.contextId,idHash]);
         // History is independent from later resource revisions: do not
         // regenerate the old canonical result using the live resource.
         let proposed:EnterpriseResourceV010;
@@ -403,12 +426,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
           proposed=historic.resource;
           complete=historic.receipt;
         } else {
-          const prior=await sql.unsafe(
-            "SELECT revision,resource::text AS resource FROM "+table+
-            " WHERE context_id=$1 AND namespace=$2 AND collection_id=$3"+
-            " AND resource_type=$4 AND resource_id=$5",
-            address
-          );
+          const prior=await sql.unsafe(readAddressSql,address);
           const current=prior.length ?
             resourceFromRow(prior[0] as Record<string,unknown>) : undefined;
           const revision=input.expectedRevision===null?0:
@@ -434,12 +452,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
            typeof rows[0].result.replayed!=="boolean") {
           throw Error("CV03_N1_GATEWAY_RESULT_INVALID");
         }
-        const record=await sql.unsafe(
-          "SELECT receipt::text AS receipt,resource::text AS resource,"+
-          " input_digest,approval_digest,receipt_digest FROM "+receipts+
-          " WHERE context_id=$1 AND idempotency_hash=$2",
-          [input.contextId,idHash]
-        );
+        const record=await sql.unsafe(readReceiptSql,[input.contextId,idHash]);
         if (record.length!==1 || record[0].approval_digest!==approvalDigest){
           throw Error("CV03_N1_GATEWAY_COMMITTED_EVIDENCE_INVALID");
         }
@@ -546,10 +559,7 @@ export function createPostgresConditionalResourceRepositoryV010(input: {
           !["AI","HUMAN"].includes(query.principalActorType)) {
         throw new Error("CV03_RESOURCE_RECEIPT_LOOKUP_INVALID");
       }
-      const rows=await sql.unsafe(
-        "SELECT receipt::text AS receipt,resource::text AS resource,input_digest,"+
-        "approval_digest,receipt_digest FROM " + receipts +
-        " WHERE context_id=$1 AND idempotency_hash=$2",
+      const rows=await sql.unsafe(readReceiptSql,
         [address[0],sha256ResourceReceiptV010(query.idempotencyKey)]
       );
       if(rows.length!==1)return undefined;

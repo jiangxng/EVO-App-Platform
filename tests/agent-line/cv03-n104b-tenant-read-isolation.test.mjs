@@ -1,0 +1,232 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {randomUUID} from "node:crypto";
+import postgres from "postgres";
+import {
+  preparePostgresConditionalResourceSchemaV010,
+  createPostgresConditionalResourceRepositoryV010
+} from "../../dist/providers/enterprise-context/resources-postgres.js";
+import {sha256ResourceReceiptV010}
+  from "../../dist/providers/enterprise-context/resource-receipt-digest.js";
+import {cv03N1ScopedReadGatewaySqlV010}
+  from "../../tools/cv03-n1-isolated-tenant-read-gateway.mjs";
+
+const url=process.env.CV03_RESOURCE_PROOF_DATABASE_URL;
+const approved=(process.env.CV03_N1_ONLY_ISOLATED_GATEWAY_TEST==="YES_CI_LOCAL"&&
+  !!url&&(()=>{try{const u=new URL(url);
+    return ["127.0.0.1","localhost"].includes(u.hostname)&&
+      u.pathname==="/cv03proof";
+  }catch{return false;}})());
+const isolated={skip:!approved&&"only localhost/cv03proof opt-in",
+  timeout:90000};
+
+test("N1-04b rejects untrusted SQL scope schema names",()=>{
+  assert.throws(()=>cv03N1ScopedReadGatewaySqlV010(
+    'cv03_read";REVOKE ALL'),/CV03_N1_ISOLATED_SCHEMA_REQUIRED/);
+});
+
+test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revoke and no fallback",isolated,async()=>{
+  const suffix=randomUUID().replaceAll("-","").slice(0,12);
+  const schema="cv03_read_"+suffix,qSchema='"'+schema+'"';
+  const owner="cv03_read_owner_"+suffix;
+  const a="cv03_read_a_"+suffix,b="cv03_read_b_"+suffix;
+  const quote=v=>'"'+v+'"';
+  const pwdA="cv03-ci-a-"+randomUUID().replaceAll("-","");
+  const pwdB="cv03-ci-b-"+randomUUID().replaceAll("-","");
+  const admin=postgres(url,{max:1,prepare:false,connect_timeout:10});
+  const grants=["cv03_n1_scoped_get(text,text,text,text,text)",
+    "cv03_n1_scoped_list(text,text,text,text,text)",
+    "cv03_n1_scoped_receipt(text,text)"];
+  const conn=(role,password)=>{const u=new URL(url);
+    u.username=role;u.password=password;return u.toString();};
+  let repoA,repoB;
+  const createdRoles=[],schemaCreated={value:false};
+  const resourceTable=qSchema+".resources",receiptTable=qSchema+".cv03_resource_receipts";
+  const ctx=id=>"enterprise-context:"+id;
+  const makeFixture=(enterpriseId,subject,id,title)=>{
+    const at=new Date().toISOString();
+    const addr={contextId:ctx(enterpriseId),
+      namespace:"evo.saved-view.personal."+subject,
+      collectionId:"collection-views",resourceType:"saved-collection-view",
+      resourceId:id};
+    const resource={
+      contractVersion:"0.1.0",...addr,
+      schemaRef:"evo.saved-view.personal/0.1.0",
+      ownerPackageId:"host-enterprise-context-provider",
+      storageKind:"DOCUMENT",lifecycleState:"ACTIVE",revision:0,
+      payload:{contractVersion:"0.1.0",viewId:id,title,
+        ownerSubjectId:subject,enterpriseId,visibility:"PERSONAL",
+        collectionId:"dictionary",columns:["dictionaryId"],presentation:"table"},
+      createdAt:at,createdBySubjectId:subject,
+      updatedAt:at,updatedBySubjectId:subject
+    };
+    const idem="fixture:"+randomUUID(),receiptId="fixture-receipt:"+id;
+    const inputDigest=sha256ResourceReceiptV010({id,enterpriseId,subject});
+    const receipt={
+      contractVersion:"0.1.0",receiptId,
+      invocationId:"fixture-invocation:"+id,idempotencyKey:idem,
+      sourceInteractionId:"fixture-UI:"+id,
+      sourceActionId:"collection.saved-view.personal.save",
+      principalSubjectId:subject,principalActorType:"HUMAN",
+      context:{contractVersion:"0.1.0",kind:"ENTERPRISE",
+        contextId:addr.contextId,enterpriseId},
+      toolId:"collection.saved-view.personal.save",
+      ownerPackageId:"host-enterprise-context-provider",
+      effect:"WRITE",inputDigest,status:"SUCCEEDED",
+      requestedAt:at,completedAt:at,
+      resultDigest:sha256ResourceReceiptV010(resource),
+      resultEntityRefs:["enterprise-resource:"+id],
+      resultSummary:"N1-04b isolated fixture",
+      latestEventId:"fixture:"+id
+    };
+    return {addr,resource,receipt,idem,inputDigest,receiptId};
+  };
+  try{
+    await admin.unsafe("CREATE ROLE "+quote(owner)+
+      " NOLOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB");
+    createdRoles.push(owner);
+    for(const [role,pwd] of [[a,pwdA],[b,pwdB]]){
+      await admin.unsafe("CREATE ROLE "+quote(role)+
+        " LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB PASSWORD '"+pwd+"'");
+      createdRoles.push(role);
+    }
+    await preparePostgresConditionalResourceSchemaV010({
+      connectionString:url,schema
+    });
+    schemaCreated.value=true;
+    await admin.unsafe(cv03N1ScopedReadGatewaySqlV010(schema));
+    const fixtures=[
+      makeFixture("company-a","owner-a","a-one","香港供应商"),
+      makeFixture("company-b","owner-b","b-one","東京字典"),
+      makeFixture("company-a","owner-other","a-other","其他人私有视图")
+    ];
+    for(const item of fixtures){
+      const r=item.resource;
+      await admin.unsafe("INSERT INTO "+resourceTable+
+        "(context_id,namespace,collection_id,resource_type,resource_id,"+
+        "revision,resource) VALUES ($1,$2,$3,$4,$5,0,$6::text::jsonb)",
+        [r.contextId,r.namespace,r.collectionId,r.resourceType,r.resourceId,
+          JSON.stringify(r)]);
+      await admin.unsafe("INSERT INTO "+receiptTable+
+        "(context_id,idempotency_hash,receipt_id,approval_digest,input_digest,"+
+        "receipt_digest,receipt,resource) VALUES"+
+        " ($1,$2,$3,$4,$5,$6,$7::text::jsonb,$8::text::jsonb)",
+        [r.contextId,sha256ResourceReceiptV010(item.idem),item.receiptId,
+          sha256ResourceReceiptV010({fixture:true}),item.inputDigest,
+          sha256ResourceReceiptV010(item.receipt),JSON.stringify(item.receipt),
+          JSON.stringify(r)]);
+    }
+    await admin.unsafe("INSERT INTO "+qSchema+
+      ".cv03_n1_read_scope(runtime_role,context_id,owner_subject_id,"+
+      "enterprise_id,enabled) VALUES ($1,$2,$3,$4,true),($5,$6,$7,$8,true)",
+      [a,ctx("company-a"),"owner-a","company-a",
+       b,ctx("company-b"),"owner-b","company-b"]);
+    await admin.unsafe("ALTER SCHEMA "+qSchema+" OWNER TO "+quote(owner));
+    for(const name of ["resources","cv03_resource_receipts",
+      "cv03_n1_read_scope"]){
+      await admin.unsafe("ALTER TABLE "+qSchema+"."+quote(name)+
+        " OWNER TO "+quote(owner));
+      await admin.unsafe("REVOKE ALL ON TABLE "+qSchema+"."+quote(name)+
+        " FROM PUBLIC");
+    }
+    for(const fn of grants){
+      await admin.unsafe("ALTER FUNCTION "+qSchema+"."+fn+
+        " OWNER TO "+quote(owner));
+      await admin.unsafe("REVOKE ALL ON FUNCTION "+qSchema+"."+fn+
+        " FROM PUBLIC");
+    }
+    await admin.unsafe("REVOKE ALL ON SCHEMA "+qSchema+" FROM PUBLIC");
+    for(const role of [a,b]){
+      await admin.unsafe("GRANT USAGE ON SCHEMA "+qSchema+
+        " TO "+quote(role));
+      for(const fn of grants)await admin.unsafe(
+        "GRANT EXECUTE ON FUNCTION "+qSchema+"."+fn+
+        " TO "+quote(role));
+    }
+    const sqlA=postgres(conn(a,pwdA),{max:1,prepare:false});
+    const sqlB=postgres(conn(b,pwdB),{max:1,prepare:false});
+    try{
+      for(const [role,client] of [[a,sqlA],[b,sqlB]]){
+        const privileges=await client.unsafe(`
+          SELECT session_user AS login, current_user AS runtime,
+           has_table_privilege(current_user,$1,'SELECT') AS can_read_resources,
+           has_table_privilege(current_user,$2,'SELECT') AS can_read_receipts,
+           has_table_privilege(current_user,$3,'SELECT') AS can_read_scope,
+           has_table_privilege(current_user,$1,'INSERT') AS can_insert_resources
+        `,[schema+".resources",schema+".cv03_resource_receipts",
+          schema+".cv03_n1_read_scope"]);
+        assert.equal(privileges[0].login,role);
+        assert.equal(privileges[0].runtime,role);
+        assert.equal(privileges[0].can_read_resources,false);
+        assert.equal(privileges[0].can_read_receipts,false);
+        assert.equal(privileges[0].can_read_scope,false);
+        assert.equal(privileges[0].can_insert_resources,false);
+        await assert.rejects(client.unsafe("SELECT * FROM "+resourceTable),
+          /permission denied/i);
+        await assert.rejects(client.unsafe("SELECT * FROM "+receiptTable),
+          /permission denied/i);
+        await assert.rejects(client.unsafe("SELECT * FROM "+qSchema+
+          ".cv03_n1_read_scope"),/permission denied/i);
+      }
+    }finally{await sqlA.end();await sqlB.end();}
+    assert.throws(()=>createPostgresConditionalResourceRepositoryV010({
+      connectionString:conn(a,pwdA),schema,
+      readMode:"SQL_ROLE_SCOPED_ISOLATED_V010"
+    }),/CV03_N104B_SCOPED_READ_REQUIRES_SQL_GATEWAY/);
+    repoA=createPostgresConditionalResourceRepositoryV010({
+      connectionString:conn(a,pwdA),schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010",
+      readMode:"SQL_ROLE_SCOPED_ISOLATED_V010"
+    });
+    repoB=createPostgresConditionalResourceRepositoryV010({
+      connectionString:conn(b,pwdB),schema,
+      receiptWriteMode:"SQL_GATEWAY_ISOLATED_V010",
+      readMode:"SQL_ROLE_SCOPED_ISOLATED_V010"
+    });
+    const [fa,fb,fc]=fixtures;
+    assert.equal((await repoA.get(fa.addr))?.payload?.title,"香港供应商");
+    assert.equal(await repoA.get(fb.addr),undefined);
+    assert.equal(await repoA.get(fc.addr),undefined);
+    assert.equal((await repoB.get(fb.addr))?.payload?.title,"東京字典");
+    assert.equal(await repoB.get(fa.addr),undefined);
+    assert.deepEqual((await repoA.list({contextId:ctx("company-a")}))
+      .map(z=>z.resourceId),["a-one"]);
+    assert.deepEqual((await repoB.list({contextId:ctx("company-a")})),[]);
+    assert.deepEqual((await repoB.list({contextId:ctx("company-b")}))
+      .map(z=>z.resourceId),["b-one"]);
+    const historic=(r,fixture)=>r.getCommittedWriteByIdempotencyKey({
+      address:fixture.addr,idempotencyKey:fixture.idem,
+      receiptId:fixture.receiptId,inputDigest:fixture.inputDigest,
+      principalSubjectId:fixture.resource.createdBySubjectId,
+      principalActorType:"HUMAN"
+    });
+    assert.equal((await historic(repoA,fa))?.receipt?.receiptId,fa.receiptId);
+    assert.equal(await historic(repoA,fb),undefined);
+    assert.equal(await historic(repoA,fc),undefined);
+    assert.equal(await historic(repoB,fa),undefined);
+    assert.equal((await historic(repoB,fb))?.receipt?.receiptId,fb.receiptId);
+    // The app SQL runtime cannot flip tenant read admission; only owner/admin.
+    const onlyA=await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_read_scope SET enabled=false WHERE runtime_role=$1 RETURNING runtime_role",[a]);
+    assert.equal(onlyA.length,1);
+    assert.equal(await repoA.get(fa.addr),undefined);
+    assert.deepEqual(await repoA.list({contextId:ctx("company-a")}),[]);
+    assert.equal(await historic(repoA,fa),undefined);
+    assert.equal((await repoB.get(fb.addr))?.resourceId,"b-one",
+      "other SQL login remains isolated and unaffected");
+    // Fail closed: removing the scoped function MUST NOT let Provider use raw
+    // table SELECT, even though the original SQL table still holds row A.
+    await admin.unsafe("DROP FUNCTION "+qSchema+
+      ".cv03_n1_scoped_get(text,text,text,text,text)");
+    await assert.rejects(repoA.get(fa.addr),/does not exist|cv03_n1_scoped_get/i);
+    console.log("CV03_N104B_SQL_TENANT_SCOPED_READ_NO_BYPASS=PASS");
+    console.log("CV03_N104B_PRODUCTION_PA05_IDENTITY_READ_ADMISSION=NOT_CERTIFIED");
+  }finally{
+    if(repoA)await repoA.close();
+    if(repoB)await repoB.close();
+    if(schemaCreated.value)await admin.unsafe("DROP SCHEMA "+qSchema+" CASCADE");
+    for(const role of createdRoles.reverse())
+      await admin.unsafe("DROP ROLE "+quote(role));
+    await admin.end();
+  }
+});

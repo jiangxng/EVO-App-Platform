@@ -90,12 +90,13 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await admin.unsafe("INSERT INTO "+qSchema+
       ".cv03_n1_signing_keys(key_id,secret) VALUES ($1,$2)",
       [keyId,secret]);
-    // Test fixture is the authority synchronizing one PA05 admission mirror.
-    // No runtime login can INSERT, SELECT or UPDATE this gate.
-    await admin.unsafe("INSERT INTO "+qSchema+
-      ".cv03_n1_operation_policy(context_id,principal_subject_id,"+
-      "operation_id,enabled) VALUES ($1,$2,$3,true)",
-      ["enterprise-context:company-a","owner-a",op]);
+    // Test DBA stages one synthetic PA05 owner event, not actual PA05 sync.
+    const applyEpoch=(
+      epoch,enabled,context="enterprise-context:company-a",subject="owner-a"
+    )=>admin.unsafe("SELECT "+qSchema+
+      ".cv03_n1_apply_owner_policy_epoch($1,$2,$3,$4::bigint,$5::boolean) AS result",
+      [context,subject,op,epoch,enabled]).then(rows=>rows[0].result);
+    assert.equal(await applyEpoch(1,true),"APPLIED");
     await admin.unsafe("ALTER SCHEMA "+qSchema+" OWNER TO "+qOwner);
     for(const table of ["resources","cv03_resource_receipts","cv03_n1_signing_keys",
       "cv03_n1_operation_policy"]){
@@ -104,6 +105,9 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     }
     await admin.unsafe("ALTER FUNCTION "+functionName+
       "(text,text,text,text,text,text) OWNER TO "+qOwner);
+    await admin.unsafe("ALTER FUNCTION "+qSchema+
+      ".cv03_n1_apply_owner_policy_epoch(text,text,text,bigint,boolean)"+
+      " OWNER TO "+qOwner);
     await admin.unsafe("ALTER FUNCTION "+qSchema+
       ".cv03_reject_receipt_mutation() OWNER TO "+qOwner);
     await admin.unsafe("REVOKE ALL ON SCHEMA "+qSchema+" FROM PUBLIC");
@@ -155,6 +159,9 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       ".cv03_n1_operation_policy"),/permission denied/i);
     await assert.rejects(runtimeSql.unsafe("UPDATE "+qSchema+
       ".cv03_n1_operation_policy SET enabled=true"),/permission denied/i);
+    await assert.rejects(runtimeSql.unsafe("SELECT "+qSchema+
+      ".cv03_n1_apply_owner_policy_epoch($1,$2,$3,2,true)",
+      ["enterprise-context:company-a","owner-a",op]),/permission denied/i);
     await assert.rejects(runtimeSql.unsafe("ALTER FUNCTION "+functionName+
       "(text,text,text,text,text,text) OWNER TO "+qRuntime),/must be owner|permission denied/i);
 
@@ -490,6 +497,27 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       " FROM "+qSchema+".resources");
     assert.equal(final[0].n,beforeDisable[0].n,
       "disabled signing key cannot create another resource");
+    // Synthetic ordered policy events: stale replay cannot re-enable,
+    // out-of-order epoch GAPS permanently fail closed until verified FULL
+    // snapshot, and a runtime SQL login cannot forge event updates.
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_signing_keys SET enabled=true WHERE key_id=$1",[keyId]);
+    assert.equal(await applyEpoch(2,false),"APPLIED");
+    assert.equal(await applyEpoch(1,true),"STALE_IGNORED");
+    const staleEventInput=newInput("stale-event",null,"event-view");
+    await assert.rejects(invoke(runtimeSql,signed(staleEventInput)),
+      /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    assert.equal(await applyEpoch(4,true),"GAP_FAIL_CLOSED");
+    assert.equal(await applyEpoch(3,true),"STALE_IGNORED");
+    // Even an owner accidentally marking enabled=true without a FULL
+    // resync cannot clear a known unhealthy event mirror latch.
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_operation_policy SET enabled=true WHERE context_id=$1"+
+      " AND principal_subject_id=$2 AND operation_id=$3",
+      ["enterprise-context:company-a","owner-a",op]);
+    await assert.rejects(invoke(runtimeSql,signed(staleEventInput)),
+      /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    console.log("CV03_N104B_MONOTONIC_REVOKE_EPOCH_GAP_LATCH=PASS");
     // Even an SQL superuser whose connection CAN write the tables must not
     // downgrade the EXPLICIT gateway Provider if the governed function is
     // unavailable: failure is mandatory and the source rows are unchanged.

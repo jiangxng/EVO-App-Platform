@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1-04b 双企业只读隔离与撤权 epoch 顺序栅栏
+
+[N1-04b 原 Provider SQL 登录绑定 get/list/receipt、隔离授权事件 epoch 防乱序](CV03-N104B-TENANT-SCOPED-SQL-READ-AUTHORITY-EPOCH-20261110.md)：独立 PostgreSQL 登录不允许跨企业/跨主体读取其他人的资源或回执；测试专用授权镜像只能按 epoch 顺序推进，缺事件即失败关闭。**尚未接入真实 PA05/Host 身份或事件源，N1=NOT_CERTIFIED、Saved View WRITE=OFF。**
+
 ## 2026-11-10 CV-03 N1-04a 隔离 SQL 签名时效与撤权物理门禁
 
 [SQL Gateway 过期 permit、撤权竞态与不降级回归](CV03-N104-SQL-PERMIT-REVOCATION-ISOLATED-GATE-20261110.md)：在 N1-03 既有受控 SQL Provider 上，新增 PostgreSQL wall-clock 有效期、数据库物理撤权镜像 FOR SHARE 锁、Personal namespace 主体严格绑定、无 Gateway 函数时拒绝写入。**仅测试镜像；并非已接通 PA05 实时撤权；N1 生产准入和 Saved View WRITE 仍未开启。**
