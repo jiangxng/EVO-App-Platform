@@ -13,6 +13,8 @@ on:
       - "tests/agent-line/cv03-personal-saved-view-postgres.test.mjs"
       - "tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs"
       - "tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs"
+      - "tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs"
+      - "tools/cv03-n1-isolated-signed-sql-gateway.mjs"
       - "tools/cv03-n1-postgres-role-audit.mjs"
       - "tests/fixtures/cv03-resource-postgres-child.mjs"
       - ".github/workflows/cv03-resource-postgres-atomic.yml"
@@ -41,6 +43,7 @@ jobs:
           --health-retries 10
     env:
       CV03_RESOURCE_PROOF_DATABASE_URL: postgres://cv03proof:cv03proof@127.0.0.1:5432/cv03proof
+      CV03_N1_ONLY_ISOLATED_GATEWAY_TEST: YES_CI_LOCAL
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,4 +51,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs
+      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs

@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1-02 隔离 PG 强制签名写入纵切
+
+[隔离 PostgreSQL 18 SQL 签名 Gateway 设计、测试与下一门禁](CV03-N102-SIGNED-SQL-GATEWAY-ISOLATED-PROOF-20261110.md)：继 N1-01 发现「普通 SQL 可绕过 Host」后，本次在独立不可登录数据库 Owner + 最小权限 runtime 下，试验由 PostgreSQL 自己验证 Host 的 HMAC/Digest、CAS 与回执同事务。**只是隔离证明，原回执摘要互操作、生产角色/密钥/迁移及正式 Feature 仍待验；Saved View WRITE 继续 OFF。**
+
 ## 2026-11-10 CV-03 N1 PostgreSQL 物理 SQL 准入负向验证
 
 [最新 N1 PostgreSQL SQL Principal/签名强制边界审计](CV03-N1-POSTGRES-PHYSICAL-SQL-ADMISSION-NEGATIVE-PROOF-20261110.md)：发现普通 runtime 最小 DML 仍可绕开 Node-only HMAC 直接写入资源/新回执；新增 **只读 SQL 角色审计器**及隔离 PG18 的可执行拒绝/绕行负向证据。**NOT_CERTIFIED / WRITE 继续 OFF**，不修改生产库。该工程包不会覆盖 #1184 的 CV 计划。
