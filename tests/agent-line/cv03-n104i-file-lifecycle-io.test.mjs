@@ -24,9 +24,9 @@ test("N1-04i PA05 file lifecycle I/O failure preserves live and reopened state",
     store.saveInstalledPackage(installed);
     store.saveActiveFeature(feature);
     const before=store.snapshot(),durable=readFileSync(file,"utf8");
-    // Block the staging .tmp path. All four mutations must fail before
-    // publishing either disk or current-process state.
-    mkdirSync(file+".tmp");
+    // A crash-orphaned cooperating-writer lock must fail closed. It must
+    // never be silently stolen or treated as an authorization override.
+    mkdirSync(file+".lifecycle-write.lock");
     const changes=[
       ()=>store.saveInstalledPackage({...installed,version:"0.2.0"}),
       ()=>store.deleteInstalledPackage(installed.packageId),
@@ -34,7 +34,7 @@ test("N1-04i PA05 file lifecycle I/O failure preserves live and reopened state",
       ()=>store.deleteActiveFeature(feature.featureId)
     ];
     for(const change of changes){
-      assert.throws(change,/EISDIR|EPERM|EACCES/);
+      assert.throws(change,/LIFECYCLE_STATE_WRITE_LOCKED/);
       assert.deepEqual(store.snapshot(),before,
         "live Manager must not observe a failed file commit");
       assert.equal(readFileSync(file,"utf8"),durable,
@@ -42,7 +42,7 @@ test("N1-04i PA05 file lifecycle I/O failure preserves live and reopened state",
       assert.deepEqual(createFileLifecycleStore(file).snapshot(),before,
         "a new Host process must see exactly the original state");
     }
-    rmSync(file+".tmp",{recursive:true,force:true});
+    rmSync(file+".lifecycle-write.lock",{recursive:true,force:true});
     store.deleteActiveFeature(feature.featureId);
     assert.equal(store.getActiveFeature(feature.featureId),undefined);
     assert.equal(createFileLifecycleStore(file).getActiveFeature(feature.featureId),
