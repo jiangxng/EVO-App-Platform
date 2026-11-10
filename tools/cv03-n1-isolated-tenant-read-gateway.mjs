@@ -5,7 +5,7 @@ import {cv03N104eDomainOwnerNamespaceSqlV010} from "./cv03-n104e-domain-owner-na
  *
  * SECURITY DEFINER uses session_user (the authenticated SQL login), not
  * current_user (which changes to the function owner). Each isolated SQL
- * login has exactly one owner+Enterprise scope. A pooled cross-tenant SQL
+ * login has exactly one owner+Enterprise+ActorType READ scope. A pooled cross-tenant SQL
  * login is NOT a production solution; real PA05/Host identity mapping and
  * revocation ordering remain separate, blocking production admission.
  */
@@ -21,9 +21,14 @@ CREATE TABLE ${s}.cv03_n1_read_scope (
  context_id text NOT NULL,
  owner_subject_id text NOT NULL,
  enterprise_id text NOT NULL,
+ actor_type text NOT NULL CHECK (actor_type IN ('HUMAN','AI')),
+ operation_id text NOT NULL DEFAULT 'collection.saved-view.personal.list'
+   CHECK (operation_id='collection.saved-view.personal.list'),
+ authority_epoch bigint NOT NULL DEFAULT 0 CHECK (authority_epoch>=0),
+ mirror_healthy boolean NOT NULL DEFAULT false,
  enabled boolean NOT NULL DEFAULT false,
- -- Explicit CI-only lease; real PA05 read identity sync not installed.
- delivery_required boolean NOT NULL DEFAULT false,
+ -- Always require an explicit bounded test lease; never a permissive fallback.
+ delivery_required boolean NOT NULL DEFAULT true CHECK (delivery_required),
  lease_until timestamptz
 );
 REVOKE ALL ON TABLE ${s}.cv03_n1_read_scope FROM PUBLIC;
@@ -39,8 +44,10 @@ AS $cv03_read_get$
  INNER JOIN ${s}.cv03_n1_read_scope g
    ON g.runtime_role = session_user
  WHERE g.enabled
-   AND (g.delivery_required IS DISTINCT FROM true OR
-        (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
+   AND g.mirror_healthy AND g.authority_epoch>=1
+   AND g.operation_id='collection.saved-view.personal.list'
+   AND g.delivery_required IS TRUE
+   AND g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()
    AND g.context_id=p_context
    AND r.context_id=g.context_id
    AND r.namespace=${s}.cv03_n1_saved_view_namespace(g.enterprise_id,g.owner_subject_id)
@@ -65,8 +72,10 @@ AS $cv03_read_list$
  INNER JOIN ${s}.cv03_n1_read_scope g
    ON g.runtime_role=session_user
  WHERE g.enabled
-   AND (g.delivery_required IS DISTINCT FROM true OR
-        (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
+   AND g.mirror_healthy AND g.authority_epoch>=1
+   AND g.operation_id='collection.saved-view.personal.list'
+   AND g.delivery_required IS TRUE
+   AND g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()
    AND g.context_id=p_context
    AND r.context_id=g.context_id
    AND r.namespace=${s}.cv03_n1_saved_view_namespace(g.enterprise_id,g.owner_subject_id)
@@ -93,12 +102,15 @@ AS $cv03_read_receipt$
  INNER JOIN ${s}.cv03_n1_read_scope g
    ON g.runtime_role=session_user
  WHERE g.enabled
-   AND (g.delivery_required IS DISTINCT FROM true OR
-        (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
+   AND g.mirror_healthy AND g.authority_epoch>=1
+   AND g.operation_id='collection.saved-view.personal.list'
+   AND g.delivery_required IS TRUE
+   AND g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()
    AND g.context_id=p_context
    AND r.context_id=g.context_id
    AND r.idempotency_hash=p_hash
    AND r.receipt->>'principalSubjectId'=g.owner_subject_id
+   AND r.receipt->>'principalActorType'=g.actor_type
    AND r.receipt->'context'->>'enterpriseId'=g.enterprise_id
    AND r.resource->>'namespace'=${s}.cv03_n1_saved_view_namespace(g.enterprise_id,g.owner_subject_id)
    AND r.resource->'payload'->>'ownerSubjectId'=g.owner_subject_id
