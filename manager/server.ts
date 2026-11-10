@@ -926,6 +926,7 @@ import {
 } from "../contracts/reference-data/dictionary-operations.js";
 import {
   assertCv03HumanSaveNotEnabledV010,
+  assertCv03UnadmittedPersistedFeatureAbsentV010,
   isCv03HumanSaveFormSourceV010,
   cv03UnadmittedWriteDenialV010
 } from "./cv03-personal-saved-view-host-admission.js";
@@ -1133,6 +1134,10 @@ if (lifecycleStateFile) {
         entry.featureId === "evo-purchase-attention.default")) {
     throw new Error("PA05_E01I_RESTORED_READ_OWNER_RECERTIFICATION_REQUIRED");
   }
+  // N1-04j: a persisted opted-in Saved View Feature is not a production
+  // authorization grant. Refuse Host startup before any HTTP socket; do not
+  // auto-enable it or rewrite operator-owned lifecycle state on admission.
+  assertCv03UnadmittedPersistedFeatureAbsentV010(restored);
 }
 
 // C3-02: optional, read-only Eidos composition. This flag does NOT install
