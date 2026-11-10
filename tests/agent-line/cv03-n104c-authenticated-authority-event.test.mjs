@@ -257,6 +257,13 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     "STALE_IGNORED");
     await assert.rejects(write("stale","stale event"),
       /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    // Symmetric check: AI granted at its own next epoch while Human
+    // remains revoked. Neither actor consumes the other's epochs.
+    assert.equal(await send(event(3,true,{evaluatedActorType:"AI"})),"APPLIED");
+    assert.equal((await write("ai-only","AI separately restored","AI")).receipt.status,
+      "SUCCEEDED");
+    await assert.rejects(write("human-denied","AI grant is not Human"),
+      /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
     assert.equal(await send(event(3,true)),"APPLIED");
     assert.equal((await write("reenabled","after epoch3")).resource.revision,0);
     // No delivery for > 90 sec: simulate DB-clock lease expiry without
