@@ -104,13 +104,13 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
       const r=item.resource;
       await admin.unsafe("INSERT INTO "+resourceTable+
         "(context_id,namespace,collection_id,resource_type,resource_id,"+
-        "revision,resource) VALUES ($1,$2,$3,$4,$5,0,$6::jsonb)",
+        "revision,resource) VALUES ($1,$2,$3,$4,$5,0,$6::text::jsonb)",
         [r.contextId,r.namespace,r.collectionId,r.resourceType,r.resourceId,
           JSON.stringify(r)]);
       await admin.unsafe("INSERT INTO "+receiptTable+
         "(context_id,idempotency_hash,receipt_id,approval_digest,input_digest,"+
         "receipt_digest,receipt,resource) VALUES"+
-        " ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb)",
+        " ($1,$2,$3,$4,$5,$6,$7::text::jsonb,$8::text::jsonb)",
         [r.contextId,sha256ResourceReceiptV010(item.idem),item.receiptId,
           sha256ResourceReceiptV010({fixture:true}),item.inputDigest,
           sha256ResourceReceiptV010(item.receipt),JSON.stringify(item.receipt),
