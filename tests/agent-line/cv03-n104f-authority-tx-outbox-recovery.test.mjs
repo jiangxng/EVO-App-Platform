@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID,createHmac} from "node:crypto";
 import postgres from "postgres";
+import {mkdtempSync,readFileSync,rmSync} from "node:fs";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
 import {createPackageCatalog} from "../../dist/catalog/catalog.js";
-import {createMemoryLifecycleStore} from "../../dist/manager/store.js";
+import {createFileLifecycleStore} from "../../dist/manager/store.js";
 import {createAppManagerService} from "../../dist/manager/service.js";
 import {hostEnterpriseContextProviderPackage}
   from "../../dist/providers/enterprise-context/package.js";
@@ -55,13 +58,19 @@ function context(enterprise="company-a",actor="HUMAN"){
     },correlationId:"cv03-n104f-"+enterprise+"-"+actor
   };
 }
-function fixture(){
+function fixture(filePath){
   const pkg={...hostEnterpriseContextProviderPackage,
     features:[...hostEnterpriseContextProviderPackage.features,
       personalSavedViewsOptInFeatureV010]};
-  const lifecycle=[];
-  const manager=createAppManagerService(createPackageCatalog([pkg]),
-    createMemoryLifecycleStore(),()=>new Date(),new Map(),x=>lifecycle.push(x));
+  const catalog=createPackageCatalog([pkg]),lifecycle=[];
+  let manager;
+  const restartManager=()=>{
+    manager=createAppManagerService(catalog,
+      createFileLifecycleStore(filePath),()=>new Date(),new Map(),
+      x=>lifecycle.push(x));
+    return manager;
+  };
+  restartManager();
   manager.install(pkg.packageId);
   const access={companyA:true,companyB:false,human:true,ai:false};
   const provider={
@@ -85,7 +94,8 @@ function fixture(){
       enterpriseId:ctx.context.activeContext.enterpriseId,
       generation:"CI_GENERATION_1"};
   };
-  return {pkg,manager,lifecycle,access,evaluate};
+  return {pkg,get manager(){return manager},restartManager,
+    lifecycle,access,evaluate};
 }
 function snapshotProof(event,override={}){
   const snapshot={source:event.source,generation:event.generation,
@@ -124,7 +134,9 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
   const admin=postgres(url,{max:2,connect_timeout:10,prepare:false});
   let delivery,clientA,clientB,ownerMade=false,roleMade=false,schemaMade=false;
   const createdProducerRoles=[];
-  const f=fixture(),a=context(),ai=context("company-a","AI"),b=context("company-b");
+  const lifecycleDir=mkdtempSync(join(tmpdir(),"cv03-n104i-pa05-restart-"));
+  const lifecycleFile=join(lifecycleDir,"manager-lifecycle.json");
+  const f=fixture(lifecycleFile),a=context(),ai=context("company-a","AI"),b=context("company-b");
   const state=q+".cv03_n104f_test_authority_state";
   const outbox=q+".cv03_n104f_test_authority_outbox";
   const policy=q+".cv03_n1_operation_policy";
@@ -385,7 +397,15 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     // Actual manager.disable() removes effective Capability Operations.
     f.manager.disable(f.pkg.packageId);
     assert.ok(f.lifecycle.some(x=>x.type==="FEATURE_DEACTIVATED"));
+    assert.ok(readFileSync(lifecycleFile,"utf8").includes('"activeFeatures": []'),
+      "PA05 disable must persist inactive Feature to the actual file");
+    f.restartManager();
+    assert.equal(f.manager.listEffectiveCapabilityOperations()
+      .some(x=>x.operationId===op),false,
+      "restarted actual PA05 Manager must not rediscover disabled Operation");
     const disabled=await f.evaluate(a,5);
+    assert.equal(disabled.enabled,false);
+    console.log("CV03_N104I_REAL_PA05_FILE_DISABLE_REOPEN_DENIES=PASS");
     assert.equal(disabled.enabled,false);
     assert.equal(await commit(disabled),"COMMITTED_WITH_OUTBOX");
     assert.equal(await send(a,5),"APPLIED");
@@ -453,6 +473,12 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
       " WHERE context_id=$1 AND actor_type='HUMAN'",
       [a.context.activeContext.contextId]);
     assert.equal((await mirrorFor(a)).enabled,true);
+    assert.equal((await f.evaluate(a,6)).enabled,false,
+      "disk-restarted PA05 Manager is DENY while disconnected SQL still ALLOW");
+    // This deliberately exposes the cross-store fail-open window. A trusted
+    // cold-start owner must invoke generation fencing BEFORE serving Saved
+    // View requests; the isolated DB cannot infer file-store changes itself.
+    console.log("CV03_N104I_RESTART_STALE_SQL_MIRROR_REQUIRES_FENCE=PASS");
     const rotated=await admin.unsafe("SELECT "+rotateFn+
       "($1::text,$2::bigint,$3::name) AS scopes",
       ["CI_GENERATION_1",1,producerB]);
@@ -532,5 +558,6 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     if(roleMade)await admin.unsafe("DROP ROLE "+quote(deliver));
     if(ownerMade)await admin.unsafe("DROP ROLE "+quote(owner));
     await admin.end();
+    rmSync(lifecycleDir,{recursive:true,force:true});
   }
 });

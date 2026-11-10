@@ -86,21 +86,29 @@ function loadPersistedState(filePath: string): PersistedLifecycleStateV010 {
 
 export function createFileLifecycleStore(filePath: string): LifecycleStore {
   const initial = loadPersistedState(filePath);
-  const installed = new Map<string, InstalledPackageV010>(
+  let installed = new Map<string, InstalledPackageV010>(
     initial.installedPackages.map(item => [item.packageId, structuredClone(item)])
   );
-  const active = new Map<string, ActivatedFeatureV010>(
+  let active = new Map<string, ActivatedFeatureV010>(
     initial.activeFeatures.map(item => [item.featureId, structuredClone(item)])
   );
 
-  function persist(): void {
+  // Stage a candidate snapshot to disk BEFORE changing the live in-memory
+  // state. A failed write/rename must never expose uncommitted Lifecycle
+  // changes through this store instance or leave restart state divergent.
+  // This is single-process failure atomicity, NOT a multi-process lock,
+  // fsync durability guarantee, or PostgreSQL authority/outbox transaction.
+  function persist(
+    candidateInstalled: Map<string, InstalledPackageV010>,
+    candidateActive: Map<string, ActivatedFeatureV010>
+  ): void {
     mkdirSync(dirname(filePath), { recursive: true });
     const state: PersistedLifecycleStateV010 = {
       contractVersion: "0.1.0",
-      installedPackages: [...installed.values()]
+      installedPackages: [...candidateInstalled.values()]
         .sort((a, b) => a.packageId.localeCompare(b.packageId))
         .map(item => structuredClone(item)),
-      activeFeatures: [...active.values()]
+      activeFeatures: [...candidateActive.values()]
         .sort((a, b) => a.featureId.localeCompare(b.featureId))
         .map(item => structuredClone(item))
     };
@@ -116,13 +124,17 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
     },
 
     saveInstalledPackage(record) {
-      installed.set(record.packageId, structuredClone(record));
-      persist();
+      const next = new Map(installed);
+      next.set(record.packageId, structuredClone(record));
+      persist(next, active);
+      installed = next;
     },
 
     deleteInstalledPackage(packageId) {
-      installed.delete(packageId);
-      persist();
+      const next = new Map(installed);
+      next.delete(packageId);
+      persist(next, active);
+      installed = next;
     },
 
     getActiveFeature(featureId) {
@@ -131,13 +143,17 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
     },
 
     saveActiveFeature(record) {
-      active.set(record.featureId, structuredClone(record));
-      persist();
+      const next = new Map(active);
+      next.set(record.featureId, structuredClone(record));
+      persist(installed, next);
+      active = next;
     },
 
     deleteActiveFeature(featureId) {
-      active.delete(featureId);
-      persist();
+      const next = new Map(active);
+      next.delete(featureId);
+      persist(installed, next);
+      active = next;
     },
 
     snapshot() {
