@@ -151,3 +151,11 @@
 - **实测回归定义**：[N1-04j 真实 Node Host 子进程回归](../../../tests/agent-line/cv03-n104j-real-host-startup-quarantine.test.mjs) 从临时文件启动实际 `dist/manager/server.js`，检验活跃 Feature、恶意 packageId 两类被拒绝，以及仅安装宿主包、Default Feature 两类正常 HTTP 200（容许原 Host 合法 bootstrap 写入、原已保存记录必须保留且未经认证 Feature 不可自动激活）；和纯 Feature ID parity + SAVE_MODE OFF/ON 拒绝对比。置于原 CV-03 PG18 必运行套件，最终 PASS 数字应仅由 PR exact HEAD Actions 确认。
 - **安全边界 D**：这是**真实 Host 本地启动拒绝**，不是授权 Provider / SQL mirror 的跨系统一致性；现有 SQL 旧 ALLOW 即使发生 Host 退出仍可能继续活跃，在 Owner 未进行可信 SQL fencing 前生产 N1 继续 `NOT_CERTIFIED`。未安装生产 SQL 密钥/角色、未更改正式 SAVE OFF/403 与 GET 404，未完成真正外部 LLM/人类视觉验收。没有新增厂商网站 EX 阅读，不修改 #1184 三份受管文档。
 - 详细说明与交接入口：[N1-04j 真实 Host 启动隔离](CV03-N104J-REAL-HOST-RESTORED-FEATURE-STARTUP-QUARANTINE-20261110.md)。
+
+
+## 12. N1-04k：实际 PA05 文件协作写者 fencing、防止旧 ALLOW 覆盖（2026-11-10）
+
+- **G / 原始源码实读**：[`manager/store.ts`](../../../manager/store.ts) 在 N1-04i 修复后的 persist 原使用固定 `<state>.tmp`、普通 `writeFileSync(path)`、无协作写锁/版本比对；攻击者/旧进程可预置 `.tmp` symlink 导致目标文件被跟随写入，两个持有较早文件快照的同路径 Manager 可在后续 mutation 中静默覆盖更早进程提交的 Feature 撤权。原 [N1-04i 失败回归](../../../tests/agent-line/cv03-n104i-file-lifecycle-io.test.mjs) 覆盖单次写失败/重开但不覆盖两个 Writer 交错。PA05 E01J4J 原 Host lock 面向单独的 Prestartup 维护，不是所有 LifecycleStore mutation 的可靠共享授权事务。
+- **D / 落地修改**：保留原现有 FileLifecycleStore JSON/API，在真正生产 `manager/store.ts` 给四种 mutation 增加同路径 `O_EXCL/O_NOFOLLOW` 协作写锁，精确 `dev/inode/raw JSON` 持久版本对比；检测另一 Writer 已改变后，拒绝旧状态覆盖并将原 Manager Store 标记为需要 reopen 的失败关闭态。随机独占 staging tmp 防止旧固定临时路径 symlink 被跟随；POSIX/Linus staging 文件 fsync + rename + parent dir fsync 后才认为单进程状态提交完成。旧锁、异常/后 rename 不确定性不自动清理或默认为成功。
+- **验收与可复用来源**：[N1-04k 跨进程与 symlink 回归](../../../tests/agent-line/cv03-n104k-pa05-file-writer-fencing.test.mjs) 验证：A 撤销 B 旧 ALLOW 写入拒绝；真实第二 Node 进程持久撤权、父进程旧写被拒；`<state>.tmp` symlink 不可覆盖受害文件；写锁 symlink 和 authority state symlink 拒绝。原 N1-04i 强制故障改成孤儿写锁，保持原内存/文件/重开一致性。详细理由和操作边界见 [N1-04k 专项交接](CV03-N104K-REAL-PA05-COOPERATING-FILE-WRITER-FENCE-20261110.md)。
+- **不属于生产 N1 已认证**：这是受控文件路径的**合作写者本地 fencing**，非强制非协作文件修改、恶意同用户、分布式 NFS/容器、正式 AuthorizationProvider+SQL outbox ACID、真实多 Host DB credential、跨数据库撤权传播/全 Scope snapshot、Human/LLM/生产发布。生产 `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`、SAVE 403、GET 404 / `N1=NOT_CERTIFIED` 保持。无新增 EX 文献阅读，不动并行 #1184 负责的三份文档；CI exact HEAD 另证。
