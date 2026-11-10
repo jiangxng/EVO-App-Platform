@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1-04d 真实 PA05 Manager 决策与隔离签名事件 / ACK 恢复
+
+[N1-04d 真实 Capability Operation/AuthorizationProvider/Host Issuer → 试验性 PostgreSQL 签名事件、持久 outbox 与 ACK 重放](CV03-N104D-REAL-PA05-MANAGER-OUTBOX-ISOLATED-HANDOFF-20261110.md)：验证 Manager 实际安装/停用、撤权、切企业和 Human/AI 授权差异，**仍非真实生产事件源**。已发现实际 Domain Owner 使用的 Hash namespace 与试验性 SQL Gateway 不一致，数据库镜像也尚未按 actorType 独立授权。N1=NOT_CERTIFIED，正式 WRITE 仍 OFF。
+
 ## 2026-11-10 CV-03 N1-04c 已认证的隔离授权事件与短租约
 
 [N1-04c PostgreSQL 签名事件入口、Human/Agent 授权镜像租约与断链拒绝](CV03-N104C-AUTHENTICATED-EVENT-LEASE-ISOLATED-HANDOFF-20261110.md)：在原 N1-04b epoch 镜像上加入受控的 SQL HMAC 验签事件投递与 DB clock 90 秒候选租约；模拟失联会拒绝受控写入和读取。**模拟来源不是真实 PA05；N1 仍 NOT_CERTIFIED，Saved View WRITE 继续 OFF。**
