@@ -116,3 +116,11 @@
 - **首次工程证据 G**：PR #1203 早期 HEAD `68cdd024abe653a0c380ea0b69cf60db556874c1` [PG18 Actions 42756918293](https://github.com/jiangxng/EVO-App-Platform/actions/runs/42756918293) **22 tests / 22 pass / 0 fail / 0 skipped**，包含 `CV03_N104F_ACTOR_SCOPED_READ_DENY_GRANT_LEASE=PASS`、`CV03_N104F_T0_ATOMIC_AUTHORITY_OUTBOX_LOST_ACK=PASS`、`CV03_N104F_T3_SIGNED_FULL_SCOPE_SNAPSHOT_GAP_RECOVERY=PASS`、`CV03_N104F_REVOKE_ACTOR_SWITCH_ENTERPRISE_DISABLE=PASS`；**只属于该 HEAD**，不能取代后续 HEAD 的验收。
 - **后续优先事项**：真实 PA05 和授权 Provider 的持久源选择（需与 outbox 原子或受签收的跨存储失败关闭协议）、多实例生产 signer + key rotation/KMS、SQL pooled actor identity、snapshot 全 scope watermark/generation/tombstones、正式 SQL Primary/GRANT/迁移/重启回读、真实 Human/外部 LLM；不转向另一套 List 框架。后续完整协议参见 [N1-04f 专项交接](CV03-N104F-ACTOR-READ-TX-OUTBOX-SNAPSHOT-ISOLATED-HANDOFF-20261110.md)。
 - **本轮无新外部网页研究**：EX01–08 等原网址及 11-06/11-10 的 H/R/U/S 历史等级不变。不要把这里的 T0/T3 工程推论冒充厂商原文事实；不造网页截图和未保存附件。
+
+
+## 8. N1-04g 增量：签名授权事件必须来自已提交 Outbox（2026-11-10）
+
+- **G，原始仓库直接阅读**：[`cv03-n104c-isolated-authority-event-bridge.mjs`](../../../tools/cv03-n104c-isolated-authority-event-bridge.mjs)、[`cv03-n104f-isolated-authority-tx-outbox.mjs`](../../../tools/cv03-n104f-isolated-authority-tx-outbox.mjs)、[`cv03-n104f-authority-tx-outbox-recovery.test.mjs`](../../../tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs)、`manager/store.ts` 与 `manager/service.ts`。旧 N1-04c HMAC 接收函数没有直接校验签名事件来自已提交测试 outbox；N1-04f JavaScript dispatcher 从 outbox 读取属于调用约定，不能等同 SQL 物理门禁。
+- **D，工程结论**：必须在数据库中校验 HMAC、已提交测试 authority row、完整 Actor/Enterprise/Operation/Generation 身份、同 epoch 不可变 outbox event，再调用原 N1-04c；已被新 authority epoch 覆盖的旧事件虽有有效签名，亦不得重新启用或续租旧 ALLOW。必要时当前企业+Actor 权威行与事件应用持有 `FOR SHARE` 锁，和权威更新事务序列化。本轮实现不动既有 PA05/Domain Owner 生产门禁。
+- **实现与安全负例**：[N1-04g outbox 来源闸门](../../../tools/cv03-n104g-isolated-outbox-bound-delivery.mjs) 接到原 [N1-04f PG18 测试](../../../tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs)；测试角色不能直调原 ingest；无权威行、伪造同 epoch、换 Actor、HMAC 错、旧 ALLOW、签名 key 停用均需失败关闭。详细范围见 [N1-04g 交接](CV03-N104G-OUTBOX-BOUND-SIGNED-AUTHORITY-DELIVERY-ISOLATED-HANDOFF-20261110.md)。
+- **证据边界**：N1-04g 的任何最终 PASS 必须引用相应 PR 的 exact HEAD Actions 日志；当前代码仍只在随机 PG18 测试 schema，真实 PA05 LifecycleStore 与 AuthorizationProvider 的跨存储权威原子性未获证实，生产 `N1=NOT_CERTIFIED`、SAVE OFF/403、GET 404 继续锁住。无新 EX 网页研究，无并行 #1184 文档改动。

@@ -20,6 +20,8 @@ import {cv03N104cIsolatedAuthorityBridgeSqlV010,
   from "../../tools/cv03-n104c-isolated-authority-event-bridge.mjs";
 import {cv03N104fIsolatedAuthorityTxOutboxSqlV010}
   from "../../tools/cv03-n104f-isolated-authority-tx-outbox.mjs";
+import {cv03N104gIsolatedOutboxBoundDeliverySqlV010}
+  from "../../tools/cv03-n104g-isolated-outbox-bound-delivery.mjs";
 import {evaluateCv03N104dRealManagerAuthorityV010}
   from "../../tools/cv03-n104d-isolated-pa05-manager-authority.mjs";
 
@@ -118,7 +120,8 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
   const outbox=q+".cv03_n104f_test_authority_outbox";
   const policy=q+".cv03_n1_operation_policy";
   const txFn=q+".cv03_n104f_test_commit_authority";
-  const ingest=q+".cv03_n104c_ingest_signed_event";
+  const ingest=q+".cv03_n104g_ingest_committed_authority";
+  const unguarded=q+".cv03_n104c_ingest_signed_event";
   const recoverFn=q+".cv03_n104f_test_recover_snapshot";
   const canonical=event=>stableResourceReceiptJsonV010(event);
   const commit=(event,fault=false)=>admin.unsafe(
@@ -173,6 +176,7 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     await admin.unsafe(cv03N1GatewaySqlV010(schema));
     await admin.unsafe(cv03N104cIsolatedAuthorityBridgeSqlV010(schema));
     await admin.unsafe(cv03N104fIsolatedAuthorityTxOutboxSqlV010(schema));
+    await admin.unsafe(cv03N104gIsolatedOutboxBoundDeliverySqlV010(schema));
     await admin.unsafe("INSERT INTO "+q+
       ".cv03_n104c_event_keys(key_id,secret) VALUES($1,$2)",
       [eventKey,eventSecret]);
@@ -191,7 +195,8 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
       "cv03_n1_signed_save(text,text,text,text,text,text)",
       "cv03_n104c_ingest_signed_event(text,text)",
       "cv03_n104f_test_commit_authority(text,boolean)",
-      "cv03_n104f_test_recover_snapshot(text,text)"
+      "cv03_n104f_test_recover_snapshot(text,text)",
+      "cv03_n104g_ingest_committed_authority(text,text)"
     ]){
       await admin.unsafe("ALTER FUNCTION "+q+"."+sig+" OWNER TO "+quote(owner));
       await admin.unsafe("REVOKE ALL ON FUNCTION "+q+"."+sig+" FROM PUBLIC");
@@ -207,12 +212,24 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     }
     await assert.rejects(delivery.unsafe("SELECT "+txFn+
       "('{}',false)"),/permission denied/i);
+    // Delivery login must not bypass the durable authority/outbox guard.
+    await assert.rejects(delivery.unsafe("SELECT "+unguarded+
+      "('{}','0')"),/permission denied/i);
     await assert.rejects(delivery.unsafe("SELECT "+recoverFn+
       "('{}','0')"),/permission denied/i);
 
     const initial=await f.evaluate(a,1);
     assert.equal(initial.enabled,true,"real Manager/Provider checked, not invented ALLOW");
+    const uncommittedProof=cv03N104cTestEventProofV010(initial,eventKey,eventSecret);
+    await assert.rejects(delivery.unsafe("SELECT "+ingest+
+      "($1::text,$2::text)",[uncommittedProof.envelope,uncommittedProof.signature]),
+      /CV03_N104G_UNCOMMITTED_AUTHORITY_DENIED/);
     assert.equal(await commit(initial),"COMMITTED_WITH_OUTBOX");
+    const actorSpoof=cv03N104cTestEventProofV010(
+      {...initial,evaluatedActorType:"AI"},eventKey,eventSecret);
+    await assert.rejects(delivery.unsafe("SELECT "+ingest+
+      "($1::text,$2::text)",[actorSpoof.envelope,actorSpoof.signature]),
+      /CV03_N104G_UNCOMMITTED_AUTHORITY_DENIED/);
     assert.equal((await stateFor(a)).enabled,true);
     assert.equal((await pending(a,1)).acked,false);
     assert.equal(await commit(initial),"DUPLICATE");
@@ -228,6 +245,15 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     console.log("CV03_N104F_CONCURRENT_T0_SINGLE_EVENT=PASS");
     await assert.rejects(commit({...initial,enabled:false}),
       /CV03_N104F_EPOCH_PAYLOAD_CONFLICT/);
+    // Even a correctly HMAC-signed but unpersisted payload cannot mutate DB.
+    const forged=cv03N104cTestEventProofV010(
+      {...initial,enabled:false},eventKey,eventSecret);
+    await assert.rejects(delivery.unsafe("SELECT "+ingest+
+      "($1::text,$2::text)",[forged.envelope,forged.signature]),
+      /CV03_N104G_OUTBOX_OR_SCOPE_MISMATCH/);
+    await assert.rejects(delivery.unsafe("SELECT "+ingest+
+      "($1::text,$2::text)",[uncommittedProof.envelope,"0".repeat(64)]),
+      /CV03_N104G_SIGNER_DENIED/);
     assert.equal(await send(a,1,{acknowledge:false}),"APPLIED");
     assert.equal((await mirrorFor(a)).enabled,true);
     const oldLease=(await mirrorFor(a)).lease_until;
@@ -263,6 +289,10 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.ok((await mirrorFor(a)).lease_until<new Date(),
       "lost event cannot instantly revoke but expired lease fails CLOSED");
     assert.equal(await commit(revoked),"COMMITTED_WITH_OUTBOX");
+    assert.equal(await send(a,1),"SUPERSEDED_NO_EFFECT",
+      "older committed ALLOW cannot be replayed after a durable revoke");
+    assert.ok((await mirrorFor(a)).lease_until<new Date(),
+      "superseded ALLOW must not refresh an expired permit");
     assert.equal(await send(a,2),"APPLIED");
     assert.equal((await mirrorFor(a)).enabled,false);
 
@@ -290,7 +320,7 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.equal(await commit(heartbeat),"COMMITTED_WITH_OUTBOX");
     assert.equal(await send(a,4),"GAP_FAIL_CLOSED");
     assert.equal((await mirrorFor(a)).mirror_healthy,false);
-    assert.equal(await send(a,3),"STALE_IGNORED");
+    assert.equal(await send(a,3),"SUPERSEDED_NO_EFFECT");
     assert.equal((await mirrorFor(a)).mirror_healthy,false,
       "ordinary older event cannot clear gap latch");
     await assert.rejects(recover({
@@ -333,6 +363,13 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.equal((await mirrorFor(b)).enabled,false);
     assert.equal((await admin.unsafe("SELECT count(*)::int AS n FROM "+outbox))[0].n,9);
     console.log("CV03_N104F_REVOKE_ACTOR_SWITCH_ENTERPRISE_DISABLE=PASS");
+    console.log("CV03_N104G_COMMITTED_OUTBOX_BOUND_SIGNED_DELIVERY=PASS");
+    console.log("CV03_N104G_NO_STALE_ALLOW_REFRESH_AFTER_REVOKE=PASS");
+    // Disabled signer must also prevent even a 'safe' superseded-event ACK.
+    await admin.unsafe("UPDATE "+q+
+      ".cv03_n104c_event_keys SET enabled=false WHERE key_id=$1",[eventKey]);
+    await assert.rejects(send(a,1),/CV03_N104G_SIGNER_DENIED/);
+    console.log("CV03_N104G_KEY_DISABLE_STALE_ACK_FAIL_CLOSED=PASS");
     console.log("CV03_N104F_REAL_LIFECYCLE_ATOMIC_OUTBOX=NOT_CERTIFIED");
     console.log("CV03_N104F_PRODUCTION_SQL_KMS_PA05_OWNER=NOT_CERTIFIED");
   }finally{
