@@ -33,6 +33,10 @@ CREATE TABLE ${s}.cv03_n1_operation_policy (
  enabled boolean NOT NULL DEFAULT false,
  authority_epoch bigint NOT NULL DEFAULT 0 CHECK (authority_epoch >= 0),
  mirror_healthy boolean NOT NULL DEFAULT false,
+ -- OFF for the older N1-04a/b fixture; authenticated delivery opts IN.
+ -- Never infer production approval from a legacy test policy row.
+ delivery_required boolean NOT NULL DEFAULT false,
+ lease_until timestamptz,
  changed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
  PRIMARY KEY (context_id,principal_subject_id,operation_id)
 );
@@ -119,6 +123,8 @@ DECLARE
  signed_at timestamptz;
  active_policy boolean;
  mirror_ok boolean;
+ requires_delivery boolean;
+ delivery_deadline timestamptz;
 BEGIN
  IF length(p_input)>16384 OR length(p_envelope)>8192 OR
     length(p_resource)>16384 OR length(p_completed)>16384 OR
@@ -190,14 +196,17 @@ BEGIN
  -- Physical operation gate: missing or revoked mirror row DENIES even a
  -- cryptographically valid Host-issued receipt. This is owner-only state.
  -- FOR SHARE serializes a concurrent admin revoke with the commit.
- SELECT enabled,mirror_healthy INTO active_policy,mirror_ok
+ SELECT enabled,mirror_healthy,delivery_required,lease_until
+ INTO active_policy,mirror_ok,requires_delivery,delivery_deadline
  FROM ${s}.cv03_n1_operation_policy
  WHERE context_id=ctx
    AND principal_subject_id=a->>'principalSubjectId'
    AND operation_id='collection.saved-view.personal.save'
  FOR SHARE;
  IF NOT FOUND OR active_policy IS DISTINCT FROM true OR
-    mirror_ok IS DISTINCT FROM true THEN
+    mirror_ok IS DISTINCT FROM true OR
+    (requires_delivery IS TRUE AND
+      (delivery_deadline IS NULL OR delivery_deadline<=clock_timestamp())) THEN
    RAISE EXCEPTION 'CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED';
  END IF;
  IF p_approval::jsonb IS DISTINCT FROM a THEN
