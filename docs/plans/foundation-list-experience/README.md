@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1 PostgreSQL 物理 SQL 准入负向验证
+
+[最新 N1 PostgreSQL SQL Principal/签名强制边界审计](CV03-N1-POSTGRES-PHYSICAL-SQL-ADMISSION-NEGATIVE-PROOF-20261110.md)：发现普通 runtime 最小 DML 仍可绕开 Node-only HMAC 直接写入资源/新回执；新增 **只读 SQL 角色审计器**及隔离 PG18 的可执行拒绝/绕行负向证据。**NOT_CERTIFIED / WRITE 继续 OFF**，不修改生产库。该工程包不会覆盖 #1184 的 CV 计划。
+
 ## 2026-11-10 旧长聊天恢复与 GitHub 当前证据核对
 
 **[增量恢复审计：明确需求、已研究网址与取舍、代码/CI/人验分层、生产门禁及 N1～N5](CV03-C302-LONGCHAT-RECOVERY-AUDIT-20261110.md)**。按 `main@14464232` 核对，复用 2026-11-06 与 11-09 研究索引；不重做竞品调研、不覆盖并行 #1184，真实 Host Saved View WRITE 仍默认关闭。本文仅文档与导航，不代表生产上线。
