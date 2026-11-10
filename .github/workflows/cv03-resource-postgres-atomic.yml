@@ -17,6 +17,7 @@ on:
       - "tools/cv03-n1-isolated-signed-sql-gateway.mjs"
       - "tools/cv03-n1-postgres-role-audit.mjs"
       - "tests/fixtures/cv03-resource-postgres-child.mjs"
+      - "tests/fixtures/cv03-n1-gateway-provider-child.mjs"
       - ".github/workflows/cv03-resource-postgres-atomic.yml"
   workflow_dispatch:
 
