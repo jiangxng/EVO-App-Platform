@@ -212,7 +212,7 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
       [pending.signed_envelope,pending.signature]);
     if(ack)await admin.unsafe("UPDATE "+outboxTable+
       " SET acked=true WHERE context_id=$1"+
-      " AND principal_subject_id=$2 AND operation_id=$3"+
+      " AND principal_subject_id=$2 AND actor_type=$3 AND operation_id=$4"+
       " AND authority_epoch=$5 AND signature=$6",
       [snapshot.event.contextId,snapshot.event.principalSubjectId,snapshot.event.evaluatedActorType,
         snapshot.event.operationId,snapshot.event.authorityEpoch,pending.signature]);
