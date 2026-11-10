@@ -260,6 +260,20 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await assert.rejects(invoke(runtimeSql,signed(unmirrored,{
       principalSubjectId:"owner-b"
     })),/CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    // These are fully Host-signed inputs with the correct actor/subject.
+    // The DB must reject legacy raw-subject, other-enterprise and
+    // other-subject namespaces BEFORE considering the valid Human policy.
+    for(const [id,forgedNamespace] of [
+      ["legacy-raw","evo.saved-view.personal.owner-a"],
+      ["other-enterprise",ns("company-b","owner-a")],
+      ["other-subject",ns("company-a","owner-b")]
+    ]){
+      const forged=newInput(id,null,id);
+      forged.namespace=forgedNamespace;
+      await assert.rejects(invoke(runtimeSql,signed(forged)),
+        /CV03_N1_GATEWAY_BINDING_DENIED/);
+    }
+    console.log("CV03_N104E_REAL_DOMAIN_OWNER_NAMESPACE_SQL_NEGATIVE=PASS");
     const tenMinutesAgo=newInput("stale-permit",null,"stale-view");
     tenMinutesAgo.recordedAt=new Date(Date.now()-10*60*1000).toISOString();
     await assert.rejects(invoke(runtimeSql,signed(tenMinutesAgo)),
