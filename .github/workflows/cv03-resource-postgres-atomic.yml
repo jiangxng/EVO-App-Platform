@@ -12,6 +12,8 @@ on:
       - "providers/enterprise-context/resource-receipt-digest.ts"
       - "tests/agent-line/cv03-personal-saved-view-postgres.test.mjs"
       - "tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs"
+      - "tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs"
+      - "tools/cv03-n1-postgres-role-audit.mjs"
       - "tests/fixtures/cv03-resource-postgres-child.mjs"
       - ".github/workflows/cv03-resource-postgres-atomic.yml"
   workflow_dispatch:
@@ -46,4 +48,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs
+      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs
