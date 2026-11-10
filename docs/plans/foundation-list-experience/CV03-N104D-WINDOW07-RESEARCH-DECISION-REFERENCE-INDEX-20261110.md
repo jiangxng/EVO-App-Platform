@@ -124,3 +124,12 @@
 - **D，工程结论**：必须在数据库中校验 HMAC、已提交测试 authority row、完整 Actor/Enterprise/Operation/Generation 身份、同 epoch 不可变 outbox event，再调用原 N1-04c；已被新 authority epoch 覆盖的旧事件虽有有效签名，亦不得重新启用或续租旧 ALLOW。必要时当前企业+Actor 权威行与事件应用持有 `FOR SHARE` 锁，和权威更新事务序列化。本轮实现不动既有 PA05/Domain Owner 生产门禁。
 - **实现与安全负例**：[N1-04g outbox 来源闸门](../../../tools/cv03-n104g-isolated-outbox-bound-delivery.mjs) 接到原 [N1-04f PG18 测试](../../../tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs)；测试角色不能直调原 ingest；无权威行、伪造同 epoch、换 Actor、HMAC 错、旧 ALLOW、签名 key 停用均需失败关闭。详细范围见 [N1-04g 交接](CV03-N104G-OUTBOX-BOUND-SIGNED-AUTHORITY-DELIVERY-ISOLATED-HANDOFF-20261110.md)。
 - **证据边界**：N1-04g 的任何最终 PASS 必须引用相应 PR 的 exact HEAD Actions 日志；当前代码仍只在随机 PG18 测试 schema，真实 PA05 LifecycleStore 与 AuthorizationProvider 的跨存储权威原子性未获证实，生产 `N1=NOT_CERTIFIED`、SAVE OFF/403、GET 404 继续锁住。无新 EX 网页研究，无并行 #1184 文档改动。
+
+
+## 9. N1-04h 增量：多 Host Producer generation fencing 与原子拒绝（2026-11-10）
+
+- **G / 实际读到的代码**：[`cv03-n104f-isolated-authority-tx-outbox.mjs`](../../../tools/cv03-n104f-isolated-authority-tx-outbox.mjs) 仅存单一 `CI_GENERATION_1`（N1-04h 修复前）；[`cv03-n104g-isolated-outbox-bound-delivery.mjs`](../../../tools/cv03-n104g-isolated-outbox-bound-delivery.mjs) 原只能接收该测试 generation；`manager/store.ts` memory/file lifecycle API 和 `manager/service.ts` 生命周期仍不与测试数据库组成同一真实权威事务。**事实**：N1-04g outbox 守卫尚不能证明两个 Host/SQL Producer 的旧代失权与数据库镜像即时失败关闭。
+- **D / 本轮设计决定**：不另建生产事件系统。仅在现有 isolated PG18 权威行、outbox、Mirror 之上加 Owner 持久 `source/generation/fenceEpoch/producer SQL login`，用 `session_user` 而非事件 JSON 判定生产者身份，和 T0 共用 `FOR SHARE/UPDATE` SQL 行锁。Owner 使用旧代 expected generation/epoch CAS 切换时，**同一事务**原子拒绝所有已知 scope、取消未过期 Mirror lease、将每个 Actor 的 epoch 增加并插入持久 DENY tombstone。旧 Producer 与旧签名事件不可在新代活动。
+- **代码与隔离正反例**：[N1-04h Producer fence SQL](../../../tools/cv03-n104h-isolated-producer-fence.mjs) + [扩展原 N1-04f PG18 回归](../../../tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs)，真实 Manager `disable/enable`、不同 SQL 登录、重新连接读取持久 fence、旧 generation 快照拒绝、新 generation ALLOW 仍需 T3 健康快照才可解锁。完整设计和安全条件见 [N1-04h 专项交接](CV03-N104H-PRODUCER-GENERATION-FENCING-ISOLATED-HANDOFF-20261110.md)。
+- **未认证**：真实 PA05 LifecycleStore + AuthorizationProvider 事务、持久真实 Producer credential/KMS、生产 pooled SQL 身份、双 Host/离线 Scope generation 水印与 tombstones、完整授权快照仍 `NOT_CERTIFIED`。CI 仅证明试验 schema，不能把 N1-04h 等同生产发布。正式 Saved View SAVE OFF/403、GET 404 不变。
+- **来源归类与并行治理**：本轮是仓库 G 原文和设计 D 推论，无新增外部网站的 EX 阅读；不覆盖并行 #1184 的三份文件。PR exact-head PG18 结果和最终 main merge SHA 必须另用 Actions 实证，不能提前标绿。

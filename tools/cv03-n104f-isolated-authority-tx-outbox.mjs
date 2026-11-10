@@ -19,7 +19,7 @@ CREATE TABLE ${s}.cv03_n104f_test_authority_state (
  principal_subject_id text NOT NULL,
  actor_type text NOT NULL CHECK (actor_type IN ('HUMAN','AI')),
  operation_id text NOT NULL CHECK (operation_id='collection.saved-view.personal.save'),
- generation text NOT NULL CHECK (generation='CI_GENERATION_1'),
+ generation text NOT NULL CHECK (generation IN ('CI_GENERATION_1','CI_GENERATION_2')),
  authority_epoch bigint NOT NULL CHECK (authority_epoch>=1),
  enabled boolean NOT NULL,
  updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
@@ -60,6 +60,7 @@ DECLARE
  gen text;
  epoch bigint;
  previous bigint;
+ prior_generation text;
  old_event text;
 BEGIN
  IF p_event IS NULL OR length(p_event)>8192 THEN
@@ -73,7 +74,7 @@ BEGIN
  op:=ev->>'operationId';
  gen:=ev->>'generation';
  IF ev->>'source' IS DISTINCT FROM 'PA05_OWNER_TEST_ONLY'
-    OR gen IS DISTINCT FROM 'CI_GENERATION_1'
+    OR gen IS NULL OR gen NOT IN ('CI_GENERATION_1','CI_GENERATION_2')
     OR op IS DISTINCT FROM 'collection.saved-view.personal.save'
     OR actor NOT IN ('HUMAN','AI') OR actor IS NULL
     OR ctx IS NULL OR ctx !~ '^enterprise-context:[a-zA-Z0-9_-]{1,100}$'
@@ -99,10 +100,13 @@ BEGIN
    END IF;
    RETURN 'DUPLICATE';
  END IF;
- SELECT authority_epoch INTO previous
+ SELECT authority_epoch,generation INTO previous,prior_generation
  FROM ${s}.cv03_n104f_test_authority_state
  WHERE context_id=ctx AND principal_subject_id=subject AND actor_type=actor
    AND operation_id=op FOR UPDATE;
+ IF FOUND AND prior_generation='CI_GENERATION_2' AND gen<>'CI_GENERATION_2' THEN
+   RAISE EXCEPTION 'CV03_N104H_GENERATION_ROLLBACK_DENIED';
+ END IF;
  IF (NOT FOUND AND epoch<>1) OR
     (FOUND AND epoch IS DISTINCT FROM previous+1) THEN
    RAISE EXCEPTION 'CV03_N104F_AUTHORITY_EPOCH_GAP_OR_STALE';
@@ -161,7 +165,8 @@ BEGIN
  IF e->>'domain' IS DISTINCT FROM 'cv03.pa05-owner-snapshot.isolated/0.1.0'
    OR e->>'keyId' !~ '^[a-zA-Z0-9_-]{1,48}$'
    OR snap->>'source' IS DISTINCT FROM 'PA05_OWNER_TEST_ONLY'
-   OR snap->>'generation' IS DISTINCT FROM 'CI_GENERATION_1'
+   OR snap->>'generation' IS NULL OR
+   snap->>'generation' NOT IN ('CI_GENERATION_1','CI_GENERATION_2')
    OR snap->>'completeness' IS DISTINCT FROM 'SINGLE_ACTOR_OPERATION'
    OR op IS DISTINCT FROM 'collection.saved-view.personal.save'
    OR actor NOT IN ('HUMAN','AI') OR actor IS NULL
