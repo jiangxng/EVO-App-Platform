@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 CV-03 N1-03 显式 SQL-only Provider + 多 Worker / 丢 ACK
+
+**[N1-03 实现、真实 PostgreSQL 18 回归、独立进程及正式准入门禁](CV03-N103-EXPLICIT-SQL-GATEWAY-PROVIDER-ISOLATED-HANDOFF-20261110.md)**。在原 Enterprise Resource Provider 中显式增加仅隔离 `SQL_GATEWAY_ISOLATED_V010`，不能回退 SQL 直写；真实 Host 仍未绑定，生产 Saved View WRITE 保持 OFF，正式数据库/签名人未验收。
+
 ## 2026-11-10 CV-03 N1-02 隔离 PG 强制签名写入纵切
 
 [隔离 PostgreSQL 18 SQL 签名 Gateway 设计、测试与下一门禁](CV03-N102-SIGNED-SQL-GATEWAY-ISOLATED-PROOF-20261110.md)：继 N1-01 发现「普通 SQL 可绕过 Host」后，本次在独立不可登录数据库 Owner + 最小权限 runtime 下，试验由 PostgreSQL 自己验证 Host 的 HMAC/Digest、CAS 与回执同事务。**只是隔离证明，原回执摘要互操作、生产角色/密钥/迁移及正式 Feature 仍待验；Saved View WRITE 继续 OFF。**
