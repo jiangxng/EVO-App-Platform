@@ -31,10 +31,66 @@ CREATE TABLE ${s}.cv03_n1_operation_policy (
  principal_subject_id text NOT NULL,
  operation_id text NOT NULL,
  enabled boolean NOT NULL DEFAULT false,
+ authority_epoch bigint NOT NULL DEFAULT 0 CHECK (authority_epoch >= 0),
+ mirror_healthy boolean NOT NULL DEFAULT false,
  changed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
  PRIMARY KEY (context_id,principal_subject_id,operation_id)
 );
 REVOKE ALL ON TABLE ${s}.cv03_n1_operation_policy FROM PUBLIC;
+-- ONLY the offline owner-side fixture may invoke this event applicator.
+-- No routine/app SQL login has EXECUTE; real PA05 event authenticity and
+-- delivery must be independently certified before any production use.
+CREATE FUNCTION ${s}.cv03_n1_apply_owner_policy_epoch(
+ p_context text,p_subject text,p_operation text,p_epoch bigint,p_enabled boolean
+)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = pg_catalog, pg_temp
+AS $cv03_apply_epoch$
+DECLARE old_epoch bigint;
+BEGIN
+ IF p_context IS NULL OR length(p_context)=0 OR
+    p_subject IS NULL OR length(p_subject)=0 OR
+    p_operation IS DISTINCT FROM 'collection.saved-view.personal.save' OR
+    p_epoch IS NULL OR p_epoch<1 OR p_enabled IS NULL THEN
+   RAISE EXCEPTION 'CV03_N104B_OWNER_EVENT_INVALID';
+ END IF;
+ SELECT authority_epoch INTO old_epoch
+ FROM ${s}.cv03_n1_operation_policy
+ WHERE context_id=p_context AND principal_subject_id=p_subject
+   AND operation_id=p_operation FOR UPDATE;
+ IF NOT FOUND THEN
+   INSERT INTO ${s}.cv03_n1_operation_policy(
+     context_id,principal_subject_id,operation_id,
+     enabled,authority_epoch,mirror_healthy
+   ) VALUES (p_context,p_subject,p_operation,
+     CASE WHEN p_epoch=1 THEN p_enabled ELSE false END,
+     p_epoch,p_epoch=1);
+   RETURN CASE WHEN p_epoch=1 THEN 'APPLIED'
+     ELSE 'GAP_FAIL_CLOSED' END;
+ END IF;
+ IF p_epoch<=old_epoch THEN
+   RETURN 'STALE_IGNORED';
+ END IF;
+ IF p_epoch>old_epoch+1 THEN
+   UPDATE ${s}.cv03_n1_operation_policy
+     SET enabled=false,mirror_healthy=false,
+         authority_epoch=p_epoch,changed_at=clock_timestamp()
+   WHERE context_id=p_context AND principal_subject_id=p_subject
+     AND operation_id=p_operation;
+   RETURN 'GAP_FAIL_CLOSED';
+ END IF;
+ UPDATE ${s}.cv03_n1_operation_policy
+   SET enabled=p_enabled,mirror_healthy=mirror_healthy,
+       authority_epoch=p_epoch,changed_at=clock_timestamp()
+ WHERE context_id=p_context AND principal_subject_id=p_subject
+   AND operation_id=p_operation;
+ -- Once a sequence gap was seen, only an explicit independently verified
+ -- full owner snapshot may clear mirror_healthy. Normal events cannot.
+ RETURN 'APPLIED';
+END;
+$cv03_apply_epoch$;
+REVOKE ALL ON FUNCTION ${s}.cv03_n1_apply_owner_policy_epoch(
+ text,text,text,bigint,boolean) FROM PUBLIC;
 CREATE FUNCTION ${s}.cv03_n1_signed_save(p_input text, p_envelope text, p_signature text,
   p_resource text, p_completed text, p_approval text)
 RETURNS jsonb
@@ -62,6 +118,7 @@ DECLARE
  scope_resource text;
  signed_at timestamptz;
  active_policy boolean;
+ mirror_ok boolean;
 BEGIN
  IF length(p_input)>16384 OR length(p_envelope)>8192 OR
     length(p_resource)>16384 OR length(p_completed)>16384 OR
@@ -133,12 +190,14 @@ BEGIN
  -- Physical operation gate: missing or revoked mirror row DENIES even a
  -- cryptographically valid Host-issued receipt. This is owner-only state.
  -- FOR SHARE serializes a concurrent admin revoke with the commit.
- SELECT enabled INTO active_policy FROM ${s}.cv03_n1_operation_policy
+ SELECT enabled,mirror_healthy INTO active_policy,mirror_ok
+ FROM ${s}.cv03_n1_operation_policy
  WHERE context_id=ctx
    AND principal_subject_id=a->>'principalSubjectId'
    AND operation_id='collection.saved-view.personal.save'
  FOR SHARE;
- IF NOT FOUND OR active_policy IS DISTINCT FROM true THEN
+ IF NOT FOUND OR active_policy IS DISTINCT FROM true OR
+    mirror_ok IS DISTINCT FROM true THEN
    RAISE EXCEPTION 'CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED';
  END IF;
  IF p_approval::jsonb IS DISTINCT FROM a THEN
