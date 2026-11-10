@@ -362,6 +362,16 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
         JSON.stringify(attempts));
       const afterRace=await originalPgRead.get(providerInput);
       assert.equal(afterRace.revision,1);
+      // Historical first write must remain replayable even after later
+      // revisions change the live resource. Never reconstruct its old digest
+      // from the newest row.
+      const originalReplay=await provider.putIfRevisionWithReceipt(
+        providerInput,pack(providerProof)
+      );
+      assert.equal(originalReplay.replayed,true);
+      assert.equal(originalReplay.resource.revision,0);
+      assert.equal(originalReplay.receipt.receiptId,
+        providerProof.receipt.receiptId);
 
       // Child commits, exits without ACK. New Provider reads the original
       // historical signed receipt, then exact retry is idempotent.
