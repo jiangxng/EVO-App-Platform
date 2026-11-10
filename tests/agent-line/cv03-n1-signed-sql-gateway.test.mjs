@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
 import postgres from "postgres";
-import {preparePostgresConditionalResourceSchemaV010}
+import {preparePostgresConditionalResourceSchemaV010,
+  createPostgresConditionalResourceRepositoryV010}
   from "../../dist/providers/enterprise-context/resources-postgres.js";
 import {stableResourceReceiptJsonV010,digestConditionalResourcePutV010,
-  hmacCv03HostResourceReceiptV010}
+  hmacCv03HostResourceReceiptV010,sha256ResourceReceiptV010}
   from "../../dist/providers/enterprise-context/resource-receipt-digest.js";
 import {cv03N1GatewaySqlV010}
   from "../../tools/cv03-n1-isolated-signed-sql-gateway.mjs";
@@ -64,15 +65,15 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       await admin.unsafe("REVOKE ALL ON TABLE "+qSchema+'."'+table+'" FROM PUBLIC');
     }
     await admin.unsafe("ALTER FUNCTION "+functionName+
-      "(text,text,text) OWNER TO "+qOwner);
+      "(text,text,text,text,text,text) OWNER TO "+qOwner);
     await admin.unsafe("ALTER FUNCTION "+qSchema+
       ".cv03_reject_receipt_mutation() OWNER TO "+qOwner);
     await admin.unsafe("REVOKE ALL ON SCHEMA "+qSchema+" FROM PUBLIC");
     await admin.unsafe("REVOKE ALL ON FUNCTION "+functionName+
-      "(text,text,text) FROM PUBLIC");
+      "(text,text,text,text,text,text) FROM PUBLIC");
     await admin.unsafe("GRANT USAGE ON SCHEMA "+qSchema+" TO "+qRuntime);
     await admin.unsafe("GRANT EXECUTE ON FUNCTION "+functionName+
-      "(text,text,text) TO "+qRuntime);
+      "(text,text,text,text,text,text) TO "+qRuntime);
     const runtimeUrl=new URL(url);
     runtimeUrl.username=runtime;
     runtimeUrl.password=password;
@@ -89,7 +90,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
         has_schema_privilege(current_user,$5,'CREATE') AS create_schema_objects
       `,[schema+".resources",schema+".cv03_resource_receipts",
         schema+".cv03_n1_signing_keys",
-        functionName+"(text,text,text)",schema]);
+        functionName+"(text,text,text,text,text,text)",schema]);
     assert.equal(acl[0].role,runtime);
     assert.equal(acl[0].insert_resource,false);
     assert.equal(acl[0].insert_receipt,false);
@@ -108,7 +109,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await assert.rejects(runtimeSql.unsafe("SELECT * FROM "+qSchema+
       ".cv03_n1_signing_keys"),/permission denied/i);
     await assert.rejects(runtimeSql.unsafe("ALTER FUNCTION "+functionName+
-      "(text,text,text) OWNER TO "+qRuntime),/must be owner|permission denied/i);
+      "(text,text,text,text,text,text) OWNER TO "+qRuntime),/must be owner|permission denied/i);
 
     const newInput=(title,expectedRevision,id="hk")=>({
       contextId:"enterprise-context:company-a",
@@ -126,7 +127,19 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       expectedRevision,actorSubjectId:"owner-a",
       recordedAt:new Date().toISOString()
     });
-    const signed=(input,extra={})=>{
+    const signed=(input,extra={},previous=undefined)=>{
+      const resource={
+        contractVersion:"0.1.0",contextId:input.contextId,
+        namespace:input.namespace,collectionId:input.collectionId,
+        resourceType:input.resourceType,resourceId:input.resourceId,
+        schemaRef:input.schemaRef,ownerPackageId:ownerPkg,
+        storageKind:"DOCUMENT",payload:input.payload,
+        lifecycleState:"ACTIVE",
+        revision:input.expectedRevision===null?0:input.expectedRevision+1,
+        createdAt:previous?.createdAt??input.recordedAt,
+        createdBySubjectId:previous?.createdBySubjectId??input.actorSubjectId,
+        updatedAt:input.recordedAt,updatedBySubjectId:input.actorSubjectId
+      };
       const nonce=randomUUID();
       const receipt={
         receiptId:"cv03-n1:"+nonce,
@@ -148,11 +161,38 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
         keyId,receipt
       });
       const signature=hmacCv03HostResourceReceiptV010(receipt,keyId,secret);
-      return {canonicalInput,envelope,signature};
+      const completed={
+        contractVersion:"0.1.0",receiptId:receipt.receiptId,
+        invocationId:receipt.invocationId,
+        idempotencyKey:receipt.idempotencyKey,
+        sourceInteractionId:receipt.sourceInteractionId,
+        sourceActionId:receipt.sourceActionId,
+        principalSubjectId:receipt.principalSubjectId,
+        principalActorType:receipt.principalActorType,
+        context:receipt.context,toolId:receipt.toolId,
+        ownerPackageId:receipt.ownerPackageId,
+        capability:receipt.capability,effect:"WRITE",
+        inputDigest:receipt.inputDigest,status:"SUCCEEDED",
+        requestedAt:receipt.requestedAt,
+        completedAt:resource.updatedAt,
+        resultDigest:sha256ResourceReceiptV010(resource),
+        resultEntityRefs:["enterprise-resource:"+resource.resourceId],
+        resultSummary:"Saved view resource and immutable receipt committed atomically",
+        latestEventId:"cv03-resource-commit:"+receipt.receiptId
+      };
+      return {canonicalInput,envelope,signature,
+        canonicalResource:stableResourceReceiptJsonV010(resource),
+        canonicalCompleted:stableResourceReceiptJsonV010(completed),
+        canonicalApproval:stableResourceReceiptJsonV010(receipt),
+        receipt,resource};
+
     };
     const invoke=(client,proof)=>client.unsafe(
-      "SELECT "+functionName+"($1::text,$2::text,$3::text) AS result",
-      [proof.canonicalInput,proof.envelope,proof.signature])
+      "SELECT "+functionName+"($1::text,$2::text,$3::text,"+
+      "$4::text,$5::text,$6::text) AS result",
+      [proof.canonicalInput,proof.envelope,proof.signature,
+       proof.canonicalResource,proof.canonicalCompleted,
+       proof.canonicalApproval])
       .then(rows=>rows[0].result);
     const first=newInput("香港供应商",null);
     const valid=signed(first);
@@ -180,9 +220,23 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     assert.equal(result.resource.payload.title,"香港供应商");
     assert.equal(result.receipt.status,"SUCCEEDED");
     assert.equal(result.receipt.inputDigest,digestConditionalResourcePutV010(first));
+    const originalReader=createPostgresConditionalResourceRepositoryV010({
+      connectionString:url,schema
+    });
+    try{
+      const readback=await originalReader.getCommittedWriteByIdempotencyKey({
+        address:first,idempotencyKey:valid.receipt.idempotencyKey,
+        receiptId:valid.receipt.receiptId,
+        inputDigest:valid.receipt.inputDigest,
+        principalSubjectId:"owner-a",principalActorType:"HUMAN"
+      });
+      assert.deepEqual(readback?.resource,result.resource,
+        "existing readback validates the actual original JS receipt digest");
+      assert.deepEqual(readback?.receipt,result.receipt);
+    }finally{await originalReader.close();}
     assert.equal((await invoke(second,valid)).replayed,true);
-    const nextA=signed(newInput("新版 A",0));
-    const nextB=signed(newInput("新版 B",0));
+    const nextA=signed(newInput("新版 A",0),{},result.resource);
+    const nextB=signed(newInput("新版 B",0),{},result.resource);
     const race=await Promise.allSettled([
       invoke(runtimeSql,nextA),invoke(second,nextB)
     ]);
@@ -200,7 +254,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await assert.rejects(admin.unsafe("UPDATE "+qSchema+
       ".cv03_resource_receipts SET receipt='{}'::jsonb"),
       /CV03_RESOURCE_RECEIPT_IMMUTABLE/);
-    const revoked=signed(newInput("revoked",1,"another-view"));
+    const revoked=signed(newInput("revoked",null,"another-view"));
     await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_signing_keys SET enabled=false WHERE key_id=$1",[keyId]);
     await assert.rejects(invoke(runtimeSql,revoked),/CV03_N1_SIGNER_NOT_TRUSTED/);
