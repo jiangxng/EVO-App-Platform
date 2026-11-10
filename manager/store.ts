@@ -152,6 +152,9 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
     assertUsable();
     mkdirSync(dirname(filePath), {recursive: true});
     const lockPath = filePath + ".lifecycle-write.lock";
+    // Allocate a never-reused staging name before acquiring the lock so a
+    // staging-name allocation error cannot strand a lock from this process.
+    const stage = filePath + ".tmp." + process.pid + "." + randomUUID();
     let lockFd: number;
     try {
       lockFd = openSync(lockPath,
@@ -162,7 +165,6 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
         throw Error("LIFECYCLE_STATE_WRITE_LOCKED");
       throw error;
     }
-    const stage = filePath + ".tmp." + process.pid + "." + randomUUID();
     let stageFd: number | undefined;
     let stageCreated = false;
     let renamed = false;
