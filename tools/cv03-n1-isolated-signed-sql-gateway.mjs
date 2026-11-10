@@ -108,7 +108,7 @@ BEGIN
  keyhash:=encode(public.digest(convert_to(
      to_json(a->>'idempotencyKey')::text,'UTF8'),'sha256'),'hex');
  PERFORM pg_advisory_xact_lock(hashtextextended(ctx||'|'||keyhash,0));
- SELECT receipt,resource,input_digest INTO old_receipt
+ SELECT receipt,resource,input_digest,approval_digest INTO old_receipt
  FROM ${s}.cv03_resource_receipts
  WHERE context_id=ctx AND idempotency_hash=keyhash;
  IF FOUND THEN
