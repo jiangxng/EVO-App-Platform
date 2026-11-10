@@ -338,8 +338,8 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
       "old ENABLE must never override a newer real-Host DENY");
 
     // PA05's existing Capability Operation gate explicitly distinguishes
-    // an AI actor; this proof records that fact without claiming the
-    // current SQL mirror is actor-scoped.
+    // an AI actor; the SQL mirror independently records an AI DENY row,
+    // so the same principal's Human ALLOW must never grant AI WRITE.
     env.access.companyA=true;
     assert.equal((await env.inspect(context("company-a","AI"),3)).authorized,
       false,"AI AuthorizationProvider denies while Human may be allowed");
