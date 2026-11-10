@@ -19,7 +19,10 @@ CREATE TABLE ${s}.cv03_n1_read_scope (
  context_id text NOT NULL,
  owner_subject_id text NOT NULL,
  enterprise_id text NOT NULL,
- enabled boolean NOT NULL DEFAULT false
+ enabled boolean NOT NULL DEFAULT false,
+ -- Explicit CI-only lease; real PA05 read identity sync not installed.
+ delivery_required boolean NOT NULL DEFAULT false,
+ lease_until timestamptz
 );
 REVOKE ALL ON TABLE ${s}.cv03_n1_read_scope FROM PUBLIC;
 
@@ -34,6 +37,8 @@ AS $cv03_read_get$
  INNER JOIN ${s}.cv03_n1_read_scope g
    ON g.runtime_role = session_user
  WHERE g.enabled
+   AND (g.delivery_required IS DISTINCT FROM true OR
+        (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
    AND g.context_id=p_context
    AND r.context_id=g.context_id
    AND r.namespace='evo.saved-view.personal.'||g.owner_subject_id
@@ -58,6 +63,8 @@ AS $cv03_read_list$
  INNER JOIN ${s}.cv03_n1_read_scope g
    ON g.runtime_role=session_user
  WHERE g.enabled
+   AND (g.delivery_required IS DISTINCT FROM true OR
+        (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
    AND g.context_id=p_context
    AND r.context_id=g.context_id
    AND r.namespace='evo.saved-view.personal.'||g.owner_subject_id
@@ -84,6 +91,8 @@ AS $cv03_read_receipt$
  INNER JOIN ${s}.cv03_n1_read_scope g
    ON g.runtime_role=session_user
  WHERE g.enabled
+   AND (g.delivery_required IS DISTINCT FROM true OR
+        (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
    AND g.context_id=p_context
    AND r.context_id=g.context_id
    AND r.idempotency_hash=p_hash
