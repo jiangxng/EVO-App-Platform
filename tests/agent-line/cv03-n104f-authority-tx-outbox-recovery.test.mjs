@@ -434,6 +434,8 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.equal(await publish(clientA,oldProducerEvent),"COMMITTED_WITH_OUTBOX");
     await assert.rejects(publish(clientB,oldProducerEvent),
       /CV03_N104H_PRODUCER_FENCED/);
+    await assert.rejects(clientA.unsafe("SELECT "+rotateFn+
+      "('CI_GENERATION_1',1,$1::name)",[producerA]),/permission denied/i);
     await assert.rejects(clientA.unsafe("SELECT "+txFn+"('{}',false)"),
       /permission denied/i);
     await assert.rejects(clientA.unsafe("SELECT * FROM "+fenceTable),
@@ -467,6 +469,11 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     assert.equal(JSON.parse(tombstone.event_json).rotationDenyTombstone,true);
     assert.equal(JSON.parse(tombstone.event_json).generation,"CI_GENERATION_2");
     assert.equal(JSON.parse(tombstone.event_json).enabled,false);
+    const allTombstones=await admin.unsafe("SELECT count(*)::int AS total FROM "+
+      outbox+" WHERE generation='CI_GENERATION_2' "+
+      "AND event_json::jsonb->>'rotationDenyTombstone'='true'");
+    assert.equal(allTombstones[0].total,4,
+      "every known enterprise/actor scope must have durable generation-2 DENY tombstone");
     console.log("CV03_N104H_ROTATE_ATOMIC_DENY_ALL_SCOPES=PASS");
 
     await assert.rejects(admin.unsafe("SELECT "+rotateFn+
@@ -500,6 +507,8 @@ test("N1-04f real Manager decisions, atomic state/outbox, lost ACK, gap and sign
     const newEvent={...decisionNew,generation:"CI_GENERATION_2",
       producerLogin:producerB,producerFenceEpoch:2};
     assert.equal(await publish(clientB,newEvent),"COMMITTED_WITH_OUTBOX");
+    await assert.rejects(commit({...newEvent,authorityEpoch:8,
+      generation:"CI_GENERATION_1"}),/CV03_N104H_GENERATION_ROLLBACK_DENIED/);
     assert.equal(await deliverFenced(a,7),"APPLIED");
     assert.equal((await mirrorFor(a)).enabled,true);
     assert.equal((await mirrorFor(a)).mirror_healthy,false,
