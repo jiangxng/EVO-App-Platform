@@ -206,6 +206,21 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     assert.equal(await historic(repoB,fa),undefined);
     assert.equal((await historic(repoB,fb))?.receipt?.receiptId,fb.receiptId);
     // The app SQL runtime cannot flip tenant read admission; only owner/admin.
+    // Opt-in authority-delivery lease: a SQL read scope that still says
+    // enabled=true MUST fail closed when its identity lease has expired.
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_read_scope SET delivery_required=true,"+
+      "lease_until=clock_timestamp()-interval '1 second'"+
+      " WHERE runtime_role=$1",[a]);
+    assert.equal(await repoA.get(fa.addr),undefined);
+    assert.deepEqual(await repoA.list({contextId:ctx("company-a")}),[]);
+    assert.equal(await historic(repoA,fa),undefined);
+    assert.equal((await repoB.get(fb.addr))?.resourceId,"b-one");
+    await admin.unsafe("UPDATE "+qSchema+
+      ".cv03_n1_read_scope SET lease_until=clock_timestamp()+interval '90 seconds'"+
+      " WHERE runtime_role=$1",[a]);
+    assert.equal((await repoA.get(fa.addr))?.resourceId,"a-one");
+    assert.equal((await historic(repoA,fa))?.receipt?.receiptId,fa.receiptId);
     const onlyA=await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_read_scope SET enabled=false WHERE runtime_role=$1 RETURNING runtime_role",[a]);
     assert.equal(onlyA.length,1);
