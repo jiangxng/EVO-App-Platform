@@ -8,6 +8,9 @@ import {
 } from "../../dist/providers/enterprise-context/resources-postgres.js";
 import {sha256ResourceReceiptV010}
   from "../../dist/providers/enterprise-context/resource-receipt-digest.js";
+import {createPersonalSavedViewActionHandlersV010,
+  PERSONAL_SAVED_VIEW_READ_V010}
+  from "../../dist/providers/enterprise-context/personal-saved-views.js";
 import {cv03N1ScopedReadGatewaySqlV010}
   from "../../tools/cv03-n1-isolated-tenant-read-gateway.mjs";
 
@@ -100,7 +103,7 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
     await admin.unsafe(cv03N1ScopedReadGatewaySqlV010(schema));
     for(const [enterprise,subject] of [
       ["company-a","owner-a"],["company-b","owner-b"],
-      ["汉字, and quote \\"","subject:🔒"],["company-a","owner-other"]
+      ['汉字, and quote "','subject:🔒'],["company-a","owner-other"]
     ]) {
       const actual=await admin.unsafe("SELECT "+qSchema+
         ".cv03_n1_saved_view_namespace($1,$2) AS namespace",
@@ -113,6 +116,33 @@ test("N1-04b real PG18 independent SQL identities: scoped get/list/receipt, revo
       makeFixture("company-b","owner-b","b-one","東京字典"),
       makeFixture("company-a","owner-other","a-other","其他人私有视图")
     ];
+    // Derive a real address by running the EXISTING Domain Owner READ action.
+    // This does not approximate its private address() implementation.
+    const observed=[];
+    const actualOwner=createPersonalSavedViewActionHandlersV010({
+      storage:{conditionalWriteConsistency:"SHARED_POSTGRES_TRANSACTION",
+        get:async addr=>{observed.push(addr);return undefined;}},
+      readSource:async()=>{throw Error("READ source not reached for absent view");},
+      allowedSourceOperationIds:[]
+    });
+    const ownerRead=actualOwner.find(x=>x.commandCode===PERSONAL_SAVED_VIEW_READ_V010);
+    assert.ok(ownerRead);
+    const realOwnerContext={
+      principal:{subjectId:"owner-a",actorType:"HUMAN"},
+      scope:{enterpriseId:"company-a",userId:"owner-a"},
+      context:{activeContext:{kind:"ENTERPRISE",
+        contextId:ctx("company-a"),enterpriseId:"company-a"},
+        personalContext:{ownerSubjectId:"owner-a"}},
+      correlationId:"cv03-n104e-domain-owner-parity"
+    };
+    const ownerResponse=await ownerRead.execute({values:{viewId:"a-one"}},realOwnerContext);
+    assert.equal(ownerResponse.ok,true);
+    assert.equal(observed.length,1);
+    assert.equal(observed[0].namespace,fixtures[0].addr.namespace,
+      "fixture must use the actual Domain Owner-generated address");
+    const dbOwner=await admin.unsafe("SELECT "+qSchema+
+      ".cv03_n1_saved_view_namespace($1,$2) AS namespace",["company-a","owner-a"]);
+    assert.equal(dbOwner[0].namespace,observed[0].namespace);
     for(const item of fixtures){
       const r=item.resource;
       await admin.unsafe("INSERT INTO "+resourceTable+
