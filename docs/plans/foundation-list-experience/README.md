@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-10 七轮窗口交接：研究资料与决策遗产（优先阅读）
+
+**[简短窗口接续入口](CV03-N104D-WINDOW07-RESEARCH-HANDOFF-ENTRY-20261110.md)** → **[详细网络原始来源/阅读等级/方案取舍/源码与 CI 证据索引](CV03-N104D-WINDOW07-RESEARCH-DECISION-REFERENCE-INDEX-20261110.md)**。保留 EX01–EX08、H01–H10、N1-01～N1-04d 的最终验收边界，标注本次访问失败的官方文档和未保存的截图/附件；列出 N1-04e 最优先协议不一致与生产安全 Owner 门禁。正式 Saved View WRITE 仍 OFF；不覆盖并行 #1184 的权威计划。
+
 ## 2026-11-10 CV-03 N1-04d 真实 PA05 Manager 决策与隔离签名事件 / ACK 恢复
 
 [N1-04d 真实 Capability Operation/AuthorizationProvider/Host Issuer → 试验性 PostgreSQL 签名事件、持久 outbox 与 ACK 重放](CV03-N104D-REAL-PA05-MANAGER-OUTBOX-ISOLATED-HANDOFF-20261110.md)：验证 Manager 实际安装/停用、撤权、切企业和 Human/AI 授权差异，**仍非真实生产事件源**。已发现实际 Domain Owner 使用的 Hash namespace 与试验性 SQL Gateway 不一致，数据库镜像也尚未按 actorType 独立授权。N1=NOT_CERTIFIED，正式 WRITE 仍 OFF。
