@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {randomUUID} from "node:crypto";
+import {randomUUID,createHash} from "node:crypto";
 import {fork} from "node:child_process";
 import {fileURLToPath} from "node:url";
 import postgres from "postgres";
@@ -22,6 +22,8 @@ const allowed=(process.env.CV03_N1_ONLY_ISOLATED_GATEWAY_TEST==="YES_CI_LOCAL"
   }catch{return false;}})());
 const isolated={skip:!allowed&&"Only run in explicit CI localhost/cv03proof",
   timeout:90000};
+const ns=(e,s)=>"evo.saved-view.personal."+createHash("sha256")
+  .update(JSON.stringify([e,s])).digest("hex");
 const op="collection.saved-view.personal.save";
 const ownerPkg="host-enterprise-context-provider";
 const keyId="cv03-n1-test-signing-key";
@@ -94,8 +96,8 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     const applyEpoch=(
       epoch,enabled,context="enterprise-context:company-a",subject="owner-a"
     )=>admin.unsafe("SELECT "+qSchema+
-      ".cv03_n1_apply_owner_policy_epoch($1,$2,$3,$4::bigint,$5::boolean) AS result",
-      [context,subject,op,epoch,enabled]).then(rows=>rows[0].result);
+      ".cv03_n1_apply_owner_policy_epoch($1,$2,$3,$4,$5::bigint,$6::boolean) AS result",
+      [context,subject,"HUMAN",op,epoch,enabled]).then(rows=>rows[0].result);
     assert.equal(await applyEpoch(1,true),"APPLIED");
     await admin.unsafe("ALTER SCHEMA "+qSchema+" OWNER TO "+qOwner);
     for(const table of ["resources","cv03_resource_receipts","cv03_n1_signing_keys",
@@ -106,7 +108,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await admin.unsafe("ALTER FUNCTION "+functionName+
       "(text,text,text,text,text,text) OWNER TO "+qOwner);
     await admin.unsafe("ALTER FUNCTION "+qSchema+
-      ".cv03_n1_apply_owner_policy_epoch(text,text,text,bigint,boolean)"+
+      ".cv03_n1_apply_owner_policy_epoch(text,text,text,text,bigint,boolean)"+
       " OWNER TO "+qOwner);
     await admin.unsafe("ALTER FUNCTION "+qSchema+
       ".cv03_reject_receipt_mutation() OWNER TO "+qOwner);
@@ -160,14 +162,14 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await assert.rejects(runtimeSql.unsafe("UPDATE "+qSchema+
       ".cv03_n1_operation_policy SET enabled=true"),/permission denied/i);
     await assert.rejects(runtimeSql.unsafe("SELECT "+qSchema+
-      ".cv03_n1_apply_owner_policy_epoch($1,$2,$3,2,true)",
+      ".cv03_n1_apply_owner_policy_epoch($1,$2,'HUMAN',$3,2,true)",
       ["enterprise-context:company-a","owner-a",op]),/permission denied/i);
     await assert.rejects(runtimeSql.unsafe("ALTER FUNCTION "+functionName+
       "(text,text,text,text,text,text) OWNER TO "+qRuntime),/must be owner|permission denied/i);
 
     const newInput=(title,expectedRevision,id="hk")=>({
       contextId:"enterprise-context:company-a",
-      namespace:"evo.saved-view.personal.owner-a",
+      namespace:ns("company-a","owner-a"),
       collectionId:"collection-views",resourceType:"saved-collection-view",
       resourceId:id,schemaRef:"evo.saved-view.personal/0.1.0",
       ownerPackageId:ownerPkg,storageKind:"DOCUMENT",
@@ -252,12 +254,26 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     const valid=signed(first);
     // Signed before any physical SQL authorization mirror exists for owner-b.
     const unmirrored=newInput("unmirrored",null,"other-user-view");
-    unmirrored.namespace="evo.saved-view.personal.owner-b";
+    unmirrored.namespace=ns("company-a","owner-b");
     unmirrored.actorSubjectId="owner-b";
     unmirrored.payload={...unmirrored.payload,ownerSubjectId:"owner-b"};
     await assert.rejects(invoke(runtimeSql,signed(unmirrored,{
       principalSubjectId:"owner-b"
     })),/CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
+    // These are fully Host-signed inputs with the correct actor/subject.
+    // The DB must reject legacy raw-subject, other-enterprise and
+    // other-subject namespaces BEFORE considering the valid Human policy.
+    for(const [id,forgedNamespace] of [
+      ["legacy-raw","evo.saved-view.personal.owner-a"],
+      ["other-enterprise",ns("company-b","owner-a")],
+      ["other-subject",ns("company-a","owner-b")]
+    ]){
+      const forged=newInput(id,null,id);
+      forged.namespace=forgedNamespace;
+      await assert.rejects(invoke(runtimeSql,signed(forged)),
+        /CV03_N1_GATEWAY_BINDING_DENIED/);
+    }
+    console.log("CV03_N104E_REAL_DOMAIN_OWNER_NAMESPACE_SQL_NEGATIVE=PASS");
     const tenMinutesAgo=newInput("stale-permit",null,"stale-view");
     tenMinutesAgo.recordedAt=new Date(Date.now()-10*60*1000).toISOString();
     await assert.rejects(invoke(runtimeSql,signed(tenMinutesAgo)),
@@ -456,7 +472,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     await admin.begin(async tx=>{
       await tx.unsafe("UPDATE "+qSchema+
         ".cv03_n1_operation_policy SET enabled=false,changed_at=clock_timestamp()"+
-        " WHERE context_id=$1 AND principal_subject_id=$2 AND operation_id=$3",
+        " WHERE context_id=$1 AND principal_subject_id=$2 AND actor_type='HUMAN' AND operation_id=$3",
         ["enterprise-context:company-a","owner-a",op]);
       inFlight=invoke(runtimeSql,preRevoked);
       await tx.unsafe("SELECT pg_sleep(0.12)");
@@ -485,7 +501,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     // Restore only CI mirror to exercise independent SIGNER key stop below.
     await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_operation_policy SET enabled=true,changed_at=clock_timestamp()"+
-      " WHERE context_id=$1 AND principal_subject_id=$2 AND operation_id=$3",
+      " WHERE context_id=$1 AND principal_subject_id=$2 AND actor_type='HUMAN' AND operation_id=$3",
       ["enterprise-context:company-a","owner-a",op]);
     const beforeDisable=await admin.unsafe("SELECT count(*)::int AS n"+
       " FROM "+qSchema+".resources");
@@ -513,7 +529,7 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
     // resync cannot clear a known unhealthy event mirror latch.
     await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_operation_policy SET enabled=true WHERE context_id=$1"+
-      " AND principal_subject_id=$2 AND operation_id=$3",
+      " AND principal_subject_id=$2 AND actor_type='HUMAN' AND operation_id=$3",
       ["enterprise-context:company-a","owner-a",op]);
     await assert.rejects(invoke(runtimeSql,signed(staleEventInput)),
       /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);

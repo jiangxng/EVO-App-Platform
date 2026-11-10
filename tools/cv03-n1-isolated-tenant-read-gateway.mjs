@@ -1,3 +1,4 @@
+import {cv03N104eDomainOwnerNamespaceSqlV010} from "./cv03-n104e-domain-owner-namespace.mjs";
 /**
  * CV-03 N1-04b — isolated PostgreSQL tenant-bound read gateway SQL only.
  * No DDL is executed by this module. Explicit CI fixture installation.
@@ -14,6 +15,7 @@ export function cv03N1ScopedReadGatewaySqlV010(schema) {
   }
   const s='"'+schema+'"';
   return `
+${cv03N104eDomainOwnerNamespaceSqlV010(schema)}
 CREATE TABLE ${s}.cv03_n1_read_scope (
  runtime_role name PRIMARY KEY,
  context_id text NOT NULL,
@@ -41,7 +43,7 @@ AS $cv03_read_get$
         (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
    AND g.context_id=p_context
    AND r.context_id=g.context_id
-   AND r.namespace='evo.saved-view.personal.'||g.owner_subject_id
+   AND r.namespace=${s}.cv03_n1_saved_view_namespace(g.enterprise_id,g.owner_subject_id)
    AND r.namespace=p_namespace
    AND r.collection_id=p_collection
    AND r.resource_type='saved-collection-view'
@@ -67,7 +69,7 @@ AS $cv03_read_list$
         (g.lease_until IS NOT NULL AND g.lease_until>clock_timestamp()))
    AND g.context_id=p_context
    AND r.context_id=g.context_id
-   AND r.namespace='evo.saved-view.personal.'||g.owner_subject_id
+   AND r.namespace=${s}.cv03_n1_saved_view_namespace(g.enterprise_id,g.owner_subject_id)
    AND (p_namespace IS NULL OR r.namespace=p_namespace)
    AND (p_collection IS NULL OR r.collection_id=p_collection)
    AND r.resource_type='saved-collection-view'
@@ -98,7 +100,7 @@ AS $cv03_read_receipt$
    AND r.idempotency_hash=p_hash
    AND r.receipt->>'principalSubjectId'=g.owner_subject_id
    AND r.receipt->'context'->>'enterpriseId'=g.enterprise_id
-   AND r.resource->>'namespace'='evo.saved-view.personal.'||g.owner_subject_id
+   AND r.resource->>'namespace'=${s}.cv03_n1_saved_view_namespace(g.enterprise_id,g.owner_subject_id)
    AND r.resource->'payload'->>'ownerSubjectId'=g.owner_subject_id
    AND r.resource->'payload'->>'enterpriseId'=g.enterprise_id;
 $cv03_read_receipt$;

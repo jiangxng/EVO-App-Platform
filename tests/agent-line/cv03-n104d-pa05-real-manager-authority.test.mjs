@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {randomUUID} from "node:crypto";
+import {randomUUID,createHash} from "node:crypto";
 import postgres from "postgres";
 import {createPackageCatalog} from "../../dist/catalog/catalog.js";
 import {createMemoryLifecycleStore} from "../../dist/manager/store.js";
@@ -38,6 +38,8 @@ const isolated=process.env.CV03_N1_ONLY_ISOLATED_GATEWAY_TEST==="YES_CI_LOCAL"&&
   }catch{return false;}})();
 const dbOnly={skip:!isolated&&"Only isolated PG18 localhost/cv03proof opt-in",
   timeout:90000};
+const ns=(e,s)=>"evo.saved-view.personal."+createHash("sha256")
+  .update(JSON.stringify([e,s])).digest("hex");
 const op="collection.saved-view.personal.save";
 const hostKeyId="cv03-n104d-test-host-key";
 const hostSecret="CV03_N104D_HOST_TEST_ONLY_ISOLATED_HMAC_SECRET_012345";
@@ -68,9 +70,8 @@ function material(ctx,id){
   const ent=ctx.context.activeContext.enterpriseId;
   const input={
     contextId:ctx.context.activeContext.contextId,
-    // SQL POC uses subject suffix; real Domain Owner uses a SHA-256 scope
-    // hash. This is a KNOWN CONTRACT GAP, not a production Saved View path.
-    namespace:"evo.saved-view.personal."+subject,
+    // Actual Saved View Domain Owner enterprise+subject SHA-256 address.
+    namespace:ns(ent,subject),
     collectionId:"collection-views",resourceType:"saved-collection-view",
     resourceId:id,schemaRef:"evo.saved-view.personal/0.1.0",
     ownerPackageId:"host-enterprise-context-provider",storageKind:"DOCUMENT",
@@ -187,16 +188,16 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
     const auth=cv03N104cTestEventProofV010(event,eventKeyId,eventSecret);
     const payload=stableResourceReceiptJsonV010(event);
     await admin.unsafe("INSERT INTO "+outboxTable+
-      "(context_id,principal_subject_id,operation_id,authority_epoch,"+
+      "(context_id,principal_subject_id,actor_type,operation_id,authority_epoch,"+
       "event_json,signed_envelope,signature) VALUES "+
-      "($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING",
-      [event.contextId,event.principalSubjectId,event.operationId,
+      "($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING",
+      [event.contextId,event.principalSubjectId,event.evaluatedActorType,event.operationId,
         event.authorityEpoch,payload,auth.envelope,auth.signature]);
     const row=await admin.unsafe("SELECT event_json,signed_envelope,"+
       "signature,acked FROM "+outboxTable+
-      " WHERE context_id=$1 AND principal_subject_id=$2 AND operation_id=$3"+
-      " AND authority_epoch=$4",
-      [event.contextId,event.principalSubjectId,event.operationId,
+      " WHERE context_id=$1 AND principal_subject_id=$2 AND actor_type=$3 AND operation_id=$4"+
+      " AND authority_epoch=$5",
+      [event.contextId,event.principalSubjectId,event.evaluatedActorType,event.operationId,
         event.authorityEpoch]);
     assert.equal(row.length,1);
     assert.equal(row[0].event_json,payload,
@@ -211,11 +212,10 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
       [pending.signed_envelope,pending.signature]);
     if(ack)await admin.unsafe("UPDATE "+outboxTable+
       " SET acked=true WHERE context_id=$1"+
-      " AND principal_subject_id=$2 AND operation_id=$3"+
-      " AND authority_epoch=$4 AND signature=$5",
-      [snapshot.event.contextId,snapshot.event.principalSubjectId,
-        snapshot.event.operationId,snapshot.event.authorityEpoch,
-        pending.signature]);
+      " AND principal_subject_id=$2 AND actor_type=$3 AND operation_id=$4"+
+      " AND authority_epoch=$5 AND signature=$6",
+      [snapshot.event.contextId,snapshot.event.principalSubjectId,snapshot.event.evaluatedActorType,
+        snapshot.event.operationId,snapshot.event.authorityEpoch,pending.signature]);
     events.push({epoch:snapshot.event.authorityEpoch,
       enabled:snapshot.event.enabled,context:snapshot.event.contextId,
       status:row[0].result});
@@ -223,8 +223,8 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
   }
   const dbState=async(ctx)=>admin.unsafe("SELECT enabled,mirror_healthy,"+
     "authority_epoch,delivery_required,lease_until FROM "+policyTable+
-    " WHERE context_id=$1 AND principal_subject_id=$2 AND operation_id=$3",
-    [ctx.context.activeContext.contextId,ctx.principal.subjectId,op])
+    " WHERE context_id=$1 AND principal_subject_id=$2 AND actor_type=$3 AND operation_id=$4",
+    [ctx.context.activeContext.contextId,ctx.principal.subjectId,ctx.principal.actorType,op])
     .then(r=>r[0]);
   const makeValid=ctx=>{
     const input=material(ctx,"n104d-"+randomUUID().replaceAll("-").slice(0,12));
@@ -267,7 +267,7 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
     }
     for(const sig of [
       "cv03_reject_receipt_mutation()",
-      "cv03_n1_apply_owner_policy_epoch(text,text,text,bigint,boolean)",
+      "cv03_n1_apply_owner_policy_epoch(text,text,text,text,bigint,boolean)",
       "cv03_n1_signed_save(text,text,text,text,text,text)",
       "cv03_n104c_ingest_signed_event(text,text)"
     ]){
@@ -320,6 +320,12 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
     // issuer refuses it; an already signed receipt is stopped by SQL after
     // applying the revocation event.
     const late=await makeValid(ctxA);
+    const aiScope=context("company-a","AI");
+    assert.equal(await dispatch(await env.inspect(aiScope,1)),"APPLIED");
+    assert.equal((await dbState(aiScope)).enabled,false);
+    assert.equal((await dbState(ctxA)).enabled,true,
+      "AI deny must not revoke the same subject's Human permission");
+    console.log("CV03_N104E_ACTOR_SCOPED_OWNER_OUTBOX=PASS");
     env.access.companyA=false;
     await assert.rejects(()=>makeValid(ctxA),
       /CV03_HOST_RECEIPT_AUTHORIZATION_DENIED/);
@@ -333,8 +339,8 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
       "old ENABLE must never override a newer real-Host DENY");
 
     // PA05's existing Capability Operation gate explicitly distinguishes
-    // an AI actor; this proof records that fact without claiming the
-    // current SQL mirror is actor-scoped.
+    // an AI actor; the SQL mirror independently records an AI DENY row,
+    // so the same principal's Human ALLOW must never grant AI WRITE.
     env.access.companyA=true;
     assert.equal((await env.inspect(context("company-a","AI"),3)).authorized,
       false,"AI AuthorizationProvider denies while Human may be allowed");
@@ -373,7 +379,7 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
     assert.equal((await dbState(ctxA)).enabled,false);
     assert.equal((await dbState(ctxB)).enabled,false);
     assert.equal((await admin.unsafe("SELECT count(*)::int AS n FROM "+
-      outboxTable))[0].n,7,
+      outboxTable))[0].n,8,
       "one monotonic snapshot per explicit trusted fixture evaluation");
     console.log("CV03_N104D_REAL_PA05_MANAGER_AUTHORITY_TO_SIGNED_SQL=PASS");
     console.log("CV03_N104D_OUTBOX_LOST_ACK_REPLAY=PASS");

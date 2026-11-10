@@ -142,6 +142,7 @@ export function cv03N104dIsolatedOwnerOutboxSqlV010(schema){
 CREATE TABLE ${s}.cv03_n104d_test_owner_outbox (
  context_id text NOT NULL,
  principal_subject_id text NOT NULL,
+  actor_type text NOT NULL CHECK (actor_type IN ('HUMAN','AI')),
  operation_id text NOT NULL,
  authority_epoch bigint NOT NULL CHECK (authority_epoch>=1),
  event_json text NOT NULL,
@@ -149,7 +150,7 @@ CREATE TABLE ${s}.cv03_n104d_test_owner_outbox (
  signature text NOT NULL CHECK (signature ~ '^[a-f0-9]{64}$'),
  acked boolean NOT NULL DEFAULT false,
  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
- PRIMARY KEY(context_id,principal_subject_id,operation_id,authority_epoch)
+ PRIMARY KEY(context_id,principal_subject_id,actor_type,operation_id,authority_epoch)
 );
 REVOKE ALL ON TABLE ${s}.cv03_n104d_test_owner_outbox FROM PUBLIC;
 `;
