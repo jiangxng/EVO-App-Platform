@@ -39,7 +39,8 @@ BEGIN
       'cv03.pa05-owner-event.isolated/0.1.0'
     OR jsonb_typeof(ev) IS DISTINCT FROM 'object'
     OR ev->>'source' IS DISTINCT FROM 'PA05_OWNER_TEST_ONLY'
-    OR ev->>'generation' IS DISTINCT FROM 'CI_GENERATION_1'
+    OR ev->>'generation' IS NULL
+    OR ev->>'generation' NOT IN ('CI_GENERATION_1','CI_GENERATION_2')
     OR ev->>'operationId' IS DISTINCT FROM 'collection.saved-view.personal.save'
     OR ev->>'evaluatedActorType' NOT IN ('HUMAN','AI')
     OR ev->>'evaluatedActorType' IS NULL
