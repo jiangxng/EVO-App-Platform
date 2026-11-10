@@ -94,3 +94,12 @@
 - **本轮七轮工程证据**：[N1-01](CV03-N1-POSTGRES-PHYSICAL-SQL-ADMISSION-NEGATIVE-PROOF-20261110.md) → [N1-02](CV03-N102-SIGNED-SQL-GATEWAY-ISOLATED-PROOF-20261110.md) → [N1-03](CV03-N103-EXPLICIT-SQL-GATEWAY-PROVIDER-ISOLATED-HANDOFF-20261110.md) → [N1-04a](CV03-N104-SQL-PERMIT-REVOCATION-ISOLATED-GATE-20261110.md) → [N1-04b](CV03-N104B-TENANT-SCOPED-SQL-READ-AUTHORITY-EPOCH-20261110.md) → [N1-04c](CV03-N104C-AUTHENTICATED-EVENT-LEASE-ISOLATED-HANDOFF-20261110.md) → [N1-04d](CV03-N104D-REAL-PA05-MANAGER-OUTBOX-ISOLATED-HANDOFF-20261110.md)。以上所有内容均在 main，工程证据是随机隔离 PG18 + 原代码，**不能代替生产确认**。
 - **可变内容保存程度**：已在此索引保存原始 URL、2026-11-06/11-10 查阅日期、精确章节标题、关键可转述事实、适用条件、失败访问状态及最终 CI run/HEAD/marker；没有保存原始第三方网页 HTML/PDF/截图、不可变 CI 原始日志包或过往完整聊天逐字导出。需要离线原件须另行获得合法授权与实际文件，**不可生成虚假的附件链接**。
 - **并行所有权**：#1184 当前仍为 Open；不修改其涉及的 `COLLECTION-VIEW-AI-NATIVE-NEAR-TERM-PLAN-20261106.md`、`CV03-C302-ATOMIC-HOST-RECEIPT-POSTGRES-20261109.md`、`CV03-C302-PERSONAL-SAVED-VIEW-ISOLATED-HOST-20261109.md`。本研究交接分支为 `docs/cv03-n104d-window07-research-handoff-20261110`，仅两份新入口/索引及同目录 README。
+
+
+## 6. N1-04e 增量研究/决策登记（2026-11-10，后续窗口提交；不修改历史等级）
+
+- **原始代码证据（G / 本次直接读取仓库）**：[Saved View Domain Owner `address()`](../../../providers/enterprise-context/personal-saved-views.ts)、[隔离 SQL WRITE Gateway](../../../tools/cv03-n1-isolated-signed-sql-gateway.mjs)、[隔离 scoped GET/LIST/历史 receipt](../../../tools/cv03-n1-isolated-tenant-read-gateway.mjs)、[签名事件桥](../../../tools/cv03-n104c-isolated-authority-event-bridge.mjs) 以及 [N1-04d Manager/outbox adapter](../../../tools/cv03-n104d-isolated-pa05-manager-authority.mjs)。这些代码证明旧实现存在 namespace 与 actorType 协议冲突；**不是**外部生产运行证据。
+- **实现取舍（D / 工程判断）**：N1-04e 不改 Domain Owner 地址，改隔离 PostgreSQL 使用 SHA256(JSON.stringify([enterpriseId,subjectId])) 严格复核，同时把 mirror、签名事件和 outbox 按 actorType 独立键控；缺行/签名不合/epoch gap/lease 过期继续 fail-closed。拒绝将任意 namespace 或 Human 授权通配给 AI。
+- **本轮独立实现分支**：`fix/cv03-n104e-namespace-actor-sql-20261110`；[具体协议及负面关口](CV03-N104E-DOMAIN-OWNER-ACTOR-SQL-AND-PA05-OUTBOX-PROTOCOL-20261110.md)。原 N1-04d PG18 20/20 是历史事实，**不可用于声称 N1-04e 已 PASS**。此项最终 PR/CI/合并提交在完成后按 exact HEAD 续填。
+- **Outbox 研究结论等级 D**：现有 PA05 Lifecycle callback 不与真实授权权威持久事务原子；T0 权威状态+outbox 同事务、T1 验签投递/DB ACK、T2 epoch 连续性+租约失联关闭、T3 可信 snapshot 恢复，是本轮提出的待签收协议设计，**不是已运行生产实现，也没有新访问的外部网页**。
+- **仍 OPEN**：生产 Primary Owner 身份、DB session/pool 主体、GRANT/迁移、KMS/轮换、可靠事件事实源与快照、真实多 Host/人类/外部 LLM；正式 `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`，Save 403、Page 404 不得解除；并行 #1184 的三份 Owner 文件未改。
