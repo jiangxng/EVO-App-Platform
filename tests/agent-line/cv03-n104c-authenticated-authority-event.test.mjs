@@ -243,6 +243,7 @@ test("CV03 N1-04c real PG18 authenticated delivery, no-forgery, expiry, revoke, 
     await assert.rejects(write("agent-revoked","AI revoked while HUMAN valid","AI"),
       /CV03_N104_OPERATION_REVOKED_OR_UNMIRRORED/);
     assert.equal((await write("human-still","Human independently valid")).receipt.status,"SUCCEEDED");
+    console.log("CV03_N104E_ACTOR_SCOPED_SQL_HUMAN_AI=PASS");
     await assert.rejects(send(event(3,true,{evaluatedActorType:"ROBOT"})),
       /CV03_N104C_EVENT_INVALID/);
     // The valid signed proof from earlier remains cryptographically valid,
