@@ -112,8 +112,13 @@ test("N1-04k symlinked cooperative lock fails closed without touching target",()
       /LIFECYCLE_STATE_WRITE_LOCKED/);
     assert.equal(readFileSync(victim,"utf8"),"DO_NOT_TOUCH");
     assert.equal(readFileSync(f.file,"utf8"),before);
-    assert.ok(store.getInstalledPackage(saved.packageId));
+    assert.throws(()=>store.getInstalledPackage(saved.packageId),
+      /LIFECYCLE_STATE_READ_LOCKED_RETRY/,
+      "a malicious/orphaned writer lock must not allow stale cached permissions");
     assert.ok(lstatSync(f.file+".lifecycle-write.lock").isSymbolicLink());
+    rmSync(f.file+".lifecycle-write.lock");
+    assert.ok(store.getInstalledPackage(saved.packageId),
+      "a verified unaffected snapshot becomes readable after lock removal");
     console.log("CV03_N104K_LOCK_SYMLINK_FAIL_CLOSED=PASS");
   }finally{f.dispose();}
 });
