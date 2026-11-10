@@ -15,6 +15,8 @@ on:
       - "tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs"
       - "tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs"
       - "tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs"
+      - "tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs"
+      - "tools/cv03-n104c-isolated-authority-event-bridge.mjs"
       - "tools/cv03-n1-isolated-tenant-read-gateway.mjs"
       - "tools/cv03-n1-isolated-signed-sql-gateway.mjs"
       - "tools/cv03-n1-postgres-role-audit.mjs"
@@ -54,4 +56,4 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs
+      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs
