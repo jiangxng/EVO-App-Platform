@@ -395,13 +395,16 @@ test("CV03 N1-02: NOLOGIN owner + EXECUTE-only runtime, signed gateway CAS, immu
       await originalPgRead.close();
     }
 
+    const beforeDisable=await admin.unsafe("SELECT count(*)::int AS n"+
+      " FROM "+qSchema+".resources");
     const revoked=signed(newInput("revoked",null,"another-view"));
     await admin.unsafe("UPDATE "+qSchema+
       ".cv03_n1_signing_keys SET enabled=false WHERE key_id=$1",[keyId]);
     await assert.rejects(invoke(runtimeSql,revoked),/CV03_N1_SIGNER_NOT_TRUSTED/);
     const final=await admin.unsafe("SELECT count(*)::int AS n"+
       " FROM "+qSchema+".resources");
-    assert.equal(final[0].n,1,"disabled signing key cannot create another resource");
+    assert.equal(final[0].n,beforeDisable[0].n,
+      "disabled signing key cannot create another resource");
     console.log("CV03_N1_SQL_GATEWAY_DENIED_DIRECT_DML=PASS");
     console.log("CV03_N1_SQL_GATEWAY_HOST_HMAC_BINDING_AND_ATOMIC_CAS=PASS");
     console.log("CV03_N1_SQL_GATEWAY_ISOLATED_ONLY_PRODUCTION=NOT_CERTIFIED");
