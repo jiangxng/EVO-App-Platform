@@ -58,4 +58,6 @@ jobs:
           node-version: "24"
       - run: npm ci
       - run: npm run build
-      - run: node --test tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs tests/agent-line/cv03-n104d-pa05-real-manager-authority.test.mjs
+      # Test files share one PG18 service/pgcrypto extension; serialize
+      # schema-global DDL initialization. Internal two-worker CAS tests remain concurrent.
+      - run: node --test --test-concurrency=1 tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs tests/agent-line/cv03-n104d-pa05-real-manager-authority.test.mjs
