@@ -22,7 +22,8 @@ CREATE TABLE ${s}.cv03_n1_signing_keys (
  key_id text PRIMARY KEY, secret text NOT NULL, enabled boolean NOT NULL DEFAULT true
 );
 REVOKE ALL ON TABLE ${s}.cv03_n1_signing_keys FROM PUBLIC;
-CREATE FUNCTION ${s}.cv03_n1_signed_save(p_input text, p_envelope text, p_signature text)
+CREATE FUNCTION ${s}.cv03_n1_signed_save(p_input text, p_envelope text, p_signature text,
+  p_resource text, p_completed text, p_approval text)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = pg_catalog, pg_temp
@@ -48,6 +49,8 @@ DECLARE
  scope_resource text;
 BEGIN
  IF length(p_input)>16384 OR length(p_envelope)>8192 OR
+    length(p_resource)>16384 OR length(p_completed)>16384 OR
+    length(p_approval)>8192 OR
     p_signature !~ '^[a-f0-9]{64}$' THEN
    RAISE EXCEPTION 'CV03_N1_SIGNED_GATEWAY_INPUT_INVALID';
  END IF;
@@ -95,6 +98,9 @@ BEGIN
  IF encode(public.hmac(convert_to(p_envelope,'UTF8'),
        convert_to(k,'UTF8'),'sha256'),'hex')<>p_signature
  THEN RAISE EXCEPTION 'CV03_N1_SIGNED_PROOF_INVALID'; END IF;
+ IF p_approval::jsonb IS DISTINCT FROM a THEN
+   RAISE EXCEPTION 'CV03_N1_APPROVAL_CANONICAL_MISMATCH';
+ END IF;
  digest_input:=encode(public.digest(convert_to(p_input,'UTF8'),'sha256'),'hex');
  IF digest_input<>a->>'inputDigest'
  THEN RAISE EXCEPTION 'CV03_N1_EXACT_INPUT_DIGEST_DENIED'; END IF;
@@ -108,6 +114,8 @@ BEGIN
  IF FOUND THEN
    IF old_receipt.input_digest IS DISTINCT FROM a->>'inputDigest' OR
      old_receipt.receipt->>'receiptId' IS DISTINCT FROM a->>'receiptId' OR
+     old_receipt.approval_digest IS DISTINCT FROM
+       encode(public.digest(convert_to(p_approval,'UTF8'),'sha256'),'hex') OR
      old_receipt.receipt->>'principalSubjectId' IS DISTINCT FROM a->>'principalSubjectId'
    THEN RAISE EXCEPTION 'CV03_N1_IDEMPOTENCY_CONFLICT'; END IF;
    RETURN jsonb_build_object('resource',old_receipt.resource,
@@ -154,6 +162,9 @@ BEGIN
    'updatedAt',i->>'recordedAt',
    'updatedBySubjectId',i->>'actorSubjectId'
  );
+ IF p_resource::jsonb IS DISTINCT FROM doc THEN
+   RAISE EXCEPTION 'CV03_N1_RESOURCE_CANONICAL_MISMATCH';
+ END IF;
  IF expected IS NULL THEN
    INSERT INTO ${s}.resources
      (context_id,namespace,collection_id,resource_type,resource_id,
@@ -172,18 +183,21 @@ BEGIN
  completed:=a||jsonb_build_object(
    'contractVersion','0.1.0','effect','WRITE','status','SUCCEEDED',
    'completedAt',i->>'recordedAt',
-   'resultDigest',encode(public.digest(convert_to(doc::text,'UTF8'),'sha256'),'hex'),
+   'resultDigest',encode(public.digest(convert_to(p_resource,'UTF8'),'sha256'),'hex'),
    'resultEntityRefs',jsonb_build_array('enterprise-resource:'||scope_resource),
    'resultSummary','Saved view resource and immutable receipt committed atomically',
    'latestEventId','cv03-resource-commit:'||(a->>'receiptId')
  );
+ IF p_completed::jsonb IS DISTINCT FROM completed THEN
+   RAISE EXCEPTION 'CV03_N1_RECEIPT_CANONICAL_MISMATCH';
+ END IF;
  INSERT INTO ${s}.cv03_resource_receipts
    (context_id,idempotency_hash,receipt_id,approval_digest,
       input_digest,receipt_digest,receipt,resource)
  VALUES(ctx,keyhash,a->>'receiptId',
-   encode(public.digest(convert_to(a::text,'UTF8'),'sha256'),'hex'),
+   encode(public.digest(convert_to(p_approval,'UTF8'),'sha256'),'hex'),
    a->>'inputDigest',
-   encode(public.digest(convert_to(completed::text,'UTF8'),'sha256'),'hex'),
+   encode(public.digest(convert_to(p_completed,'UTF8'),'sha256'),'hex'),
    completed,doc);
  RETURN jsonb_build_object('resource',doc,'receipt',completed,'replayed',false);
 END;
