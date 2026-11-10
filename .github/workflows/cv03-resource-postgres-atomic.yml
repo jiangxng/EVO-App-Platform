@@ -20,6 +20,7 @@ on:
       - "tools/cv03-n104d-isolated-pa05-manager-authority.mjs"
       - "tools/cv03-n104e-domain-owner-namespace.mjs"
       - "tools/cv03-n104f-isolated-authority-tx-outbox.mjs"
+      - "tools/cv03-n104g-isolated-outbox-bound-delivery.mjs"
       - "tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs"
       - "tools/cv03-n104c-isolated-authority-event-bridge.mjs"
       - "tools/cv03-n1-isolated-tenant-read-gateway.mjs"
