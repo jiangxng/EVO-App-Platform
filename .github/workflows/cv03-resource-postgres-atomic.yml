@@ -15,6 +15,7 @@ on:
       - "manager/store.ts"
       - "tests/agent-line/cv03-n104i-file-lifecycle-io.test.mjs"
       - "tests/agent-line/cv03-n104k-pa05-file-writer-fencing.test.mjs"
+      - "tests/agent-line/cv03-n104l-pa05-authority-read-freshness.test.mjs"
       - "providers/enterprise-context/resource-receipt-digest.ts"
       - "tests/agent-line/cv03-personal-saved-view-postgres.test.mjs"
       - "tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs"
@@ -71,4 +72,4 @@ jobs:
       - run: npm run build
       # Test files share one PG18 service/pgcrypto extension; serialize
       # schema-global DDL initialization. Internal two-worker CAS tests remain concurrent.
-      - run: node --test --test-concurrency=1 tests/agent-line/cv03-n104i-file-lifecycle-io.test.mjs tests/agent-line/cv03-n104j-real-host-startup-quarantine.test.mjs tests/agent-line/cv03-n104k-pa05-file-writer-fencing.test.mjs tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs tests/agent-line/cv03-n104d-pa05-real-manager-authority.test.mjs tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs
+      - run: node --test --test-concurrency=1 tests/agent-line/cv03-n104i-file-lifecycle-io.test.mjs tests/agent-line/cv03-n104j-real-host-startup-quarantine.test.mjs tests/agent-line/cv03-n104k-pa05-file-writer-fencing.test.mjs tests/agent-line/cv03-n104l-pa05-authority-read-freshness.test.mjs tests/agent-line/cv03-resource-postgres-conditional.test.mjs tests/agent-line/cv03-personal-saved-view-postgres.test.mjs tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs tests/agent-line/cv03-postgres-runtime-role-admission.test.mjs tests/agent-line/cv03-n1-signed-sql-gateway.test.mjs tests/agent-line/cv03-n104b-tenant-read-isolation.test.mjs tests/agent-line/cv03-n104c-authenticated-authority-event.test.mjs tests/agent-line/cv03-n104d-pa05-real-manager-authority.test.mjs tests/agent-line/cv03-n104f-authority-tx-outbox-recovery.test.mjs

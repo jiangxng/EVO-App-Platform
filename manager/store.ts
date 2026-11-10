@@ -140,6 +140,39 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
     if (quarantined) throw Error("LIFECYCLE_STATE_REOPEN_REQUIRED");
   }
 
+  // N1-04l: Manager must not serve stale in-memory Feature ALLOW via
+  // getActiveFeature()/snapshot() without any attempted mutation. Verify
+  // exact local file revision on every lifecycle read, not a timed cache.
+  // A cooperating writer lock temporarily denies the read rather than
+  // implying the previous snapshot remains authorized.
+  // This is NOT a distributed SQL/AuthorizationProvider authority read.
+  function assertNoPendingWriter(): void {
+    try {
+      lstatSync(filePath + ".lifecycle-write.lock");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw Error("LIFECYCLE_STATE_READ_LOCK_UNCERTAIN");
+    }
+    throw Error("LIFECYCLE_STATE_READ_LOCKED_RETRY");
+  }
+  function assertFreshForRead(): void {
+    assertUsable();
+    assertNoPendingWriter();
+    let current: ReturnType<typeof loadPersistedState>;
+    try {
+      current = loadPersistedState(filePath);
+    } catch {
+      quarantined = true;
+      throw Error("LIFECYCLE_STATE_READ_UNAVAILABLE_REOPEN_REQUIRED");
+    }
+    if (!sameLifecycleRevision(current.revision, revision)) {
+      quarantined = true;
+      throw Error("LIFECYCLE_STATE_STALE_READER_REOPEN_REQUIRED");
+    }
+    // A cooperating writer may start while this process reads the file.
+    assertNoPendingWriter();
+  }
+
   // Two cooperating stores are serialized by an exclusive host-owned lock.
   // The caller must reopen after a stale file revision: never publish a
   // stale ALLOW or silently overwrite a newer persisted Feature revocation.
@@ -235,7 +268,7 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
 
   return {
     getInstalledPackage(packageId) {
-      assertUsable();
+      assertFreshForRead();
       const item = installed.get(packageId);
       return item ? structuredClone(item) : undefined;
     },
@@ -255,7 +288,7 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
     },
 
     getActiveFeature(featureId) {
-      assertUsable();
+      assertFreshForRead();
       const item = active.get(featureId);
       return item ? structuredClone(item) : undefined;
     },
@@ -275,7 +308,7 @@ export function createFileLifecycleStore(filePath: string): LifecycleStore {
     },
 
     snapshot() {
-      assertUsable();
+      assertFreshForRead();
       return {
         contractVersion: "0.1.0",
         installedPackages: [...installed.values()]

@@ -35,12 +35,18 @@ test("N1-04i PA05 file lifecycle I/O failure preserves live and reopened state",
     ];
     for(const change of changes){
       assert.throws(change,/LIFECYCLE_STATE_WRITE_LOCKED/);
-      assert.deepEqual(store.snapshot(),before,
-        "live Manager must not observe a failed file commit");
+      assert.throws(()=>store.snapshot(),/LIFECYCLE_STATE_READ_LOCKED_RETRY/,
+        "even unchanged memory must not serve ALLOW under an uncertain writer lock");
       assert.equal(readFileSync(file,"utf8"),durable,
         "original durable file must remain byte-identical");
+      // Releasing a simulated failed writer lock restores the same state;
+      // never force-clear a real crash lock without separate owner review.
+      rmSync(file+".lifecycle-write.lock",{recursive:true,force:true});
+      assert.deepEqual(store.snapshot(),before,
+        "live Manager must preserve original state after failed commit");
       assert.deepEqual(createFileLifecycleStore(file).snapshot(),before,
         "a new Host process must see exactly the original state");
+      mkdirSync(file+".lifecycle-write.lock");
     }
     rmSync(file+".lifecycle-write.lock",{recursive:true,force:true});
     store.deleteActiveFeature(feature.featureId);
