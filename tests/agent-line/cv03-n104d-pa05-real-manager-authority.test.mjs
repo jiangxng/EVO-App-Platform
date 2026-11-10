@@ -325,6 +325,7 @@ test("N1-04d isolated real PA05 manager and Host issuer → durable synthetic ou
     assert.equal((await dbState(aiScope)).enabled,false);
     assert.equal((await dbState(ctxA)).enabled,true,
       "AI deny must not revoke the same subject's Human permission");
+    console.log("CV03_N104E_ACTOR_SCOPED_OWNER_OUTBOX=PASS");
     env.access.companyA=false;
     await assert.rejects(()=>makeValid(ctxA),
       /CV03_HOST_RECEIPT_AUTHORIZATION_DENIED/);
