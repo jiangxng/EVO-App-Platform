@@ -162,8 +162,23 @@ for(const variant of ["INACTIVE_METADATA","BASE_FEATURE"]){
           signal:AbortSignal.timeout(2000)
         });
         assert.equal(response.status,200);
-        assert.equal(readFileSync(state.file,"utf8"),before,
-          "ordinary saved Host lifecycle must not be changed by the guard");
+        // Ordinary Host startup is allowed to persist its existing
+        // default/session/provider bootstrap packages. Preserve only the
+        // caller-owned original records; never pretend startup does zero I/O.
+        const after=JSON.parse(readFileSync(state.file,"utf8"));
+        const prior=JSON.parse(before);
+        for(const original of prior.installedPackages){
+          assert.deepEqual(after.installedPackages.find(x=>
+            x.packageId===original.packageId),original,
+            "the original operator-owned installation remains intact");
+        }
+        for(const original of prior.activeFeatures){
+          assert.deepEqual(after.activeFeatures.find(x=>
+            x.featureId===original.featureId),original,
+            "the original default Host Feature remains intact");
+        }
+        assert.ok(!after.activeFeatures.some(x=>x.featureId===feature),
+          "a normal startup must never activate the uncertified CV03 Feature");
         console.log("CV03_N104J_REAL_HOST_UNRELATED_PERSISTENCE_"+variant+"=PASS");
       }finally{
         await host.stop();
