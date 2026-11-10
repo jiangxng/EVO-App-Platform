@@ -119,7 +119,13 @@ test("N1-04l non-cooperating same-inode data edit is not missed by stat equality
     old.saveInstalledPackage(installed);
     old.saveActiveFeature(feature);
     const raw=readFileSync(f.path,"utf8");
-    const modified=raw.replace('"0.1.0"','"0.2.0"');
+    // Preserve the top-level storage contractVersion. Change only a
+    // nested installed package's valid semantic version at identical length,
+    // so this tests stale raw-content detection, not invalid JSON rejection.
+    const modified=raw.replace('"version": "0.1.0"',
+      '"version": "0.2.0"');
+    assert.notEqual(modified,raw);
+    assert.equal(JSON.parse(modified).contractVersion,"0.1.0");
     assert.equal(modified.length,raw.length);
     writeFileSync(f.path,modified,"utf8"); // same inode, no lock
     assert.throws(()=>old.snapshot(),/LIFECYCLE_STATE_STALE_READER_REOPEN_REQUIRED/);
