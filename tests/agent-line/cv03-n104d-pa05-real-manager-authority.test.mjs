@@ -31,8 +31,10 @@ import {
 
 const url=process.env.CV03_RESOURCE_PROOF_DATABASE_URL;
 const isolated=process.env.CV03_N1_ONLY_ISOLATED_GATEWAY_TEST==="YES_CI_LOCAL"&&
-  !!url&&(()=>{try{const p=new URL(url);return
-    ["127.0.0.1","localhost"].includes(p.hostname)&&p.pathname==="/cv03proof";
+  !!url&&(()=>{try{
+    const p=new URL(url);
+    return ["127.0.0.1","localhost"].includes(p.hostname)&&
+      p.pathname==="/cv03proof";
   }catch{return false;}})();
 const dbOnly={skip:!isolated&&"Only isolated PG18 localhost/cv03proof opt-in",
   timeout:90000};
