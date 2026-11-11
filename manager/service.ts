@@ -91,7 +91,10 @@ export function createAppManagerService(
   evaluateIntegrity: (pkg: PackageManifestV010) => PackageIntegrityAdmissionV010 =
     () => ({ state: "UNSIGNED", message: "Package integrity not evaluated by this Host." }),
   evaluateRuntime: (pkg: PackageManifestV010) => PluginRuntimeStatusV010 =
-    inspectPluginRuntimeV010
+    inspectPluginRuntimeV010,
+  /** Host-pinned pre-activation DENY hook. Not a substitute for SQL authority. */
+  admitFeatureActivation: (packageId:string, featureId:string) => boolean =
+    () => true
 ): AppManagerService {
   function effectiveCapabilities(): Set<string> {
     const snapshot = store.snapshot();
@@ -116,6 +119,17 @@ export function createAppManagerService(
   ): void {
     const key = feature.featureId;
     if (features.has(key) || store.getActiveFeature(key)) return;
+
+    // Check BEFORE any install(), enable() or ON_DEMAND activation writes.
+    // One denied transitive dependency blocks the entire mutation plan.
+    // Never catch provider errors and fall back to ALLOW.
+    if (admitFeatureActivation(pkg.packageId, key) !== true) {
+      blockers.push({
+        code: "FEATURE_ACTIVATION_NOT_ADMITTED",
+        message: `Feature '${key}' has no Host activation admission.`
+      });
+      return;
+    }
 
     if (visiting.has(key)) {
       blockers.push({

@@ -11,6 +11,8 @@ on:
       - "manager/cv03-personal-saved-view-host-admission.ts"
       - "tests/agent-line/cv03-n105b-authority-t0-contract.test.mjs"
       - "tests/agent-line/cv03-n105b-pa05-host-lifecycle.test.mjs"
+      - "tests/agent-line/cv03-n105b-feature-reactivation-denial.test.mjs"
+      - "manager/server.ts"
       - "docs/plans/foundation-list-experience/CV03-N105B-01-APPROVED-A-DENY-T0-SEAM-20261111.md"
       - ".github/workflows/cv03-n105b-authority-t0-contract.yml"
   workflow_dispatch:
@@ -31,4 +33,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Narrow T0 client validation (NO production DB or schema)
-        run: node --test tests/agent-line/cv03-n105b-authority-t0-contract.test.mjs tests/agent-line/cv03-n105b-pa05-host-lifecycle.test.mjs tests/manager/core-manager.test.mjs
+        run: node --test tests/agent-line/cv03-n105b-authority-t0-contract.test.mjs tests/agent-line/cv03-n105b-pa05-host-lifecycle.test.mjs tests/agent-line/cv03-n105b-feature-reactivation-denial.test.mjs tests/manager/core-manager.test.mjs
