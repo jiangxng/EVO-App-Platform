@@ -33,7 +33,7 @@ jobs:
           lines = source.splitlines()
           scripts = []
           for index, line in enumerate(lines):
-              match = re.fullmatch(r"( *)run: \\|", line)
+              match = re.fullmatch(r"( *)run: [|]", line)
               if not match:
                   continue
               prefix = len(match.group(1))
