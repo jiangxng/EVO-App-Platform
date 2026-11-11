@@ -1,6 +1,6 @@
 # CV-03 / N1-05c-03 — Original EVO database QA SQL Producer read-only privilege audit
 
-> **STATE: CODE SUBMITTED / PHYSICAL TOKYO EVIDENCE PENDING.** 2026-11-11. This is a QA threat-model audit, not production N1 approval.
+> **STATE: REAL TOKYO READ-ONLY ACL AUDIT PASS, BUT CROSS-DB CONNECT REMAINS OPEN.** 2026-11-11. This is a QA threat-model audit, not production N1 approval.
 
 ## Verified G / why this audit follows the real Tokyo QA proof
 
@@ -28,3 +28,24 @@ Do not run `REVOKE CONNECT ON DATABASE evo_dev FROM PUBLIC` just to make a QA ch
 - The QA credential currently has `VALID UNTIL 2026-12-01` in the tested workflow, not an evergreen production identity.
 
 **Hard release invariants:** `N1=NOT_CERTIFIED`; `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`; formal SAVE POST 403; unregistered GET 404. [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) stays OPEN. Do not change PR #1184 Owner-controlled documents or the original `evo_dev` business schema/data.
+
+## Real protected-main Tokyo physical SQL audit (G / 2026-11-11)
+
+The exact-head PR [#1236](https://github.com/jiangxng/EVO-App-Platform/pull/1236) passed its PR-time Bash syntax, Project Continuity, Lightweight Host and Human UI checks, and merged as `main@0b1f8211393ae510b8639d14fb08b128ef152038`. The automatically triggered [Tokyo Actions #43036843959](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43036843959), job `130577783427`, concluded **SUCCESS**, with the actual original job log inspected (not merely green summary). Source-grade observed terminal markers:
+
+| Exact Tokyo marker | Observed result |
+| --- | --- |
+| `CV03_N105C03_ORIGINAL_DB_TCP_CONNECT_OPEN_AND_BAD_PASSWORD_DENIED_PASS` | Restricted QA SQL role successfully connects to original `evo_dev` via valid SCRAM password; wrong password denied |
+| `CV03_N105C03_ORIGINAL_DB_CONNECT_CREATE_TEMP=true\|false\|true` | DB CONNECT allowed, DB CREATE denied, TEMP allowed |
+| `CV03_N105C03_ORIGINAL_DB_PUBLIC_CONNECT_GRANT=true` | The original DB effective ACL explicitly includes `PUBLIC CONNECT`; no longer just a hypothesis |
+| `CV03_N105C03_ORIGINAL_DB_RELATION_SELECT_WRITE_ACL_COUNTS=0\|0` | No tested table/view-level SELECT or DML grant to this QA login |
+| `CV03_N105C03_ORIGINAL_DB_SCHEMA_CREATE_ACL_COUNT=0` | No tested user-schema CREATE grant |
+| `CV03_N105C03_ORIGINAL_DB_CALLABLE_SECURITY_DEFINER_COUNT=0` | No callable non-system SECURITY DEFINER routine grant in the audited catalog |
+| `CV03_N105C03_ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS` | No QA schema introduced into original business DB |
+| `CV03_N105C03_ALL_TERMINAL_READONLY_MARKERS_ENFORCED_PASS` | Remote completion proof enforced by GitHub runner |
+
+**Interpretation / strict limitation:** no tested business relation-level grant was exposed, but this audit does not prove zero column-level grants, sequence/foreign-object access, privilege escalation through other PostgreSQL features, future default grants, or full production tenancy isolation. `PUBLIC CONNECT` and `TEMPORARY` remain genuinely enabled on the original business database, so a stricter workload/DB boundary is **PENDING**, even though the audit job is green. The workflow's `PGOPTIONS` forced read-only transactions for both catalog-superuser and QA login, and the workflow made no SQL DDL/DML, grants, HBA edits or container restarts.
+
+**Next independent decision / D:** prefer assessing a narrow first-match `pg_hba.conf` `reject` rule scoped to `database=evo_dev` and `user=cv03_n105c_qa_tcp_producer` on the relevant TCP address families, above existing general SCRAM host rules, with a private original-file backup, ownership-preserving atomic edit, parse/reload checks, actual old/new QA positive/negative connections and automatic rollback on failure. No broad `REVOKE CONNECT FROM PUBLIC` without complete app-role inventory. A scoped HBA reject is a preview mitigation for a QA login, **not** KMS-backed production Host authentication or Owner certification.
+
+**Release gate remains unchanged:** `N1=NOT_CERTIFIED`, `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`, formal SAVE POST 403 and unregistered GET 404. [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) OPEN; #1184 Owner docs unchanged.
