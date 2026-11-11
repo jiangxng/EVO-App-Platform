@@ -1,0 +1,133 @@
+name: CV03 N1-05c-08 Tokyo Independent QA OS Process SQL Fail-Closed
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c08-tokyo-qa-os-process-failclosed.yml"
+      - "tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh"
+      - "tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs"
+      - "docs/plans/foundation-list-experience/CV03-N105C-08-TOKYO-TWO-OS-PROCESS-FAILCLOSED-20261111.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c08-tokyo-qa-os-process-failclosed.yml"
+      - "tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh"
+      - "tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c08-tokyo-qa-os-process-failclosed
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate independent Node worker syntax and scoped termination guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          node --check tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs
+          grep -Fq 'trap cleanup EXIT' tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          grep -Fq 'pg_terminate_backend' tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          grep -Fq 'CV03_N105C08_PHYSICAL_OS_PROCESS_SQL_FAIL_CLOSED_TERMINAL_PASS' tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          grep -Fq 'CV03_N105C08_WORKER_BACKEND_DISCONNECT_FAIL_CLOSED_PASS' tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs
+          echo CV03_N105C08_PR_BASH_AND_NODE_SOURCE_SYNTAX_PASS
+
+  tokyo-process-proof:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify exact protected main, prior distinct QA Host IDs and pinned SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          result="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/43048753191")"
+          test "$(jq -r '.head_sha' <<<"$result")" = 6dcf3cb251ba53917eea9be98ad03873b23a5a72
+          test "$(jq -r '.conclusion' <<<"$result")" = success
+          test -f tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          bash -n tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C08_PRIOR_TWO_SQL_HOSTS_AND_TRUSTED_MAIN_PASS
+
+      - name: SHA-pin two-source OS process SQL proof and enforce real Tokyo terminal markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh
+          worker=tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs
+          expected="$(sha256sum "$file" | cut -d' ' -f1)"
+          expected_worker="$(sha256sum "$worker" | cut -d' ' -f1)"
+          [[ "$expected" =~ ^[a-f0-9]{64}$ && "$expected_worker" =~ ^[a-f0-9]{64}$ ]]
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes "$file" \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105c08-os-process-failclosed.sh
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes "$worker" \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105c08-os-process-worker.mjs
+          proof_file="$(mktemp)"
+          trap 'rm -f "$proof_file"' EXIT
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' -- "$expected" "$expected_worker" <<'REMOTE' | tee "$proof_file"
+          set -euo pipefail
+          umask 077
+          script=/home/evo-deploy/.cv03-n105c08-os-process-failclosed.sh
+          worker=/home/evo-deploy/.cv03-n105c08-os-process-worker.mjs
+          trap 'rm -f "$script" "$worker"' EXIT
+          test -f "$script" && test ! -L "$script"
+          test -f "$worker" && test ! -L "$worker"
+          chmod 700 "$script"
+          chmod 600 "$worker"
+          test "$(sha256sum "$script" | cut -d' ' -f1)" = "$1"
+          test "$(sha256sum "$worker" | cut -d' ' -f1)" = "$2"
+          bash -n "$script"
+          bash "$script"
+          REMOTE
+          grep -Fxq CV03_N105C08_TRUSTED_TWO_HOST_CREDENTIALS_FROZEN_QA_AND_HBA_PREFLIGHT_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_REAL_TWO_DIFFERENT_OS_PROCESSES_AND_SQL_SESSION_USERS_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_BOTH_REAL_NODE_HOST_PROCESSES_FROZEN_OWNER_DENY_NO_MUTATION_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_SINGLE_QA_WORKER_BACKEND_CONFIRMED_BEFORE_TERMINATION_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_REAL_TARGETED_PG_BACKEND_TERMINATION_DENY_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_NEW_OS_PROCESS_REAUTH_FROZEN_AND_SQL_SOURCE_UNCHANGED_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_EVO_APP_HEALTH_AND_ALL_QA_FINGERPRINTS_INTACT_PASS "$proof_file"
+          grep -Fxq CV03_N105C08_PHYSICAL_OS_PROCESS_SQL_FAIL_CLOSED_TERMINAL_PASS "$proof_file"
+          echo CV03_N105C08_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS
+
+      - name: Independently verify preview HTTPS health and unauthorized 401
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=evo.43.167.252.197.sslip.io
+          curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health" | grep -Fq '"ok":true'
+          status="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$status" = 401
+          echo CV03_N105C08_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS
+
+      - name: Remove runner SSH materials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"

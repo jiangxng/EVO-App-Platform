@@ -1,0 +1,29 @@
+# CV-03 / N1-05c-08 — Tokyo two real OS processes and targeted PostgreSQL QA disconnect
+
+> **STATE: SOURCE PR, PHYSICAL TOKYO PROOF PENDING.** 2026-11-11. Preview QA only, no formal Host runtime / N1 production acceptance.
+
+## G / baseline and actual remaining gap
+
+- Verified baseline protected `main@b631947752565bd3bb3b4c1818601f84fea8fccb`. PRs [#1244](https://github.com/jiangxng/EVO-App-Platform/pull/1244) and [#1245](https://github.com/jiangxng/EVO-App-Platform/pull/1245) merged. Real Tokyo [Actions #43048753191](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43048753191) job `130619782779` proved two independently authenticated **PostgreSQL SQL LOGINs**, cross-password denial, independent `session_user`, Host01/Host02 T0 spoof rejection, original `evo_dev` HBA denial, existing EVO runtime health, and no QA source data mutation.
+- That test used short-lived `psql` clients; **different login roles do not prove two actual Node.js OS processes**, application-client behavior on live DB interruption or re-authentication after process restart.
+- Both roles still operate in the **same** Tokyo QA PostgreSQL 17.11 cluster, which has a globally FROZEN synthetic CV03 Feature and committed immutable Outbox; it is NOT the live PA05/AuthorizationProvider production authority.
+
+## D / scoped source implementation and physical acceptance
+
+- [Independent JS worker](../../../tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs) is invoked by two separate `docker compose exec -T evo node --input-type=module -e ...` calls. It uses the actual preinstalled `postgres` driver inside the existing Tokyo EVO runtime image, no new framework or server package. Host ID, SQL login and mode are pinned by the trusted shell and strict allowlist; the private QA password is transmitted through **stdin**, never via CLI argv, Docker environment variable or CI output. Every new Node process must check the live PG `session_user`, `current_database()` and backend PID before any further request.
+- [Physical bounded script](../../../tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh) checks known PG17.11, both independent restricted roles/Host mappings, HBA reject for both original `evo_dev` identities, locally protected credential modes, frozen QA Feature, original source and service health. Retains the full QA authority/Outbox/Receipt fingerprint and original business DB object count.
+- **Concurrent process identity:** real two Node processes execute a named QA `pg_sleep(7)` simultaneously under different SQL `session_user` values. The PostgreSQL system activity view must show exactly two distinct active backend PIDs and two distinct names; both workers must return their own observed Host proof.
+- **Live Owner T0 deny:** both processes independently call the already-existing QA PostgreSQL SECURITY DEFINER authority function. Because the persisted QA Feature is FROZEN, both must receive the specific owner `CV03_QA_FEATURE_FROZEN` rejection without altering the event/receipt/scope fingerprints.
+- **Targeted fault:** after Host02 Node process authenticates and starts a uniquely tagged QA-only `pg_sleep(25)`, the controlling trusted DBA session selects an **exactly single** backend by QA database + Host02 role + active statement tag + numeric PID and executes only `pg_terminate_backend(pid)`. This deliberately closes ONE test PostgreSQL backend; never terminates the real EVO application role or original business DB. The affected Node process must report its SQL operation as failed and exit without continuing to issue any authority requests. A fresh new Node process re-authenticates with SQL and still receives FROZEN DENY; Host01 remains able to authenticate, and QA source fingerprints and original business database are unchanged.
+- Independent preview health/HTTPS and unauthorized 401 remain enforced. [Pinned protected-main workflow](../../../.github/workflows/cv03-n105c08-tokyo-qa-os-process-failclosed.yml) verifies exact current `main`, prior physical #43048753191 and known SHA, SSH host key pinning, both source SHA256 hashes and terminal markers; PR-side `bash -n` and `node --check` do not touch Tokyo. Short-lived QA active backend termination is the **only deliberate state-affecting DB administrative operation**, not DML/DDL/role/HBA mutation.
+
+## Safety boundaries and results that this test must NOT claim
+
+- Two independently launched Node.js processes **inside the same existing EVO preview Docker container** are **not** independent machines, remotely reachable Host workers, separate Availability Zones or production Host instances. The worker is an isolated QA probe using an existing driver; it is **not registered** in Manager, Eidos or an actual Host admission request.
+- `pg_terminate_backend` is a real query-connection fault, **not** a network partition or SQL primary failover, and is not a forced restart or lost-ACK following a successful T0 write. The worker's explicit refusal to continue after error is **not** proof the normal production Host responds identically.
+- Not covered: signed workload/KMS authentication and rotation, two physically separate Hosts, original business source PA05/AuthorizationProvider atomic authority migration, tenant data grants, offsite/PITR, durability and real multi-Host shutdown, Owner independent DB/Security/PA05 approvals. Do not create another synthetic T0 owner to imply those are done.
+- Production hard gates remain `N1=NOT_CERTIFIED`, `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`, formal SAVE POST 403, unregistered GET 404. [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) stays OPEN; do not change #1184 Owner-managed docs.
+
+## Physical run / results
+
+Pending actual protected-main Actions job logs; evidence to be appended only after inspected. Exact-head CI and branch retirement to be verified separately.
