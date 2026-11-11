@@ -86,7 +86,7 @@ jobs:
           test -n "$archive" && test -f "$archive" && test ! -L "$archive"
           test "$(stat -c %a "$archive")" = 600
           test "$(stat -c %s "$archive")" -ge 1024
-          docker compose exec -T --interactive=false postgres pg_restore --list < "$archive" > /dev/null
+          docker compose exec -T postgres pg_restore --list < "$archive" > /dev/null
           echo CV03_QA_RESTORE_PRIVATE_ARCHIVE_VALID_PASS
 
           # Hard collision guard: never drop a pre-existing database.
@@ -102,7 +102,7 @@ jobs:
           trap remove_own_scratch EXIT
 
           # Full execution of every archive item, unlike pg_restore --list.
-          docker compose exec -T --interactive=false postgres pg_restore \
+          docker compose exec -T postgres pg_restore \
             --exit-on-error --no-owner --no-acl -U evo \
             -d cv03_n105b_restore_probe < "$archive"
 
