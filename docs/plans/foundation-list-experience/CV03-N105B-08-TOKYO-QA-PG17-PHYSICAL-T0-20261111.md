@@ -46,3 +46,12 @@ The earlier header saying TOKYO PHYSICAL EXECUTION PENDING preserves the state *
 **Evidence limits / remaining acceptance:** Full archive restore, SIGKILL during in-flight T0, double-Host concurrent replay, old generation after authorized rotation, network identity, KMS and signed Resource/Receipt DML, complete real offline user population and migration, live Human/Agent, independent PA05/Authorization/DB/Security owner signoffs and formal release PR remain OPEN. PostgreSQL archive_mode=off still means no WAL PITR proof. Issue [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212#issuecomment-6795577949) records the same source and pending Owner decisions.
 
 **Unchanged production gate:** N1=NOT_CERTIFIED; APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF; formal SAVE POST 403; unregistered Page GET 404. PR #1184's three managed documents are untouched. No new cloud host or Railway resource.
+
+ 
+## Tokyo preview automatic release after real QA SQL merge — verified 2026-11-11
+
+**G — actual Actions deployment original logs:** [run #43018607004](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43018607004) for merged exact main 0ab405611539881f8024b708e2f0b220db521326 completed **SUCCESS**. The existing CI-gated deployment detected changes under the deploy/ path, rebuilt and launched the corresponding EVO preview image on Tencent Tokyo. This is a **preview image refresh**, not migration of original evo_dev authority tables and not N1 production certification.
+
+Runtime log markers were actually inspected: EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=0ab405611539881f8024b708e2f0b220db521326, EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS and EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS. Logs also showed existing PostgreSQL container healthy and continuously running, new EVO container healthy, Caddy container healthy, and unauthenticated root HTTP 401. **No assertion is made that Human SAVE or an authenticated Saved View end-to-end path was tested by this deployment.**
+
+**D — next safe execution boundary:** keep QA SQL fixture isolated and do not mount the candidate PG port into formal production Host, grant canonical PA05/AuthorizationProvider writes, or release SAVE until N1-05c–f and independent Owner signatures. Further physically tested target is an isolated QA full restore/failure-injection exercise; actual deployment success is not itself evidence of production workload identity or recovery SLO.
