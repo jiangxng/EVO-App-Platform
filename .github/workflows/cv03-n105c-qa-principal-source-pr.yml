@@ -43,7 +43,7 @@ jobs:
                       break
                   script_lines.append(next_line[prefix + 2:] if next_line.startswith(" " * (prefix + 2)) else "")
               scripts.append("\n".join(script_lines) + "\n")
-          assert len(scripts) == 3, "Unexpected run block count: fail closed"
+          assert len(scripts) == 2, "Unexpected run block count: fail closed"
           for index, script in enumerate(scripts, 1):
               check = subprocess.run(["bash", "-n"], input=script, text=True, capture_output=True)
               assert check.returncode == 0, f"run block {index} is not valid bash: {check.stderr}"
