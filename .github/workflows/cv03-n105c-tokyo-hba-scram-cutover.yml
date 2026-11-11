@@ -10,6 +10,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/cv03-n105c-tokyo-hba-scram-cutover.yml"
+      - "tools/cv03-n105c-tokyo-host-scram-cutover.sh"
   workflow_dispatch:
 
 permissions:
