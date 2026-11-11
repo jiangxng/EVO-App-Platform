@@ -1,0 +1,121 @@
+name: CV03 N1-05c-05 Tokyo QA Producer Original DB HBA Fence
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-qa-original-db-hba-fence.yml"
+      - "tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh"
+      - "docs/plans/foundation-list-experience/CV03-N105C-05-TOKYO-QA-ORIGINAL-DB-HBA-FENCE-20261111.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-qa-original-db-hba-fence.yml"
+      - "tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c05-tokyo-qa-original-db-hba-fence
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate bounded QA-only HBA fence and rollback shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          grep -Fq 'trap finish EXIT' tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          grep -Fq 'CV03_N105C05_HBA_ROLE_DATABASE_FENCE_TERMINAL_PASS' tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          grep -Fq 'local evo_dev cv03_n105c_qa_tcp_producer reject' tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          grep -Fq 'host evo_dev cv03_n105c_qa_tcp_producer 0.0.0.0/0 reject' tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          grep -Fq 'host evo_dev cv03_n105c_qa_tcp_producer ::0/0 reject' tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          echo CV03_N105C05_HBA_PR_SHELL_SYNTAX_PASS
+
+  tokyo-fence:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify exact protected main, prior SCRAM compatibility, pinned SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          result="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/43026057536")"
+          test "$(jq -r '.head_sha' <<<"$result")" = 9753bf6f73d8905e29bd260950ea01a212da3ec5
+          test "$(jq -r '.conclusion' <<<"$result")" = success
+          test -f tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          bash -n tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C05_PREVIOUS_SCRAM_PROOF_AND_TRUSTED_MAIN_PASS
+
+      - name: Stage SHA-pinned scoped QA original DB reject script and enforce remote proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=tools/cv03-n105c-tokyo-qa-original-db-hba-fence.sh
+          expected="$(sha256sum "$file" | cut -d' ' -f1)"
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes "$file" \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105c05-qa-original-hba-fence.sh
+          proof_file="$(mktemp)"
+          trap 'rm -f "$proof_file"' EXIT
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' -- "$expected" <<'REMOTE' | tee "$proof_file"
+          set -euo pipefail
+          umask 077
+          path=/home/evo-deploy/.cv03-n105c05-qa-original-hba-fence.sh
+          trap 'rm -f "$path"' EXIT
+          test -f "$path" && test ! -L "$path"
+          chmod 700 "$path"
+          test "$(sha256sum "$path" | cut -d' ' -f1)" = "$1"
+          bash "$path"
+          REMOTE
+          grep -Fxq CV03_N105C05_STRICT_PRECHANGE_QA_ORIGINAL_OPEN_AND_EVO_POSITIVE_PASS "$proof_file"
+          grep -Fxq CV03_N105C05_PRIVATE_ORIGINAL_HBA_BACKUP_PASS "$proof_file"
+          grep -Fxq CV03_N105C05_FIRST_MATCH_THREE_FAMILY_REJECT_LOADED_PASS "$proof_file"
+          grep -Fxq CV03_N105C05_QA_ORIGINAL_TCP_AND_LOCAL_DENIED_QA_T0_CONTINUES_PASS "$proof_file"
+          grep -Fxq CV03_N105C05_REAL_EVO_TCP_RUNTIME_AND_HEALTH_POSITIVE_PASS "$proof_file"
+          grep -Fxq CV03_N105C05_ORIGINAL_AND_QA_DATABASES_DDL_DML_UNTOUCHED_PASS "$proof_file"
+          grep -Fxq CV03_N105C05_HBA_ROLE_DATABASE_FENCE_TERMINAL_PASS "$proof_file"
+          echo CV03_N105C05_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS
+
+      - name: Independent public HTTPS and unauthorized 401 remains
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=evo.43.167.252.197.sslip.io
+          curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health" | grep -Fq '"ok":true'
+          status="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$status" = 401
+          echo CV03_N105C05_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS
+
+      - name: Remove runner SSH materials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
