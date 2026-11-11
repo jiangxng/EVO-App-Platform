@@ -1,0 +1,63 @@
+name: CV03 N1-05c QA Producer SQL Identity Source Contract
+
+# No Tokyo credentials or SQL writes here. Catch source-level blockers before
+# the physical QA-only workflow can ever reach protected main.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-qa-tcp-principal.yml"
+      - ".github/workflows/cv03-n105c-qa-principal-source-pr.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Bash syntax for every embedded run block and database-scoped ACL contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          source = Path(".github/workflows/cv03-n105c-tokyo-qa-tcp-principal.yml").read_text()
+          lines = source.splitlines()
+          scripts = []
+          for index, line in enumerate(lines):
+              match = re.fullmatch(r"( *)run: \\|", line)
+              if not match:
+                  continue
+              prefix = len(match.group(1))
+              script_lines = []
+              for next_line in lines[index + 1:]:
+                  if next_line.strip() and len(next_line) - len(next_line.lstrip(" ")) <= prefix:
+                      break
+                  script_lines.append(next_line[prefix + 2:] if next_line.startswith(" " * (prefix + 2)) else "")
+              scripts.append("\n".join(script_lines) + "\n")
+          assert len(scripts) == 3, "Unexpected run block count: fail closed"
+          for index, script in enumerate(scripts, 1):
+              check = subprocess.run(["bash", "-n"], input=script, text=True, capture_output=True)
+              assert check.returncode == 0, f"run block {index} is not valid bash: {check.stderr}"
+
+          # An ACL query against postgres cannot resolve functions installed only in QA.
+          assert 'admin_postgres "SELECT has_function_privilege(' not in source
+          assert 'admin_qa "SELECT has_function_privilege(\'cv03_n105c_qa_tcp_producer\'' in source
+          assert 'admin_qa "SELECT has_function_privilege(\'cv03_n105b_qa_producer\'' in source
+          assert 'admin_qa "SELECT has_schema_privilege(\'cv03_n105b_qa_producer\'' in source
+          # A syntactically valid shell may still pass malformed SQL to psql.
+          assert '-c "SELECT * FROM cv03_n105b_qa.cv03_n105b_fence_package_t0(' in source
+          assert "CV03_N105C_OLD_LOCAL_SOCKET_PRODUCER_DENIED_PASS" in source
+          assert 'test "$GITHUB_REF" = refs/heads/main' in source
+          assert "CV03_N105C_QA_TERMINAL_PROOFS_ENFORCED_PASS" in source
+          print("CV03_N105C_QA_PRODUCER_BASH_SOURCE_SYNTAX_PASS")
+          print("CV03_N105C_QA_SQL_ACL_AND_RETIRED_ROLE_SOURCE_CONTRACT_PASS")
+          PY
