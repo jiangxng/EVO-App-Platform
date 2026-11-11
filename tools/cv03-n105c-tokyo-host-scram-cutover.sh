@@ -27,13 +27,13 @@ done
 echo CV03_N105C_HBA_CUTOVER_STRICT_PREFLIGHT_PASS
 
 file=/var/lib/postgresql/data/pg_hba.conf
-backup=/var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-20261111
+backup=/var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-v2-20261111
 modified=0
 rollback() {
   echo CV03_N105C_HBA_ROLLBACK_ATTEMPT_START >&2
   docker compose exec -T --interactive=false postgres sh -ec \
-    'test -f /var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-20261111 &&
-     cp -p /var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-20261111 /var/lib/postgresql/data/pg_hba.conf' \
+    'test -f /var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-v2-20261111 &&
+     cp -p /var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-v2-20261111 /var/lib/postgresql/data/pg_hba.conf' \
     || echo CV03_N105C_HBA_ROLLBACK_COPY_FAILED >&2
   pg_sql "SELECT pg_reload_conf()::text" > /dev/null \
     || echo CV03_N105C_HBA_ROLLBACK_RELOAD_FAILED >&2
@@ -52,8 +52,8 @@ trap finish EXIT
 docker compose exec -T postgres sh -se <<'PATCH'
 set -eu
 file=/var/lib/postgresql/data/pg_hba.conf
-backup=/var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-20261111
-tmp=/var/lib/postgresql/data/pg_hba.conf.cv03-n105c-candidate-20261111
+backup=/var/lib/postgresql/data/pg_hba.conf.cv03-n105c-before-host-scram-v2-20261111
+tmp=/var/lib/postgresql/data/pg_hba.conf.cv03-n105c-candidate-v2-20261111
 test -f "$file" && test ! -L "$file"
 test ! -e "$backup" && test ! -e "$tmp"
 cp -p "$file" "$backup"
@@ -71,7 +71,13 @@ awk '
   }
   END {if (changed!=4) exit 21}
 ' "$file" > "$tmp"
-chmod 600 "$tmp"
+# The exec client may run as root while PostgreSQL server runs as
+# postgres. Preserve original HBA ownership AND permissions on the new inode
+# before replacement; otherwise pg_hba_file_rules reports Permission denied.
+chown "$(stat -c '%u:%g' "$file")" "$tmp"
+chmod "$(stat -c '%a' "$file")" "$tmp"
+test "$(stat -c '%u:%g' "$tmp")" = "$(stat -c '%u:%g' "$file")"
+test "$(stat -c '%a' "$tmp")" = "$(stat -c '%a' "$file")"
 mv "$tmp" "$file"
 PATCH
 modified=1
