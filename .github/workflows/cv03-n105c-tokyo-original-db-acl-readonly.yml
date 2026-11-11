@@ -1,0 +1,182 @@
+name: CV03 N1-05c-03 Tokyo Original DB QA Role ACL Read-Only Audit
+
+# This observes a suspected ORIGINAL database CONNECT grant. No DDL/DML,
+# configuration edits, credential rotation or SAVE enablement are authorized.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-original-db-acl-readonly.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-original-db-acl-readonly.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c-original-db-acl-readonly
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Check embedded shell syntax without Tokyo credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          lines = Path(".github/workflows/cv03-n105c-tokyo-original-db-acl-readonly.yml").read_text().splitlines()
+          scripts = []
+          for index, line in enumerate(lines):
+              match = re.fullmatch(r"( *)run: [|]", line)
+              if match is None:
+                  continue
+              margin = len(match.group(1))
+              section = []
+              for line2 in lines[index + 1:]:
+                  if line2.strip() and len(line2) - len(line2.lstrip(" ")) <= margin:
+                      break
+                  section.append(line2[margin + 2:] if line2.startswith(" " * (margin + 2)) else "")
+              scripts.append("\n".join(section) + "\n")
+          assert len(scripts) == 3, "Unexpected number of run scripts"
+          for i, source in enumerate(scripts):
+              result = subprocess.run(["bash", "-n"], input=source, text=True, capture_output=True)
+              assert result.returncode == 0, f"Bash block {i} invalid: {result.stderr}"
+          print("CV03_N105C03_PR_SOURCE_BASH_SYNTAX_PASS")
+          PY
+
+  original-db-readonly:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify exact current main and trusted Tokyo SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C03_TRUSTED_MAIN_SSH_PIN_PASS
+
+      - name: Read-only original database role, PUBLIC, relation and SECURITY DEFINER ACL audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          test "$(id -un)" = evo-deploy
+          cd /opt/evo-tokyo
+          test -r compose.yaml && test -f .env
+          pg="$(docker compose ps -q postgres)"
+          test -n "$pg"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$pg")" = healthy
+          role=cv03_n105c_qa_tcp_producer
+          # PGOPTIONS makes even the catalog-superuser session read-only.
+          admin() {
+            docker compose exec -T --interactive=false \
+              -e PGOPTIONS="-c default_transaction_read_only=on" postgres \
+              psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d "$1" -c "$2" < /dev/null
+          }
+          test "$(admin postgres "SELECT current_setting('server_version_num')")" = 170011
+          test "$(admin postgres "SELECT count(*) FROM pg_roles WHERE rolname='$role' AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolbypassrls")" = 1
+          test "$(admin postgres "SELECT count(*) FROM pg_database WHERE datname IN ('evo_dev','cv03_n105b_qa')")" = 2
+          test "$(admin cv03_n105b_qa "SELECT count(*) FROM cv03_n105b_qa.producer_identity WHERE login_role='$role' AND host_id='tokyo-qa-host-01' AND enabled")" = 1
+          echo CV03_N105C03_PRIOR_QA_PRODUCER_AND_DB_FENCE_PRESENT_PASS
+
+          base="$HOME/.evo-cv03-n105c-qa-principal"
+          file="$base/producer.password"
+          test -d "$base" && test ! -L "$base"
+          test "$(stat -c %a "$base")" = 700
+          test -f "$file" && test ! -L "$file"
+          test "$(stat -c %a "$file")" = 600
+          secret="$(cat "$file")"
+          [[ "$secret" =~ ^[0-9a-f]{64}$ ]]
+          # A genuine TCP session to the original DB with only catalog SELECT.
+          # This is a known open CONNECT finding, NOT an isolation PASS.
+          observed="$(docker compose exec -T --interactive=false \
+            -e PGPASSWORD="$secret" -e PGOPTIONS="-c default_transaction_read_only=on" \
+            postgres psql -X -qAt -v ON_ERROR_STOP=1 -h 127.0.0.1 -U "$role" \
+            -d evo_dev -c "SELECT session_user||'|'||current_database()" < /dev/null)"
+          test "$observed" = 'cv03_n105c_qa_tcp_producer|evo_dev'
+          if docker compose exec -T --interactive=false \
+            -e PGPASSWORD="invalid-not-the-current-secret" \
+            -e PGOPTIONS="-c default_transaction_read_only=on" \
+            postgres psql -X -qAt -v ON_ERROR_STOP=1 -h 127.0.0.1 -U "$role" \
+            -d evo_dev -c "SELECT 1" < /dev/null > /dev/null 2>&1; then
+            echo CV03_N105C03_BAD_PASSWORD_ACCEPTED >&2
+            exit 1
+          fi
+          unset secret
+          echo CV03_N105C03_ORIGINAL_DB_TCP_CONNECT_OPEN_AND_BAD_PASSWORD_DENIED_PASS
+
+          db_acl="$(admin postgres "SELECT has_database_privilege('$role','evo_dev','CONNECT')::text||'|'||has_database_privilege('$role','evo_dev','CREATE')::text||'|'||has_database_privilege('$role','evo_dev','TEMPORARY')::text")"
+          [[ "$db_acl" =~ ^(true|false)\|(true|false)\|(true|false)$ ]]
+          echo "CV03_N105C03_ORIGINAL_DB_CONNECT_CREATE_TEMP=$db_acl"
+          test "$db_acl" != '' && [[ "$db_acl" == true\|* ]]
+          public_connect="$(admin postgres "SELECT COALESCE(bool_or(a.grantee=0 AND a.privilege_type='CONNECT'),false)::text FROM pg_database d CROSS JOIN LATERAL aclexplode(COALESCE(d.datacl,acldefault('d',d.datdba))) a WHERE d.datname='evo_dev'")"
+          test "$public_connect" = true -o "$public_connect" = false
+          echo "CV03_N105C03_ORIGINAL_DB_PUBLIC_CONNECT_GRANT=$public_connect"
+          echo CV03_N105C03_CONNECT_SOURCE_CATALOG_READONLY_PASS
+
+          # No business relation contents, object names or customer metadata leave Tokyo.
+          relation_acl="$(admin evo_dev "SELECT count(*) FILTER (WHERE has_table_privilege('$role',c.oid,'SELECT'))::text||'|'||count(*) FILTER (WHERE has_table_privilege('$role',c.oid,'INSERT') OR has_table_privilege('$role',c.oid,'UPDATE') OR has_table_privilege('$role',c.oid,'DELETE') OR has_table_privilege('$role',c.oid,'TRUNCATE'))::text FROM pg_class c JOIN pg_namespace n ON c.relnamespace=n.oid WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema' AND c.relkind IN ('r','p','v','m','f')")"
+          [[ "$relation_acl" =~ ^[0-9]+\|[0-9]+$ ]]
+          echo "CV03_N105C03_ORIGINAL_DB_RELATION_SELECT_WRITE_ACL_COUNTS=$relation_acl"
+          schema_create="$(admin evo_dev "SELECT count(*) FROM pg_namespace n WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema' AND has_schema_privilege('$role',n.oid,'CREATE')")"
+          [[ "$schema_create" =~ ^[0-9]+$ ]]
+          echo "CV03_N105C03_ORIGINAL_DB_SCHEMA_CREATE_ACL_COUNT=$schema_create"
+          secdef="$(admin evo_dev "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema' AND p.prosecdef AND has_function_privilege('$role',p.oid,'EXECUTE')")"
+          [[ "$secdef" =~ ^[0-9]+$ ]]
+          echo "CV03_N105C03_ORIGINAL_DB_CALLABLE_SECURITY_DEFINER_COUNT=$secdef"
+          # Fail closed on any exposed business schema/table/SECURITY DEFINER
+          # privilege; CONNECT and TEMP remain explicitly OPEN, not certified.
+          if test "$relation_acl" != '0|0' || test "$schema_create" != 0 || test "$secdef" != 0; then
+            echo CV03_N105C03_ORIGINAL_BUSINESS_OBJECT_PRIVILEGE_ESCALATION_FINDING >&2
+            exit 1
+          fi
+          echo CV03_N105C03_BUSINESS_OBJECT_CATALOG_NO_DIRECT_GRANT_PASS
+          test "$(admin evo_dev "SELECT count(*) FROM pg_namespace WHERE nspname='cv03_n105b_qa'")" = 0
+          echo CV03_N105C03_ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS
+          echo CV03_N105C03_READONLY_AUDIT_COMPLETED_WITH_CONNECT_OPEN_PASS
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fxq CV03_N105C03_ORIGINAL_DB_TCP_CONNECT_OPEN_AND_BAD_PASSWORD_DENIED_PASS <<< "$proof"
+          grep -Fxq CV03_N105C03_CONNECT_SOURCE_CATALOG_READONLY_PASS <<< "$proof"
+          grep -Fxq CV03_N105C03_BUSINESS_OBJECT_CATALOG_NO_DIRECT_GRANT_PASS <<< "$proof"
+          grep -Fxq CV03_N105C03_ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS <<< "$proof"
+          grep -Fxq CV03_N105C03_READONLY_AUDIT_COMPLETED_WITH_CONNECT_OPEN_PASS <<< "$proof"
+          echo CV03_N105C03_ALL_TERMINAL_READONLY_MARKERS_ENFORCED_PASS
+
+      - name: Remove temporary runner credentials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
