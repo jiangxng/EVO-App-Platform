@@ -23,3 +23,14 @@ Issue [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) remains 
 
 ## After merge
 Read full GitHub Actions original job: all strict preflight, host trust replaced, right-password/new app connection, both negative login tests, no data-change and public HTTPS/401 terminal markers. Record actual merge SHA, run ID and error/rollback outcomes here. Use Branch Hygiene to delete only exact SHA-pinned merged PR branch. Do not rerun a one-shot cutover against already-hardened HBA (the strict 4-host-trust precondition will fail rather than rewrite a second time).
+
+
+## Physical first attempt failed and prompted targeted owner-preservation correction (G / D, 2026-11-11)
+
+**G:** The first cutover [PR #1231](https://github.com/jiangxng/EVO-App-Platform/pull/1231) merged main `eac8783944297d2f7b7a64787260e22cc728fc08` after all exact-head CI and Bash syntax checks succeeded. Its real [Tokyo Actions #43027372284](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43027372284) concluded **FAILURE**, not PASS. Original job evidence: `CV03_N105C_HBA_CUTOVER_STRICT_PREFLIGHT_PASS`, then PostgreSQL `ERROR: could not open file "/var/lib/postgresql/data/pg_hba.conf": Permission denied`, followed by `CV03_N105C_HBA_ROLLBACK_ATTEMPT_START` and `...ENDED`. There were no successful post-cutover TCP authentication markers. Neither an attempted rollback nor a green PR proves the HBA is now safe.
+
+**D root-cause hypothesis grounded in source:** the temporary replacement file was written by a Docker exec process that can be root-owned, and the script set only `chmod 600`, not original `postgres` file ownership. After atomic `mv`, the database server could not read that inode. This is a directly plausible cause but **the post-cutover HBA file ownership was not separately catalogued** before rollback.
+
+**Narrow correction:** create a new uniquely named private backup and candidate for a fresh trusted-main attempt (do not overwrite or delete previous evidence), then copy original numeric owner/group and permissions using `stat` + `chown` + `chmod`, verify exact equality **before** `mv`. The code still requires original 4 host trust / 2 local trust and clean configuration, and refuses to run on an already-hardened HBA. A rollback trap will restore only the new versioned backup after any post-edit failure. No database password, DB data or Docker service is changed.
+
+**P:** Do not claim HBA remediated until a new real Tokyo Actions run emits both correct-password and wrong-password denial markers and independent preview health. If earlier rollback did not restore HBA to a readable state, strict preflight must fail RED; triage without forcing the migration. Keep #1227 Draft and all four production gates unchanged.
