@@ -1,6 +1,6 @@
 # CV-03 / N1-05c-09 — Production Owner evidence and SAVE release-integrity gate
 
-> **STATE: SOURCE PR / PROTECTED-MAIN GITHUB LIVE CHECK PENDING.** 2026-11-11. This is an executable **NOT_CERTIFIED drift and evidence-integrity guard**, not Owner approval, production integration, a migration, or a new certification pathway.
+> **STATE: PROTECTED-MAIN LIVE OWNER/RELEASE INTEGRITY GATE VERIFIED; N1 NOT CERTIFIED.** 2026-11-11. This is an executable **NOT_CERTIFIED drift and evidence-integrity guard**, not Owner approval, production integration, a migration, or a new certification pathway.
 
 ## G / real source and live GitHub reference
 
@@ -32,4 +32,14 @@
 
 ## Physical CI evidence
 
-Pending this source PR's exact-head syntax/tests/continuity/lightweight CI, its merge SHA and protected-main live GitHub issue terminal markers; record those separately **after** the workflow actually succeeds. No Tokyo SQL/SSH action is needed for this read-only GitHub/source audit.
+Verified actual protected-main GitHub Issue and code-check evidence is recorded below. No Tokyo SQL/SSH operation occurred in this source governance check.
+
+## G / protected-main live GitHub Issue + source guard acceptance (2026-11-11)
+
+- Source [PR #1248](https://github.com/jiangxng/EVO-App-Platform/pull/1248) exact HEAD `574d6e110c061d7e0324cb7dac4351f967859253`: source-and-live-owner-provenance, continuity, Lightweight Host and Human UI checks all SUCCESS before protected merge. Merged `main@4c5844b875d65a82642cfdc565a0611fa3722343`.
+- Actual postmerge [GitHub Actions #43054986490](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43054986490), job `130641916971`, concluded **SUCCESS**; the original job log was inspected. Node adversarial tests: `# tests 6`, `# pass 6`, `# fail 0`.
+- Exact live terminal markers: `CV03_N105C09_SOURCE_BOUNDARY_AND_ADVERSARIAL_FIXTURES_PASS`, `CV03_N105C09_LIVE_GITHUB_OWNER_ISSUE_OPEN_UNCERTIFIED_PASS`, `CV03_N105C09_CHECKED_BOXES_DO_NOT_CONSTITUTE_OWNER_APPROVAL_PASS`, `CV03_N105C09_REAL_HOST_SAVE_ADMISSION_STILL_OFF_PASS`, `CV03_N105C09_RELEASE_CERTIFICATION_NOT_GRANTED_TERMINAL_PASS`.
+- A separate read of GitHub [#1212 Issue comments](https://github.com/jiangxng/EVO-App-Platform/issues/1212) and [#1184 PR Reviews](https://github.com/jiangxng/EVO-App-Platform/pull/1184) showed 23 issue comments (recent entries are QA evidence) and an empty PR review list at the time of inspection. These are **negative, time-scoped observations**; this tool never decides who may be a genuine Owner, or attests future signoffs.
+- This workflow does **not** use Tokyo SSH, PostgreSQL, physical deployment keys or direct Production data. Its green status is the strongest possible `EXPECTED_BLOCKED_BASELINE`, not an independent Owner decision, approval, N1 certification, SAVE release or real Host source migration.
+
+**Unchanged P:** actual PA05 Lifecycle and AuthorizationProvider source of truth, real signed/KMS workload principal, Owner-authorized production SQL transaction/schema and physical multi-Host recovery have not been established. Maintain `N1=NOT_CERTIFIED`, SAVE OFF, POST 403, GET 404, Issue #1212 OPEN; do not modify #1184 Owner-controlled documents.
