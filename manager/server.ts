@@ -927,6 +927,7 @@ import {
 import {
   assertCv03HumanSaveNotEnabledV010,
   assertCv03UnadmittedPersistedFeatureAbsentV010,
+  CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010,
   isCv03HumanSaveFormSourceV010,
   cv03UnadmittedWriteDenialV010
 } from "./cv03-personal-saved-view-host-admission.js";
@@ -2508,7 +2509,13 @@ const manager = createAppManagerService(
     }
   },
   pkg => verifyPackageIntegrityV010(pkg, pluginIntegrityTrustStore),
-  evaluateRuntimeForHost
+  evaluateRuntimeForHost,
+  // N1-05b-05: even after successful local Feature deactivation, Host
+  // install/enable/event activation MUST NOT revive unapproved Saved View
+  // until an explicit, independently certified future production cutover.
+  // This synchronous DENY is defense in depth, NOT PG authority.
+  (_packageId, featureId) =>
+    featureId !== CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010
 );
 
 // PA05-04C: a single lifecycle adapter protects all Host action and /v1
