@@ -192,3 +192,111 @@ test("data import target contributions are visible only while their owning featu
   manager.disable("fixture-import-owner");
   assert.deepEqual(manager.listEffectiveDataImportTargets(), []);
 });
+
+
+test("one Feature deactivation keeps shared Package and sibling capabilities",()=>{
+  const shared={contractVersion:"0.1.0",packageId:"fixture-shared",
+    displayName:"Shared",version:"0.1.0",type:"PLATFORM_PROVIDER",
+    features:[{
+      contractVersion:"0.1.0",featureId:"fixture-shared.default",
+      packageId:"fixture-shared",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,providesCapabilities:["enterprise.directory"]
+    },{
+      contractVersion:"0.1.0",featureId:"fixture-shared.optional",
+      packageId:"fixture-shared",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,providesCapabilities:["enterprise.optional"]
+    }]};
+  const events=[];
+  const manager=createAppManagerService(
+    createPackageCatalog([shared]),createMemoryLifecycleStore(),
+    ()=>new Date("2026-11-11T00:00:00Z"),new Map(),e=>events.push(e)
+  );
+  manager.install("fixture-shared");
+  const before=manager.getSnapshot();
+  const plan=manager.planDeactivateFeature("fixture-shared.optional");
+  assert.deepEqual(plan.blockers,[]);
+  assert.deepEqual(plan.deactivateFeatures,["fixture-shared.optional"]);
+  assert.equal(plan.operation,"DEACTIVATE");
+  assert.equal(plan.sideEffectFree,true);
+  assert.deepEqual(manager.getSnapshot(),before);
+  events.length=0;
+  const after=manager.deactivateFeature("fixture-shared.optional");
+  assert.equal(after.activeFeatures.length,1);
+  assert.equal(after.activeFeatures[0].featureId,"fixture-shared.default");
+  assert.deepEqual(after.installedPackages,before.installedPackages);
+  assert.deepEqual(after.effectiveCapabilities,["enterprise.directory"]);
+  assert.deepEqual(events.map(e=>[e.type,e.featureId]),[
+    ["FEATURE_DEACTIVATED","fixture-shared.optional"]
+  ]);
+  assert.equal(manager.planDeactivateFeature("fixture-shared.optional").blockers[0].code,
+    "FEATURE_NOT_ACTIVE");
+  assert.throws(()=>manager.deactivateFeature("fixture-shared.optional"),
+    /FEATURE_DEACTIVATION_BLOCKED/);
+});
+
+test("one Feature cut refuses same-Package and external dependent Features",()=>{
+  const shared={contractVersion:"0.1.0",packageId:"fixture-deps",
+    displayName:"Deps",version:"0.1.0",type:"PLATFORM_PROVIDER",
+    features:[{
+      contractVersion:"0.1.0",featureId:"fixture-deps.target",
+      packageId:"fixture-deps",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,providesCapabilities:["fixture.target.cap"]
+    },{
+      contractVersion:"0.1.0",featureId:"fixture-deps.sibling",
+      packageId:"fixture-deps",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,requiresFeatures:["fixture-deps.target"]
+    }]};
+  const consumer={contractVersion:"0.1.0",packageId:"fixture-external",
+    displayName:"External",version:"0.1.0",type:"APPLICATION",
+    features:[{
+      contractVersion:"0.1.0",featureId:"fixture-external.default",
+      packageId:"fixture-external",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,requiresCapabilities:["fixture.target.cap"]
+    }]};
+  const manager=createAppManagerService(
+    createPackageCatalog([shared,consumer]),createMemoryLifecycleStore()
+  );
+  manager.install("fixture-deps");
+  manager.install("fixture-external");
+  const before=manager.getSnapshot();
+  const plan=manager.planDeactivateFeature("fixture-deps.target");
+  assert.ok(plan.blockers.some(x=>x.code==="ACTIVE_DEPENDENT_FEATURE"));
+  assert.ok(plan.blockers.some(x=>x.code==="ACTIVE_DEPENDENT_CAPABILITY"));
+  assert.deepEqual(plan.deactivateFeatures,[]);
+  assert.throws(()=>manager.deactivateFeature("fixture-deps.target"),
+    /FEATURE_DEACTIVATION_BLOCKED/);
+  assert.deepEqual(manager.getSnapshot(),before);
+});
+
+test("one Feature cut accepts alternative active capability while preserving Package",()=>{
+  const first={contractVersion:"0.1.0",packageId:"fixture-first",
+    displayName:"First",version:"0.1.0",type:"PLATFORM_PROVIDER",
+    features:[{
+      contractVersion:"0.1.0",featureId:"fixture-first.default",
+      packageId:"fixture-first",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,providesCapabilities:["fixture.common"]
+    }]};
+  const second={...structuredClone(first),packageId:"fixture-second",
+    displayName:"Second",features:first.features.map(x=>({
+      ...x,featureId:"fixture-second.default",packageId:"fixture-second"
+    }))};
+  const consumer={contractVersion:"0.1.0",packageId:"fixture-client",
+    displayName:"Client",version:"0.1.0",type:"APPLICATION",
+    features:[{
+      contractVersion:"0.1.0",featureId:"fixture-client.default",
+      packageId:"fixture-client",version:"0.1.0",activationScope:"INSTALLATION",
+      defaultActivation:true,requiresCapabilities:["fixture.common"]
+    }]};
+  const manager=createAppManagerService(
+    createPackageCatalog([first,second,consumer]),createMemoryLifecycleStore()
+  );
+  manager.install("fixture-first");
+  manager.install("fixture-second");
+  manager.install("fixture-client");
+  assert.deepEqual(manager.planDeactivateFeature("fixture-first.default").blockers,[]);
+  const after=manager.deactivateFeature("fixture-first.default");
+  assert.deepEqual(after.effectiveCapabilities,["fixture.common"]);
+  assert.deepEqual(after.installedPackages.map(x=>x.packageId),[
+    "fixture-client","fixture-first","fixture-second"
+  ]);
+});
