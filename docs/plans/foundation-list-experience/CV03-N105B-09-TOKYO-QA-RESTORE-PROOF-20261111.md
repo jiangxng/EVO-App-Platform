@@ -26,3 +26,27 @@ A successful logical restore on the same Tokyo PostgreSQL server is stronger tha
 Next inspect actual main merge SHA and Tokyo Actions runtime markers FULL_ARCHIVE_EXECUTED, SCRATCH_REMOVED, ORIGINAL_AND_T0_DATABASES_PRESERVED and ALL_TERMINAL_MARKERS_ENFORCED before marking QA full restore PASS. Independently address real SQL principal, persistent authority source, concurrency/crash recovery and off-host resilience in subsequent bounded slices.
 
 **Production unchanged:** N1=NOT_CERTIFIED; APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF; SAVE POST 403; unregistered Page GET 404. Do not modify PR #1184's three Owner-managed documents or project.status.json.
+
+
+## Postmerge verified physical execution — G / 2026-11-11
+
+**Latest independently checked merge baseline for this milestone:** [PR #1222](https://github.com/jiangxng/EVO-App-Platform/pull/1222) MERGED to main **7d3db597d903ad21fe2b65eaa5e6fc5dd057d5fd**. The PR HEAD **3bb360e1ee702afac9a1360aa8473d2f31a041d1** includes current prior main 3b2f5f896b797f7845b74075af94f46af1dd74bc, with 4/4 exact-head CI checks SUCCESS. The implementation adds only the standalone QA scratch restore workflow and this document; no duplicate QA role or database provision.
+
+**Actual original Tokyo Actions log read:** [#43020836019](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43020836019), 2026-11-11 ~12:30 UTC, conclusively emitted:
+- CV03_QA_RESTORE_TRUSTED_MAIN_AND_SSH_PASS
+- CV03_QA_RESTORE_RESOURCE_HEALTH_PASS
+- CV03_QA_RESTORE_EXISTING_T0_PRESERVED_PASS
+- CV03_QA_RESTORE_PRIVATE_ARCHIVE_VALID_PASS
+- CV03_QA_RESTORE_FULL_ARCHIVE_EXECUTED_PASS
+- CV03_QA_RESTORE_SCRATCH_REMOVED_PASS
+- CV03_QA_RESTORE_ORIGINAL_AND_T0_DATABASES_PRESERVED_PASS
+- CV03_QA_RESTORE_NO_SOURCE_DATABASE_DDL_DML_PASS
+- CV03_QA_RESTORE_ALL_TERMINAL_MARKERS_ENFORCED_PASS
+
+This proves an actual **same-Tokyo-host PostgreSQL custom archive full logical restore** into the isolated transient database cv03_n105b_restore_probe, which was subsequently removed, while the existing qa T0 functions and evo_dev source remained. It does **not** validate a remote/offsite backup, PITR or restart-based disaster recovery.
+
+**Branch retirement G:** [Branch Hygiene run #43020837434](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43020837434) SUCCESS. Job log explicitly recorded *DELETED_VERIFIED_MERGED_PR_BRANCH feat/cv03-n105b-07-tokyo-qa-resource-preflight-20261111 @ 3bb360e1ee702afac9a1360aa8473d2f31a041d1*. Active branch search then returned no match. Despite the historical branch name, the final merged PR was N1-05b-09 restore, not an alternative N1-05b-07 migration.
+
+**Cross-index:** same evidence and remaining blockers were written as factual (non-signoff) comment on [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212#issuecomment-6795889353). Do not close #1212 based on QA success.
+
+**P remains:** actual PA05/AuthorizationProvider persisted source, authenticated password-backed workload producer/KMS, physical principal security, off-host restore/PITR, dual Host retry/crash/outbox recovery, independent PA05/DB/Security owner approvals and subsequent N1-05c–f are open. Release unchanged: N1=NOT_CERTIFIED; SAVE_MODE OFF; SAVE POST 403; unregistered GET 404.
