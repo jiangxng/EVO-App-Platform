@@ -1,0 +1,98 @@
+name: CV03 N1-05b Tencent Tokyo PostgreSQL Read-only Inventory
+
+# One-shot on protected main merge; on-demand inspection also supported.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105b-tokyo-db-readonly.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105b-tokyo-db-readonly
+  cancel-in-progress: false
+
+jobs:
+  physical-db-inventory:
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 8
+    steps:
+      - name: Verify exact trusted main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          echo CV03_TOKYO_CURRENT_MAIN_PASS
+      - name: Validate existing pinned Tokyo SSH secrets
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$PRIVATE_KEY"
+          test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" >/dev/null
+          echo CV03_TOKYO_SSH_IDENTITY_PASS
+      - name: Survey PostgreSQL in READ ONLY transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/evo-tokyo
+          test -f .env
+          test -r compose.yaml
+          test -f .last-health-pass-sha
+          verified="$(cat .last-health-pass-sha)"
+          [[ "$verified" =~ ^[0-9a-f]{40}$ ]]
+          container="$(docker compose ps -q postgres)"
+          test -n "$container"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container")" = healthy
+          docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -qAt \
+            -U evo -d evo_dev <<'SQL'
+          BEGIN TRANSACTION READ ONLY;
+          SELECT 'CV03_TOKYO_PG_VERSION_NUM='||current_setting('server_version_num');
+          SELECT 'CV03_TOKYO_DB_NAME='||current_database();
+          SELECT 'CV03_TOKYO_DB_ROLE='||current_user;
+          SELECT 'CV03_TOKYO_ROLE_PRIVILEGES=super='||rolsuper::text||
+            ',createdb='||rolcreatedb::text||',createrole='||rolcreaterole::text
+            FROM pg_roles WHERE rolname=current_user;
+          SELECT 'CV03_TOKYO_DB_SIZE_BYTES='||pg_database_size(current_database());
+          SELECT 'CV03_TOKYO_N105B_FUNCTION_COUNT='||count(*)
+            FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+            WHERE p.proname IN ('cv03_n105b_fence_package_t0','cv03_n105b_commit_deny_t0');
+          SELECT 'CV03_TOKYO_N105B_SCHEMA_COUNT='||count(*)
+            FROM pg_namespace WHERE nspname LIKE 'cv03_n105b%';
+          ROLLBACK;
+          SQL
+          echo "CV03_TOKYO_READONLY_SQL_PASS"
+          echo "CV03_TOKYO_HEALTHY_DEPLOY_SHA=$verified"
+          REMOTE
+      - name: Confirm public health and unauthenticated 401
+        shell: bash
+        run: |
+          set -euo pipefail
+          host="evo.43.167.252.197.sslip.io"
+          body="$(curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health")"
+          printf '%s\n' "$body" | grep -Fq '"ok":true'
+          printf '%s\n' "$body" | grep -Fq '"service":"evo-app-manager"'
+          code="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$code" = 401
+          echo CV03_TOKYO_PUBLIC_READONLY_HEALTH_AND_401_PASS
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
