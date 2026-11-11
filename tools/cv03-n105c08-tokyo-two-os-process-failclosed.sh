@@ -142,11 +142,14 @@ echo CV03_N105C08_SINGLE_QA_WORKER_BACKEND_CONFIRMED_BEFORE_TERMINATION_PASS
 
 # Fail-closed target guard in ONE query. Use pg_terminate_backend only for
 # the exact physical backend observed immediately before the command.
-killed="$(pg_admin "SELECT CASE WHEN count(*)=1 THEN
-  bool_and(pg_terminate_backend(pid))::text ELSE 'false' END
-  FROM pg_stat_activity WHERE pid=$target_pid AND datname='$qa'
-  AND usename='$role2' AND state='active'
-  AND query LIKE '%cv03_n105c08_forced_qa_backend_termination%'")"
+killed="$(pg_admin "WITH target AS MATERIALIZED (
+    SELECT pid FROM pg_stat_activity WHERE pid=$target_pid AND datname='$qa'
+      AND usename='$role2' AND state='active'
+      AND query LIKE '%cv03_n105c08_forced_qa_backend_termination%'
+  )
+  SELECT CASE WHEN (SELECT count(*) FROM target)=1
+    THEN pg_terminate_backend((SELECT pid FROM target))::text
+    ELSE 'false' END")"
 test "$killed" = true
 wait "$pidkill"; pidkill=""
 grep -Fxq "CV03_N105C08_WORKER_BACKEND_DISCONNECT_FAIL_CLOSED_PASS|$host2" "$tmp/kill"
