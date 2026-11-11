@@ -169,7 +169,7 @@ test("N1-05b/02 failed DB/preflight or missing Provider never runs real Manager 
   for(const cause of ["unavailable","provider-denied","wrong-fence","missing-feature"]){
     const order=[],manager=fixture(order);
     let sqlCalls=0;
-    if(cause==="missing-feature")manager.disable(packageId);
+    if(cause==="missing-feature")manager.deactivateFeature(featureId);
     order.length=0;
     const db=authority(async(sql,values)=>{
       sqlCalls++;order.push("db:attempt");
@@ -192,13 +192,11 @@ test("N1-05b/02 recovery replays durable T0 after local Manager failure",async()
   const wrapper={
     listCatalog:()=>manager.listCatalog(),
     getSnapshot:()=>manager.getSnapshot(),
-    planDisable:id=>manager.planDisable(id),
-    planUninstall:id=>manager.planUninstall(id),
-    disable:id=>{
+    planDeactivateFeature:id=>manager.planDeactivateFeature(id),
+    deactivateFeature:id=>{
       if(fails){fails=false;throw Error("simulated local persistence crash");}
-      return manager.disable(id);
-    },
-    uninstall:id=>manager.uninstall(id)
+      return manager.deactivateFeature(id);
+    }
   };
   const db=authority(async(sql,values)=>{
     calls++;return [result(values,{replayed:calls>1})];
@@ -214,18 +212,14 @@ test("N1-05b/02 recovery replays durable T0 after local Manager failure",async()
   assert.equal(calls,3);
 });
 
-test("N1-05b/02 uninstall waits for package-wide DB fence",async()=>{
-  const events=[],manager=fixture(events);
-  const db=authority(async(sql,values)=>{
-    assert.equal(values[5],"UNINSTALL");
-    events.push("db:frozen");
-    return [result(values)];
-  });
-  const host=barrier(manager,db);
-  const snapshot=await host.apply("UNINSTALL",opKey);
-  assert.equal(events[0],"db:frozen");
-  assert.equal(snapshot.installedPackages.length,0);
-  assert.equal(snapshot.activeFeatures.length,0);
+test("N1-05b/04 never mistakes Feature DISABLE for Package UNINSTALL",async()=>{
+  const manager=fixture(),prior=manager.getSnapshot();
+  let calls=0;
+  const db=authority(async(sql,values)=>{calls++;return [result(values)]});
+  await assert.rejects(()=>barrier(manager,db).apply("UNINSTALL",opKey),
+    /CV03_N105B_HOST_FEATURE_UNINSTALL_UNSUPPORTED/);
+  assert.equal(calls,0);
+  assert.deepEqual(manager.getSnapshot(),prior);
 });
 
 test("N1-05b/02 concurrent local calls deny while first fence is unresolved",async()=>{
@@ -242,45 +236,57 @@ test("N1-05b/02 concurrent local calls deny while first fence is unresolved",asy
   assert.equal(manager.getSnapshot().activeFeatures.length,0);
 });
 
-test("N1-05b/03 real enterprise-context package cannot lose default provider on CV03 removal",async()=>{
+test("N1-05b/04 real shared provider keeps Default while deactivating Saved View",async()=>{
   const events=[];
   const pkg=structuredClone(hostEnterpriseContextProviderPackage);
   pkg.features.push(structuredClone(personalSavedViewsOptInFeatureV010));
   const store=createMemoryLifecycleStore();
-  const manager=createAppManagerService(
-    createPackageCatalog([pkg]),store,
+  const manager=createAppManagerService(createPackageCatalog([pkg]),store,
     ()=>new Date("2026-11-11T00:00:00Z"),new Map(),
-    event=>events.push(event.type)
-  );
+    event=>events.push(event.type));
   manager.install(packageId);
-  assert.deepEqual(
-    manager.planDisable(packageId).deactivateFeatures.sort(),
-    [HOST_ENTERPRISE_CONTEXT_FEATURE_ID,featureId].sort()
-  );
+  const before=manager.getSnapshot();
+  assert.deepEqual(manager.planDisable(packageId).deactivateFeatures.sort(),
+    [HOST_ENTERPRISE_CONTEXT_FEATURE_ID,featureId].sort());
+  assert.deepEqual(manager.planDeactivateFeature(featureId).deactivateFeatures,[featureId]);
   events.length=0;
-  let sqlCalls=0;
-  const db=authority(async(sql,values)=>{sqlCalls++;return [result(values)]});
+  let calls=0;
+  const db=authority(async(sql,values)=>{calls++;return [result(values)]});
   const host=barrier(manager,db);
-  const initial=manager.getSnapshot();
-  for(const operation of ["DISABLE","UNINSTALL"]){
-    await assert.rejects(
-      ()=>host.apply(operation,opKey),
-      /CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE/
-    );
-    assert.deepEqual(manager.getSnapshot(),initial);
-  }
-  assert.equal(sqlCalls,0);
-  assert.deepEqual(events,[]);
-  // A dormant default Feature in the manifest is STILL owned by this package:
-  // an uninstall would delete its package metadata and future activation.
+  const after=await host.apply("DISABLE",opKey);
+  assert.equal(calls,1);
+  assert.equal(after.activeFeatures.length,1);
+  assert.deepEqual(after.activeFeatures[0],
+    before.activeFeatures.find(x=>x.featureId===HOST_ENTERPRISE_CONTEXT_FEATURE_ID));
+  assert.deepEqual(after.installedPackages,before.installedPackages);
+  assert.deepEqual(after.effectiveCapabilities,
+    before.effectiveCapabilities.filter(x=>x!=="enterprise.collection.saved-view"));
+  assert.deepEqual(events,["FEATURE_DEACTIVATED"]);
+  assert.deepEqual(await host.recover("DISABLE",opKey),after);
+  assert.equal(calls,2);
+  await assert.rejects(()=>host.apply("UNINSTALL",opKey),
+    /CV03_N105B_HOST_FEATURE_UNINSTALL_UNSUPPORTED/);
+  assert.equal(calls,2);
+});
+
+test("N1-05b/04 inactive default remains available in shared Package metadata",async()=>{
+  const pkg=structuredClone(hostEnterpriseContextProviderPackage);
+  pkg.features.push(structuredClone(personalSavedViewsOptInFeatureV010));
+  const store=createMemoryLifecycleStore();
+  const manager=createAppManagerService(createPackageCatalog([pkg]),store);
+  manager.install(packageId);
   store.deleteActiveFeature(HOST_ENTERPRISE_CONTEXT_FEATURE_ID);
-  const dormant=manager.getSnapshot();
-  await assert.rejects(
-    ()=>host.apply("UNINSTALL",opKey),
-    /CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE/
-  );
-  assert.deepEqual(manager.getSnapshot(),dormant);
-  assert.equal(sqlCalls,0);
+  const before=manager.getSnapshot();
+  let calls=0;
+  const host=barrier(manager,authority(async(sql,values)=>{
+    calls++;return [result(values)];
+  }));
+  const after=await host.apply("DISABLE",opKey);
+  assert.equal(calls,1);
+  assert.deepEqual(after.activeFeatures,[]);
+  assert.deepEqual(after.installedPackages,before.installedPackages);
+  assert.ok(manager.listCatalog().find(x=>x.packageId===packageId)
+    ?.features.some(x=>x.featureId===HOST_ENTERPRISE_CONTEXT_FEATURE_ID));
 });
 
 test("N1-05b/03 post-T0 same-package drift rejects local mutation",async()=>{
@@ -302,10 +308,8 @@ test("N1-05b/03 post-T0 same-package drift rejects local mutation",async()=>{
       }
       return snapshot;
     },
-    planDisable:id=>storeManager.planDisable(id),
-    planUninstall:id=>storeManager.planUninstall(id),
-    disable:()=>{throw Error("MUST_NOT_MUTATE");},
-    uninstall:()=>{throw Error("MUST_NOT_MUTATE");}
+    planDeactivateFeature:id=>storeManager.planDeactivateFeature(id),
+    deactivateFeature:()=>{throw Error("MUST_NOT_MUTATE");}
   };
   const host=barrier(proxy,db);
   await assert.rejects(

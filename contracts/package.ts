@@ -416,6 +416,20 @@ export interface PlatformSnapshotV010 {
   effectiveCapabilities: string[];
 }
 
+/**
+ * Internal Manager-only, one-Feature deactivation plan. Does not uninstall
+ * the owning Package. Remote SQL fencing remains a separate Host requirement.
+ */
+export interface FeatureLifecyclePlanV010 {
+  contractVersion: "0.1.0";
+  operation: "DEACTIVATE";
+  packageId: string;
+  featureId: string;
+  deactivateFeatures: string[];
+  blockers: Array<{code:string;message:string}>;
+  sideEffectFree: true;
+}
+
 export interface PackageLifecyclePlanV010 {
   contractVersion: "0.1.0";
   operation: "DISABLE" | "UNINSTALL";

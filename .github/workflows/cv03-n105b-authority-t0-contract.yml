@@ -5,6 +5,9 @@ on:
     paths:
       - "manager/cv03-n105b-authority-t0-pg.ts"
       - "manager/cv03-n105b-pa05-host-lifecycle.ts"
+      - "manager/service.ts"
+      - "contracts/package.ts"
+      - "tests/manager/core-manager.test.mjs"
       - "manager/cv03-personal-saved-view-host-admission.ts"
       - "tests/agent-line/cv03-n105b-authority-t0-contract.test.mjs"
       - "tests/agent-line/cv03-n105b-pa05-host-lifecycle.test.mjs"
@@ -28,4 +31,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Narrow T0 client validation (NO production DB or schema)
-        run: node --test tests/agent-line/cv03-n105b-authority-t0-contract.test.mjs tests/agent-line/cv03-n105b-pa05-host-lifecycle.test.mjs
+        run: node --test tests/agent-line/cv03-n105b-authority-t0-contract.test.mjs tests/agent-line/cv03-n105b-pa05-host-lifecycle.test.mjs tests/manager/core-manager.test.mjs
