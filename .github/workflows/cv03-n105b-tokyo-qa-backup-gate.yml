@@ -99,7 +99,8 @@ jobs:
           trap 'rm -f -- "$candidate"' EXIT
           chmod 600 "$candidate"
           docker compose exec -T postgres pg_dump \
-            -U evo -d evo_dev --format=custom --no-owner --no-acl > "$candidate"
+            -U evo -d evo_dev --format=custom --no-owner --no-acl \
+            < /dev/null > "$candidate"
           test "$(stat -c %s "$candidate")" -ge 1024
           docker compose exec -T postgres pg_restore --list < "$candidate" > /dev/null
           saved="${candidate%.partial}.dump"
