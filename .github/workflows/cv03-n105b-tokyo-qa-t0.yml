@@ -48,6 +48,9 @@ jobs:
           scp -q -o StrictHostKeyChecking=yes \
             deploy/tencent-tokyo/cv03-n105b-qa-t0.sql \
             evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105b-qa-t0.sql
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 \
+            'chmod 600 /home/evo-deploy/.cv03-n105b-qa-t0.sql'
           echo CV03_QA_STAGED_TRUSTED_MAIN_SQL_PASS
 
       - name: Provision QA-only database and prove real PostgreSQL role/T0 behavior
