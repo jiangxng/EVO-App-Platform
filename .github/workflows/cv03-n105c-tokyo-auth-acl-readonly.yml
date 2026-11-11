@@ -1,0 +1,130 @@
+name: CV03 N1-05c Tokyo PostgreSQL Identity ACL Read-only Preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-auth-acl-readonly.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c-tokyo-auth-acl-readonly
+  cancel-in-progress: false
+
+jobs:
+  physical-identity-preflight:
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 8
+    steps:
+      - name: Verify protected-main SHA and pinned SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C_READONLY_TRUSTED_MAIN_SSH_PASS
+
+      - name: Read actual Tokyo SQL grants and test bad TCP password refusal
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          test "$(id -un)" = evo-deploy
+          cd /opt/evo-tokyo
+          test -r compose.yaml && test -f .env
+          pg="$(docker compose ps -q postgres)"
+          test -n "$pg"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$pg")" = healthy
+          sql() {
+            docker compose exec -T --interactive=false postgres \
+              psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d "$1" -c "$2" < /dev/null
+          }
+          test "$(sql postgres "SELECT current_setting('server_version_num')")" = 170011
+          test "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_qa'")" = 1
+          test "$(sql postgres "SELECT count(*) FROM pg_database WHERE datname='evo_dev'")" = 1
+          echo CV03_N105C_READONLY_PG17_QA_AND_SOURCE_PRESENT_PASS
+          # Read catalog metadata only; never print secret hashes or HBA paths.
+          test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname='cv03_n105b_qa_producer' AND rolcanlogin AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole")" = 1
+          test "$(sql postgres "SELECT count(*) FROM pg_authid WHERE rolname='cv03_n105b_qa_producer' AND rolpassword IS NULL")" = 1
+          test "$(sql postgres "SELECT count(*) FROM pg_roles WHERE rolname='cv03_n105c_qa_tcp_producer'")" = 0
+          echo CV03_N105C_READONLY_LEGACY_LOCAL_PASSWORD_NULL_AND_NEW_ROLE_ABSENT_PASS
+          defs="$(sql cv03_n105b_qa "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='cv03_n105b_qa' AND p.proname IN ('cv03_n105b_commit_deny_t0','cv03_n105b_fence_package_t0') AND p.prosecdef")"
+          test "$defs" = 2
+          test "$(sql cv03_n105b_qa "SELECT has_function_privilege('cv03_n105b_qa_producer','cv03_n105b_qa.cv03_n105b_commit_deny_t0(text,text,text,text,text,text,text,bigint,text,text)','EXECUTE')::text")" = true
+          test "$(sql cv03_n105b_qa "SELECT has_function_privilege('cv03_n105b_qa_untrusted','cv03_n105b_qa.cv03_n105b_commit_deny_t0(text,text,text,text,text,text,text,bigint,text,text)','EXECUTE')::text")" = false
+          test "$(sql cv03_n105b_qa "SELECT has_table_privilege('cv03_n105b_qa_producer','cv03_n105b_qa.immutable_outbox','UPDATE')::text")" = false
+          test "$(sql cv03_n105b_qa "SELECT has_table_privilege('cv03_n105b_qa_producer','cv03_n105b_qa.scope_authority','UPDATE')::text")" = false
+          echo CV03_N105C_READONLY_QA_SECURITY_DEFINER_AND_EXECUTE_ONLY_PASS
+
+          # This view describes current HBA file content, which might not
+          # equal the last-loaded server policy. Actual TCP test is separate.
+          bad_rules="$(sql postgres "SELECT count(*) FROM pg_hba_file_rules WHERE error IS NOT NULL")"
+          echo "CV03_N105C_HBA_PARSE_ERROR_RULES=$bad_rules"
+          host_trust="$(sql postgres "SELECT count(*) FROM pg_hba_file_rules WHERE type LIKE 'host%' AND auth_method='trust'")"
+          local_trust="$(sql postgres "SELECT count(*) FROM pg_hba_file_rules WHERE type='local' AND auth_method='trust'")"
+          echo "CV03_N105C_HBA_HOST_TRUST_RULES_IN_FILE=$host_trust"
+          echo "CV03_N105C_HBA_LOCAL_TRUST_RULES_IN_FILE=$local_trust"
+          echo "CV03_N105C_PASSWORD_ENCRYPTION=$(sql postgres "SELECT current_setting('password_encryption')")"
+          # Current role has PASSWORD NULL. A TCP connection with an invalid
+          # supplied password MUST NOT be accepted.
+          if docker compose exec -T --interactive=false \
+            -e PGPASSWORD=cv03-definitely-wrong-password postgres \
+            psql -X -qAt -w -v ON_ERROR_STOP=1 -h 127.0.0.1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa \
+            -c "SELECT 1" < /dev/null > /dev/null 2>&1; then
+            echo CV03_N105C_QA_UNAUTHENTICATED_TCP_ACCEPTED >&2
+            echo "CV03_N105C_HBA_FILE_HOST_TRUST_COUNT=$host_trust" >&2
+            echo "CV03_N105C_HBA_FILE_LOCAL_TRUST_COUNT=$local_trust" >&2
+            echo "CV03_N105C_HBA_FILE_PARSE_ERRORS=$bad_rules" >&2
+            hashed="$(sql postgres "SELECT (rolpassword IS NOT NULL)::text FROM pg_authid WHERE rolname='evo'")"
+            echo "CV03_N105C_ORIGINAL_EVO_LOGIN_HAS_PASSWORD_HASH=$hashed" >&2
+            # This is a read-only, wrong-password probe for the existing app
+            # SQL role. Do not disclose data or attempt any SQL writes.
+            if docker compose exec -T --interactive=false \
+              -e PGPASSWORD=cv03-definitely-wrong-password postgres \
+              psql -X -qAt -w -v ON_ERROR_STOP=1 -h 127.0.0.1 \
+              -U evo -d evo_dev -c "SELECT 1" < /dev/null > /dev/null 2>&1; then
+              echo CV03_N105C_ORIGINAL_EVO_SUPERUSER_WRONG_PASSWORD_TCP_ACCEPTED >&2
+            else
+              echo CV03_N105C_ORIGINAL_EVO_SUPERUSER_BAD_TCP_PASSWORD_REJECTED >&2
+            fi
+            exit 1
+          fi
+          echo CV03_N105C_READONLY_BAD_TCP_PASSWORD_REJECTED_PASS
+          original_connect="$(sql postgres "SELECT has_database_privilege('cv03_n105b_qa_producer','evo_dev','CONNECT')::text")"
+          test "$original_connect" = true -o "$original_connect" = false
+          echo "CV03_N105C_QA_PRODUCER_ORIGINAL_DATABASE_CONNECT_ACL=$original_connect"
+          test "$(sql evo_dev "SELECT count(*) FROM pg_namespace WHERE nspname='cv03_n105b_qa'")" = 0
+          echo CV03_N105C_READONLY_EVO_DEV_SCHEMA_UNCHANGED_PASS
+          echo CV03_N105C_READONLY_SQL_AND_NETWORK_IDENTITY_SURVEY_PASS
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fxq CV03_N105C_READONLY_LEGACY_LOCAL_PASSWORD_NULL_AND_NEW_ROLE_ABSENT_PASS <<<"$proof"
+          grep -Fxq CV03_N105C_READONLY_QA_SECURITY_DEFINER_AND_EXECUTE_ONLY_PASS <<<"$proof"
+          grep -Fxq CV03_N105C_READONLY_BAD_TCP_PASSWORD_REJECTED_PASS <<<"$proof"
+          grep -Fxq CV03_N105C_READONLY_EVO_DEV_SCHEMA_UNCHANGED_PASS <<<"$proof"
+          grep -Fxq CV03_N105C_READONLY_SQL_AND_NETWORK_IDENTITY_SURVEY_PASS <<<"$proof"
+          echo CV03_N105C_READONLY_POSTCONDITIONS_ENFORCED_PASS
+
+      - name: Remove runner SSH material
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"

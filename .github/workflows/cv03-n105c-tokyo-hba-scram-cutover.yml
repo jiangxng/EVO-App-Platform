@@ -1,0 +1,117 @@
+name: CV03 N1-05c Tokyo PG17 Host SCRAM Fail-Closed Cutover
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-hba-scram-cutover.yml"
+      - "tools/cv03-n105c-tokyo-host-scram-cutover.sh"
+      - "docs/plans/foundation-list-experience/CV03-N105C-02-TOKYO-HBA-SCRAM-CUTOVER-20261111.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c-tokyo-hba-scram-cutover.yml"
+      - "tools/cv03-n105c-tokyo-host-scram-cutover.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c-tokyo-hba-scram-cutover
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate bounded rollback shell and immutable safety gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/cv03-n105c-tokyo-host-scram-cutover.sh
+          grep -Fq 'trap finish EXIT' tools/cv03-n105c-tokyo-host-scram-cutover.sh
+          grep -Fq 'CV03_N105C_HBA_SCRAM_CUTOVER_TERMINAL_PASS' tools/cv03-n105c-tokyo-host-scram-cutover.sh
+          echo CV03_N105C_HBA_PR_SHELL_SYNTAX_PASS
+
+  tokyo-cutover:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Require proven current-main SHA and prior real SCRAM compatibility
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          result="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/43026057536")"
+          test "$(jq -r '.head_sha' <<<"$result")" = 9753bf6f73d8905e29bd260950ea01a212da3ec5
+          test "$(jq -r '.conclusion' <<<"$result")" = success
+          test -f tools/cv03-n105c-tokyo-host-scram-cutover.sh
+          bash -n tools/cv03-n105c-tokyo-host-scram-cutover.sh
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C_HBA_PREVIOUS_CREDENTIAL_PROOF_AND_MAIN_SHA_PASS
+
+      - name: Stage pinned rollback-gated script and perform controlled HBA reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=tools/cv03-n105c-tokyo-host-scram-cutover.sh
+          expected="$(sha256sum "$file" | cut -d' ' -f1)"
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes "$file" \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105c-host-scram-cutover.sh
+          proof_file="$(mktemp)"
+          trap 'rm -f "$proof_file"' EXIT
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' -- "$expected" <<'REMOTE' | tee "$proof_file"
+          set -euo pipefail
+          umask 077
+          path=/home/evo-deploy/.cv03-n105c-host-scram-cutover.sh
+          trap 'rm -f "$path"' EXIT
+          test -f "$path" && test ! -L "$path"
+          chmod 700 "$path"
+          test "$(sha256sum "$path" | cut -d' ' -f1)" = "$1"
+          bash "$path"
+          REMOTE
+          grep -Fxq CV03_N105C_HBA_CUTOVER_STRICT_PREFLIGHT_PASS "$proof_file"
+          grep -Fxq CV03_N105C_HBA_TCP_TRUST_REPLACED_WITH_SCRAM_AND_RELOADED_PASS "$proof_file"
+          grep -Fxq CV03_N105C_HBA_REAL_EVO_PASSWORD_TCP_AUTH_PASS "$proof_file"
+          grep -Fxq CV03_N105C_HBA_SUPERUSER_AND_QA_BAD_TCP_PASSWORD_DENIED_PASS "$proof_file"
+          grep -Fxq CV03_N105C_HBA_EVO_RUNTIME_FRESH_DB_CONNECTION_PASS "$proof_file"
+          grep -Fxq CV03_N105C_HBA_SCRAM_CUTOVER_TERMINAL_PASS "$proof_file"
+          echo CV03_N105C_HBA_ALL_REMOTE_TERMINAL_PROOFS_ENFORCED_PASS
+
+      - name: Independent public HTTPS and unauthorized 401 remains
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=evo.43.167.252.197.sslip.io
+          curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health" | grep -Fq '"ok":true'
+          status="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$status" = 401
+          echo CV03_N105C_HBA_INDEPENDENT_PUBLIC_HTTPS_AND_401_PASS
+
+      - name: Remove runner SSH materials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
