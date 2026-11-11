@@ -1,0 +1,124 @@
+name: CV03 N1-05c-07 Tokyo Two Distinct QA Host SQL Identities
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c07-tokyo-second-qa-host-principal.yml"
+      - "tools/cv03-n105c07-tokyo-second-qa-host-principal.sh"
+      - "docs/plans/foundation-list-experience/CV03-N105C-07-TOKYO-TWO-QA-HOST-PRINCIPALS-20261111.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c07-tokyo-second-qa-host-principal.yml"
+      - "tools/cv03-n105c07-tokyo-second-qa-host-principal.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c07-tokyo-second-qa-host-principal
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate second QA Host HBA-before-LOGIN SQL source and rollback proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          grep -Fq 'trap finish EXIT' tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          grep -Fq 'CV03_N105C07_SECOND_QA_HOST_PHYSICAL_TERMINAL_PASS' tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          grep -Fq 'CV03_N105C07_SECOND_HOST_ORIGINAL_DB_HBA_LOADED_BEFORE_LOGIN_PASS' tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          grep -Fq 'CV03_N105C07_TWO_DISTINCT_SCRAM_LOGINS_QA_ONLY_AND_CROSS_PASSWORD_DENY_PASS' tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          grep -Fq 'CV03_N105C07_HBA_FENCE_RETAINED_UNTIL_ROLE_NOLOGIN_VERIFIED' tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          grep -Fq 'CV03_N105C07_DIRECT_DML_DENIED_AND_ORIGINAL_QA_SOURCE_FINGERPRINTS_UNCHANGED_PASS' tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          echo CV03_N105C07_PR_SECOND_HOST_SOURCE_BASH_SYNTAX_PASS
+
+  tokyo-identity:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify exact protected main, prior real QA concurrent replay and pinned SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          result="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/43044527299")"
+          test "$(jq -r '.head_sha' <<<"$result")" = 06271948bb065af5e509338def299bb595f2d902
+          test "$(jq -r '.conclusion' <<<"$result")" = success
+          test -f tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          bash -n tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C07_PRIOR_CONCURRENT_QA_AND_TRUSTED_MAIN_PASS
+
+      - name: Stage pinned HBA-before-LOGIN second QA Host script and enforce remote terminal proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=tools/cv03-n105c07-tokyo-second-qa-host-principal.sh
+          expected="$(sha256sum "$file" | cut -d' ' -f1)"
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes "$file" \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105c07-second-qa-host-principal.sh
+          proof_file="$(mktemp)"
+          trap 'rm -f "$proof_file"' EXIT
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' -- "$expected" <<'REMOTE' | tee "$proof_file"
+          set -euo pipefail
+          umask 077
+          path=/home/evo-deploy/.cv03-n105c07-second-qa-host-principal.sh
+          trap 'rm -f "$path"' EXIT
+          test -f "$path" && test ! -L "$path"
+          chmod 700 "$path"
+          test "$(sha256sum "$path" | cut -d' ' -f1)" = "$1"
+          bash "$path"
+          REMOTE
+          grep -Fxq CV03_N105C07_STRICT_EXISTING_HOST01_T0_HBA_AND_APP_BASELINE_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_PRIVATE_PRELOGIN_HBA_BACKUP_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_SECOND_HOST_ORIGINAL_DB_HBA_LOADED_BEFORE_LOGIN_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_TWO_DISTINCT_SCRAM_LOGINS_QA_ONLY_AND_CROSS_PASSWORD_DENY_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_CONCURRENT_SEPARATE_HOST_SQL_LOGIN_IDENTITIES_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_DB_OWNED_FROZEN_SOURCE_CROSS_HOST_AND_REPLAY_DENIAL_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_DIRECT_DML_DENIED_AND_ORIGINAL_QA_SOURCE_FINGERPRINTS_UNCHANGED_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_EVO_RUNTIME_AND_TWO_QA_PRINCIPALS_STAY_HEALTHY_PASS "$proof_file"
+          grep -Fxq CV03_N105C07_SECOND_QA_HOST_PHYSICAL_TERMINAL_PASS "$proof_file"
+          echo CV03_N105C07_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS
+
+      - name: Independently verify preview HTTPS health and unauthorized 401
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=evo.43.167.252.197.sslip.io
+          curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health" | grep -Fq '"ok":true'
+          status="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$status" = 401
+          echo CV03_N105C07_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS
+
+      - name: Remove runner SSH materials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
