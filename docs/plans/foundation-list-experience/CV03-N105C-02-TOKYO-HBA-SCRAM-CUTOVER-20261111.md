@@ -1,6 +1,6 @@
 # CV-03 / N1-05c-02 — Tencent Tokyo PostgreSQL host SCRAM authentication hardening
 
-> **STATE: DRAFT CODE, TOKYO PHYSICAL CUTOVER PENDING.** This is preview infrastructure repair only, not production N1 certification.
+> **STATE: PHYSICAL TOKYO PREVIEW SCRAM CUTOVER VERIFIED (Actions #43028414842). N1 NOT CERTIFIED.** This is preview infrastructure repair only, not production N1 certification.
 
 ## Verified G and why a controlled host rule repair is necessary
 - [Physical QA TCP auth failure #43023951994](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43023951994) had a real wrong-password loopback TCP connection accepted.
@@ -34,3 +34,22 @@ Read full GitHub Actions original job: all strict preflight, host trust replaced
 **Narrow correction:** create a new uniquely named private backup and candidate for a fresh trusted-main attempt (do not overwrite or delete previous evidence), then copy original numeric owner/group and permissions using `stat` + `chown` + `chmod`, verify exact equality **before** `mv`. The code still requires original 4 host trust / 2 local trust and clean configuration, and refuses to run on an already-hardened HBA. A rollback trap will restore only the new versioned backup after any post-edit failure. No database password, DB data or Docker service is changed.
 
 **P:** Do not claim HBA remediated until a new real Tokyo Actions run emits both correct-password and wrong-password denial markers and independent preview health. If earlier rollback did not restore HBA to a readable state, strict preflight must fail RED; triage without forcing the migration. Keep #1227 Draft and all four production gates unchanged.
+
+## Postmerge physical SCRAM cutover acceptance (G / 2026-11-11)
+
+**Actual terminal evidence:** [PR #1232](https://github.com/jiangxng/EVO-App-Platform/pull/1232) merged to protected `main@0852958e205ccac6933c68bd25b8300a80528f13`. Its automatically triggered [Tokyo Actions #43028414842](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43028414842), job `130548912440`, completed **SUCCESS**. The original job log was inspected in this window; exact server-side / independently enforced markers:
+
+- `CV03_N105C_HBA_CUTOVER_STRICT_PREFLIGHT_PASS`
+- `CV03_N105C_HBA_TCP_TRUST_REPLACED_WITH_SCRAM_AND_RELOADED_PASS`
+- `CV03_N105C_HBA_REAL_EVO_PASSWORD_TCP_AUTH_PASS`
+- `CV03_N105C_HBA_SUPERUSER_AND_QA_BAD_TCP_PASSWORD_DENIED_PASS`
+- `CV03_N105C_HBA_EVO_RUNTIME_FRESH_DB_CONNECTION_PASS`
+- `CV03_N105C_HBA_EVO_AND_POSTGRES_HEALTHY_PASS`
+- `CV03_N105C_HBA_NO_BUSINESS_DATA_DDL_DML_PASS`
+- `CV03_N105C_HBA_SCRAM_CUTOVER_TERMINAL_PASS`
+- `CV03_N105C_HBA_ALL_REMOTE_TERMINAL_PROOFS_ENFORCED_PASS`
+- `CV03_N105C_HBA_INDEPENDENT_PUBLIC_HTTPS_AND_401_PASS`
+
+**Disposition:** the originally demonstrated wrong-password TCP bypass is **remediated on this Tokyo preview host** by a successful post-reload negative authentication test, not just a configuration-file read. Prior first-attempt failure #43027372284 remains part of the evidence history; it must not be retroactively marked PASS. The two unchanged local Unix-socket `trust` rules are a deliberate recovery exception; access from the Docker/host/SSH privileged boundary is **not** certified as an independent signed workload identity. The QA Producer in [Draft #1227](https://github.com/jiangxng/EVO-App-Platform/pull/1227) is **not provisioned** by this HBA cutover and still needs source correction, independent CI and a separate physical QA proof. No production PA05/AuthorizationProvider migration, off-site/PITR guarantee, multi-Host failover, KMS, or Owner approval is inferred.
+
+**Release status stays unchanged:** `N1=NOT_CERTIFIED`; `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`; formal SAVE POST 403; unregistered GET 404. [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) remains OPEN. Nothing in PR #1184 Owner-controlled documents or `evo_dev` business data was changed by the cutover.
