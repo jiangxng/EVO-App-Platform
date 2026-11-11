@@ -1,0 +1,137 @@
+name: CV03 N1-05b-09 Tokyo Private Backup Full Restore Proof
+
+# Runs only after a reviewed merge to protected main; reuses existing Tokyo
+# deployment identity. Restores to a distinct, temporary DB only.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105b-tokyo-qa-restore-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105b-tokyo-qa-restore-proof
+  cancel-in-progress: false
+
+jobs:
+  isolated-full-restore:
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 12
+    steps:
+      - name: Verify exact protected main and pinned SSH identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" >/dev/null
+          echo CV03_QA_RESTORE_TRUSTED_MAIN_AND_SSH_PASS
+
+      - name: Restore existing private archive in isolated scratch database, then remove it
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          umask 077
+          test "$(id -un)" = "evo-deploy"
+          cd /opt/evo-tokyo
+          test -r compose.yaml && test -f .env && test -f .last-health-pass-sha
+          pg="$(docker compose ps -q postgres)"
+          test -n "$pg"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$pg")" = healthy
+          free_kb="$(df -Pk "$HOME" | awk 'NR==2 {print $4}')"
+          mem_mb="$(free -m | awk '/^Mem:/ {print $7}')"
+          [[ "$free_kb" =~ ^[0-9]+$ ]] && [[ "$mem_mb" =~ ^[0-9]+$ ]]
+          test "$free_kb" -ge 2097152
+          test "$mem_mb" -ge 256
+          echo CV03_QA_RESTORE_RESOURCE_HEALTH_PASS
+
+          psql_pg() {
+            docker compose exec -T --interactive=false postgres \
+              psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d postgres -c "$1" < /dev/null
+          }
+          test "$(psql_pg "SELECT current_setting('server_version_num')")" = "170011"
+          test "$(psql_pg "SELECT count(*) FROM pg_database WHERE datname='evo_dev'")" = "1"
+          test "$(psql_pg "SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_qa'")" = "1"
+          test "$(psql_pg "SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_restore_probe'")" = "0"
+          qa_functions="$(docker compose exec -T --interactive=false postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d cv03_n105b_qa -c \
+            "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+             WHERE n.nspname='cv03_n105b_qa'
+             AND p.proname IN ('cv03_n105b_commit_deny_t0','cv03_n105b_fence_package_t0');" < /dev/null)"
+          test "$qa_functions" = 2
+          echo CV03_QA_RESTORE_EXISTING_T0_PRESERVED_PASS
+
+          backup_dir="$HOME/.evo-cv03-qa-backups"
+          test -d "$backup_dir" && test ! -L "$backup_dir"
+          test "$(stat -c %a "$backup_dir")" = 700
+          archive="$(find "$backup_dir" -maxdepth 1 -type f -name '*.dump' -mmin -1440 -printf '%T@ %p\n' | sort -nr | head -n 1 | cut -d' ' -f2-)"
+          test -n "$archive" && test -f "$archive" && test ! -L "$archive"
+          test "$(stat -c %a "$archive")" = 600
+          test "$(stat -c %s "$archive")" -ge 1024
+          docker compose exec -T postgres pg_restore --list < "$archive" > /dev/null
+          echo CV03_QA_RESTORE_PRIVATE_ARCHIVE_VALID_PASS
+
+          # Hard collision guard: never drop a pre-existing database.
+          test "$(psql_pg "SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_restore_probe'")" = 0
+          psql_pg "CREATE DATABASE cv03_n105b_restore_probe WITH OWNER evo TEMPLATE template0" >/dev/null
+          created=1
+          remove_own_scratch() {
+            if test "$created" = 1; then
+              docker compose exec -T --interactive=false postgres \
+                dropdb -U evo cv03_n105b_restore_probe < /dev/null || true
+            fi
+          }
+          trap remove_own_scratch EXIT
+
+          # Full execution of every archive item, unlike pg_restore --list.
+          docker compose exec -T postgres pg_restore \
+            --exit-on-error --no-owner --no-acl -U evo \
+            -d cv03_n105b_restore_probe < "$archive"
+
+          restored="$(docker compose exec -T --interactive=false postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d cv03_n105b_restore_probe \
+            -c "SELECT current_database();" < /dev/null)"
+          test "$restored" = "cv03_n105b_restore_probe"
+          echo CV03_QA_RESTORE_FULL_ARCHIVE_EXECUTED_PASS
+
+          docker compose exec -T --interactive=false postgres \
+            dropdb -U evo cv03_n105b_restore_probe < /dev/null
+          created=0
+          trap - EXIT
+          test "$(psql_pg "SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_restore_probe'")" = 0
+          test "$(psql_pg "SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_qa'")" = 1
+          original_schema="$(docker compose exec -T --interactive=false postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d evo_dev \
+            -c "SELECT count(*) FROM pg_namespace WHERE nspname='cv03_n105b_qa';" < /dev/null)"
+          test "$original_schema" = 0
+          echo CV03_QA_RESTORE_SCRATCH_REMOVED_PASS
+          echo CV03_QA_RESTORE_ORIGINAL_AND_T0_DATABASES_PRESERVED_PASS
+          echo CV03_QA_RESTORE_NO_SOURCE_DATABASE_DDL_DML_PASS
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fxq CV03_QA_RESTORE_FULL_ARCHIVE_EXECUTED_PASS <<<"$proof"
+          grep -Fxq CV03_QA_RESTORE_SCRATCH_REMOVED_PASS <<<"$proof"
+          grep -Fxq CV03_QA_RESTORE_ORIGINAL_AND_T0_DATABASES_PRESERVED_PASS <<<"$proof"
+          echo CV03_QA_RESTORE_ALL_TERMINAL_MARKERS_ENFORCED_PASS
+      - name: Remove temporary runner SSH material
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
