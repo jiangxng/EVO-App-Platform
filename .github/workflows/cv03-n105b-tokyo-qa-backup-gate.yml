@@ -1,0 +1,118 @@
+name: CV03 N1-05b Tokyo QA Capacity and Verified Private Backup Gate
+
+# Trusted-main one-shot. No change to evo_dev's schema/data, container,
+# services, volumes, secrets, or deployment image. No workflow artifact
+# containing business data is uploaded.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105b-tokyo-qa-backup-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105b-tokyo-qa-backup-gate
+  cancel-in-progress: false
+
+jobs:
+  tokyo-capacity-and-backup:
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 12
+    steps:
+      - name: Check exact protected main and authenticated SSH identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY"
+          test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" >/dev/null
+          echo CV03_TOKYO_QA_EXACT_MAIN_AND_PINNED_SSH_PASS
+
+      - name: Inspect actual Tokyo capacity, PG isolation and create restricted recoverable archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          umask 077
+          test "$(id -un)" = evo-deploy
+          cd /opt/evo-tokyo
+          test -f .env
+          test -r compose.yaml
+          test -f .last-health-pass-sha
+          container="$(docker compose ps -q postgres)"
+          test -n "$container"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container")" = healthy
+          echo CV03_TOKYO_QA_POSTGRES_HEALTHY_PASS
+
+          # Safe host resource floor. No new DB / role / table is created here.
+          free_kb="$(df -Pk "$HOME" | awk 'NR==2 {print $4}')"
+          mem_mb="$(free -m | awk '/^Mem:/ {print $7}')"
+          [[ "$free_kb" =~ ^[0-9]+$ ]]
+          [[ "$mem_mb" =~ ^[0-9]+$ ]]
+          echo "CV03_TOKYO_QA_DISK_FREE_KB=$free_kb"
+          echo "CV03_TOKYO_QA_MEM_AVAILABLE_MB=$mem_mb"
+          test "$free_kb" -ge 2097152
+          test "$mem_mb" -ge 256
+          echo CV03_TOKYO_QA_RESOURCE_FLOOR_PASS
+
+          docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U evo -d evo_dev <<'SQL'
+          BEGIN TRANSACTION READ ONLY;
+          SELECT 'CV03_TOKYO_QA_PG_SERVER_VERSION='||current_setting('server_version_num');
+          SELECT 'CV03_TOKYO_QA_ORIGINAL_DATABASE='||current_database();
+          SELECT 'CV03_TOKYO_QA_DATABASE_BYTES='||pg_database_size(current_database());
+          SELECT 'CV03_TOKYO_QA_ARCHIVE_MODE='||current_setting('archive_mode');
+          SELECT 'CV03_TOKYO_QA_TARGET_DB_EXISTS='||
+            EXISTS(SELECT 1 FROM pg_database WHERE datname='cv03_n105b_qa');
+          SELECT 'CV03_TOKYO_QA_EXISTING_QA_ROLES='||count(*)
+            FROM pg_roles WHERE rolname LIKE 'cv03_n105b_%';
+          ROLLBACK;
+          SQL
+          # No unsafe assumption that archive_mode=off means backup exists.
+          # A fresh PG custom-format logical backup is taken and validated.
+          backup_dir="$HOME/.evo-cv03-qa-backups"
+          if test -e "$backup_dir"; then
+            test -d "$backup_dir"
+            test ! -L "$backup_dir"
+            test "$(stat -c %a "$backup_dir")" = 700
+          else
+            install -d -m 0700 "$backup_dir"
+          fi
+          candidate="$(mktemp "$backup_dir/.evo-dev-XXXXXXXX.partial")"
+          trap 'rm -f -- "$candidate"' EXIT
+          chmod 600 "$candidate"
+          docker compose exec -T postgres pg_dump \
+            -U evo -d evo_dev --format=custom --no-owner --no-acl > "$candidate"
+          test "$(stat -c %s "$candidate")" -ge 1024
+          docker compose exec -T postgres pg_restore --list < "$candidate" > /dev/null
+          saved="${candidate%.partial}.dump"
+          test ! -e "$saved"
+          mv -- "$candidate" "$saved"
+          chmod 600 "$saved"
+          echo "CV03_TOKYO_QA_LOGICAL_BACKUP_BYTES=$(stat -c %s "$saved")"
+          echo CV03_TOKYO_QA_PRIVATE_BACKUP_ARCHIVE_VALID_PASS
+          echo CV03_TOKYO_QA_BACKUP_NOT_FULL_RESTORE_VERIFIED
+          echo CV03_TOKYO_QA_NO_LIVE_DB_DDL_OR_DML_PASS
+          REMOTE
+
+      - name: Remove temporary GitHub runner SSH credentials
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
