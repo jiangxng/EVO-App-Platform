@@ -91,6 +91,21 @@ jobs:
             -U cv03_n105b_qa_producer -d cv03_n105b_qa \
             -c "SELECT 1" < /dev/null > /dev/null 2>&1; then
             echo CV03_N105C_QA_UNAUTHENTICATED_TCP_ACCEPTED >&2
+            echo "CV03_N105C_HBA_FILE_HOST_TRUST_COUNT=$host_trust" >&2
+            echo "CV03_N105C_HBA_FILE_LOCAL_TRUST_COUNT=$local_trust" >&2
+            echo "CV03_N105C_HBA_FILE_PARSE_ERRORS=$bad_rules" >&2
+            hashed="$(sql postgres "SELECT (rolpassword IS NOT NULL)::text FROM pg_authid WHERE rolname='evo'")"
+            echo "CV03_N105C_ORIGINAL_EVO_LOGIN_HAS_PASSWORD_HASH=$hashed" >&2
+            # This is a read-only, wrong-password probe for the existing app
+            # SQL role. Do not disclose data or attempt any SQL writes.
+            if docker compose exec -T --interactive=false \
+              -e PGPASSWORD=cv03-definitely-wrong-password postgres \
+              psql -X -qAt -w -v ON_ERROR_STOP=1 -h 127.0.0.1 \
+              -U evo -d evo_dev -c "SELECT 1" < /dev/null > /dev/null 2>&1; then
+              echo CV03_N105C_ORIGINAL_EVO_SUPERUSER_WRONG_PASSWORD_TCP_ACCEPTED >&2
+            else
+              echo CV03_N105C_ORIGINAL_EVO_SUPERUSER_BAD_TCP_PASSWORD_REJECTED >&2
+            fi
             exit 1
           fi
           echo CV03_N105C_READONLY_BAD_TCP_PASSWORD_REJECTED_PASS
