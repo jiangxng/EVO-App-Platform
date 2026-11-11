@@ -1,0 +1,35 @@
+name: CV-03 N1-05a Production Authority Boundary Preflight
+
+on:
+  pull_request:
+    paths:
+      - "manager/store.ts"
+      - "manager/service.ts"
+      - "manager/server.ts"
+      - "manager/cv03-personal-saved-view-host-admission.ts"
+      - "providers/authorization/runtime.ts"
+      - "providers/enterprise-context/resources-postgres.ts"
+      - "providers/enterprise-context/package.ts"
+      - "tools/cv03-n1-postgres-role-audit.mjs"
+      - "tools/cv03-n105a-authority-boundary-preflight.mjs"
+      - "tests/agent-line/cv03-n105a-authority-boundary-preflight.test.mjs"
+      - "docs/plans/foundation-list-experience/CV03-N105A-PRODUCTION-AUTHORITY-OWNER-DECISION-GATE-20261111.md"
+      - ".github/workflows/cv03-n105a-authority-preflight.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-boundary-fail-closed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate existing production boundary without PG18 fixture
+        run: node --test tests/agent-line/cv03-n105a-authority-boundary-preflight.test.mjs
+      - name: Non-certifying N1-05a source preflight
+        run: node tools/cv03-n105a-authority-boundary-preflight.mjs --check
