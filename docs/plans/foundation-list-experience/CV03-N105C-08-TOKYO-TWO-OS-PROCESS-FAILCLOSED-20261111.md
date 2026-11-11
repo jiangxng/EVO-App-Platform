@@ -1,6 +1,6 @@
 # CV-03 / N1-05c-08 — Tokyo two real OS processes and targeted PostgreSQL QA disconnect
 
-> **STATE: SOURCE PR, PHYSICAL TOKYO PROOF PENDING.** 2026-11-11. Preview QA only, no formal Host runtime / N1 production acceptance.
+> **STATE: REAL TOKYO TWO OS PROCESS/QA SQL BACKEND DISCONNECT VERIFIED; N1 NOT CERTIFIED.** 2026-11-11. Preview QA only, no formal Host runtime / N1 production acceptance.
 
 ## G / baseline and actual remaining gap
 
@@ -26,4 +26,17 @@
 
 ## Physical run / results
 
-Pending actual protected-main Actions job logs; evidence to be appended only after inspected. Exact-head CI and branch retirement to be verified separately.
+The actual protected-main Actions execution is verified; see the G evidence below. Exact SHA branch retirement is audited separately.
+
+## G / protected-main real Tokyo acceptance (2026-11-11)
+
+- Source [PR #1246](https://github.com/jiangxng/EVO-App-Platform/pull/1246) passed **exact-head** source Bash syntax + Node `--check`, Project Continuity, Lightweight Host and Human UI gates, then merged into protected `main@5cbd8c6a0d55626c7b8bcd57e3b5179db5bb7bc9`.
+- Automatically triggered physical [Tokyo Actions #43051604400](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43051604400), job `130629935414`, concluded **SUCCESS**. The original job log was read, not just green metadata. The workflow staged both SHA256-pinned sources through the existing pinned SSH and enforced each terminal proof on the runner.
+- Trusted baseline and secrets/fencing verified: `CV03_N105C08_PRIOR_TWO_SQL_HOSTS_AND_TRUSTED_MAIN_PASS`, `CV03_N105C08_TRUSTED_TWO_HOST_CREDENTIALS_FROZEN_QA_AND_HBA_PREFLIGHT_PASS`. Password bytes were not printed.
+- **Two OS-level Node processes**, launched independently using `docker compose exec` into the same existing EVO preview container, both opened actual PostgreSQL sessions; the SQL catalog observed two distinct simultaneously active `session_user` names and backend PIDs: `CV03_N105C08_REAL_TWO_DIFFERENT_OS_PROCESSES_AND_SQL_SESSION_USERS_PASS`.
+- Both real Node processes then invoked the existing Owner SECURITY DEFINER T0; persisted FROZEN denied both, with stable complete QA authority/Outbox/receipt fingerprint: `CV03_N105C08_BOTH_REAL_NODE_HOST_PROCESSES_FROZEN_OWNER_DENY_NO_MUTATION_PASS`.
+- Exactly one tagged active QA Host02 backend was identified; the trusted PostgreSQL admin invoked `pg_terminate_backend` on **only that backend**. The affected Node SQL query failed and the worker stopped, not continuing with a cached decision: `CV03_N105C08_SINGLE_QA_WORKER_BACKEND_CONFIRMED_BEFORE_TERMINATION_PASS`, `CV03_N105C08_REAL_TARGETED_PG_BACKEND_TERMINATION_DENY_PASS`.
+- Fresh **new** Node processes reauthenticated as Host01 and Host02 and again received FROZEN DENY. Full QA source fingerprints and original database object count remained unchanged: `CV03_N105C08_NEW_OS_PROCESS_REAUTH_FROZEN_AND_SQL_SOURCE_UNCHANGED_PASS`, `CV03_N105C08_EVO_APP_HEALTH_AND_ALL_QA_FINGERPRINTS_INTACT_PASS`.
+- Completed and independently rechecked public preview: `CV03_N105C08_PHYSICAL_OS_PROCESS_SQL_FAIL_CLOSED_TERMINAL_PASS`, `CV03_N105C08_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS`, `CV03_N105C08_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS`. No unexpected error or manual rollback marker appeared in the successful job.
+
+**Limitations stay material:** This was a deliberate DBA-initiated termination of one synthetic QA SQL backend, **not** physical network isolation, primary failover, two separate Docker containers/servers, or actual production Manager admission/retry behavior. The QA Node client is a narrowly isolated probe and is not mounted in `manager/server.ts`. Both SQL accounts use synthetic QA authority facts; no real PA05/AuthorizationProvider source-of-truth has moved, no KMS-backed signature receipt or signed workload deployment is proved, and independent PA05/DB/Security Owner approval is still absent. `N1=NOT_CERTIFIED`, SAVE OFF, formal SAVE POST 403, unregistered GET 404 and Owner Issue #1212 OPEN. The most valuable next work is **Owner-sanctioned canonical authority mapping and independently deployed Host/DB fault test**, not another synthetic QA Owner schema.
