@@ -18,3 +18,14 @@
 - Record the actual Tokyo Actions run ID, job ID, full PASS/finding markers, exact merged main SHA, exact-head CI and hygiene outcome **only after they exist**.
 - Production canonical PA05 and AuthorizationProvider source, signed workload principal/KMS, multi-Host adversarial recovery/offsite PITR, and named Owner signoff are not established by this query.
 - `N1=NOT_CERTIFIED`; `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`; formal SAVE POST 403; unregistered GET 404; [Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) OPEN. Do not modify #1184 Owner-managed documents.
+
+## G / verified protected-main Tokyo physical proof (2026-11-11)
+
+- Source PR [#1238](https://github.com/jiangxng/EVO-App-Platform/pull/1238) merged as `7014082ee3a71178e9ce34962abef4b15af4c738` after exact-head source-syntax, human-ui, lightweight-host and continuity checks succeeded (the protected-main Tokyo job is appropriately skipped on PR).
+- Real Tokyo [Actions #43039723598](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43039723598), job `130587963905`, concluded **SUCCESS**. The actual job logs, not merely status metadata, were checked.
+- Exact runtime markers: `CV03_N105C04_ORIGINAL_DB_COLUMN_READ_WRITE_COUNTS=0|0`, `CV03_N105C04_ORIGINAL_DB_SEQUENCE_ACCESS_COUNT=0`, `CV03_N105C04_ORIGINAL_DB_FDW_SERVER_ACCESS_COUNTS=0|0`, `CV03_N105C04_ORIGINAL_DB_INHERITED_DEFAULT_SCHEMA_USAGE_COUNTS=0|0|1`.
+- SQL identity and still-open privileges were observed: `CV03_N105C04_ORIGINAL_DB_TCP_CONNECT_OPEN_AND_BAD_PASSWORD_DENIED_PASS`, `CV03_N105C04_ORIGINAL_DB_CONNECT_CREATE_TEMP=true|false|true`, `CV03_N105C04_ORIGINAL_DB_PUBLIC_CONNECT_GRANT=true`.
+- Remote proof: `CV03_N105C04_COLUMN_SEQUENCE_FDW_CATALOG_NO_GRANT_PASS`, `CV03_N105C04_ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS`, `CV03_N105C04_ALL_TERMINAL_READONLY_MARKERS_ENFORCED_PASS`.
+- No production SQL/HBA mutation was attempted. The schema USAGE count of one is **not** evidence of business data SELECT; zero object privilege counts are **not** proof of exhaustively tested trust isolation.
+
+**Remain pending:** role+database-scoped HBA decision and app positive/negative connection acceptance; true PA05/AuthorizationProvider authoritative source; signed workload identity; partition/recovery and actual DB/Security/PA05 Owner approval. N1 stays NOT_CERTIFIED, SAVE remains OFF, Issue #1212 stays OPEN.
