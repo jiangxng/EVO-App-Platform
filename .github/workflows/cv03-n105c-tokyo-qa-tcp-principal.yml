@@ -153,7 +153,10 @@ jobs:
           fi
           test "$(admin_qa "SELECT count(*) FROM cv03_n105b_qa.producer_identity WHERE login_role='cv03_n105c_qa_tcp_producer' AND host_id='tokyo-qa-host-01' AND enabled")" = 1
           test "$(admin_qa "SELECT count(*) FROM cv03_n105b_qa.producer_identity WHERE login_role='cv03_n105b_qa_producer'")" = 0
-          test "$(admin_postgres "SELECT has_function_privilege('cv03_n105c_qa_tcp_producer','cv03_n105b_qa.cv03_n105b_commit_deny_t0(text,text,text,text,text,text,text,bigint,text,text)','EXECUTE')::text FROM pg_database WHERE datname='postgres'")" = true
+          # Function OIDs and ACLs are scoped to QA, not to the postgres DB.
+          test "$(admin_qa "SELECT has_function_privilege('cv03_n105c_qa_tcp_producer','cv03_n105b_qa.cv03_n105b_commit_deny_t0(text,text,text,text,text,text,text,bigint,text,text)','EXECUTE')::text")" = true
+          test "$(admin_qa "SELECT has_function_privilege('cv03_n105b_qa_producer','cv03_n105b_qa.cv03_n105b_commit_deny_t0(text,text,text,text,text,text,text,bigint,text,text)','EXECUTE')::text")" = false
+          test "$(admin_qa "SELECT has_schema_privilege('cv03_n105b_qa_producer','cv03_n105b_qa','USAGE')::text")" = false
           echo CV03_N105C_QA_SOURCE_IDENTITY_FENCE_PASS
 
           before="$(admin_qa "SELECT (SELECT count(*) FROM cv03_n105b_qa.immutable_outbox)::text||'|'||(SELECT count(*) FROM cv03_n105b_qa.operation_receipts)::text")"
@@ -186,7 +189,7 @@ jobs:
           # longer invoke T0. This does not claim workload network security.
           if docker compose exec -T --interactive=false postgres psql -X -qAt \
             -v ON_ERROR_STOP=1 -U "$old_role" -d cv03_n105b_qa \
-            -c 'SELECT 1 FROM cv03_n105b_qa.cv03_n105b_fence_package_t0('"'tokyo-qa-host-01','qa-feature-fence-0001','host-enterprise-context-provider','host-enterprise-context-provider.personal-saved-views','qa-gen-20261111','DISABLE'"');' \
+            -c "SELECT * FROM cv03_n105b_qa.cv03_n105b_fence_package_t0('tokyo-qa-host-01','qa-feature-fence-0001','host-enterprise-context-provider','host-enterprise-context-provider.personal-saved-views','qa-gen-20261111','DISABLE')" \
             < /dev/null > /dev/null 2>&1; then
             echo CV03_N105C_OLD_SQL_PRODUCER_STILL_AUTHORIZED >&2
             exit 1
