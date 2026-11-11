@@ -23,3 +23,35 @@ User confirmed Option A: PostgreSQL source generation/authority epoch and immuta
 Original PostgreSQL 17 references **opened and relevant sections read 2026-11-11**: [CREATE FUNCTION / SECURITY DEFINER and search_path](https://www.postgresql.org/docs/17/sql-createfunction.html), [Privileges §5.8](https://www.postgresql.org/docs/17/ddl-priv.html) and [SET SESSION AUTHORIZATION](https://www.postgresql.org/docs/17/sql-set-session-authorization.html). GitHub [Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212), [read-only Tokyo SQL](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43012098340) and [backup terminal log](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43016695338) were read as original live evidence.
 
 Production PA05/Provider persistent source switch, authentic Host credentials and KMS, complete offline/future scopes, multi-Host crash/recovery, full restore rehearsal, Human+Agent and independent Owner approvals remain PENDING. Preserve **N1=NOT_CERTIFIED**, **APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF**, SAVE POST 403 and unregistered GET 404. No PR #1184 managed docs touched. Before any Tokyo execution, require exact PR HEAD CI to pass. Next record real Actions run/SHAs and failures rather than assuming success.
+
+
+## Postmerge physical Tokyo acceptance evidence — 2026-11-11 (G, verified)
+
+The earlier header saying TOKYO PHYSICAL EXECUTION PENDING preserves the state **when the draft PR was authored**. The following newer evidence supersedes that for the **QA** scope only.
+
+| Evidence | Verified result |
+| --- | --- |
+| Engineering PR | [#1224 MERGED](https://github.com/jiangxng/EVO-App-Platform/pull/1224): exact HEAD e41f3430dc1776f60a33b248c0aac2decce5812c, merge main 0ab405611539881f8024b708e2f0b220db521326 |
+| HEAD CI | 5/5 SUCCESS, including disposable PG17 physical-sql-isolated. Not production certification |
+| Real Tokyo execution | [Actions #43018562251](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43018562251), physical-qa-t0 job 130515707869, SUCCESS; runtime log inspected 2026-11-11 |
+| QA schema/roles | Runtime markers ISOLATED_DATABASE_AND_NON_SUPERUSER_ROLES_CREATED_PASS, REAL_POSTGRESQL_T0_FUNCTIONS_INSTALLED_PASS and PHYSICAL_NON_SUPERUSER_SESSION_PASS |
+| Atomicity and replay | Runtime ATOMIC_DENY_AND_IDEMPOTENT_REPLAY_PASS, ROLLBACK_OUTBOX_AND_ALL_SCOPE_T0_FENCE_PASS |
+| Physical DENY tests | Runtime PHYSICAL_DIRECT_DML_SET_ROLE_UNTRUSTED_DENY_PASS, including direct authority/outbox DML refusal, owner SET ROLE refusal and untrusted call refusal |
+| Original database protected | Runtime ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS; no QA schema created in evo_dev |
+| End-of-script verification | Runtime REAL_SQL_TRANSACTION_AND_LEAST_PRIVILEGE_ACCEPTANCE_PASS and TERMINAL_SQL_EVIDENCE_ENFORCED_PASS, not only a green workflow badge |
+| Process branch cleanup | [Branch Hygiene #43018563860 SUCCESS](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43018563860); #1224 branch absent |
+
+**Resulting milestone state:** real QA PostgreSQL ACID DENY/outbox, durable replay receipt and all seeded Human/AI/offline scope Feature fence are **PHYSICALLY TESTED IN TOKYO QA**. The shipped functions are not production Host-mounted; current PA05/AuthorizationProvider production canonical facts are not SQL migrated; the trusted role uses local QA socket without production password/KMS. This result must not be confused with production N1-05b or N1-05c certification.
+
+**Evidence limits / remaining acceptance:** Full archive restore, SIGKILL during in-flight T0, double-Host concurrent replay, old generation after authorized rotation, network identity, KMS and signed Resource/Receipt DML, complete real offline user population and migration, live Human/Agent, independent PA05/Authorization/DB/Security owner signoffs and formal release PR remain OPEN. PostgreSQL archive_mode=off still means no WAL PITR proof. Issue [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212#issuecomment-6795577949) records the same source and pending Owner decisions.
+
+**Unchanged production gate:** N1=NOT_CERTIFIED; APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF; formal SAVE POST 403; unregistered Page GET 404. PR #1184's three managed documents are untouched. No new cloud host or Railway resource.
+
+ 
+## Tokyo preview automatic release after real QA SQL merge — verified 2026-11-11
+
+**G — actual Actions deployment original logs:** [run #43018607004](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43018607004) for merged exact main 0ab405611539881f8024b708e2f0b220db521326 completed **SUCCESS**. The existing CI-gated deployment detected changes under the deploy/ path, rebuilt and launched the corresponding EVO preview image on Tencent Tokyo. This is a **preview image refresh**, not migration of original evo_dev authority tables and not N1 production certification.
+
+Runtime log markers were actually inspected: EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=0ab405611539881f8024b708e2f0b220db521326, EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS and EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS. Logs also showed existing PostgreSQL container healthy and continuously running, new EVO container healthy, Caddy container healthy, and unauthenticated root HTTP 401. **No assertion is made that Human SAVE or an authenticated Saved View end-to-end path was tested by this deployment.**
+
+**D — next safe execution boundary:** keep QA SQL fixture isolated and do not mount the candidate PG port into formal production Host, grant canonical PA05/AuthorizationProvider writes, or release SAVE until N1-05c–f and independent Owner signatures. Further physically tested target is an isolated QA full restore/failure-injection exercise; actual deployment success is not itself evidence of production workload identity or recovery SLO.
