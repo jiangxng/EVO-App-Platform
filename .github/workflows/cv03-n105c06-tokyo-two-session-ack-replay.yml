@@ -1,0 +1,122 @@
+name: CV03 N1-05c-06 Tokyo Two-Session ACK-Loss Replay
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c06-tokyo-two-session-ack-replay.yml"
+      - "tools/cv03-n105c06-tokyo-two-session-replay.sh"
+      - "docs/plans/foundation-list-experience/CV03-N105C-06-TOKYO-TWO-SESSION-ACK-REPLAY-20261111.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c06-tokyo-two-session-ack-replay.yml"
+      - "tools/cv03-n105c06-tokyo-two-session-replay.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c06-tokyo-two-session-ack-replay
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate concurrency SQL replay source Bash and fail-closed proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n tools/cv03-n105c06-tokyo-two-session-replay.sh
+          grep -Fq 'trap cleanup EXIT' tools/cv03-n105c06-tokyo-two-session-replay.sh
+          grep -Fq 'CV03_N105C06_PHYSICAL_CONCURRENT_ACK_REPLAY_TERMINAL_PASS' tools/cv03-n105c06-tokyo-two-session-replay.sh
+          grep -Fq 'CV03_N105C06_TWO_DISTINCT_AUTHENTICATED_TCP_SESSIONS_CONTENDING_PASS' tools/cv03-n105c06-tokyo-two-session-replay.sh
+          grep -Fq 'CV03_N105C06_ACK_LOSS_CONCURRENT_REPLAY_SAME_RECEIPT_NO_OUTBOX_PASS' tools/cv03-n105c06-tokyo-two-session-replay.sh
+          grep -Fq 'CV03_N105C06_CROSS_ACTOR_HOST_GENERATION_DENIED_SOURCE_UNCHANGED_PASS' tools/cv03-n105c06-tokyo-two-session-replay.sh
+          echo CV03_N105C06_PR_REPLAY_SOURCE_BASH_SYNTAX_PASS
+
+  tokyo-replay:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify exact protected main, previously proven QA HBA fence and pinned SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          result="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/43042027579")"
+          test "$(jq -r '.head_sha' <<<"$result")" = b7d52b1a386ed232094ddf1e45ce019fc6cef2f4
+          test "$(jq -r '.conclusion' <<<"$result")" = success
+          test -f tools/cv03-n105c06-tokyo-two-session-replay.sh
+          bash -n tools/cv03-n105c06-tokyo-two-session-replay.sh
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C06_PRIOR_FENCE_AND_TRUSTED_MAIN_PASS
+
+      - name: Stage SHA-pinned read-only concurrent replay probe and enforce remote proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=tools/cv03-n105c06-tokyo-two-session-replay.sh
+          expected="$(sha256sum "$file" | cut -d' ' -f1)"
+          [[ "$expected" =~ ^[0-9a-f]{64}$ ]]
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes "$file" \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105c06-two-session-replay.sh
+          proof_file="$(mktemp)"
+          trap 'rm -f "$proof_file"' EXIT
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' -- "$expected" <<'REMOTE' | tee "$proof_file"
+          set -euo pipefail
+          umask 077
+          path=/home/evo-deploy/.cv03-n105c06-two-session-replay.sh
+          trap 'rm -f "$path"' EXIT
+          test -f "$path" && test ! -L "$path"
+          chmod 700 "$path"
+          test "$(sha256sum "$path" | cut -d' ' -f1)" = "$1"
+          bash "$path"
+          REMOTE
+          grep -Fxq CV03_N105C06_REAL_QA_SCRAM_AND_ORIGINAL_DB_FENCE_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_PRIOR_RECEIPT_AND_FROZEN_SOURCE_FINGERPRINT_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_REAL_PG_ROW_LOCK_HOLDER_READY_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_TWO_DISTINCT_AUTHENTICATED_TCP_SESSIONS_CONTENDING_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_ACK_LOSS_CONCURRENT_REPLAY_SAME_RECEIPT_NO_OUTBOX_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_CROSS_ACTOR_HOST_GENERATION_DENIED_SOURCE_UNCHANGED_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_REAL_EVO_RUNTIME_HEALTH_AND_ORIGINAL_PRESERVED_PASS "$proof_file"
+          grep -Fxq CV03_N105C06_PHYSICAL_CONCURRENT_ACK_REPLAY_TERMINAL_PASS "$proof_file"
+          echo CV03_N105C06_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS
+
+      - name: Independent public HTTPS and unauthorized 401 remains
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=evo.43.167.252.197.sslip.io
+          curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health" | grep -Fq '"ok":true'
+          status="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$status" = 401
+          echo CV03_N105C06_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS
+
+      - name: Remove runner SSH materials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
