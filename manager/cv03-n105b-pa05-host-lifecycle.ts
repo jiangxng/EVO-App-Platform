@@ -8,33 +8,21 @@ import {CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010}
   from "./cv03-personal-saved-view-host-admission.js";
 
 /**
- * N1-05b/02: UNMOUNTED PA05 Host composition, not an HTTP/Agent handler.
- * Protects the actual AppManagerService disable()/uninstall() boundary by
- * requiring a package-wide PostgreSQL T0 DENY fence first. It does NOT
- * certify the future DBA-owned SQL function, AuthProvider, or producer identity.
- *
- * Real Host startup still refuses this uncertified Saved View Feature.
- * The current real enterprise-context Package is SHARED: its default
- * Feature provides required business infrastructure. Whole-package
- * disable/uninstall is therefore hard DENIED before any T0 call, even
- * when only the Saved View Feature remains active. This adapter applies
- * only to a separately scoped single-Feature test manifest until the
- * existing Manager gains approved feature-level lifecycle semantics.
- * Only a trusted Host operator (using its existing admin/Provider check) may
- * construct the input and choose the operation key/generation; neither can
- * come from Human/Agent JSON. The DB must independently authenticate those.
+ * N1-05b/04: UNMOUNTED Host-only Feature lifecycle adapter.
+ * Preserve the SHARED enterprise-context Package/default providers. A
+ * future DBA-owned T0 must persist full-scope Feature DENY + outbox before
+ * local Manager.deactivateFeature(), including offline/future subjects.
+ * Never wire this to production Host or user/Agent action without Owners.
+ * "UNINSTALL" cannot be relabeled as mere Feature deactivation.
  */
-export type Cv03N105bHostRemovalV010 = "DISABLE"|"UNINSTALL";
-type Manager = Pick<AppManagerService,
-  "listCatalog"|"getSnapshot"|"planDisable"|"planUninstall"|"disable"|"uninstall">;
+export type Cv03N105bHostRemovalV010="DISABLE"|"UNINSTALL";
+type Manager=Pick<AppManagerService,
+  "listCatalog"|"getSnapshot"|"planDeactivateFeature"|"deactivateFeature">;
 
 export function createCv03N105bPa05HostLifecycleBarrierV010(input:{
   manager:Manager;
   authority:Cv03N105bPackageFenceAuthorityV010;
-  /** Real Host operator authorization, including current Provider decision. */
-  authorizeHostOperator(operation:Cv03N105bHostRemovalV010):
-    Promise<boolean>;
-  /** Trusted current Owner generation (not a client-provided revision). */
+  authorizeHostOperator(operation:Cv03N105bHostRemovalV010):Promise<boolean>;
   sourceGeneration:string;
 }):{
   apply(operation:Cv03N105bHostRemovalV010,operationKey:string):
@@ -42,14 +30,12 @@ export function createCv03N105bPa05HostLifecycleBarrierV010(input:{
   recover(operation:Cv03N105bHostRemovalV010,operationKey:string):
     Promise<PlatformSnapshotV010>;
 }{
-  if(!input?.manager||!input?.authority ||
+  if(!input?.manager||!input?.authority||
      typeof input.authority.fencePackage!=="function"||
      typeof input.manager.listCatalog!=="function"||
      typeof input.manager.getSnapshot!=="function"||
-     typeof input.manager.planDisable!=="function"||
-     typeof input.manager.planUninstall!=="function"||
-     typeof input.manager.disable!=="function"||
-     typeof input.manager.uninstall!=="function"||
+     typeof input.manager.planDeactivateFeature!=="function"||
+     typeof input.manager.deactivateFeature!=="function"||
      typeof input.authorizeHostOperator!=="function"||
      typeof input.sourceGeneration!=="string"||
      !/^[a-zA-Z0-9][a-zA-Z0-9_-]{5,127}$/.test(input.sourceGeneration))
@@ -63,52 +49,35 @@ export function createCv03N105bPa05HostLifecycleBarrierV010(input:{
        typeof operationKey!=="string"||
        !/^[a-zA-Z0-9][a-zA-Z0-9_-]{7,99}$/.test(operationKey))
       throw Error("CV03_N105B_HOST_LIFECYCLE_REQUEST_INVALID");
+    if(operation==="UNINSTALL")
+      throw Error("CV03_N105B_HOST_FEATURE_UNINSTALL_UNSUPPORTED");
     if(busy)throw Error("CV03_N105B_HOST_LIFECYCLE_IN_FLIGHT");
     busy=true;
     try{
-      // Host operator check occurs before ANY authority or Manager mutation.
-      // A missing/throwing Provider is a denial, never a fallback to ALLOW.
       if(await input.authorizeHostOperator(operation)!==true)
         throw Error("CV03_N105B_HOST_LIFECYCLE_OPERATOR_DENIED");
-      // The real Host package contains DEFAULT enterprise-context, resource,
-      // definitions and template providers *besides* optional Saved Views.
-      // AppManagerService.disable/uninstall() affects the WHOLE package, not
-      // one Feature. Never let a Saved View-specific DENY cut destroy those
-      // unrelated platform abilities, even if the defaults are inactive.
-      const manifests=input.manager.listCatalog().filter(x=>x.packageId===packageId);
-      if(manifests.length!==1||manifests[0].features.length!==1||
-         manifests[0].features[0]?.featureId!==featureId)
-        throw Error("CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE");
+      const manifests=input.manager.listCatalog()
+        .filter(x=>x.packageId===packageId);
+      if(manifests.length!==1||
+         !manifests[0].features.some(x=>x.featureId===featureId))
+        throw Error("CV03_N105B_HOST_LIFECYCLE_FEATURE_MANIFEST_MISSING");
       const before=input.manager.getSnapshot();
       const beforeInstalled=before.installedPackages.find(x=>x.packageId===packageId);
       const beforeFeatures=before.activeFeatures.filter(x=>x.packageId===packageId)
         .map(x=>x.featureId).sort();
-      if(beforeFeatures.some(id=>id!==featureId))
-        throw Error("CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE");
-      const installed=before.installedPackages.some(x=>x.packageId===packageId);
       const active=before.activeFeatures.some(x=>
         x.packageId===packageId&&x.featureId===featureId);
-      if(!recovery&&(!installed||!active))
+      if(!recovery&&(!beforeInstalled||!active))
         throw Error("CV03_N105B_HOST_LIFECYCLE_UNADMITTED_FEATURE");
-      // Only the exact Saved View Feature may use this opt-in removal.
-      // For disable, if it is already absent after a crash, no local work
-      // is needed; uninstall still removes any remaining package metadata.
-      const needsMutation=operation==="DISABLE"?active:installed;
-      if(needsMutation){
-        const plan=operation==="DISABLE"?
-          input.manager.planDisable(packageId):
-          input.manager.planUninstall(packageId);
-        if(plan.blockers.length)
+      if(active){
+        const plan=input.manager.planDeactivateFeature(featureId);
+        if(plan.blockers.length||plan.packageId!==packageId||
+           plan.featureId!==featureId||
+           plan.deactivateFeatures.length!==1||
+           plan.deactivateFeatures[0]!==featureId)
           throw Error("CV03_N105B_HOST_LIFECYCLE_PLAN_BLOCKED");
-        if(plan.deactivateFeatures.length!==1||
-           plan.deactivateFeatures[0]!==featureId||
-           (operation==="UNINSTALL"&&
-             (plan.uninstallPackages.length!==1||
-              plan.uninstallPackages[0]!==packageId)))
-          throw Error("CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE");
       }
-      // Exactly ONE DB transaction must revoke the complete authority scope.
-      // Failure or partial/tampered result MUST NOT invoke local Manager.
+      // One proposed OWNER function call, not per-actor partial DENY loops.
       const receipt=await input.authority.fencePackage({
         operationKey,sourceGeneration:input.sourceGeneration,operation
       });
@@ -119,24 +88,21 @@ export function createCv03N105bPa05HostLifecycleBarrierV010(input:{
          !Number.isSafeInteger(receipt.scopesFenced)||
          receipt.scopesFenced<0||typeof receipt.replayed!=="boolean")
         throw Error("CV03_N105B_HOST_LIFECYCLE_FENCE_UNVERIFIABLE");
-      // A concurrent local lifecycle change needs independent reconciliation.
-      // DB DENY is persistent; NEVER roll it back if Manager fails.
+      // Freeze is durable in the proposed DB; do not revert if local
+      // deactivation throws. Reject any same-Package drift after the T0.
       const after=input.manager.getSnapshot();
       const afterInstalled=after.installedPackages.find(x=>x.packageId===packageId);
       const afterFeatures=after.activeFeatures.filter(x=>x.packageId===packageId)
         .map(x=>x.featureId).sort();
-      if(JSON.stringify(afterInstalled)!==JSON.stringify(beforeInstalled)||
-         JSON.stringify(afterFeatures)!==JSON.stringify(beforeFeatures))
+      if(JSON.stringify(beforeInstalled)!==JSON.stringify(afterInstalled)||
+         JSON.stringify(beforeFeatures)!==JSON.stringify(afterFeatures))
         throw Error("CV03_N105B_HOST_LIFECYCLE_LOCAL_DRIFT");
-      if(needsMutation){
-        if(operation==="DISABLE")input.manager.disable(packageId);
-        else input.manager.uninstall(packageId);
-      }
+      if(active)input.manager.deactivateFeature(featureId);
       return input.manager.getSnapshot();
     }finally{busy=false;}
   }
   return {
-    apply:(operation,key)=>execute(operation,key,false),
-    recover:(operation,key)=>execute(operation,key,true)
+    apply:(op,key)=>execute(op,key,false),
+    recover:(op,key)=>execute(op,key,true)
   };
 }
