@@ -1,0 +1,93 @@
+name: CV03 N1-05c-09 Owner Signoff and Production Release Integrity
+
+# This workflow NEVER certifies N1. It fails if the existing BLOCKED
+# production source boundary or live Owner coordination issue changes without
+# a separately reviewed production integration.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c09-owner-release-evidence.yml"
+      - "tools/cv03-n105c09-owner-evidence-release-gate.mjs"
+      - "tests/agent-line/cv03-n105c09-owner-evidence-release-gate.test.mjs"
+      - "docs/plans/foundation-list-experience/CV03-N105C-09-OWNER-RELEASE-EVIDENCE-GATE-20261111.md"
+      - "manager/server.ts"
+      - "manager/store.ts"
+      - "manager/service.ts"
+      - "manager/cv03-personal-saved-view-host-admission.ts"
+      - "manager/cv03-n105b-authority-t0-pg.ts"
+      - "manager/cv03-n105b-pa05-host-lifecycle.ts"
+      - "contracts/platform-services.ts"
+      - "providers/authorization/runtime.ts"
+      - "providers/enterprise-context/resources-postgres.ts"
+      - "providers/enterprise-context/package.ts"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c09-owner-release-evidence.yml"
+      - "tools/cv03-n105c09-owner-evidence-release-gate.mjs"
+      - "tests/agent-line/cv03-n105c09-owner-evidence-release-gate.test.mjs"
+      - "manager/server.ts"
+      - "manager/cv03-personal-saved-view-host-admission.ts"
+      - "manager/cv03-n105b-authority-t0-pg.ts"
+      - "manager/cv03-n105b-pa05-host-lifecycle.ts"
+  issues:
+    types: [edited, closed, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: cv03-n105c09-owner-evidence-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-and-live-owner-provenance:
+    if: github.event_name != 'issues' || github.event.issue.number == 1212
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Real production source topology must remain NOT_CERTIFIED
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/cv03-n105c09-owner-evidence-release-gate.mjs
+          node --test tests/agent-line/cv03-n105c09-owner-evidence-release-gate.test.mjs
+          node tools/cv03-n105a-authority-boundary-preflight.mjs --check > /dev/null
+          echo CV03_N105C09_SOURCE_BOUNDARY_AND_ADVERSARIAL_FIXTURES_PASS
+      - name: Read actual GitHub Owner issue and parallel PR metadata (not signoff)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = jiangxng/EVO-App-Platform
+          tmp="$(mktemp -d)"
+          trap 'rm -rf -- "$tmp"' EXIT
+          umask 077
+          gh api "repos/$GITHUB_REPOSITORY/issues/1212" > "$tmp/issue.json"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/1184" > "$tmp/managed.json"
+          jq -n --slurpfile issue "$tmp/issue.json" \
+             --slurpfile managed "$tmp/managed.json" \
+             '{issue:$issue[0],managedDocsPr:$managed[0]}' > "$tmp/context.json"
+          node tools/cv03-n105c09-owner-evidence-release-gate.mjs \
+            --check --input "$tmp/context.json" > "$tmp/report.json"
+          jq -e '.gateStatus=="EXPECTED_BLOCKED_BASELINE"
+            and .certification=="NOT_CERTIFIED"
+            and .releaseDecision=="DENY_NO_PRODUCTION_OWNER_APPROVED_INTEGRATION"
+            and .checkedBoxesAreApproval==false
+            and .checks.ownerIssueOpen==true
+            and .checks.humanSaveAdmissionStillHardDenied==true' \
+            "$tmp/report.json" > /dev/null
+          echo CV03_N105C09_LIVE_GITHUB_OWNER_ISSUE_OPEN_UNCERTIFIED_PASS
+          echo CV03_N105C09_CHECKED_BOXES_DO_NOT_CONSTITUTE_OWNER_APPROVAL_PASS
+          echo CV03_N105C09_REAL_HOST_SAVE_ADMISSION_STILL_OFF_PASS
+          echo CV03_N105C09_RELEASE_CERTIFICATION_NOT_GRANTED_TERMINAL_PASS
