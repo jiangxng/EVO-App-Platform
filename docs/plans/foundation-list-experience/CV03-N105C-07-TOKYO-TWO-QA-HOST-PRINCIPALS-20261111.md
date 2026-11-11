@@ -1,6 +1,6 @@
 # CV-03 / N1-05c-07 — Second distinct Tokyo QA SQL Host identity
 
-> **STATE: SOURCE PR; PHYSICAL TOKYO RESULTS PENDING.** 2026-11-11. This is a bounded QA Producer identity hardening and negative scope proof; it is NOT a production Host deployment, KMS identity, canonical PA05/AuthorizationProvider migration or N1 certification.
+> **STATE: ACTUAL TOKYO PHYSICAL TWO SQL QA HOST PRINCIPALS VERIFIED; N1 NOT CERTIFIED.** 2026-11-11. This is a bounded QA Producer identity hardening and negative scope proof; it is NOT a production Host deployment, KMS identity, canonical PA05/AuthorizationProvider migration or N1 certification.
 
 ## G / exact inherited trusted baseline
 
@@ -26,4 +26,16 @@
 
 ## Physical acceptance
 
-Pending protected-main Tokyo Actions run/job, exact marks, branch hygiene and independent evidence PR. Never claim physical PASS merely because source PR is merged.
+The actual protected-main physical run was verified; see appended observed G below. Keep Branch Hygiene and independent evidence PR separately verified.
+
+## G / protected-main physical identity separation and SQL negative proof (2026-11-11)
+
+- The implementation [PR #1244](https://github.com/jiangxng/EVO-App-Platform/pull/1244) passed exact-head source Bash syntax, Project Continuity, Lightweight Host and Human UI checks (including post-source rollback correction for an ambiguous `CREATE ROLE` committed-but-ACK-lost case) and merged as `main@6dcf3cb251ba53917eea9be98ad03873b23a5a72`.
+- Real protected-main Tokyo [Actions #43048753191](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43048753191), job `130619782779`, concluded **SUCCESS**. The **original job log** was inspected and found all expected strict terminal markers, not merely a green Actions summary.
+- Before any new LOGIN was created: `CV03_N105C07_STRICT_EXISTING_HOST01_T0_HBA_AND_APP_BASELINE_PASS`, `CV03_N105C07_PRIVATE_PRELOGIN_HBA_BACKUP_PASS` and `CV03_N105C07_SECOND_HOST_ORIGINAL_DB_HBA_LOADED_BEFORE_LOGIN_PASS`. The original application continued connecting throughout.
+- Actual separate credentials and sessions: `CV03_N105C07_TWO_DISTINCT_SCRAM_LOGINS_QA_ONLY_AND_CROSS_PASSWORD_DENY_PASS` and `CV03_N105C07_CONCURRENT_SEPARATE_HOST_SQL_LOGIN_IDENTITIES_PASS`. Host01 and Host02 have different authenticated PostgreSQL `SESSION_USER` values and credentials; they were simultaneously visible to the database, with the wrong cross-credential attempts denied.
+- Real QA Owner T0 rejects: `CV03_N105C07_DB_OWNED_FROZEN_SOURCE_CROSS_HOST_AND_REPLAY_DENIAL_PASS`. Host01↔Host02 spoofed Host IDs were denied; Host02's valid identity reached Owner T0 but the persisted global `FROZEN` authority denied a fresh operation; Host02 could not adopt Host01's idempotency receipt.
+- Least-privilege and state integrity: `CV03_N105C07_DIRECT_DML_DENIED_AND_ORIGINAL_QA_SOURCE_FINGERPRINTS_UNCHANGED_PASS`. Direct DML, SQL Owner role switching and Producer registry read were refused; original business DB object inventory and QA authority/epoch/Outbox/Receipt fingerprints remained unchanged.
+- Health and completion: `CV03_N105C07_EVO_RUNTIME_AND_TWO_QA_PRINCIPALS_STAY_HEALTHY_PASS`, `CV03_N105C07_SECOND_QA_HOST_PHYSICAL_TERMINAL_PASS`, `CV03_N105C07_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS`, `CV03_N105C07_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS`. Neither forced rollback nor real network-partition/crash was executed; successful run did not trigger rollback.
+
+**Strict limit:** two **independent authenticated SQL QA Producer principals** on the same PostgreSQL cluster, not two independent servers or production Host deployments. The target persisted T0 data remains synthetic QA, not the actual PA05/AuthorizationProvider source of truth; Host identity uses locally private passwords, not KMS-backed signed workload credentials. Existing local PostgreSQL `trust` recovery entries remain for privileged hosts. This does not establish production tenant isolation, full replay resilience, PITR, disaster recovery, or named independent PA05/DB/Security Owner approvals. `N1=NOT_CERTIFIED`; `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`; formal SAVE POST 403, unregistered GET 404; [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) OPEN; #1184 Owner docs unchanged.
