@@ -79,3 +79,10 @@ At main `d27794869fc192cb85078edd5ea6970f4b6d41ae`, following the first complete
 **P remains pending:** #1212 is assigned to the repository maintainer **for coordination**, not signed by the PA05, Authorization, DB or Security Owners. No production primary/schema/SQL LOGIN, workload identity/KMS, recovery SLO, deployment, Owner approval or Human acceptance is claimed. N1=NOT_CERTIFIED; APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF; SAVE 403, unregistered GET 404 unchanged. No new vendor EX sources were read and #1184's owner-controlled files were not touched.
 
 **Acceptance:** exact PR-HEAD `node --test tests/agent-line/cv03-n105a-authority-boundary-preflight.test.mjs`, source preflight `--check` and all project-required Actions; merge and hygiene only after green. Four tests include a deliberate mutation of the default enterprise repository creation path to force `DRIFT_REQUIRES_MANUAL_REVIEW`. This is **not** a re-run of the 38 PostgreSQL 18 isolation tests.
+
+
+## N1-05b start decision — 2026-11-11
+
+**Project-user architecture decision (D):** user explicitly replied **“同意方案 A”**; candidate A unified PostgreSQL T0 authority/outbox is selected for implementation. Candidate B is not approved. See [N1-05b-01 bounded runtime work](CV03-N105B-01-APPROVED-A-DENY-T0-SEAM-20261111.md) and [Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212).
+
+**Production signoff (P) remains missing:** real PA05 Lifecycle/AuthorizationProvider/DB/Security responsible-party approvals, deployed Provider and database identities, Producer credentials/KMS, schema/roles and recovery/rollback evidence. The fact Issue #1212 was closed after checklist ticks does not prove these; it has been reopened for evidentiary completion. Do not report N1-05a fully certified or N1-05b real T0 integrated. SAVE_MODE OFF, POST 403, unregistered GET 404 and N1=NOT_CERTIFIED remain.
