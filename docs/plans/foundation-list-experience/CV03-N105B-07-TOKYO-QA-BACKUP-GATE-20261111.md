@@ -43,3 +43,24 @@ These three official pages were actually opened this window, unlike unverified h
 A completed private logical backup by itself does **not** certify restore ability, point-in-time recovery, platform uptime, cloud snapshot coverage, or a new QA role. Later SQL/role migrations must be confined to a distinct database, with reversible commands verified before use, and independently checked physical LOGIN/GRANT/DML denial. No actual data or secrets should enter repo documents or Actions artifacts.
 
 **PR discipline:** independent branch → Draft PR → exact-head required CI → merge `main` → SHA-safe Branch Hygiene. Read-only / backup evidence is an engineering milestone only, not an Owner signature.
+
+## N1-05b-07b — First Tokyo run and explicit terminal-evidence correction (2026-11-11)
+
+**G (actual Actions original job log):** [Run #43015746709](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43015746709), job 130506246229, concluded SUCCESS on main f2b9ac6fcf0fbc6c1858eca04e27d2bb80bc5a19. The SSH log recorded PostgreSQL healthy and:
+
+| Actual marker | Observed |
+| --- | --- |
+| DISK_FREE_KB | 46368980 |
+| MEM_AVAILABLE_MB | 2507 |
+| PG_SERVER_VERSION | 170011 (PG 17.11) |
+| ORIGINAL_DATABASE | evo_dev |
+| DATABASE_BYTES | 8025779 |
+| ARCHIVE_MODE | off — no PITR evidence |
+| TARGET_DB_EXISTS | false |
+| EXISTING_QA_ROLES | 0 |
+
+**Important gap:** the same original job log did **not** contain terminal markers for PRIVATE_BACKUP_ARCHIVE_VALID_PASS, LOGICAL_BACKUP_BYTES or NO_LIVE_DB_DDL_OR_DML_PASS even though the job concluded SUCCESS. The workflow source does contain these expected commands but that does not prove they ran. Consequently **backup remains unverified** and QA database creation remains blocked. Do not mistake echoed source code for runtime output.
+
+**D correction:** capture complete remote SSH stdout on the runner and require exact terminal completion proof, otherwise fail the run even if SSH exits zero. After the correction's exact-head CI and main merge, examine runtime terminal proof and archive bytes. This changes no production authorization or release switch.
+
+**P:** verified backup, complete restore, QA roles and isolation, real PostgreSQL T0/immutable outbox, SESSION_USER/SECURITY DEFINER ACL denial, independent DB/Security signoff all remain separately pending.

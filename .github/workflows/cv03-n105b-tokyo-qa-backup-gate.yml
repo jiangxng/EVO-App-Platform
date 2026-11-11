@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
             evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
           set -euo pipefail
           umask 077
@@ -99,7 +99,8 @@ jobs:
           trap 'rm -f -- "$candidate"' EXIT
           chmod 600 "$candidate"
           docker compose exec -T postgres pg_dump \
-            -U evo -d evo_dev --format=custom --no-owner --no-acl > "$candidate"
+            -U evo -d evo_dev --format=custom --no-owner --no-acl \
+            < /dev/null > "$candidate"
           test "$(stat -c %s "$candidate")" -ge 1024
           docker compose exec -T postgres pg_restore --list < "$candidate" > /dev/null
           saved="${candidate%.partial}.dump"
@@ -111,6 +112,15 @@ jobs:
           echo CV03_TOKYO_QA_BACKUP_NOT_FULL_RESTORE_VERIFIED
           echo CV03_TOKYO_QA_NO_LIVE_DB_DDL_OR_DML_PASS
           REMOTE
+          )"
+          # SSH exit code alone is not proof that the remote script ran to
+          # completion. The prior live Actions log stopped at the SQL inventory
+          # despite a green job. Require terminal proof from the remote shell.
+          printf '%s\n' "$proof"
+          grep -Fqx CV03_TOKYO_QA_PRIVATE_BACKUP_ARCHIVE_VALID_PASS <<< "$proof"
+          grep -Fqx CV03_TOKYO_QA_BACKUP_NOT_FULL_RESTORE_VERIFIED <<< "$proof"
+          grep -Fqx CV03_TOKYO_QA_NO_LIVE_DB_DDL_OR_DML_PASS <<< "$proof"
+          echo CV03_TOKYO_QA_BACKUP_TERMINAL_PROOF_ENFORCED_PASS
 
       - name: Remove temporary GitHub runner SSH credentials
         if: always()
