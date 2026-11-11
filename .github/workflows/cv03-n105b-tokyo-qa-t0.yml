@@ -1,0 +1,215 @@
+name: CV03 N1-05b-08 Tokyo QA Physical PostgreSQL T0 and Privilege Acceptance
+
+# Trusted main only. Performs CREATE/GRANT only in isolated QA DB and
+# namespaced QA roles. Does not touch evo_dev schema/data or deploy runtime.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105b-tokyo-qa-t0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105b-tokyo-qa-t0
+  cancel-in-progress: false
+
+jobs:
+  physical-qa-t0:
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Verify current protected main and stage reviewed QA-only SQL
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY"
+          test -n "$HOST_KEYS"
+          test -f deploy/tencent-tokyo/cv03-n105b-qa-t0.sql
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          scp -q -o StrictHostKeyChecking=yes \
+            deploy/tencent-tokyo/cv03-n105b-qa-t0.sql \
+            evo-deploy@43.167.252.197:/home/evo-deploy/.cv03-n105b-qa-t0.sql
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 \
+            'chmod 600 /home/evo-deploy/.cv03-n105b-qa-t0.sql'
+          echo CV03_QA_STAGED_TRUSTED_MAIN_SQL_PASS
+
+      - name: Provision QA-only database and prove real PostgreSQL role/T0 behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sql_sha="$(sha256sum deploy/tencent-tokyo/cv03-n105b-qa-t0.sql | cut -d' ' -f1)"
+          [[ "$expected_sql_sha" =~ ^[0-9a-f]{64}$ ]]
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 "EXPECTED_SQL_SHA=$expected_sql_sha bash -se" <<'REMOTE'
+          set -euo pipefail
+          umask 077
+          test "$(id -un)" = evo-deploy
+          cd /opt/evo-tokyo
+          test -r compose.yaml
+          test -f .env
+          sqlfile="$HOME/.cv03-n105b-qa-t0.sql"
+          trap 'rm -f "$sqlfile"' EXIT
+          test -f "$sqlfile"
+          test ! -L "$sqlfile"
+          test "$(sha256sum "$sqlfile" | cut -d' ' -f1)" = "$EXPECTED_SQL_SHA"
+          test "$(stat -c %a "$sqlfile")" = 600
+          container="$(docker compose ps -q postgres)"
+          test -n "$container"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container")" = healthy
+          test "$(df -Pk "$HOME" | awk 'NR==2 {print $4}')" -ge 2097152
+          test "$(free -m | awk '/^Mem:/ {print $7}')" -ge 256
+          echo CV03_QA_SAFE_CAPACITY_AND_SQL_SHA_PASS
+
+          # Verify previous fully completed private backup, not merely a green run.
+          backups="$HOME/.evo-cv03-qa-backups"
+          test -d "$backups"
+          test ! -L "$backups"
+          test "$(stat -c %a "$backups")" = 700
+          backup="$(find "$backups" -maxdepth 1 -type f -name '*.dump' -mmin -1440 -print -quit)"
+          test -n "$backup"
+          test "$(stat -c %a "$backup")" = 600
+          test "$(stat -c %s "$backup")" -ge 1024
+          docker compose exec -T postgres pg_restore --list < "$backup" > /dev/null
+          echo CV03_QA_VERIFIED_PRIVATE_BACKUP_PREREQUISITE_PASS
+
+          # Never reuse an existing QA DB or partially provisioned role set.
+          existing="$(docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -qAt \
+            -U evo -d postgres -c "SELECT
+              (SELECT count(*) FROM pg_database WHERE datname='cv03_n105b_qa') +
+              (SELECT count(*) FROM pg_roles WHERE rolname IN
+                ('cv03_n105b_qa_owner','cv03_n105b_qa_producer','cv03_n105b_qa_untrusted'))" < /dev/null)"
+          test "$existing" = 0
+          test "$(docker compose exec -T postgres psql -X -v ON_ERROR_STOP=1 -qAt \
+            -U evo -d postgres -c "SELECT current_setting('server_version_num')" < /dev/null)" = 170011
+          echo CV03_QA_NO_EXISTING_DB_OR_ROLE_COLLISION_PASS
+
+          docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+            -U evo -d postgres <<'SQL'
+          BEGIN;
+          CREATE ROLE cv03_n105b_qa_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+          -- QA-only role has NO password and is usable solely via trusted local
+          -- socket auth for physical ACL tests; NOT a production network LOGIN.
+          CREATE ROLE cv03_n105b_qa_producer LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD NULL;
+          CREATE ROLE cv03_n105b_qa_untrusted LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD NULL;
+          COMMIT;
+          SQL
+          docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+            -U evo -d postgres -c 'CREATE DATABASE cv03_n105b_qa OWNER cv03_n105b_qa_owner TEMPLATE template0' < /dev/null
+          docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+            -U evo -d postgres <<'SQL'
+          REVOKE ALL ON DATABASE cv03_n105b_qa FROM PUBLIC;
+          GRANT CONNECT ON DATABASE cv03_n105b_qa TO cv03_n105b_qa_producer,cv03_n105b_qa_untrusted;
+          SQL
+          echo CV03_QA_ISOLATED_DATABASE_AND_NON_SUPERUSER_ROLES_CREATED_PASS
+
+          docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+            -U evo -d cv03_n105b_qa < "$sqlfile"
+          echo CV03_QA_REAL_POSTGRESQL_T0_FUNCTIONS_INSTALLED_PASS
+
+          # Physical SESSION_USER is the restricted role, not a superuser SET ROLE.
+          session="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa \
+            -c "SELECT session_user||'|'||current_user" < /dev/null)"
+          test "$session" = 'cv03_n105b_qa_producer|cv03_n105b_qa_producer'
+          echo CV03_QA_PHYSICAL_NON_SUPERUSER_SESSION_PASS
+
+          deny_sql="SELECT authenticated_host_id||'|'||authority_epoch::text||'|'||
+            enabled::text||'|'||replayed::text||'|'||outbox_event_id
+            FROM cv03_n105b_qa.cv03_n105b_commit_deny_t0(
+             'tokyo-qa-host-01','qa-deny-operation-0001','enterprise-context:qa-ent-01',
+             'qa-ent-01','qa-human-01','HUMAN','qa-gen-20261111',0,
+             'AUTHORIZATION_REVOKE','collection.saved-view.personal.save')"
+          first="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa -c "$deny_sql" < /dev/null)"
+          [[ "$first" == tokyo-qa-host-01\|1\|false\|false\|evt-* ]]
+          replay="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa -c "$deny_sql" < /dev/null)"
+          [[ "$replay" == tokyo-qa-host-01\|1\|false\|true\|evt-* ]]
+          echo CV03_QA_ATOMIC_DENY_AND_IDEMPOTENT_REPLAY_PASS
+
+          # Direct table DML / owner takeover / untrusted function use must fail.
+          if docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+             -U cv03_n105b_qa_producer -d cv03_n105b_qa \
+             -c "UPDATE cv03_n105b_qa.scope_authority SET enabled=true" \
+             < /dev/null > /dev/null 2>&1; then exit 1; fi
+          if docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+             -U cv03_n105b_qa_producer -d cv03_n105b_qa \
+             -c "DELETE FROM cv03_n105b_qa.immutable_outbox" \
+             < /dev/null > /dev/null 2>&1; then exit 1; fi
+          if docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+             -U cv03_n105b_qa_producer -d cv03_n105b_qa -c "SET ROLE cv03_n105b_qa_owner" \
+             < /dev/null > /dev/null 2>&1; then exit 1; fi
+          if docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+             -U cv03_n105b_qa_untrusted -d cv03_n105b_qa -c "$deny_sql" \
+             < /dev/null > /dev/null 2>&1; then exit 1; fi
+          echo CV03_QA_PHYSICAL_DIRECT_DML_SET_ROLE_UNTRUSTED_DENY_PASS
+
+          # Rollback AI scope and outbox together, then freeze other offline
+          # scopes in one database T0. Never touch actual business data.
+          docker compose exec -T postgres psql -X -q -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa <<'SQL'
+          BEGIN;
+          SELECT * FROM cv03_n105b_qa.cv03_n105b_commit_deny_t0(
+           'tokyo-qa-host-01','qa-rollback-operation-0001','enterprise-context:qa-ent-01',
+           'qa-ent-01','qa-ai-01','AI','qa-gen-20261111',0,
+           'AUTHORIZATION_REVOKE','collection.saved-view.personal.save');
+          ROLLBACK;
+          SQL
+          pre="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U evo -d cv03_n105b_qa -c "SELECT
+              (SELECT count(*) FROM cv03_n105b_qa.scope_authority WHERE enabled)::text||'|'||
+              (SELECT count(*) FROM cv03_n105b_qa.immutable_outbox)::text" < /dev/null)"
+          test "$pre" = '2|1'
+          fence="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa \
+            -c "SELECT package_state||'|'||scope_count::text||'|'||replayed::text
+             FROM cv03_n105b_qa.cv03_n105b_fence_package_t0(
+               'tokyo-qa-host-01','qa-feature-fence-0001',
+               'host-enterprise-context-provider',
+               'host-enterprise-context-provider.personal-saved-views',
+               'qa-gen-20261111','DISABLE')" < /dev/null)"
+          test "$fence" = 'FROZEN_ALL_SCOPES|2|false'
+          frozen="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U evo -d cv03_n105b_qa -c "SELECT
+              (SELECT count(*) FROM cv03_n105b_qa.scope_authority WHERE enabled)::text||'|'||
+              (SELECT count(*) FROM cv03_n105b_qa.immutable_outbox)::text||'|'||
+              (SELECT frozen FROM cv03_n105b_qa.feature_authority)::text" < /dev/null)"
+          test "$frozen" = '0|2|true'
+          echo CV03_QA_ROLLBACK_OUTBOX_AND_ALL_SCOPE_T0_FENCE_PASS
+
+          original="$(docker compose exec -T postgres psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U evo -d evo_dev -c "SELECT count(*) FROM pg_namespace WHERE nspname='cv03_n105b_qa'" < /dev/null)"
+          test "$original" = 0
+          echo CV03_QA_ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS
+          echo CV03_QA_REAL_SQL_TRANSACTION_AND_LEAST_PRIVILEGE_ACCEPTANCE_PASS
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fqx CV03_QA_REAL_SQL_TRANSACTION_AND_LEAST_PRIVILEGE_ACCEPTANCE_PASS <<< "$proof"
+          grep -Fqx CV03_QA_ORIGINAL_EVO_DEV_SCHEMA_UNCHANGED_PASS <<< "$proof"
+          echo CV03_QA_TERMINAL_SQL_EVIDENCE_ENFORCED_PASS
+
+      - name: Remove temporary GitHub runner credentials
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"

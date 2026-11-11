@@ -1,0 +1,70 @@
+name: CV03 N1-05b PG17 QA T0 Physical SQL PR Test
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105b-pg17-qa-t0-pr.yml"
+      - ".github/workflows/cv03-n105b-tokyo-qa-t0.yml"
+      - "deploy/tencent-tokyo/cv03-n105b-qa-t0.sql"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  physical-sql-isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Execute the identical QA SQL in disposable actual PostgreSQL 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name cv03-n105b-pg17-qa --network none \
+            -e POSTGRES_USER=evo -e POSTGRES_PASSWORD=ci-only-not-production \
+            -e POSTGRES_DB=postgres postgres:17-alpine > /dev/null
+          trap 'docker rm -f cv03-n105b-pg17-qa >/dev/null 2>&1 || true' EXIT
+          for n in $(seq 1 40); do
+            if docker exec cv03-n105b-pg17-qa pg_isready -U evo -d postgres >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec cv03-n105b-pg17-qa pg_isready -U evo -d postgres
+          docker exec -i cv03-n105b-pg17-qa psql -X -v ON_ERROR_STOP=1 -q -U evo -d postgres <<'SQL'
+          CREATE ROLE cv03_n105b_qa_owner NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+          CREATE ROLE cv03_n105b_qa_producer LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD NULL;
+          CREATE ROLE cv03_n105b_qa_untrusted LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD NULL;
+          CREATE DATABASE cv03_n105b_qa OWNER cv03_n105b_qa_owner TEMPLATE template0;
+          REVOKE ALL ON DATABASE cv03_n105b_qa FROM PUBLIC;
+          GRANT CONNECT ON DATABASE cv03_n105b_qa TO cv03_n105b_qa_producer,cv03_n105b_qa_untrusted;
+          SQL
+          docker exec -i cv03-n105b-pg17-qa psql -X -q -v ON_ERROR_STOP=1 \
+            -U evo -d cv03_n105b_qa < deploy/tencent-tokyo/cv03-n105b-qa-t0.sql
+          echo CV03_PG17_QA_REAL_MIGRATION_PASS
+          who="$(docker exec cv03-n105b-pg17-qa psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa -c 'SELECT session_user')"
+          test "$who" = cv03_n105b_qa_producer
+          first="$(docker exec cv03-n105b-pg17-qa psql -X -qAt -v ON_ERROR_STOP=1 \
+            -U cv03_n105b_qa_producer -d cv03_n105b_qa -c \
+            "SELECT authority_epoch::text||'|'||replayed::text FROM
+             cv03_n105b_qa.cv03_n105b_commit_deny_t0(
+              'tokyo-qa-host-01','qa-pr-deny-0001','enterprise-context:qa-ent-01',
+              'qa-ent-01','qa-human-01','HUMAN','qa-gen-20261111',0,
+              'AUTHORIZATION_REVOKE','collection.saved-view.personal.save')")"
+          test "$first" = '1|false'
+          echo CV03_PG17_QA_NON_SUPERUSER_DENY_T0_PASS
+          if docker exec cv03-n105b-pg17-qa psql -X -q -v ON_ERROR_STOP=1 \
+             -U cv03_n105b_qa_producer -d cv03_n105b_qa \
+             -c "DELETE FROM cv03_n105b_qa.immutable_outbox" >/dev/null 2>&1; then exit 1; fi
+          if docker exec cv03-n105b-pg17-qa psql -X -q -v ON_ERROR_STOP=1 \
+             -U cv03_n105b_qa_untrusted -d cv03_n105b_qa \
+             -c "SELECT * FROM cv03_n105b_qa.cv03_n105b_commit_deny_t0(
+              'tokyo-qa-host-01','qa-pr-deny-0002','enterprise-context:qa-ent-01',
+              'qa-ent-01','qa-ai-01','AI','qa-gen-20261111',0,
+              'AUTHORIZATION_REVOKE','collection.saved-view.personal.save')" \
+              >/dev/null 2>&1; then exit 1; fi
+          echo CV03_PG17_QA_EXECUTE_ONLY_AND_PUBLIC_REVOKE_PASS
