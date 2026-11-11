@@ -13,6 +13,7 @@ export const CV03_N105A_SOURCE_FILES = Object.freeze([
   "manager/service.ts",
   "manager/server.ts",
   "manager/cv03-personal-saved-view-host-admission.ts",
+  "contracts/platform-services.ts",
   "providers/authorization/runtime.ts",
   "providers/enterprise-context/resources-postgres.ts",
   "providers/enterprise-context/package.ts",
@@ -20,6 +21,26 @@ export const CV03_N105A_SOURCE_FILES = Object.freeze([
 ]);
 
 const evidence = Object.freeze([
+  {
+    id:"HOST_RESOURCE_DEFAULT_IS_FILE_OR_MEMORY",
+    file:"manager/server.ts",
+    matches:s=>s.includes("const enterpriseResourceRepository =")
+      &&s.includes("createFileEnterpriseResourceRepositoryV010(")
+      &&s.includes(": createMemoryEnterpriseResourceRepositoryV010()")
+  },
+  {
+    id:"HOST_AUTHORIZATION_HAS_STATIC_OVERLAY",
+    file:"manager/server.ts",
+    matches:s=>s.includes("APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON")
+      &&s.includes("createHostStaticAuthorizationProviderV010(authorizationPolicy)")
+  },
+  {
+    id:"AUTHORIZATION_PROVIDER_V010_CHECK_ONLY_CONTRACT",
+    file:"contracts/platform-services.ts",
+    matches:s=>s.includes("export interface AuthorizationProviderV010")
+      &&s.includes("input: AuthorizationCheckV010")
+      &&s.includes("Promise<AuthorizationDecisionV010> | AuthorizationDecisionV010")
+  },
   {
     id:"PA05_FILE_MEMORY_STORE",
     file:"manager/server.ts",
