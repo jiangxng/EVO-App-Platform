@@ -1,5 +1,6 @@
 import type {
   FeatureManifestV010,
+  FeatureLifecyclePlanV010,
   InstallPlanV010,
   PackageLifecyclePlanV010,
   PackageUpgradePlanV010,
@@ -57,6 +58,10 @@ export interface AppManagerService {
   upgrade(packageId: string, authorization?: InstallAuthorizationV010): PlatformSnapshotV010;
   activateForEvent(eventName: string): PlatformSnapshotV010;
   enable(packageId: string): PlatformSnapshotV010;
+  /** Local Host-only operation, never an Agent or HTTP action. */
+  planDeactivateFeature(featureId: string): FeatureLifecyclePlanV010;
+  /** Remote Owner T0 revocation must be committed BEFORE calling. */
+  deactivateFeature(featureId: string): PlatformSnapshotV010;
   planDisable(packageId: string): PackageLifecyclePlanV010;
   disable(packageId: string): PlatformSnapshotV010;
   planUninstall(packageId: string): PackageLifecyclePlanV010;
@@ -677,6 +682,81 @@ export function createAppManagerService(
     return getSnapshot();
   }
 
+  /**
+   * Plan one Feature cut with dependency checks across every remaining active
+   * Feature, including siblings from the same Package and foreign consumers.
+   * Not an authorization or a distributed revocation check.
+   */
+  function planDeactivateFeature(featureId: string): FeatureLifecyclePlanV010 {
+    const snapshot=store.snapshot();
+    const active=snapshot.activeFeatures.find(x=>x.featureId===featureId);
+    const blockers: Array<{code:string;message:string}>=[];
+    const packageId=active?.packageId ?? "";
+    if(!active){
+      blockers.push({code:"FEATURE_NOT_ACTIVE",
+        message:`Feature '${featureId}' is not currently active.`});
+    }
+    const manifest=active
+      ? catalog.get(active.packageId)?.features.find(x=>x.featureId===featureId)
+      : undefined;
+    if(active&&!store.getInstalledPackage(active.packageId))
+      blockers.push({code:"FEATURE_OWNER_NOT_INSTALLED",
+        message:`Feature '${featureId}' has no installed owning Package.`});
+    if(active&&!manifest)
+      blockers.push({code:"FEATURE_MANIFEST_NOT_FOUND",
+        message:`Feature '${featureId}' has no current catalog manifest.`});
+    if(manifest && blockers.length===0){
+      const remaining=snapshot.activeFeatures.filter(x=>x.featureId!==featureId);
+      const survivorManifests=remaining.map(record=>({
+        record,
+        feature:catalog.get(record.packageId)?.features.find(x=>x.featureId===record.featureId)
+      }));
+      const survivorCapabilities=new Set(survivorManifests.flatMap(x=>
+        x.feature?.providesCapabilities ?? []));
+      for(const {record,feature} of survivorManifests){
+        if(!feature){
+          blockers.push({code:"ACTIVE_DEPENDENT_MANIFEST_UNKNOWN",
+            message:`Active Feature '${record.featureId}' cannot be dependency-audited.`});
+          continue;
+        }
+        if((feature.requiresFeatures??[]).includes(featureId))
+          blockers.push({code:"ACTIVE_DEPENDENT_FEATURE",
+            message:`Active Feature '${record.featureId}' requires '${featureId}'.`});
+        for(const cap of manifest.providesCapabilities??[]){
+          if((feature.requiresCapabilities??[]).includes(cap)&&
+             !survivorCapabilities.has(cap)){
+            blockers.push({code:"ACTIVE_DEPENDENT_CAPABILITY",
+              message:`Active Feature '${record.featureId}' requires Capability '${cap}'.`});
+          }
+        }
+      }
+    }
+    return {
+      contractVersion:"0.1.0",operation:"DEACTIVATE",
+      packageId,featureId,
+      deactivateFeatures:active&&blockers.length===0?[featureId]:[],
+      blockers,sideEffectFree:true
+    };
+  }
+
+  function deactivateFeature(featureId: string): PlatformSnapshotV010 {
+    const plan=planDeactivateFeature(featureId);
+    if(plan.blockers.length||plan.deactivateFeatures.length!==1)
+      throw Error(`FEATURE_DEACTIVATION_BLOCKED: ${JSON.stringify(plan.blockers)}`);
+    const active=store.getActiveFeature(featureId);
+    if(!active||active.packageId!==plan.packageId)
+      throw Error("FEATURE_DEACTIVATION_STATE_DRIFT");
+    // Local failure-atomic delete. Host Owner must commit remote DENY
+    // and durable outbox T0 before invoking this internal operation.
+    store.deleteActiveFeature(featureId);
+    onLifecycleEvent({
+      contractVersion:"0.1.0",type:"FEATURE_DEACTIVATED",
+      packageId:active.packageId,featureId,
+      occurredAt:now().toISOString()
+    });
+    return getSnapshot();
+  }
+
   function lifecyclePlan(
     packageId: string,
     operation: "DISABLE" | "UNINSTALL"
@@ -1156,6 +1236,8 @@ export function createAppManagerService(
     upgrade,
     activateForEvent,
     enable,
+    planDeactivateFeature,
+    deactivateFeature,
     planDisable,
     disable,
     planUninstall,
