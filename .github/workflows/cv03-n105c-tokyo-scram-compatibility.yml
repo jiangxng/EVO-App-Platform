@@ -1,0 +1,127 @@
+name: CV03 N1-05c Tokyo EVO Postgres SCRAM Credential Compatibility
+
+# Verify stored PostgreSQL SCRAM verifier vs EVO's configured password
+# entirely on the existing Tokyo host. No change to pg_hba, roles or DB.
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/cv03-n105c-tokyo-scram-compatibility.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c-tokyo-scram-compatibility
+  cancel-in-progress: false
+
+jobs:
+  verify-existing-credentials:
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 8
+    steps:
+      - name: Verify exact main and pinned Tokyo SSH
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" >/dev/null
+          echo CV03_N105C_SCRAM_EXACT_MAIN_SSH_PASS
+
+      - name: Read-only cryptographic verifier match on actual Tokyo containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          test "$(id -un)" = evo-deploy
+          cd /opt/evo-tokyo
+          test -f .env && test -r compose.yaml
+          test -f .last-health-pass-sha
+          sha="$(cat .last-health-pass-sha)"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          for service in postgres evo; do
+            container="$(docker compose ps -q "$service")"
+            test -n "$container"
+            test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container")" = healthy
+          done
+          echo CV03_N105C_SCRAM_ORIGINAL_CONTAINERS_HEALTHY_PASS
+
+          # Original role hash never goes to GitHub logs, artifacts or files.
+          stored="$(docker compose exec -T --interactive=false postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d postgres \
+            -c "SELECT rolpassword FROM pg_authid WHERE rolname='evo'" < /dev/null)"
+          [[ "$stored" == SCRAM-SHA-256\$* ]]
+          test "$(docker compose exec -T --interactive=false postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d postgres \
+            -c "SELECT current_setting('server_version_num')" < /dev/null)" = 170011
+
+          # Execute Node solely INSIDE existing EVO container: its current
+          # APP_PLATFORM_CONVERSATION_DATABASE_URL is available to that process.
+          # The password and verifier never leave Tokyo or appear in stdout.
+          node_code="$(cat <<'JSCODE'
+          const crypto=require("node:crypto");
+          const fs=require("node:fs");
+          const verifier=fs.readFileSync(0,"utf8").trim();
+          const m=/^SCRAM-SHA-256\$(\d+):([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+):([A-Za-z0-9+/=]+)$/.exec(verifier);
+          if(!m)process.exit(2);
+          const uri=process.env.APP_PLATFORM_CONVERSATION_DATABASE_URL;
+          if(typeof uri!=="string"||!uri.startsWith("postgres://"))process.exit(2);
+          const url=new URL(uri);
+          if(url.username!=="evo"||url.hostname!=="postgres"||url.pathname!=="/evo_dev")process.exit(2);
+          const password=decodeURIComponent(url.password);
+          if(!/^[a-f0-9]{64}$/.test(password))process.exit(2);
+          const rounds=Number(m[1]);
+          if(!Number.isSafeInteger(rounds)||rounds<4096||rounds>1000000)process.exit(2);
+          const salt=Buffer.from(m[2],"base64");
+          const salted=crypto.pbkdf2Sync(Buffer.from(password,"utf8"),salt,rounds,32,"sha256");
+          const client=crypto.createHmac("sha256",salted).update("Client Key").digest();
+          const expectedStored=crypto.createHash("sha256").update(client).digest();
+          const expectedServer=crypto.createHmac("sha256",salted).update("Server Key").digest();
+          const actualStored=Buffer.from(m[3],"base64");
+          const actualServer=Buffer.from(m[4],"base64");
+          if(actualStored.length!==32||actualServer.length!==32||
+             !crypto.timingSafeEqual(expectedStored,actualStored)||
+             !crypto.timingSafeEqual(expectedServer,actualServer))process.exit(3);
+          console.log("CV03_N105C_SCRAM_EVO_PASSWORD_MATCHES_DB_VERIFIER_PASS");
+          JSCODE
+          )"
+          actual="$(printf '%s' "$stored" | docker compose exec -T evo node -e "$node_code")"
+          test "$actual" = CV03_N105C_SCRAM_EVO_PASSWORD_MATCHES_DB_VERIFIER_PASS
+          echo "$actual"
+          unset stored actual node_code
+          echo CV03_N105C_SCRAM_READONLY_NO_DB_AUTH_MUTATION_PASS
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fxq CV03_N105C_SCRAM_EVO_PASSWORD_MATCHES_DB_VERIFIER_PASS <<<"$proof"
+          grep -Fxq CV03_N105C_SCRAM_READONLY_NO_DB_AUTH_MUTATION_PASS <<<"$proof"
+          echo CV03_N105C_SCRAM_COMPATIBILITY_TERMINAL_PROOF_PASS
+
+      - name: Public preview health and basic-auth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          host=evo.43.167.252.197.sslip.io
+          curl --noproxy '*' -4 -fsS --connect-timeout 10 --max-time 20 "https://$host/health" | grep -Fq '"ok":true'
+          status="$(curl --noproxy '*' -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://$host/")"
+          test "$status" = 401
+          echo CV03_N105C_SCRAM_PREVIEW_HTTPS_AND_BASIC_401_PASS
+
+      - name: Erase temporary runner SSH credentials
+        if: always()
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
