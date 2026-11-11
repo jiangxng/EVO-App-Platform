@@ -1,6 +1,6 @@
 # CV-03 / N1-05c-06 — Tokyo real SQL Producer concurrent ACK-loss replay proof
 
-> **STATE: SOURCE PR — TOKYO PHYSICAL RUN PENDING.** 2026-11-11. This is a bounded replay acceptance on the existing frozen QA PostgreSQL database, not N1 production authority integration.
+> **STATE: REAL TOKYO CONCURRENT QA REPLAY VERIFIED — PRODUCTION N1 NOT CERTIFIED.** 2026-11-11. This is a bounded replay acceptance on the existing frozen QA PostgreSQL database, not N1 production authority integration.
 
 ## G / inherited exact source, no duplicated deployment
 
@@ -26,4 +26,16 @@
 
 ## Physical acceptance (fill only from actual Tokyo logs)
 
-Pending: exact PR HEAD/CI, merged main SHA, Actions run and job, all terminal markers, source drift, Branch Hygiene. Do not claim PASS from PR merge alone.
+Verified main/CI/Actions physical evidence is appended below. Branch Hygiene is verified separately; do not infer multi-Host certification.
+
+## G / verified Tokyo protected-main real concurrency and replay (2026-11-11)
+
+- [Implementation PR #1242](https://github.com/jiangxng/EVO-App-Platform/pull/1242) merged into `main@06271948bb065af5e509338def299bb595f2d902` after **exact-head** source Bash syntax, Project Continuity, Lightweight Host and Human UI gates succeeded.
+- Actual main-triggered [Tokyo Actions #43044527299](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43044527299) job `130604837619` concluded **SUCCESS**, with its original job log inspected. The script was SHA256 pinned, remote terminal proofs enforced and public preview independently checked.
+- Runtime physical markers: `CV03_N105C06_PRIOR_FENCE_AND_TRUSTED_MAIN_PASS`, `CV03_N105C06_REAL_QA_SCRAM_AND_ORIGINAL_DB_FENCE_PASS`, `CV03_N105C06_PRIOR_RECEIPT_AND_FROZEN_SOURCE_FINGERPRINT_PASS`, `CV03_N105C06_REAL_PG_ROW_LOCK_HOLDER_READY_PASS`.
+- The real PG activity catalog reported **two simultaneous distinct TCP SQL sessions waiting for a feature row lock**: `CV03_N105C06_TWO_DISTINCT_AUTHENTICATED_TCP_SESSIONS_CONTENDING_PASS`. This is concrete database concurrency evidence, not a sequential test claim.
+- After lock release both sessions returned exactly the existing receipt/event ID with `replayed=true`, epoch 1; comparison of event payload, immutable Outbox, receipt, scope and Feature fingerprints showed **no mutation**: `CV03_N105C06_ACK_LOSS_CONCURRENT_REPLAY_SAME_RECEIPT_NO_OUTBOX_PASS`.
+- A changed Actor+subject, forged Host ID and stale source-generation all failed; original business object count and QA state preserved: `CV03_N105C06_CROSS_ACTOR_HOST_GENERATION_DENIED_SOURCE_UNCHANGED_PASS`.
+- Real EVO app fresh original SQL session plus health, and public HTTPS/unauthorized 401 succeeded: `CV03_N105C06_REAL_EVO_RUNTIME_HEALTH_AND_ORIGINAL_PRESERVED_PASS`, `CV03_N105C06_PHYSICAL_CONCURRENT_ACK_REPLAY_TERMINAL_PASS`, `CV03_N105C06_ALL_TOKYO_TERMINAL_PROOFS_ENFORCED_PASS`, `CV03_N105C06_INDEPENDENT_PUBLIC_HTTPS_HEALTH_AND_401_PASS`.
+
+**Strict interpretation / remaining P:** neither a separate Host identity nor a real lost-network-ACK fault was injected. The two distinct SQL sessions used the **same** QA Producer identity and already-committed synthetic authority receipt. No real PA05 or AuthorizationProvider source migration, KMS-backed signed write receipt, independent Host deployment or multi-Host partition recovery is implied. N1 remains NOT_CERTIFIED, SAVE remains OFF, formal SAVE POST 403, unregistered GET 404, [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) OPEN. This docs-only PR changes no runtime, SQL or Owner-managed #1184 files.
