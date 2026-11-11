@@ -52,3 +52,27 @@ test("N1-05a changed production admission is reported as drift, never promoted",
     assert.ok(report.findings.some(f=>f.id==="HOST_STARTUP_WRITE_AND_RESTORE_GATES"&&!f.matched));
   }finally{rmSync(temp,{recursive:true,force:true});}
 });
+
+
+test("N1-05a changing the real Host resource-default path is detected, not certified",()=>{
+  const temp=mkdtempSync(resolve(tmpdir(),"cv03-n105a-resource-"));
+  try{
+    for(const path of CV03_N105A_SOURCE_FILES){
+      const dest=resolve(temp,path);
+      mkdirSync(dirname(dest),{recursive:true});
+      cpSync(resolve(root,path),dest);
+    }
+    const file=resolve(temp,"manager/server.ts");
+    const current=readFileSync(file,"utf8");
+    assert.match(current,/createMemoryEnterpriseResourceRepositoryV010\(\)/);
+    writeFileSync(file,current.replace(
+      "createMemoryEnterpriseResourceRepositoryV010()",
+      "createMemoryEnterpriseResourceRepositoryV010_DISABLED()"
+    ));
+    const report=inspectCv03N105aAuthorityBoundary(temp);
+    assert.equal(report.certification,"NOT_CERTIFIED");
+    assert.equal(report.sourceAnchorStatus,"DRIFT_REQUIRES_MANUAL_REVIEW");
+    assert.ok(report.findings.some(f=>
+      f.id==="HOST_RESOURCE_DEFAULT_IS_FILE_OR_MEMORY" && !f.matched));
+  }finally{rmSync(temp,{recursive:true,force:true});}
+});

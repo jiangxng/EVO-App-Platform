@@ -3,6 +3,7 @@ name: CV-03 N1-05a Production Authority Boundary Preflight
 on:
   pull_request:
     paths:
+      - "contracts/platform-services.ts"
       - "manager/store.ts"
       - "manager/service.ts"
       - "manager/server.ts"

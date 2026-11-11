@@ -62,3 +62,20 @@ Each signoff must contain actual reviewer identity, dated decision, exact deploy
 ## Next window / PR rules
 
 From latest main after merge, first fetch this file and run node --test tests/agent-line/cv03-n105a-authority-boundary-preflight.test.mjs plus node tools/cv03-n105a-authority-boundary-preflight.mjs --check. Resolve any source drift with a fresh reviewed proof, never rubber-stamp anchors. Preserve #1184 managed files, use independent branch / Draft → checks exact HEAD → merge → Branch Hygiene SHA-safe cleanup. No direct main push or duplicate PG18 proof work.
+
+
+## N1-05a-02 / 2026-11-11 incremental G proof: default production Host wiring (no release)
+
+At main `d27794869fc192cb85078edd5ea6970f4b6d41ae`, following the first completed read-only gate (#1211), the next direct **GitHub source inspection** confirmed:
+
+- `manager/server.ts` constructs the actual production `enterpriseResourceRepository` from `createFileEnterpriseResourceRepositoryV010` when a state file is configured, otherwise `createMemoryEnterpriseResourceRepositoryV010`. This is separate from the isolated `createPostgresConditionalResourceRepositoryV010` adapter. The production Resource/Receipt SQL cutover is **not already wired**.
+- `manager/server.ts` merges built-in static policies and `APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON`; when configured, it installs `createHostStaticAuthorizationProviderV010(authorizationPolicy)` into the runtime registry. The active provider is still resolved from the effective runtime via `resolveAuthorizationProvider()`; the code does **not** establish an observed production PostgreSQL Provider identity.
+- `contracts/platform-services.ts` defines `AuthorizationProviderV010.check(input)` returning `AuthorizationDecisionV010`. A synchronous/asynchronous allow/deny result has **no built-in atomic authority epoch/outbox commit API**. This is a fact about the V010 interface, not proof that no other deployment integration exists.
+- `providers/enterprise-context/resources-postgres.ts` separately offers an isolated opt-in SQL Resource + Receipt CAS transaction; a receipt and Resource sharing one transaction **does not** make PA05 Feature lifecycle and AuthorizationProvider epoch participate in that same transaction.
+- `manager/server.ts` still returns 403 for the unadmitted Saved View save command; the feature remains unregistered, and no deployment/production identity proof was obtained.
+
+**D / implementation implication:** N1-05b integration requires an Owner-approved mapping from existing PA05 lifecycle mutation and effective AuthorizationProvider to a shared durable authority commit, as well as an explicit Domain Owner Resource repository cutover boundary; it must not swap *all* file-backed enterprise resources to PostgreSQL as a side effect. The simple source-anchored preflight now also checks the real resource default, policy overlay initialization and AuthorizationProvider V010 interface, and fails for source drift. It is still only a non-certifying code baseline.
+
+**P remains pending:** #1212 is assigned to the repository maintainer **for coordination**, not signed by the PA05, Authorization, DB or Security Owners. No production primary/schema/SQL LOGIN, workload identity/KMS, recovery SLO, deployment, Owner approval or Human acceptance is claimed. N1=NOT_CERTIFIED; APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF; SAVE 403, unregistered GET 404 unchanged. No new vendor EX sources were read and #1184's owner-controlled files were not touched.
+
+**Acceptance:** exact PR-HEAD `node --test tests/agent-line/cv03-n105a-authority-boundary-preflight.test.mjs`, source preflight `--check` and all project-required Actions; merge and hygiene only after green. Four tests include a deliberate mutation of the default enterprise repository creation path to force `DRIFT_REQUIRES_MANUAL_REVIEW`. This is **not** a re-run of the 38 PostgreSQL 18 isolation tests.
