@@ -127,14 +127,26 @@ hba_changed=0
 role_created=0
 rollback() {
   echo CV03_N105C07_ROLLBACK_ATTEMPT_START >&2
-  local login_safe=1
-  if (( role_created == 1 )); then
-    admin_pg "ALTER ROLE cv03_n105c07_qa_host02 NOLOGIN" >/dev/null \
-      || { login_safe=0; echo CV03_N105C07_ROLE_NOLOGIN_FENCE_FAILED >&2; }
-    if (( login_safe == 1 )); then
-      test "$(read_pg "SELECT rolcanlogin::text FROM pg_roles WHERE rolname='$role2'")" = false \
-        || login_safe=0
+  # A network/psql failure can occur AFTER PostgreSQL committed CREATE ROLE
+  # but BEFORE this shell acknowledged success. NEVER trust role_created=0
+  # as proof of absence: interrogate the current PG catalogue again.
+  local login_safe=0
+  local role_count="unknown"
+  role_count="$(read_pg "SELECT count(*) FROM pg_roles WHERE rolname='$role2'")" \
+    || role_count="unknown"
+  if test "$role_count" = 0; then
+    login_safe=1
+    echo CV03_N105C07_ROLLBACK_SQL_ROLE_CONFIRMED_ABSENT_PASS >&2
+  elif test "$role_count" = 1; then
+    if admin_pg "ALTER ROLE cv03_n105c07_qa_host02 NOLOGIN" >/dev/null &&
+       test "$(read_pg "SELECT rolcanlogin::text FROM pg_roles WHERE rolname='$role2'")" = false; then
+      login_safe=1
+      echo CV03_N105C07_ROLLBACK_SQL_ROLE_NOLOGIN_VERIFIED_PASS >&2
+    else
+      echo CV03_N105C07_ROLE_NOLOGIN_FENCE_FAILED >&2
     fi
+  else
+    echo CV03_N105C07_ROLE_STATUS_UNKNOWN_HBA_FENCE_MUST_REMAIN >&2
   fi
   if (( hba_changed == 1 && login_safe == 1 )); then
     if docker compose exec -T --interactive=false postgres sh -ec \
