@@ -5,8 +5,13 @@ import {createAppManagerService} from "../../dist/manager/service.js";
 import {createMemoryLifecycleStore} from "../../dist/manager/store.js";
 import {createHostStaticAuthorizationProviderV010} from
   "../../dist/providers/authorization/runtime.js";
-import {HOST_ENTERPRISE_CONTEXT_PACKAGE_ID} from
-  "../../dist/providers/enterprise-context/package.js";
+import {
+  HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
+  HOST_ENTERPRISE_CONTEXT_FEATURE_ID,
+  hostEnterpriseContextProviderPackage
+} from "../../dist/providers/enterprise-context/package.js";
+import {personalSavedViewsOptInFeatureV010}
+  from "../../dist/providers/enterprise-context/personal-saved-views.js";
 import {CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010} from
   "../../dist/manager/cv03-personal-saved-view-host-admission.js";
 import {createCv03N105bDenyT0FromExecutorV010} from
@@ -18,16 +23,13 @@ const packageId=HOST_ENTERPRISE_CONTEXT_PACKAGE_ID;
 const featureId=CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010;
 const generation="generation-20261111";
 const opKey="host-minted-full-scope-deny-0001";
+// Synthetic, explicitly exclusive package fixture for ordering tests ONLY.
+ // The real enterprise-context provider is shared and must always fail CLOSED.
 function fixture(events=[]){
   const pkg={
-    contractVersion:"0.1.0",packageId,displayName:"CV03 isolated Host lifecycle",
+    contractVersion:"0.1.0",packageId,displayName:"CV03 exclusive test fixture",
     version:"0.1.0",type:"PLATFORM_PROVIDER",
     features:[{
-      contractVersion:"0.1.0",featureId:packageId+".default",
-      packageId,version:"0.1.0",activationScope:"INSTALLATION",
-      defaultActivation:true,providesCapabilities:["enterprise.directory"],
-      contributions:[]
-    },{
       contractVersion:"0.1.0",featureId,packageId,version:"0.1.0",
       activationScope:"INSTALLATION",defaultActivation:true,
       providesCapabilities:["enterprise.collection.saved-view"],
@@ -147,7 +149,7 @@ test("N1-05b/02 existing real Manager disables ONLY after DB full-scope fence",a
   let pending=false;
   const db=authority(async(sql,values)=>{
     order.push("db:full-scope-fence");
-    assert.equal(manager.getSnapshot().activeFeatures.length,2);
+    assert.equal(manager.getSnapshot().activeFeatures.length,1);
     pending=true;
     return [result(values)];
   });
@@ -180,7 +182,7 @@ test("N1-05b/02 failed DB/preflight or missing Provider never runs real Manager 
     assert.equal(order.some(x=>x.startsWith("manager:")),false,cause);
     if(cause==="provider-denied"||cause==="missing-feature")assert.equal(sqlCalls,0);
     if(cause!=="missing-feature")
-      assert.equal(manager.getSnapshot().activeFeatures.length,2);
+      assert.equal(manager.getSnapshot().activeFeatures.length,1);
   }
 });
 
@@ -188,6 +190,7 @@ test("N1-05b/02 recovery replays durable T0 after local Manager failure",async()
   const events=[],manager=fixture(events);
   let fails=true,calls=0;
   const wrapper={
+    listCatalog:()=>manager.listCatalog(),
     getSnapshot:()=>manager.getSnapshot(),
     planDisable:id=>manager.planDisable(id),
     planUninstall:id=>manager.planUninstall(id),
@@ -202,7 +205,7 @@ test("N1-05b/02 recovery replays durable T0 after local Manager failure",async()
   });
   const host=barrier(wrapper,db);
   await assert.rejects(()=>host.apply("DISABLE",opKey),/simulated local persistence crash/);
-  assert.equal(manager.getSnapshot().activeFeatures.length,2);
+  assert.equal(manager.getSnapshot().activeFeatures.length,1);
   const recovered=await host.recover("DISABLE",opKey);
   assert.equal(recovered.activeFeatures.length,0);
   assert.equal(calls,2);
@@ -237,6 +240,79 @@ test("N1-05b/02 concurrent local calls deny while first fence is unresolved",asy
   release();
   await first;
   assert.equal(manager.getSnapshot().activeFeatures.length,0);
+});
+
+test("N1-05b/03 real enterprise-context package cannot lose default provider on CV03 removal",async()=>{
+  const events=[];
+  const pkg=structuredClone(hostEnterpriseContextProviderPackage);
+  pkg.features.push(structuredClone(personalSavedViewsOptInFeatureV010));
+  const store=createMemoryLifecycleStore();
+  const manager=createAppManagerService(
+    createPackageCatalog([pkg]),store,
+    ()=>new Date("2026-11-11T00:00:00Z"),new Map(),
+    event=>events.push(event.type)
+  );
+  manager.install(packageId);
+  assert.deepEqual(
+    manager.planDisable(packageId).deactivateFeatures.sort(),
+    [HOST_ENTERPRISE_CONTEXT_FEATURE_ID,featureId].sort()
+  );
+  events.length=0;
+  let sqlCalls=0;
+  const db=authority(async(sql,values)=>{sqlCalls++;return [result(values)]});
+  const host=barrier(manager,db);
+  const initial=manager.getSnapshot();
+  for(const operation of ["DISABLE","UNINSTALL"]){
+    await assert.rejects(
+      ()=>host.apply(operation,opKey),
+      /CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE/
+    );
+    assert.deepEqual(manager.getSnapshot(),initial);
+  }
+  assert.equal(sqlCalls,0);
+  assert.deepEqual(events,[]);
+  // A dormant default Feature in the manifest is STILL owned by this package:
+  // an uninstall would delete its package metadata and future activation.
+  store.deleteActiveFeature(HOST_ENTERPRISE_CONTEXT_FEATURE_ID);
+  const dormant=manager.getSnapshot();
+  await assert.rejects(
+    ()=>host.apply("UNINSTALL",opKey),
+    /CV03_N105B_HOST_LIFECYCLE_SHARED_PACKAGE_UNSAFE/
+  );
+  assert.deepEqual(manager.getSnapshot(),dormant);
+  assert.equal(sqlCalls,0);
+});
+
+test("N1-05b/03 post-T0 same-package drift rejects local mutation",async()=>{
+  const manager=fixture();
+  const storeManager=manager;
+  let mutated=false;
+  const db=authority(async(sql,values)=>{
+    // This mock cannot certify a real T0; it tests local drift detection.
+    // If any post-fence package change is seen, do not call Manager.disable().
+    mutated=true;
+    return [result(values)];
+  });
+  const proxy={
+    listCatalog:()=>storeManager.listCatalog(),
+    getSnapshot:()=>{
+      const snapshot=storeManager.getSnapshot();
+      if(mutated && snapshot.installedPackages.length){
+        snapshot.installedPackages[0].version="unexpected-version";
+      }
+      return snapshot;
+    },
+    planDisable:id=>storeManager.planDisable(id),
+    planUninstall:id=>storeManager.planUninstall(id),
+    disable:()=>{throw Error("MUST_NOT_MUTATE");},
+    uninstall:()=>{throw Error("MUST_NOT_MUTATE");}
+  };
+  const host=barrier(proxy,db);
+  await assert.rejects(
+    ()=>host.apply("DISABLE",opKey),
+    /CV03_N105B_HOST_LIFECYCLE_LOCAL_DRIFT/
+  );
+  assert.equal(storeManager.getSnapshot().activeFeatures.length,1);
 });
 
 test("N1-05b/02 no default Host registration or uncertified SAVE admission change",async()=>{
