@@ -1,7 +1,11 @@
 import postgres from "postgres";
 import type {PlatformActorType} from "../contracts/platform-services.js";
-import {CV03_PERSONAL_SAVED_VIEW_SAVE_COMMAND_V010}
-  from "./cv03-personal-saved-view-host-admission.js";
+import {
+  CV03_PERSONAL_SAVED_VIEW_SAVE_COMMAND_V010,
+  CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010
+} from "./cv03-personal-saved-view-host-admission.js";
+import {HOST_ENTERPRISE_CONTEXT_PACKAGE_ID}
+  from "../providers/enterprise-context/package.js";
 
 /**
  * N1-05b/01. An UNMOUNTED, deny-only, opt-in client for a DBA-provisioned
@@ -46,6 +50,30 @@ export interface Cv03N105bDenyAuthorityV010 {
   commitDeny(input:Cv03N105bDenyRequestV010):Promise<Cv03N105bDenyCommitV010>;
 }
 
+/**
+ * A package disable/uninstall affects ALL subjects, actor types and enterprises.
+ * Calling per-subject commitDeny() in a loop would be non-atomic and unsafe.
+ * A trusted DBA function must enumerate/lock the complete authoritative
+ * universe and install a package-wide persistent deny fence in ONE T0.
+ * This is still an UNMOUNTED opt-in port, not a production SQL migration.
+ */
+export interface Cv03N105bPackageFenceRequestV010 {
+  operationKey:string;
+  sourceGeneration:string;
+  operation:"DISABLE"|"UNINSTALL";
+}
+export interface Cv03N105bPackageFenceCommitV010 {
+  readonly sourceGeneration:string;
+  readonly fenceId:string;
+  readonly outboxBatchId:string;
+  readonly scopesFenced:number;
+  readonly replayed:boolean;
+}
+export interface Cv03N105bPackageFenceAuthorityV010 {
+  fencePackage(input:Cv03N105bPackageFenceRequestV010):
+    Promise<Cv03N105bPackageFenceCommitV010>;
+}
+
 export interface Cv03N105bSqlExecutorV010 {
   /** Return database rows; the DB function owns the entire ACID transaction. */
   query(statement:string,parameters:readonly (string|number)[]):
@@ -88,7 +116,7 @@ export function createCv03N105bDenyT0FromExecutorV010(input:{
   schema:string;
   trustedHostId:string;
   sql:Cv03N105bSqlExecutorV010;
-}):Cv03N105bDenyAuthorityV010 {
+}):Cv03N105bDenyAuthorityV010 & Cv03N105bPackageFenceAuthorityV010 {
   const schema=identifier(input.schema,"CV03_N105B_SCHEMA_INVALID");
   const trusted=hostId(input.trustedHostId);
   if(!input.sql||typeof input.sql.query!=="function")
@@ -99,7 +127,59 @@ export function createCv03N105bDenyT0FromExecutorV010(input:{
     "FROM \""+schema+"\".cv03_n105b_commit_deny_t0("+
     "$1::text,$2::text,$3::text,$4::text,$5::text,"+
     "$6::text,$7::text,$8::bigint,$9::text,$10::text)";
+  const fenceQuery=
+    "SELECT authenticated_host_id,operation_key,package_id,feature_id,"+
+    "source_generation,operation,package_state,fence_id,outbox_batch_id,"+
+    "scope_count,replayed FROM \""+schema+"\".cv03_n105b_fence_package_t0("+
+    "$1::text,$2::text,$3::text,$4::text,$5::text,$6::text)";
   return {
+    async fencePackage(change) {
+      if(!change||typeof change!=="object")
+        throw Error("CV03_N105B_PACKAGE_FENCE_REQUEST_INVALID");
+      const operationKey=bounded(change.operationKey,
+        "CV03_N105B_OPERATION_KEY_INVALID",100);
+      const generation=bounded(change.sourceGeneration,
+        "CV03_N105B_GENERATION_INVALID",128);
+      if(!/^[a-zA-Z0-9][a-zA-Z0-9_-]{5,127}$/.test(generation))
+        throw Error("CV03_N105B_GENERATION_INVALID");
+      if(change.operation!=="DISABLE"&&change.operation!=="UNINSTALL")
+        throw Error("CV03_N105B_PACKAGE_OPERATION_INVALID");
+      // One call to an OWNER-owned function; never loop over actor scopes.
+      // Only the DBA can prove complete locked inventory + immutable T0.
+      const rows=await input.sql.query(fenceQuery,[
+        trusted,operationKey,HOST_ENTERPRISE_CONTEXT_PACKAGE_ID,
+        CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010,
+        generation,change.operation
+      ]);
+      if(!Array.isArray(rows)||rows.length!==1)
+        throw Error("CV03_N105B_PACKAGE_FENCE_UNVERIFIABLE");
+      const row=rows[0];
+      if(!row||row.authenticated_host_id!==trusted||
+         row.operation_key!==operationKey||
+         row.package_id!==HOST_ENTERPRISE_CONTEXT_PACKAGE_ID||
+         row.feature_id!==CV03_UNCERTIFIED_SAVED_VIEW_FEATURE_ID_V010||
+         row.source_generation!==generation||
+         row.operation!==change.operation||
+         row.package_state!=="FROZEN_ALL_SCOPES"||
+         typeof row.fence_id!=="string"||
+         row.fence_id.length<8||row.fence_id.length>128||
+         typeof row.outbox_batch_id!=="string"||
+         row.outbox_batch_id.length<8||row.outbox_batch_id.length>128||
+         typeof row.replayed!=="boolean")
+        throw Error("CV03_N105B_PACKAGE_FENCE_UNVERIFIABLE");
+      const count=Number(row.scope_count);
+      if(!((typeof row.scope_count==="string" &&
+             /^(0|[1-9][0-9]*)$/.test(row.scope_count))||
+            (typeof row.scope_count==="number" &&
+             Number.isSafeInteger(row.scope_count)))||
+         !Number.isSafeInteger(count)||count<0)
+        throw Error("CV03_N105B_PACKAGE_FENCE_UNVERIFIABLE");
+      return {
+        sourceGeneration:generation,fenceId:row.fence_id,
+        outboxBatchId:row.outbox_batch_id,scopesFenced:count,
+        replayed:row.replayed
+      };
+    },
     async commitDeny(change) {
       if(!change||typeof change!=="object")
         throw Error("CV03_N105B_DENY_REQUEST_INVALID");
@@ -161,7 +241,8 @@ export function createCv03N105bDenyT0PgV010(input:{
   connectionString:string;
   schema:string;
   trustedHostId:string;
-}):Cv03N105bDenyAuthorityV010 & {close():Promise<void>} {
+}):Cv03N105bDenyAuthorityV010 & Cv03N105bPackageFenceAuthorityV010
+  & {close():Promise<void>} {
   if(typeof input.connectionString!=="string"||
      !/^postgres(?:ql)?:\/\/[^/\s]+\/\S+$/.test(input.connectionString))
     throw Error("CV03_N105B_PG_URL_REQUIRED");
