@@ -12,6 +12,7 @@ on:
     paths:
       - ".github/workflows/cv03-n105c08-tokyo-qa-os-process-failclosed.yml"
       - "tools/cv03-n105c08-tokyo-two-os-process-failclosed.sh"
+      - "tools/cv03-n105c08-tokyo-qa-os-process-worker.mjs"
   workflow_dispatch:
 
 permissions:
