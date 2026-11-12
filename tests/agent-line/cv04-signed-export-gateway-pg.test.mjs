@@ -712,3 +712,127 @@ test("CV04 Worker ciphertext GET: principal-wide and operation mirror revocation
     console.log("CV04_SIGNED_WORKER_ENCRYPTED_READ_REVOKE_FAILCLOSED_PASS");
   },{physical:true});
 });
+
+
+test("CV04 actual Dictionary Owner.run: signed Host request, physical Worker read, intermediate CAS and READY audit",realPG,async()=>{
+  await fixture(async({raw,put,read,cryptoKey,host,workerA,client,q})=>{
+    const memory=createMemoryEnterpriseResourceRepositoryV010();
+    const dictionary=createBusinessDictionaryRepositoryV010(memory);
+    const seed=dictionary.saveDraft({
+      contextId:ctx,dictionaryId:"cv04-real-owner-d1",expectedVersion:0,
+      displayName:"Owner Bridge Readable Dictionary",
+      options:[{code:"PRIVATE",label:{default:"Never export option detail"},status:"ACTIVE"}],
+      actorSubjectId:subject,recordedAt:new Date().toISOString()
+    });
+    dictionary.publish({contextId:ctx,dictionaryId:"cv04-real-owner-d1",
+      expectedVersion:seed.version,actorSubjectId:subject,actorType:"HUMAN",
+      recordedAt:new Date().toISOString()});
+    const ctxHuman={
+      contractVersion:"0.1.0",
+      principal:{contractVersion:"0.1.0",subjectId:subject,actorType:"HUMAN",
+        identityProviderId:"cv04-owner-physical-sql-qa",sessionId:"session-owner-qa"},
+      scope:{contractVersion:"0.1.0",enterpriseId:enterprise,userId:subject},
+      context:{contractVersion:"0.1.0",
+        activeContext:{contractVersion:"0.1.0",kind:"ENTERPRISE",
+          contextId:ctx,enterpriseId:enterprise},
+        personalContext:{contractVersion:"0.1.0",kind:"PERSONAL",
+          contextId:"personal:"+subject,ownerSubjectId:subject}},
+      correlationId:"cv04-owner-bridge-physical-pg"
+    };
+    const provider=createHostStaticAuthorizationProviderV010({
+      contractVersion:"0.1.0",
+      rules:[{id:"cv04-owner-bridge-only",effect:"ALLOW",actions:["dictionary.export"],
+        subjectIds:[subject],actorTypes:["HUMAN"],scope:{enterpriseId:enterprise}}]
+    });
+    let work=null;
+    // Disposable trusted Host signing harness. No SQL superuser or raw
+    // resource DML is given to the runtime/Worker login. This is NOT a
+    // production PA05/T0 signer and uses fixed CI-only key material.
+    const address=(request)=>({
+      contextId:request.contextId,namespace:request.namespace,
+      collectionId:request.collectionId,resourceType:request.resourceType,
+      resourceId:request.resourceId
+    });
+    const underlying={
+      conditionalWriteConsistency:"SHARED_POSTGRES_TRANSACTION",
+      async get(a){
+        if(!work)return raw.get(a); // Trusted test Host request admission.
+        const secured=await workerA.readCiphertext(work.token,work.lease.epoch);
+        if(secured.resource.contextId!==a.contextId||
+           secured.resource.resourceId!==a.resourceId||
+           secured.resource.namespace!==a.namespace||
+           secured.resource.collectionId!==a.collectionId||
+           secured.resource.resourceType!==a.resourceType)
+          throw Error("CV04_OWNER_WORKER_SCOPE_MISMATCH");
+        return secured.resource;
+      },
+      async putIfRevision(request){
+        const prior=request.expectedRevision===null?undefined:
+          await this.get(address(request));
+        if(request.expectedRevision!==null&&
+          (!prior||prior.revision!==request.expectedRevision))
+          throw Error("ENTERPRISE_RESOURCE_REVISION_CONFLICT");
+        const revision=request.expectedRevision===null?0:request.expectedRevision+1;
+        const resource={
+          contractVersion:"0.1.0",...address(request),
+          schemaRef:request.schemaRef,ownerPackageId:request.ownerPackageId,
+          storageKind:"DOCUMENT",lifecycleState:"ACTIVE",revision,
+          createdAt:prior?.createdAt??request.recordedAt,
+          createdBySubjectId:prior?.createdBySubjectId??request.actorSubjectId,
+          updatedAt:request.recordedAt,updatedBySubjectId:request.actorSubjectId,
+          payload:request.payload
+        };
+        const signed=permit(resource,{
+          operationId:work?workerOp:op,
+          expectedRevision:request.expectedRevision,
+          ...(work?{envelope:physicalProof(work.token,work.lease)}:{})
+        });
+        const result=await put(signed);
+        if(result?.committed!==true||result?.revision!==revision)
+          throw Error("CV04_OWNER_SIGNED_CAS_RECEIPT_INVALID");
+        return resource;
+      }
+    };
+    const signedEncryptedStore=createIsolatedEncryptedDictionaryExportPgStoreV010({
+      resources:underlying,encryptionKey:cryptoKey,keyId:"cv04-data-key-v1",
+      isolatedTestOnly:true
+    });
+    const owner=createDictionaryExportJobOwnerV010({
+      repository:dictionary,resources:signedEncryptedStore,
+      resolveAuthorizationProvider:()=>provider,
+      hasLiveRelationship:()=>true,isFeatureActive:()=>true,
+      isolatedTestOnly:true,now:()=>new Date()
+    });
+    const queued=await owner.request(ctxHuman,{
+      idempotencyKey:"cv04_owner_run_bridge_20261112",
+      query:{view:"published",sort:"dictionaryId",direction:"asc"},
+      fieldIds:["dictionaryId","displayName"]
+    });
+    assert.equal(queued.state,"QUEUED");
+    const before=await raw.get(addr(queued.jobId));
+    assert.equal(before.revision,0);
+    assert.ok(!JSON.stringify(before.payload).includes("Owner Bridge Readable Dictionary"));
+    const token=await host.issue(approval(queued.jobId,0));
+    const lease=await workerA.claim(token);
+    assert.equal((await workerA.readCiphertext(token,lease.epoch)).revision,0);
+    work={token,lease};
+    const ready=await owner.run(ctxHuman,queued.jobId,{
+      trustedSqlLeaseUntil:lease.leaseUntil
+    });
+    assert.equal(ready.state,"READY");
+    assert.equal(ready.attempts,1);
+    assert.equal(await workerA.complete(token,lease.epoch),"DONE");
+    const persisted=await raw.get(addr(queued.jobId));
+    assert.equal(persisted.revision,4);
+    assert.equal(persisted.payload.meta.state,"READY");
+    assert.ok(!JSON.stringify(persisted.payload).includes("Owner Bridge Readable Dictionary"));
+    assert.ok(!JSON.stringify(persisted.payload).includes("Never export option detail"));
+    assert.deepEqual((await read(queued.jobId)).map(x=>x.stage),
+      ["REQUESTED","STARTED","STARTED","COMPLETED","READY"]);
+    await assert.rejects(workerA.readCiphertext(token,lease.epoch),
+      /CV04_EXPORT_WORKER_READ_LEASE_FENCED|CV04_EXPORT_WORKER_READ_JOB_FENCED/);
+    await assert.rejects(client.unsafe("SELECT resource FROM "+q+".resources"),
+      /permission denied/);
+    console.log("CV04_REAL_DICTIONARY_OWNER_SIGNED_WORKER_CAS_AUDIT_READY_PASS");
+  },{physical:true});
+});
