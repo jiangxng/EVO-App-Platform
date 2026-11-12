@@ -58,7 +58,7 @@ export function serializeAuthorizedCollectionPageCsvV010(input: {
     }
     // CSV quoting does not prevent spreadsheet formula execution. Prefix an
     // apostrophe when a formula leader follows Unicode whitespace/BOM/ZWSP.
-    const safe = /^[\\s\\uFEFF\\u200B]*[=+\\-@]/u.test(value)
+    const safe = /^[\s\uFEFF\u200B]*[=+\-@]/u.test(value)
       ? "'" + value : value;
     return '"' + safe.replaceAll('"', '""') + '"';
   }
