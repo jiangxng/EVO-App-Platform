@@ -31,7 +31,7 @@ const request=(key="key_export_001",fields=["dictionaryId","displayName"])=>({
 });
 function setup(opts={}){
   const resources=opts.resources??createMemoryEnterpriseResourceRepositoryV010();
-  const repository=createBusinessDictionaryRepositoryV010(resources);
+  const repository=createBusinessDictionaryRepositoryV010(opts.repositoryResources??resources);
   let time=Date.parse("2026-11-12T00:00:00.000Z");
   const live=new Set(["owner","member","owner:AI","member:AI"]);
   let exportGranted=true,featureActive=true;
@@ -75,7 +75,10 @@ test("CV04 Dictionary Owner isolated durable 3-page snapshot, same-field CSV, id
   const dir=mkdtempSync(join(tmpdir(),"cv04-dict-export-"));
   try{
     const path=join(dir,"resources.json");
-    const h=setup({resources:createFileEnterpriseResourceRepositoryV010(path)});
+    const h=setup({
+      resources:createFileEnterpriseResourceRepositoryV010(path),
+      repositoryResources:createMemoryEnterpriseResourceRepositoryV010()
+    });
     h.seed();
     const owner=h.make(),ctx=context();
     const queued=await owner.request(ctx,request());
@@ -89,7 +92,6 @@ test("CV04 Dictionary Owner isolated durable 3-page snapshot, same-field CSV, id
     const processed=await secondOwner.run(ctx,queued.jobId);
     assert.equal(processed.state,"READY");
     assert.equal(processed.rows,205);
-    const fromRestart=setup({resources:createFileEnterpriseResourceRepositoryV010(path)});
     // Reuse same live Domain Owner and provider across restart, but disk-backed
     // job repository is newly opened; no transient in-process job cache.
     const reopened=createDictionaryExportJobOwnerV010({
