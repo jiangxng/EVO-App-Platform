@@ -1,0 +1,97 @@
+name: CV04 Real Host Eidos CSV Download Chromium
+
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/**"
+      - "apps/counterparty/**"
+      - "apps/responsibility/**"
+      - "foundation/collection-query/**"
+      - "manager/server.ts"
+      - "vendor/eidos/src/catalog-browser/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tools/cv04/**"
+      - "tests/cv04/**"
+      - ".github/workflows/cv04-real-host-browser-csv.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/**"
+      - "apps/counterparty/**"
+      - "apps/responsibility/**"
+      - "foundation/collection-query/**"
+      - "manager/server.ts"
+      - "vendor/eidos/src/catalog-browser/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "tools/cv04/**"
+      - "tests/cv04/**"
+      - ".github/workflows/cv04-real-host-browser-csv.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-host-desktop-phone-csv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      - run: python -m pip install "playwright==1.56.0"
+      - run: python -m playwright install --with-deps chromium
+      - name: Start disposable actual Host with isolated enterprise and three installed business plugins
+        run: |
+          mkdir -p artifacts/cv04-csv-browser
+          node tools/cv04/real-host-csv-browser-fixture.mjs > artifacts/cv04-csv-browser/bootstrap.log 2>&1 &
+          echo $! > /tmp/cv04-csv-browser-host.pid
+          ready=0
+          for i in $(seq 1 100); do
+            if grep -q 'CV04_REAL_HOST_CSV_BROWSER_READY=' artifacts/cv04-csv-browser/bootstrap.log; then ready=1; break; fi
+            if ! kill -0 "$(cat /tmp/cv04-csv-browser-host.pid)" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat artifacts/cv04-csv-browser/bootstrap.log
+            exit 1
+          fi
+      - name: Eidos real Blob CSV downloads, visible rows, columns and 1280px/390px screenshots
+        run: python tests/cv04/real_host_csv_download_chromium.py
+      - name: Assert all 6 downloads and isolate provenance
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const p=JSON.parse(readFileSync("artifacts/cv04-csv-browser/browser-results.json","utf8"));
+            if (!p.notProduction||!p.notHuman||p.results?.length!==6
+              || !p.results.every(x=>x.csvRows===1&&x.pagePreserved&&x.horizontalOverflow===false))
+              process.exit(1);
+            console.log("CV04_REAL_HOST_BROWSER_ARTIFACT_CONTRACT_PASS");
+          '
+      - name: Show isolated bootstrap on failure
+        if: failure()
+        run: cat artifacts/cv04-csv-browser/bootstrap.log || true
+      - name: Stop isolated Host and remove temporary state
+        if: always()
+        run: |
+          if [ -f /tmp/cv04-csv-browser-host.pid ]; then
+            kill "$(cat /tmp/cv04-csv-browser-host.pid)" 2>/dev/null || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cv04-real-host-eidos-csv-chromium-evidence
+          path: artifacts/cv04-csv-browser/
+          if-no-files-found: warn
