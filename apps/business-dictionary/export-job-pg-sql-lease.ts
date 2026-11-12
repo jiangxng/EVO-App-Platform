@@ -211,7 +211,30 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "IF NOT FOUND THEN RETURN NULL; END IF; "+
         "RETURN jsonb_build_object('state',lease.state,'epoch',lease.epoch,"+
         "'leaseUntil',lease.claimed_until); END; $$");
+      // Metadata-only due-job discovery is exclusive to the physical Host
+      // SQL login. Worker SQL cannot enumerate enterprise resources or jobs.
+      await tx.unsafe("CREATE FUNCTION "+q+".cv04_export_due_jobs("+
+        "p_context text,p_limit integer) RETURNS TABLE(job_id text,expired_at timestamptz) "+
+        "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $ "+
+        "BEGIN "+
+        "IF session_user <> '"+input.hostLoginRole+"' "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_HOST_LOGIN_REQUIRED'; END IF; "+
+        "IF p_context IS NULL OR p_context='' OR p_limit<1 OR p_limit>25 "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_DUE_SCOPE_INVALID'; END IF; "+
+        "RETURN QUERY "+
+        "SELECT r.resource_id,(r.resource->'payload'->'meta'->>'expiresAt')::timestamptz "+
+        "FROM "+q+".resources AS r "+
+        "WHERE r.context_id=p_context AND r.namespace='evo.dictionary.export-jobs' "+
+        "AND r.collection_id='bounded-csv-jobs' AND "+
+        "r.resource_type='evo.dictionary.export.job' AND "+
+        "r.resource->'payload'->>'kind'='dictionary.export-job.encrypted' "+
+        "AND r.resource->'payload'->'meta'->>'state'<>'EXPIRED' "+
+        "AND (r.resource->'payload'->'meta'->>'expiresAt')::timestamptz<=clock_timestamp() "+
+        "ORDER BY (r.resource->'payload'->'meta'->>'expiresAt')::timestamptz,r.resource_id "+
+        "LIMIT p_limit; "+
+        "END; $");
       const defs=[
+        ["cv04_export_due_jobs","text,integer",host],
         ["cv04_export_issue_lease","text,text,bigint,text,text,text,text",host],
         ["cv04_export_claim_lease","text",worker],
         ["cv04_export_complete_lease","text,bigint",worker],
@@ -271,6 +294,15 @@ export function createIsolatedDictionaryExportSqlHostLeaseIssuerV010(input:{
       const rows=await sql.unsafe("SELECT "+schema+
         ".cv04_export_lease_status($1,$2) AS result",[contextId,jobId]);
       return rows[0]?.result??null;
+    },
+    async due(contextId:string,limit:number=25):Promise<{jobId:string;expiresAt:string}[]>{
+      if(typeof contextId!=="string"||!contextId||
+        !Number.isSafeInteger(limit)||limit<1||limit>25)
+        throw Error("CV04_EXPORT_SQL_DUE_SCOPE_INVALID");
+      const rows=await sql.unsafe("SELECT job_id,expired_at FROM "+schema+
+        ".cv04_export_due_jobs($1,$2)",[contextId,limit]);
+      return rows.map(x=>({jobId:String(x.job_id),
+        expiresAt:new Date(x.expired_at).toISOString()}));
     },
     close:()=>sql.end()
   };
