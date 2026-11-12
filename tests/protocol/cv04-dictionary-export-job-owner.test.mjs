@@ -1,4 +1,6 @@
 import test from "node:test";
+// Explicit isolated test environment: production wiring must fail closed.
+process.env.NODE_ENV="test";
 import assert from "node:assert/strict";
 import {mkdtempSync,rmSync} from "node:fs";
 import {tmpdir} from "node:os";
