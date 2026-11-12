@@ -91,8 +91,13 @@ export function inspectCv04Next05ReleaseGate(input,{root=rootDefault}={}){
       leaseGuards>=2&&
       lease.includes("CV04_EXPORT_LEASE_PRODUCTION_INSTALL_DENIED")&&
       lease.includes("CV04_EXPORT_LEASE_PRODUCTION_USE_DENIED");
+    // Both the one-shot dispatcher and the opt-in polling controller
+    // must independently reject production; keep both guards intact.
+    const dispatchGuards=dispatch.split(
+      'process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true'
+    ).length-1;
     checks.pollingAndDispatcherStillProductionDisabled=
-      dispatch.includes('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true')&&
+      dispatchGuards>=2&&
       dispatch.includes("CV04_EXPORT_DISPATCH_PRODUCTION_DISABLED")&&
       dispatch.includes("CV04_EXPORT_POLL_PRODUCTION_DISABLED");
     checks.isolatedSignedSqlGatewayNotProductMounted=
