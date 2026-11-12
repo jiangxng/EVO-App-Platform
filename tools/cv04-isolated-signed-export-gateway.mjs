@@ -56,7 +56,7 @@ DECLARE
   scope_enterprise text;
   subject text;
   actor text;
-  operation_id text;
+  requested_op text;
   expected bigint;
   next_revision bigint;
   epoch bigint;
@@ -92,7 +92,7 @@ BEGIN
   scope_enterprise:=e->>'enterpriseId';
   subject:=e->>'subjectId';
   actor:=e->>'actorType';
-  operation_id:=e->>'operationId';
+  requested_op:=e->>'operationId';
   id:=doc->>'resourceId';
   row_namespace:=doc->>'namespace';
   meta:=doc->'payload'->'meta';
@@ -105,7 +105,7 @@ BEGIN
      scope_enterprise IS NULL OR length(scope_enterprise)=0 OR length(scope_enterprise)>160 OR
      subject IS NULL OR length(subject)=0 OR length(subject)>160 OR
      actor NOT IN ('HUMAN','AI') OR
-     operation_id NOT IN (
+     requested_op NOT IN (
        'dictionary.collection.export.job.request',
        'dictionary.collection.export.job.worker',
        'dictionary.collection.export.job.download',
@@ -159,14 +159,14 @@ BEGIN
      resource_expires IS NULL OR
      (next_state<>'EXPIRED' AND resource_expires<=clock_timestamp()) OR
      (expected IS NULL AND
-       (next_state<>'QUEUED' OR operation_id<>'dictionary.collection.export.job.request'
+       (next_state<>'QUEUED' OR requested_op<>'dictionary.collection.export.job.request'
         OR resource_expires>clock_timestamp()+interval '16 minutes')) OR
      (expected IS NOT NULL AND
-       (operation_id='dictionary.collection.export.job.request' OR
-        (operation_id='dictionary.collection.export.job.worker' AND
+       (requested_op='dictionary.collection.export.job.request' OR
+        (requested_op='dictionary.collection.export.job.worker' AND
           next_state NOT IN ('RUNNING','READY','FAILED')) OR
-        (operation_id='dictionary.collection.export.job.download' AND next_state<>'READY') OR
-        (operation_id='dictionary.collection.export.job.expire' AND next_state<>'EXPIRED')))
+        (requested_op='dictionary.collection.export.job.download' AND next_state<>'READY') OR
+        (requested_op='dictionary.collection.export.job.expire' AND next_state<>'EXPIRED')))
   THEN RAISE EXCEPTION 'CV04_GATEWAY_PERMIT_OR_STATE_DENIED'; END IF;
 
   -- Secret never returned to caller. Key and PA05-shaped operation mirror are
@@ -186,7 +186,7 @@ BEGIN
   FROM ${s}.cv04_export_authority WHERE
     context_id=scope_context AND enterprise_id=scope_enterprise AND
     principal_subject_id=subject AND actor_type=actor AND
-    operation_id=operation_id
+    operation_id=requested_op
   FOR SHARE;
   IF NOT FOUND OR permitted IS DISTINCT FROM true OR
       healthy IS DISTINCT FROM true OR trusted_epoch IS DISTINCT FROM epoch OR
