@@ -22,14 +22,15 @@ export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
   const physical=options.requirePhysicalWorkerLease===true;
   const workerFence=physical?`
   IF requested_op='dictionary.collection.export.job.worker' THEN
-    IF e->>'workerLeaseEpoch' NOT IN ('1','2') OR
+    IF e->>'workerLeaseEpoch' IS NULL OR
+       e->>'workerLeaseEpoch' NOT IN ('1','2') OR
        e->>'workerLeaseTokenHash' IS NULL OR
        e->>'workerLeaseTokenHash' !~ '^[a-f0-9]{32}$'
     THEN RAISE EXCEPTION 'CV04_GATEWAY_PHYSICAL_LEASE_PROOF_REQUIRED'; END IF;
     -- Shared transaction lock with the separate Host/Worker SQL lease funcs.
     PERFORM pg_advisory_xact_lock(hashtextextended(scope_context||':'||id,42));
     SELECT l.epoch,l.claimed_until,l.state,l.claimed_token_hash,
-           p.job_revision,p.context_id AS permit_context,
+           p.job_revision,p.authority_epoch,p.context_id AS permit_context,
            p.job_id AS permit_job,p.enterprise_id,p.subject_id,
            p.actor_type,p.state AS permit_state
       INTO physical_lease
@@ -42,6 +43,7 @@ export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
     IF NOT FOUND THEN RAISE EXCEPTION 'CV04_GATEWAY_PHYSICAL_LEASE_FENCED'; END IF;
     IF physical_lease.state IS DISTINCT FROM 'RUNNING' OR
        physical_lease.permit_state IS DISTINCT FROM 'CLAIMED' OR
+       physical_lease.authority_epoch IS DISTINCT FROM epoch OR
        physical_lease.claimed_until<=clock_timestamp() OR
        physical_lease.epoch IS DISTINCT FROM (e->>'workerLeaseEpoch')::bigint OR
        physical_lease.claimed_token_hash IS DISTINCT FROM e->>'workerLeaseTokenHash' OR
