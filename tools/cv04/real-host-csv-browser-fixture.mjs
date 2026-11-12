@@ -125,11 +125,11 @@ try {
    dictionaryId,displayName:name,expectedVersion:0,
    options:[{code:"SECRET_OPTION",label:{default:"Never Export Option"},status:"ACTIVE"}]
   },contextId);
-  assert.equal(draft.version,1);
+  assert.equal(draft.data?.version,1);
   const published=await execute("dictionary.publish",{
    dictionaryId,expectedVersion:1
   },contextId,true);
-  assert.equal(published.state,"PUBLISHED");
+  assert.equal(published.data?.state,"PUBLISHED");
  }
  const plans=[
   {source:"app://evo-business-dictionary/pages/directory",
