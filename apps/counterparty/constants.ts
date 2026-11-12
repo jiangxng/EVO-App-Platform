@@ -124,6 +124,12 @@ export const COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010 =
 export const COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010 =
   "counterparty.collection.my-suppliers.query" as const;
 
+/** CV-04: existing governed My-scope current page only, never bulk. */
+export const COUNTERPARTY_MY_CUSTOMERS_PAGE_CSV_EXPORT_V010 =
+  "counterparty.collection.my-customers.page.export.csv" as const;
+export const COUNTERPARTY_MY_SUPPLIERS_PAGE_CSV_EXPORT_V010 =
+  "counterparty.collection.my-suppliers.page.export.csv" as const;
+
 // Lightweight resource identity; repository.ts retains compatibility re-exports.
 export const COUNTERPARTY_NAMESPACE_V010 = "evo.counterparty" as const;
 export const COUNTERPARTY_COLLECTION_V010 = "counterparties" as const;
