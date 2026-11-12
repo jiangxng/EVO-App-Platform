@@ -53,3 +53,13 @@
 - **上游阻塞**：当次重新核验 [Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 仍 OPEN，缺具名正式 PA05/AuthorizationProvider/DB/Security/Domain Owner 签署；正式 EXPORT 继续 OFF、CV03 `N1=NOT_CERTIFIED`，SAVE OFF。Owner 文件 #1184 未触碰。
 
 **本轮无新的第三方网页资料、截图或附件；**全部引用为已读仓库源码、GitHub live Issue 与已执行 Actions 源日志。合并后的东京 Runtime 发布 preflight 与代码 CI 需要分别检查；docs-only 再合并不会自动部署新运行镜像。
+
+## 6. Window 08 自动续跑 #02/07 — 原东京 Catalog 只读验收扩大为完整 Export Job 前缀（2026-11-12）
+
+> **范围仅为现有 Tokyo preview 正在运行的 Catalog，非生产批准或泛化动态 ActionRouter 探测。** 初始受保护 main `b4c0868af6f8e893690ac59cc89234576e698360`。本节保留 §5 历史「三个已知 Operation」的原始证据范围，不事后扩大。
+
+- **A：本轮直接读取** [现有东京只读工作流](../../../.github/workflows/cv04-next05b-tokyo-export-readonly.yml) 和 [Signed SQL 原隔离 Gate](../../../tools/cv04-isolated-signed-export-gateway.mjs)：前者的 GET Catalog 原先仅按 `request`/`worker`/`download` 三个全名查缺席；后者的 `requested_op` 允许 `expire`，因此旧真实运行检查的「未注册」结论本来**不包括** `expire` 或未来后缀。CV04 NEXT-05a 源码守卫已由 [PR #1290](https://github.com/jiangxng/EVO-App-Platform/pull/1290) 改为完整命名空间。
+- **D：原地修改，不建新工作流**。在既有 `GET /v1/catalog` 内检查序列化结果是否包含 `dictionary.collection.export.job.` 前缀。保留其他三个 GET、`pg_catalog` READ ONLY 和既有 PASS marker；增加 `CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_NAMESPACE_ABSENT_PASS` 并在 Host、Runner 两侧显式要求。PR 阶段原 `source-syntax` 也检查前缀的实际 Node 条件与 Marker，而非检查旧 request 文案。
+- **限制**：这是 live Catalog 的字符串命名空间负证据，**不是**对动态装载的别名、所有 Host Action、真实 AuthorizationProvider.check()、业务权限或 SQL 名称的全域审计。依旧不访问企业数据、无 POST、无 DDL/DML、无 KMS/Signer、无产品 Operation 注册；东京实际运行镜像 SHA 与 workflow/main SHA 分开记录。
+- **P**：#1212 真实 PA05 Lifecycle、AuthorizationProvider、DB、Security/Ops、Domain Owner 仍需具名来源 SHA/环境/角色/审议、最小权限 Producer/Signer、同 PG ACID T0 完整 Scope/epoch/generation/outbox/tombstone/watermark、迁移/回滚和两物理 Host 证据。CV03 `N1=NOT_CERTIFIED`、SAVE OFF；正式跨页 EXPORT OFF/unregistered。#1184 的三份受管文件不触碰。
+- **待原始日志证明**：PR HEAD source-syntax 与基础 CI、合并后的 protected-main Tokyo READ ONLY terminal（包含新的 NAMESPACE marker）、Branch Hygiene、东京 Runtime SHA。不要将 pending 写为已通过；最终证据在本 PR 合并评论和 Actions 原始 Job 留痕。

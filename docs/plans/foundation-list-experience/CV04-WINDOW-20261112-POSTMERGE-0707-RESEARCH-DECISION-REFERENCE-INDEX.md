@@ -333,3 +333,11 @@
 - 该检查依然是指定 Manager/Catalog 源码的**字面字符串防线**；不构成 AST 级动态别名审计，也不能证明真实运行中所有未知 Action 不存在。Runtime 仍以此前 [Tokyo read-only](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md) 狭义现场证据为限。
 - 生产方向仍为**已选方案 A / 同 PostgreSQL ACID T0**。真实 PA05/AuthorizationProvider 完整 Scope、Authority Epoch、Source Generation、Outbox、DENY/Tombstone/水印、DB 低权 Producer、Signer/KMS 的身份、轮换、撤权、迁移与回滚必须由真实 Owner 独立具名签署；本轮代码不实现或宣称这些生产前置条件。
 - 精确 PR HEAD CI、受保护 main、东京 preflight/deploy SKIP 和 Branch Hygiene 结果须以真实执行日志分别追证，不提前填写 PASS。正式跨页 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`，SAVE OFF。
+
+## 18. Window 08 自动续跑 #02/07：东京实际运行 Catalog 前缀核验缺口（2026-11-12）
+
+**G / 当前 main 与原始来源，A/B/C 分级**：本轮 GitHub Live 读取 `main@b4c0868af6f8e893690ac59cc89234576e698360`，#1212 OPEN/PENDING、#1184 OPEN（B）；直接阅读 [Tokyo CV04 只读工作流](../../../.github/workflows/cv04-next05b-tokyo-export-readonly.yml)、[原隔离签名 Gateway](../../../tools/cv04-isolated-signed-export-gateway.mjs) 和 [NEXT-05b 详细物理报告](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md) §5（A）。发现历史物理 Catalog 只读验证仅检查 `request/worker/download` 三个名字，而原 Signed SQL Gate 已存在 `expire`，上一轮 [#1290](https://github.com/jiangxng/EVO-App-Platform/pull/1290) 的源关闭守卫已经改为同 `dictionary.collection.export.job.` 前缀；真实 Runtime Catalog 检查仍缺对齐（D）。这不是第三方网络材料或新的生产授权事实。
+
+**D / 最小实施**：在**同一个** CV04 NEXT-05b 东京只读 Workflow 内，将运行中 Catalog 检查改为整个 Export Job 前缀；PR-only source-syntax 要求实际 Node 代码包含这个条件与新增独立 runtime marker。其余原 GET/PG READ ONLY、安全输出、exact-main、SSH pin、test-only/Owner 禁令全部保留。输出仅能证明该次东京预览镜像的 live Catalog 未列出这个已知命名空间，不能证明动态别名、未知数据库授权、真实 PA05/T0 Provider.check() 或两物理 Host 已认证。详细旧/新范围区别见 [Tokyo NEXT05b 报告 §6](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md)。
+
+**C / 独立 Owner 阻塞未消除**：真正 PA05/AuthorizationProvider/DB/Security/Ops/Domain Owner 具名生产签署、完整 Scope/epoch/sourceGeneration/Outbox/tombstone/watermark、最小权限 Producer/KMS 和可靠回滚均待核验。不得借此编辑 #1184 管理文件、部署生产 PG、启用 EXPORT 或 CV03 SAVE。实际 PR HEAD/东京现场/Branch Hygiene 结果需在其**原始 CI 完成后**记录，不将 PR-only source check 冒充东京物理验收。

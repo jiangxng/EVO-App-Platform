@@ -68,7 +68,11 @@ jobs:
           assert "/v1/platform/snapshot" in node
           assert "/v1/providers/effective?capability=authorization.check" in node
           assert "/v1/providers/bindings?capability=authorization.check" in node
-          assert "dictionary.collection.export.job.request" in node
+          # Match the full namespace in the executing Node script, not just
+          # the historical request/worker/download operation list.
+          assert 'json.includes("dictionary.collection.export.job.")' in node
+          assert 'json.includes("dictionary.collection.export.job.request")' not in node
+          assert "CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_NAMESPACE_ABSENT_PASS" in physical
           assert "docker compose exec -T evo node -" in physical
           assert "BEGIN TRANSACTION READ ONLY;" in physical
           assert "default_transaction_read_only=on" in physical
@@ -162,10 +166,10 @@ jobs:
                 !Array.isArray(providers)||!Array.isArray(bindings))
               throw Error("READ_ONLY_RUNTIME_SHAPE_UNKNOWN");
             const json=JSON.stringify(catalog);
-            if(json.includes("dictionary.collection.export.job.request")||
-               json.includes("dictionary.collection.export.job.worker")||
-               json.includes("dictionary.collection.export.job.download"))
-              throw Error("FORMAL_EXPORT_CATALOG_UNEXPECTED");
+            // The same known formal background-export namespace must be
+            // absent in live Catalog, including expire and future operations.
+            if(json.includes("dictionary.collection.export.job."))
+              throw Error("FORMAL_EXPORT_CATALOG_NAMESPACE_UNEXPECTED");
             if(providers.length!==1||bindings.length!==0||
                providers[0]?.providerId!=="host.static-authorization")
               throw Error("AUTH_PROVIDER_SOURCE_DRIFT");
@@ -173,6 +177,7 @@ jobs:
               f&&f.featureId==="host-enterprise-context-provider.personal-saved-views"))
               throw Error("UNCERTIFIED_SAVED_VIEW_FEATURE_ACTIVE");
             console.log("CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS");
+            console.log("CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_NAMESPACE_ABSENT_PASS");
             console.log("CV04_NEXT05B_LIVE_AUTH_PROVIDER_STATIC_CANDIDATE_ONLY_PASS");
             console.log("CV04_NEXT05B_LIVE_SAVED_VIEW_FEATURE_NOT_ACTIVE_PASS");
             console.log("CV04_NEXT05B_GET_ONLY_NOT_SIGNER_OR_KMS_CERTIFICATION");
@@ -183,6 +188,7 @@ jobs:
           HOST_READONLY
           )"
           grep -Fxq CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS <<< "$live"
+          grep -Fxq CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_NAMESPACE_ABSENT_PASS <<< "$live"
           grep -Fxq CV04_NEXT05B_LIVE_AUTH_PROVIDER_STATIC_CANDIDATE_ONLY_PASS <<< "$live"
           grep -Fxq CV04_NEXT05B_LIVE_SAVED_VIEW_FEATURE_NOT_ACTIVE_PASS <<< "$live"
           printf '%s\n' "$live"
@@ -228,6 +234,7 @@ jobs:
           )"
           printf '%s\n' "$proof"
           grep -Fxq CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS <<< "$proof"
+          grep -Fxq CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_NAMESPACE_ABSENT_PASS <<< "$proof"
           grep -Fxq CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS <<< "$proof"
           grep -Fxq CV04_NEXT05B_ORIGINAL_SQL_USER_IS_SUPERUSER_NOT_PRODUCER_PASS <<< "$proof"
           grep -Fxq CV04_NEXT05B_NOT_PRODUCTION_PA05_T0_OR_KMS_CERTIFIED <<< "$proof"
