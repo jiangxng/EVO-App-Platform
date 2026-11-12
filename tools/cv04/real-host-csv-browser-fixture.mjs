@@ -131,6 +131,32 @@ try {
   },contextId,true);
   assert.equal(published.data?.state,"PUBLISHED");
  }
+ // A separate real Enterprise Context owned by the same isolated test identity.
+ // It proves switch-time Owner re-query, not actual production account login.
+ const createdB=await execute("enterprise.context.create",{
+  displayName:"CV04 Isolated Second Browser Enterprise",code:"CV04_CSV_BROWSER_B"
+ },undefined,true);
+ const secondaryContextId=createdB?.context?.contextId??createdB?.contextId;
+ assert.ok(secondaryContextId&&secondaryContextId!==contextId,"CV04_SECOND_ENTERPRISE_MISSING");
+ const secondaryNames={
+  dictionary:"B-Only Dictionary CV04",
+  "my-customers":"B-Only Customer CV04",
+  "my-suppliers":"B-Only Supplier CV04"
+ };
+ await seedCounterparty(secondaryContextId,{code:"B_CUSTOMER",
+  displayName:secondaryNames["my-customers"],role:"CUSTOMER",assignee:subjectId});
+ await seedCounterparty(secondaryContextId,{code:"B_SUPPLIER",
+  displayName:secondaryNames["my-suppliers"],role:"SUPPLIER",assignee:subjectId});
+ const secondaryDraft=await execute("dictionary.draft.save",{
+  dictionaryId:"cv04-b-only",displayName:secondaryNames.dictionary,
+  expectedVersion:0,options:[{code:"B_SECRET_OPTION",
+   label:{default:"B Private Option"},status:"ACTIVE"}]
+ },secondaryContextId);
+ assert.equal(secondaryDraft.data?.version,1);
+ const secondaryPublished=await execute("dictionary.publish",{
+  dictionaryId:"cv04-b-only",expectedVersion:1
+ },secondaryContextId,true);
+ assert.equal(secondaryPublished.data?.state,"PUBLISHED");
  const plans=[
   {source:"app://evo-business-dictionary/pages/directory",
    route:"/business-dictionaries?view=published&sort=displayName&page=1&pageSize=1",
@@ -149,8 +175,19 @@ try {
   assert.equal(answer.value.table.pageInfo.page,1,"CV04_PAGE_NOT_SECOND:"+plan.name);
   assert.equal(answer.value.table.rows.length,1,"CV04_PAGE_NOT_ONE_ROW:"+plan.name);
   assert.ok(answer.value.actions?.some(x=>x.command===plan.command),"CV04_EXPORT_ACTION_MISSING:"+plan.name);
+  const otherRoute=plan.route.replace("page=1","page=0");
+  const second=await getPage(plan.source,otherRoute,secondaryContextId);
+  assert.equal(second.status,200,"CV04_SECOND_CONTEXT_PAGE_FAILED:"+plan.name);
+  assert.equal(second.value.table?.rows?.length,1,"CV04_SECOND_ENTERPRISE_ROW_MISSING:"+plan.name);
+  const secondaryPayload=JSON.stringify(second.value.table.rows);
+  assert.ok(secondaryPayload.includes(secondaryNames[plan.name]),
+    "CV04_SECOND_ENTERPRISE_ROW_UNEXPECTED:"+plan.name);
+  assert.ok(!secondaryPayload.includes("Beta CSV Dictionary")
+    && !secondaryPayload.includes("Customer Beta CV04")
+    && !secondaryPayload.includes("Supplier Beta CV04"),
+    "CV04_SECOND_ENTERPRISE_LEAK:"+plan.name);
  }
- const data={hostUrl,contextId,subjectId,isolated:true,productionUsed:false,
+ const data={hostUrl,contextId,secondaryContextId,secondaryNames,subjectId,isolated:true,productionUsed:false,
   sourceSha:process.env.GITHUB_SHA??"local",
   records:records.map(x=>({role:x.role,tag:x.tag,name:x.name,visible:x.visible})),
   plans};
