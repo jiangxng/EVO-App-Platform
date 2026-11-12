@@ -139,7 +139,7 @@ with sync_playwright() as api:
             assert b_download.failure() is None,b_download.failure()
             assert b_download.suggested_filename.endswith("-page-1.csv")
             b_raw=Path(b_download.path()).read_bytes()
-            assert b_raw.startswith(b"\\xef\\xbb\\xbf"),"CV04_SECOND_CONTEXT_BOM_MISSING"
+            assert b_raw.startswith(b"\xef\xbb\xbf"),"CV04_SECOND_CONTEXT_BOM_MISSING"
             b_csv=b_raw.decode("utf-8-sig")
             b_rows=list(csv.reader(io.StringIO(b_csv,newline="")))
             assert len(b_rows)==2 and B_ONLY[name] in b_rows[1],(
@@ -177,9 +177,9 @@ with sync_playwright() as api:
       extra_http_headers={"x-evo-context-id":CTX})
     disabled=api_ctx.post("/v1/disable",data={"packageId":"evo-business-dictionary"})
     assert disabled.status==200,("CV04_HOST_DISABLE_FAILED",disabled.status,disabled.text()[:900])
-    assert not any(x.get("packageId")=="evo-business-dictionary"
-      for x in disabled.json()["snapshot"].get("activePackages",[])),(
-        "CV04_HOST_DICTIONARY_STILL_ACTIVE")
+    assert not any(x.get("featureId")=="evo-business-dictionary.default"
+      for x in disabled.json()["snapshot"].get("activeFeatures",[])),(
+        "CV04_HOST_DICTIONARY_FEATURE_STILL_ACTIVE")
     stale={
       "contractVersion":"0.1.0","type":"command",
       "command":{"code":"dictionary.collection.page.export.csv","inputVersion":"0.1.0"},
