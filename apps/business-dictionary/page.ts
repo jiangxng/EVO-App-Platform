@@ -13,6 +13,7 @@ import {
   BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010 as DIRECTORY,
   BUSINESS_DICTIONARY_OPTION_ROUTE_V010 as OPTION,
   BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 as SAVE,
+  BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010 as PAGE_CSV_EXPORT,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 as PUBLISH
 } from "./constants.js";
 
@@ -20,6 +21,7 @@ function labels(locale?: string) {
   return locale?.toLowerCase().startsWith("zh") ? {
     list: "业务字典", listHelp: "维护当前企业可复用的业务选项。保存草稿后，仍需发布才能供业务字段引用。",
     empty: "当前企业还没有业务字典。", create: "新建字典", detail: "字典项",
+    exportCurrentPage: "导出当前页 CSV",
     add: "新增字典项", edit: "编辑字典项", save: "保存草稿", publish: "发布字典",
     name: "字典名称", id: "字典编码", code: "选项编码", label: "选项名称",
     labelZh: "简体中文名称（可选）", aliases: "来源别名（用逗号分隔）", status: "状态", active: "启用", inactive: "停用",
@@ -30,6 +32,7 @@ function labels(locale?: string) {
   } : {
     list: "Business dictionaries", listHelp: "Maintain business options for this enterprise. Publish a saved draft before fields can reference it.",
     empty: "No business dictionaries in this enterprise.", create: "New dictionary", detail: "Options",
+    exportCurrentPage: "Export current page CSV",
     add: "Add option", edit: "Edit option", save: "Save draft", publish: "Publish dictionary",
     name: "Dictionary name", id: "Dictionary code", code: "Option code", label: "Option name",
     labelZh: "Simplified Chinese name (optional)", aliases: "Source aliases (comma-separated)", status: "Status", active: "Active", inactive: "Inactive",
@@ -262,11 +265,29 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         effectiveSelection,pageInfo.page + 1)} : {})
     }
   } : undefined;
+  // Use the same server-owner page and visible column selection as the table.
+  // Never infer an export permission from the URL or export unseen pages.
+  const pageExportValues = table && pageInfo && selection ? {
+    view: effectiveSelection.view,
+    ...(query.search ? { search: query.search } : {}),
+    ...(query.sort ? { sort: query.sort } : {}),
+    ...(query.direction ? { direction: query.direction } : {}),
+    page: pageInfo.page, pageSize: pageInfo.pageSize,
+    fieldIds: table.columns.map(column => column.id)
+  } : undefined;
   return { contractVersion: "0.1.0", kind: "catalog-browser", layout: "list", density: "compact",
     itemActivation: "primary-action", id: "evo-business-dictionary.directory",
     title: t.list, description: t.listHelp,
-    actions: input.canManage ? [{ id: "create", label: t.create, type: "navigate",
-      route: OPTION, requiresConfirmation: false, primary: true }] : [],
+    actions: [
+      ...(pageExportValues ? [{
+        id: "export-current-page", label: t.exportCurrentPage,
+        type: "command" as const, command: PAGE_CSV_EXPORT,
+        inputVersion: "0.1.0", requiresConfirmation: false,
+        values: pageExportValues
+      }] : []),
+      ...(input.canManage ? [{ id: "create", label: t.create, type: "navigate" as const,
+        route: OPTION, requiresConfirmation: false, primary: true }] : [])
+    ],
     ...(table ? {table} : {}),
     ...(table ? {} : {search: { placeholder: t.list, ariaLabel: t.list,
       noResultsMessage: t.empty }}),
