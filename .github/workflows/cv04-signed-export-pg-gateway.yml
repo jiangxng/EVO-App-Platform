@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "tools/cv04-isolated-signed-export-gateway.mjs"
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
       - "tests/agent-line/cv04-signed-export-gateway-pg.test.mjs"
       - ".github/workflows/cv04-signed-export-pg-gateway.yml"
       - "docs/plans/foundation-list-experience/CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md"
@@ -11,6 +12,7 @@ on:
     branches: [main]
     paths:
       - "tools/cv04-isolated-signed-export-gateway.mjs"
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
       - "tests/agent-line/cv04-signed-export-gateway-pg.test.mjs"
       - ".github/workflows/cv04-signed-export-pg-gateway.yml"
       - "docs/plans/foundation-list-experience/CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md"
@@ -59,9 +61,12 @@ jobs:
           grep -q CV04_SIGNED_PG_RUNTIME_ROLE_EXECUTE_ONLY_RAW_DML_DENIED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_WRONG_PROOF_TENANT_REVOKE_EPOCH_LEASE_FAILCLOSED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_PRINCIPAL_EPOCH_CROSS_OPERATION_FENCE_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_SIGNED_PHYSICAL_LEASE_OWNER_REVISION_READY_ATOMIC_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_SIGNED_PHYSICAL_LEASE_RECLAIM_STALE_CAS_FENCED_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_TWO_RUNTIME_CAS_ONE_AUDIT_WINNER_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS /tmp/cv04-signed-pg.log
-          grep -q 'ℹ pass 7' /tmp/cv04-signed-pg.log
+          grep -q 'ℹ pass 10' /tmp/cv04-signed-pg.log
           grep -q 'ℹ skipped 0' /tmp/cv04-signed-pg.log
       - name: Existing immutable SQL audit, AES-GCM PG CAS and Owner budget regression
         shell: bash
