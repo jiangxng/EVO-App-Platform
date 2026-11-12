@@ -5,6 +5,7 @@ import {createCounterpartyRepositoryV010} from "../../dist/apps/counterparty/rep
 import {createCounterpartyRoleRepositoryV010} from "../../dist/apps/counterparty/roles.js";
 import {createResponsibilityRepositoryV010} from "../../dist/apps/responsibility/repository.js";
 import {createCounterpartyProjectionServiceV010} from "../../dist/apps/counterparty/projection-service.js";
+import {counterpartyProjectionCollectionResultV010} from "../../dist/apps/counterparty/collection-query.js";
 import {createCounterpartyProjectionActionHandlersV010} from "../../dist/apps/counterparty/projection-actions.js";
 import {createCounterpartyProjectionPageV010} from "../../dist/apps/counterparty/page.js";
 import {counterpartyAuthorizationPolicyV010} from "../../dist/apps/counterparty/authorization.js";
@@ -160,10 +161,23 @@ test("CV-04 export fails closed on missing enterprise membership, scope drift, f
     "COUNTERPARTY_EXPORT_CONTEXT_DENIED");
   assert.equal((await execute(base,null)).error.code,"REQUEST_CONTEXT_REQUIRED");
   f.setAllow(false);
-  assert.equal((await execute(base)).error.code,"COLLECTION_CSV_FIELD_NOT_READABLE");
+  assert.equal((await execute(base)).error.code,"COUNTERPARTY_QUERY_SORT_FORBIDDEN",
+    "domain ProjectionService rejects before any CSV after field authorization disappears");
   f.setAllow(true);
   f.setActive(false);
   assert.equal((await execute(base)).error.code,"ACTION_FEATURE_NOT_ACTIVE");
+});
+
+test("CV-04 normalized Collection cannot resurrect displayName after revoked owner field grant",()=>{
+  const page=counterpartyProjectionCollectionResultV010({
+    contractVersion:"0.1.0",projectionId:CUSTOMER,
+    route:"/counterparties/my-customers",count:0,
+    counterparties:[],readableFieldIds:[],
+    pageInfo:{page:0,pageSize:1,total:0,hasMore:false}
+  });
+  assert.deepEqual(page.readableFieldIds,["counterpartyId"]);
+  assert.equal(page.rows.length,0);
+  assert.equal(page.readableFieldIds.includes("displayName"),false);
 });
 
 test("CV-04 only My projections offer export while legacy/unpaged and all-scope behavior stays intact",async()=>{
