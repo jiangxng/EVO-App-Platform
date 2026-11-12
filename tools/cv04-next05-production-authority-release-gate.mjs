@@ -70,11 +70,15 @@ export function inspectCv04Next05ReleaseGate(input,{root=rootDefault}={}){
     const lease=source(root,"apps/business-dictionary/export-job-pg-sql-lease.ts");
     const dispatch=source(root,"apps/business-dictionary/export-job-pg-dispatch.ts");
     const gateway=source(root,"tools/cv04-isolated-signed-export-gateway.mjs");
-    checks.formalExportOperationStillUnregistered=
-      !server.includes("dictionary.collection.export.job.request")&&
-      !catalog.includes("dictionary.collection.export.job.request")&&
-      !server.includes("dictionary.collection.export.job.worker")&&
-      !catalog.includes("dictionary.collection.export.job.worker");
+    // All known formal background job entry points, including download,
+    // must remain unregistered until production Owner authorization.
+    const formalJobOperations=[
+      "dictionary.collection.export.job.request",
+      "dictionary.collection.export.job.worker",
+      "dictionary.collection.export.job.download"
+    ];
+    checks.formalExportOperationStillUnregistered=formalJobOperations.every(
+      operation=>!server.includes(operation)&&!catalog.includes(operation));
     checks.stagedDomainOwnerStillProductionDisabled=
       owner.includes('const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test"')&&
       owner.includes('throw new Error("COLLECTION_EXPORT_SHARED_AUTHORITY_REQUIRED")');
