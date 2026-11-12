@@ -144,3 +144,11 @@ A / 2026-11-12 已读相关源码和测试：上面的四个固定 `bfdc861a...`
 ### B / CI 与发布证据（以真实原始日志为准）
 
 本节先记录 **待运行** 的 NEXT-05a Gate 源码测试和 GitHub live Issue 查询设计；只有实际 PR 最终 HEAD、真实查询与 main 分支 CI 后才标记 6/6 PASS。若只改文档而东京发布被正确 SKIPPED，不能写成新代码已部署。分支清理同理必须核对原始 GitHub ref。没有新增第三方网络研究或截图。
+
+
+### B / NEXT-05a 第一轮真实 CI、故障与修复（不是生产签署）
+
+- **失败事实（保留）：** PR #1285 第一轮 [GitHub Actions #43208158346](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43208158346) 原始 job `131148526302` 报 **5/6 PASS、1 FAIL**。负向测试把 `apps/business-dictionary/export-job-pg-sql-lease.ts` 的安装隔离门禁替换为 `false`，而新 Source Gate 只检查“还存在一处 `NODE_ENV=test` 字符串”，错误地把安全漂移判成 `EXPECTED_BLOCKED_BASELINE`。真实失败断言为 `apps/business-dictionary/export-job-pg-sql-lease.ts` 的 `actual EXPECTED_BLOCKED_BASELINE` vs `expected DRIFT_OR_UNVERIFIABLE_REVIEW_REQUIRED`。**不能把该失败追认为绿灯。**
+- **实际修复：** 后续独立提交要求 SQL Lease 的 **install+use** 两处 test-only 隔离均存在，并要求 Dispatcher 的 **sweep+poll** 两处隔离均存在；负向回归新增直接削弱 Poll/Dispatch 的生产 guard。一处残留不能隐瞒另一处失效。
+- **成功事实：** [PR #1285 真实 source+live Owner workflow #43208410247](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43208410247) job `131149367497` 的原始日志包含六个 `CV04_NEXT05_*` 对抗 marker，**6/6 PASS、0 FAIL、0 SKIP**，及 `CV04_NEXT05_LIVE_OWNER_DEPENDENCY_PENDING_UNCERTIFIED_PASS`、`CV04_NEXT05_PRODUCTION_EXPORT_REMAINS_UNREGISTERED_PASS`、`CV04_NEXT05_NON_CERTIFYING_RELEASE_GATE_TERMINAL_PASS`。**当前仍是经 GitHub Issue #1212 真实查询确认的阻断状态，不是 Owner 已批准或生产可用。**
+- 以上是本轮**文档更新前**的源 HEAD 测试结果；新精确最终 HEAD 必须重新过整个 workflow/Continuity/Host 后才能 Ready→Merge。合并的 protected-main 和东京若有发布也必须核验真实结果，不做预填。
