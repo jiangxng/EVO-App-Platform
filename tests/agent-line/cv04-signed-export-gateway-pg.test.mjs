@@ -12,6 +12,10 @@ import {prepareIsolatedDictionaryExportAuditV010,readIsolatedDictionaryExportAud
   from "../../dist/apps/business-dictionary/export-job-pg-audit.js";
 import {cv04IsolatedSignedExportGatewaySqlV010}
   from "../../tools/cv04-isolated-signed-export-gateway.mjs";
+import {prepareIsolatedDictionaryExportSqlLeaseV010,
+  createIsolatedDictionaryExportSqlHostLeaseIssuerV010,
+  createIsolatedDictionaryExportSqlWorkerLeaseV010}
+  from "../../dist/apps/business-dictionary/export-job-pg-sql-lease.js";
 
 const url=process.env.CV04_EXPORT_TEST_DATABASE_URL;
 const eligible=!!url && process.env.CV04_EXPORT_SIGNED_GATEWAY_ONLY==="YES_DISPOSABLE_CI"
@@ -26,6 +30,7 @@ const op="dictionary.collection.export.job.request",workerOp="dictionary.collect
 const keyId="cv04-signing-fixture-k1";
 const hmacSecret="CV04_TEST_ONLY_HOST_SIGNATURE_"+randomUUID();
 const sha=value=>createHash("sha256").update(value).digest("hex");
+const md5=value=>createHash("md5").update(value).digest("hex");
 const canonical=value=>{
   if(Array.isArray(value))return value.map(canonical);
   if(value&&typeof value==="object")return Object.fromEntries(
@@ -98,15 +103,19 @@ function permit(resource,opts={}){
   const text=JSON.stringify(e);
   return {envelope:text,signature:createHmac("sha256",hmacSecret).update(text).digest("hex"),resource:doc};
 }
-async function fixture(fn){
+async function fixture(fn,{physical=false}={}){
   const suffix=randomUUID().replaceAll("-","").slice(0,12);
   const schema="cv03_cv04_signed_"+suffix;
   const ownerRole="cv04_owner_"+suffix,runtimeRole="cv04_exec_"+suffix;
   const owner='"'+ownerRole+'"',runtime='"'+runtimeRole+'"',q='"'+schema+'"';
   const password="CV04_TMP_"+randomUUID().replaceAll("-","");
+  const hostRole="cv04_host_"+suffix,workerRole="cv04_worker_"+suffix;
+  const hostPw="CV04_H_"+randomUUID().replaceAll("-","");
+  const workerPw="CV04_W_"+randomUUID().replaceAll("-","");
   const sql=postgres(url,{max:3,connect_timeout:10,prepare:false});
   let ownerCreated=false,runtimeCreated=false,schemaCreated=false;
-  let client,second,raw;
+  let hostCreated=false,workerCreated=false;
+  let client,second,raw,host,workerA,workerB;
   try{
     await sql.unsafe("CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public");
     await sql.unsafe("CREATE ROLE "+owner+
@@ -120,7 +129,21 @@ async function fixture(fn){
     await prepareIsolatedDictionaryExportAuditV010({
       connectionString:url,schema,isolatedTestOnly:true
     });
-    await sql.unsafe(cv04IsolatedSignedExportGatewaySqlV010(schema));
+    await sql.unsafe(cv04IsolatedSignedExportGatewaySqlV010(schema,{
+      requirePhysicalWorkerLease:physical
+    }));
+    if(physical){
+      await sql.unsafe("CREATE ROLE \""+hostRole+
+        "\" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '"+hostPw+"'");
+      hostCreated=true;
+      await sql.unsafe("CREATE ROLE \""+workerRole+
+        "\" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '"+workerPw+"'");
+      workerCreated=true;
+      await prepareIsolatedDictionaryExportSqlLeaseV010({
+        connectionString:url,schema,hostLoginRole:hostRole,
+        workerLoginRole:workerRole,isolatedTestOnly:true
+      });
+    }
     await sql.unsafe("INSERT INTO "+q+".cv04_export_signing_keys (key_id,secret) VALUES ($1,$2)",[
       keyId,hmacSecret
     ]);
@@ -142,13 +165,22 @@ async function fixture(fn){
     // Real physical privilege split; SQL runtime has no raw job or audit DML.
     for(const table of ["resources","cv03_resource_receipts","cv04_export_audit",
       "cv04_export_signing_keys","cv04_export_authority",
-       "cv04_export_principal_fence","cv04_export_used_proofs"]){
+      "cv04_export_principal_fence","cv04_export_used_proofs",
+      ...(physical?["cv04_export_work_permits","cv04_export_work_leases"]:[])]){
       await sql.unsafe("ALTER TABLE "+q+'."'+table+'" OWNER TO '+owner);
       await sql.unsafe("REVOKE ALL ON TABLE "+q+'."'+table+'" FROM PUBLIC');
     }
     for(const name of ["cv04_audit_immutable()",
       "cv04_append_job_resource_audit()",
-      "cv04_export_signed_put(text,text,text)"]){
+      "cv04_export_signed_put(text,text,text)",
+      ...(physical?[
+        "cv04_export_issue_lease(text,text,bigint,text,text,text,text)",
+        "cv04_export_claim_lease(text)",
+        "cv04_export_complete_lease(text,bigint)",
+        "cv04_export_revoke_lease(text,text)",
+        "cv04_export_lease_status(text,text)",
+        "cv04_export_due_jobs(text,integer)"
+      ]:[])]){
       await sql.unsafe("ALTER FUNCTION "+q+"."+name+" OWNER TO "+owner);
     }
     await sql.unsafe("ALTER SCHEMA "+q+" OWNER TO "+owner);
@@ -157,6 +189,19 @@ async function fixture(fn){
     await sql.unsafe("GRANT EXECUTE ON FUNCTION "+q+
       ".cv04_export_signed_put(text,text,text) TO "+runtime);
     const loginUrl=new URL(url);loginUrl.username=runtimeRole;loginUrl.password=password;
+    if(physical){
+      const hostUrl=new URL(url);hostUrl.username=hostRole;hostUrl.password=hostPw;
+      const workerUrl=new URL(url);workerUrl.username=workerRole;workerUrl.password=workerPw;
+      host=createIsolatedDictionaryExportSqlHostLeaseIssuerV010({
+        connectionString:hostUrl.toString(),schema,isolatedTestOnly:true
+      });
+      workerA=createIsolatedDictionaryExportSqlWorkerLeaseV010({
+        connectionString:workerUrl.toString(),schema,isolatedTestOnly:true
+      });
+      workerB=createIsolatedDictionaryExportSqlWorkerLeaseV010({
+        connectionString:workerUrl.toString(),schema,isolatedTestOnly:true
+      });
+    }
     client=postgres(loginUrl.toString(),{max:2,connect_timeout:10,prepare:false});
     second=postgres(loginUrl.toString(),{max:2,connect_timeout:10,prepare:false});
     raw=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
@@ -171,13 +216,17 @@ async function fixture(fn){
       connectionString:url,schema,contextId:ctx,jobId,isolatedTestOnly:true
     });
     await fn({sql,schema,q,owner,runtime,ownerRole,runtimeRole,client,second,raw,
-      encrypted,put,read,cryptoKey:Buffer.alloc(32,0x24)});
+      encrypted,put,read,cryptoKey:Buffer.alloc(32,0x24),
+      host,workerA,workerB,hostRole,workerRole});
   }finally{
     if(client)await client.end();
     if(second)await second.end();
     if(raw)await raw.close();
+    for(const v of [host,workerA,workerB])if(v)await v.close();
     if(schemaCreated)await sql.unsafe("DROP SCHEMA "+q+" CASCADE");
     if(runtimeCreated)await sql.unsafe("DROP ROLE "+runtime);
+    if(workerCreated)await sql.unsafe('DROP ROLE "'+workerRole+'"');
+    if(hostCreated)await sql.unsafe('DROP ROLE "'+hostRole+'"');
     if(ownerCreated)await sql.unsafe("DROP ROLE "+owner);
     await sql.end();
   }
