@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 加密 EXPORT 任务主动 TTL 清理与系统 Actor 审计（隔离测试）
+
+[原 PG CAS 的到期 READY/QUEUED 快照/CSV 主动清理、Host-only due()、租约先撤销、EXPIRED 审计与系统 Actor](CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md)：补强已合入的签名 PG Gateway 的**到期转换代码阶段**，只在一次性测试 Schema 中调用；不是生产签名网关的后台调度器、完整 KMS 擦除或跨主机安全验收。正式 EXPORT 仍不注册，CV03 N1 SAVE OFF。
+
 ## 2026-11-12 CV-04 签名 PostgreSQL EXPORT 准入与低权限 SQL Worker（隔离测试）
 
 [CV04 独立 SQL 签名 gateway、NOLOGIN owner/EXECUTE-only runtime、DB 授权 epoch/租约/nonce 与原子审计](CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md)：以 CV-03 签名准入为安全参考，但签名域/密钥/授权资源完全隔离；**仅 disposable PostgreSQL 16/schema 的测试证明**，实际 Host、PA05、生产数据库、任务 Worker、密钥托管与 Export 产品入口均未认证或激活。CV-03 SAVE OFF 不变。
