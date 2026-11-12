@@ -351,6 +351,29 @@ export function createIsolatedDictionaryExportSqlWorkerLeaseV010(input:{
         throw Error("CV04_EXPORT_SQL_CLAIM_INVALID");
       return lease;
     },
+    /**
+     * Opt-in signed Gateway composition only. The database function does not
+     * exist in the standalone lease fixture; it never grants raw resource
+     * SELECT, and returns only the currently claimed encrypted Job envelope.
+     * No production Host registers this capability.
+     */
+    async readCiphertext(token:string,epoch:number):Promise<{
+      revision:number;resource:Record<string,unknown>;
+    }>{
+      if(!/^[a-f0-9]{32}$/u.test(token)||!Number.isSafeInteger(epoch)||
+         epoch<1||epoch>2)
+        throw Error("CV04_EXPORT_WORKER_READ_PROOF_INVALID");
+      const rows=await sql.unsafe("SELECT "+schema+
+        ".cv04_export_worker_read($1,$2) AS result",[token,epoch]);
+      const data=rows[0]?.result;
+      if(!data||!Number.isSafeInteger(data.revision)||
+         data.revision<0||!data.resource||
+         typeof data.resource!=="object"||Array.isArray(data.resource)||
+         data.resource.payload?.kind!=="dictionary.export-job.encrypted"||
+         data.resource.payload?.secret?.algorithm!=="AES-256-GCM")
+        throw Error("CV04_EXPORT_WORKER_READ_ENCRYPTED_ENVELOPE_INVALID");
+      return data;
+    },
     async complete(token:string,epoch:number):Promise<"DONE">{
       if(!/^[a-f0-9]{32}$/u.test(token)||!Number.isSafeInteger(epoch))
         throw Error("CV04_EXPORT_SQL_COMPLETE_ARGUMENT_INVALID");

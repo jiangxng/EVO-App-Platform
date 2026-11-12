@@ -260,7 +260,17 @@ export function createDictionaryExportJobOwnerV010(input:{
     const current=await load(context,jobId);
     return summary((await expire(current.job,current.revision)).job);
   }
-  async function run(context:PlatformRequestContextV010,jobId:string) {
+  async function run(context:PlatformRequestContextV010,jobId:string,
+    execution?:{trustedSqlLeaseUntil:string}) {
+    // Only the disposable SQL integration may pass the physical SQL lease
+    // timestamp from the database claim. This is NOT an Agent/API parameter.
+    // The signed gateway independently fences the same physical lease.
+    if(execution!==undefined && (!testScope||
+      !execution||typeof execution.trustedSqlLeaseUntil!=="string"||
+      !Number.isFinite(Date.parse(execution.trustedSqlLeaseUntil))||
+      Date.parse(execution.trustedSqlLeaseUntil)<=clock()||
+      Date.parse(execution.trustedSqlLeaseUntil)>clock()+LEASE_MS))
+      return fail("COLLECTION_EXPORT_TRUSTED_SQL_LEASE_INVALID");
     await authorize(context);
     let state=await load(context,jobId);
     state=await expire(state.job,state.revision);
@@ -272,7 +282,8 @@ export function createDictionaryExportJobOwnerV010(input:{
     if (state.job.attempt>=MAX_ATTEMPTS)return fail("COLLECTION_EXPORT_JOB_ATTEMPT_EXHAUSTED");
     state=await write(audit({
       ...state.job,state:"RUNNING",attempt:state.job.attempt+1,
-      leaseUntil:new Date(clock()+LEASE_MS).toISOString()
+      leaseUntil:execution?.trustedSqlLeaseUntil??
+        new Date(clock()+LEASE_MS).toISOString()
     },"STARTED",iso()),state.revision);
     // Audit append is CAS-atomic in exactly the same durable job resource.
     const append=async(type:JobAudit["type"],rows:number,bytes:number,code?:string)=>{
