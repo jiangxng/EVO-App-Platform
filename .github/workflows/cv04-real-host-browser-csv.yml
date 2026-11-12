@@ -13,6 +13,7 @@ on:
       - "tools/cv04/**"
       - "tests/cv04/**"
       - "tests/integration/cv04-personal-agent-authorized-csv.test.mjs"
+      - "docs/plans/foundation-list-experience/CV04-TWO-ENTERPRISE-AGENT-OWNER-CSV-ACCEPTANCE-20261112.md"
       - ".github/workflows/cv04-real-host-browser-csv.yml"
   push:
     branches: [main]
@@ -27,6 +28,7 @@ on:
       - "tools/cv04/**"
       - "tests/cv04/**"
       - "tests/integration/cv04-personal-agent-authorized-csv.test.mjs"
+      - "docs/plans/foundation-list-experience/CV04-TWO-ENTERPRISE-AGENT-OWNER-CSV-ACCEPTANCE-20261112.md"
       - ".github/workflows/cv04-real-host-browser-csv.yml"
   workflow_dispatch:
 
