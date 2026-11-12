@@ -1,0 +1,236 @@
+name: CV04 NEXT-05b Tokyo Live Export Authority Read-only Evidence
+
+# Evidence-only: no POST, no T0/Signer/KMS creation or production release.
+# PR checks syntax only. Physical Tokyo read-only job runs on protected main.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv04-next05b-tokyo-export-readonly.yml"
+      - "docs/plans/foundation-list-experience/CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv04-next05b-tokyo-export-readonly.yml"
+      - "docs/plans/foundation-list-experience/CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv04-next05b-tokyo-live-export-readonly
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Embedded shell and Host Node probes are syntactically valid and read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          file=Path(".github/workflows/cv04-next05b-tokyo-export-readonly.yml")
+          source=file.read_text()
+          lines=source.splitlines()
+          blocks=[]
+          for index,line in enumerate(lines):
+              match=re.fullmatch(r"( *)run: \|",line)
+              if not match: continue
+              indent=len(match.group(1))
+              contents=[]
+              for frag in lines[index+1:]:
+                  if frag.strip() and len(frag)-len(frag.lstrip(" "))<=indent: break
+                  contents.append(frag[indent+2:] if frag.startswith(" "*(indent+2)) else "")
+              blocks.append("\n".join(contents)+"\n")
+          assert len(blocks)==3, "Expected 3 bounded shell steps"
+          for block in blocks:
+              check=subprocess.run(["bash","-n"],input=block,text=True,capture_output=True)
+              assert check.returncode==0, "Embedded shell syntax invalid"
+          physical=next((b for b in blocks if "<<'HOST_READONLY'" in b),None)
+          assert physical, "Physical Host GET proof missing"
+          match=re.search(r"<<'HOST_READONLY'\n(.*?)\nHOST_READONLY",physical,re.S)
+          assert match, "Embedded Host Node script missing"
+          node=match.group(1)
+          result=subprocess.run(["node","--check"],input=node,text=True,capture_output=True)
+          assert result.returncode==0, "Embedded Host Node syntax invalid"
+          assert "http.get(" in node and "/v1/catalog" in node
+          assert "/v1/platform/snapshot" in node
+          assert "/v1/providers/effective?capability=authorization.check" in node
+          assert "/v1/providers/bindings?capability=authorization.check" in node
+          assert "dictionary.collection.export.job.request" in node
+          assert "docker compose exec -T evo node -" in physical
+          assert "BEGIN TRANSACTION READ ONLY;" in physical
+          assert "default_transaction_read_only=on" in physical
+          assert "CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS" in physical
+          assert "CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS" in physical
+          assert "CV04_NEXT05B_PHYSICAL_READONLY_TERMINAL_PASS" in physical
+          assert "docker compose exec -T --interactive=false" not in physical
+          assert "http.post(" not in physical and "http.request(" not in node
+          print("CV04_NEXT05B_READONLY_SHELL_NODE_SOURCE_SYNTAX_PASS")
+          PY
+
+  tokyo-live-export-readonly:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 10
+    steps:
+      - name: Verify protected main and pinned SSH transport
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV04_NEXT05B_EXACT_MAIN_PINNED_SSH_PASS
+
+      - name: Live Host GET and original database READ ONLY metadata (no state changes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -Eeuo pipefail
+          stage=CONTAINER_HEALTH
+          trap 'printf "CV04_NEXT05B_READONLY_FAILURE_STAGE=%s\n" "$stage" >&2' ERR
+          test "$(id -un)" = "evo-deploy"
+          cd /opt/evo-tokyo
+          test -r compose.yaml && test -f .env && test -f .last-health-pass-sha
+          sha="$(cat .last-health-pass-sha)"
+          [[ "$sha" =~ ^[a-f0-9]{40}$ ]]
+          app="$(docker compose ps -q evo)"
+          pg="$(docker compose ps -q postgres)"
+          test -n "$app" && test -n "$pg"
+          for container in "$app" "$pg"; do
+            test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container")" = healthy
+          done
+          echo "CV04_NEXT05B_PREVIEW_LAST_HEALTHY_SHA=$sha"
+          echo CV04_NEXT05B_EXISTING_CONTAINERS_HEALTHY_PASS
+
+          stage=HOST_GET_ONLY
+          live="$(docker compose exec -T evo node - <<'HOST_READONLY'
+          const http=require("node:http");
+          const get=path=>new Promise((resolve,reject)=>{
+            const req=http.get({host:"127.0.0.1",port:4100,path,timeout:5000},res=>{
+              if(res.statusCode!==200){res.resume();reject(Error("GET_STATUS_UNEXPECTED"));return;}
+              let size=0;const parts=[];
+              res.on("data",chunk=>{
+                size+=chunk.length;
+                if(size>4194304){req.destroy(Error("GET_TOO_LARGE"));return;}
+                parts.push(chunk);
+              });
+              res.on("error",reject);
+              res.on("end",()=>{
+                try{resolve(JSON.parse(Buffer.concat(parts).toString("utf8")));}
+                catch{reject(Error("GET_JSON_UNVERIFIABLE"));}
+              });
+            });
+            req.on("timeout",()=>req.destroy(Error("GET_TIMEOUT")));
+            req.on("error",reject);
+          });
+          (async()=>{
+            const [catalog,snapshot,providers,bindings]=await Promise.all([
+              get("/v1/catalog"),
+              get("/v1/platform/snapshot"),
+              get("/v1/providers/effective?capability=authorization.check"),
+              get("/v1/providers/bindings?capability=authorization.check")
+            ]);
+            if(!Array.isArray(catalog)||!snapshot||
+                !Array.isArray(snapshot.activeFeatures)||
+                !Array.isArray(providers)||!Array.isArray(bindings))
+              throw Error("READ_ONLY_RUNTIME_SHAPE_UNKNOWN");
+            const json=JSON.stringify(catalog);
+            if(json.includes("dictionary.collection.export.job.request")||
+               json.includes("dictionary.collection.export.job.worker")||
+               json.includes("dictionary.collection.export.job.download"))
+              throw Error("FORMAL_EXPORT_CATALOG_UNEXPECTED");
+            if(providers.length!==1||bindings.length!==0||
+               providers[0]?.providerId!=="host.static-authorization")
+              throw Error("AUTH_PROVIDER_SOURCE_DRIFT");
+            if(snapshot.activeFeatures.some(f=>
+              f&&f.featureId==="host-enterprise-context-provider.personal-saved-views"))
+              throw Error("UNCERTIFIED_SAVED_VIEW_FEATURE_ACTIVE");
+            console.log("CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS");
+            console.log("CV04_NEXT05B_LIVE_AUTH_PROVIDER_STATIC_CANDIDATE_ONLY_PASS");
+            console.log("CV04_NEXT05B_LIVE_SAVED_VIEW_FEATURE_NOT_ACTIVE_PASS");
+            console.log("CV04_NEXT05B_GET_ONLY_NOT_SIGNER_OR_KMS_CERTIFICATION");
+          })().catch(()=>{
+            process.stderr.write("CV04_NEXT05B_HOST_GET_UNVERIFIABLE\n");
+            process.exitCode=1;
+          });
+          HOST_READONLY
+          )"
+          grep -Fxq CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS <<< "$live"
+          grep -Fxq CV04_NEXT05B_LIVE_AUTH_PROVIDER_STATIC_CANDIDATE_ONLY_PASS <<< "$live"
+          grep -Fxq CV04_NEXT05B_LIVE_SAVED_VIEW_FEATURE_NOT_ACTIVE_PASS <<< "$live"
+          printf '%s\n' "$live"
+
+          stage=PG_READONLY_CATALOG
+          pgout="$(docker compose exec -T \
+            -e PGOPTIONS='-c default_transaction_read_only=on' postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d evo_dev <<'SQL'
+          BEGIN TRANSACTION READ ONLY;
+          SELECT 'CV04_NEXT05B_SQL_DATABASE='||current_database();
+          SELECT 'CV04_NEXT05B_SQL_USER='||session_user;
+          SELECT 'CV04_NEXT05B_SQL_OWNER_SUPERUSER='||
+            (CASE WHEN r.rolsuper THEN 'true' ELSE 'false' END)
+            FROM pg_roles r WHERE r.rolname=session_user;
+          SELECT 'CV04_NEXT05B_NONQA_EXPORT_ROUTINE_COUNT='||count(*)
+            FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+            WHERE p.proname LIKE 'cv04_export_%'
+              AND n.nspname NOT LIKE 'cv03%';
+          SELECT 'CV04_NEXT05B_NONQA_EXPORT_TABLE_COUNT='||count(*)
+            FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+            WHERE c.relname LIKE 'cv04_export_%'
+              AND c.relkind IN ('r','p','v','m','f')
+              AND n.nspname NOT LIKE 'cv03%';
+          ROLLBACK;
+          SQL
+          )"
+          test -n "$pgout"
+          for expected in \
+            CV04_NEXT05B_SQL_DATABASE=evo_dev \
+            CV04_NEXT05B_SQL_USER=evo \
+            CV04_NEXT05B_SQL_OWNER_SUPERUSER=true \
+            CV04_NEXT05B_NONQA_EXPORT_ROUTINE_COUNT=0 \
+            CV04_NEXT05B_NONQA_EXPORT_TABLE_COUNT=0; do
+            if ! grep -Fxq "$expected" <<< "$pgout"; then
+              echo CV04_NEXT05B_ORIGINAL_PG_CATALOG_CHANGED_OR_UNVERIFIABLE >&2
+              exit 1
+            fi
+          done
+          echo CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS
+          echo CV04_NEXT05B_ORIGINAL_SQL_USER_IS_SUPERUSER_NOT_PRODUCER_PASS
+          echo CV04_NEXT05B_NOT_PRODUCTION_PA05_T0_OR_KMS_CERTIFIED
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fxq CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS <<< "$proof"
+          grep -Fxq CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS <<< "$proof"
+          grep -Fxq CV04_NEXT05B_ORIGINAL_SQL_USER_IS_SUPERUSER_NOT_PRODUCER_PASS <<< "$proof"
+          grep -Fxq CV04_NEXT05B_NOT_PRODUCTION_PA05_T0_OR_KMS_CERTIFIED <<< "$proof"
+          echo CV04_NEXT05B_PHYSICAL_READONLY_TERMINAL_PASS
+
+      - name: Remove ephemeral runner credentials
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
