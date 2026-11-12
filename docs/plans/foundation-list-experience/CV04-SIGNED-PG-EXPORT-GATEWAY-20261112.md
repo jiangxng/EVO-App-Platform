@@ -57,3 +57,30 @@
 **A / 已读原文（2026-11-12）**：[原有 signed Gateway](https://github.com/jiangxng/EVO-App-Platform/blob/14d919b12887dc6f1a88eeee79b1a1115abf9f4d/tools/cv04-isolated-signed-export-gateway.mjs)、[Host/Worker SQL 租约](https://github.com/jiangxng/EVO-App-Platform/blob/14d919b12887dc6f1a88eeee79b1a1115abf9f4d/apps/business-dictionary/export-job-pg-sql-lease.ts)、[真实 PostgreSQL 验收代码](https://github.com/jiangxng/EVO-App-Platform/blob/14d919b12887dc6f1a88eeee79b1a1115abf9f4d/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)、本页设计文档和 #05–#07 交接索引。**B / 待取新 PR HEAD 后核实**：新 SQL PG16 CI log、主线 merge SHA、东京 preflight/deploy、Branch Hygiene；不能预填通过。**C / 未验证来源**：真实 PA05/T0 OIDC/企业成员撤权事件到 DB 的完整订阅与事务证据、正式 KMS、WAL/备份 retention、安全稽核与外部手机实机。此次没有查阅外部网页/第三方文档，也没有创建截图或附件。
 
 **下一步不扩范围**：优先把真实 PA05/T0 授权事件→共享 Principal Epoch 推进（失联拒绝）、SQL Worker Lease Epoch→Owner CAS Revision 在**一个受限 SQL transaction**中围住；之后才是持久 scheduler/KMS、正式双主体会话验收。当前 `N1=NOT_CERTIFIED`、生产 SAVE OFF、正式 EXPORT OFF。
+
+
+## NEXT-02 / 2026-11-12：物理 SQL Lease Epoch 与签名业务 Resource Revision 同事务联合围栏
+
+> **ISOLATED OPT-IN / NOT PRODUCTION ADMITTED.** 接续 NEXT-01a 已合并的跨 Operation Principal Epoch Fence。仅扩展已有 `cv04_export_signed_put` SQL 生成器、现有物理 Host/Worker SQL Lease、真实 PG CI；不创建另一套 Export Gateway、Owner/Job、列表框架或生产路由。
+
+### 可复核的原始缺口（G：已读源码，2026-11-12）
+
+- [合并后的签名 Gateway 原文](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/tools/cv04-isolated-signed-export-gateway.mjs)：对 Worker 只查 signed `authorityEpoch`、Job Revision、JSONB `attempt/leaseUntil`；并未读取 [物理 Lease 原文](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/apps/business-dictionary/export-job-pg-sql-lease.ts) 的 `cv04_export_work_leases`。旧 Worker 可在合成旧 lease 的时间窗口提出签名资源 CAS，不能从两套独立 PASS 推论实际相互围栏。该风险是源码可确认的**控制缺口**，不声称生产上已遭利用。
+- 原 [Domain Owner `run`](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/apps/business-dictionary/export-jobs.ts) 通过独立加密 PG adapter + 原资源 CAS 执行业务逻辑，测试高级 DB 连接仍不经签名网关。当前联合 SQL 函数的验证是**同一真实 Resource CAS 事务**，尚不是正式业务 Owner `run()` 已经真实签名接线。
+
+### 选择与工程实施（D：本阶段隔离实现）
+
+1. 原 `cv04IsolatedSignedExportGatewaySqlV010(schema,{requirePhysicalWorkerLease:true})` 添加**显式 opt-in** 联合围栏；旧单独 signed gateway fixture 不改变含义，正式 Host 不引用任何隔离构造器。物理 Lease 表缺失时 Worker 操作必须失败，而不是假定已授权。非 Worker request/download/expiry 继续沿用原签名语义。
+2. `worker` Operation 必须携带 **Host 签名内容中的** `workerLeaseEpoch`（1 或 2）与 `workerLeaseTokenHash`（一次性许可 token 的 MD5；token 具 128-bit 随机熵，Gateway 不接受纯 Agent 自报的 hash 作为许可）。DB `SECURITY DEFINER` 在同一事务内对物理 `lease` 和已 CLAIMED `permit` 行 `FOR SHARE`，确认两行相互绑定、主体/企业/Actor 相等、未撤销/未超时、**物理 permit 签发时 authority_epoch 与本次 HMAC + Principal + Operation epoch 相等**、token hash/lease epoch 相等；RUNNING 的业务 `expectedRevision=permit.job_revision`，READY/FAILED 必须在已 STARTED 的后续 Revision，且业务尝试号等于物理 Epoch、业务租约不长于物理租约。失败不更新 Resource、nonce 或独立 audit。
+3. 原 SQL Host `issue`、Worker `claim/complete`、Host `revoke` 与 signed Gateway 按相同 `(contextId,jobId)` 获取**事务 advisory lock** 再拿各自基础表/资源锁，避免独立 Lease 更新和 Resource CAS 相互反向行锁引起的死锁。仍依靠数据库固有 Resource Revision CAS 防两端并发覆盖，沿用原审计 trigger 的单事务 append。
+4. 真实 PostgreSQL16 新 fixture 在一个隔离 `cv03_*` schema 下装配现有四种源码、独立 NOLOGIN owner + 三种受限 SQL LOGIN（Host、Worker、签名执行），测试过期旧 Epoch 复领、旧签名 Proof 继续提交、新租约提交成功、Principal Epoch 撤权和 Host 租约撤销。测试里的数据库管理注入模拟过期**不是两个实际物理 Host 的时钟/崩溃/网络分区认证**，绝不把这一点隐去。
+5. 原 `DictionaryExportJobOwnerV010.run()` 对 `RUNNING` 过程有多次 audit append，当前签名 Gateway 的 Worker transition 仅允许 `STARTED/READY/FAILED`。因此 **Owner `run()` 尚未通过此新协议接线**，需要单独补齐受签名的中途 RUNNING audit、物理 SQL 角色最小权限 GET 和一次性 Host 授权来源，才可证明正式全链路。此 PR 不把纯 SQL fixture 称为完整 Host→Owner 生产联合认证。
+
+### 验证和边界
+
+- **A / 本轮已读原文**：上一阶段的 Gateway、SQL Lease、Dictionary Owner、加密 PG store、签名 PG test fixture、两份对应 GitHub Actions 原文，以上链接固定到 `main@0233c390...`。
+- **B / 结果必须回填**：本 PR 的最终精确 HEAD 真实 PG16 联合测试 marker、原租约 4/4、签名网关回归、加密 PG 5/5、审计 5/5、Owner 8/8；merge 后 main check-run/东京 preflight 和 Branch Hygiene 不得预设全绿。
+- **C / 未验证**：PA05/T0 真实 source generation/outbox/成员撤权→SQL 的原子链接、生产 DB role/Host principal/KMS、Worker 网络分区及 WAL/备份 retention、真 Human/Agent OIDC 和手机验收。缺任何正式 Owner 放行则 EXPORT 入口保持 OFF；CV03 `N1=NOT_CERTIFIED`、SAVE OFF；并行 #1184 文档不触碰。
+
+- **证据驱动的校正（PG16 CI 第一次红灯前后）**：最初独立联合协议在 `workerLeaseEpoch/tokenHash` 上具备检查，但物理 permit 原表无 `authority_epoch` 字段，可能把在旧授权代签发的 permit 与之后重授新代的签名错误配对。改为原 Host `cv04_export_issue_lease` 增加**默认 NULL 的第八个可选 `p_epoch` 参数**（原七参数 SQL 调用与隔离测试兼容），实际存储 `authority_epoch`，未携带时取 0 且**联合签名入口拒绝 0**。Host 隔离 API 新增可选 `authorityEpoch`，联合测试必须传入当前值；签名 SQL 还要求该列与签名中的 epoch 相同。旧测试授予的未盖章许可不能借新代 HMAC 被复活。该校正仍不能代替真实 PA05/T0 源 generation 和 Host 签名的授权因果验证。
+- **失败如实记录**：[PR #1281 的首轮 signed PG16 CI #43194029869](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43194029869) 为 FAILURE：新 SQL 运行时 9/10 PASS、0 SKIP，另外的原 Host Worker 租约、TTL 和 Continuity 当次通过；唯一报错为测试对错误 expectedRevision 预期只列出下游 `PHYSICAL_LEASE_FENCED/REVISION_CONFLICT`，实际 Gateway 较早的 `CV04_GATEWAY_PERMIT_OR_STATE_DENIED` **正确拒绝**。现已将断言涵盖真实首先拒绝的版本预检查，和上面的许可签发 Epoch 加固一并重新提交；最终通过与否以更新后精确 HEAD Actions 为准，绝不追认首轮红灯。

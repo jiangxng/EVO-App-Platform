@@ -12,6 +12,10 @@ import {prepareIsolatedDictionaryExportAuditV010,readIsolatedDictionaryExportAud
   from "../../dist/apps/business-dictionary/export-job-pg-audit.js";
 import {cv04IsolatedSignedExportGatewaySqlV010}
   from "../../tools/cv04-isolated-signed-export-gateway.mjs";
+import {prepareIsolatedDictionaryExportSqlLeaseV010,
+  createIsolatedDictionaryExportSqlHostLeaseIssuerV010,
+  createIsolatedDictionaryExportSqlWorkerLeaseV010}
+  from "../../dist/apps/business-dictionary/export-job-pg-sql-lease.js";
 
 const url=process.env.CV04_EXPORT_TEST_DATABASE_URL;
 const eligible=!!url && process.env.CV04_EXPORT_SIGNED_GATEWAY_ONLY==="YES_DISPOSABLE_CI"
@@ -26,6 +30,7 @@ const op="dictionary.collection.export.job.request",workerOp="dictionary.collect
 const keyId="cv04-signing-fixture-k1";
 const hmacSecret="CV04_TEST_ONLY_HOST_SIGNATURE_"+randomUUID();
 const sha=value=>createHash("sha256").update(value).digest("hex");
+const md5=value=>createHash("md5").update(value).digest("hex");
 const canonical=value=>{
   if(Array.isArray(value))return value.map(canonical);
   if(value&&typeof value==="object")return Object.fromEntries(
@@ -98,15 +103,19 @@ function permit(resource,opts={}){
   const text=JSON.stringify(e);
   return {envelope:text,signature:createHmac("sha256",hmacSecret).update(text).digest("hex"),resource:doc};
 }
-async function fixture(fn){
+async function fixture(fn,{physical=false}={}){
   const suffix=randomUUID().replaceAll("-","").slice(0,12);
   const schema="cv03_cv04_signed_"+suffix;
   const ownerRole="cv04_owner_"+suffix,runtimeRole="cv04_exec_"+suffix;
   const owner='"'+ownerRole+'"',runtime='"'+runtimeRole+'"',q='"'+schema+'"';
   const password="CV04_TMP_"+randomUUID().replaceAll("-","");
+  const hostRole="cv04_host_"+suffix,workerRole="cv04_worker_"+suffix;
+  const hostPw="CV04_H_"+randomUUID().replaceAll("-","");
+  const workerPw="CV04_W_"+randomUUID().replaceAll("-","");
   const sql=postgres(url,{max:3,connect_timeout:10,prepare:false});
   let ownerCreated=false,runtimeCreated=false,schemaCreated=false;
-  let client,second,raw;
+  let hostCreated=false,workerCreated=false;
+  let client,second,raw,host,workerA,workerB;
   try{
     await sql.unsafe("CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public");
     await sql.unsafe("CREATE ROLE "+owner+
@@ -120,7 +129,21 @@ async function fixture(fn){
     await prepareIsolatedDictionaryExportAuditV010({
       connectionString:url,schema,isolatedTestOnly:true
     });
-    await sql.unsafe(cv04IsolatedSignedExportGatewaySqlV010(schema));
+    await sql.unsafe(cv04IsolatedSignedExportGatewaySqlV010(schema,{
+      requirePhysicalWorkerLease:physical
+    }));
+    if(physical){
+      await sql.unsafe("CREATE ROLE \""+hostRole+
+        "\" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '"+hostPw+"'");
+      hostCreated=true;
+      await sql.unsafe("CREATE ROLE \""+workerRole+
+        "\" LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '"+workerPw+"'");
+      workerCreated=true;
+      await prepareIsolatedDictionaryExportSqlLeaseV010({
+        connectionString:url,schema,hostLoginRole:hostRole,
+        workerLoginRole:workerRole,isolatedTestOnly:true
+      });
+    }
     await sql.unsafe("INSERT INTO "+q+".cv04_export_signing_keys (key_id,secret) VALUES ($1,$2)",[
       keyId,hmacSecret
     ]);
@@ -142,13 +165,22 @@ async function fixture(fn){
     // Real physical privilege split; SQL runtime has no raw job or audit DML.
     for(const table of ["resources","cv03_resource_receipts","cv04_export_audit",
       "cv04_export_signing_keys","cv04_export_authority",
-       "cv04_export_principal_fence","cv04_export_used_proofs"]){
+      "cv04_export_principal_fence","cv04_export_used_proofs",
+      ...(physical?["cv04_export_work_permits","cv04_export_work_leases"]:[])]){
       await sql.unsafe("ALTER TABLE "+q+'."'+table+'" OWNER TO '+owner);
       await sql.unsafe("REVOKE ALL ON TABLE "+q+'."'+table+'" FROM PUBLIC');
     }
     for(const name of ["cv04_audit_immutable()",
       "cv04_append_job_resource_audit()",
-      "cv04_export_signed_put(text,text,text)"]){
+      "cv04_export_signed_put(text,text,text)",
+      ...(physical?[
+        "cv04_export_issue_lease(text,text,bigint,text,text,text,text,bigint)",
+        "cv04_export_claim_lease(text)",
+        "cv04_export_complete_lease(text,bigint)",
+        "cv04_export_revoke_lease(text,text)",
+        "cv04_export_lease_status(text,text)",
+        "cv04_export_due_jobs(text,integer)"
+      ]:[])]){
       await sql.unsafe("ALTER FUNCTION "+q+"."+name+" OWNER TO "+owner);
     }
     await sql.unsafe("ALTER SCHEMA "+q+" OWNER TO "+owner);
@@ -157,6 +189,19 @@ async function fixture(fn){
     await sql.unsafe("GRANT EXECUTE ON FUNCTION "+q+
       ".cv04_export_signed_put(text,text,text) TO "+runtime);
     const loginUrl=new URL(url);loginUrl.username=runtimeRole;loginUrl.password=password;
+    if(physical){
+      const hostUrl=new URL(url);hostUrl.username=hostRole;hostUrl.password=hostPw;
+      const workerUrl=new URL(url);workerUrl.username=workerRole;workerUrl.password=workerPw;
+      host=createIsolatedDictionaryExportSqlHostLeaseIssuerV010({
+        connectionString:hostUrl.toString(),schema,isolatedTestOnly:true
+      });
+      workerA=createIsolatedDictionaryExportSqlWorkerLeaseV010({
+        connectionString:workerUrl.toString(),schema,isolatedTestOnly:true
+      });
+      workerB=createIsolatedDictionaryExportSqlWorkerLeaseV010({
+        connectionString:workerUrl.toString(),schema,isolatedTestOnly:true
+      });
+    }
     client=postgres(loginUrl.toString(),{max:2,connect_timeout:10,prepare:false});
     second=postgres(loginUrl.toString(),{max:2,connect_timeout:10,prepare:false});
     raw=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
@@ -171,13 +216,17 @@ async function fixture(fn){
       connectionString:url,schema,contextId:ctx,jobId,isolatedTestOnly:true
     });
     await fn({sql,schema,q,owner,runtime,ownerRole,runtimeRole,client,second,raw,
-      encrypted,put,read,cryptoKey:Buffer.alloc(32,0x24)});
+      encrypted,put,read,cryptoKey:Buffer.alloc(32,0x24),
+      host,workerA,workerB,hostRole,workerRole});
   }finally{
     if(client)await client.end();
     if(second)await second.end();
     if(raw)await raw.close();
+    for(const v of [host,workerA,workerB])if(v)await v.close();
     if(schemaCreated)await sql.unsafe("DROP SCHEMA "+q+" CASCADE");
     if(runtimeCreated)await sql.unsafe("DROP ROLE "+runtime);
+    if(workerCreated)await sql.unsafe('DROP ROLE "'+workerRole+'"');
+    if(hostCreated)await sql.unsafe('DROP ROLE "'+hostRole+'"');
     if(ownerCreated)await sql.unsafe("DROP ROLE "+owner);
     await sql.end();
   }
@@ -408,4 +457,156 @@ test("CV04 signed SQL: DB fences active Worker lease, max 2 attempts and signed 
     assert.equal((await raw.get(addr(id))).revision,3);
     console.log("CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS");
   });
+});
+
+
+const approval=(jobId,revision)=>({
+  contextId:ctx,jobId,expectedRevision:revision,
+  enterpriseId:enterprise,subjectId:subject,actorType:"HUMAN",
+  approvalId:"signed-host-"+randomUUID(),authorityEpoch:1
+});
+const physicalProof=(token,claim)=>({
+  workerLeaseEpoch:claim.epoch,workerLeaseTokenHash:md5(token)
+});
+
+test("CV04 fenced PG: physical Worker lease epoch and exact CAS revision both required for STARTED and READY",realPG,async()=>{
+  await fixture(async({put,raw,read,cryptoKey,host,workerA,client,q})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const created=encryptJob(job,cryptoKey,0);
+    assert.equal((await put(permit(created))).revision,0);
+    const token=await host.issue(approval(id,0));
+    const lease=await workerA.claim(token);
+    assert.equal(lease.expectedRevision,0);
+    assert.equal(lease.epoch,1);
+    const running={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const runDoc=encryptJob(running,cryptoKey,1,created);
+    await assert.rejects(put(permit(runDoc)),/CV04_GATEWAY_PHYSICAL_LEASE_PROOF_REQUIRED/);
+    await assert.rejects(put(permit(runDoc,{envelope:{
+      ...physicalProof(token,lease),workerLeaseEpoch:2
+    }})),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    await assert.rejects(put(permit(runDoc,{envelope:{
+      ...physicalProof(token,lease),workerLeaseTokenHash:"0".repeat(32)
+    }})),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    await assert.rejects(put(permit(runDoc,{expectedRevision:7,
+      envelope:physicalProof(token,lease)})),
+      /CV04_GATEWAY_PERMIT_OR_STATE_DENIED|CV04_GATEWAY_PHYSICAL_LEASE_FENCED|ENTERPRISE_RESOURCE_REVISION_CONFLICT/);
+    assert.equal((await raw.get(addr(id))).revision,0);
+    assert.equal((await put(permit(runDoc,{envelope:physicalProof(token,lease)}))).revision,1);
+
+    const csv="\\uFEFFdictionaryId\\r\\nrow-01\\r\\n";
+    const ready={...running,state:"READY",pages:[],csv,csvSha256:sha(csv),
+      leaseUntil:undefined,
+      audit:[...running.audit,event("COMPLETED",1,csv.length),event("READY",1,csv.length)]};
+    const readyDoc=encryptJob(ready,cryptoKey,2,runDoc);
+    assert.equal((await put(permit(readyDoc,{
+      envelope:physicalProof(token,lease)
+    }))).state,"READY");
+    assert.equal(await workerA.complete(token,lease.epoch),"DONE");
+    assert.equal((await raw.get(addr(id))).revision,2);
+    assert.deepEqual((await read(id)).map(x=>x.stage),
+      ["REQUESTED","STARTED","COMPLETED","READY"]);
+    await assert.rejects(client.unsafe("SELECT * FROM "+q+".cv04_export_work_leases"),
+      /permission denied/);
+    console.log("CV04_SIGNED_PHYSICAL_LEASE_OWNER_REVISION_READY_ATOMIC_PASS");
+  },{physical:true});
+});
+
+test("CV04 fenced PG: concurrent reclaimed epoch denies stale Worker signed CAS and preserves one winner",realPG,async()=>{
+  await fixture(async({sql,q,put,raw,read,cryptoKey,host,workerA,workerB})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const created=encryptJob(job,cryptoKey,0);
+    await put(permit(created));
+    const token1=await host.issue(approval(id,0));
+    const lease1=await workerA.claim(token1);
+    const run1={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+1350).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const doc1=encryptJob(run1,cryptoKey,1,created);
+    assert.equal((await put(permit(doc1,{
+      envelope:physicalProof(token1,lease1)
+    }))).revision,1);
+    // Disposable PG clock simulation of an abandoned physical lease. Do not
+    // replace a real multi-Host/partition acceptance with this admin injection.
+    await new Promise(r=>setTimeout(r,1460));
+    await sql.unsafe("UPDATE "+q+".cv04_export_work_leases "+
+      "SET claimed_until=clock_timestamp()-interval '1 second' "+
+      "WHERE context_id=$1 AND job_id=$2",[ctx,id]);
+    const token2=await host.issue(approval(id,1));
+    const lease2=await workerB.claim(token2);
+    assert.equal(lease2.epoch,2);
+    await assert.rejects(workerA.complete(token1,1),
+      /CV04_EXPORT_SQL_STALE_LEASE_FENCE/);
+    const run2={...run1,attempt:2,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...run1.audit,event("STARTED")]};
+    const doc2=encryptJob(run2,cryptoKey,2,doc1);
+    await assert.rejects(put(permit(doc2,{
+      envelope:physicalProof(token1,lease1)
+    })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id))).revision,1);
+    assert.equal((await put(permit(doc2,{
+      envelope:physicalProof(token2,lease2)
+    }))).revision,2);
+    const csv="\\uFEFFdictionaryId\\r\\nrow-01\\r\\n";
+    const ready={...run2,state:"READY",pages:[],csv,csvSha256:sha(csv),
+      leaseUntil:undefined,
+      audit:[...run2.audit,event("COMPLETED",1,csv.length),event("READY",1,csv.length)]};
+    const readyDoc=encryptJob(ready,cryptoKey,3,doc2);
+    await assert.rejects(put(permit(readyDoc,{
+      envelope:physicalProof(token1,lease1)
+    })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await put(permit(readyDoc,{
+      envelope:physicalProof(token2,lease2)
+    }))).revision,3);
+    assert.equal(await workerB.complete(token2,2),"DONE");
+    assert.deepEqual((await read(id)).map(x=>x.stage),
+      ["REQUESTED","STARTED","STARTED","COMPLETED","READY"]);
+    console.log("CV04_SIGNED_PHYSICAL_LEASE_RECLAIM_STALE_CAS_FENCED_PASS");
+  },{physical:true});
+});
+
+test("CV04 fenced PG: Host lease revoke and principal-wide epoch deny signed Worker write even if revision valid",realPG,async()=>{
+  await fixture(async({sql,q,put,raw,cryptoKey,host,workerA})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const created=encryptJob(job,cryptoKey,0);
+    await put(permit(created));
+    const token=await host.issue(approval(id,0));
+    const lease=await workerA.claim(token);
+    const running={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+7000).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const doc=encryptJob(running,cryptoKey,1,created);
+    const signed=permit(doc,{envelope:physicalProof(token,lease)});
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=false,authority_epoch=2 WHERE context_id=$1",[ctx]);
+    await assert.rejects(put(signed),/CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED/);
+    // Epochs only advance: re-grant a new signed generation, never reset it.
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=true,authority_epoch=2 WHERE context_id=$1",[ctx]);
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET authority_epoch=2 WHERE context_id=$1",[ctx]);
+    const newGeneration=permit(doc,{authorityEpoch:2,envelope:physicalProof(token,lease)});
+    await assert.rejects(put(newGeneration),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id))).revision,0);
+
+    // Independent newly approved permit at epoch=2 remains usable until
+    // the physical Host revokes it (no older token can be refreshed).
+    const id2="exj-"+randomBytes(24).toString("hex");
+    const job2=buildJob(id2),initial2=encryptJob(job2,cryptoKey,0);
+    assert.equal((await put(permit(initial2,{authorityEpoch:2}))).revision,0);
+    const token2=await host.issue({...approval(id2,0),authorityEpoch:2});
+    const lease2=await workerA.claim(token2);
+    const running2={...job2,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...job2.audit,event("STARTED")]};
+    const start2=permit(encryptJob(running2,cryptoKey,1,initial2),{
+      authorityEpoch:2,envelope:physicalProof(token2,lease2)
+    });
+    assert.equal(await host.revoke(ctx,id2),"REVOKED");
+    await assert.rejects(put(start2),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id2))).revision,0);
+    console.log("CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS");
+  },{physical:true});
 });

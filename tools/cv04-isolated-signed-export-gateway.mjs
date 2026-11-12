@@ -10,10 +10,60 @@
  * of genuine PA05 / enterprise membership event delivery, KMS, or multi-host
  * certification. A production runtime SQL role must NEVER use this fixture.
  */
-export function cv04IsolatedSignedExportGatewaySqlV010(schema) {
+export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
   if (typeof schema!=="string"||!/^cv03_[a-z0-9_]{1,58}$/u.test(schema))
     throw new Error("CV04_EXPORT_GATEWAY_ISOLATED_SCHEMA_REQUIRED");
+  if (!options || typeof options!=="object" ||
+      (options.requirePhysicalWorkerLease!==undefined &&
+       typeof options.requirePhysicalWorkerLease!=="boolean"))
+    throw new Error("CV04_EXPORT_GATEWAY_LEASE_MODE_INVALID");
   const s='"'+schema+'"';
+  // Opt-in combines two EXISTING isolated SQL protocols, not production Host.
+  const physical=options.requirePhysicalWorkerLease===true;
+  const workerFence=physical?`
+  IF requested_op='dictionary.collection.export.job.worker' THEN
+    IF e->>'workerLeaseEpoch' IS NULL OR
+       e->>'workerLeaseEpoch' NOT IN ('1','2') OR
+       e->>'workerLeaseTokenHash' IS NULL OR
+       e->>'workerLeaseTokenHash' !~ '^[a-f0-9]{32}$'
+    THEN RAISE EXCEPTION 'CV04_GATEWAY_PHYSICAL_LEASE_PROOF_REQUIRED'; END IF;
+    -- Shared transaction lock with the separate Host/Worker SQL lease funcs.
+    PERFORM pg_advisory_xact_lock(hashtextextended(scope_context||':'||id,42));
+    SELECT l.epoch,l.claimed_until,l.state,l.claimed_token_hash,
+           p.job_revision,p.authority_epoch,p.context_id AS permit_context,
+           p.job_id AS permit_job,p.enterprise_id,p.subject_id,
+           p.actor_type,p.state AS permit_state
+      INTO physical_lease
+      FROM ${s}.cv04_export_work_leases AS l
+      JOIN ${s}.cv04_export_work_permits AS p
+        ON p.token_hash=l.claimed_token_hash
+       AND p.context_id=l.context_id AND p.job_id=l.job_id
+      WHERE l.context_id=scope_context AND l.job_id=id
+      FOR SHARE OF l,p;
+    IF NOT FOUND THEN RAISE EXCEPTION 'CV04_GATEWAY_PHYSICAL_LEASE_FENCED'; END IF;
+    IF physical_lease.state IS DISTINCT FROM 'RUNNING' OR
+       physical_lease.permit_state IS DISTINCT FROM 'CLAIMED' OR
+       physical_lease.authority_epoch IS DISTINCT FROM epoch OR
+       physical_lease.claimed_until<=clock_timestamp() OR
+       physical_lease.epoch IS DISTINCT FROM (e->>'workerLeaseEpoch')::bigint OR
+       physical_lease.claimed_token_hash IS DISTINCT FROM e->>'workerLeaseTokenHash' OR
+       physical_lease.permit_context IS DISTINCT FROM scope_context OR
+       physical_lease.permit_job IS DISTINCT FROM id OR
+       physical_lease.enterprise_id IS DISTINCT FROM scope_enterprise OR
+       physical_lease.subject_id IS DISTINCT FROM subject OR
+       physical_lease.actor_type IS DISTINCT FROM actor OR
+       (next_state='RUNNING' AND expected IS DISTINCT FROM physical_lease.job_revision) OR
+       (next_state IN ('READY','FAILED') AND
+         (expected IS NULL OR expected<=physical_lease.job_revision))
+    THEN RAISE EXCEPTION 'CV04_GATEWAY_PHYSICAL_LEASE_FENCED'; END IF;
+  END IF;
+`:"";
+  const startedFence=physical?`
+         OR requested_attempt IS DISTINCT FROM physical_lease.epoch
+         OR requested_lease>physical_lease.claimed_until`:"";
+  const completedFence=physical?`
+         OR requested_attempt IS DISTINCT FROM physical_lease.epoch
+         OR previous_lease>physical_lease.claimed_until`:"";
   return `
 CREATE TABLE ${s}.cv04_export_signing_keys(
   key_id text PRIMARY KEY,secret text NOT NULL,
@@ -96,6 +146,7 @@ DECLARE
   previous_lease timestamptz;
   requested_lease timestamptz;
   latest_event_type text;
+  physical_lease record;
 BEGIN
   IF p_envelope IS NULL OR p_resource IS NULL OR
      length(p_envelope)>8192 OR length(p_resource)>1000000 OR
@@ -238,7 +289,7 @@ BEGIN
      principal_epoch IS DISTINCT FROM epoch OR
      principal_until IS NULL OR principal_until<=clock_timestamp()
   THEN RAISE EXCEPTION 'CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED'; END IF;
-
+${workerFence}
   INSERT INTO ${s}.cv04_export_used_proofs(
     key_id,nonce,context_id,resource_id
   ) VALUES(signer,e->>'nonce',scope_context,id);
@@ -296,7 +347,8 @@ BEGIN
          requested_lease IS NULL OR
          requested_lease<=clock_timestamp() OR
          requested_lease>clock_timestamp()+interval '15 seconds' OR
-         requested_attempt<>previous_attempt+1 OR
+         requested_attempt<>previous_attempt+1
+${startedFence} OR
          NOT (prior_state='QUEUED' OR
            (prior_state='RUNNING' AND previous_lease<=clock_timestamp()))
          OR latest_event_type<>'STARTED'
@@ -305,7 +357,8 @@ BEGIN
       requested_op='dictionary.collection.export.job.worker' THEN
       IF prior_state<>'RUNNING' OR previous_lease IS NULL OR
          previous_lease<=clock_timestamp() OR
-         requested_attempt<>previous_attempt OR
+         requested_attempt<>previous_attempt
+${completedFence} OR
          (next_state='READY' AND latest_event_type<>'READY') OR
          (next_state='FAILED' AND latest_event_type<>'REJECTED')
       THEN RAISE EXCEPTION 'CV04_GATEWAY_STALE_WORKER_COMPLETION_DENIED'; END IF;

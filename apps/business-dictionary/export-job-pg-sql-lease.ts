@@ -75,6 +75,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "enterprise_id text NOT NULL,subject_id text NOT NULL,actor_type text NOT NULL,"+
         "job_revision bigint NOT NULL CHECK(job_revision >= 0),"+
         "approval_id text NOT NULL,"+
+        "authority_epoch bigint NOT NULL DEFAULT 0 CHECK(authority_epoch>=0),"+
         "issued_at timestamptz NOT NULL DEFAULT clock_timestamp(),"+
         "expires_at timestamptz NOT NULL,"+
         "state text NOT NULL CHECK(state IN ('ISSUED','CLAIMED','REVOKED')))");
@@ -91,7 +92,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
       // current_setting() flag or an Agent-controlled SQL GUC.
       await tx.unsafe("CREATE FUNCTION "+q+".cv04_export_issue_lease("+
         "p_context text,p_job text,p_revision bigint,p_enterprise text,"+
-        "p_subject text,p_actor text,p_approval text) RETURNS text "+
+        "p_subject text,p_actor text,p_approval text,p_epoch bigint DEFAULT NULL) RETURNS text "+
         "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ "+
         "DECLARE record_revision bigint; m jsonb; token text; "+
         "BEGIN "+
@@ -104,6 +105,9 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "p_actor NOT IN ('HUMAN','AI') OR "+
         "p_approval IS NULL OR length(p_approval)<8 OR length(p_approval)>128 "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_HOST_APPROVAL_INVALID'; END IF; "+
+        "IF p_epoch IS NOT NULL AND (p_epoch<=0 OR p_epoch>9007199254740991) "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_AUTHORITY_EPOCH_INVALID'; END IF; "+
+        "PERFORM pg_advisory_xact_lock(hashtextextended(p_context||':'||p_job,42)); "+
         "SELECT revision,resource->'payload'->'meta' INTO record_revision,m FROM "+
           q+".resources WHERE context_id=p_context AND "+
         "namespace='evo.dictionary.export-jobs' AND "+
@@ -118,20 +122,25 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_JOB_NOT_ADMISSIBLE'; END IF; "+
         "token:=replace(gen_random_uuid()::text,'-',''); "+
         "INSERT INTO "+permits+"(token_hash,context_id,job_id,enterprise_id,"+
-        "subject_id,actor_type,job_revision,approval_id,expires_at,state) "+
+        "subject_id,actor_type,job_revision,approval_id,authority_epoch,expires_at,state) "+
         "VALUES (md5(token),p_context,p_job,p_enterprise,p_subject,p_actor,"+
-        "p_revision,p_approval,clock_timestamp()+interval '30 seconds','ISSUED'); "+
+        "p_revision,p_approval,COALESCE(p_epoch,0),"+
+        "clock_timestamp()+interval '30 seconds','ISSUED'); "+
         "RETURN token; END; $$");
       await tx.unsafe("CREATE FUNCTION "+q+".cv04_export_claim_lease("+
         "p_token text) RETURNS jsonb "+
         "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ "+
         "DECLARE permit record; m jsonb; current_revision bigint; lease_epoch bigint;"+
-        " lease_until timestamptz; "+
+        " lease_until timestamptz; lock_context text; lock_job text; "+
         "BEGIN "+
         "IF session_user <> '"+input.workerLoginRole+"' "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_WORKER_LOGIN_REQUIRED'; END IF; "+
         "IF p_token IS NULL OR p_token !~ '^[0-9a-f]{32}$' "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_TOKEN_INVALID'; END IF; "+
+        "SELECT context_id,job_id INTO lock_context,lock_job FROM "+permits+
+        " WHERE token_hash=md5(p_token); "+
+        "IF NOT FOUND THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_PERMIT_NOT_ACTIVE'; END IF; "+
+        "PERFORM pg_advisory_xact_lock(hashtextextended(lock_context||':'||lock_job,42)); "+
         "SELECT * INTO permit FROM "+permits+" WHERE token_hash=md5(p_token) FOR UPDATE; "+
         "IF NOT FOUND OR permit.state<>'ISSUED' OR "+
         "permit.expires_at<=clock_timestamp() "+
@@ -167,9 +176,13 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
       await tx.unsafe("CREATE FUNCTION "+q+".cv04_export_complete_lease("+
         "p_token text,p_epoch bigint) RETURNS text "+
         "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ "+
-        "DECLARE permit record; lease record; m jsonb; BEGIN "+
+        "DECLARE permit record; lease record; m jsonb; lock_context text; lock_job text; BEGIN "+
         "IF session_user <> '"+input.workerLoginRole+"' "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_WORKER_LOGIN_REQUIRED'; END IF; "+
+        "SELECT context_id,job_id INTO lock_context,lock_job FROM "+permits+
+        " WHERE token_hash=md5(p_token); "+
+        "IF NOT FOUND THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_PERMIT_NOT_CLAIMED'; END IF; "+
+        "PERFORM pg_advisory_xact_lock(hashtextextended(lock_context||':'||lock_job,42)); "+
         "SELECT * INTO permit FROM "+permits+" WHERE token_hash=md5(p_token); "+
         "IF NOT FOUND OR permit.state<>'CLAIMED' "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_PERMIT_NOT_CLAIMED'; END IF; "+
@@ -195,6 +208,10 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ "+
         "BEGIN IF session_user<>'"+input.hostLoginRole+"' "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_HOST_LOGIN_REQUIRED'; END IF; "+
+        "IF p_context IS NULL OR p_context='' OR "+
+        "p_job !~ '^exj-[a-f0-9]{48}$' "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_REVOKE_SCOPE_INVALID'; END IF; "+
+        "PERFORM pg_advisory_xact_lock(hashtextextended(p_context||':'||p_job,42)); "+
         "UPDATE "+permits+" SET state='REVOKED' WHERE "+
         "context_id=p_context AND job_id=p_job AND state<>'REVOKED'; "+
         "UPDATE "+leases+" SET state='REVOKED' WHERE "+
@@ -235,7 +252,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "END; $$");
       const defs=[
         ["cv04_export_due_jobs","text,integer",host],
-        ["cv04_export_issue_lease","text,text,bigint,text,text,text,text",host],
+        ["cv04_export_issue_lease","text,text,bigint,text,text,text,text,bigint",host],
         ["cv04_export_claim_lease","text",worker],
         ["cv04_export_complete_lease","text,bigint",worker],
         ["cv04_export_revoke_lease","text,text",host],
@@ -270,13 +287,21 @@ export function createIsolatedDictionaryExportSqlHostLeaseIssuerV010(input:{
     async issue(request:{
       contextId:string;jobId:string;expectedRevision:number;
       enterpriseId:string;subjectId:string;actorType:"HUMAN"|"AI";approvalId:string;
+      /** Required by joint SQL CAS, defaults to legacy unstamped lease (0). */
+      authorityEpoch?:number;
     }):Promise<string>{
       authInput(request);
-      const rows=await sql.unsafe("SELECT "+schema+
-        ".cv04_export_issue_lease($1,$2,$3,$4,$5,$6,$7) AS token",[
-        request.contextId,request.jobId,request.expectedRevision,
-        request.enterpriseId,request.subjectId,request.actorType,request.approvalId
-      ]);
+      if(request.authorityEpoch!==undefined &&
+        (!Number.isSafeInteger(request.authorityEpoch)||request.authorityEpoch<1))
+        throw Error("CV04_EXPORT_SQL_AUTHORITY_EPOCH_INVALID");
+      const args=[request.contextId,request.jobId,request.expectedRevision,
+        request.enterpriseId,request.subjectId,request.actorType,request.approvalId];
+      if(request.authorityEpoch!==undefined)args.push(request.authorityEpoch);
+      const query=".cv04_export_issue_lease("+
+        (request.authorityEpoch===undefined?
+          "$1,$2,$3,$4,$5,$6,$7":"$1,$2,$3,$4,$5,$6,$7,$8")+
+        ") AS token";
+      const rows=await sql.unsafe("SELECT "+schema+query,args);
       const token=rows[0]?.token;
       if(typeof token!=="string"||!/^[a-f0-9]{32}$/u.test(token))
         throw Error("CV04_EXPORT_SQL_PERMIT_ISSUE_INVALID");
