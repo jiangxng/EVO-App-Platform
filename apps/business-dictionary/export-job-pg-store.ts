@@ -160,6 +160,7 @@ export function createIsolatedEncryptedDictionaryExportPgStoreV010(input:{
   isolatedTestOnly:boolean;
 }):{
   readonly conditionalWriteConsistency:"SHARED_POSTGRES_TRANSACTION";
+  readonly encryptedDictionaryExportJobs:true;
   get(address:EnterpriseResourceAddressV010):Promise<EnterpriseResourceV010|undefined>;
   putIfRevision(input:EnterpriseResourceConditionalPutInputV010):Promise<EnterpriseResourceV010>;
 }{
@@ -198,6 +199,7 @@ export function createIsolatedEncryptedDictionaryExportPgStoreV010(input:{
   };
   return{
     conditionalWriteConsistency:"SHARED_POSTGRES_TRANSACTION",
+    encryptedDictionaryExportJobs:true,
     async get(address) {
       const raw=await input.resources.get(addressOf(address));
       return raw?decode(raw):undefined;
