@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 Dictionary Owner 持久任务纵切（未注册生产接口）
+
+[独立 `dictionary.export` 授权、持久 CAS Job/审计、幂等/TTL/租约恢复、取文件再授权的隔离工程验收](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)：**已经有领域 Owner 服务和测试代码**，但无真实 Host 公开操作/产品入口；文件 CAS 不具备跨物理 Host 证明。必须补共享 Postgres / PA05 签收、持久加密与真实 Actor/企业/Agent 的端到端动作，才考虑正式部署。CV03 SAVE 仍 OFF。
+
 ## 2026-11-12 CV-04 有界跨页 EXPORT 安全合同（尚未开放产品导出）
 
 [受独立 EXPORT 授权/固定快照/审计回执/行数、页数、字节和时间预算约束的跨页 CSV 合同](CV04-BOUNDED-EXPORT-CONTRACT-20261112.md)：复用原 `foundation/collection-query` 和当前页 CSV 安全序列化，新增真实代码与协议反例测试，但**未注册 ActionHost Operation、UI 下载按钮或持久 Job**；缺真实 Owner `dictionary.export` 策略与持久审计时对线上不可用。不能用此合同 CI 成功宣布 List 基础插件或跨页导出已上线。
