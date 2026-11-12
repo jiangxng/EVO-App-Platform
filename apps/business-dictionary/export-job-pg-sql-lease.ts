@@ -215,7 +215,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
       // SQL login. Worker SQL cannot enumerate enterprise resources or jobs.
       await tx.unsafe("CREATE FUNCTION "+q+".cv04_export_due_jobs("+
         "p_context text,p_limit integer) RETURNS TABLE(job_id text,expired_at timestamptz) "+
-        "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $ "+
+        "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ "+
         "BEGIN "+
         "IF session_user <> '"+input.hostLoginRole+"' "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_HOST_LOGIN_REQUIRED'; END IF; "+
@@ -232,7 +232,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "AND (r.resource->'payload'->'meta'->>'expiresAt')::timestamptz<=clock_timestamp() "+
         "ORDER BY (r.resource->'payload'->'meta'->>'expiresAt')::timestamptz,r.resource_id "+
         "LIMIT p_limit; "+
-        "END; $");
+        "END; $$");
       const defs=[
         ["cv04_export_due_jobs","text,integer",host],
         ["cv04_export_issue_lease","text,text,bigint,text,text,text,text",host],
