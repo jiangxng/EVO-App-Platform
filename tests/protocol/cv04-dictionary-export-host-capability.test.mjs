@@ -1,4 +1,6 @@
 import test from "node:test";
+// This fixture intentionally exercises test-only resource CAS; never production admission.
+process.env.NODE_ENV="test";
 import assert from "node:assert/strict";
 import {createAppActionRouter} from "../../dist/actions/router.js";
 import {createPackageCatalog} from "../../dist/catalog/catalog.js";
