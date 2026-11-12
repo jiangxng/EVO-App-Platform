@@ -141,7 +141,7 @@ test("CV04 real PostgreSQL: encrypted Owner snapshot, two connections, diskless 
     const resource=await encryptedB.get(jobAddress(queued.jobId));
     const history=resource.payload.audit;
     assert.deepEqual(history.map(x=>x.type),["REQUESTED","STARTED","STARTED",
-      "COMPLETED","READY","DOWNLOAD_AUTHORIZED"]);
+      "COMPLETED","READY","DOWNLOAD_AUTHORIZED","DOWNLOAD_AUTHORIZED"]);
     assert.ok(!JSON.stringify(history).includes("PRIVATE_LABEL_"));
     assert.ok(!JSON.stringify(history).includes("Visible 1"));
     const rawAfter=await rawA.get(jobAddress(queued.jobId));
@@ -202,7 +202,8 @@ test("CV04 PG encrypted export denies raw adapter, wrong key, metadata tampering
       /COLLECTION_EXPORT_PERMISSION_DENIED/);
     decision.membership=true;
     await sql.unsafe('UPDATE "'+schema+'".resources SET resource=jsonb_set(resource,'+
-      "'{payload,meta,state}', '"EXPIRED"'::jsonb) WHERE resource_id=$1",[queued.jobId]);
+      "'{payload,meta,state}', $1::jsonb) WHERE resource_id=$2",
+      [JSON.stringify("EXPIRED"),queued.jobId]);
     await assert.rejects(encryptedB.get(jobAddress(queued.jobId)),
       /COLLECTION_EXPORT_PG_CIPHERTEXT_INTEGRITY_FAILED/);
     console.log("CV04_PG_ENCRYPTED_OWNER_WRONG_KEY_REVOKE_TAMPER_FAILCLOSED_PASS");
