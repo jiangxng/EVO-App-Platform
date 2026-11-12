@@ -74,6 +74,10 @@ test("missing/closed/wrong Owner issue fails red, and PR1184 merge never certifi
 test("formal Export registration or isolated Gateway/Owner/Worker mount trips RED",()=>{
   const scenarios=[
     ["manager/server.ts",text=>text+
+      "\n// unauthorized formal download dictionary.collection.export.job.download\n"],
+    ["catalog/seed.ts",text=>text+
+      "\n// unauthorized formal download dictionary.collection.export.job.download\n"],
+    ["manager/server.ts",text=>text+
       '\nconst accidental="dictionary.collection.export.job.request";\n'],
     ["catalog/seed.ts",text=>text+
       '\n// accidental formal action dictionary.collection.export.job.worker\n'],

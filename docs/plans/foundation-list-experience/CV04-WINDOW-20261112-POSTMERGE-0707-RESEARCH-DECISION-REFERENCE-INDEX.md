@@ -293,3 +293,24 @@
 2. **Owner 前置输出**：一份版本化、可核验的真实生产切换记录，至少五类独立 Owner 审查人的角色/日期/来源 SHA/部署环境/审批 URL；敏感密钥绝不能提交。记录要明确失败/回滚顺序、失联 deny、旧 signer epoch fencing 和完整 scope watermark 对账，且不含“仅测试环境成功即可放行”之类假设。
 3. **得到这些真实材料后才执行**：最小 PA05/T0 Producer/Provider/KMS/Owner signed CAS 接线及双物理 Host 故障验收；每个小阶段单独 PR，精确 HEAD CI、受保护 main 与真实部署日志证据不可省略；真正产品 Action 则仍是**再后一阶段**。
 4. **若 Owner 证据继续缺失**：继续保持明确 BLOCKED 状态；只可做不升权的源核对、只读物理扫描、对抗性禁止发布测试或补全原始证据。禁止自动签署、创造虚假密钥身份或部署生产 schema。
+
+## 16. Window 08: LIVE main 核对、SOURCE download-only 负例（2026-11-12）
+
+本节是 §15 后续增量。等级 A=本次直接读取 main 源文件全文/指定片段；B=本次直接读取 GitHub API 状态；C=继承原报告但本轮未独立重读现场 Job 原始日志。**不得把 CI 或自动续跑当成生产授权签署。**
+
+### G — 新核查的精确来源
+
+| 证据 | 直接观察与适用范围 | 工程用途 |
+| --- | --- | --- |
+| B：[main SHA](https://github.com/jiangxng/EVO-App-Platform/commit/63b22c4c81c51165a2f99486f0345be2e6efb3ea)、[#1288](https://github.com/jiangxng/EVO-App-Platform/pull/1288)、精确 commit check-runs（2026-11-12） | main=63b22c4…，#1288 MERGED；5 checks 中 4 SUCCESS + 1 SKIPPED（docs-only deploy）。 | 防止把历史起始 SHA、docs-only skip 误判为新镜像发布。 |
+| A：[CV04 已有负向 Owner gate](../../../tools/cv04-next05-production-authority-release-gate.mjs)、[原对抗回归](../../../tests/agent-line/cv04-next05-production-authority-release-gate.test.mjs) | 原门禁只检查已知正式 request/worker 出现在 Manager 或 Catalog，遗漏 download-only 注册；原测试也未注入 download。 | 在原门禁补齐第三个 operation；对 Manager/Catalog 分别新增 download-only 负例，不另建另一套 Gate。 |
+| A：[Provider resolution](../../../manager/provider-resolution.ts)、[静态 Authorization runtime](../../../providers/authorization/runtime.ts)、[未挂载 N1-05b T0 DENY adapter](../../../manager/cv03-n105b-authority-t0-pg.ts)、[Export Owner](../../../apps/business-dictionary/export-jobs.ts) | 可见 Provider binding File/Memory、静态授权规则，CV03 DENY client 明确 unmounted，Export Owner 有 isolatedTestOnly+test 保护。 | 不能据此推断部署中真实 PA05/T0 Outbox、完整 scope、authority epoch、source generation 或密钥已认证；正式 EXPORT 继续关闭。 |
+| B：[Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[并行 #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) | #1212 OPEN/PENDING OWNER SIGNOFF，五项已勾选不构成具名批准；#1184 OPEN，三份受管文件保持原状。 | 不能自签 Owner、迁移 production SQL 或修改 #1184 文件。 |
+| C：[Tokyo 既有现场报告](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md) §5、[此前 Actions #43212637430](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43212637430) | 继承先前只读报告：实际运行 SHA=81262c…，已知非 QA SQL 对象 0/0，evo 为 superuser。此次未重新现场获取；不能扩大到未知 SQL/动态授权。 | 后续有真实 Owner 前置才能做生产 Producer、Signer/KMS 与跨物理 Host 验收。 |
+
+### D — 采用方案、限制与可审计下一步
+
+- 采用原 CV04 NEXT-05a 源码负向发布守卫 + 同一对抗测试；禁止 request、worker、download 三个已知后台 operation 在 Manager 或 Catalog 提前注册。保持已有 Eidos/Platform、PA05、Domain Owner、CAS/PG Lease/Dispatcher，不重复实现。
+- 这次只是 known-name 源码防线，不是对所有动态 ActionRouter 入口的完整安全审计。已选择的**方案 A：同一 PostgreSQL ACID T0**不改变；本轮未新增生产授权源或 signer。
+- 继续等待 PA05 Lifecycle、AuthorizationProvider、PostgreSQL/DB、Security/Ops、Domain 五种具名 Owner 提供有效环境/角色/日期/来源 SHA/审批 URL、完整 Scope（企业、主体、Actor、Feature、Operation）、Epoch/Generation、Outbox/DENY/Tombstone、水印、最小权限 Producer/KMS、撤权及回滚证据。#1212 不可自行关闭。
+- 真正执行结果须以独立 Draft PR 精确 HEAD CI、受保护 main、东京运行镜像身份、Actions Branch Hygiene 原始证据更新；此处不预填 PASS。正式后台 EXPORT OFF/unregistered；CV03 N1=NOT_CERTIFIED，SAVE OFF。
