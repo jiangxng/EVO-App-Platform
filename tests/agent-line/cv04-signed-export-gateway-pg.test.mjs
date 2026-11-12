@@ -130,7 +130,8 @@ async function fixture(fn,{physical=false}={}){
       connectionString:url,schema,isolatedTestOnly:true
     });
     await sql.unsafe(cv04IsolatedSignedExportGatewaySqlV010(schema,{
-      requirePhysicalWorkerLease:physical
+      requirePhysicalWorkerLease:physical,
+      ...(physical?{workerLoginRole:workerRole}:{})
     }));
     if(physical){
       await sql.unsafe("CREATE ROLE \""+hostRole+
@@ -179,7 +180,8 @@ async function fixture(fn,{physical=false}={}){
         "cv04_export_complete_lease(text,bigint)",
         "cv04_export_revoke_lease(text,text)",
         "cv04_export_lease_status(text,text)",
-        "cv04_export_due_jobs(text,integer)"
+        "cv04_export_due_jobs(text,integer)",
+        "cv04_export_worker_read(text,bigint)"
       ]:[])]){
       await sql.unsafe("ALTER FUNCTION "+q+"."+name+" OWNER TO "+owner);
     }
@@ -188,6 +190,8 @@ async function fixture(fn,{physical=false}={}){
     await sql.unsafe("GRANT USAGE ON SCHEMA "+q+" TO "+runtime);
     await sql.unsafe("GRANT EXECUTE ON FUNCTION "+q+
       ".cv04_export_signed_put(text,text,text) TO "+runtime);
+    if(physical)await sql.unsafe("GRANT EXECUTE ON FUNCTION "+q+
+      ".cv04_export_worker_read(text,bigint) TO \""+workerRole+"\"");
     const loginUrl=new URL(url);loginUrl.username=runtimeRole;loginUrl.password=password;
     if(physical){
       const hostUrl=new URL(url);hostUrl.username=hostRole;hostUrl.password=hostPw;
