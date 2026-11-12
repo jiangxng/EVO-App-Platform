@@ -285,10 +285,18 @@ export function createDictionaryExportJobOwnerV010(input:{
       leaseUntil:execution?.trustedSqlLeaseUntil??
         new Date(clock()+LEASE_MS).toISOString()
     },"STARTED",iso()),state.revision);
+    // Every continuation belongs to this persisted attempt and lease.
+    // An older Worker must never append an audit or finish a reclaimer's job.
+    const claimedAttempt=state.job.attempt;
+    const claimedLeaseUntil=state.job.leaseUntil;
+    const stillOwnsAttempt=(job:JobRecord)=>
+      job.state==="RUNNING"&&job.attempt===claimedAttempt&&
+      job.leaseUntil===claimedLeaseUntil;
     // Audit append is CAS-atomic in exactly the same durable job resource.
     const append=async(type:JobAudit["type"],rows:number,bytes:number,code?:string)=>{
       const curr=await load(context,jobId);
-      if(curr.job.state!=="RUNNING")return fail("COLLECTION_EXPORT_JOB_NOT_RUNNING");
+      if(!stillOwnsAttempt(curr.job))
+        return fail("COLLECTION_EXPORT_JOB_STALE_ATTEMPT");
       await write(audit(curr.job,type,iso(),rows,bytes,code),curr.revision);
     };
     try {
@@ -314,7 +322,8 @@ export function createDictionaryExportJobOwnerV010(input:{
       });
       await authorize(context);
       const current=await load(context,jobId);
-      if(current.job.state!=="RUNNING")return fail("COLLECTION_EXPORT_JOB_NOT_RUNNING");
+      if(!stillOwnsAttempt(current.job))
+        return fail("COLLECTION_EXPORT_JOB_STALE_ATTEMPT");
       const next=audit({
         ...current.job,state:"READY",pages:[],leaseUntil:undefined,
         csv:result.csv,csvSha256:hash(result.csv),rowCount:result.rowCount
@@ -325,7 +334,8 @@ export function createDictionaryExportJobOwnerV010(input:{
         ?error.message:"COLLECTION_EXPORT_EXECUTION_FAILED";
       try{
         const current=await load(context,jobId);
-        if(current.job.state==="RUNNING"){
+        // A stale failure must not poison the next attempt after lease reclaim.
+        if(stillOwnsAttempt(current.job)){
           await write(audit({...current.job,state:"FAILED",pages:[],csv:undefined,
             leaseUntil:undefined},"REJECTED",iso(),0,0,code),current.revision);
         }

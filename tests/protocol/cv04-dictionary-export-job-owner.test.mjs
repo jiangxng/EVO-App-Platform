@@ -218,6 +218,88 @@ test("CV04 recovering previously RUNNING CAS task resumes from persistent snapsh
 });
 
 
+test("CV04 stale Owner cannot append audit or FAIL a reclaimed attempt",{
+  timeout:20000
+},async()=>{
+  // Exercise both race windows: stale audit read after a new RUNNING lease,
+  // and an already-read audit CAS that fails after the second claim.
+  for(const race of ["AUDIT_READ","AUDIT_WRITE"]){
+    const raw=createMemoryEnterpriseResourceRepositoryV010();
+    const dictionaryResources=createMemoryEnterpriseResourceRepositoryV010();
+    let signalOld,signalNew,releaseOld,releaseNew;
+    const oldPaused=new Promise(resolve=>{signalOld=resolve;});
+    const newPaused=new Promise(resolve=>{signalNew=resolve;});
+    const oldGate=new Promise(resolve=>{releaseOld=resolve;});
+    const newGate=new Promise(resolve=>{releaseNew=resolve;});
+    let armed=false,oldStopped=false,newStopped=false;
+    const resources={
+      conditionalWriteConsistency:raw.conditionalWriteConsistency,
+      async get(address){
+        if(race==="AUDIT_READ"&&armed&&!oldStopped){
+          oldStopped=true;
+          signalOld();
+          await oldGate;
+        }
+        return raw.get(address);
+      },
+      async putIfRevision(input){
+        const job=input.payload;
+        if(race==="AUDIT_WRITE"&&!oldStopped&&job?.state==="RUNNING"&&
+          job.attempt===1&&job.audit?.length===3){
+          oldStopped=true;
+          signalOld();
+          await oldGate;
+        }
+        if(!newStopped&&job?.state==="RUNNING"&&
+          job.attempt===2&&job.audit?.length===4){
+          newStopped=true;
+          signalNew();
+          await newGate;
+        }
+        const committed=raw.putIfRevision(input);
+        if(job?.state==="RUNNING"&&job.attempt===1&&job.audit?.length===2)
+          armed=true;
+        return committed;
+      }
+    };
+    const h=setup({resources,repositoryResources:dictionaryResources});
+    h.seed(2);
+    const ctx=context(),job=await h.make().request(ctx,
+      request("key_epoch_race_01_"+race));
+    const address={contextId:ENT_A,namespace:"evo.dictionary.export-jobs",
+      collectionId:"bounded-csv-jobs",resourceType:"evo.dictionary.export.job",
+      resourceId:job.jobId};
+    const first=h.make().run(ctx,job.jobId).then(
+      result=>({result}),error=>({error}));
+    await oldPaused;
+    h.advance(16000); // Let attempt 1 lease expire, not the 15-minute job.
+    const second=h.make().run(ctx,job.jobId).then(
+      result=>({result}),error=>({error}));
+    await newPaused;
+    assert.equal(raw.get(address).payload.state,"RUNNING");
+    assert.equal(raw.get(address).payload.attempt,2);
+    releaseOld();
+    const stale=await first;
+    assert.ok(stale.error instanceof Error,race);
+    assert.match(stale.error.message,
+      /COLLECTION_EXPORT_JOB_STALE_ATTEMPT|ENTERPRISE_RESOURCE_REVISION_CONFLICT/);
+    const inFlight=raw.get(address).payload;
+    assert.equal(inFlight.state,"RUNNING","old failure cannot poison attempt 2");
+    assert.equal(inFlight.attempt,2);
+    assert.equal(inFlight.audit.length,3,
+      "old audit must not contaminate the reclaimed attempt");
+    releaseNew();
+    const winner=await second;
+    assert.ifError(winner.error);
+    assert.equal(winner.result.state,"READY");
+    assert.equal(winner.result.attempts,2);
+    assert.deepEqual(raw.get(address).payload.audit.map(x=>x.type),[
+      "REQUESTED","STARTED","STARTED","STARTED","COMPLETED","READY"
+    ]);
+  }
+  console.log("CV04_DICTIONARY_EXPORT_OWNER_STALE_ATTEMPT_NO_CROSS_LEASE_WRITE_PASS");
+});
+
 test("CV04 queued snapshot storage and completed download-attempt budget reject without leaking bytes",async()=>{
   const fake=setup({repository:{list:()=>[{
     dictionaryId:"d001",displayName:"X".repeat(300000),
