@@ -126,7 +126,7 @@ test("CV-04 Dictionary export denies forged columns, query, absent membership an
     assert.equal(result.ok,false);
     assert.equal(result.error.code,code);
   }
-  assert.equal((await execute(base,undefined)).ok,false);
+  assert.equal((await execute(base,null)).error.code,"BUSINESS_DICTIONARY_ENTERPRISE_CONTEXT_REQUIRED");
   const cross=context({activeId:"enterprise-context:other",enterpriseId:"enterprise-b"});
   assert.equal((await execute(base,cross)).error.code,"BUSINESS_DICTIONARY_PERMISSION_DENIED");
   const spoof=context();spoof.scope.enterpriseId="enterprise-other";
