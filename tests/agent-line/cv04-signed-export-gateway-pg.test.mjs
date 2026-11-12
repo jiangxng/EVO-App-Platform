@@ -614,3 +614,93 @@ test("CV04 fenced PG: Host lease revoke and principal-wide epoch deny signed Wor
     console.log("CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS");
   },{physical:true});
 });
+
+
+test("CV04 Owner continuation: signed RUNNING audit keeps lease and exact one new event per CAS",realPG,async()=>{
+  await fixture(async({put,read,raw,client,q,cryptoKey,host,workerA})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const queuedDoc=encryptJob(job,cryptoKey,0);
+    await put(permit(queuedDoc));
+    const token=await host.issue(approval(id,0));
+    const claim=await workerA.claim(token);
+    const initial=await workerA.readCiphertext(token,claim.epoch);
+    assert.equal(initial.revision,0);
+    assert.equal(initial.resource.resourceId,id);
+    assert.ok(initial.resource.payload.secret.ciphertext.length>0);
+    assert.ok(!JSON.stringify(initial).includes("Private CV04 Export Row"));
+    await assert.rejects(workerA.readCiphertext("0".repeat(32),claim.epoch),
+      /CV04_EXPORT_WORKER_READ_PERMIT_DENIED/);
+    await assert.rejects(workerA.readCiphertext(token,2),
+      /CV04_EXPORT_WORKER_READ_LEASE_FENCED/);
+    await assert.rejects(client.unsafe("SELECT resource FROM "+q+".resources"),
+      /permission denied/);
+
+    const running={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+8000).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const startedDoc=encryptJob(running,cryptoKey,1,queuedDoc);
+    assert.equal((await put(permit(startedDoc,{
+      envelope:physicalProof(token,claim)
+    }))).revision,1);
+    const first=await workerA.readCiphertext(token,claim.epoch);
+    assert.equal(first.revision,1);
+
+    const progressed={...running,audit:[...running.audit,event("STARTED")]};
+    const progressDoc=encryptJob(progressed,cryptoKey,2,startedDoc);
+    assert.equal((await put(permit(progressDoc,{
+      envelope:physicalProof(token,claim)
+    }))).revision,2);
+
+    const completedAudit={...progressed,
+      audit:[...progressed.audit,event("COMPLETED",1,36)]};
+    const progressDoc2=encryptJob(completedAudit,cryptoKey,3,progressDoc);
+    assert.equal((await put(permit(progressDoc2,{
+      envelope:physicalProof(token,claim)
+    }))).revision,3);
+    const stale={...completedAudit,audit:[...completedAudit.audit,event("REJECTED")]};
+    const wrongLease=encryptJob({...stale,
+      leaseUntil:new Date(Date.now()+15000).toISOString()},cryptoKey,4,progressDoc2);
+    await assert.rejects(put(permit(wrongLease,{
+      envelope:physicalProof(token,claim)
+    })),/CV04_GATEWAY_RUNNING_AUDIT_FENCED/);
+    const twoAtOnce=encryptJob({...completedAudit,
+      audit:[...completedAudit.audit,event("STARTED"),event("COMPLETED",1,36)]},
+      cryptoKey,4,progressDoc2);
+    await assert.rejects(put(permit(twoAtOnce,{
+      envelope:physicalProof(token,claim)
+    })),/CV04_GATEWAY_RUNNING_AUDIT_FENCED/);
+    assert.equal((await raw.get(addr(id))).revision,3);
+    assert.deepEqual((await read(id)).map(x=>x.stage),
+      ["REQUESTED","STARTED","STARTED","COMPLETED"]);
+
+    assert.equal(await host.revoke(ctx,id),"REVOKED");
+    await assert.rejects(workerA.readCiphertext(token,claim.epoch),
+      /CV04_EXPORT_WORKER_READ_LEASE_FENCED|CV04_EXPORT_WORKER_READ_PERMIT_DENIED/);
+    await assert.rejects(put(permit(encryptJob(stale,cryptoKey,4,progressDoc2),{
+      envelope:physicalProof(token,claim)
+    })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id))).revision,3);
+    console.log("CV04_SIGNED_OWNER_RUNNING_AUDIT_LEASE_FENCED_PASS");
+  },{physical:true});
+});
+
+test("CV04 Worker ciphertext GET: principal-wide and operation mirror revocations both deny",realPG,async()=>{
+  await fixture(async({sql,q,put,cryptoKey,host,workerA})=>{
+    const id="exj-"+randomBytes(24).toString("hex");
+    await put(permit(encryptJob(buildJob(id),cryptoKey,0)));
+    const token=await host.issue(approval(id,0));
+    const claim=await workerA.claim(token);
+    assert.equal((await workerA.readCiphertext(token,claim.epoch)).revision,0);
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET enabled=false,authority_epoch=2 WHERE operation_id=$1",[workerOp]);
+    await assert.rejects(workerA.readCiphertext(token,claim.epoch),
+      /CV04_EXPORT_WORKER_READ_AUTHORITY_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET enabled=true,authority_epoch=1 WHERE operation_id=$1",[workerOp]);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=false,authority_epoch=2 WHERE context_id=$1",[ctx]);
+    await assert.rejects(workerA.readCiphertext(token,claim.epoch),
+      /CV04_EXPORT_WORKER_READ_PRINCIPAL_FENCED/);
+    console.log("CV04_SIGNED_WORKER_ENCRYPTED_READ_REVOKE_FAILCLOSED_PASS");
+  },{physical:true});
+});
