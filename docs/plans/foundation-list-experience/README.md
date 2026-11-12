@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 Host/Worker 物理 SQL 独立身份及一次性租约（隔离验证）
+
+[以现有 PostgreSQL 加密 Job 为基础的 Host SQL 许可签发、独立 Worker SQL 领取、epoch=1→2 有界租约、重放与撤权拒绝](CV04-SQL-HOST-WORKER-LEASE-20261112.md)：真实物理 SQL 登录和测试级租约 fence，与 Owner 的实际资源写入身份不等同；未完成生产签名 SQL Owner admission、后台清理、真实账号验收，仍不注册 EXPORT 产品入口。CV03 N1 SAVE OFF 不变。
+
 ## 2026-11-12 CV-04 Dictionary 独立 EXPORT Host Capability 受控装载（不进入正式 Host）
 
 [独立 `dictionary.export` 能力描述符及现有 Manager/Capability Fabric/ActionRouter/真实 Dictionary Owner Human/Agent 拒绝和授权回归](CV04-DICTIONARY-EXPORT-HOST-CAPABILITY-20261112.md)：动态能力目录、授权、撤权与 Feature 停用均在隔离测试装载；**没有正式 Host 注册、没有 Eidos 或 Agent 真实下载入口**。只有 SQL 签名准入、审计、KMS 与真实会话通过后才能发布；生产 SAVE OFF 不变。
