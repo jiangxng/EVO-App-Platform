@@ -234,3 +234,16 @@
 - **失败原始来源（不可误写为 PASS）**：[Actions #43208158346](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43208158346) job `131148526302`，源代码对抗回归 **5/6 PASS、1 FAIL**；仅存一处 test-only SQL Lease 字符串仍被门禁误判正常，实际 SQL `install` 子分支 guard 已遭用例削弱。修复为分别检查 **install/use** 和 **dispatcher/poller** 各两个 test-only 拒绝位置，增强对应反向测试。
 - **修复原始来源**：[Actions #43208410247](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43208410247) job `131149367497` 的真实日志：六项固定安全反例 marker、`ℹ pass 6`、`ℹ fail 0`、`ℹ skipped 0`；从真实 GitHub 读取 #1212 Issue / #1184 PR 的 check 通过，且明确输出 `CV04_NEXT05_NON_CERTIFYING_RELEASE_GATE_TERMINAL_PASS`。**只证明“必须继续 OFF”**，并不证明真实 PA05/T0 Signer/KMS 可信。
 - 再次强调：当前研究文档修订后 PR HEAD 会变化，必须以**最终 HEAD** 安全门禁及受保护 `main` 单独核对，不把旧成功沿用至新 SHA。实际生产认证仍属 **C=未验**，无新网页/截图。
+
+
+## 14. NEXT-05b：东京运行中正式 EXPORT 缺席的只读目录证据（2026-11-12）
+
+> 新增 CV04 自身的 **live runtime** 信息；区别于 #1285 静态源码关闭门禁、已有 CV03 N105c11/12 的 Provider 候选/原库目录库存。完整设计、来源、风险和回填位置见 [CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md)。本节的 B 真实物理结果必须以**本轮 protected-main Actions 原始 job 日志**验证，不能凭 PR 代码预填 SUCCESS。
+
+| 访问等级 / 原始来源 / 2026-11-12 | 来源事实 G | 实际用途 D / 不能推断 |
+| --- | --- | --- |
+| A · [Manager Host GET 路由](https://github.com/jiangxng/EVO-App-Platform/blob/ef705935332d5b13976ad8459e193e99a59df0c3/manager/server.ts)、[Service Catalog](https://github.com/jiangxng/EVO-App-Platform/blob/ef705935332d5b13976ad8459e193e99a59df0c3/manager/service.ts) | 运行 Host 提供 `GET /v1/catalog`、`GET /v1/platform/snapshot`、Provider effective/bindings。返回 Catalog/运行快照，不是特定 export 请求的真实审批调用。 | 使用无副作用的 GET 验证已知正式 `dictionary.collection.export.job.*` Operation 不在运行中的 Catalog，辅以 #1285 源码门禁；**不能反证所有可能未入 Catalog 的动态 Host Action**。 |
+| A · [已有 CV03 东京只读工作流](https://github.com/jiangxng/EVO-App-Platform/blob/ef705935332d5b13976ad8459e193e99a59df0c3/.github/workflows/cv03-n105c11-tokyo-live-authority-readonly.yml)、[Compose](https://github.com/jiangxng/EVO-App-Platform/blob/ef705935332d5b13976ad8459e193e99a59df0c3/deploy/tencent-tokyo/compose.yaml) | 保护主线的 `evo-tokyo-dev` Runner 有固定 SSH 身份、可进入现有健康容器；真实原库的 `pg_catalog` 可以在 PostgreSQL READ ONLY 模式查询。 | 建立 CV04 单独的物理 read-only 工作流：只查 CV04 非 QA SQL 前缀函数/表的数量、已知 `evo` 超管登陆事实。不复用 QA Schema 作为正式 T0，绝不生产 DDL/DML/KMS。 |
+| B · [真实 Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) | 本次开始仍 OPEN/PENDING，既有签署需求仍未消除；受管 #1184 未修改。 | 只有 Owner 可决定实际认证身份、Scope、Outbox/KMS 与生产接线；只读检查 **GREEN 不能提升 RELEASE**。 |
+
+**排除方案**：不执行测试用 Owner `request()` 对真实环境写入、不打 POST 探测未知 Action、不查询具体业务对象/策略，不创建第三套 Authority 或生产 SQL 角色，不在 PR 阶段读取 Tokyo secrets。保留 CV03 `N1=NOT_CERTIFIED`、SAVE OFF、正式 EXPORT OFF。需要读源之外的真实工作流记录时按准确最终 commit HEAD、run/job 链接、已查看 marker/快照 SHA、真实 Branch Hygiene 状态回填；任何未执行的步骤标 C=待验，不将源码假设称物理证据。
