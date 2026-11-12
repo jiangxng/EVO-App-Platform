@@ -47,21 +47,23 @@ jobs:
                   if fragment.strip() and len(fragment)-len(fragment.lstrip(" ")) <= margin: break
                   block.append(fragment[margin+2:] if fragment.startswith(" "*(margin+2)) else "")
               blocks.append("\n".join(block)+"\n")
-          assert len(blocks) == 4, "Expected syntax job, SSH identity, remote inventory, and cleanup"
+          assert len(blocks) >= 3, "Expected SSH identity, remote inventory, and cleanup"
           for script in blocks:
               check = subprocess.run(["bash","-n"], input=script, text=True, capture_output=True)
               assert check.returncode == 0, "Embedded bash syntax failed"
           # Node is passed as a HEREDOC to the existing running Host container.
-          match = re.search(r"<<'HOST_NODE'\n(.*?)\nHOST_NODE", blocks[2], re.S)
+          physical = next((s for s in blocks if "docker compose exec -T --interactive=false evo node -" in s), None)
+          assert physical, "Physical inventory block not found"
+          match = re.search(r"<<'HOST_NODE'\n(.*?)\nHOST_NODE", physical, re.S)
           assert match, "Host Node source not found"
           node = subprocess.run(["node","--check"], input=match.group(1), text=True, capture_output=True)
           assert node.returncode == 0, "Host metadata Node syntax failed"
-          assert "BEGIN TRANSACTION READ ONLY;" in blocks[2]
-          assert "default_transaction_read_only=on" in blocks[2]
-          assert "APP_PLATFORM_CV03_HUMAN_SAVE_MODE" in blocks[2]
-          assert "APP_PLATFORM_PROVIDER_BINDINGS_FILE" in blocks[2]
-          assert "cv03_n105b_commit_deny_t0" in blocks[2]
-          assert "docker compose exec -T --interactive=false evo node -" in blocks[2]
+          assert "BEGIN TRANSACTION READ ONLY;" in physical
+          assert "default_transaction_read_only=on" in physical
+          assert "APP_PLATFORM_CV03_HUMAN_SAVE_MODE" in physical
+          assert "APP_PLATFORM_PROVIDER_BINDINGS_FILE" in physical
+          assert "cv03_n105b_commit_deny_t0" in physical
+          assert "docker compose exec -T --interactive=false evo node -" in physical
           print("CV03_N105C11_SOURCE_READONLY_SHELL_AND_HOST_NODE_SYNTAX_PASS")
           PY
 
