@@ -341,3 +341,19 @@
 **D / 最小实施**：在**同一个** CV04 NEXT-05b 东京只读 Workflow 内，将运行中 Catalog 检查改为整个 Export Job 前缀；PR-only source-syntax 要求实际 Node 代码包含这个条件与新增独立 runtime marker。其余原 GET/PG READ ONLY、安全输出、exact-main、SSH pin、test-only/Owner 禁令全部保留。输出仅能证明该次东京预览镜像的 live Catalog 未列出这个已知命名空间，不能证明动态别名、未知数据库授权、真实 PA05/T0 Provider.check() 或两物理 Host 已认证。详细旧/新范围区别见 [Tokyo NEXT05b 报告 §6](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md)。
 
 **C / 独立 Owner 阻塞未消除**：真正 PA05/AuthorizationProvider/DB/Security/Ops/Domain Owner 具名生产签署、完整 Scope/epoch/sourceGeneration/Outbox/tombstone/watermark、最小权限 Producer/KMS 和可靠回滚均待核验。不得借此编辑 #1184 管理文件、部署生产 PG、启用 EXPORT 或 CV03 SAVE。实际 PR HEAD/东京现场/Branch Hygiene 结果需在其**原始 CI 完成后**记录，不将 PR-only source check 冒充东京物理验收。
+
+
+### B / Window 08 #02/07 protected-main actual physical terminal（2026-11-12）
+
+> 这是在原 §18 的 A/D 后、`main` 合并和东京实际运行完成**再独立回填**的 B 级原始证据；不可把该真实东京镜像误报为最新源码镜像，也不能把 Catalog 名字缺席扩大为动态 Provider.check() 或真正生产 Owner 审批。
+
+| 原始来源（本轮直接读取 GitHub API / Job log） | 实际确认 G | 仍不能宣称 |
+| --- | --- | --- |
+| [PR #1291](https://github.com/jiangxng/EVO-App-Platform/pull/1291) / 完整 HEAD `8b2c5cab80daeed63f48a1b9d5fba00124c2a1d4` | Draft→Ready→MERGED；PR 6 SUCCESS + 1 main-only `tokyo-live-export-readonly` SKIPPED；其中 `source-syntax` 原始 Job [#131258564696](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43240295988/job/131258564696) 出现 `CV04_NEXT05B_READONLY_SHELL_NODE_SOURCE_SYNTAX_PASS`。 | PR 不曾访问东京真实 Host/PG。 |
+| [main 合并提交 `b1cabf7f4fdbfee1d88a1de4efcce1286c329af5`](https://github.com/jiangxng/EVO-App-Platform/commit/b1cabf7f4fdbfee1d88a1de4efcce1286c329af5)、[主线东京真正只读 Job #131260449146](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43240834882/job/131260449146) | 原始日志实际输出 `CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_NAMESPACE_ABSENT_PASS`、`CV04_NEXT05B_LIVE_AUTH_PROVIDER_STATIC_CANDIDATE_ONLY_PASS`、`CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS`、`CV04_NEXT05B_ORIGINAL_SQL_USER_IS_SUPERUSER_NOT_PRODUCER_PASS`、`CV04_NEXT05B_PHYSICAL_READONLY_TERMINAL_PASS`；PostgreSQL `pg_catalog` 计数断言 0/0，live Catalog 未列出已知 `dictionary.collection.export.job.` 命名空间。 | 未全域扫描未知 SQL 名/动态别名，不能证明 KMS/PA05 T0/完整授权 Snapshot/WAL/两物理 Host。 |
+| [原始东京实机日志 #43240834882](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43240834882) 和 [Tokyo 发布判定 #43240882452](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43240882452) | 真实运行镜像 `81262c348b2abf0440ddc0501495aa9c572f2e23`，不同于主线 workflow SHA。preflight SUCCESS 并输出 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE sha=b1cabf7f4fdbfee1d88a1de4efcce1286c329af5`；deploy 正常 SKIPPED，**没有新镜像部署**。 | 无新 Runtime 发布、无实际业务授权 Check 行为证明。 |
+| [exact-main checks](https://github.com/jiangxng/EVO-App-Platform/commit/b1cabf7f4fdbfee1d88a1de4efcce1286c329af5)、[Branch Hygiene #43240839175](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43240839175) job `131260464176` | Main 精确 SHA **5 SUCCESS + 2 预期 SKIPPED**（`source-syntax` main-only 与 `deploy` 非 runtime）；原始日志 `DELETED_VERIFIED_MERGED_PR_BRANCH fix/cv04-next05b-tokyo-export-namespace-readonly-20261112 @ 8b2c5cab80daeed63f48a1b9d5fba00124c2a1d4`，分支查询 absent。 | 安全分支清理/绿色 CI 不是正式生产认证。 |
+
+本轮再次直接核验 [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 仍 OPEN/PENDING（五项勾选非正式签署）、并行 [PR #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) OPEN，未修改其三份 Owner 受管文档。方案 A（同一正式 PostgreSQL ACID T0）及所有 Scope/authorityEpoch/sourceGeneration/Outbox/tombstone/Producer/KMS/迁移回滚前置要求**没有新的真实 Owner 证据**，不得提前接线或开功能。正式 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`，SAVE OFF。
+
+这份补录是 **docs-only 原始证据回填**，不能触发新的东京运行镜像，也不必为此重新跑同一 Tokyo PG 物理只读作业；后续 main checks 和东京 deploy SKIP 仍分别核验。
