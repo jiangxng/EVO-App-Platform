@@ -291,7 +291,10 @@ export function createDictionaryExportJobOwnerV010(input:{
     const claimedLeaseUntil=state.job.leaseUntil;
     const stillOwnsAttempt=(job:JobRecord)=>
       job.state==="RUNNING"&&job.attempt===claimedAttempt&&
-      job.leaseUntil===claimedLeaseUntil;
+      job.leaseUntil===claimedLeaseUntil&&
+      // Reclaim is not required to terminate an expired Worker's authority.
+      // The signed SQL gateway already enforces its own DB-time lease fence.
+      clock()<Date.parse(claimedLeaseUntil??"");
     // Audit append is CAS-atomic in exactly the same durable job resource.
     const append=async(type:JobAudit["type"],rows:number,bytes:number,code?:string)=>{
       const curr=await load(context,jobId);

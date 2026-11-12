@@ -300,6 +300,46 @@ test("CV04 stale Owner cannot append audit or FAIL a reclaimed attempt",{
   console.log("CV04_DICTIONARY_EXPORT_OWNER_STALE_ATTEMPT_NO_CROSS_LEASE_WRITE_PASS");
 });
 
+test("CV04 expired Worker cannot READY or FAIL its job before any reclaim",async()=>{
+  const raw=createMemoryEnterpriseResourceRepositoryV010();
+  let harness,once=true;
+  const resources={
+    async get(address){return raw.get(address);},
+    async putIfRevision(input){
+      const committed=raw.putIfRevision(input);
+      // The isolated clock moves only AFTER attempt 1 STARTED is durable;
+      // no second Host or competing Worker reclaims it at this point.
+      if(once&&input.payload?.state==="RUNNING"&&
+        input.payload.attempt===1&&input.payload.audit?.length===2){
+        once=false;
+        harness.advance(16000);
+      }
+      return committed;
+    }
+  };
+  harness=setup({
+    resources,repositoryResources:createMemoryEnterpriseResourceRepositoryV010()
+  });
+  harness.seed(2);
+  const ctx=context(),job=await harness.make().request(ctx,
+    request("key_lease_expired_no_reclaim"));
+  const addr={contextId:ENT_A,namespace:"evo.dictionary.export-jobs",
+    collectionId:"bounded-csv-jobs",resourceType:"evo.dictionary.export.job",
+    resourceId:job.jobId};
+  await assert.rejects(harness.make().run(ctx,job.jobId),
+    /COLLECTION_EXPORT_JOB_STALE_ATTEMPT/);
+  const stale=raw.get(addr).payload;
+  assert.equal(stale.state,"RUNNING");
+  assert.equal(stale.attempt,1);
+  assert.deepEqual(stale.audit.map(event=>event.type),["REQUESTED","STARTED"]);
+  assert.ok(stale.pages.length>0,"retains frozen snapshot for lawful recovery");
+  const recovered=await harness.make().run(ctx,job.jobId);
+  assert.equal(recovered.state,"READY");
+  assert.equal(recovered.attempts,2);
+  assert.ok((await harness.make().download(ctx,job.jobId)).content.includes("d0001"));
+  console.log("CV04_DICTIONARY_EXPORT_OWNER_EXPIRED_LEASE_NO_RECLAIM_FAILCLOSED_PASS");
+});
+
 test("CV04 queued snapshot storage and completed download-attempt budget reject without leaking bytes",async()=>{
   const fake=setup({repository:{list:()=>[{
     dictionaryId:"d001",displayName:"X".repeat(300000),

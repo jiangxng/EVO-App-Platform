@@ -54,3 +54,13 @@
 **验收方法**：在 [原 Owner 协议测试](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs) 增加一个确定性双尝试并发回归，分别阻塞旧 Worker 的审计读取和 CAS 提交；推进测试钟 16 秒后，由第 2 次尝试领取租约，保证旧执行不能写审计/FAILED，第 2 次最终 READY。沿用 [原专项 CI](../../../.github/workflows/cv04-dictionary-export-job-owner.yml)；原 8 项顶层测试增加至 9 项，必须 9/9 PASS、0 SKIP。
 
 **限制与 P**：这是明确 `NODE_ENV=test + isolatedTestOnly` 的现有 Domain Owner 一致性修复，不替代真实 PA05/T0 outbox→签名 Worker 的跨 SQL 主体授权/撤权、完整 Scope/水印/生产 Producer/KMS、跨两物理 Host 或真实 Human/Agent 下载。#1212 仍待具名 Owner，#1184 受管文件不触碰。正式跨页 EXPORT OFF、CV03 `N1=NOT_CERTIFIED` 与 SAVE OFF 均未改变。
+
+## NEXT-06b / 2026-11-12 — 无重领场景的超时 Worker Lease 时间围栏
+
+**G · 本轮直接读 `apps/business-dictionary/export-jobs.ts` 原文**：已交付的 NEXT-06 `stillOwnsAttempt` 固定 Attempt 与 `leaseUntil`，防止发生 attempt 2 重领时 attempt 1 污染。然而当 Worker 执行超过 **15 秒** 而尚无任何其他 Worker 重领，原状态仍 `RUNNING`、Attempt/Lease 字面值未变，旧 Worker 可以继续写 AUDIT/READY，错误路径还可能把任务置为 FAILED。原独立 Signed SQL Gateway 拥有 DB-time 物理租约围栏，但未正式接入的 Domain Owner 同样必须在本地隔离测试中拒绝过期结果。
+
+**D · 原地修复**：沿用已经存在的 `stillOwnsAttempt`，补上**每次续写时** `clock() < claimedLeaseUntil`。AUDIT、READY 和 catch FAILED 继续共用一个谓词，不增加新的队列、CAS、SQL 操作、认证 Provider 或背景服务。过期 Worker 不可写入成果或失效终态；原 `RUNNING` 与加密快照保留，待第二次合法、受限 attempt 2 从原持久快照恢复。
+
+**验证**：在[原 Owner 回归](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs)加入单一确定性无竞争对手场景：第一次 RUNNING 提交后将隔离测试钟推进 16 秒，确认旧 run 拒绝、Audit 仍只含 `REQUESTED/STARTED`、任务仍 RUNNING 并保留快照；随后恢复第 2 次尝试到 READY。既有双 Worker race 测试和 PG/浏览器回归保持。原专项 Workflow 顶层测试要求 **10/10 PASS**，0 SKIP。
+
+**C / P**：测试钟不等于生产 DB 时钟；正式租约的数据库墙钟、PA05 Epoch/SourceGeneration、Outbox、Signer/KMS 及不同物理 Host 故障仍需真实 Owner #1212 具名批准与认证。该代码仍只在 `NODE_ENV=test + isolatedTestOnly` 下使用，禁止启用新的后台 EXPORT；CV03 `N1=NOT_CERTIFIED` 和 SAVE OFF 未变。#1184 管理的三份文件不触碰。
