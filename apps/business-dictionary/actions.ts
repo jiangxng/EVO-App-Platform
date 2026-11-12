@@ -7,11 +7,13 @@ import type {
 import type { BusinessDictionaryOptionV010 } from "../../contracts/reference-data/dictionary.js";
 import type { BusinessDictionaryRepositoryV010 } from "./repository.js";
 import { queryBusinessDictionaryCollectionV010 } from "./collection-query.js";
+import { serializeAuthorizedCollectionPageCsvV010 } from "../../foundation/collection-query/page-csv.js";
 import {
   BUSINESS_DICTIONARY_DRAFT_COMMAND_V010 as DRAFT,
   BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 as OPTION_SAVE,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010 as LIST,
   BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010 as COLLECTION_QUERY,
+  BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010 as PAGE_CSV_EXPORT,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 as PUBLISH,
   BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010 as RESOLVE,
   BUSINESS_DICTIONARY_FEATURE_ID as FEATURE,
@@ -77,7 +79,56 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
       }
     }
   });
+  // Unlike list/query (which return {data}), Eidos handles a top-level
+  // download envelope natively. The Plugin/Host still reauthorizes every call.
+  const exportCurrentPage: AppActionHandler = {
+    packageId: PACKAGE, featureId: FEATURE, commandCode: PAGE_CSV_EXPORT,
+    async execute(request, context) {
+      try {
+        const contextId = activeContext(context);
+        const principal = context!.principal;
+        if (!input.canRead(principal, contextId)) {
+          throw new Error("BUSINESS_DICTIONARY_PERMISSION_DENIED");
+        }
+        const repository = "resolveRepository" in input
+          ? await input.resolveRepository() : input.repository;
+        if (!input.canRead(principal, contextId)) {
+          throw new Error("BUSINESS_DICTIONARY_PERMISSION_DENIED");
+        }
+        const { fieldIds, confirmed, ...query } = request.values;
+        // The browser action executor contributes confirmed:false. It is not
+        // a query parameter, nor can caller values authorize an export.
+        if (confirmed !== undefined && confirmed !== false) {
+          throw new Error("BUSINESS_DICTIONARY_CSV_INPUT_INVALID");
+        }
+        if (!Array.isArray(fieldIds) || !fieldIds.every(field => typeof field === "string")) {
+          throw new Error("COLLECTION_CSV_FIELDS_INVALID");
+        }
+        const result = queryBusinessDictionaryCollectionV010({
+          dictionaries: repository.list(contextId), query
+        });
+        const csv = serializeAuthorizedCollectionPageCsvV010({page: result, fieldIds});
+        return {
+          ok: true, correlationId: context!.correlationId,
+          result: {
+            contractVersion: "0.1.0",
+            message: "Current authorized page downloaded.",
+            download: {
+              fileName: "business-dictionaries-page-" + (result.pageInfo.page + 1) + ".csv",
+              mediaType: "text/csv;charset=utf-8",
+              content: "\\uFEFF" + csv
+            },
+            pageInfo: { page: result.pageInfo.page, rows: result.rows.length,
+              hasMore: result.pageInfo.hasMore }
+          }
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
   return [
+    exportCurrentPage,
     handler(LIST, false, (repo, _ctx, contextId, values) =>
       values.dictionaryId
         ? repo.get(contextId, required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED"))
