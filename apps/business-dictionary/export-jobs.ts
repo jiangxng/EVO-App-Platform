@@ -106,6 +106,31 @@ function normalizeRequest(request:DictionaryExportOwnerRequestV010){
   }
   return {query:clone(request.query),fieldIds:[...request.fieldIds]};
 }
+/**
+ * Pure Domain Owner projection of an already authorized Collection READ page.
+ * Never promote requested field IDs into new permissions. This is an isolated
+ * staging helper, NOT a Host operation or an AuthorizationProvider.
+ */
+export function projectAuthorizedDictionaryExportPageV010(
+  page:DataCollectionResultV010,fieldIds:readonly string[]
+):DataCollectionResultV010 {
+  if(!page||!Array.isArray(page.readableFieldIds)||
+    !Array.isArray(page.rows)||!Array.isArray(fieldIds)||
+    page.readableFieldIds.some(id=>!FIELDS.includes(id as typeof FIELDS[number]))||
+    fieldIds.some(id=>!FIELDS.includes(id as typeof FIELDS[number])||
+      !page.readableFieldIds.includes(id)))
+    return fail("COLLECTION_EXPORT_FIELD_NOT_READABLE");
+  return {...page,readableFieldIds:[...fieldIds],
+    rows:page.rows.map(row=>{
+      if(!row||!row.cells||typeof row.cells!=="object"||
+        Array.isArray(row.cells))
+        return fail("COLLECTION_EXPORT_PAGE_ROW_INVALID");
+      return {rowId:row.rowId,cells:Object.fromEntries(
+        fieldIds.map(id=>[id,Object.hasOwn(row.cells,id)?row.cells[id]:null]))};
+    })
+  };
+}
+
 function audit(job:JobRecord,type:JobAudit["type"],at:string,
   rows=0,bytes=0,code?:string):JobRecord {
   return {...job,audit:[...job.audit,{eventId:randomUUID(),type,at,rows,bytes,
@@ -221,13 +246,10 @@ export function createDictionaryExportJobOwnerV010(input:{
       const page=i===0?seed:queryBusinessDictionaryCollectionV010({
         dictionaries,query:{...requestValues.query,page:i,pageSize:DEFAULT_POLICY.pageSize}
       });
-      if (page.readableFieldIds.some(f=>!FIELDS.includes(f as typeof FIELDS[number])))
-        return fail("COLLECTION_EXPORT_FIELD_NOT_READABLE");
-      pages.push({
-        ...page,readableFieldIds:[...requestValues.fieldIds],
-        rows:page.rows.map(row=>({rowId:row.rowId,
-          cells:Object.fromEntries(requestValues.fieldIds.map(id=>[id,row.cells[id]??null]))}))
-      });
+      // Do not convert a requested field into an authorized field. The Owner's
+      // readableFieldIds must cover every selected column BEFORE projection.
+      pages.push(projectAuthorizedDictionaryExportPageV010(
+        page,requestValues.fieldIds));
     }
     // Bound the durable queued snapshot itself, not only the eventual CSV.
     // Otherwise a huge readable value could exhaust storage before RUN.
