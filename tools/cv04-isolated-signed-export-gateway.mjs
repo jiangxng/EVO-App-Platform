@@ -52,7 +52,8 @@ export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
        physical_lease.enterprise_id IS DISTINCT FROM scope_enterprise OR
        physical_lease.subject_id IS DISTINCT FROM subject OR
        physical_lease.actor_type IS DISTINCT FROM actor OR
-       (next_state='RUNNING' AND expected IS DISTINCT FROM physical_lease.job_revision) OR
+       (next_state='RUNNING' AND
+         (expected IS NULL OR expected<physical_lease.job_revision)) OR
        (next_state IN ('READY','FAILED') AND
          (expected IS NULL OR expected<=physical_lease.job_revision))
     THEN RAISE EXCEPTION 'CV04_GATEWAY_PHYSICAL_LEASE_FENCED'; END IF;
@@ -62,6 +63,9 @@ export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
          OR requested_attempt IS DISTINCT FROM physical_lease.epoch
          OR requested_lease>physical_lease.claimed_until`:"";
   const completedFence=physical?`
+         OR requested_attempt IS DISTINCT FROM physical_lease.epoch
+         OR previous_lease>physical_lease.claimed_until`:"";
+  const auditFence=physical?`
          OR requested_attempt IS DISTINCT FROM physical_lease.epoch
          OR previous_lease>physical_lease.claimed_until`:"";
   return `
@@ -342,7 +346,20 @@ ${workerFence}
        jsonb_array_length(meta->'audit')<=jsonb_array_length(prior_meta->'audit')
     THEN RAISE EXCEPTION 'CV04_GATEWAY_JOB_TRANSITION_DENIED'; END IF;
 
-    IF next_state='RUNNING' THEN
+    -- The Domain Owner.run() appends intermediate audit events under CAS.
+    -- A continuation may NOT refresh the prior lease, increment the attempt,
+    -- or append multiple events with one signed proof.
+    IF next_state='RUNNING' AND prior_state='RUNNING'
+       AND requested_attempt=previous_attempt THEN
+      IF requested_op<>'dictionary.collection.export.job.worker' OR
+         previous_lease IS NULL OR previous_lease<=clock_timestamp() OR
+         requested_lease IS DISTINCT FROM previous_lease OR
+         requested_attempt<1 OR requested_attempt>2 OR
+         latest_event_type NOT IN ('STARTED','COMPLETED','REJECTED') OR
+         jsonb_array_length(meta->'audit')<>jsonb_array_length(prior_meta->'audit')+1
+${auditFence}
+      THEN RAISE EXCEPTION 'CV04_GATEWAY_RUNNING_AUDIT_FENCED'; END IF;
+    ELSIF next_state='RUNNING' THEN
       IF requested_op<>'dictionary.collection.export.job.worker' OR
          requested_lease IS NULL OR
          requested_lease<=clock_timestamp() OR
