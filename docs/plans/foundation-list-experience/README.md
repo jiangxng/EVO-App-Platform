@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 签名 PostgreSQL EXPORT 准入与低权限 SQL Worker（隔离测试）
+
+[CV04 独立 SQL 签名 gateway、NOLOGIN owner/EXECUTE-only runtime、DB 授权 epoch/租约/nonce 与原子审计](CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md)：以 CV-03 签名准入为安全参考，但签名域/密钥/授权资源完全隔离；**仅 disposable PostgreSQL 16/schema 的测试证明**，实际 Host、PA05、生产数据库、任务 Worker、密钥托管与 Export 产品入口均未认证或激活。CV-03 SAVE OFF 不变。
+
 ## 2026-11-12 CV-04 Dictionary 独立 EXPORT Host Capability 受控装载（不进入正式 Host）
 
 [独立 `dictionary.export` 能力描述符及现有 Manager/Capability Fabric/ActionRouter/真实 Dictionary Owner Human/Agent 拒绝和授权回归](CV04-DICTIONARY-EXPORT-HOST-CAPABILITY-20261112.md)：动态能力目录、授权、撤权与 Feature 停用均在隔离测试装载；**没有正式 Host 注册、没有 Eidos 或 Agent 真实下载入口**。只有 SQL 签名准入、审计、KMS 与真实会话通过后才能发布；生产 SAVE OFF 不变。
