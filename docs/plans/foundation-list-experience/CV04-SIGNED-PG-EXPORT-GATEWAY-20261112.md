@@ -84,3 +84,26 @@
 
 - **证据驱动的校正（PG16 CI 第一次红灯前后）**：最初独立联合协议在 `workerLeaseEpoch/tokenHash` 上具备检查，但物理 permit 原表无 `authority_epoch` 字段，可能把在旧授权代签发的 permit 与之后重授新代的签名错误配对。改为原 Host `cv04_export_issue_lease` 增加**默认 NULL 的第八个可选 `p_epoch` 参数**（原七参数 SQL 调用与隔离测试兼容），实际存储 `authority_epoch`，未携带时取 0 且**联合签名入口拒绝 0**。Host 隔离 API 新增可选 `authorityEpoch`，联合测试必须传入当前值；签名 SQL 还要求该列与签名中的 epoch 相同。旧测试授予的未盖章许可不能借新代 HMAC 被复活。该校正仍不能代替真实 PA05/T0 源 generation 和 Host 签名的授权因果验证。
 - **失败如实记录**：[PR #1281 的首轮 signed PG16 CI #43194029869](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43194029869) 为 FAILURE：新 SQL 运行时 9/10 PASS、0 SKIP，另外的原 Host Worker 租约、TTL 和 Continuity 当次通过；唯一报错为测试对错误 expectedRevision 预期只列出下游 `PHYSICAL_LEASE_FENCED/REVISION_CONFLICT`，实际 Gateway 较早的 `CV04_GATEWAY_PERMIT_OR_STATE_DENIED` **正确拒绝**。现已将断言涵盖真实首先拒绝的版本预检查，和上面的许可签发 Epoch 加固一并重新提交；最终通过与否以更新后精确 HEAD Actions 为准，绝不追认首轮红灯。
+
+
+## NEXT-03a / 2026-11-12：Domain Owner 中途审计的 SQL 联合围栏 + Worker 加密任务最小读取
+
+> **真实 PostgreSQL CI 的隔离工程层，不是 PA05/T0 生产准入**。延续 #1281 已合并的签名 SQL CAS 与物理 Lease Epoch；没有新增 Gateway/Owner/列表框架，也没有打开正式 EXPORT 或 CV03 SAVE。
+
+### G：本轮 2026-11-12 已读源码，不是复述旧链接
+
+1. [现有 Owner `run()` 原文](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/apps/business-dictionary/export-jobs.ts#L263-L324)：Job `QUEUED→RUNNING` 后，`createAuthorizedCrossPageCsvV010` 的 `audit` 回调会调用 `append()`，用原 Resource CAS 将每条 `STARTED/COMPLETED/REJECTED` 写成 `RUNNING→RUNNING`，随后才进行 `READY` 写入；失败还会尝试 `FAILED`。原签名 SQL 只允许 RUNNING **增加 Attempt** 或在 READY/FAILED 完成，拒绝中途审计，故 #1281 的 10/10 PG16 测试不能宣称 `Owner.run()` 已能透过签名门禁完整执行。
+2. [原签名 SQL 生成器](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/tools/cv04-isolated-signed-export-gateway.mjs) 和 [物理 SQL Lease](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/apps/business-dictionary/export-job-pg-sql-lease.ts)：已有独立受限签名执行 SQL LOGIN、受限 Worker SQL LOGIN 和原始资源表 CAS。后者的 Worker `claim/complete` 无法以同一个物理令牌只读取其已认领的密文任务；把 `resources` 表 SELECT 直接赋给 Worker 会暴露其他企业任务的加密 Metadata 并破坏隔离。
+3. [独立审计 Trigger](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/apps/business-dictionary/export-job-pg-audit.ts)：同一 Resource CAS 内自动追加不可变、元数据-only Audit Ledger，拒绝旧事件前缀重写。应复用这个 Trigger，不能新增另一个审计事实源。
+
+### D：本次最小工程选择与安全属性
+
+- 在**原** `cv04_export_signed_put` 的 Worker 状态分支，允许 `RUNNING→RUNNING` 且 **Attempt 不变**，仅允许一次新增 `STARTED/COMPLETED/REJECTED` 事件。签名 HMAC + Principal/Operation Epoch + 物理 permit 的发行授权 Epoch + Lease Token Hash + Epoch + Resource CAS Revision 仍全部强制；原 Job Lease 必须未到期且字节级保持 `leaseUntil`，禁止借审计延长租约、多事件绕过预算或增加重试。Trigger 继续负责 Audit Ledger CAS-atomic 不可变性，SQL 无第二个审计路径。
+- 在现有签名 Gateway 的 `requirePhysicalWorkerLease:true` 下，**显式绑定物理 Worker SQL LOGIN** 后才安装 `cv04_export_worker_read(text,bigint)`：SECURITY DEFINER 校验 `session_user`、一次性 permit 的 `CLAIMED` 状态、唯一关联 Job、操作级和主体级 Epoch/健康/时租、当前物理 Lease Epoch/到期与 Resource Revision/企业/Actor。只返回该任务的 AES-GCM `resource` 和 `revision`，不返回明文、密钥或其他 Job，不开放资源列表。Worker 仅得到该函数 EXECUTE；原表 SELECT 仍 REVOKED。未知 token、旧 Epoch、撤权或 DONE/REVOKED 必须拒绝。
+- 现有 Worker 客户端新增隔离方法 `readCiphertext(token,epoch)`，不存在该 opt-in SQL 函数时拒绝；主线生产 Host、Catalog 和 Agent Tool 都不引用。原 SQL Role 凭据、真实 PA05/T0 outbox、KMS 无法从人工 fixture 得到认证。
+- [真实 PG16 联合测试代码](../../../tests/agent-line/cv04-signed-export-gateway-pg.test.mjs) 扩展：Worker 只能用有效 claimed token 获取**加密**任务且不能 `SELECT resources`；签名 `RUNNING→RUNNING` 独立审核三段并持久化原不可变 ledger；跨 Revision、尝试、时间、一次两事件、Host 撤销、Principal/Operation 撤权全部 fail closed。新 exact marker 和 CI 原始日志 **以 PR 实际运行结果为准**。
+- 本次必须明确区分：**补齐 SQL Gateway 的 Owner 中途审计语义**不等于已将原 `Owner.run()` 所使用的隔离管理级资源 `get/putIfRevision` 运行时换成签名 SQL Host/Worker 接线。真实 Owner End-to-End 的 GET 解密密钥归属、Host 原子签名数据来源、授权丢失/错误恢复等下一步仍待独立证明。生产 EXPORT OFF，CV03 `N1=NOT_CERTIFIED`、SAVE OFF。
+
+### 原始参考索引与阅读等级
+
+A / 2026-11-12 已读相关源码和测试：上面的四个固定 `bfdc861a...` 原文链接，原 [PG16 联合回归](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)、原 [签名 Workflow](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/.github/workflows/cv04-signed-export-pg-gateway.yml)。B / 本次 PR 的精确 HEAD CI、新 main CI、东京、Branch Hygiene 需要按原始日志核实再写入，不能提前编造。C / 尚无真实 PA05/T0 事件流、生产物理 SQL 权威/KMS/备份策略、多物理 Worker Host 失联/恢复、Human/AI 正式跨页 EXPORT 的生产端到端证据。本轮没有新增外部第三方网络研究或截图。
