@@ -129,6 +129,7 @@ async function fixture(fn){
         enterpriseId:enterprise,isolatedTestOnly:true
       });
     await fn({schema,q,admin,host,worker,hostRole,workerRole,
+      workerConnectionString:urlFor(workerRole,workerPwd),
       encryptedA,encryptedB,rawA,rawB,ownerPast,ownerNow,
       maintenance,readAudit});
   }finally{
@@ -144,7 +145,7 @@ async function fixture(fn){
 
 test("CV04 real PG: host-only due IDs, background READY/QUEUED payload purge, audit EXPIRED once and no live leakage",requiresDB,async()=>{
   await fixture(async({host,worker,schema,admin,ownerPast,ownerNow,
-    maintenance,encryptedA,rawA,readAudit})=>{
+    workerConnectionString,maintenance,encryptedA,rawA,readAudit})=>{
     const ready=await ownerPast.request(ctx,request("ready_001"));
     assert.equal((await ownerPast.run(ctx,ready.jobId)).state,"READY");
     const queued=await ownerPast.request(ctx,request("queued_002"));
@@ -153,11 +154,14 @@ test("CV04 real PG: host-only due IDs, background READY/QUEUED payload purge, au
     assert.deepEqual(new Set(due.map(x=>x.jobId)),
       new Set([ready.jobId,queued.jobId]));
     assert.equal(due.length,2);
-    const workerUrl=await admin.unsafe(
-      "SELECT rolname FROM pg_roles WHERE rolname=$1",[
-        "not-the-worker"
-      ]);
-    assert.equal(workerUrl.length,0);
+    const workerSql=postgres(workerConnectionString,{max:1,prepare:false});
+    try{
+      await assert.rejects(workerSql.unsafe('SELECT * FROM "'+schema+
+        '".cv04_export_due_jobs($1,$2)',[contextId,10]),
+        /permission denied|HOST_LOGIN_REQUIRED/i);
+      await assert.rejects(workerSql.unsafe('SELECT resource FROM "'+schema+
+        '".resources'),/permission denied/i);
+    }finally{await workerSql.end();}
     // Synthetic crashed-lease metadata installed only by fixture DBA:
     // physical Worker still has no raw table permission.
     await admin.unsafe('INSERT INTO "'+schema+'".cv04_export_work_leases'+
