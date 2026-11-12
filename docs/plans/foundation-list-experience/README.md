@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 #05–#07 最终研究资料与决策交接（新窗口优先）
+
+**[简短交接入口](CV04-WINDOW-20261112-POSTMERGE-0707-HANDOFF-ENTRY.md) → [详细源码/PR/Actions 原始资料、阅读等级、方案取舍、并行 #1274/#1276 冲突及后续认证索引](CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md)**。工程 main 已核验 `91356ae77df0a1af9f1993cdfc0909a1f3235f1e` 的 8/8 checks 与东京部署成功；#1272/#1273/#1275/#1277 已合并，另一窗口 #1274 signed PG gateway 已并入且**不可重复开发**。正式 EXPORT 仍没有 Host 路由，CV03 N1 SAVE OFF；#1276 旧 Draft 已关闭、未合并，原旧分支待 SHA-safe 清理。交接 docs 的最终合并提交以本次交接 PR 为准。
+
 ## 2026-11-12 CV-04 加密 EXPORT 任务主动 TTL 清理与系统 Actor 审计（隔离测试）
 
 [原 PG CAS 的到期 READY/QUEUED 快照/CSV 主动清理、Host-only due()、租约先撤销、EXPIRED 审计与系统 Actor](CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md)：补强已合入的签名 PG Gateway 的**到期转换代码阶段**，只在一次性测试 Schema 中调用；不是生产签名网关的后台调度器、完整 KMS 擦除或跨主机安全验收。正式 EXPORT 仍不注册，CV03 N1 SAVE OFF。
