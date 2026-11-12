@@ -8,6 +8,8 @@ import {
   COUNTERPARTY_MY_SUPPLIERS_READ_OPERATION_V010,
   COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
   COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+  COUNTERPARTY_MY_CUSTOMERS_PAGE_CSV_EXPORT_V010,
+  COUNTERPARTY_MY_SUPPLIERS_PAGE_CSV_EXPORT_V010,
   COUNTERPARTY_PROJECTION_CAPABILITY_V010
 } from "./constants.js";
 import {
@@ -51,12 +53,25 @@ const collectionOutputSchema = {
   }
 } as const;
 
+const pageCsvOutputSchema = {
+  type: "object",
+  required: ["contractVersion", "download", "pageInfo"],
+  properties: {
+    contractVersion: { const: "0.1.0" },
+    download: { type: "object", required: ["fileName", "mediaType", "content"],
+      properties: { fileName: { type: "string" }, mediaType: { const: "text/csv;charset=utf-8" },
+        content: { type: "string" } } },
+    pageInfo: { type: "object" }
+  }
+} as const;
+
 function readOperation(input: {
   operationId: string;
   commandCode: string;
   title: string;
   description: string;
   collectionQuery?: boolean;
+  pageCsvExport?: boolean;
 }): PlatformCapabilityOperationContributionV010 {
   return {
     kind: "platform.capability-operation",
@@ -84,10 +99,17 @@ function readOperation(input: {
           sort: { type: "string", enum: ["displayName", "code", "status"] },
           direction: { type: "string", enum: ["asc", "desc"] },
           page: { type: "integer", minimum: 0, maximum: 100000 },
-          pageSize: { type: "integer", minimum: 1, maximum: 100 }
-        }
+          pageSize: { type: "integer", minimum: 1, maximum: 100 },
+          ...(input.pageCsvExport ? {
+            fieldIds: { type: "array", minItems: 1, maxItems: 5, uniqueItems: true,
+              items: { type: "string",
+                enum: ["displayName", "code", "status", "subjectType", "countryOrRegion"] } }
+          } : {})
+        },
+        ...(input.pageCsvExport ? { required: ["fieldIds"] } : {})
       },
-      outputSchema: input.collectionQuery ? collectionOutputSchema : projectionOutputSchema,
+      outputSchema: input.pageCsvExport ? pageCsvOutputSchema
+        : input.collectionQuery ? collectionOutputSchema : projectionOutputSchema,
       binding: {
         type: "ACTION_HOST",
         commandCode: input.commandCode,
@@ -127,5 +149,19 @@ export const counterpartyProjectionCapabilityContributionsV010:
       title: "Query My Suppliers Collection",
       description: "Read the existing authorized My Suppliers projection as a bounded data collection with stable row IDs and permitted fields.",
       collectionQuery: true
+    }),
+    readOperation({
+      operationId: COUNTERPARTY_MY_CUSTOMERS_PAGE_CSV_EXPORT_V010,
+      commandCode: COUNTERPARTY_MY_CUSTOMERS_PAGE_CSV_EXPORT_V010,
+      title: "Export My Customers Current Page CSV",
+      description: "Download only the current bounded, responsibility-scoped and field-authorized My Customers page. Never all pages or hidden fields.",
+      pageCsvExport: true
+    }),
+    readOperation({
+      operationId: COUNTERPARTY_MY_SUPPLIERS_PAGE_CSV_EXPORT_V010,
+      commandCode: COUNTERPARTY_MY_SUPPLIERS_PAGE_CSV_EXPORT_V010,
+      title: "Export My Suppliers Current Page CSV",
+      description: "Download only the current bounded, responsibility-scoped and field-authorized My Suppliers page. Never all pages or hidden fields.",
+      pageCsvExport: true
     })
   ];
