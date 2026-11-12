@@ -9,7 +9,9 @@ import {createFileEnterpriseResourceRepositoryV010,createMemoryEnterpriseResourc
   from "../../dist/providers/enterprise-context/resources.js";
 import {createBusinessDictionaryRepositoryV010} from "../../dist/apps/business-dictionary/repository.js";
 import {createHostStaticAuthorizationProviderV010} from "../../dist/providers/authorization/runtime.js";
-import {createDictionaryExportJobOwnerV010} from "../../dist/apps/business-dictionary/export-jobs.js";
+import {createDictionaryExportJobOwnerV010,
+  projectAuthorizedDictionaryExportPageV010}
+  from "../../dist/apps/business-dictionary/export-jobs.js";
 
 const ENT_A="enterprise-context:a",ENT_B="enterprise-context:b";
 function context(subjectId="owner",actorType="HUMAN",enterpriseId="ent-a",contextId=ENT_A){
@@ -338,6 +340,40 @@ test("CV04 expired Worker cannot READY or FAIL its job before any reclaim",async
   assert.equal(recovered.attempts,2);
   assert.ok((await harness.make().download(ctx,job.jobId)).content.includes("d0001"));
   console.log("CV04_DICTIONARY_EXPORT_OWNER_EXPIRED_LEASE_NO_RECLAIM_FAILCLOSED_PASS");
+});
+
+test("CV04 Owner never turns requested columns into fields excluded by authorized Collection READ",()=>{
+  // Simulate a future dynamic field-level Owner policy. The currently shipped
+  // Dictionary Collection exposes all five standard fields; the export projection
+  // still must not widen a restrictive readableFieldIds value.
+  const page={
+    contractVersion:"0.1.0",
+    collectionId:"evo.business-dictionary.directory",
+    schemaRef:"evo.business-dictionary.directory/0.1.0",
+    readableFieldIds:["dictionaryId"],
+    rows:[{rowId:"d001",cells:{
+      dictionaryId:"d001",displayName:"CONFIDENTIAL_OWNER_VALUE"
+    }}],
+    pageInfo:{page:0,pageSize:100,total:1,hasMore:false,countKind:"EXACT"}
+  };
+  assert.throws(
+    ()=>projectAuthorizedDictionaryExportPageV010(page,["displayName"]),
+    /COLLECTION_EXPORT_FIELD_NOT_READABLE/,
+    "requesting a column omitted from the Owner's readableFieldIds must deny");
+  assert.throws(
+    ()=>projectAuthorizedDictionaryExportPageV010({
+      ...page,readableFieldIds:["dictionaryId","options"]
+    },["dictionaryId"]),
+    /COLLECTION_EXPORT_FIELD_NOT_READABLE/,
+    "the Export Owner refuses unsupported Collection field identities");
+  const narrowed=projectAuthorizedDictionaryExportPageV010(page,["dictionaryId"]);
+  assert.deepEqual(narrowed.readableFieldIds,["dictionaryId"]);
+  assert.deepEqual(narrowed.rows,[{rowId:"d001",cells:{dictionaryId:"d001"}}]);
+  assert.ok(!JSON.stringify(narrowed).includes("CONFIDENTIAL_OWNER_VALUE"));
+  assert.deepEqual(page.rows[0].cells,{
+    dictionaryId:"d001",displayName:"CONFIDENTIAL_OWNER_VALUE"
+  },"projection must not alter the underlying authorized READ result");
+  console.log("CV04_DICTIONARY_EXPORT_OWNER_AUTHORIZED_READABLE_FIELDS_PROJECTION_PASS");
 });
 
 test("CV04 queued snapshot storage and completed download-attempt budget reject without leaking bytes",async()=>{

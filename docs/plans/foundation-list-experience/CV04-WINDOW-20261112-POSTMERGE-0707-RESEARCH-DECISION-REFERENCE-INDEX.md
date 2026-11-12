@@ -373,3 +373,11 @@
 **D · 采用**：在原 `stillOwnsAttempt` 增加由可信测试时钟判定的到期条件，复用它所保护的 AUDIT/READY/FAILED 三处写入。保留原加密快照与 RUNNING 元数据供第 2 次合规领取；拒绝旧 Worker 过期写入，不添加第二套 Worker 系统或文件状态。新增一个**无重领反例**，与已存在的双异步竞争回归互补；详见 [Owner NEXT-06b](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)。原 CI 预计顶层 10 项并必须全部成功。
 
 **边界与证据级别 C/P**：隔离 `NODE_ENV=test` 时钟与 Owner CAS 不代表正式 PG Producer/Signer/KMS、实际 PA05/T0、跨物理 Host 或完整授权 Scope。Owner #1212 仍 OPEN/PENDING，#1184 的受管文件不更改；正式后台 EXPORT OFF/unregistered、CV03 `N1=NOT_CERTIFIED` 与 SAVE OFF。只有 PR 精确 HEAD、主线、东京实际部署与 Branch Hygiene 的原始执行记录完成后，才能标记相应 B 级 PASS，不提前填写。
+
+## 21. Window 08 自动续跑 #06/07：Export Projection 不可篡改 Collection READ 字段权限（2026-11-12）
+
+**A / 本轮实际阅读的来源**：[Domain Owner](../../../apps/business-dictionary/export-jobs.ts)、[固定五字段 Dictionary Collection READ](../../../apps/business-dictionary/collection-query.ts)、[原页 CSV 序列化器](../../../foundation/collection-query/page-csv.ts)、[原 Owner 10 项协议回归](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs)。当前 Dictionary READ 总是提供五项可读字段，因此**没有证据表明产品存在当前字段信息泄漏**。然而旧后台 `request()` 投影不验证请求字段属于实时 `page.readableFieldIds`，却将请求列表覆盖为其新元数据，绕过底层 CSV 序列化器原有的不可读字段拒绝。此为 List Foundation 动态字段 ACL 复用时的安全设计缺口，非已知生产利用。
+
+**D / 采用**：沿用原 Owner 并添加纯字段投影 `projectAuthorizedDictionaryExportPageV010`，严格执行 `requestedIds ⊆ ownerReadableIds ⊆ knownFields`，保留原行 ID、仅复制获准字段；用受限字段合成 Owner 页面做可执行的负向用例，连同原 Owner 测试一起走既有 Workflow。拒绝直接将请求字段列表提升为可读权限、拒绝在 CSV Serializer 之后再过滤（快照已持久化过宽时为时已晚）、拒绝另建授权层。详细技术依据与限制见 [Owner NEXT-07](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)。
+
+**C/P**：纯投影没有新授权 Provider 或业务资源签名，未来真正动态列级授权仍须由 Owner/PA05/AuthorizationProvider 提供按主体/Actor/企业的权威 `readableFieldIds`。该工作仍是 `NODE_ENV=test + isolatedTestOnly` 的未注册 Job 基础能力。#1212 仍 OPEN/PENDING 真正生产 Owner；#1184 受管文件未动；正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`、SAVE OFF。PR 精确 HEAD、主线、东京镜像与分支卫生要等实际 CI 结果再补原始 B 级证据。

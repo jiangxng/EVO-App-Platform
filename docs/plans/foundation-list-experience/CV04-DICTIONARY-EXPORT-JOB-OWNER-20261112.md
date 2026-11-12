@@ -64,3 +64,13 @@
 **验证**：在[原 Owner 回归](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs)加入单一确定性无竞争对手场景：第一次 RUNNING 提交后将隔离测试钟推进 16 秒，确认旧 run 拒绝、Audit 仍只含 `REQUESTED/STARTED`、任务仍 RUNNING 并保留快照；随后恢复第 2 次尝试到 READY。既有双 Worker race 测试和 PG/浏览器回归保持。原专项 Workflow 顶层测试要求 **10/10 PASS**，0 SKIP。
 
 **C / P**：测试钟不等于生产 DB 时钟；正式租约的数据库墙钟、PA05 Epoch/SourceGeneration、Outbox、Signer/KMS 及不同物理 Host 故障仍需真实 Owner #1212 具名批准与认证。该代码仍只在 `NODE_ENV=test + isolatedTestOnly` 下使用，禁止启用新的后台 EXPORT；CV03 `N1=NOT_CERTIFIED` 和 SAVE OFF 未变。#1184 管理的三份文件不触碰。
+
+## NEXT-07 / 2026-11-12 — 后台 Export 必须继承 Owner 的字段级可读结果
+
+**G / 已直接阅读 A 级原实现**：[Dictionary Collection READ](../../../apps/business-dictionary/collection-query.ts)、[Export Owner](../../../apps/business-dictionary/export-jobs.ts)、[基础 CSV Serializer](../../../foundation/collection-query/page-csv.ts)。当前字典 Collection READ 的 `readableFieldIds` **固定为五项基础字段**，未发现线上对其他敏感字段的现时泄漏。但原 `request()` 将每页 `readableFieldIds` **直接换成调用方要求的字段**，仅验证源字段列表属于五项已知字段，没有证明**要求导出的每项字段**实际在该页 Owner `readableFieldIds` 中。一旦后续应用/列级政策收窄某页的可读字段，即使原 `page-csv.ts` 会拒绝不可读字段，提前的元数据覆盖也会让它无从察觉。
+
+**D / 原地防升级修复**：复用原 Owner 的 Collection READ、原 Snapshot、原 CSV Serializer 和原资源 CAS，在 `export-jobs.ts` 中建立不关联授权身份的**纯字段投影函数** `projectAuthorizedDictionaryExportPageV010()`，先验证 `fieldIds ⊆ page.readableFieldIds ⊆ 已知字典基础字段`，再只复制获准字段并收窄本页 `readableFieldIds`；不允许使用请求参数自行创造“已可读”的元数据。原请求路径直接调用这一投影，不引入第二套鉴权或新框架，不改 Catalog/ActionRouter 注册。
+
+**验收**：[原 Domain Owner 协议测试](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs) 合成未来 Owner 仅公开 `dictionaryId`、但 raw `cells` 仍携带 `displayName=CONFIDENTIAL_OWNER_VALUE` 的受限 Collection READ 页面，确认要求 `displayName` 必拒绝、合法请求只留 `dictionaryId`、私有值绝不进入快照且源页面不变。原 Owner CI **11/11 PASS，0 SKIP**；保留原 205 行导出、双重 Worker 争用、Lease 超时恢复和 PG/Chromium 回归。
+
+**范围限制**：该纯函数并不签发任何字段/主体/企业权限；真实 Owner 返回的 `readableFieldIds` 仍是授权事实的唯一来源。现有静态五字段模式不支持用户级差异授权，不能声称现已实现动态字段 ACL。正式跨页 EXPORT 仍 **OFF/unregistered**；CV03 `N1=NOT_CERTIFIED`、SAVE OFF；生产 PA05/T0、DB Producer/Signer/KMS、跨两物理 Host 和 #1212 具名 Owner 仍为阻断；#1184 三份受管文件未更改。

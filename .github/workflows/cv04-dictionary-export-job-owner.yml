@@ -44,7 +44,8 @@ jobs:
           grep -q 'CV04_DICTIONARY_EXPORT_OWNER_SNAPSHOT_DOWNLOAD_BUDGET_PASS' /tmp/cv04-job-owner.log
           grep -q 'CV04_DICTIONARY_EXPORT_OWNER_STALE_ATTEMPT_NO_CROSS_LEASE_WRITE_PASS' /tmp/cv04-job-owner.log
           grep -q 'CV04_DICTIONARY_EXPORT_OWNER_EXPIRED_LEASE_NO_RECLAIM_FAILCLOSED_PASS' /tmp/cv04-job-owner.log
-          grep -q 'ℹ pass 10' /tmp/cv04-job-owner.log
+          grep -q 'CV04_DICTIONARY_EXPORT_OWNER_AUTHORIZED_READABLE_FIELDS_PROJECTION_PASS' /tmp/cv04-job-owner.log
+          grep -q 'ℹ pass 11' /tmp/cv04-job-owner.log
       - name: Confirm no Host/manifest route activated and production SAVE locked
         shell: bash
         run: |
