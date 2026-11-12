@@ -67,6 +67,19 @@ jobs:
           assert "docker compose exec -T --interactive=false evo node -" not in physical
           assert "docker compose exec -T --interactive=false" not in physical
           assert "grep -Fxq CV03_N105C11_HOST_METADATA_READONLY_PASS" in physical
+          runtime = next((block for block in blocks if "<<'HOST_RUNTIME'" in block), None)
+          assert runtime, "Host runtime provider read-only probe not found"
+          runtime_match = re.search(r"<<'HOST_RUNTIME'\n(.*?)\nHOST_RUNTIME", runtime, re.S)
+          assert runtime_match, "Runtime probe Node source missing"
+          node_runtime = subprocess.run(["node","--check"], input=runtime_match.group(1),
+                                        text=True, capture_output=True)
+          assert node_runtime.returncode == 0, "Runtime provider probe Node syntax failed"
+          assert "/v1/providers/effective?capability=authorization.check" in runtime_match.group(1)
+          assert "/v1/providers/bindings?capability=authorization.check" in runtime_match.group(1)
+          assert "http.get(" in runtime_match.group(1)
+          assert "docker compose exec -T evo node -" in runtime
+          assert "docker compose exec -T --interactive=false" not in runtime
+          print("CV03_N105C12_RUNTIME_PROVIDER_READONLY_SOURCE_SYNTAX_PASS")
           print("CV03_N105C11_SOURCE_READONLY_SHELL_AND_HOST_NODE_SYNTAX_PASS")
           PY
 
@@ -261,6 +274,72 @@ jobs:
           grep -Fxq CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS <<< "$proof"
           grep -Fxq CV03_N105C11_NOT_PRODUCTION_OWNER_CERTIFICATION <<< "$proof"
           echo CV03_N105C11_PROTECTED_MAIN_PHYSICAL_READONLY_TERMINAL_PASS
+
+      - name: Inspect live effective authorization Provider candidates and bindings (GET only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/evo-tokyo
+          test -f .last-health-pass-sha
+          app="$(docker compose ps -q evo)"
+          test -n "$app"
+          test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$app")" = healthy
+          docker compose exec -T evo node - <<'HOST_RUNTIME'
+          const http=require("node:http");
+          const read=path=>new Promise((resolve,reject)=>{
+            const req=http.get({
+              host:"127.0.0.1",port:4100,path,timeout:5000
+            },res=>{
+              if(res.statusCode!==200){res.resume();reject(Error("NON_200_READ"));return;}
+              let length=0;
+              const parts=[];
+              res.on("data",chunk=>{
+                length+=chunk.length;
+                if(length>131072){req.destroy(Error("TOO_LARGE"));return;}
+                parts.push(chunk);
+              });
+              res.on("error",reject);
+              res.on("end",()=>{
+                try{resolve(JSON.parse(Buffer.concat(parts).toString("utf8")));}
+                catch{reject(Error("INVALID_RESPONSE"));}
+              });
+            });
+            req.on("timeout",()=>req.destroy(Error("TIMEOUT")));
+            req.on("error",reject);
+          });
+          (async()=>{
+            const [effective,bindings]=await Promise.all([
+              read("/v1/providers/effective?capability=authorization.check"),
+              read("/v1/providers/bindings?capability=authorization.check")
+            ]);
+            if(!Array.isArray(effective)||!Array.isArray(bindings))
+              throw Error("UNEXPECTED_RESPONSE_SHAPE");
+            if(effective.length!==1||bindings.length!==0)
+              throw Error("RUNTIME_PROVIDER_CANDIDATE_DRIFT");
+            const p=effective[0];
+            if(!p||p.providerId!=="host.static-authorization"||
+               p.packageId!=="host-static-authorization-provider"||
+               p.featureId!=="host-static-authorization-provider.default"||
+               p.capability!=="authorization.check")
+              throw Error("RUNTIME_PROVIDER_IDENTITY_UNVERIFIABLE");
+            console.log("CV03_N105C12_LIVE_EFFECTIVE_AUTH_PROVIDER_COUNT=1");
+            console.log("CV03_N105C12_LIVE_AUTH_BINDING_COUNT=0");
+            console.log("CV03_N105C12_STATIC_PROVIDER_CANDIDATE_PROVEN_PASS");
+            console.log("CV03_N105C12_RESOLVED_POLICY_AND_PG_T0_NOT_PROVEN");
+          })().catch(()=>{
+            process.stderr.write("CV03_N105C12_RUNTIME_PROVIDER_READ_ONLY_UNVERIFIABLE\n");
+            process.exitCode=1;
+          });
+          HOST_RUNTIME
+          REMOTE
+          )"
+          grep -Fxq CV03_N105C12_STATIC_PROVIDER_CANDIDATE_PROVEN_PASS <<< "$proof"
+          grep -Fxq CV03_N105C12_RESOLVED_POLICY_AND_PG_T0_NOT_PROVEN <<< "$proof"
+          printf '%s\n' "$proof"
+          echo CV03_N105C12_PROTECTED_MAIN_LIVE_PROVIDER_GET_READONLY_TERMINAL_PASS
 
       - name: Remove ephemeral runner SSH credentials
         if: always()
