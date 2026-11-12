@@ -27,3 +27,18 @@
 - 本阶段特意不修改生产 Host、Business Owner 代码；如拒绝缺口确实存在，保留失败 log 后按原 Owner 代码修复，不通过无条件 Mock 成功绕过权限。
 - List 下一步：独立 `EXPORT` 权限与服务端有界跨页 Job、审计、快照/下载时重复鉴权、TTL 与幂等；原来 100 行当前页 CSV 仍是有边界 READ，不等于全量 EXPORT。
 - 真实 Tokyo 登录/正式撤权、外部 LLM、实机移动端/Human 仍 **PENDING**。保留生产 `N1=NOT_CERTIFIED`、`APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`、SAVE POST 403 / 未注册 GET 404；不修改并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 的受管文件。继续独立分支、Draft PR、精确 HEAD CI、合并 main 与 SHA-safe Branch Hygiene。
+
+
+## 2026-11-12 首次真实 CI 成果（G）
+
+- [工程验证 Actions #43161332091](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43161332091)，job `130992985227` **SUCCESS**；本窗口直接读取该 job 的原始日志。不是从测试脚本推断：
+  - `CV04_REQUEST_SESSION_NO_BEARER_DENIED_PASS`（Bearer 缺失/无效，不退化成静态用户）
+  - `CV04_REQUEST_SESSION_DIFFERENT_HUMAN_AI_OWNER_PARITY_PASS`
+  - `CV04_REQUEST_SESSION_CROSS_ENTERPRISE_DENIED_PASS`
+  - `CV04_REAL_GOVERNANCE_EVENT_STALE_BEARER_DENIED_PASS`
+  - `CV04_OWNER_CONTINUES_CROSS_ENTERPRISE_ISOLATED_PASS`
+  - **`CV04_REQUEST_BOUND_PRINCIPALS_GOVERNANCE_REVOKE_PASS`**
+  - `CV04_REQUEST_PRINCIPAL_EVIDENCE_CONTRACT_PASS`
+- [实际 Artifact `13918251277`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43161332091) 名称 `cv04-request-principal-governance-revocation`、1042 bytes、SHA256 `8feb2b50bb9aff2366dc7501209d59e2f20a6e471433a55a0b8dde38703056d7`，GitHub 当前记录到期 2027-02-10；仅脱敏终端/Host log/机器结果，不含随机 Bearer Token。
+- **精确等级**：本测试使用了产品真实安装 Host、正式请求身份 Bearer Session Provider、真实企业邀请/成员接受/关系撤销 Action、持久 Governance Store、真实字典 Owner/ActionRouter 的合法读；不同用户/AI 的 request-bound principal 区分。**不是** Google OIDC 真人登录、真实生产 DB/PA05 source-generation/T0/KMS 或两个物理 Host。正式 SAVE 仍 OFF。
+- 上述是当时 CI 的真实通过，文档增补后仍须以最新 PR HEAD 的完整 CI 全绿、合并后 protected-main Actions 为新的最终验收，不能仅沿用此 run 宣称最终 main 已通过。
