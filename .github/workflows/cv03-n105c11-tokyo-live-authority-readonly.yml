@@ -52,7 +52,7 @@ jobs:
               check = subprocess.run(["bash","-n"], input=script, text=True, capture_output=True)
               assert check.returncode == 0, "Embedded bash syntax failed"
           # Node is passed as a HEREDOC to the existing running Host container.
-          physical = next((s for s in blocks if "docker compose exec -T --interactive=false evo node -" in s), None)
+          physical = next((s for s in blocks if "BEGIN TRANSACTION READ ONLY;" in s and "test -r compose.yaml" in s), None)
           assert physical, "Physical inventory block not found"
           match = re.search(r"<<'HOST_NODE'\n(.*?)\nHOST_NODE", physical, re.S)
           assert match, "Host Node source not found"
