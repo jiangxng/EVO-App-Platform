@@ -31,3 +31,16 @@
 - `N1=NOT_CERTIFIED`, `APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`, 生产 SAVE POST 403 / 未注册 GET 404 的边界必须保持；并行 PR #1184 的三份受管文件不修改。
 
 来源分级：本次已直接读取现有 GitHub PG Resource Contract/源码/真实 PG 测试、Owner Service、Workflow；没有补造已读外部网页。CI 成功前本页状态只是已提交代码，不能提前写 `POSTGRES_MACHINE_PASS`。
+
+
+## 首轮真实 GitHub Actions PostgreSQL 证据（2026-11-12；G）
+
+- [精确工程 HEAD `6183c308bba8c748dabcaae44abfec96282c7480` Actions #43168086100](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43168086100)、job `131014564007` **SUCCESS**。已直接阅读完整原始 job log，确认 GitHub runner 启动 disposable PostgreSQL 16，`npm run build` 完成，实际使用创建的 `cv03_*` Schema 与真实数据库连接执行测试，并非 skip：
+  - `CV04_PG_ENCRYPTED_OWNER_TWO_CONNECTION_RESTART_AUDIT_PASS`
+  - `CV04_PG_ENCRYPTED_OWNER_TWO_WRITER_CAS_PASS`
+  - `CV04_PG_ENCRYPTED_OWNER_WRONG_KEY_REVOKE_TAMPER_FAILCLOSED_PASS`
+  - `CV04_PG_ENCRYPTED_OWNER_CAS_AUDIT_PREFIX_PROTECTED_PASS`
+  - **`tests 5 / pass 5 / fail 0 / skipped 0`**
+- 同一 workflow 再运行原本文件 CAS Dictionary Owner regression，原始日志 **`tests 8 / pass 8 / fail 0 / skipped 0`**（含原 205 行三页任务、同主体 Human/AI、授权撤回、TTL 与任务租约恢复）；`CV04_PG_EXPORT_NOT_ENABLED_IN_LIVE_HOST_PASS` 确保没有把 Export command 加到 Host/Manifest。
+- 证据边界：以上证明**同一 runner 上两个独立 PostgreSQL connections**的强一致 CAS、AES-GCM 同密钥进程重建恢复、wrong-key/元数据篡改拒绝；**不是两个独立 VPS、不是安全生产 DB SQL Role/Row Level Security/正式 Owner 签收，也不是外部 KMS/独立 immutable SQL 审计链或正式东京帐号**。明文 JSONB 不包含业务单元格/CSV；PG 的必要索引与审计元数据仍可见。
+- 上述仅是首轮**已实际完成的 CI**。任何后续 doc/代码更新将产生新的 PR HEAD，必须以最终精确 HEAD 所有 CI 成功、合并后 main、东京部署真实检查和 Branch Hygiene 的记录收口，不能沿用首轮宣称最终主线已验收。
