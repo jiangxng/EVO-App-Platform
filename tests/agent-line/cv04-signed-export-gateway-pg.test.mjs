@@ -132,9 +132,17 @@ async function fixture(fn){
         "VALUES ($1,$2,$3,'HUMAN',$4,true,true,1,clock_timestamp()+interval '10 minutes')",
         [ctx,enterprise,subject,operation]);
     }
+    // Separate principal-wide generation shared by request, worker, download,
+    // and expiry. Real PA05/T0 event delivery is intentionally NOT simulated.
+    await sql.unsafe("INSERT INTO "+q+".cv04_export_principal_fence "+
+      "(context_id,enterprise_id,principal_subject_id,actor_type,"+
+      "enabled,mirror_healthy,authority_epoch,lease_until) "+
+      "VALUES ($1,$2,$3,'HUMAN',true,true,1,"+
+      "clock_timestamp()+interval '10 minutes')",[ctx,enterprise,subject]);
     // Real physical privilege split; SQL runtime has no raw job or audit DML.
     for(const table of ["resources","cv03_resource_receipts","cv04_export_audit",
-      "cv04_export_signing_keys","cv04_export_authority","cv04_export_used_proofs"]){
+      "cv04_export_signing_keys","cv04_export_authority",
+       "cv04_export_principal_fence","cv04_export_used_proofs"]){
       await sql.unsafe("ALTER TABLE "+q+'."'+table+'" OWNER TO '+owner);
       await sql.unsafe("REVOKE ALL ON TABLE "+q+'."'+table+'" FROM PUBLIC');
     }
@@ -212,7 +220,8 @@ test("CV04 signed SQL: hostile role cannot inspect key/policy/job/audit or bypas
     const role=await client.unsafe("SELECT current_user AS role");
     assert.equal(role[0].role,runtimeRole);
     for(const table of ["resources","cv04_export_audit","cv04_export_signing_keys",
-      "cv04_export_authority","cv04_export_used_proofs"]){
+      "cv04_export_authority","cv04_export_principal_fence",
+       "cv04_export_used_proofs"]){
       await assert.rejects(client.unsafe("SELECT * FROM "+q+"."+table),/permission denied/);
     }
     await assert.rejects(client.unsafe("INSERT INTO "+q+
@@ -222,6 +231,8 @@ test("CV04 signed SQL: hostile role cannot inspect key/policy/job/audit or bypas
         id,JSON.stringify(doc)]),/permission denied/);
     await assert.rejects(client.unsafe("UPDATE "+q+
       ".cv04_export_authority SET enabled=true"),/permission denied/);
+    await assert.rejects(client.unsafe("UPDATE "+q+
+      ".cv04_export_principal_fence SET enabled=true"),/permission denied/);
     await assert.rejects(client.unsafe("DELETE FROM "+q+".cv04_export_audit"),/permission denied/);
     await assert.rejects(client.unsafe("ALTER TABLE "+q+
       ".resources DISABLE TRIGGER cv04_export_resource_audit"),/must be owner|permission denied/i);
@@ -267,6 +278,8 @@ test("CV04 signed SQL: wrong HMAC/digest, cross-tenant scope, stale time, replay
       "SET lease_until=clock_timestamp()+interval '5 minutes' WHERE operation_id=$1",[op]);
     await assert.rejects(put(permit(newDoc,{authorityEpoch:3})),
       /CV04_GATEWAY_OPERATION_REVOKED_OR_UNMIRRORED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET authority_epoch=4 WHERE context_id=$1",[ctx]);
     assert.equal((await put(permit(newDoc,{authorityEpoch:4}))).committed,true);
     const last=buildJob("exj-"+randomBytes(24).toString("hex"));
     await sql.unsafe("UPDATE "+q+".cv04_export_signing_keys SET enabled=false");
@@ -275,6 +288,35 @@ test("CV04 signed SQL: wrong HMAC/digest, cross-tenant scope, stale time, replay
     console.log("CV04_SIGNED_PG_WRONG_PROOF_TENANT_REVOKE_EPOCH_LEASE_FAILCLOSED_PASS");
   });
 });
+test("CV04 signed SQL: one principal revocation fences every operation despite valid op mirror",realPG,async()=>{
+  await fixture(async({sql,q,put,cryptoKey,client})=>{
+    const id="exj-"+randomBytes(24).toString("hex");
+    const doc=encryptJob(buildJob(id),cryptoKey,0);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=false,authority_epoch=2 WHERE context_id=$1",[ctx]);
+    await assert.rejects(put(permit(doc)),
+      /CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=true,mirror_healthy=false WHERE context_id=$1",[ctx]);
+    await assert.rejects(put(permit(doc)),
+      /CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET mirror_healthy=true,authority_epoch=3 WHERE context_id=$1",[ctx]);
+    // A previous operation-specific mirror still has epoch=1. It cannot
+    // continue just because its per-operation enabled bit remains true.
+    await assert.rejects(put(permit(doc)),
+      /CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET authority_epoch=3 WHERE context_id=$1",[ctx]);
+    await assert.rejects(put(permit(doc,{authorityEpoch:2})),
+      /CV04_GATEWAY_OPERATION_REVOKED_OR_UNMIRRORED/);
+    assert.equal((await put(permit(doc,{authorityEpoch:3}))).committed,true);
+    await assert.rejects(client.unsafe("SELECT * FROM "+q+
+      ".cv04_export_principal_fence"),/permission denied/);
+    console.log("CV04_SIGNED_PG_PRINCIPAL_EPOCH_CROSS_OPERATION_FENCE_PASS");
+  });
+});
+
 test("CV04 signed SQL: two runtime workers race on same CAS, loser cannot create audit or nonce side effect",realPG,async()=>{
   await fixture(async({put,second,raw,read,cryptoKey})=>{
     const id="exj-"+randomBytes(24).toString("hex"),original=buildJob(id);

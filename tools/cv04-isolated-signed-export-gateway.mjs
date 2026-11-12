@@ -32,6 +32,20 @@ CREATE TABLE ${s}.cv04_export_authority(
   PRIMARY KEY(context_id,enterprise_id,principal_subject_id,actor_type,operation_id)
 );
 REVOKE ALL ON TABLE ${s}.cv04_export_authority FROM PUBLIC;
+-- Shared principal generation: revoking membership/tenant/plugin must fence
+-- ALL operations, including any old signed worker/download proof.
+-- Manually seeded only by disposable CI; NOT a trusted PA05 event bridge.
+CREATE TABLE ${s}.cv04_export_principal_fence(
+  context_id text NOT NULL,enterprise_id text NOT NULL,
+  principal_subject_id text NOT NULL,actor_type text NOT NULL
+    CHECK(actor_type IN ('HUMAN','AI')),
+  enabled boolean NOT NULL DEFAULT false,
+  mirror_healthy boolean NOT NULL DEFAULT false,
+  authority_epoch bigint NOT NULL CHECK(authority_epoch>0),
+  lease_until timestamptz,
+  PRIMARY KEY(context_id,enterprise_id,principal_subject_id,actor_type)
+);
+REVOKE ALL ON TABLE ${s}.cv04_export_principal_fence FROM PUBLIC;
 CREATE TABLE ${s}.cv04_export_used_proofs(
   key_id text NOT NULL,nonce text NOT NULL,
   context_id text NOT NULL,resource_id text NOT NULL,
@@ -67,6 +81,10 @@ DECLARE
   healthy boolean;
   trusted_epoch bigint;
   policy_until timestamptz;
+  principal_enabled boolean;
+  principal_healthy boolean;
+  principal_epoch bigint;
+  principal_until timestamptz;
   prior record;
   row_namespace text;
   signed_digest text;
@@ -208,6 +226,18 @@ BEGIN
       healthy IS DISTINCT FROM true OR trusted_epoch IS DISTINCT FROM epoch OR
       policy_until IS NULL OR policy_until<=clock_timestamp()
   THEN RAISE EXCEPTION 'CV04_GATEWAY_OPERATION_REVOKED_OR_UNMIRRORED'; END IF;
+  -- A valid operation-specific mirror must ALSO match the shared principal
+  -- generation. Lock held through CAS/audit commit orders concurrent revoke.
+  SELECT enabled,mirror_healthy,authority_epoch,lease_until
+    INTO principal_enabled,principal_healthy,principal_epoch,principal_until
+    FROM ${s}.cv04_export_principal_fence
+    WHERE context_id=scope_context AND enterprise_id=scope_enterprise
+      AND principal_subject_id=subject AND actor_type=actor FOR SHARE;
+  IF NOT FOUND OR principal_enabled IS DISTINCT FROM true OR
+     principal_healthy IS DISTINCT FROM true OR
+     principal_epoch IS DISTINCT FROM epoch OR
+     principal_until IS NULL OR principal_until<=clock_timestamp()
+  THEN RAISE EXCEPTION 'CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED'; END IF;
 
   INSERT INTO ${s}.cv04_export_used_proofs(
     key_id,nonce,context_id,resource_id
