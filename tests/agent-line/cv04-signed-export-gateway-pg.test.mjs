@@ -174,7 +174,7 @@ async function fixture(fn,{physical=false}={}){
       "cv04_append_job_resource_audit()",
       "cv04_export_signed_put(text,text,text)",
       ...(physical?[
-        "cv04_export_issue_lease(text,text,bigint,text,text,text,text)",
+        "cv04_export_issue_lease(text,text,bigint,text,text,text,text,bigint)",
         "cv04_export_claim_lease(text)",
         "cv04_export_complete_lease(text,bigint)",
         "cv04_export_revoke_lease(text,text)",
@@ -463,7 +463,7 @@ test("CV04 signed SQL: DB fences active Worker lease, max 2 attempts and signed 
 const approval=(jobId,revision)=>({
   contextId:ctx,jobId,expectedRevision:revision,
   enterpriseId:enterprise,subjectId:subject,actorType:"HUMAN",
-  approvalId:"signed-host-"+randomUUID()
+  approvalId:"signed-host-"+randomUUID(),authorityEpoch:1
 });
 const physicalProof=(token,claim)=>({
   workerLeaseEpoch:claim.epoch,workerLeaseTokenHash:md5(token)
@@ -491,7 +491,7 @@ test("CV04 fenced PG: physical Worker lease epoch and exact CAS revision both re
     }})),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
     await assert.rejects(put(permit(runDoc,{expectedRevision:7,
       envelope:physicalProof(token,lease)})),
-      /CV04_GATEWAY_PHYSICAL_LEASE_FENCED|ENTERPRISE_RESOURCE_REVISION_CONFLICT/);
+      /CV04_GATEWAY_PERMIT_OR_STATE_DENIED|CV04_GATEWAY_PHYSICAL_LEASE_FENCED|ENTERPRISE_RESOURCE_REVISION_CONFLICT/);
     assert.equal((await raw.get(addr(id))).revision,0);
     assert.equal((await put(permit(runDoc,{envelope:physicalProof(token,lease)}))).revision,1);
 
@@ -582,11 +582,31 @@ test("CV04 fenced PG: Host lease revoke and principal-wide epoch deny signed Wor
     await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
       "SET enabled=false,authority_epoch=2 WHERE context_id=$1",[ctx]);
     await assert.rejects(put(signed),/CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED/);
+    // Epochs only advance: re-grant a new signed generation, never reset it.
     await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
-      "SET enabled=true,authority_epoch=1 WHERE context_id=$1",[ctx]);
-    assert.equal(await host.revoke(ctx,id),"REVOKED");
-    await assert.rejects(put(signed),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+      "SET enabled=true,authority_epoch=2 WHERE context_id=$1",[ctx]);
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET authority_epoch=2 WHERE context_id=$1",[ctx]);
+    const newGeneration=permit(doc,{authorityEpoch:2,envelope:physicalProof(token,lease)});
+    await assert.rejects(put(newGeneration),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
     assert.equal((await raw.get(addr(id))).revision,0);
+
+    // Independent newly approved permit at epoch=2 remains usable until
+    // the physical Host revokes it (no older token can be refreshed).
+    const id2="exj-"+randomBytes(24).toString("hex");
+    const job2=buildJob(id2),initial2=encryptJob(job2,cryptoKey,0);
+    assert.equal((await put(permit(initial2,{authorityEpoch:2}))).revision,0);
+    const token2=await host.issue({...approval(id2,0),authorityEpoch:2});
+    const lease2=await workerA.claim(token2);
+    const running2={...job2,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...job2.audit,event("STARTED")]};
+    const start2=permit(encryptJob(running2,cryptoKey,1,initial2),{
+      authorityEpoch:2,envelope:physicalProof(token2,lease2)
+    });
+    assert.equal(await host.revoke(ctx,id2),"REVOKED");
+    await assert.rejects(put(start2),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id2))).revision,0);
     console.log("CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS");
   },{physical:true});
 });
