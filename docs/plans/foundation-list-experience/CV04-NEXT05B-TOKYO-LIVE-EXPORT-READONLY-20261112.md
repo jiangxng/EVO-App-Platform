@@ -39,3 +39,17 @@
 ### B / 实际 CI 与主线物理结果
 
 待 PR 和真实 protected-main Action 结束后以原始 run/job、准确 HEAD 与终端标记更新；本段现在**不预填 PASS**。若因发布被跳过，不等于本只读流程没执行；其物理证据来自独立主线工作流，不能引用 Tokyo deploy 的 SKIP 结果顶替。
+
+
+## 5. B — 受保护 main 首次真实东京物理证据（2026-11-12，已读原始日志）
+
+> **这是现场读取结果，不是上线审批。** 新 read-only 工作流通过 [PR #1286](https://github.com/jiangxng/EVO-App-Platform/pull/1286) 合并，精确 PR HEAD `b5b4209273d52d98f8b677b440b71874f10f0242`；受保护 `main@efbcaf8b7fc9228ff500fed729870736a0a04c67`。PR 阶段 source-syntax、Owner Gate、Human UI、Continuity、Lightweight Host 均成功；main-only 东京物理 Job 在 PR 上正确 SKIPPED，不能把此 SKIP 视为物理通过。
+
+- **真实 Actions**：[CV04 NEXT-05b Tokyo read-only #43211654823](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43211654823)，[原始 Job #131160514844](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43211654823/job/131160514844)，Job 为 **SUCCESS**。本窗口直接读取其完整原始日志中的远端 terminal marker，而非仅看 GitHub 绿色摘要。
+- **原始远端 marker**：`CV04_NEXT05B_EXACT_MAIN_PINNED_SSH_PASS`、`CV04_NEXT05B_EXISTING_CONTAINERS_HEALTHY_PASS`、`CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS`、`CV04_NEXT05B_LIVE_AUTH_PROVIDER_STATIC_CANDIDATE_ONLY_PASS`、`CV04_NEXT05B_LIVE_SAVED_VIEW_FEATURE_NOT_ACTIVE_PASS`、`CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS`、`CV04_NEXT05B_ORIGINAL_SQL_USER_IS_SUPERUSER_NOT_PRODUCER_PASS`、`CV04_NEXT05B_NOT_PRODUCTION_PA05_T0_OR_KMS_CERTIFIED`、`CV04_NEXT05B_PHYSICAL_READONLY_TERMINAL_PASS`。没有读写任何企业/用户数据和原授权规则。
+- **真实运行镜像身份**：在 2026-11-12 11:44 UTC 读取的 `.last-health-pass-sha` 为 `81262c348b2abf0440ddc0501495aa9c572f2e23`（上一轮 #1284 NEXT-04b Runtime SHA），**不是**本轮 protected-main `efbcaf8b...`。实际 GET/SQL 结果针对**这份运行镜像**与当时原 `evo_dev`，不是一次新镜像发布声明。
+- **数据范围**：运行中的 Catalog 没列出已知正式后台 EXPORT 的 request/worker/download 三个 Operation 标识；实时 effective Provider 只有原静态候选且该 Capability binding 为 0；Saved View Feature 未激活。原 PostgreSQL（`evo_dev`）在非 `cv03*` QA 命名空间的 `cv04_export_%` 函数数量为 **0**、表/视图数量为 **0**。原库会话 `evo` 为超管，**不具备未来正式最小权限 Producer 的身份属性**。
+- **证据边界**：全程执行 Node 的既有 GET 和 PG `READ ONLY` 目录查询。这个“零计数”并未对未知名称、未来生成表或所有授权逻辑做完整审计；静态 Provider 可见不等于已测试真实业务请求 `AuthorizationProvider.check()`。一个通过的 read-only Job 不能作为真实 PA05/T0/签名 KMS/跨物理 Host 故障恢复的认证。
+- **上游阻塞**：当次重新核验 [Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 仍 OPEN，缺具名正式 PA05/AuthorizationProvider/DB/Security/Domain Owner 签署；正式 EXPORT 继续 OFF、CV03 `N1=NOT_CERTIFIED`，SAVE OFF。Owner 文件 #1184 未触碰。
+
+**本轮无新的第三方网页资料、截图或附件；**全部引用为已读仓库源码、GitHub live Issue 与已执行 Actions 源日志。合并后的东京 Runtime 发布 preflight 与代码 CI 需要分别检查；docs-only 再合并不会自动部署新运行镜像。
