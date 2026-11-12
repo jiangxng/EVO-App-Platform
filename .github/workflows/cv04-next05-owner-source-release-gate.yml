@@ -1,0 +1,105 @@
+name: CV04 NEXT-05a Production Authority Source and Owner Blocker
+
+# SUCCESS only proves that official EXPORT is still blocked. This workflow
+# has no certification operation and must not activate EXPORT even if all
+# Issue #1212 checkboxes are ticked.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv04-next05-owner-source-release-gate.yml"
+      - "tools/cv04-next05-production-authority-release-gate.mjs"
+      - "tests/agent-line/cv04-next05-production-authority-release-gate.test.mjs"
+      - "manager/server.ts"
+      - "catalog/seed.ts"
+      - "apps/business-dictionary/export-jobs.ts"
+      - "apps/business-dictionary/export-job-pg-store.ts"
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
+      - "apps/business-dictionary/export-job-pg-dispatch.ts"
+      - "tools/cv04-isolated-signed-export-gateway.mjs"
+      - "tools/cv03-n105c09-owner-evidence-release-gate.mjs"
+      - "docs/plans/foundation-list-experience/CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md"
+      - "docs/plans/foundation-list-experience/CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv04-next05-owner-source-release-gate.yml"
+      - "tools/cv04-next05-production-authority-release-gate.mjs"
+      - "tests/agent-line/cv04-next05-production-authority-release-gate.test.mjs"
+      - "manager/server.ts"
+      - "catalog/seed.ts"
+      - "apps/business-dictionary/export-jobs.ts"
+      - "apps/business-dictionary/export-job-pg-store.ts"
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
+      - "apps/business-dictionary/export-job-pg-dispatch.ts"
+      - "tools/cv04-isolated-signed-export-gateway.mjs"
+      - "docs/plans/foundation-list-experience/CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md"
+      - "docs/plans/foundation-list-experience/CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md"
+  issues:
+    types: [edited, closed, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: cv04-next05-owner-source-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-owner-export-closed:
+    if: github.event_name != 'issues' || github.event.issue.number == 1212
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Adversarial source and CLI check (NEVER production certification)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check tools/cv04-next05-production-authority-release-gate.mjs
+          node --test --test-reporter=spec tests/agent-line/cv04-next05-production-authority-release-gate.test.mjs \
+            | tee /tmp/cv04-next05-source.log
+          grep -q CV04_NEXT05_OWNER_CHECKBOXES_NEVER_PRODUCTION_APPROVAL_PASS /tmp/cv04-next05-source.log
+          grep -q CV04_NEXT05_LIVE_DEPENDENCY_IDENTITY_FAILCLOSED_PASS /tmp/cv04-next05-source.log
+          grep -q CV04_NEXT05_UNREVIEWED_PRODUCT_ACTIVATION_RED_PASS /tmp/cv04-next05-source.log
+          grep -q CV04_NEXT05_STAGING_PRODUCTION_GUARDS_MUST_REMAIN_PASS /tmp/cv04-next05-source.log
+          grep -q CV04_NEXT05_READONLY_LIVE_GITHUB_CHECK_ONLY_BLOCKED_GREEN_PASS /tmp/cv04-next05-source.log
+          grep -q CV04_NEXT05_SOURCE_GATE_NEVER_CERTIFIES_EXPORT_PASS /tmp/cv04-next05-source.log
+          grep -q 'ℹ pass 6' /tmp/cv04-next05-source.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-next05-source.log
+          echo CV04_NEXT05_SOURCE_ADVERSARIAL_6_OF_6_PASS
+      - name: Read actual GitHub upstream authority issue and Owner-managed PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = jiangxng/EVO-App-Platform
+          temp="$(mktemp -d)"
+          trap 'rm -rf -- "$temp"' EXIT
+          umask 077
+          gh api "repos/$GITHUB_REPOSITORY/issues/1212" > "$temp/issue.json"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/1184" > "$temp/managed.json"
+          jq -n --slurpfile issue "$temp/issue.json" \
+             --slurpfile managed "$temp/managed.json" \
+             '{issue:$issue[0],managedDocsPr:$managed[0]}' > "$temp/context.json"
+          node tools/cv04-next05-production-authority-release-gate.mjs \
+            --check --input "$temp/context.json" > "$temp/report.json"
+          jq -e '.gateStatus=="EXPECTED_BLOCKED_BASELINE"
+             and .releaseDecision=="DENY_UNTIL_INDEPENDENT_OWNERS_AND_CANONICAL_PA05_T0_KMS"
+             and .actualProductionAuthorityVerified==false
+             and .actualWorkloadSignerAndKmsVerified==false
+             and .actualPhysicalSqlOwnerAndTwoHostVerified==false
+             and .productionExportEnabled==false
+             and .checkedBoxesConstituteApproval==false
+             and ([.checks[]]|all)' "$temp/report.json" > /dev/null
+          echo CV04_NEXT05_LIVE_OWNER_DEPENDENCY_PENDING_UNCERTIFIED_PASS
+          echo CV04_NEXT05_PRODUCTION_EXPORT_REMAINS_UNREGISTERED_PASS
+          echo CV04_NEXT05_NON_CERTIFYING_RELEASE_GATE_TERMINAL_PASS
