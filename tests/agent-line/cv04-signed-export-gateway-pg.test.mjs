@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createCipheriv,createHash,createHmac,randomBytes,randomUUID} from "node:crypto";
 import postgres from "postgres";
+import {spawn} from "node:child_process";
 import {
   preparePostgresConditionalResourceSchemaV010,
   createPostgresConditionalResourceRepositoryV010
@@ -20,6 +21,8 @@ import {createBusinessDictionaryRepositoryV010}
   from "../../dist/apps/business-dictionary/repository.js";
 import {createHostStaticAuthorizationProviderV010}
   from "../../dist/providers/authorization/runtime.js";
+import {createIsolatedDictionaryExportPgDispatcherV010}
+  from "../../dist/apps/business-dictionary/export-job-pg-dispatch.js";
 import {prepareIsolatedDictionaryExportSqlLeaseV010,
   createIsolatedDictionaryExportSqlHostLeaseIssuerV010,
   createIsolatedDictionaryExportSqlWorkerLeaseV010}
@@ -189,6 +192,7 @@ async function fixture(fn,{physical=false}={}){
         "cv04_export_revoke_lease(text,text)",
         "cv04_export_lease_status(text,text)",
         "cv04_export_due_jobs(text,integer)",
+        "cv04_export_runnable_jobs(text,integer)",
         "cv04_export_worker_read(text,bigint)"
       ]:[])]){
       await sql.unsafe("ALTER FUNCTION "+q+"."+name+" OWNER TO "+owner);
@@ -229,7 +233,9 @@ async function fixture(fn,{physical=false}={}){
     });
     await fn({sql,schema,q,owner,runtime,ownerRole,runtimeRole,client,second,raw,
       encrypted,put,read,cryptoKey:Buffer.alloc(32,0x24),
-      host,workerA,workerB,hostRole,workerRole});
+      host,workerA,workerB,hostRole,workerRole,
+      hostUrl:physical?(()=>{const u=new URL(url);u.username=hostRole;u.password=hostPw;return u.toString()})():undefined,
+      workerUrl:physical?(()=>{const u=new URL(url);u.username=workerRole;u.password=workerPw;return u.toString()})():undefined});
   }finally{
     if(client)await client.end();
     if(second)await second.end();
