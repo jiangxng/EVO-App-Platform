@@ -67,7 +67,7 @@ jobs:
           assert "docker compose exec -T --interactive=false evo node -" not in physical
           assert "docker compose exec -T --interactive=false" not in physical
           assert "grep -Fxq CV03_N105C11_HOST_METADATA_READONLY_PASS" in physical
-          runtime = next((block for block in blocks if "<<'HOST_RUNTIME'" in block), None)
+          runtime = next((block for block in blocks if "\nHOST_RUNTIME\n" in block), None)
           assert runtime, "Host runtime provider read-only probe not found"
           runtime_match = re.search(r"<<'HOST_RUNTIME'\n(.*?)\nHOST_RUNTIME", runtime, re.S)
           assert runtime_match, "Runtime probe Node source missing"
