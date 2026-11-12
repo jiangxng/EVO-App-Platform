@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 后续真实 Host 双企业/Agent 导出自动验收（更新入口）
+
+**[隔离真实 Host + Eidos + Chromium A→B→A CSV 12 次下载、Agent 工具 3/3 与插件停用拒绝的完整工程/主线证据](CV04-TWO-ENTERPRISE-AGENT-OWNER-CSV-ACCEPTANCE-20261112.md)**。工程 [#1266](https://github.com/jiangxng/EVO-App-Platform/pull/1266) 已合受保护 `main@ff569b2d7c930fa90e61ec28a07421057a4601aa`，主线 Chromium/Protocol/Continuity/Lightweight Host 成功，Branch Hygiene 已删除过程分支。**本验收仍是测试 Local Experience 静态身份，不是东京已登录真人、真实 PA05 授权撤回、外部 LLM 或物理手机签收**；独立 EXPORT 权限、跨页后台任务和整个 List 基础插件仍未完成。生产 N1 SAVE OFF。
+
 ## 2026-11-12 CV-04 最新长窗口恢复（本轮优先入口）
 
 **[简短恢复交接入口](CV04-WINDOW-20261112-CONTEXT-RECOVERY-HANDOFF-ENTRY.md)** → **[详细研究资料、历史原始网址/阅读等级、采用与放弃方案、PR/Actions/真实体验证据分层](CV04-WINDOW-20261112-RESEARCH-DECISION-REFERENCE-INDEX.md)**。本轮核验的基线 `main@fd357d988df99602545655a457fe3d79a9b412e2`，#1263/#1264 MERGED，Dictionary/我的客户/我的供应商实际隔离 Host + 1280/390px Chromium CSV 6/6 自动验收。**这不是东京真实登录员工、物理手机或自然语言 Personal Agent 的 Human 签收**。CV-04 尚未做独立 EXPORT 权限/审计/预算的安全跨页 Job；CV-03 生产 SAVE 继续 `N1=NOT_CERTIFIED` / OFF / POST 403 / GET 404。该条是增量现状链接，不能覆盖下方历史各窗口本来日期的判断或并行 #1184 受管原计划。
