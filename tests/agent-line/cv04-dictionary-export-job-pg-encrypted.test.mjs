@@ -153,11 +153,32 @@ test("CV04 real PostgreSQL: encrypted Owner snapshot, two connections, diskless 
 });
 
 test("CV04 PostgreSQL CAS: cross-process-like contenders cannot both claim one job",requiresDb,async()=>{
-  await fixture(async({ownerA,ownerB,encryptedA,encryptedB})=>{
+  await fixture(async({ownerA,encryptedA,encryptedB,repo,clock,decision})=>{
     const ctx=principal(),queued=await ownerA.request(ctx,request("cv04_pg_cas_02"));
+    // Synchronize *both* physical SQL connections on the same QUEUED
+    // revision so a fast first worker cannot complete before the second
+    // even starts. This proves a genuine contested CAS, not timing luck.
+    let release;
+    const bothRead=new Promise(resolve=>{release=resolve});
+    let observed=0;
+    const contenderStore=store=>({
+      ...store,
+      async get(address){
+        const row=await store.get(address);
+        if(row?.payload?.state==="QUEUED"){
+          observed++;
+          if(observed===2)release();
+          await bothRead;
+        }
+        return row;
+      }
+    });
+    const a=owner(repo,contenderStore(encryptedA),clock,decision);
+    const b=owner(repo,contenderStore(encryptedB),clock,decision);
     const competing=await Promise.allSettled([
-      ownerA.run(ctx,queued.jobId),ownerB.run(ctx,queued.jobId)
+      a.run(ctx,queued.jobId),b.run(ctx,queued.jobId)
     ]);
+    assert.equal(observed,2,"both contenders read one QUEUED revision");
     const successes=competing.filter(x=>x.status==="fulfilled");
     const rejects=competing.filter(x=>x.status==="rejected");
     assert.equal(successes.length,1,JSON.stringify(competing));
