@@ -1,0 +1,231 @@
+name: CV03 N1-05c-11 Tokyo Real Host Authority and Original DB Read-only Inventory
+
+# Evidence-only; never installs a Provider, updates PG or certifies SAVE.
+# Physical job only on protected main (or explicit main workflow dispatch).
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cv03-n105c11-tokyo-live-authority-readonly.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv03-n105c11-tokyo-live-authority-readonly.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv03-n105c11-tokyo-live-authority-inventory
+  cancel-in-progress: false
+
+jobs:
+  source-syntax:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Check embedded remote shell and Node syntax, without Tokyo secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          source = Path(".github/workflows/cv03-n105c11-tokyo-live-authority-readonly.yml").read_text()
+          lines = source.splitlines()
+          blocks = []
+          for index, line in enumerate(lines):
+              m = re.fullmatch(r"( *)run: \|", line)
+              if not m: continue
+              margin = len(m.group(1))
+              block = []
+              for fragment in lines[index+1:]:
+                  if fragment.strip() and len(fragment)-len(fragment.lstrip(" ")) <= margin: break
+                  block.append(fragment[margin+2:] if fragment.startswith(" "*(margin+2)) else "")
+              blocks.append("\n".join(block)+"\n")
+          assert len(blocks) >= 3, "Expected SSH identity, remote inventory, and cleanup"
+          for script in blocks:
+              check = subprocess.run(["bash","-n"], input=script, text=True, capture_output=True)
+              assert check.returncode == 0, "Embedded bash syntax failed"
+          # Node is passed as a HEREDOC to the existing running Host container.
+          physical = next((s for s in blocks if len(s.splitlines())>1 and s.splitlines()[0].strip()=="set -euo pipefail" and s.splitlines()[1].lstrip().startswith("proof=")), None)
+          assert physical, "Physical inventory block not found"
+          match = re.search(r"<<'HOST_NODE'\n(.*?)\nHOST_NODE", physical, re.S)
+          assert match, "Host Node source not found"
+          node = subprocess.run(["node","--check"], input=match.group(1), text=True, capture_output=True)
+          assert node.returncode == 0, "Host metadata Node syntax failed"
+          assert "BEGIN TRANSACTION READ ONLY;" in physical
+          assert "default_transaction_read_only=on" in physical
+          assert "APP_PLATFORM_CV03_HUMAN_SAVE_MODE" in physical
+          assert "APP_PLATFORM_PROVIDER_BINDINGS_FILE" in physical
+          assert "cv03_n105b_commit_deny_t0" in physical
+          assert "docker compose exec -T --interactive=false evo node -" in physical
+          print("CV03_N105C11_SOURCE_READONLY_SHELL_AND_HOST_NODE_SYNTAX_PASS")
+          PY
+
+  live-host-and-pg-catalog:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment: evo-tokyo-dev
+    timeout-minutes: 10
+    steps:
+      - name: Verify exact protected main and pinned SSH identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$GITHUB_SHA" = "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          install -d -m 0700 "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" > /dev/null
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" > /dev/null
+          echo CV03_N105C11_EXACT_MAIN_PINNED_SSH_PASS
+
+      - name: Read current Host lifecycle/bindings and original PostgreSQL system catalogs ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          test "$(id -un)" = evo-deploy
+          cd /opt/evo-tokyo
+          test -r compose.yaml && test -f .env && test -f .last-health-pass-sha
+          sha="$(cat .last-health-pass-sha)"
+          [[ "$sha" =~ ^[a-f0-9]{40}$ ]]
+          pg="$(docker compose ps -q postgres)"
+          app="$(docker compose ps -q evo)"
+          test -n "$pg" && test -n "$app"
+          for container in "$pg" "$app"; do
+            test "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container")" = healthy
+          done
+          echo CV03_N105C11_EXISTING_PREVIEW_CONTAINERS_HEALTHY_PASS
+          echo "CV03_N105C11_PREVIEW_LAST_HEALTHY_SHA=$sha"
+
+          # Parse only preselected metadata from *running* app container.
+          # Never print environment values, policy rules, subject/enterprise ids,
+          # file JSON, credentials, arbitrary Provider IDs, or business data.
+          docker compose exec -T --interactive=false evo node - <<'HOST_NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          try {
+            function readBoundedJson(filename) {
+              if (!filename) return null;
+              try {
+                const s = fs.lstatSync(filename);
+                if (!s.isFile() || s.isSymbolicLink() || s.size > 4*1024*1024)
+                  throw Error("UNSAFE_SOURCE_FILE");
+                return JSON.parse(fs.readFileSync(filename, "utf8"));
+              } catch (e) {
+                if (e.code === "ENOENT") return null;
+                throw e;
+              }
+            }
+            const file = process.env.APP_PLATFORM_STATE_FILE;
+            if (!file) throw Error("STATE_PATH_UNAVAILABLE");
+            const state = readBoundedJson(file);
+            if (state && (!Array.isArray(state.activeFeatures) ||
+                !Array.isArray(state.installedPackages)))
+              throw Error("LIFECYCLE_SHAPE_UNVERIFIABLE");
+            const bindingPath = process.env.APP_PLATFORM_PROVIDER_BINDINGS_FILE ||
+              path.join(path.dirname(file), "provider-bindings.json");
+            const bindings = readBoundedJson(bindingPath);
+            if (bindings && !Array.isArray(bindings.bindings))
+              throw Error("BINDING_SHAPE_UNVERIFIABLE");
+            const active = state?.activeFeatures || [];
+            const allBindings = bindings?.bindings || [];
+            const authBindings = allBindings.filter(b =>
+              b && b.capability === "authorization.check");
+            const staticBindings = authBindings.filter(b =>
+              b.providerId === "host.static-authorization");
+            const otherBindings = authBindings.length - staticBindings.length;
+            const staticFeature = active.some(f =>
+              f && f.featureId === "host-static-authorization-provider.default");
+            const savedViewFeature = active.some(f =>
+              f && f.featureId === "host-enterprise-context-provider.personal-saved-views");
+            const save = (process.env.APP_PLATFORM_CV03_HUMAN_SAVE_MODE || "OFF")
+              .trim().toUpperCase();
+            if (save !== "OFF" || savedViewFeature)
+              throw Error("UNCERTIFIED_SAVED_VIEW_ACTIVE");
+            console.log("CV03_N105C11_HOST_LIFECYCLE_FILE_PRESENT=" + Boolean(state));
+            console.log("CV03_N105C11_HOST_PROVIDER_BINDINGS_FILE_PRESENT=" + Boolean(bindings));
+            console.log("CV03_N105C11_HOST_STATIC_AUTH_FEATURE_IN_SNAPSHOT=" + staticFeature);
+            console.log("CV03_N105C11_HOST_AUTH_BINDING_COUNT=" + authBindings.length);
+            console.log("CV03_N105C11_HOST_STATIC_AUTH_BINDING_COUNT=" + staticBindings.length);
+            console.log("CV03_N105C11_HOST_OTHER_AUTH_BINDING_COUNT=" + otherBindings);
+            console.log("CV03_N105C11_HOST_AUTH_POLICY_OVERLAY_CONFIGURED=" +
+              Boolean(process.env.APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON));
+            console.log("CV03_N105C11_HOST_SAVED_VIEW_FEATURE_IN_SNAPSHOT=false");
+            console.log("CV03_N105C11_HOST_SAVE_MODE_OFF_PASS");
+            console.log("CV03_N105C11_HOST_METADATA_READONLY_PASS");
+          } catch {
+            process.stderr.write("CV03_N105C11_HOST_METADATA_UNVERIFIABLE\n");
+            process.exitCode = 1;
+          }
+          HOST_NODE
+
+          # PostgreSQL metadata only. Even the pre-existing SQL admin login is
+          # forced into a read-only transaction. No business table contents.
+          sqlout="$(docker compose exec -T --interactive=false \
+            -e PGOPTIONS='-c default_transaction_read_only=on' postgres \
+            psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d evo_dev <<'SQL'
+          BEGIN TRANSACTION READ ONLY;
+          SELECT 'CV03_N105C11_ORIGINAL_DB='||current_database();
+          SELECT 'CV03_N105C11_SQL_SESSION_USER='||session_user;
+          SELECT 'CV03_N105C11_PG_VERSION_NUM='||current_setting('server_version_num');
+          SELECT 'CV03_N105C11_PG_IS_STANDBY='||pg_is_in_recovery();
+          SELECT 'CV03_N105C11_PG_ARCHIVE_MODE='||current_setting('archive_mode');
+          SELECT 'CV03_N105C11_DB_OWNER_ROLE='||pg_get_userbyid(d.datdba)
+            FROM pg_database d WHERE d.datname=current_database();
+          SELECT 'CV03_N105C11_DB_OWNER_IS_SUPERUSER='||r.rolsuper
+            FROM pg_database d JOIN pg_roles r
+              ON r.rolname=pg_get_userbyid(d.datdba)
+            WHERE d.datname=current_database();
+          SELECT 'CV03_N105C11_NON_SYSTEM_SCHEMA_COUNT='||count(*)
+            FROM pg_namespace WHERE nspname NOT LIKE 'pg_%'
+              AND nspname<>'information_schema';
+          SELECT 'CV03_N105C11_NON_QA_T0_ROUTINE_COUNT='||count(*)
+            FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+            WHERE p.proname IN
+              ('cv03_n105b_fence_package_t0','cv03_n105b_commit_deny_t0')
+              AND n.nspname NOT LIKE 'cv03_n105b%';
+          ROLLBACK;
+          SQL
+          )"
+          grep -Fxq CV03_N105C11_ORIGINAL_DB=evo_dev <<< "$sqlout"
+          grep -Fxq CV03_N105C11_SQL_SESSION_USER=evo <<< "$sqlout"
+          grep -Eq '^CV03_N105C11_PG_VERSION_NUM=17[0-9]+$' <<< "$sqlout"
+          grep -Fxq CV03_N105C11_PG_IS_STANDBY=false <<< "$sqlout"
+          grep -Eq '^CV03_N105C11_PG_ARCHIVE_MODE=(off|on|always)$' <<< "$sqlout"
+          grep -Eq '^CV03_N105C11_DB_OWNER_ROLE=[a-z_][a-z0-9_]{0,62}$' <<< "$sqlout"
+          grep -Eq '^CV03_N105C11_DB_OWNER_IS_SUPERUSER=(true|false)$' <<< "$sqlout"
+          grep -Eq '^CV03_N105C11_NON_SYSTEM_SCHEMA_COUNT=[0-9]+$' <<< "$sqlout"
+          grep -Fxq CV03_N105C11_NON_QA_T0_ROUTINE_COUNT=0 <<< "$sqlout"
+          printf '%s\n' "$sqlout"
+          echo CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS
+          echo CV03_N105C11_NOT_PRODUCTION_OWNER_CERTIFICATION
+          REMOTE
+          )"
+          printf '%s\n' "$proof"
+          grep -Fxq CV03_N105C11_HOST_METADATA_READONLY_PASS <<< "$proof"
+          grep -Fxq CV03_N105C11_HOST_SAVE_MODE_OFF_PASS <<< "$proof"
+          grep -Fxq CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS <<< "$proof"
+          grep -Fxq CV03_N105C11_NOT_PRODUCTION_OWNER_CERTIFICATION <<< "$proof"
+          echo CV03_N105C11_PROTECTED_MAIN_PHYSICAL_READONLY_TERMINAL_PASS
+
+      - name: Remove ephemeral runner SSH credentials
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
