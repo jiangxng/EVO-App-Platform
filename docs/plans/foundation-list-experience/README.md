@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 Request-Bound 双 Human Principal 与真实 Governance 撤权
+
+[真实 Host 请求身份、企业邀请/接受/撤权、已建立 Human/AI 会话导出拒绝与证据分层](CV04-REQUEST-BOUND-PRINCIPAL-REVOKE-20261112.md)：复用原 Bearer Session、Enterprise Governance Store/关系 Action、字典 Owner 和 ActionRouter，在两个不同 Human Subject 与 MEMBER AI 下运行隔离测试。它优于单一静态用户 A/B 切换，但仍不是东京 Google 登录、真实 PA05 PostgreSQL T0、外部 LLM 或物理手机验收；独立 EXPORT/跨页异步任务还需后续工程。生产 N1/SAVE 禁用不变。
+
 ## 2026-11-12 CV-04 后续真实 Host 双企业/Agent 导出自动验收（更新入口）
 
 **[隔离真实 Host + Eidos + Chromium A→B→A CSV 12 次下载、Agent 工具 3/3 与插件停用拒绝的完整工程/主线证据](CV04-TWO-ENTERPRISE-AGENT-OWNER-CSV-ACCEPTANCE-20261112.md)**。工程 [#1266](https://github.com/jiangxng/EVO-App-Platform/pull/1266) 已合受保护 `main@ff569b2d7c930fa90e61ec28a07421057a4601aa`，主线 Chromium/Protocol/Continuity/Lightweight Host 成功，Branch Hygiene 已删除过程分支。**本验收仍是测试 Local Experience 静态身份，不是东京已登录真人、真实 PA05 授权撤回、外部 LLM 或物理手机签收**；独立 EXPORT 权限、跨页后台任务和整个 List 基础插件仍未完成。生产 N1 SAVE OFF。
