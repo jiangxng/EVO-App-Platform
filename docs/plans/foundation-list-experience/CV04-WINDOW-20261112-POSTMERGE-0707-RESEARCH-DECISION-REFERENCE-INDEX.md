@@ -191,3 +191,16 @@
 **比较**：选择复用原 Permit/Lease/Epoch/Resource CAS 并由 PostgreSQL DB 时间判定一秒冷却；排除 Node 内存队列/自动重试、建立另一张工作租约、借用 CV03 Signed View Gate、把 SQL Host 元数据视为 live 授权或把 Worker SELECT 原表当任务读取。新增 `createIsolatedDictionaryExportPgDispatcherV010` 仅作为可显式调用的**一次 sweep**、要求每任务 fresh Host 审批；不是常驻调度服务。实现细节及负向验收入口记录在 [现有 SQL Host/Worker 纵切文档](CV04-SQL-HOST-WORKER-LEASE-20261112.md) NEXT-04。
 
 **待查 C / 界限**：真实不同物理 Host 节点崩溃/网络分区与一致性时钟、PA05/T0 事件认证、独立 KMS、长期任务唤醒服务、真实上线授权故障闭环、WAL/WORM/备份清理、Personal Agent 会话、正式 EXPORT/SAVE 准入仍未认证。下一步先验真实 PG16 和最终 HEAD CI；成功后单独核对 protected-main、东京 TLS/Basic Auth 与 Branch Hygiene。正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`，SAVE OFF，PR #1184 独占文件不碰。本轮无新增第三方网站资料/截图。
+
+
+## 12. NEXT-04b — 隔离 Polling Controller 自动唤醒 / Host OS 进程退出重启（2026-11-12）
+
+此节继承前述目录但**不补造**外网访问，所有本轮引用均来自 2026-11-12 实际读取的仓库源码、测试和 Actions，按 A/B/C 分级。之前 #1283 只能证明独立 Host SQL 会话＋Worker OS 子进程；本轮额外补真实 **Host OS 进程** 重启与显式启动的轮询器，仍不是跨机器容灾。
+
+| 等级 / 标题与原始网址 / 查阅日期 | G：直接来源事实 | D：采用和排除、项目用途 |
+| --- | --- | --- |
+| A / [CV04 原 Dispatcher `main@e68928e`](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/apps/business-dictionary/export-job-pg-dispatch.ts) / 2026-11-12 | `sweep()` 是独立调用的 bounded dispatch；没有周期唤醒/停止/容错式自动重启，授权依赖每次 `authorizeFresh`，工作状态保存在已有 SQL Permit/Lease/Epoch。 | 直接在该模块新增 `createIsolatedDictionaryExportPgPollingV010`，`start/stop/done` 单飞有界空闲退避；不引入新调度表、Redis、永不退出内存队列或后台服务。 |
+| A / [原物理 SQL Lease](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/apps/business-dictionary/export-job-pg-sql-lease.ts)、[原签名 PG16 回归与子进程 Helper](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)、[原 PG Workflow](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/.github/workflows/cv04-signed-export-pg-gateway.yml) / 2026-11-12 | Lease Epoch=1→2 与签名 CAS Revision 是 DB 权威；旧 #1283 PG16 做过 Worker `SIGKILL`，但 Dispatcher **Host** 仍为同一个 node:test 父进程。 | 新增 Host 子进程使用**自己的** PostgreSQL Host/Worker 连接，通过实际周期 Polling 获取真实物理 permit，`SIGKILL` 后另一 Host 进程重新从 PG 扫描并领取 Epoch=2。父进程只在 disposable fixture 代签业务 CAS，**不证明真实生产独立签名服务高可用**。 |
+| A / [原 NEXT-04 部署与研究约束](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/docs/plans/foundation-list-experience/CV04-SQL-HOST-WORKER-LEASE-20261112.md) / 2026-11-12 | Host 仍无生产签名授权 outbox 与 KMS，调度是 isolate-only；没有物理异地时钟/网络分区 SLA。 | 继续保持正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`/SAVE OFF，禁改并行 #1184 所有权文件。 |
+
+**工程状态和证据分界**：本次最终 HEAD 的真实 PG16 新 marker、含原有审计/Owner 的 full regression、main/东京/Branch Hygiene 应在 Actions 原文看见后再列为 B=已读日志；还未发生时属于 C=待验证。失联后自动恢复当前仅由测试显式启动新 Host 进程（不是 supervisor 自主重启）；真实 PA05/T0 授权源、跨机网络分区、受管 Cron/daemon、完整生产 Owner Signer/KMS、Human/Agent 正式功能均是 C=未验。本节没有外网第三方研究，也没有新的截图/附件。
