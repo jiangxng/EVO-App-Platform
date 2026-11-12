@@ -22,6 +22,8 @@ const KEY=/^[A-Za-z0-9_-]{8,80}$/u;
 const JOB_TTL_MS=15*60*1000;
 const LEASE_MS=15*1000;
 const MAX_ATTEMPTS=2;
+const MAX_SNAPSHOT_BYTES=262144;
+const MAX_DOWNLOAD_AUDITS=3;
 const DEFAULT_POLICY:AuthorizedCrossPageExportPolicyV010={
   pageSize:100,maxPages:10,maxRows:1000,maxBytes:262144,maxDurationMs:30000
 };
@@ -218,6 +220,11 @@ export function createDictionaryExportJobOwnerV010(input:{
           cells:Object.fromEntries(requestValues.fieldIds.map(id=>[id,row.cells[id]??null]))}))
       });
     }
+    // Bound the durable queued snapshot itself, not only the eventual CSV.
+    // Otherwise a huge readable value could exhaust storage before RUN.
+    const snapshotBytes=Buffer.byteLength(JSON.stringify(pages),"utf8");
+    if(snapshotBytes>MAX_SNAPSHOT_BYTES)
+      return fail("COLLECTION_EXPORT_SNAPSHOT_BYTE_BUDGET_EXCEEDED");
     await authorize(context);
     const time=iso();
     const snap=hash(JSON.stringify(pages));
@@ -314,6 +321,8 @@ export function createDictionaryExportJobOwnerV010(input:{
       || !current.job.csvSha256 || hash(current.job.csv)!==current.job.csvSha256)
       return fail("COLLECTION_EXPORT_DOWNLOAD_NOT_READY");
     await authorize(context);
+    if(current.job.audit.filter(e=>e.type==="DOWNLOAD_AUTHORIZED").length>=MAX_DOWNLOAD_AUDITS)
+      return fail("COLLECTION_EXPORT_DOWNLOAD_BUDGET_EXCEEDED");
     // A durable, metadata-only access audit must commit before bytes escape.
     current=write(audit(current.job,"DOWNLOAD_AUTHORIZED",iso(),
       current.job.rowCount,Buffer.byteLength(current.job.csv,"utf8")),current.revision);
