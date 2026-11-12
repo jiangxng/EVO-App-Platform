@@ -365,3 +365,11 @@
 **D / 采用**：在已存在的 Owner `run()` 开始后固定 `attempt + leaseUntil`，将三种后续写路径（中途审计、最终 READY、失败 FAILED）绑定同一 Job Attempt/Lease；若新尝试重领，旧执行无法污染审计或将新任务失败。原 Owner 协议测试加入双时序阻塞并发反例，不再建新签名网关/资源表/任务系统；专项 CI 从 8 项提升为 9 项。**明确反对**仅用 `state=RUNNING`、基于过期时间的单一推测或依赖内存锁来断言 Owner 写入合法。
 
 **C/P / 边界**：隔离测试时钟与单进程双异步任务只证明本次 Owner Race 行为，不代表真实两个物理 Host 的租约原子证明；正式 T0 sourceGeneration、全 Scope/Outbox、Producer/Signer/KMS 与真实 Owner 签认仍须遵从 #1212/#1184 和 §15–18。正式 EXPORT OFF，CV03 `N1=NOT_CERTIFIED`、SAVE OFF。准确 PR CI、受保护 main、东京部署判定及 Branch Hygiene 证据待实际执行完成后记录，不预填通过。
+
+## 20. Window 08 自动续跑 #05/07：旧 Worker 租约过期但未重领仍可能错误完成（2026-11-12）
+
+**G · A 级本轮直接读取的原文**：[Domain Owner](../../../apps/business-dictionary/export-jobs.ts) `run()`、[原 Owner 9 项测试](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs)、[原专项 CI](../../../.github/workflows/cv04-dictionary-export-job-owner.yml)、[原 Signed PG Gateway](../../../tools/cv04-isolated-signed-export-gateway.mjs)。#1293 的 Attempt/Lease **归属一致性检查**只比较固定值；当 Worker 在 lease 到期后仍未被下一 Worker 重领，原值没有改变，可能迟到写审计、READY/FAILED。SQL Gateway 的物理租约围栏独立存在，但不能假设测试级 Owner 自动继承该时间条件；此处没有声称生产已发生利用，正式 Export 原本就 OFF。
+
+**D · 采用**：在原 `stillOwnsAttempt` 增加由可信测试时钟判定的到期条件，复用它所保护的 AUDIT/READY/FAILED 三处写入。保留原加密快照与 RUNNING 元数据供第 2 次合规领取；拒绝旧 Worker 过期写入，不添加第二套 Worker 系统或文件状态。新增一个**无重领反例**，与已存在的双异步竞争回归互补；详见 [Owner NEXT-06b](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)。原 CI 预计顶层 10 项并必须全部成功。
+
+**边界与证据级别 C/P**：隔离 `NODE_ENV=test` 时钟与 Owner CAS 不代表正式 PG Producer/Signer/KMS、实际 PA05/T0、跨物理 Host 或完整授权 Scope。Owner #1212 仍 OPEN/PENDING，#1184 的受管文件不更改；正式后台 EXPORT OFF/unregistered、CV03 `N1=NOT_CERTIFIED` 与 SAVE OFF。只有 PR 精确 HEAD、主线、东京实际部署与 Branch Hygiene 的原始执行记录完成后，才能标记相应 B 级 PASS，不提前填写。
