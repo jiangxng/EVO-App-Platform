@@ -1,0 +1,86 @@
+name: CV04 PostgreSQL Immutable Export Audit and Physical Role Gate
+
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/export-job-pg-audit.ts"
+      - "tests/agent-line/cv04-dictionary-export-pg-immutable-audit.test.mjs"
+      - ".github/workflows/cv04-pg-export-immutable-audit.yml"
+      - "docs/plans/foundation-list-experience/CV04-PG-IMMUTABLE-EXPORT-AUDIT-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/export-job-pg-audit.ts"
+      - "tests/agent-line/cv04-dictionary-export-pg-immutable-audit.test.mjs"
+      - ".github/workflows/cv04-pg-export-immutable-audit.yml"
+      - "docs/plans/foundation-list-experience/CV04-PG-IMMUTABLE-EXPORT-AUDIT-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-immutable-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cv04_ci
+          POSTGRES_PASSWORD: cv04_ci_disposable
+          POSTGRES_DB: cv04_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cv04_ci -d cv04_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      CV04_EXPORT_TEST_DATABASE_URL: postgres://cv04_ci:cv04_ci_disposable@127.0.0.1:5432/cv04_ci
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: PG16 independent immutable audit, restricted SQL login and same-transaction rollback
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/agent-line/cv04-dictionary-export-pg-immutable-audit.test.mjs \
+            | tee /tmp/cv04-pg-export-audit.log
+          grep -q CV04_PG_EXPORT_ATOMIC_INDEPENDENT_AUDIT_6_EVENTS_PASS /tmp/cv04-pg-export-audit.log
+          grep -q CV04_PG_EXPORT_LEDGER_IMMUTABLE_AND_ROLLBACK_PASS /tmp/cv04-pg-export-audit.log
+          grep -q CV04_PG_EXPORT_DISTINCT_LOGIN_NO_RAW_RESOURCE_OR_AUDIT_DML_PASS /tmp/cv04-pg-export-audit.log
+          grep -q CV04_PG_EXPORT_CAS_ATOMIC_AUDIT_MULTI_CONNECTION_PASS /tmp/cv04-pg-export-audit.log
+          grep -q 'ℹ pass 5' /tmp/cv04-pg-export-audit.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-pg-export-audit.log
+      - name: Existing PostgreSQL encrypted Owner and local 8-test regression
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/agent-line/cv04-dictionary-export-job-pg-encrypted.test.mjs \
+            | tee /tmp/cv04-pg-encrypted.log
+          grep -q 'ℹ pass 5' /tmp/cv04-pg-encrypted.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-pg-encrypted.log
+          node --test tests/protocol/cv04-dictionary-export-job-owner.test.mjs \
+            | tee /tmp/cv04-file-owner.log
+          grep -q 'ℹ pass 8' /tmp/cv04-file-owner.log
+      - name: Live Export command remains unregistered and SAVE remains OFF
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const h=readFileSync("manager/server.ts","utf8");
+            const m=readFileSync("catalog/seed.ts","utf8");
+            const a=readFileSync("apps/business-dictionary/export-job-pg-audit.ts","utf8");
+            if(h.includes("dictionary.collection.export.job.request")
+              ||m.includes("dictionary.collection.export.job.request")
+              ||!a.includes("CV04_EXPORT_AUDIT_PRODUCTION_PREPARE_DENIED"))
+              throw Error("CV04_EXPORT_AUDIT_LIVE_HOST_GATE_VIOLATION");
+            console.log("CV04_EXPORT_AUDIT_NO_LIVE_HOST_ROUTE_PASS");
+          '
