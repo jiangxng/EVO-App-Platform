@@ -27,7 +27,9 @@ function harness(overrides={}){
         contractVersion:"0.1.0",
         collectionId:"evo.business-dictionary.directory",
         schemaRef:overrides.driftSchema&&i>0?"broken.schema": "evo.dictionary/0.1.0",
-        readableFieldIds:overrides.readableFieldIds??fieldIds,
+        readableFieldIds:overrides.driftReadableFields&&i>0
+          ? ["dictionaryId","displayName","options"]
+          :overrides.readableFieldIds??fieldIds,
         rows:overrides.duplicateRowId&&i===1
           ? chunk.map((row,j)=>j===0?{...row,rowId:"d0"}:row)
           :chunk,
@@ -100,6 +102,7 @@ test("CV04 owner exact count, stable page, schema and row identity drift all fai
     [{driftPage:true},"COLLECTION_EXPORT_PAGE_SCOPE_INVALID"],
     [{driftSchema:true},"COLLECTION_EXPORT_SNAPSHOT_DRIFT"],
     [{driftTotal:true},"COLLECTION_EXPORT_SNAPSHOT_DRIFT"],
+    [{driftReadableFields:true},"COLLECTION_EXPORT_SNAPSHOT_DRIFT"],
     [{duplicateRowId:true},"COLLECTION_EXPORT_ROW_DUPLICATE"],
     [{readableFieldIds:["dictionaryId"]},"COLLECTION_CSV_FIELD_NOT_READABLE"]
   ]){
