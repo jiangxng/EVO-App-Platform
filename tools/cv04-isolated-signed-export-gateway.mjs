@@ -20,6 +20,9 @@ export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
   const s='"'+schema+'"';
   // Opt-in combines two EXISTING isolated SQL protocols, not production Host.
   const physical=options.requirePhysicalWorkerLease===true;
+  if(physical && (typeof options.workerLoginRole!=="string" ||
+     !/^cv04_[a-z0-9_]{1,55}$/u.test(options.workerLoginRole)))
+    throw new Error("CV04_EXPORT_GATEWAY_PHYSICAL_WORKER_LOGIN_REQUIRED");
   const workerFence=physical?`
   IF requested_op='dictionary.collection.export.job.worker' THEN
     IF e->>'workerLeaseEpoch' IS NULL OR
@@ -68,6 +71,90 @@ export function cv04IsolatedSignedExportGatewaySqlV010(schema,options={}) {
   const auditFence=physical?`
          OR requested_attempt IS DISTINCT FROM physical_lease.epoch
          OR previous_lease>physical_lease.claimed_until`:"";
+  // Ciphertext-only GET: the physical Worker SQL LOGIN cannot SELECT raw
+  // resources, enumerate jobs, mint permits or use this after revocation.
+  // DB authenticates session_user; no caller-entered context/subject permitted.
+  const scopedReadSql=physical?`
+CREATE FUNCTION ${s}.cv04_export_worker_read(p_token text,p_epoch bigint)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog AS $cv04_worker_read$
+DECLARE p record; l record; auth record; principal record;
+  job_resource jsonb; job_revision bigint; m jsonb;
+BEGIN
+  IF session_user <> '${options.workerLoginRole}' THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_LOGIN_DENIED'; END IF;
+  IF p_token IS NULL OR p_token !~ '^[a-f0-9]{32}$' OR
+     p_epoch NOT BETWEEN 1 AND 2 THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_PROOF_INVALID'; END IF;
+  -- First scope lookup is by unpredictable one-time token, not user input.
+  SELECT * INTO p FROM ${s}.cv04_export_work_permits
+    WHERE token_hash=md5(p_token);
+  IF NOT FOUND OR p.state<>'CLAIMED' OR p.authority_epoch<1 THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_PERMIT_DENIED'; END IF;
+  SELECT enabled,mirror_healthy,authority_epoch,lease_until
+    INTO auth FROM ${s}.cv04_export_authority
+    WHERE context_id=p.context_id AND enterprise_id=p.enterprise_id
+      AND principal_subject_id=p.subject_id AND actor_type=p.actor_type
+      AND operation_id='dictionary.collection.export.job.worker'
+    FOR SHARE;
+  IF NOT FOUND OR auth.enabled IS DISTINCT FROM true OR
+     auth.mirror_healthy IS DISTINCT FROM true OR
+     auth.authority_epoch IS DISTINCT FROM p.authority_epoch OR
+     auth.lease_until<=clock_timestamp() THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_AUTHORITY_FENCED'; END IF;
+  SELECT enabled,mirror_healthy,authority_epoch,lease_until
+    INTO principal FROM ${s}.cv04_export_principal_fence
+    WHERE context_id=p.context_id AND enterprise_id=p.enterprise_id
+      AND principal_subject_id=p.subject_id AND actor_type=p.actor_type
+    FOR SHARE;
+  IF NOT FOUND OR principal.enabled IS DISTINCT FROM true OR
+     principal.mirror_healthy IS DISTINCT FROM true OR
+     principal.authority_epoch IS DISTINCT FROM p.authority_epoch OR
+     principal.lease_until<=clock_timestamp() THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_PRINCIPAL_FENCED'; END IF;
+  -- Identical lock key and order as signed Worker CAS and Host revocation.
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended(p.context_id||':'||p.job_id,42));
+  SELECT * INTO p FROM ${s}.cv04_export_work_permits
+    WHERE token_hash=md5(p_token) FOR SHARE;
+  SELECT * INTO l FROM ${s}.cv04_export_work_leases
+    WHERE context_id=p.context_id AND job_id=p.job_id FOR SHARE;
+  IF NOT FOUND OR p.state IS DISTINCT FROM 'CLAIMED' OR
+     p.authority_epoch IS DISTINCT FROM principal.authority_epoch OR
+     l.state IS DISTINCT FROM 'RUNNING' OR l.epoch IS DISTINCT FROM p_epoch OR
+     l.claimed_token_hash IS DISTINCT FROM p.token_hash OR
+     l.claimed_until<=clock_timestamp() THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_LEASE_FENCED'; END IF;
+  SELECT revision,resource INTO job_revision,job_resource
+    FROM ${s}.resources
+    WHERE context_id=p.context_id
+      AND namespace='evo.dictionary.export-jobs'
+      AND collection_id='bounded-csv-jobs'
+      AND resource_type='evo.dictionary.export.job'
+      AND resource_id=p.job_id
+    FOR SHARE;
+  m:=job_resource->'payload'->'meta';
+  IF NOT FOUND OR job_revision<p.job_revision OR
+     job_resource->'payload'->>'kind' IS DISTINCT FROM
+       'dictionary.export-job.encrypted' OR
+     m->>'contextId' IS DISTINCT FROM p.context_id OR
+     m->>'jobId' IS DISTINCT FROM p.job_id OR
+     m->>'enterpriseId' IS DISTINCT FROM p.enterprise_id OR
+     m->>'subjectId' IS DISTINCT FROM p.subject_id OR
+     m->>'actorType' IS DISTINCT FROM p.actor_type OR
+     m->>'state' NOT IN ('QUEUED','RUNNING') OR
+     (m->>'expiresAt')::timestamptz<=clock_timestamp() OR
+     (m->>'state'='RUNNING' AND
+       ((m->>'leaseUntil')::timestamptz<=clock_timestamp() OR
+        (m->>'leaseUntil')::timestamptz>l.claimed_until)) THEN
+    RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_JOB_FENCED'; END IF;
+  -- Metadata is already non-sensitive; selected rows/fields/CSV remain GCM
+  -- ciphertext. Never return plaintext or expose resource list/select.
+  RETURN jsonb_build_object('revision',job_revision,'resource',job_resource);
+END;
+$cv04_worker_read$;
+REVOKE ALL ON FUNCTION ${s}.cv04_export_worker_read(text,bigint) FROM PUBLIC;
+`:"";
   return `
 CREATE TABLE ${s}.cv04_export_signing_keys(
   key_id text PRIMARY KEY,secret text NOT NULL,
@@ -411,5 +498,6 @@ EXCEPTION WHEN unique_violation THEN
 END;
 $cv04_signed_put$;
 REVOKE ALL ON FUNCTION ${s}.cv04_export_signed_put(text,text,text) FROM PUBLIC;
+${scopedReadSql}
 `;
 }
