@@ -110,3 +110,37 @@
 A / 2026-11-12 已读相关源码和测试：上面的四个固定 `bfdc861a...` 原文链接，原 [PG16 联合回归](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)、原 [签名 Workflow](https://github.com/jiangxng/EVO-App-Platform/blob/bfdc861a3d8829e5c9147d46601a408937918655/.github/workflows/cv04-signed-export-pg-gateway.yml)。B / 本次 PR 的精确 HEAD CI、新 main CI、东京、Branch Hygiene 需要按原始日志核实再写入，不能提前编造。C / 尚无真实 PA05/T0 事件流、生产物理 SQL 权威/KMS/备份策略、多物理 Worker Host 失联/恢复、Human/AI 正式跨页 EXPORT 的生产端到端证据。本轮没有新增外部第三方网络研究或截图。
 
 - **额外失败/恢复边界**：`trustedSqlLeaseUntil` 由数据库 `claim` 返回，只允许 `NODE_ENV=test + isolatedTestOnly:true` 的现有 Owner `run` 接收，校验必须是未来时间且不能超过本地 `now()+15s`；任何正式 HTTP/Agent 调用都没有传递该参数的入口。实际运行中的授权被撤销、信任源丢失或 SQL 异常仍必须失效而不发 CSV。生产 Worker 需独立的签名主体凭据与密钥管理和真实身份联动，不能复制此 CI fixture。
+
+
+## NEXT-05a / 2026-11-12：生产授权源与 Owner 决策的真实证据门禁（正式 EXPORT 仍 OFF）
+
+> **本次不造新的模拟 T0、不部署真实签名/密钥、不替代 Owner 批准。** 已合并 NEXT-04b `main@81262c348b2abf0440ddc0501495aa9c572f2e23` 证明隔离 PostgreSQL/两 Host OS 进程可停止并重扫，但之前 `cv04_export_authority`、`cv04_export_principal_fence` 均由测试管理员手工置为 enabled，签名 HMAC、AES-GCM Key 来自 disposable fixture。**18/18 PG16 PASS 不能转换成真实 PA05 生产签发。**
+
+### G / 2026-11-12 已读源码、真实 Owner 信息与外部限制
+
+1. [现有 CV-03 Owner 决策 Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)（B：本轮实读实际 Issue body 与最新评论；截至本次查询 **OPEN/PENDING OWNER SIGNOFF**）。五个复选框均标记完成，仅表示架构方向已经讨论；Issue 的签署要求另需具名 Owner、日期、环境、来源 SHA、可核验批准链。**它是共享 PA05/T0 授权上游依赖，不是针对 CV04 EXPORT 的独立上线批准**。并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184)（B：当次状态 OPEN）仍拥有自己的三份文档；禁止在 CV04 分支覆盖它。
+2. [正式生产切换 Owner 契约](CV03-N105C10-PRODUCTION-AUTHORITY-CUTOVER-OWNER-CONTRACT-20261112.md)（A：本轮直接阅读）：用户确认方案 A（**同一正式 PostgreSQL ACID T0**），但实际 PA05/AuthorizationProvider/DB/Security/Domain Owner 的签名、Producer role、完整 Scope+DENY/tombstone+generation+watermark、迁移/回滚、KMS、跨物理 Host/网络分区仍待决，不可用 `cv03_n105b_qa` 替代生产。原 [CV03 Owner gate 源码](../../../tools/cv03-n105c09-owner-evidence-release-gate.mjs)（A：直接已读）只会认定安全的 **BLOCKED** 现状，从不签发认证。
+3. [运行时 Host Provider 候选真实证据](CV03-N105C12-LIVE-PROVIDER-CANDIDATE-READONLY-20261112.md)（A：本轮读该历史原始报告；**本轮未重新执行东京 Host GET**）：历史东京 Host 的 `authorization.check` 有效候选为唯一 `host.static-authorization`，binding count=0，无法证明 Provider `check()` 与真实 Pg Epoch/Outbox 同 T0，更无法证明完整企业/AI/个人 Agent 权威；当次历史物理验收和时间见该文档，不冒称是本次新物理确认。
+4. [实际 CV04 Owner](../../../apps/business-dictionary/export-jobs.ts)、[PG 加密存储](../../../apps/business-dictionary/export-job-pg-store.ts)、[物理 SQL Lease](../../../apps/business-dictionary/export-job-pg-sql-lease.ts)、[隔离轮询器](../../../apps/business-dictionary/export-job-pg-dispatch.ts)、[签名 Gateway](../../../tools/cv04-isolated-signed-export-gateway.mjs)、[Host 入口](../../../manager/server.ts)（A：本轮查看相应正式源码）：Owner 创建拒绝 `NODE_ENV!==test`，加密 PG/Lease/Dispatch/Poll 均 fail-closed；正式 Host 与 Catalog **未注册** `dictionary.collection.export.job.request`。此前的 HMAC SQL Gate 与原 AES-GCM Storage 是隔离 `cv03_*` Schema 的测试资产，**不能从其存在推断已连生产密钥源**。
+
+### D / 工程选择、排除、红绿含义
+
+- 复用上游 N105c09 现有「Issue 身份+PG T0 连接仍 UNMOUNTED」检查而不是重复创建一套 Owner/授权审查框架；在 `tools/cv04-next05-production-authority-release-gate.mjs` 增加**专属于 CV04 Export** 的正式 Host/Catalog 未注册和原有 Owner/PG/Worker/调度器仍只接受 test-only 的静态源码验证。通过新的 GitHub Actions 每次读取**真实** #1212 Issue 和 #1184 PR 元数据，不能依赖用户附带、Agent 自报的批准信息；也不记录 Issue 原始文本/Secret 到日志。
+- **GREEN=EXPECTED_BLOCKED_BASELINE**：当真实 Owner 决策仍待签、正式 EXPORT 入口未注册且 staging 隔离未漂移时视为保护生效。**RED=DRIFT_OR_UNVERIFIABLE_REVIEW_REQUIRED**：Issue 找不到/意外关闭、生产代码新挂载 Gate/Owner 或削弱 `NODE_ENV=test` 拒绝、部分源码缺失或 Owner 上游门禁发生漂移，均应停止并请求独立 Owner 复核；RED 不等于自动允许生产接线。测试中明确对 `--enable/--certify/--release` 命令返回拒绝。
+- 这只是版本化**负向发布完整性守卫**，不验证真实 KMS/HSM/Signer，无法做出任何肯定生产认证；无通往正式 EXPORT 的 enable path。不能用 CI 绿灯替代真正生产环境 Owner 签署。普通用户页面 CSV 下载功能是现有受权浏览器响应，**不同于正式持久跨页 EXPORT job**；守卫不能误关页面 CSV。
+- 本次不触碰 `manager/cv03-n105b-authority-t0-pg.ts`、正式 Host Runtime、Catalog、#1184 受管文件或真实东京 SQL 角色；不凭借 checked boxes 放开任何权限。
+
+### P / 接入真实生产前尚需完整独立 Owner 签署
+
+| 职责 | 必须由真实 Owner 提供并确认的可验证事实 |
+| --- | --- |
+| PA05 / AuthorizationProvider | 正式企业/主体/HUMAN+AI Actor/Operation/Feature 的 canonical Scope、generation/epoch/Outbox 完整序列与失联/撤权 fail-closed、原 file→Pg T0 迁移，未知/离线租户的默认 DENY |
+| PostgreSQL DB Owner | 原生产 DB/Schema/Owner 和真实登录最小 GRANT，不能由 `evo` 超管代替 Producer；不可变 Outbox/Receipt 幂等及快照水印、PITR、迁移与完整回滚 |
+| Security/Ops | 真正 Producer workload principal，Signer/KMS 的职责分离、密钥轮换/泄漏吊销，跨物理 Host/主库分区和恢复证明、RPO/RTO 与回退联系人 |
+| Domain/Human/Agent | 当前 List/Eidos Domain Owner 的真实 Human/Agent 同数据异授权、企业切换与下载时再次授权，390px 实机/Chromium 验收，以及明确的生产上线/回退独立批准 |
+
+**硬禁令**：正式 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`、SAVE OFF；#1184 受管文件不修改。Owner 事实缺失时继续做证据准备和 fail-closed 门禁，不尝试人工生成生产 ACL、KMS、PA05 源事件或模拟签署。
+
+### B / CI 与发布证据（以真实原始日志为准）
+
+本节先记录 **待运行** 的 NEXT-05a Gate 源码测试和 GitHub live Issue 查询设计；只有实际 PR 最终 HEAD、真实查询与 main 分支 CI 后才标记 6/6 PASS。若只改文档而东京发布被正确 SKIPPED，不能写成新代码已部署。分支清理同理必须核对原始 GitHub ref。没有新增第三方网络研究或截图。
