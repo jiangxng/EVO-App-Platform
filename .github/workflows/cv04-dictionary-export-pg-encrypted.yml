@@ -1,0 +1,79 @@
+name: CV04 Dictionary Export Real PostgreSQL Encrypted CAS
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/export-job-pg-store.ts"
+      - "apps/business-dictionary/export-jobs.ts"
+      - "tests/agent-line/cv04-dictionary-export-job-pg-encrypted.test.mjs"
+      - "tests/protocol/cv04-dictionary-export-job-owner.test.mjs"
+      - ".github/workflows/cv04-dictionary-export-pg-encrypted.yml"
+      - "docs/plans/foundation-list-experience/CV04-ENCRYPTED-POSTGRES-EXPORT-JOB-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/export-job-pg-store.ts"
+      - "apps/business-dictionary/export-jobs.ts"
+      - "tests/agent-line/cv04-dictionary-export-job-pg-encrypted.test.mjs"
+      - "tests/protocol/cv04-dictionary-export-job-owner.test.mjs"
+      - ".github/workflows/cv04-dictionary-export-pg-encrypted.yml"
+      - "docs/plans/foundation-list-experience/CV04-ENCRYPTED-POSTGRES-EXPORT-JOB-20261112.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dictionary-export-real-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cv04_ci
+          POSTGRES_PASSWORD: cv04_ci_disposable
+          POSTGRES_DB: cv04_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cv04_ci -d cv04_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      CV04_EXPORT_TEST_DATABASE_URL: postgres://cv04_ci:cv04_ci_disposable@127.0.0.1:5432/cv04_ci
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Real isolated PostgreSQL AES-GCM CSV snapshot, cross-connection CAS and permission/tamper denial
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/agent-line/cv04-dictionary-export-job-pg-encrypted.test.mjs \
+            | tee /tmp/cv04-dictionary-export-pg.log
+          grep -q 'CV04_PG_ENCRYPTED_OWNER_TWO_CONNECTION_RESTART_AUDIT_PASS' /tmp/cv04-dictionary-export-pg.log
+          grep -q 'CV04_PG_ENCRYPTED_OWNER_TWO_WRITER_CAS_PASS' /tmp/cv04-dictionary-export-pg.log
+          grep -q 'CV04_PG_ENCRYPTED_OWNER_WRONG_KEY_REVOKE_TAMPER_FAILCLOSED_PASS' /tmp/cv04-dictionary-export-pg.log
+          grep -q 'CV04_PG_ENCRYPTED_OWNER_CAS_AUDIT_PREFIX_PROTECTED_PASS' /tmp/cv04-dictionary-export-pg.log
+          grep -q 'ℹ pass 5' /tmp/cv04-dictionary-export-pg.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-dictionary-export-pg.log
+      - name: Existing Dictionary Owner local CAS regression stays green
+        run: node --test tests/protocol/cv04-dictionary-export-job-owner.test.mjs
+      - name: Assert no live Host export permission or product route was published
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const host=readFileSync("manager/server.ts","utf8");
+            const manifest=readFileSync("catalog/seed.ts","utf8");
+            const source=readFileSync("apps/business-dictionary/export-job-pg-store.ts","utf8");
+            if(host.includes("dictionary.collection.export.job.request")
+              ||manifest.includes("dictionary.collection.export.job.request")
+              ||!source.includes("COLLECTION_EXPORT_PG_PRODUCTION_ADMISSION_NOT_CERTIFIED"))
+              throw Error("CV04_PG_EXPORT_PREMATURE_PUBLIC_REGISTRATION");
+            console.log("CV04_PG_EXPORT_NOT_ENABLED_IN_LIVE_HOST_PASS");
+          '
