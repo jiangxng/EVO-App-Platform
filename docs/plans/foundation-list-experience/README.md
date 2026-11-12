@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 PostgreSQL 原子不可变审计与 SQL 角色隔离（隔离证明）
+
+[Dictionary Export PG 原子审计触发器、独立 append-only 元数据表及真实低权限 SQL login 拒绝测试](CV04-PG-IMMUTABLE-EXPORT-AUDIT-20261112.md)：复用原 PG Enterprise Resource CAS，与任务 revision 在一个事务提交，不额外造业务 Store。审计触发器无法抵御 DB owner/superuser，实际 Host EXPORT Capability、生产 SQL gateway、数据加密密钥和多主机认证**尚未开放或完成**；保留 CV-03 N1 SAVE OFF。
+
 ## 2026-11-12 CV-04 真实隔离 PostgreSQL 加密导出任务 CAS（尚未注册 Host）
 
 [Dictionary Owner 的异步 PG CAS + AES-GCM 私有快照/CSV + 元数据审计防篡改纵切与真实数据库 CI](CV04-ENCRYPTED-POSTGRES-EXPORT-JOB-20261112.md)：复用 CV-03 已有 PG 资源合同及同一 Dictionary Owner 状态机，不另造 Store/框架。**仅隔离测试 schema 与 test-only 加密适配器**，不可用作生产 SQL 准入、跨物理 Host/真实 OIDC 认证或独立导出 Capability 已上线的证据；N1 SAVE OFF。
