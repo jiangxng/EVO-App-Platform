@@ -104,7 +104,7 @@ async function fixture(fn){
   }
 }
 test("CV04 real PostgreSQL: encrypted Owner snapshot, two connections, diskless restart and metadata-only CAS audit",requiresDb,async()=>{
-  await fixture(async({schema,sql,rawA,encryptedA,encryptedB,repo,clock,decision,ownerA,ownerB})=>{
+  await fixture(async({schema,sql,rawA,encryptedA,encryptedB,repo,clock,decision,ownerA,ownerB,key})=>{
     const ctx=principal();
     const queued=await ownerA.request(ctx,request());
     assert.equal(queued.state,"QUEUED");
@@ -123,17 +123,16 @@ test("CV04 real PostgreSQL: encrypted Owner snapshot, two connections, diskless 
     assert.equal(ready.state,"READY");
     assert.equal(ready.rows,4);
     const freshRaw=createPostgresConditionalResourceRepositoryV010({connectionString:url,schema});
-    try {
-      const recovered=owner(repo,pgResource(freshRaw,
-        // Restart with a copied key; no in-process store or unlocked row cache.
-        Buffer.from(encryptedA===undefined?[]:Buffer.from((()=>{return []})())),
-        keyId),clock,decision);
-      // The preceding placeholder construction is overwritten below to avoid
-      // accidentally inferring encryption material from a resource.
-      void recovered;
-    }catch(error){
-      assert.match(String(error?.message),/COLLECTION_EXPORT_PG_KEY_CONFIG_INVALID/);
-    }finally{await freshRaw.close();}
+    try{
+      const restarted=owner(repo,pgResource(freshRaw,Buffer.from(key)),
+        clock,decision);
+      assert.equal((await restarted.status(ctx,queued.jobId)).state,"READY");
+      const afterRestart=await restarted.download(ctx,queued.jobId);
+      assert.ok(afterRestart.content.includes("Shared PG Secret"));
+      assert.equal(afterRestart.fileName,"business-dictionaries-export.csv");
+    }finally{
+      await freshRaw.close();
+    }
     const resolved=await ownerA.download(ctx,queued.jobId);
     assert.ok(resolved.content.startsWith("\uFEFF"));
     assert.ok(resolved.content.includes("Shared PG Secret"));
