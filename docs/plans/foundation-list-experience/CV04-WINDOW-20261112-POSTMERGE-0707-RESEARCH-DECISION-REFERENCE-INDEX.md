@@ -125,3 +125,22 @@
 - 本窗口新建两份交接文档应通过**独立 docs PR**合并；新的 docs-merge SHA 及对应 CI/分支清理以那次 PR 的实际最终核验和评论为准，不应预填“合并成功”。
 
 **保持解释界限**：DB 层的真实测试、Chromium 浏览器体验、东京镜像发布、生产身份/授权/安全认证分别是四层证据，不能相互替代。
+
+
+## 8. 下一窗口定向追证：2026-11-12 / NEXT-01a 与 #1276 旧分支对等性
+
+> 此节为后续窗口增量，不修改上面的历史快照。日期均指 **2026-11-12（香港/北京时间）**，来自直接读取 GitHub 原文和 Actions 原始结构/日志；没有新查阅第三方资料、没有制作截图。
+
+### 新工程（已证实，不是生产认证）
+
+- **A · 原文源码/测试**：[原签名 Gateway 在交接基线的版本](https://github.com/jiangxng/EVO-App-Platform/blob/14d919b12887dc6f1a88eeee79b1a1115abf9f4d/tools/cv04-isolated-signed-export-gateway.mjs)、[原主机 SQL Worker Lease](https://github.com/jiangxng/EVO-App-Platform/blob/14d919b12887dc6f1a88eeee79b1a1115abf9f4d/apps/business-dictionary/export-job-pg-sql-lease.ts)、[测试 fixture](https://github.com/jiangxng/EVO-App-Platform/blob/14d919b12887dc6f1a88eeee79b1a1115abf9f4d/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)。确认前者只对每个 Operation 独立查授权镜像；跨 Operation 的 Subject 撤权代际没有一个共同 SQL Fence。
+- **采用（工程判断）**：只扩展原 `cv04_export_signed_put`，增加企业 + Subject + Actor 级 Principal Fence，由签名证明 `authorityEpoch` 与共同围栏进行相等比较、`FOR SHARE` 锁到 CAS 提交。功能意义、取舍和剩余限制写入同目录 [CV04 Signed PG Gateway 纵切](CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md) 的 NEXT-01a 小节。对没有真实 T0 事件来源、SQL Host/Worker Lease Epoch 不共享 Owner CAS、生产 KMS/密钥轮换不认证的事实仍保持 NOT CERTIFIED。
+- **B · PR/原始 CI**：[NEXT-01a PR #1279](https://github.com/jiangxng/EVO-App-Platform/pull/1279) 在工程 HEAD `edba62c0954d7e9f18bf9171c3390af04b1c5818` 运行 [真实 PG16 签名 Gateway workflow #43190184677](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43190184677)，原始 job `131087215265` 证实 `CV04_SIGNED_PG_PRINCIPAL_EPOCH_CROSS_OPERATION_FENCE_PASS`、新 Gateway **7/7 PASS, 0 SKIP**、旧 PG audit **5/5**、Encrypted PG **5/5**、Owner **8/8**。#1279 已合并，受保护主线 merge `c0bf3bebd5e891ace27c914ba824319f91721ced`。新主线上的其他 CI 与东京变更是否执行必须用该 SHA 查询，不能以 PR CI 代替。
+
+### 旧 PR #1276 可安全清理的实际代码证据
+
+- **B · PR 原始数据**：[PR #1276](https://github.com/jiangxng/EVO-App-Platform/pull/1276) **CLOSED, NOT MERGED**，旧分支 `feat/cv04-export-pg-active-expiry-maintenance-20261112` 的 `8ffd6efa3a327417d2d0a147cf78a93d5084c3c0` 尚在（最后核验时）；GitHub 打开的 10 个 PR 中未发现该分支作为 head/base。引用是一时快照，Actions 必须重新检查。
+- **A · 文件原文和 Blob SHA（固定旧 SHA vs `main@c0bf3beb...`）**：旧 PR 七个 changed files 中，`.github/workflows/cv04-export-pg-active-expiry.yml`、`apps/business-dictionary/export-job-pg-maintenance.ts`、`apps/business-dictionary/export-job-pg-sql-lease.ts`、`apps/business-dictionary/export-job-pg-store.ts`、`docs/plans/foundation-list-experience/CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md`、`tests/agent-line/cv04-export-pg-active-expiry-maintenance.test.mjs` 的新旧 Git Blob SHA **六项完全相等**。README 的旧版非空行只有一行不在主线，属于同一 `CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md` 功能链接的**文字修订**，新版显式保留“正式 EXPORT 仍不注册，CV03 N1 SAVE OFF”。
+- **采用的清理方案（判断）**：旧提交不是 `main` 祖先，原 [Branch Hygiene](https://github.com/jiangxng/EVO-App-Platform/blob/c0bf3bebd5e891ace27c914ba824319f91721ced/.github/workflows/branch-hygiene.yml) 按 `behind_by=0` 的通用祖先规则必然安全跳过。不能用强推或误称它“已合入”。另建[严格 SHA-pinned 一次性 Actions 清理](../../../.github/workflows/cv04-retire-pr1276-subsumed.yml)，在合并到 main 的工作流 push 上运行：重新检查旧 PR/原 head、完整七文件集合、六项 Blob SHA、README 单一文字修订、全部 OPEN PR 引用、分支保护、删除前再次核对原 SHA。任何不符都 fail closed；不会触碰其他分支。不预先填写“已删除”，以 Actions 原始结果为准。
+
+**仍未解决**：真实 PA05/T0 权威 outbox→签名数据库镜像原子推进、Owner Business CAS 与物理 Worker Epoch 强制绑定、分布式调度、KMS/WAL/备份 retention、真实多主体 OIDC/Agent 会话。这些不得因为旧分支清理或隔离 SQL PASS 而视为完成。
