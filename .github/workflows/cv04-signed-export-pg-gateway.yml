@@ -64,11 +64,12 @@ jobs:
           grep -q CV04_SIGNED_PHYSICAL_LEASE_OWNER_REVISION_READY_ATOMIC_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_OWNER_RUNNING_AUDIT_LEASE_FENCED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_WORKER_ENCRYPTED_READ_REVOKE_FAILCLOSED_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_REAL_DICTIONARY_OWNER_SIGNED_WORKER_CAS_AUDIT_READY_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PHYSICAL_LEASE_RECLAIM_STALE_CAS_FENCED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_TWO_RUNTIME_CAS_ONE_AUDIT_WINNER_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS /tmp/cv04-signed-pg.log
-          grep -q 'ℹ pass 12' /tmp/cv04-signed-pg.log
+          grep -q 'ℹ pass 13' /tmp/cv04-signed-pg.log
           grep -q 'ℹ skipped 0' /tmp/cv04-signed-pg.log
       - name: Existing immutable SQL audit, AES-GCM PG CAS and Owner budget regression
         shell: bash
