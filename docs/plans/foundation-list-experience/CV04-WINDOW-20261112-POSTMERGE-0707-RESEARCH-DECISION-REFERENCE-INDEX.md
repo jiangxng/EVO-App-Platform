@@ -144,3 +144,20 @@
 - **采用的清理方案（判断）**：旧提交不是 `main` 祖先，原 [Branch Hygiene](https://github.com/jiangxng/EVO-App-Platform/blob/c0bf3bebd5e891ace27c914ba824319f91721ced/.github/workflows/branch-hygiene.yml) 按 `behind_by=0` 的通用祖先规则必然安全跳过。不能用强推或误称它“已合入”。另建[严格 SHA-pinned 一次性 Actions 清理](../../../.github/workflows/cv04-retire-pr1276-subsumed.yml)，在合并到 main 的工作流 push 上运行：重新检查旧 PR/原 head、完整七文件集合、六项 Blob SHA、README 单一文字修订、全部 OPEN PR 引用、分支保护、删除前再次核对原 SHA。任何不符都 fail closed；不会触碰其他分支。不预先填写“已删除”，以 Actions 原始结果为准。
 
 **仍未解决**：真实 PA05/T0 权威 outbox→签名数据库镜像原子推进、Owner Business CAS 与物理 Worker Epoch 强制绑定、分布式调度、KMS/WAL/备份 retention、真实多主体 OIDC/Agent 会话。这些不得因为旧分支清理或隔离 SQL PASS 而视为完成。
+
+
+## 9. 本次窗口新增：CV04 NEXT-02 物理 Lease Epoch → 签名 SQL Resource CAS（2026-11-12）
+
+> 本段为 **NEXT-02** 增量证据，不重写 #05–#07 结论或偷改 CV03 #1184 的 Owner 文件。等级仍依照前文：A=直接读取源码/实施文档关键段落，B=直接读取 PR/Actions 原始数据/日志，C=间接依据或未验证；没有新增第三方互联网来源。
+
+| 等级/原始链接（2026-11-12） | 已证实的来源事实 G | 工程选择 D / 限制 |
+| --- | --- | --- |
+| A · [原签名 SQL Gateway `main@0233c39`](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/tools/cv04-isolated-signed-export-gateway.mjs) | 签名 HMAC、Principal Epoch、业务 Revision CAS 已有，但旧 Worker transition 未检查另一张物理 SQL Lease/Permit 表 | 使用现有 Gateway 的 opt-in `requirePhysicalWorkerLease`，不另造 Gateway；不提前开放生产 |
+| A · [物理 SQL Lease 原文](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/apps/business-dictionary/export-job-pg-sql-lease.ts)、[原真实 SQL Fixture](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/tests/agent-line/cv04-export-host-worker-sql-lease.test.mjs) | Host issue/Worker claim/revoke/complete 原可在数据库测试中证明 Epoch/Token/身份隔离，但许可未携带授权代际，且业务 CAS 在另一条路径发生 | 同一个 PG 事务拿 Job advisory lock 并验证 claimed Permit Token Hash、Worker Lease Epoch、Subject/Actor/Enterprise、发行时 `authorityEpoch`、签名 Epoch、expected Resource Revision。旧 7 参数 issuer 可继续做**未盖章** legacy QA；联合 Gateway 对该 permit 必须 deny |
+| A · [原 Dictionary Owner `run()`](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/apps/business-dictionary/export-jobs.ts)、[AES-GCM PG Adapter](https://github.com/jiangxng/EVO-App-Platform/blob/0233c390c0590816aa12861e37ec74364b2c1aa1/apps/business-dictionary/export-job-pg-store.ts) | 原 Owner `run()` 有 RUNNING 中途审计追加与多次 CAS，仍使用隔离管理级 PG Adapter；不是用这次新增的 signed Worker 写入执行生产 Owner | 本 PR 只证明**同一真实 Job Resource Revision + PG 审计 Trigger** 的 SQL 联合围栏；下一阶段需把 Owner 中途 audit、限权读取与真实 PA05/T0 Host signer 对接后才可验证完整 Business Owner |
+| B · [失败的首轮真实 PG CI #43194029869](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43194029869) | 当时 9/10 PASS、0 SKIP，失败由错误 expectedRevision 预期断言漏掉 DB 较早阶段正确拒绝的 `CV04_GATEWAY_PERMIT_OR_STATE_DENIED`，不是签名 Gateway 实际接受了非法写 | 断言补入较早拒绝，并在复核中发现物理 permit 还需独立盖章 `authorityEpoch`，两项都在更新 HEAD 修复；原红灯不抹去 |
+| B · [新 HEAD `9e4b8f6f` 的实际真实 PG16 #43194540062](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43194540062) | 原始 job `131101985208` 记录三个联合标记：`CV04_SIGNED_PHYSICAL_LEASE_OWNER_REVISION_READY_ATOMIC_PASS`、`CV04_SIGNED_PHYSICAL_LEASE_RECLAIM_STALE_CAS_FENCED_PASS`、`CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS`；新联测 **10/10 PASS、0 SKIP**，旧审计 **5/5**、加密 **5/5**、Owner **8/8**，且正式 EXPORT 未注册 | 可以称为一次性 PostgreSQL16 隔离硬边界验证；不能当两台真实物理 Host、OIDC/Agent 会话、PA05/T0 生产 outbox、KMS 或 WAL/备份签收。新旧 Worker 分别为两个 SQL 连接，未证明跨机器 Worker 宿主故障恢复 |
+
+**已采用 vs 排除**：保留独立 Worker/Host SQL LOGIN + 共同 per-job advisory 事务锁、signed HMAC Principal epoch + Resource revision CAS；拒绝只靠 Worker token、Node 内存标志、旧未盖章 permit 或单独 Business Owner 管理级 DML 来声称生产准入。不改变 CV03 Saved View 签名入口或另起列表插件框架。实施细节、初次 CI 失败和仍未完成的中途 Owner `run()` 桥接，落入 [现有签名 Gateway 纵切文件](CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md) 的 NEXT-02 节。
+
+**待继续查证 C**：真正的 PA05/T0 outbox 来源/单调授权代际、离线未知主体全局 Package Fence、真实 SQL Host workload 身份和 KMS、Owner `RUNNING→RUNNING` 独立 audit 过渡、安全 GET 最小权限、多物理 Worker 重启/网络分区、真实 Human/Personal Agent 下载重验、备份/WAL retention。正式 CV04 EXPORT OFF，CV03 `N1=NOT_CERTIFIED`、SAVE OFF，#1184 继续不触碰。当前 PR 最终合并 SHA、protected-main CI、东京与 Branch Hygiene **必须合并后再核验**，不提前预填。
