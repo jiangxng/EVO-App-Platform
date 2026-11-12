@@ -90,7 +90,8 @@ export function createCounterpartyProjectionActionHandlersV010(input: (
         // checks the current Enterprise scope, relationship and owner again.
         if (exportCurrentPage && (
           !relationship
-          || context.scope.enterpriseId !== context.context?.activeContext?.enterpriseId
+          || context.context?.activeContext.kind !== "ENTERPRISE"
+          || context.scope.enterpriseId !== context.context.activeContext.enterpriseId
           || (context.scope.userId && context.scope.userId !== context.principal.subjectId)
         )) throw new Error("COUNTERPARTY_EXPORT_CONTEXT_DENIED");
         const { fieldIds, confirmed, ...exportQueryValues } = request.values;
