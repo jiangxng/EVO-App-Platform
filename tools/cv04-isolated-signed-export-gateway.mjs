@@ -100,6 +100,7 @@ BEGIN
   IF NOT FOUND OR auth.enabled IS DISTINCT FROM true OR
      auth.mirror_healthy IS DISTINCT FROM true OR
      auth.authority_epoch IS DISTINCT FROM p.authority_epoch OR
+     auth.lease_until IS NULL OR
      auth.lease_until<=clock_timestamp() THEN
     RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_AUTHORITY_FENCED'; END IF;
   SELECT enabled,mirror_healthy,authority_epoch,lease_until
@@ -110,6 +111,7 @@ BEGIN
   IF NOT FOUND OR principal.enabled IS DISTINCT FROM true OR
      principal.mirror_healthy IS DISTINCT FROM true OR
      principal.authority_epoch IS DISTINCT FROM p.authority_epoch OR
+     principal.lease_until IS NULL OR
      principal.lease_until<=clock_timestamp() THEN
     RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_PRINCIPAL_FENCED'; END IF;
   -- Identical lock key and order as signed Worker CAS and Host revocation.
@@ -142,10 +144,12 @@ BEGIN
      m->>'enterpriseId' IS DISTINCT FROM p.enterprise_id OR
      m->>'subjectId' IS DISTINCT FROM p.subject_id OR
      m->>'actorType' IS DISTINCT FROM p.actor_type OR
-     m->>'state' NOT IN ('QUEUED','RUNNING') OR
+     (m->>'state' IS NULL OR m->>'state' NOT IN ('QUEUED','RUNNING')) OR
+     m->>'expiresAt' IS NULL OR
      (m->>'expiresAt')::timestamptz<=clock_timestamp() OR
      (m->>'state'='RUNNING' AND
-       ((m->>'leaseUntil')::timestamptz<=clock_timestamp() OR
+       (m->>'leaseUntil' IS NULL OR
+        (m->>'leaseUntil')::timestamptz<=clock_timestamp() OR
         (m->>'leaseUntil')::timestamptz>l.claimed_until)) THEN
     RAISE EXCEPTION 'CV04_EXPORT_WORKER_READ_JOB_FENCED'; END IF;
   -- Metadata is already non-sensitive; selected rows/fields/CSV remain GCM
@@ -442,7 +446,8 @@ ${workerFence}
          previous_lease IS NULL OR previous_lease<=clock_timestamp() OR
          requested_lease IS DISTINCT FROM previous_lease OR
          requested_attempt<1 OR requested_attempt>2 OR
-         latest_event_type NOT IN ('STARTED','COMPLETED','REJECTED') OR
+         (latest_event_type IS NULL OR
+          latest_event_type NOT IN ('STARTED','COMPLETED','REJECTED')) OR
          jsonb_array_length(meta->'audit')<>jsonb_array_length(prior_meta->'audit')+1
 ${auditFence}
       THEN RAISE EXCEPTION 'CV04_GATEWAY_RUNNING_AUDIT_FENCED'; END IF;
