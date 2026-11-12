@@ -37,6 +37,14 @@
 - **G 历史引用，未本轮重读原始日志**：PG17 QA、SCRAM、双 Host SQL LOGIN、两 Node OS 进程、原库 ACL/HBA：见 [N105c 详细研究索引](CV03-N105C-WINDOW-20261111-RESEARCH-DECISION-REFERENCE-INDEX.md)。
 - **P**：真实生产 schema/Signer、Owner Reviews、完整 Scope/PITR/跨物理 Host 失败注入。此 PR 不新增第三方来源，无外部原文访问等级升级。
 
+
+## 2026-11-12 N1-05c-11a — 首次合并后物理红灯与安全诊断修复
+
+- N1-05c-11 工作流初版 [PR #1251](https://github.com/jiangxng/EVO-App-Platform/pull/1251) 合入受保护 `main@c288ebe1cc83931ed65c9588073f6505441d991b`。精确 PR HEAD `cac3c09f89210774ddb143b58cf0627ff81d26c8`：源语法、Continuity、Human UI、Lightweight Host SUCCESS，PR 物理 Job 正常 SKIPPED。
+- 原始首次 `main` 物理 [Actions #43139984310](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43139984310) 的 `live-host-and-pg-catalog` **FAILURE**（退出 1）。读过 Job 原始日志后只能确认进入远端检测 shell，初版 `proof="$(ssh ...)"` 在远端失败时没有输出已捕获 stdout，**无法准确判断在哪一阶段失败**。不能将这次运行标为业务状态 PASS、SQL 目录核验成功或 Owner signoff。
+- N1-05c-11a 仅增强**非敏感阶段** `VERIFY_PREVIEW`、`READ_LIVE_HOST_STATE`、`READ_PG_CATALOG`、`VERIFY_PG_CATALOG` 的 ERR terminal 输出，并标注 Host/SQL 子阶段通过的时点。**不对东京执行 DDL/DML、SSH/HBA/SQL 角色/密钥变更或镜像重新部署**。失败的修复顺序由新的真实日志而非推测决定。
+- 此差异是故障可观察性整改，不是 N1-05c-01～08 的重复 QA；任何新的主线只读作业必须重新检查确切 SHA、完整 terminal marker、实际 PG catalog 和 Host 元数据，仍不构成正式数据库授权源。
+
 ## 现场证据（合并后由实际 Actions 填写，不能预填 PASS）
 
 - PR：待创建；精确 HEAD CI：待核验。
