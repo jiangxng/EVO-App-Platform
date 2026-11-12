@@ -699,6 +699,21 @@ test("CV04 Worker ciphertext GET: principal-wide and operation mirror revocation
     const token=await host.issue(approval(id,0));
     const claim=await workerA.claim(token);
     assert.equal((await workerA.readCiphertext(token,claim.epoch)).revision,0);
+    // PostgreSQL NULL comparisons must not allow missing authorization TTLs.
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET lease_until=NULL WHERE operation_id=$1",[workerOp]);
+    await assert.rejects(workerA.readCiphertext(token,claim.epoch),
+      /CV04_EXPORT_WORKER_READ_AUTHORITY_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
+      "SET lease_until=clock_timestamp()+interval '10 minutes' "+
+      "WHERE operation_id=$1",[workerOp]);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET lease_until=NULL WHERE context_id=$1",[ctx]);
+    await assert.rejects(workerA.readCiphertext(token,claim.epoch),
+      /CV04_EXPORT_WORKER_READ_PRINCIPAL_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET lease_until=clock_timestamp()+interval '10 minutes' "+
+      "WHERE context_id=$1",[ctx]);
     await sql.unsafe("UPDATE "+q+".cv04_export_authority "+
       "SET enabled=false,authority_epoch=2 WHERE operation_id=$1",[workerOp]);
     await assert.rejects(workerA.readCiphertext(token,claim.epoch),
