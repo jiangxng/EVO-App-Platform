@@ -49,3 +49,21 @@
 - 实际 [Actions Artifact `13916613561`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159104298)（名称 `cv04-real-host-eidos-csv-chromium-evidence`，812207 bytes，`sha256:254dabb61e8730bf66d9040b107819f44ad28d6db6ef71d9fdb782c600b6fdb1`），含隔离 Host bootstrap、12 张真实 Chromium 截图、JSON、fixture。当前 GitHub 显示保存至 2027-02-10；到期可能无法再下载，索引不等于永久保存截图。
 - **精确证据界限**：同一测试 subject 自建两企业、浏览器真实 context 切换/Blob 文件、实际 installed Host disable 已证实；`setAuthorizationOnline(false)` 是隔离 Agent/Owner 的 authorization provider fail-closed 试验，**不代表实在 PG 授权事件或两个真实账号的成员撤权**。物理手机/东京员工账号/外部 LLM Agent Run/完整 List 与独立 EXPORT Job 仍 P。此 PR 没有业务运行时代码变化、未开启 SAVE、未改 #1184。
 - 以上是首个通过的**工程 HEAD** 日志，后续若增补 docs/CI 行变更须在最终 HEAD 再跑 workflow 并核实，不提前称当前整个 PR/main 全绿。
+
+
+## 2026-11-12 / 受保护 main 最终回归、真实 artifact 与分支清理（G）
+
+> 本节以实际 GitHub PR、原始 Job Log、Actions Artifact 元数据和主线 Check Runs 为证据，**更新上文「初始测试设计 / PR CI 待完成」的历史状态**；不把自动真实 Chromium 解释成真实东京账号的人工验收。
+
+- [工程 PR #1266](https://github.com/jiangxng/EVO-App-Platform/pull/1266) Draft→Ready 后按 **expected head SHA** `f3ecf25e8fe05d559ca08d6cc9985378767aef3a` 合入 protected `main`，merge **`ff569b2d7c930fa90e61ec28a07421057a4601aa`**。最终 PR HEAD **6/6 CI SUCCESS**，含 `real-host-desktop-phone-csv`、`protocol-and-core`、`lightweight-host`、`human-ui-design-review`、`continuity`；首次失败及正确修复见上节，不从 2/3 的早期测试称 3/3。
+- [最终工程 HEAD 浏览器 #43159376481](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159376481) SUCCESS。由于本工程仅新增测试、独立 CI 和文档，**业务运行时未修改**；新浏览器测试确实独立运行而非 SKIP。
+- [合并后 protected-main 浏览器 #43159697144](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159697144) job `130987690574` **SUCCESS**；已直接读取原始 job log，确认 3 项 Agent 集成 PASS，十二个真实 Eidos/Host/Chromium CSV 下载标记（A 原有 6 + B 新增 6）、Enterprise A→B→A 的 UI/CSV 隔离和恢复、真实 installed Host disable 后旧 Dictionary Action 无 Blob/拒绝，完整终端标记：
+  - `CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6`
+  - `CV04_REAL_HOST_CHROMIUM_ENTERPRISE_SWITCH_TERMINAL_PASS=6`
+  - `CV04_REAL_HOST_CHROMIUM_DISABLED_FEATURE_DENY_TERMINAL_PASS=1`
+  - `CV04_REAL_HOST_BROWSER_ARTIFACT_CONTRACT_PASS`
+- [主线 Chromium Artifact `13916604056`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159697144)，名称 `cv04-real-host-eidos-csv-chromium-evidence`，**845055 bytes**，SHA-256 `6aee244a718942e1d4eb67379cc9723c9d4ee8dfc11d4ebd8621946453580ed5`；含浏览器 12 张截屏、机器结果、测试 Host bootstrap。GitHub 当前元数据显示过期时间 **2027-02-10**，不是永久附件。
+- 保护主线同一 merge SHA `ff569b2d...` 的 **Continuity、Protocol/Core、Lightweight Host、真实 Chromium CSV 均 SUCCESS**；东京 [EVO Tokyo Dev #43159726320](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159726320) `preflight` job `130987784449` **SUCCESS**、`deploy` **SKIPPED**，已读原始 preflight `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE sha=ff569b2d7c930fa90e61ec28a07421057a4601aa`。**不可将新 test main SHA 写成已发布东京镜像 SHA**；此前实际部署业务运行时的记录仍见 [Counterparty CSV 部署](CV04-COUNTERPARTY-MY-PROJECTION-PAGE-CSV-20261112.md)。
+- [Branch Hygiene #43159698037](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159698037) job `130987693023` SUCCESS；本次已读**原始日志** `DELETED_VERIFIED_MERGED_PR_BRANCH test/cv04-real-owner-enterprise-agent-revoke-20261112 @ f3ecf25e8fe05d559ca08d6cc9985378767aef3a`，GitHub matching-ref 列表空。
+- **可以精确表述的新状态**：`CV04_ISOLATED_REAL_HOST_EIDOS_CHROMIUM_TWO_ENTERPRISE_CSV_AND_AGENT_TOOL_AUTOMATION_PASS`。同一个静态本地测试 subject 自建两个企业，不等于真实东京登录员工，隔离权限 provider 的拒绝注入不等于真实 PA05 PostgreSQL grant/revoke，内部 Agent 注册工具不等于外部 LLM 自然语言运行；物理手机、Human 签收、独立 EXPORT 权限及后台跨页任务仍 P。
+- **生产边界不变**：`N1=NOT_CERTIFIED`、`APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`、正式 SAVE POST 403 / 未注册 GET 404、[#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 真实 Owner 签核独立未解决；并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 三份受管文件未被修改。**正常 List 开发无需逐项审批**仅限常规工程流程。
