@@ -128,9 +128,15 @@ export function createDictionaryExportJobOwnerV010(input:{
   isolatedTestOnly?:boolean;
   now?:()=>Date;
 }) {
-  if (!input.resources?.putIfRevision
-    || (input.resources.conditionalWriteConsistency!=="SHARED_POSTGRES_TRANSACTION"
-      && !(input.isolatedTestOnly===true && process.env.NODE_ENV==="test"))) {
+  const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test";
+  const isPg=input.resources?.conditionalWriteConsistency==="SHARED_POSTGRES_TRANSACTION";
+  const encryptedPg=(input.resources as {encryptedDictionaryExportJobs?:boolean} | undefined)
+    ?.encryptedDictionaryExportJobs===true;
+  // A raw PG resource adapter stores plaintext JSONB and MUST NOT be a legal
+  // Owner export store. Until independent production key/role/PA05 approval,
+  // even encrypted PG is isolated-test-only, never a live Host capability.
+  if (!input.resources?.putIfRevision || !testScope
+    || (isPg && !encryptedPg)) {
     throw new Error("COLLECTION_EXPORT_SHARED_AUTHORITY_REQUIRED");
   }
   const now=input.now??(()=>new Date());
