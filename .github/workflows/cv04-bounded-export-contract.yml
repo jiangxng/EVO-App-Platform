@@ -35,6 +35,7 @@ jobs:
       - run: npm run build
       - name: Strict snapshot, independent permission, audit and budget denial matrix
         run: |
+          set -o pipefail
           node --test tests/protocol/cv04-cross-page-export-budget.test.mjs \
             | tee /tmp/cv04-bounded-export-tests.log
           grep -qx "CV04_CROSS_PAGE_SNAPSHOT_AUDITED_BUDGET_PASS" \
