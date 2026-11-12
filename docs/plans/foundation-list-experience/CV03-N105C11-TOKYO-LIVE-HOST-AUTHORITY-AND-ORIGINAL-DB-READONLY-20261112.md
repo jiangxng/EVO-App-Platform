@@ -45,11 +45,21 @@
 - N1-05c-11a 仅增强**非敏感阶段** `VERIFY_PREVIEW`、`READ_LIVE_HOST_STATE`、`READ_PG_CATALOG`、`VERIFY_PG_CATALOG` 的 ERR terminal 输出，并标注 Host/SQL 子阶段通过的时点。**不对东京执行 DDL/DML、SSH/HBA/SQL 角色/密钥变更或镜像重新部署**。失败的修复顺序由新的真实日志而非推测决定。
 - 此差异是故障可观察性整改，不是 N1-05c-01～08 的重复 QA；任何新的主线只读作业必须重新检查确切 SHA、完整 terminal marker、实际 PG catalog 和 Host 元数据，仍不构成正式数据库授权源。
 
-## 现场证据（合并后由实际 Actions 填写，不能预填 PASS）
+## 2026-11-12 G：最终受保护 main 物理只读验收——仅限定事实
 
-- PR：待创建；精确 HEAD CI：待核验。
-- main 合并 SHA：待核验；东京实际 Actions：待运行/检查；Branch Hygiene：待核验。
-- 不允许以本文件的说明取代实际 Actions 原始日志。
+> **PROTECTED-MAIN READ-ONLY SOURCE AND CATALOG PASS ≠ 生产授权认证。** 历史红灯及误判修复记录保留在本文件后续小节，不追认过去失败为成功。
+
+- 起始 source PR [#1251](https://github.com/jiangxng/EVO-App-Platform/pull/1251) 合入 `c288ebe1cc83931ed65c9588073f6505441d991b`；失败阶段诊断 [#1252](https://github.com/jiangxng/EVO-App-Platform/pull/1252) 合入 `b69aad2e64e27af833fe36e5114e6416071e7159`；SQL catalog 输出规范化 [#1253](https://github.com/jiangxng/EVO-App-Platform/pull/1253) 合入 `95fe71e8a850b760dd1db1dee8c16582a1bb489f`；真实 STDIN + terminal 修复 [#1254](https://github.com/jiangxng/EVO-App-Platform/pull/1254) **精确 HEAD `9c3a252fa1bb20f5df2722f39064f96540ff0cad`，PR checks 5 SUCCESS + main-only physical SKIP，合入 `main@be43af1922ef44b1d13c2cef232860a7bfda75fa`**。所有 main-only PHYSICAL SKIP 只在 PR 上合理，绝非物理验收。
+- **唯一实际物理成功凭证**：[东京 Actions #43141987143](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43141987143) job `130930882712` SUCCESS，2026-11-12T02:31Z 原始 job log **本轮已读取**，含 `CV03_N105C11_HOST_ACTUAL_HEREDOC_OUTPUT_ENFORCED_PASS`、`CV03_N105C11_HOST_METADATA_READONLY_PASS`、`CV03_N105C11_HOST_SAVE_MODE_OFF_PASS`、`CV03_N105C11_SQL_READONLY_QUERY_WITH_STDIN_COMPLETED`、九条 `CV03_N105C11_CATALOG_*_PASS`、`CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS` 和最终 `CV03_N105C11_PROTECTED_MAIN_PHYSICAL_READONLY_TERMINAL_PASS`。此次是 pg_catalog SELECT + 容器只读文件检查；没有 SQL DDL/DML。
+- **实际运行 Host 文件 G**：`HOST_LIFECYCLE_FILE_PRESENT=true`，`HOST_PROVIDER_BINDINGS_FILE_PRESENT=false`，`HOST_STATIC_AUTH_FEATURE_IN_SNAPSHOT=true`，`HOST_AUTH_BINDING_COUNT=0`（静态和其他均 0），`HOST_AUTH_POLICY_OVERLAY_CONFIGURED=true`，`HOST_SAVED_VIEW_FEATURE_IN_SNAPSHOT=false`，`HOST_SAVE_MODE_OFF_PASS`。**这些是部署中的文件与进程环境状态，不能证明动态 `resolveAuthorizationProvider` 对某次请求的实际返回值或未来持久授权源。**
+- **原 `evo_dev` 系统目录 G**：PG `server_version_num=170011`（17.11）；`SQL_SESSION_USER=evo`、`DB_OWNER_ROLE=evo`、`DB_OWNER_IS_SUPERUSER=true`；`PG_IS_STANDBY=false`，`PG_ARCHIVE_MODE=off`，`NON_SYSTEM_SCHEMA_COUNT=2`，`NON_QA_T0_ROUTINE_COUNT=0`（**仅针对 `cv03_n105b_fence_package_t0` 与 `cv03_n105b_commit_deny_t0` 两个已知函数名**，不证明其它命名权威不存在）。高权限 `evo` **不得**直接当正式签名 Producer；`archive_mode=off` 只是本机 WAL 配置，不能直接证明其它备份/PITR 系统均无。
+- **关键版本局限**：运行中的预览服务记录 `CV03_N105C11_PREVIEW_LAST_HEALTHY_SHA=0ab405611539881f8024b708e2f0b220db521326`，**不是**本轮 `main@be43af1922ef44b1d13c2cef232860a7bfda75fa`。CI 合并不意味着已发布新镜像；[Tokyo preview release #43142019440](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43142019440) 为 **preflight SUCCESS / deploy SKIPPED**。结论只适用于当次东京**现运行实例**。
+- [Branch Hygiene #43141989062](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43141989062) job `130930888867` 原始日志实际确认 `DELETED_VERIFIED_MERGED_PR_BRANCH fix/cv03-n105c11-heredoc-stdin-physical-proof-20261112 @ 9c3a252fa1bb20f5df2722f39064f96540ff0cad`。此前 #1251～#1253 过程分支由各自 Branch Hygiene 处理，仍应以真实记录判断。
+- **真正未完成 P**：实际授权生产 schema、最小 SQL Producer principal、签名/KMS、PA05 Lifecycle 与 AuthorizationProvider 的同一 ACID T0、完整 Scope watermark/tombstone 恢复、跨物理 Host 和独立 Owner Reviews；仍由 [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 协调。固定 `N1=NOT_CERTIFIED`、SAVE OFF、正式 SAVE POST 403、未注册 GET 404。并行 #1184 三份受管文档未改。
+
+### 直接输入下个最小工程决策
+
+当前能客观回答的是**现运行东京预览**：FileLifecycleStore 存在、静态授权 Feature 激活、无持久 binding 文件、Original DB 的 `evo` owner 为超级用户，已知候选 T0 例程不在原数据库，WAL archive off；**不能**凭这些事实确定最终生产 Provider ID/schema/signing principal 或迁移收益。下一步由真实 PA05/AuthorizationProvider/DB/Security Owner 结合 [N105c10 契约](CV03-N105C10-PRODUCTION-AUTHORITY-CUTOVER-OWNER-CONTRACT-20261112.md) 签收真实唯一授权来源、生产 schema/Owner/Producer、精确回滚和完整 Scope 恢复，然后才能推进正式单 Saved View Feature 接线；不再重复同机 synthetic QA。
 
 ## 2026-11-12 N1-05c-11b — 原库 SQL 元数据格式校验收敛（不是权限变更）
 
