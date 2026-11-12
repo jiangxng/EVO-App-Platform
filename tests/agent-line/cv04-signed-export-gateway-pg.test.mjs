@@ -1253,3 +1253,139 @@ test("CV04 auto-wakeup PG: stop, new Host session rescan, expired Worker epoch r
     }finally{await hostB.close();}
   },{physical:true});
 });
+
+
+// A different Node OS process owns BOTH its Host SQL and Worker SQL pools.
+// It runs the actual periodic controller, emits its first claimed SQL lease,
+// then is killed. The test-only parent signer records signed business CAS
+// transitions separately; no production KMS/source-authorization is claimed.
+const cv04HostPollingProcessSource=`
+import {randomUUID} from "node:crypto";
+import {createIsolatedDictionaryExportSqlHostLeaseIssuerV010 as Host,
+  createIsolatedDictionaryExportSqlWorkerLeaseV010 as Worker}
+  from "./dist/apps/business-dictionary/export-job-pg-sql-lease.js";
+import {createIsolatedDictionaryExportPgDispatcherV010 as Dispatcher,
+  createIsolatedDictionaryExportPgPollingV010 as Poll}
+  from "./dist/apps/business-dictionary/export-job-pg-dispatch.js";
+const host=Host({connectionString:process.env.CV04_HOST_PROCESS_DB,
+  schema:process.env.CV04_HOST_PROCESS_SCHEMA,isolatedTestOnly:true});
+const worker=Worker({connectionString:process.env.CV04_HOST_PROCESS_WORKER_DB,
+  schema:process.env.CV04_HOST_PROCESS_SCHEMA,isolatedTestOnly:true});
+const dispatcher=Dispatcher({
+  host,workers:[worker],contextId:process.env.CV04_HOST_PROCESS_CONTEXT,
+  authorizeFresh:async candidate=>{
+    if(candidate.jobId!==process.env.CV04_HOST_PROCESS_JOB)
+      throw Error("CV04_HOST_CHILD_WRONG_JOB");
+    return {approvalId:"cv04-independent-host-"+randomUUID(),authorityEpoch:1};
+  },
+  runWork:async({token,lease})=>{
+    process.stdout.write(JSON.stringify({kind:"CLAIMED",
+      token,lease,pid:process.pid})+"\\n");
+    await new Promise(()=>{});
+    throw Error("UNREACHABLE");
+  },
+  isolatedTestOnly:true
+});
+const controller=Poll({dispatcher,intervalMs:25,maxIdleIntervalMs:150,
+  isolatedTestOnly:true}).start();
+controller.done.catch(e=>{
+  process.stdout.write(JSON.stringify({kind:"ERROR",error:e.message})+"\\n");
+  process.exitCode=2;
+});
+`;
+function killHostAfterClaim({hostUrl,workerUrl,schema,jobId}){
+  return new Promise((resolve,reject)=>{
+    const child=spawn(process.execPath,
+      ["--input-type=module","-e",cv04HostPollingProcessSource],{
+        cwd:process.cwd(),stdio:["ignore","pipe","pipe"],
+        env:{...process.env,NODE_ENV:"test",
+          CV04_HOST_PROCESS_DB:hostUrl,
+          CV04_HOST_PROCESS_WORKER_DB:workerUrl,
+          CV04_HOST_PROCESS_SCHEMA:schema,CV04_HOST_PROCESS_CONTEXT:ctx,
+          CV04_HOST_PROCESS_JOB:jobId}
+      });
+    let output="",stderr="",claimed=null,terminated=false;
+    const watchdog=setTimeout(()=>{
+      child.kill("SIGKILL");
+      terminated=true;
+    },15000);
+    child.stdout.on("data",buffer=>{
+      output+=buffer.toString("utf8");
+      if(!claimed&&output.includes("\n")){
+        try{
+          const item=JSON.parse(output.split("\n")[0]);
+          if(item.kind==="CLAIMED"&&item.lease?.jobId===jobId){
+            claimed=item;child.kill("SIGKILL");terminated=true;
+          }
+        }catch{/* the exit handler will fail closed */}
+      }
+    });
+    child.stderr.on("data",buffer=>{stderr+=buffer.toString("utf8").slice(0,200);});
+    child.on("error",err=>{clearTimeout(watchdog);reject(err);});
+    child.on("close",(_,signal)=>{
+      clearTimeout(watchdog);
+      if(!claimed||signal!=="SIGKILL"||!terminated)
+        return reject(Error("CV04_INDEPENDENT_HOST_PROCESS_CLAIM_FAILED "+
+          stderr.slice(0,100)+" "+output.slice(0,140)));
+      resolve(claimed);
+    });
+  });
+}
+
+test("CV04 two distinct Host OS processes: killed scheduler, fresh process reclaims epoch2 with old signed CAS fenced",realPG,async()=>{
+  await fixture(async({sql,q,host,hostUrl,workerUrl,workerB,schema,put,raw,read,cryptoKey})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id),
+      queued=encryptJob(job,cryptoKey,0);
+    await put(permit(queued));
+    const first=await killHostAfterClaim({hostUrl,workerUrl,schema,jobId:id});
+    assert.equal(first.lease.epoch,1);
+    assert.equal(first.lease.expectedRevision,0);
+    const running1={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+1800).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    // Only this fixture owns HMAC material. We simulate the trusted Owner's
+    // last signed CAS after first process termination; this is not signer HA.
+    const doc1=encryptJob(running1,cryptoKey,1,queued);
+    assert.equal((await put(permit(doc1,{
+      envelope:physicalProof(first.token,first.lease)
+    }))).revision,1);
+    assert.equal((await host.runnable(ctx,10)).length,0);
+    await sql.unsafe("UPDATE "+q+".cv04_export_work_leases "+
+      "SET claimed_until=clock_timestamp()-interval '3 seconds' "+
+      "WHERE context_id=$1 AND job_id=$2",[ctx,id]);
+    assert.equal((await host.runnable(ctx,10)).length,0);
+    const wait=Date.parse(running1.leaseUntil)+1300-Date.now();
+    if(wait>0)await new Promise(resolve=>setTimeout(resolve,wait));
+    assert.equal((await host.runnable(ctx,10)).length,1);
+    const second=await killHostAfterClaim({hostUrl,workerUrl,schema,jobId:id});
+    assert.notEqual(second.pid,first.pid);
+    assert.equal(second.lease.epoch,2);
+    assert.equal(second.lease.expectedRevision,1);
+    const running2={...running1,attempt:2,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...running1.audit,event("STARTED")]};
+    const doc2=encryptJob(running2,cryptoKey,2,doc1);
+    await assert.rejects(put(permit(doc2,{
+      envelope:physicalProof(first.token,first.lease)
+    })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await put(permit(doc2,{
+      envelope:physicalProof(second.token,second.lease)
+    }))).revision,2);
+    const csv="\\uFEFFdictionaryId\\r\\nrow-01\\r\\n";
+    const ready={...running2,state:"READY",pages:[],csv,
+      csvSha256:sha(csv),leaseUntil:undefined,
+      audit:[...running2.audit,event("COMPLETED",1,csv.length),
+        event("READY",1,csv.length)]};
+    assert.equal((await put(permit(encryptJob(ready,cryptoKey,3,doc2),{
+      envelope:physicalProof(second.token,second.lease)
+    }))).revision,3);
+    assert.equal(await workerB.complete(second.token,2),"DONE");
+    assert.equal((await raw.get(addr(id))).revision,3);
+    assert.deepEqual((await read(id)).map(x=>x.stage),
+      ["REQUESTED","STARTED","STARTED","COMPLETED","READY"]);
+    await assert.rejects(workerB.complete(first.token,1),
+      /CV04_EXPORT_SQL_STALE_LEASE_FENCE/);
+    assert.equal((await host.runnable(ctx,10)).length,0);
+    console.log("CV04_INDEPENDENT_HOST_OS_PROCESS_RESTART_EPOCH_FENCE_PASS");
+  },{physical:true});
+});
