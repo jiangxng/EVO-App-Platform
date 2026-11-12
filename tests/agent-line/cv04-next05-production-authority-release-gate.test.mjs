@@ -73,6 +73,16 @@ test("missing/closed/wrong Owner issue fails red, and PR1184 merge never certifi
 });
 test("formal Export registration or isolated Gateway/Owner/Worker mount trips RED",()=>{
   const scenarios=[
+    // The isolated SQL gateway allows 'expire' as well as request/worker/
+    // download. Reject this and any future unknown formal job operation.
+    ["manager/server.ts",text=>text+
+      "\n// unexpected formal expiry dictionary.collection.export.job.expire\n"],
+    ["catalog/seed.ts",text=>text+
+      "\n// unexpected formal expiry dictionary.collection.export.job.expire\n"],
+    ["manager/server.ts",text=>text+
+      "\n// future formal operation dictionary.collection.export.job.future-new-action\n"],
+    ["catalog/seed.ts",text=>text+
+      "\n// future formal operation dictionary.collection.export.job.future-new-action\n"],
     ["manager/server.ts",text=>text+
       "\n// unauthorized formal download dictionary.collection.export.job.download\n"],
     ["catalog/seed.ts",text=>text+
