@@ -173,7 +173,7 @@ test("CV04 real PG: audit history rewrite, direct audit UPDATE/DELETE and bad ne
       eventId:randomUUID(),type:"STARTED",csv:"SENSITIVE_MARKER"});
     await assert.rejects(admin.unsafe("UPDATE "+resource+
       " SET revision=$1,resource=$2::jsonb WHERE resource_id=$3",
-      [1,JSON.stringify(corrupt),q.jobId]),/CV04_EXPORT_SQL_AUDIT_EVENT_INVALID/);
+      [1,JSON.stringify(corrupt),q.jobId]),/CV04_EXPORT_SQL_AUDIT_EVENT_INVALID|CV04_EXPORT_SQL_AUDIT_HISTORY_INVALID/);
     assert.equal((await rawA.get(addr)).revision,0);
     assert.deepEqual((await read(q.jobId)).map(x=>x.stage),["REQUESTED"]);
     assert.equal((await a.owner.run(ctx,q.jobId)).state,"READY");
