@@ -898,7 +898,7 @@ function childWorkerProcess(workerUrl,schema){
     let out="",err="",killed=false;
     child.stdout.on("data",part=>{
       out+=part.toString("utf8");
-      if(action==="crash"&&out.includes("\\n")&&!killed){
+      if(action==="crash"&&out.includes("\n")&&!killed){
         killed=true;child.kill("SIGKILL");
       }
     });
@@ -906,7 +906,7 @@ function childWorkerProcess(workerUrl,schema){
     child.on("error",reject);
     child.on("close",(code,signal)=>{
       let message;
-      try{message=JSON.parse(out.trim().split("\\n")[0]);}
+      try{message=JSON.parse(out.trim().split("\n")[0]);}
       catch{return reject(Error("CV04_CHILD_INVALID_RESPONSE "+err.slice(0,80)));}
       if(message.ok!==true)return reject(Error(message.code));
       if(action==="crash"&&signal!=="SIGKILL")
