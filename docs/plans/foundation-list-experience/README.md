@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 最新长窗口恢复（本轮优先入口）
+
+**[简短恢复交接入口](CV04-WINDOW-20261112-CONTEXT-RECOVERY-HANDOFF-ENTRY.md)** → **[详细研究资料、历史原始网址/阅读等级、采用与放弃方案、PR/Actions/真实体验证据分层](CV04-WINDOW-20261112-RESEARCH-DECISION-REFERENCE-INDEX.md)**。本轮核验的基线 `main@fd357d988df99602545655a457fe3d79a9b412e2`，#1263/#1264 MERGED，Dictionary/我的客户/我的供应商实际隔离 Host + 1280/390px Chromium CSV 6/6 自动验收。**这不是东京真实登录员工、物理手机或自然语言 Personal Agent 的 Human 签收**。CV-04 尚未做独立 EXPORT 权限/审计/预算的安全跨页 Job；CV-03 生产 SAVE 继续 `N1=NOT_CERTIFIED` / OFF / POST 403 / GET 404。该条是增量现状链接，不能覆盖下方历史各窗口本来日期的判断或并行 #1184 受管原计划。
+
 ## 2026-11-10 七轮窗口交接：研究资料与决策遗产（优先阅读）
 
 **[简短窗口接续入口](CV03-N104D-WINDOW07-RESEARCH-HANDOFF-ENTRY-20261110.md)** → **[详细网络原始来源/阅读等级/方案取舍/源码与 CI 证据索引](CV03-N104D-WINDOW07-RESEARCH-DECISION-REFERENCE-INDEX-20261110.md)**。保留 EX01–EX08、H01–H10、N1-01～N1-04d 的最终验收边界，标注本次访问失败的官方文档和未保存的截图/附件；列出 N1-04e 最优先协议不一致与生产安全 Owner 门禁。正式 Saved View WRITE 仍 OFF；不覆盖并行 #1184 的权威计划。
