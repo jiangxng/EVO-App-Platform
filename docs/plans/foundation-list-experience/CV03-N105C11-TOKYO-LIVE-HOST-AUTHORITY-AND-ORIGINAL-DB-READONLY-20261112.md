@@ -50,3 +50,9 @@
 - PR：待创建；精确 HEAD CI：待核验。
 - main 合并 SHA：待核验；东京实际 Actions：待运行/检查；Branch Hygiene：待核验。
 - 不允许以本文件的说明取代实际 Actions 原始日志。
+
+## 2026-11-12 N1-05c-11b — 原库 SQL 元数据格式校验收敛（不是权限变更）
+
+- [PR #1252](https://github.com/jiangxng/EVO-App-Platform/pull/1252) 已合入 `main@b69aad2e64e27af833fe36e5114e6416071e7159`；之前的独立 PR 检查除物理 main-only SKIP 外已全绿。实际东京 [Actions #43140674109](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43140674109) 物理只读 job **FAILURE**，读取原始日志后有阶段证据 `CV03_N105C11_HOST_STAGE_COMPLETED_NO_WRITE` 和 `CV03_N105C11_SQL_READONLY_QUERY_COMPLETED`，终端 `CV03_N105C11_READONLY_FAILURE_STAGE=VERIFY_PG_CATALOG`。**没有成功的完整元数据指纹，更没有生产认证。**
+- N1-05c-11b 的针对性改动：PostgreSQL `pg_is_in_recovery()` 与 `rolsuper` 原先以隐式 `||` 字符串化输出，校验假定 `true/false`；现用明确 `CASE ... THEN 'true' ELSE 'false'` 统一表述，**没有更改所查询的字段或 SQL 权限**。对九项 catalog expectation 分别输出固定标识 `CV03_N105C11_CATALOG_<NAME>_PASS/MISMATCH`，不输出未知 Owner 名称/凭据或业务记录；即使还有数据漂移，也能精确识别哪项值需要 Owner 复查。
+- 以上是**故障诊断 + 格式兼容修复 D**，并非已证实前次失败一定由布尔值导致；必须以新的受保护主线 Actions 原始日志证明。SQL 依然是 PGOPTIONS read-only + `BEGIN TRANSACTION READ ONLY` + ROLLBACK；Host SAVE OFF、未注册 404、Issue #1212 OPEN 和真实 Owner 审批等待均不变化。

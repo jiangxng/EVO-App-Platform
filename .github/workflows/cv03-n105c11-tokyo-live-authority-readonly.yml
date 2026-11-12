@@ -190,11 +190,11 @@ jobs:
           SELECT 'CV03_N105C11_ORIGINAL_DB='||current_database();
           SELECT 'CV03_N105C11_SQL_SESSION_USER='||session_user;
           SELECT 'CV03_N105C11_PG_VERSION_NUM='||current_setting('server_version_num');
-          SELECT 'CV03_N105C11_PG_IS_STANDBY='||pg_is_in_recovery();
+          SELECT 'CV03_N105C11_PG_IS_STANDBY='||(CASE WHEN pg_is_in_recovery() THEN 'true' ELSE 'false' END);
           SELECT 'CV03_N105C11_PG_ARCHIVE_MODE='||current_setting('archive_mode');
           SELECT 'CV03_N105C11_DB_OWNER_ROLE='||pg_get_userbyid(d.datdba)
             FROM pg_database d WHERE d.datname=current_database();
-          SELECT 'CV03_N105C11_DB_OWNER_IS_SUPERUSER='||r.rolsuper
+          SELECT 'CV03_N105C11_DB_OWNER_IS_SUPERUSER='||(CASE WHEN r.rolsuper THEN 'true' ELSE 'false' END)
             FROM pg_database d JOIN pg_roles r
               ON r.rolname=pg_get_userbyid(d.datdba)
             WHERE d.datname=current_database();
@@ -211,15 +211,35 @@ jobs:
           )"
           stage=VERIFY_PG_CATALOG
           echo CV03_N105C11_SQL_READONLY_QUERY_COMPLETED >&2
-          grep -Fxq CV03_N105C11_ORIGINAL_DB=evo_dev <<< "$sqlout"
-          grep -Fxq CV03_N105C11_SQL_SESSION_USER=evo <<< "$sqlout"
-          grep -Eq '^CV03_N105C11_PG_VERSION_NUM=17[0-9]+$' <<< "$sqlout"
-          grep -Fxq CV03_N105C11_PG_IS_STANDBY=false <<< "$sqlout"
-          grep -Eq '^CV03_N105C11_PG_ARCHIVE_MODE=(off|on|always)$' <<< "$sqlout"
-          grep -Eq '^CV03_N105C11_DB_OWNER_ROLE=[a-z_][a-z0-9_]{0,62}$' <<< "$sqlout"
-          grep -Eq '^CV03_N105C11_DB_OWNER_IS_SUPERUSER=(true|false)$' <<< "$sqlout"
-          grep -Eq '^CV03_N105C11_NON_SYSTEM_SCHEMA_COUNT=[0-9]+$' <<< "$sqlout"
-          grep -Fxq CV03_N105C11_NON_QA_T0_ROUTINE_COUNT=0 <<< "$sqlout"
+          # Identify a single unexpected catalog value without printing any
+          # untrusted DB role name, object metadata, credential or business row.
+          check_exact() {
+            local code="$1" expected="$2"
+            if grep -Fxq "$expected" <<< "$sqlout"; then
+              echo "CV03_N105C11_CATALOG_${code}_PASS" >&2
+            else
+              echo "CV03_N105C11_CATALOG_${code}_MISMATCH" >&2
+              return 1
+            fi
+          }
+          check_regex() {
+            local code="$1" pattern="$2"
+            if grep -Eq "$pattern" <<< "$sqlout"; then
+              echo "CV03_N105C11_CATALOG_${code}_PASS" >&2
+            else
+              echo "CV03_N105C11_CATALOG_${code}_MISMATCH" >&2
+              return 1
+            fi
+          }
+          check_exact ORIGINAL_DATABASE CV03_N105C11_ORIGINAL_DB=evo_dev
+          check_exact SESSION_USER CV03_N105C11_SQL_SESSION_USER=evo
+          check_regex SERVER_VERSION '^CV03_N105C11_PG_VERSION_NUM=17[0-9]+$'
+          check_exact PRIMARY_ROLE CV03_N105C11_PG_IS_STANDBY=false
+          check_regex ARCHIVE_MODE '^CV03_N105C11_PG_ARCHIVE_MODE=(off|on|always)$'
+          check_regex DB_OWNER '^CV03_N105C11_DB_OWNER_ROLE=[a-z_][a-z0-9_]{0,62}$'
+          check_regex OWNER_PRIVILEGE '^CV03_N105C11_DB_OWNER_IS_SUPERUSER=(true|false)$'
+          check_regex SCHEMA_COUNT '^CV03_N105C11_NON_SYSTEM_SCHEMA_COUNT=[0-9]+$'
+          check_exact NO_NONQA_T0 CV03_N105C11_NON_QA_T0_ROUTINE_COUNT=0
           printf '%s\n' "$sqlout"
           stage=COMPLETE
           echo CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS
