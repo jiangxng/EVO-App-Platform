@@ -44,3 +44,13 @@
 ## 安全复核增量（CI 待验）
 
 在最终合并前补充 **持久排队快照最大 262,144 字节**（防止 CSV 运行前就写入超量明文）与 **成功取文件审计最多 3 次** 的硬预算，并增加测试 `CV04_DICTIONARY_EXPORT_OWNER_SNAPSHOT_DOWNLOAD_BUDGET_PASS`。历史 #43164923654 的 7/7 已读原始日志不应冒充本次最新 HEAD 的 8/8；待最新 CI 再判定。正式状态仍是 **STAGED / NOT_REGISTERED**。
+
+## NEXT-06 / 2026-11-12 — Owner 同 Job 过期租约的尝试归属保护
+
+**G / A 直接阅读原实现**：[`export-jobs.ts`](../../../apps/business-dictionary/export-jobs.ts) 原 `run()` 在 RUNNING 已重新领取 attempt 2 时，旧 attempt 1 的 `append()` 与 `READY` 仅测试 `state === RUNNING`；`catch` 也仅以此条件尝试写 `FAILED`。原加密资源 CAS 和 Signed SQL Gateway 的外层物理 lease 仍有独立保护，但 **Domain Owner 自身不应允许旧尝试的失败处理覆盖新尝试**。这是源码可验证的 race，不是声称已发生生产漏洞（产品正式 Export 仍 OFF）。
+
+**D / 原地最小修复**：在 `run()` 成功写下自己的 `RUNNING` 后冻结 **`attempt + leaseUntil`**；所有中途 Audit CAS、最终 READY 和错误处理都重新核对当前 RUNNING 同属这次尝试。发现被重领/过期改态时，旧 Worker 只能报 `COLLECTION_EXPORT_JOB_STALE_ATTEMPT` 或旧 CAS 冲突，且不能将新尝试写为 FAILED。复用原 Owner/Job Resource 和原审计历史，不引入新队列/另一套 CAS/Actor 授权或扩展 SQL 后门。
+
+**验收方法**：在 [原 Owner 协议测试](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs) 增加一个确定性双尝试并发回归，分别阻塞旧 Worker 的审计读取和 CAS 提交；推进测试钟 16 秒后，由第 2 次尝试领取租约，保证旧执行不能写审计/FAILED，第 2 次最终 READY。沿用 [原专项 CI](../../../.github/workflows/cv04-dictionary-export-job-owner.yml)；原 8 项顶层测试增加至 9 项，必须 9/9 PASS、0 SKIP。
+
+**限制与 P**：这是明确 `NODE_ENV=test + isolatedTestOnly` 的现有 Domain Owner 一致性修复，不替代真实 PA05/T0 outbox→签名 Worker 的跨 SQL 主体授权/撤权、完整 Scope/水印/生产 Producer/KMS、跨两物理 Host 或真实 Human/Agent 下载。#1212 仍待具名 Owner，#1184 受管文件不触碰。正式跨页 EXPORT OFF、CV03 `N1=NOT_CERTIFIED` 与 SAVE OFF 均未改变。

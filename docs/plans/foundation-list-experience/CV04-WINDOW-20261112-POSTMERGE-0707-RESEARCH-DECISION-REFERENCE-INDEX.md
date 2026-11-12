@@ -357,3 +357,11 @@
 本轮再次直接核验 [Owner Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 仍 OPEN/PENDING（五项勾选非正式签署）、并行 [PR #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) OPEN，未修改其三份 Owner 受管文档。方案 A（同一正式 PostgreSQL ACID T0）及所有 Scope/authorityEpoch/sourceGeneration/Outbox/tombstone/Producer/KMS/迁移回滚前置要求**没有新的真实 Owner 证据**，不得提前接线或开功能。正式 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`，SAVE OFF。
 
 这份补录是 **docs-only 原始证据回填**，不能触发新的东京运行镜像，也不必为此重新跑同一 Tokyo PG 物理只读作业；后续 main checks 和东京 deploy SKIP 仍分别核验。
+
+## 19. Window 08 自动续跑 #04/07：Domain Owner 旧租约跨尝试写入阻断（2026-11-12）
+
+**G / 资料等级 A（原文已读）**：[Dictionary Export Owner](../../../apps/business-dictionary/export-jobs.ts)、[原 8 项 Owner 回归](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs)、[现有 Owned Export 专项 Workflow](../../../.github/workflows/cv04-dictionary-export-job-owner.yml)、[PG Encrypted CAS](../../../apps/business-dictionary/export-job-pg-store.ts)、[原 Signed SQL Gateway](../../../tools/cv04-isolated-signed-export-gateway.mjs)。原 Owner 在长任务重领 attempt 2 后，旧尝试失败的 catch 可只凭 `state=RUNNING` 写 FAILED；`append` 可把旧 Worker audit 注入新尝试。原 SQL Gateway 物理围栏与 Node Owner 生命周期不是一回事，不能把 SQL 的绿色结果理解为所有 Owner 路径的同一尝试归属（详见 [Owner 文档 NEXT-06](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)）。
+
+**D / 采用**：在已存在的 Owner `run()` 开始后固定 `attempt + leaseUntil`，将三种后续写路径（中途审计、最终 READY、失败 FAILED）绑定同一 Job Attempt/Lease；若新尝试重领，旧执行无法污染审计或将新任务失败。原 Owner 协议测试加入双时序阻塞并发反例，不再建新签名网关/资源表/任务系统；专项 CI 从 8 项提升为 9 项。**明确反对**仅用 `state=RUNNING`、基于过期时间的单一推测或依赖内存锁来断言 Owner 写入合法。
+
+**C/P / 边界**：隔离测试时钟与单进程双异步任务只证明本次 Owner Race 行为，不代表真实两个物理 Host 的租约原子证明；正式 T0 sourceGeneration、全 Scope/Outbox、Producer/Signer/KMS 与真实 Owner 签认仍须遵从 #1212/#1184 和 §15–18。正式 EXPORT OFF，CV03 `N1=NOT_CERTIFIED`、SAVE OFF。准确 PR CI、受保护 main、东京部署判定及 Branch Hygiene 证据待实际执行完成后记录，不预填通过。
