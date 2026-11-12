@@ -71,11 +71,14 @@ jobs:
           grep -q CV04_REAL_DICTIONARY_OWNER_SIGNED_WORKER_CAS_AUDIT_READY_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_MULTIHOST_OS_WORKER_CRASH_RECLAIM_SIGNED_CAS_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_HOST_DISPATCH_LIVE_DENY_COOLDOWN_WORKER_DISCOVERY_DENIED_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_POLL_SINGLE_FLIGHT_BACKOFF_STOP_FAILCLOSED_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_PG_POLL_STOP_RESTART_EPOCH_RECLAIM_READY_PASS /tmp/cv04-signed-pg.log
+          grep -q CV04_INDEPENDENT_HOST_OS_PROCESS_RESTART_EPOCH_FENCE_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PHYSICAL_LEASE_RECLAIM_STALE_CAS_FENCED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_TWO_RUNTIME_CAS_ONE_AUDIT_WINNER_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS /tmp/cv04-signed-pg.log
-          grep -q 'ℹ pass 15' /tmp/cv04-signed-pg.log
+          grep -q 'ℹ pass 18' /tmp/cv04-signed-pg.log
           grep -q 'ℹ skipped 0' /tmp/cv04-signed-pg.log
       - name: Existing immutable SQL audit, AES-GCM PG CAS and Owner budget regression
         shell: bash

@@ -58,3 +58,33 @@
 
 - B / 新 PR 的完整精确 HEAD PostgreSQL marker、复用 #1281/#1282 正常 Owner 13/13 原套件、原 SQL Host/Worker、Immutable Audit、AES-GCM、Chromium、CI、受保护 main、东京实际发布、Branch Hygiene **只在本次真实日志成功后确认**。请保留失败→修复记录，不以后一次绿灯覆盖此前问题。
 - C / 真实 PA05/T0 source/outbox 与撤权、物理 Host 身份、Signer/KMS、不同网络分区 Host、自动 cron/daemon、SLA、跨进程独立加密密钥保管、备份与 WORM 保留、真实 Human/Personal Agent 生产交互仍未认证；**正式 EXPORT OFF、CV03 N1=NOT_CERTIFIED、SAVE OFF，#1184 文件不动。**
+
+
+## NEXT-04b / 2026-11-12：隔离周期调度、停止排空、Host 进程重启
+
+> **TEST-ONLY DISPOSABLE CONTROLLER, NOT A PRODUCTION DAEMON.** 延续已合并 PR #1283 的有界 `sweep()`，不引入另一套 Permit/Lease/Job/Owner，也不发布用户可见 EXPORT Action。
+
+### A — 查阅过的原文（查阅 2026-11-12）
+
+- [#1283 合并后的 Dispatcher 原文](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/apps/business-dictionary/export-job-pg-dispatch.ts)：已有 `sweep(limit)` 遍历按 DB 元数据筛出的任务、逐个执行 live AuthorizationCallback、发放 Host permit、Worker claim、调用原签名 CAS、完成 lease；多 Host/Worker 通过 PostgreSQL Job advisory lock + Revision/Epoch 拒绝重复成功，但 **只在外部主动调用时运行**，进程停止后无人再次扫描。
+- [#1283 原独立 PG Lease](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/apps/business-dictionary/export-job-pg-sql-lease.ts)、[原真实 PostgreSQL16 回归](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)、[Workflow](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/.github/workflows/cv04-signed-export-pg-gateway.yml)：Resource、Host permit、物理 Lease Epoch 状态由 PG 决定，JS 内存不应成为第二个权威。已证明两个 Host SQL 会话与 Worker OS 子进程失败重领；但 **尚未证明真实 Host OS 调度进程退出、轮询自动唤醒与安全停机**。
+
+### D — 最小选择、接口行为及限制
+
+1. **仅在原 `export-job-pg-dispatch.ts`** 增加 `createIsolatedDictionaryExportPgPollingV010`。必须 `NODE_ENV=test`、`isolatedTestOnly:true`，外部显式 `start()`，没有自动顶层副作用、后台 Worker 注册或正式 Host 生命周期挂载。控制器只调用原 `dispatcher.sweep({limit})`，不重复发放许可、不添加调度状态表；新进程从 PG 原有 Job/Permit/Lease 重扫。
+2. 单个实例只允许启动一次；采用**单飞串行**循环，任何上次 sweep 未完成时不启动下次；时间间隔明确为 20–60000ms，连续空闲做有界指数退避（不超 `maxIdleIntervalMs`），有实际派工时恢复最小间隔。未经 AuthorizationProvider/PA05/T0 最新事件认证时回调必须拒绝，不可缓存上次授权。
+3. `stop()` 取消下一次定时唤醒，**等待当前已经领取的有界 sweep 完成或失败**，不在 Node 内存里伪造 DONE、不主动撤销有效 SQL 物理 Lease、不抢占合法完成。若 Host 或 PG 错误，`done` 拒绝且循环立即 fail-stop，**不做无限自动补偿**；进程被 SIGKILL 时不存在 JS cleanup，原 PG Lease 保持、待 DB 双 Lease 过期及原 1s 冷却后由另一个实例重新 claim。
+4. 在 [现有真实 PG16 signed fixture](../../../tests/agent-line/cv04-signed-export-gateway-pg.test.mjs) 新增：单位级定时器单飞、25/50/100ms 退避、stop 后不可再唤醒、stop during in-flight 等待排空、DB 故障模拟 fail-stop；实际 PG 通过 Host A 周期调度 first STARTED + 故障，stop 后独立 Host B 的新周期控制器重新读取 `runnable`，Epoch=2 签名 CAS 变成 READY，旧 Token 完成失败且不可扩展；另外在**两个独立 Node Host OS 进程**各自产生新的 Host/Worker SQL Pool，第一次 claim 后杀死 Host 进程，再由全新 Host 进程取得 Epoch=2，parent 的**隔离测试签名器**完成实际 SQL CAS，验证旧 Epoch 被拒绝。子进程 Host 真实不同 PID，但仍运行在同一 GitHub Runner；父进程签名器是测试夹具，不是生产签名 HA。
+5. 设计选择：**不创建** Durable Timer/Redis Queue/第四套 Lease，不使用 `setInterval` 造成重叠，也不写“已达到跨地域/双物理机故障容忍”。真实进程重启由测试显式启动新实例触发；正式生产须独立受管 lifecycle/supervisor 和授权事件源，在该前置缺口关闭前不部署这个轮询器。
+
+### 结果等级（需要以本轮 PR 精确 HEAD 原始日志更新）
+
+- B / [NEXT-04b PR 入口待确认](https://github.com/jiangxng/EVO-App-Platform/pulls)：真 PostgreSQL 测试正覆盖轮询 stop/restart、OS Host crash、旧签名 Epoch fencing、原 Owner/audit/加密回归。**不能预填 CI success、main SHA 或东京健康标记**，每次应在 GitHub log 里找到 PASS marker 与 zero skip。
+- C / 尚未完成的真实两个物理 Host/网络分区、真实 PA05/T0 授权签名与失联反应、Signer/KMS、持久 supervisor 服务注册、长期独立心跳 SLA、租约时间的真实物理时钟漂移/跨机器 DB 长尾、备份 WAL/保留策略、Human/Agent 生产会话认证均为未认证。独立进程试验依靠 GitHub Runner 内临时 SQL LOGIN，不等于生产身份。
+- 原禁令不变：**正式 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`、SAVE OFF；不触碰 PR #1184 文件**。
+
+
+### B — 已读取的第一轮真实 PG16 CI（2026-11-12；随后文档提交必须重跑）
+
+- [PR #1284 / 实际 PostgreSQL16 Workflow #43204722304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43204722304)，[原始 job #131136864897](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43204722304/job/131136864897)，测试代码 HEAD `16389bd7bccbdc6f70826cf89b56f23513a41421`：`CV04_POLL_SINGLE_FLIGHT_BACKOFF_STOP_FAILCLOSED_PASS`、`CV04_PG_POLL_STOP_RESTART_EPOCH_RECLAIM_READY_PASS`、`CV04_INDEPENDENT_HOST_OS_PROCESS_RESTART_EPOCH_FENCE_PASS` **均在真正测试输出出现**，签名/派工/Host PID 回归 **18/18 PASS、0 FAIL、0 SKIP**。原真实 PG immutable audit **5/5**、AES-GCM CAS **5/5**、Domain Owner **8/8**，并输出 `CV04_SIGNED_EXPORT_NOT_PUBLISHED_TO_HOST_PASS`。
+- 这只是**第一轮有代码的 HEAD** 证据。补充此段、索引后会产生新的最终 PR HEAD，应当再逐项核验最终 HEAD 全绿，不能沿用旧记录认定新 HEAD 已验收。Protected `main` 的 merge SHA、东京镜像身份、公开 HTTPS/Basic Auth 及过程分支仍需合并后另行核实。
