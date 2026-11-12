@@ -176,6 +176,7 @@ export async function createAuthorizedCrossPageCsvV010(input: {
     const rowIds = new Set<string>();
     let collectionId: string | undefined;
     let schemaRef: string | undefined;
+    let readableSignature: string | undefined;
     let total: number | undefined;
     let csv = "";
     for (let pageIndex = 0; pageIndex < input.policy.maxPages; pageIndex++) {
@@ -194,11 +195,13 @@ export async function createAuthorizedCrossPageCsvV010(input: {
       if (collectionId === undefined) {
         collectionId = page.collectionId;
         schemaRef = page.schemaRef;
+        readableSignature = JSON.stringify(page.readableFieldIds);
         total = page.pageInfo.total;
         if (total > input.policy.maxRows) {
           throw new Error("COLLECTION_EXPORT_ROW_BUDGET_EXCEEDED");
         }
       } else if (page.collectionId !== collectionId || page.schemaRef !== schemaRef
+        || JSON.stringify(page.readableFieldIds) !== readableSignature
         || page.pageInfo.total !== total) {
         throw new Error("COLLECTION_EXPORT_SNAPSHOT_DRIFT");
       }
