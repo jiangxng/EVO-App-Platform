@@ -1,3 +1,5 @@
+> **最新交接入口（Window 08 / 自动续跑 #07/07）已迁移至 [CV04-WINDOW08-20261112-FINAL-POSTMERGE-HANDOFF-ENTRY.md](CV04-WINDOW08-20261112-FINAL-POSTMERGE-HANDOFF-ENTRY.md)。以下「Window 07 最新入口」为当时历史快照，不再代表当前 `main` 或东京运行镜像；最终证据应优先使用新入口和原研究索引 §22。**
+
 # CV-04 / Window 07 Final — 2026-11-12 主线交接（最新入口）
 
 > **2026-11-12 北京/香港时间，自动续跑 #07/07。** 本节是已核验的**最新入口**；下方「历史快照」保留 #1277 时点原文供回溯，其中过时 SHA、#1276 尚存分支、尚未实现 Worker CAS/调度等描述均被本节取代。详细原始研究索引见 [CV04 #05–#07 研究与决策索引](CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md) §9–15。**接续必须先重新拉取/核对 `main`，不要固定使用本次合并 SHA。**
