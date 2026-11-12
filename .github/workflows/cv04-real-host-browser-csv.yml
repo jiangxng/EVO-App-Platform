@@ -12,6 +12,7 @@ on:
       - "vendor/eidos/src/app-host/page-controller.ts"
       - "tools/cv04/**"
       - "tests/cv04/**"
+      - "tests/integration/cv04-personal-agent-authorized-csv.test.mjs"
       - ".github/workflows/cv04-real-host-browser-csv.yml"
   push:
     branches: [main]
@@ -25,6 +26,7 @@ on:
       - "vendor/eidos/src/app-host/page-controller.ts"
       - "tools/cv04/**"
       - "tests/cv04/**"
+      - "tests/integration/cv04-personal-agent-authorized-csv.test.mjs"
       - ".github/workflows/cv04-real-host-browser-csv.yml"
   workflow_dispatch:
 
@@ -51,6 +53,8 @@ jobs:
           python-version: "3.12"
       - run: npm ci
       - run: npm run build
+      - name: Personal Agent and Human real Owner CSV parity, revocation and feature disable
+        run: node --test tests/integration/cv04-personal-agent-authorized-csv.test.mjs
       - run: python -m pip install "playwright==1.56.0"
       - run: python -m playwright install --with-deps chromium
       - name: Start disposable actual Host with isolated enterprise and three installed business plugins
@@ -70,12 +74,15 @@ jobs:
           fi
       - name: Eidos real Blob CSV downloads, visible rows, columns and 1280px/390px screenshots
         run: python tests/cv04/real_host_csv_download_chromium.py
-      - name: Assert all 6 downloads and isolate provenance
+      - name: Assert 6 authorized A + 6 enterprise B Chromium downloads, cross-scope, disable and isolate provenance
         run: |
           node --input-type=module -e '
             import {readFileSync} from "node:fs";
             const p=JSON.parse(readFileSync("artifacts/cv04-csv-browser/browser-results.json","utf8"));
             if (!p.notProduction||!p.notHuman||p.results?.length!==6
+              || p.enterpriseSwitchResults?.length!==6
+              || !p.featureDisabledExportDenied
+              || !p.enterpriseSwitchResults.every(x=>x.foreignDataAbsent)
               || !p.results.every(x=>x.csvRows===1&&x.pagePreserved&&x.horizontalOverflow===false))
               process.exit(1);
             console.log("CV04_REAL_HOST_BROWSER_ARTIFACT_CONTRACT_PASS");
