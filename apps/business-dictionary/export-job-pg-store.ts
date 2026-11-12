@@ -1,4 +1,4 @@
-import {createCipheriv,createDecipheriv,randomBytes,timingSafeEqual} from "node:crypto";
+import {createCipheriv,createDecipheriv,randomBytes} from "node:crypto";
 import type {
   EnterpriseResourceAddressV010,EnterpriseResourceConditionalAsyncRepositoryV010,
   EnterpriseResourceConditionalPutInputV010,EnterpriseResourceJsonV010,
@@ -54,12 +54,14 @@ function canonical(value:unknown):unknown{
   return value;
 }
 function json(value:unknown):string{return JSON.stringify(canonical(value));}
-function addressOf(a:EnterpriseResourceAddressV010){
+function addressOf(a:EnterpriseResourceAddressV010):EnterpriseResourceAddressV010 {
   if(a.namespace!==NAMESPACE||a.collectionId!==COLLECTION||a.resourceType!==TYPE
     ||typeof a.contextId!=="string"||!a.contextId
     ||!/^exj-[0-9a-f]{48}$/u.test(a.resourceId))
     return fail("COLLECTION_EXPORT_PG_ADDRESS_INVALID");
-  return a;
+  // Never sign extra mutable resource fields or request properties in AAD.
+  return {contextId:a.contextId,namespace:a.namespace,
+    collectionId:a.collectionId,resourceType:a.resourceType,resourceId:a.resourceId};
 }
 function meta(job:Job):PublicMeta{
   const {pages:_,csv:_csv,csvSha256:_hash,fields:_fields,policy:_policy,...publicMeta}=job;
@@ -143,10 +145,6 @@ function envelopePayload(resource:EnterpriseResourceV010):EncryptedEnvelope{
     ||env.secret.algorithm!=="AES-256-GCM")
     return fail("COLLECTION_EXPORT_PG_ENCRYPTED_RESOURCE_REQUIRED");
   return env;
-}
-function equalHex(a:string,b:string){
-  return /^[a-f0-9]{64}$/u.test(a)&&/^[a-f0-9]{64}$/u.test(b)
-    &&timingSafeEqual(Buffer.from(a,"hex"),Buffer.from(b,"hex"));
 }
 
 /**
