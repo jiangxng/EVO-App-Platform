@@ -15,7 +15,9 @@ export function counterpartyProjectionCollectionResultV010(
     throw new Error("COUNTERPARTY_COLLECTION_PAGE_REQUIRED");
   }
   const fields = [...new Set([
-    "counterpartyId", "displayName", ...projection.readableFieldIds
+    // ID is an existing public Row identity; a denied displayName grant is
+    // never silently restored by the collection adapter.
+    "counterpartyId", ...projection.readableFieldIds
   ])];
   const allowed = new Set(fields);
   const rows = projection.counterparties.map(record => {

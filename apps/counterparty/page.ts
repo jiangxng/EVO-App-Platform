@@ -37,6 +37,8 @@ import {
   COUNTERPARTY_DIRECTORY_ROUTE,
   COUNTERPARTY_MY_CUSTOMERS_ROUTE,
   COUNTERPARTY_MY_SUPPLIERS_ROUTE,
+  COUNTERPARTY_MY_CUSTOMERS_PAGE_CSV_EXPORT_V010,
+  COUNTERPARTY_MY_SUPPLIERS_PAGE_CSV_EXPORT_V010,
   COUNTERPARTY_REMOVE_ROLE_COMMAND,
   COUNTERPARTY_SUPPLIERS_ROUTE,
   COUNTERPARTY_UPDATE_COMMAND,
@@ -62,6 +64,7 @@ function textFor(locale?: string) {
         empty: "还没有往来对象。",
         create: "新建往来对象",
         import: "导入",
+        exportCurrentPage: "导出当前页 CSV",
         createSummary: "建立一个新的企业往来主体。",
         organization: "机构",
         person: "个人",
@@ -139,6 +142,7 @@ function textFor(locale?: string) {
         empty: "No counterparties yet.",
         create: "New counterparty",
         import: "Import",
+        exportCurrentPage: "Export current page CSV",
         createSummary: "Create a new enterprise counterparty identity.",
         organization: "Organization",
         person: "Person",
@@ -452,6 +456,14 @@ export function createCounterpartyProjectionPageV010(input: {
   const rowReturnRoute = pageInfo
     ? counterpartyProjectionQueryRouteV010(route, query, pageInfo.page)
     : undefined;
+  // Use exactly the currently displayed owner-readable table columns.
+  // No export action on legacy unpaged, all-scope or unauthorized pages.
+  const exportFields = myScope && table && pageInfo &&
+    input.readableFieldIds?.includes("displayName")
+      ? table.columns.map(column => column.id) : undefined;
+  const exportCommand = supplierScope
+    ? COUNTERPARTY_MY_SUPPLIERS_PAGE_CSV_EXPORT_V010
+    : COUNTERPARTY_MY_CUSTOMERS_PAGE_CSV_EXPORT_V010;
   return {
     ...page,
     ...(rowReturnRoute ? {items: page.items.map(item => ({
@@ -477,7 +489,20 @@ export function createCounterpartyProjectionPageV010(input: {
         label: title
       }]
     },
-    actions: [...(table ? [] : [{
+    actions: [
+      ...(exportFields && pageInfo ? [{
+        id: "export-current-page", label: text.exportCurrentPage,
+        type: "command" as const, command: exportCommand,
+        inputVersion: "0.1.0", requiresConfirmation: false,
+        values: {
+          ...(query.search ? { search: query.search } : {}),
+          ...(query.sort ? { sort: query.sort } : {}),
+          ...(query.direction ? { direction: query.direction } : {}),
+          page: pageInfo.page, pageSize: pageInfo.pageSize,
+          fieldIds: exportFields
+        }
+      }] : []),
+      ...(table ? [] : [{
       id: "responsibility-scope",
       label: input.projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
         ? text.onlyMyCustomers
