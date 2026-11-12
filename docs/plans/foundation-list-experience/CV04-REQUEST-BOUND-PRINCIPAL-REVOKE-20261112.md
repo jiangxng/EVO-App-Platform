@@ -42,3 +42,12 @@
 - [实际 Artifact `13918251277`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43161332091) 名称 `cv04-request-principal-governance-revocation`、1042 bytes、SHA256 `8feb2b50bb9aff2366dc7501209d59e2f20a6e471433a55a0b8dde38703056d7`，GitHub 当前记录到期 2027-02-10；仅脱敏终端/Host log/机器结果，不含随机 Bearer Token。
 - **精确等级**：本测试使用了产品真实安装 Host、正式请求身份 Bearer Session Provider、真实企业邀请/成员接受/关系撤销 Action、持久 Governance Store、真实字典 Owner/ActionRouter 的合法读；不同用户/AI 的 request-bound principal 区分。**不是** Google OIDC 真人登录、真实生产 DB/PA05 source-generation/T0/KMS 或两个物理 Host。正式 SAVE 仍 OFF。
 - 上述是当时 CI 的真实通过，文档增补后仍须以最新 PR HEAD 的完整 CI 全绿、合并后 protected-main Actions 为新的最终验收，不能仅沿用此 run 宣称最终 main 已通过。
+
+
+## 2026-11-12 — 受保护 main 终验 / 合并证据（G）
+
+- [PR #1268](https://github.com/jiangxng/EVO-App-Platform/pull/1268) 的最终工程 HEAD `29d7c7986ff886eed17c217c586df4b895b3e346` **6/6 SUCCESS** 后 Draft→Ready→expected SHA merge，受保护主线为 `23c772f416f1407c17f6e56c567ee4d78fd628d5`。
+- 此主线 SHA 的 **Continuity、Protocol/Core、Lightweight Host、真实 Chromium CSV、Request-Bound Governance Revoke 均 SUCCESS**；独立导出身份验证 Actions [#43161999819](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43161999819) SUCCESS。若只看本文件的首次 HEAD #43161332091，不能代替主线验收，正式证据以该 protected main Actions 及 check-run SHA 为准。
+- [东京发布预检 #43162032810](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43162032810)，preflight SUCCESS、deploy SKIPPED。已读其原始日志 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE sha=23c772f416f1407c17f6e56c567ee4d78fd628d5`；此项只有测试和文档变更，**没有重新部署东京运行时**。
+- [Branch Hygiene #43161999790](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43161999790) job `130995140396` SUCCESS；已读原始日志 `DELETED_VERIFIED_MERGED_PR_BRANCH test/cv04-request-bound-principals-revoke-20261112 @ 29d7c7986ff886eed17c217c586df4b895b3e346`，GitHub branch matching ref 为 []。
+- 最终可宣告 `CV04_REQUEST_BOUND_REAL_HOST_GOVERNANCE_REVOKE_MACHINE_PASS`，**不能宣告**东京真人 OIDC、跨独立物理 Host、正式 PA05 生产撤权/KMS、Human 签收或独立 EXPORT Job 已完成。生产 SAVE 仍 OFF。
