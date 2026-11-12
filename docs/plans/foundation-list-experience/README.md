@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 真实隔离 PostgreSQL 加密导出任务 CAS（尚未注册 Host）
+
+[Dictionary Owner 的异步 PG CAS + AES-GCM 私有快照/CSV + 元数据审计防篡改纵切与真实数据库 CI](CV04-ENCRYPTED-POSTGRES-EXPORT-JOB-20261112.md)：复用 CV-03 已有 PG 资源合同及同一 Dictionary Owner 状态机，不另造 Store/框架。**仅隔离测试 schema 与 test-only 加密适配器**，不可用作生产 SQL 准入、跨物理 Host/真实 OIDC 认证或独立导出 Capability 已上线的证据；N1 SAVE OFF。
+
 ## 2026-11-12 CV-04 Dictionary Owner 持久任务纵切（未注册生产接口）
 
 [独立 `dictionary.export` 授权、持久 CAS Job/审计、幂等/TTL/租约恢复、取文件再授权的隔离工程验收](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)：**已经有领域 Owner 服务和测试代码**，但无真实 Host 公开操作/产品入口；文件 CAS 不具备跨物理 Host 证明。必须补共享 Postgres / PA05 签收、持久加密与真实 Actor/企业/Agent 的端到端动作，才考虑正式部署。CV03 SAVE 仍 OFF。
