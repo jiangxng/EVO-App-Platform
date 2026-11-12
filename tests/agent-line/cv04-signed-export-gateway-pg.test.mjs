@@ -297,3 +297,73 @@ test("CV04 signed SQL: two runtime workers race on same CAS, loser cannot create
     console.log("CV04_SIGNED_PG_TWO_RUNTIME_CAS_ONE_AUDIT_WINNER_PASS");
   });
 });
+
+
+test("CV04 signed SQL: DB fences active Worker lease, max 2 attempts and signed TTL tombstone",realPG,async()=>{
+  await fixture(async({put,read,encrypted,raw,cryptoKey})=>{
+    const id="exj-"+randomBytes(24).toString("hex");
+    const job=buildJob(id);
+    job.expiresAt=new Date(Date.now()+3000).toISOString();
+    const created=encryptJob(job,cryptoKey,0);
+    assert.equal((await put(permit(created))).state,"QUEUED");
+    const unsafeLease={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+60000).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    await assert.rejects(put(permit(encryptJob(unsafeLease,cryptoKey,1,created))),
+      /CV04_GATEWAY_WORKER_LEASE_DENIED/);
+    assert.equal((await raw.get(addr(id))).revision,0);
+
+    const running={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+850).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const runDoc=encryptJob(running,cryptoKey,1,created);
+    assert.equal((await put(permit(runDoc))).revision,1);
+    const competing={...running,attempt:2,
+      leaseUntil:new Date(Date.now()+850).toISOString(),
+      audit:[...running.audit,event("STARTED")]};
+    await assert.rejects(put(permit(encryptJob(competing,cryptoKey,2,runDoc))),
+      /CV04_GATEWAY_WORKER_LEASE_DENIED/);
+    await new Promise(r=>setTimeout(r,990));
+
+    const staleResult={...running,state:"READY",pages:[],
+      csv:"\\uFEFFdictionaryId\\r\\nrow-01\\r\\n",
+      csvSha256:sha("old"),
+      audit:[...running.audit,event("COMPLETED",1,38),event("READY",1,38)]};
+    await assert.rejects(put(permit(encryptJob(staleResult,cryptoKey,2,runDoc))),
+      /CV04_GATEWAY_STALE_WORKER_COMPLETION_DENIED/);
+    assert.equal((await raw.get(addr(id))).revision,1);
+
+    const resumed={...running,attempt:2,
+      leaseUntil:new Date(Date.now()+850).toISOString(),
+      audit:[...running.audit,event("STARTED")]};
+    const resumedDoc=encryptJob(resumed,cryptoKey,2,runDoc);
+    assert.equal((await put(permit(resumedDoc))).revision,2);
+    const thirdAttempt={...resumed,attempt:3,
+      leaseUntil:new Date(Date.now()+850).toISOString(),
+      audit:[...resumed.audit,event("STARTED")]};
+    await assert.rejects(put(permit(encryptJob(thirdAttempt,cryptoKey,3,resumedDoc))),
+      /CV04_GATEWAY_SCOPE_BINDING_DENIED|CV04_GATEWAY_JOB_TRANSITION_DENIED/);
+
+    const expired={...resumed,state:"EXPIRED",pages:[],leaseUntil:undefined,
+      audit:[...resumed.audit,event("EXPIRED")]};
+    const expiredDoc=encryptJob(expired,cryptoKey,3,resumedDoc);
+    await assert.rejects(put(permit(expiredDoc,{
+      operationId:"dictionary.collection.export.job.expire"
+    })),/CV04_GATEWAY_PREMATURE_EXPIRY_DENIED/);
+    await new Promise(r=>setTimeout(r,
+      Math.max(0,Date.parse(job.expiresAt)-Date.now()+125)));
+    const cleanup=await put(permit(expiredDoc,{
+      operationId:"dictionary.collection.export.job.expire"
+    }));
+    assert.equal(cleanup.revision,3);
+    assert.equal(cleanup.state,"EXPIRED");
+    const persisted=await encrypted.get(addr(id));
+    assert.equal(persisted.payload.state,"EXPIRED");
+    assert.deepEqual(persisted.payload.pages,[]);
+    assert.equal(persisted.payload.csv,undefined);
+    assert.deepEqual((await read(id)).map(x=>x.stage),[
+      "REQUESTED","STARTED","STARTED","EXPIRED"]);
+    assert.equal((await raw.get(addr(id))).revision,3);
+    console.log("CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS");
+  });
+});
