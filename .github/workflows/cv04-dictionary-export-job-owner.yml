@@ -1,0 +1,56 @@
+name: CV04 Dictionary Export Job Owner Durable and Revocation
+
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/export-jobs.ts"
+      - "tests/protocol/cv04-dictionary-export-job-owner.test.mjs"
+      - ".github/workflows/cv04-dictionary-export-job-owner.yml"
+      - "docs/plans/foundation-list-experience/CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/export-jobs.ts"
+      - "tests/protocol/cv04-dictionary-export-job-owner.test.mjs"
+      - ".github/workflows/cv04-dictionary-export-job-owner.yml"
+      - "docs/plans/foundation-list-experience/CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dictionary-export-job-owner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Durable Owner job snapshot, CAS, fresh EXPORT permission and restart
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/protocol/cv04-dictionary-export-job-owner.test.mjs | tee /tmp/cv04-job-owner.log
+          grep -q 'CV04_DICTIONARY_EXPORT_OWNER_DURABLE_RESTART_205_ROWS_PASS' /tmp/cv04-job-owner.log
+          grep -q 'CV04_DICTIONARY_EXPORT_OWNER_SEPARATE_GRANT_REVOKE_DOWNLOAD_GATE_PASS' /tmp/cv04-job-owner.log
+          grep -q 'CV04_DICTIONARY_EXPORT_OWNER_HUMAN_AI_SCOPE_ISOLATION_PASS' /tmp/cv04-job-owner.log
+          grep -q 'ℹ pass 7' /tmp/cv04-job-owner.log
+      - name: Confirm no Host/manifest route activated and production SAVE locked
+        shell: bash
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const manifest=readFileSync("catalog/seed.ts","utf8");
+            const server=readFileSync("manager/server.ts","utf8");
+            if(manifest.includes("dictionary.collection.export.job.request")
+              || server.includes("dictionary.collection.export.job.request"))
+              throw Error("CV04_EXPORT_JOB_PREMATURELY_REGISTERED");
+            console.log("CV04_DICTIONARY_EXPORT_OWNER_NOT_PUBLICLY_REGISTERED_PASS");
+          '
