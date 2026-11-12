@@ -99,7 +99,9 @@ jobs:
           set -euo pipefail
           proof="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
             evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
-          set -euo pipefail
+          set -Eeuo pipefail
+          stage=VERIFY_PREVIEW
+          trap 'printf "CV03_N105C11_READONLY_FAILURE_STAGE=%s\n" "$stage" >&2' ERR
           test "$(id -un)" = evo-deploy
           cd /opt/evo-tokyo
           test -r compose.yaml && test -f .env && test -f .last-health-pass-sha
@@ -114,6 +116,7 @@ jobs:
           echo CV03_N105C11_EXISTING_PREVIEW_CONTAINERS_HEALTHY_PASS
           echo "CV03_N105C11_PREVIEW_LAST_HEALTHY_SHA=$sha"
 
+          stage=READ_LIVE_HOST_STATE
           # Parse only preselected metadata from *running* app container.
           # Never print environment values, policy rules, subject/enterprise ids,
           # file JSON, credentials, arbitrary Provider IDs, or business data.
@@ -176,6 +179,8 @@ jobs:
           }
           HOST_NODE
 
+          stage=READ_PG_CATALOG
+          echo CV03_N105C11_HOST_STAGE_COMPLETED_NO_WRITE >&2
           # PostgreSQL metadata only. Even the pre-existing SQL admin login is
           # forced into a read-only transaction. No business table contents.
           sqlout="$(docker compose exec -T --interactive=false \
@@ -204,6 +209,8 @@ jobs:
           ROLLBACK;
           SQL
           )"
+          stage=VERIFY_PG_CATALOG
+          echo CV03_N105C11_SQL_READONLY_QUERY_COMPLETED >&2
           grep -Fxq CV03_N105C11_ORIGINAL_DB=evo_dev <<< "$sqlout"
           grep -Fxq CV03_N105C11_SQL_SESSION_USER=evo <<< "$sqlout"
           grep -Eq '^CV03_N105C11_PG_VERSION_NUM=17[0-9]+$' <<< "$sqlout"
@@ -214,6 +221,7 @@ jobs:
           grep -Eq '^CV03_N105C11_NON_SYSTEM_SCHEMA_COUNT=[0-9]+$' <<< "$sqlout"
           grep -Fxq CV03_N105C11_NON_QA_T0_ROUTINE_COUNT=0 <<< "$sqlout"
           printf '%s\n' "$sqlout"
+          stage=COMPLETE
           echo CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS
           echo CV03_N105C11_NOT_PRODUCTION_OWNER_CERTIFICATION
           REMOTE
