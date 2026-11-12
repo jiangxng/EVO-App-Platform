@@ -120,6 +120,12 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "m->>'state' IS NULL OR m->>'state' NOT IN ('QUEUED','RUNNING') OR "+
         "(m->>'expiresAt')::timestamptz<=clock_timestamp() "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_JOB_NOT_ADMISSIBLE'; END IF; "+
+        "IF p_epoch IS NOT NULL AND ("+
+        "EXISTS (SELECT 1 FROM "+permits+" WHERE context_id=p_context "+
+          "AND job_id=p_job AND state='ISSUED' AND expires_at>clock_timestamp()) OR "+
+        "EXISTS (SELECT 1 FROM "+leases+" WHERE context_id=p_context "+
+          "AND job_id=p_job AND state='RUNNING' AND claimed_until>clock_timestamp())) "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_DISPATCH_BUSY'; END IF; "+
         "token:=replace(gen_random_uuid()::text,'-',''); "+
         "INSERT INTO "+permits+"(token_hash,context_id,job_id,enterprise_id,"+
         "subject_id,actor_type,job_revision,approval_id,authority_epoch,expires_at,state) "+
@@ -250,7 +256,51 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "ORDER BY (r.resource->'payload'->'meta'->>'expiresAt')::timestamptz,r.resource_id "+
         "LIMIT p_limit; "+
         "END; $$");
+      // Host-only metadata scan: no key, raw resource, rows, or ciphertext.
+      // SQL Host issue() serializes same-job approval with advisory lock.
+      await tx.unsafe("CREATE FUNCTION "+q+".cv04_export_runnable_jobs("+
+        "p_context text,p_limit integer) RETURNS TABLE("+
+        "job_id text,job_revision bigint,enterprise_id text,"+
+        "subject_id text,actor_type text,attempt integer) "+
+        "LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ "+
+        "BEGIN "+
+        "IF session_user <> '"+input.hostLoginRole+"' "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_HOST_LOGIN_REQUIRED'; END IF; "+
+        "IF p_context IS NULL OR p_context='' OR "+
+        "p_limit IS NULL OR p_limit<1 OR p_limit>25 "+
+        "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_RUNNABLE_SCOPE_INVALID'; END IF; "+
+        "RETURN QUERY "+
+        "SELECT r.resource_id,r.revision,"+
+        "m->>'enterpriseId',m->>'subjectId',m->>'actorType',"+
+        "(m->>'attempt')::integer "+
+        "FROM "+q+".resources r "+
+        "CROSS JOIN LATERAL (SELECT r.resource->'payload'->'meta' AS m) x "+
+        "LEFT JOIN "+leases+" l ON l.context_id=r.context_id "+
+          "AND l.job_id=r.resource_id "+
+        "WHERE r.context_id=p_context AND "+
+          "r.namespace='evo.dictionary.export-jobs' AND "+
+          "r.collection_id='bounded-csv-jobs' AND "+
+          "r.resource_type='evo.dictionary.export.job' AND "+
+          "r.resource->'payload'->>'kind'='dictionary.export-job.encrypted' AND "+
+          "m->>'contextId'=p_context AND m->>'jobId'=r.resource_id AND "+
+          "m->>'enterpriseId' IS NOT NULL AND m->>'subjectId' IS NOT NULL AND "+
+          "m->>'actorType' IN ('HUMAN','AI') AND "+
+          "m->>'expiresAt' IS NOT NULL AND "+
+          "(m->>'expiresAt')::timestamptz>clock_timestamp() AND "+
+          "NOT EXISTS (SELECT 1 FROM "+permits+" p WHERE "+
+            "p.context_id=r.context_id AND p.job_id=r.resource_id AND "+
+            "p.state='ISSUED' AND p.expires_at>clock_timestamp()) AND "+
+          "((m->>'state'='QUEUED' AND m->>'attempt'='0' AND "+
+             "l.context_id IS NULL) OR "+
+           "(m->>'state'='RUNNING' AND m->>'attempt'='1' AND "+
+             "m->>'leaseUntil' IS NOT NULL AND "+
+             "(m->>'leaseUntil')::timestamptz+interval '1 second'<=clock_timestamp() "+
+             "AND l.state='RUNNING' AND l.epoch=1 AND "+
+             "l.claimed_until+interval '1 second'<=clock_timestamp())) "+
+        "ORDER BY m->>'createdAt',r.resource_id LIMIT p_limit; "+
+        "END; $$");
       const defs=[
+        ["cv04_export_runnable_jobs","text,integer",host],
         ["cv04_export_due_jobs","text,integer",host],
         ["cv04_export_issue_lease","text,text,bigint,text,text,text,text,bigint",host],
         ["cv04_export_claim_lease","text",worker],
@@ -319,6 +369,36 @@ export function createIsolatedDictionaryExportSqlHostLeaseIssuerV010(input:{
       const rows=await sql.unsafe("SELECT "+schema+
         ".cv04_export_lease_status($1,$2) AS result",[contextId,jobId]);
       return rows[0]?.result??null;
+    },
+    /**
+     * Host-only bounded metadata. This discovery is NOT authorization: the
+     * dispatcher MUST independently recheck every job's live grant.
+     */
+    async runnable(contextId:string,limit:number=25):Promise<Array<{
+      jobId:string;expectedRevision:number;enterpriseId:string;
+      subjectId:string;actorType:"HUMAN"|"AI";attempt:number;
+    }>>{
+      if(typeof contextId!=="string"||!contextId||
+         !Number.isSafeInteger(limit)||limit<1||limit>25)
+        throw Error("CV04_EXPORT_SQL_RUNNABLE_SCOPE_INVALID");
+      const rows=await sql.unsafe("SELECT job_id,job_revision,enterprise_id,"+
+        "subject_id,actor_type,attempt FROM "+schema+
+        ".cv04_export_runnable_jobs($1,$2)",[contextId,limit]);
+      return rows.map(row=>{
+        if(typeof row.job_id!=="string"||!JOB.test(row.job_id)||
+          !Number.isSafeInteger(Number(row.job_revision))||
+          Number(row.job_revision)<0||
+          !["HUMAN","AI"].includes(row.actor_type)||
+          typeof row.enterprise_id!=="string"||!row.enterprise_id||
+          typeof row.subject_id!=="string"||!row.subject_id||
+          !Number.isSafeInteger(Number(row.attempt))||
+          ![0,1].includes(Number(row.attempt)))
+          throw Error("CV04_EXPORT_SQL_RUNNABLE_DISCOVERY_INVALID");
+        return {jobId:row.job_id,expectedRevision:Number(row.job_revision),
+          enterpriseId:row.enterprise_id,subjectId:row.subject_id,
+          actorType:row.actor_type as "HUMAN"|"AI",
+          attempt:Number(row.attempt)};
+      });
     },
     async due(contextId:string,limit:number=25):Promise<{jobId:string;expiresAt:string}[]>{
       if(typeof contextId!=="string"||!contextId||

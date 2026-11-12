@@ -176,3 +176,18 @@
 **安全选择与排除**：保留同一 Domain Owner、原 Resource CAS、原不可变 SQL Audit；不授予 Worker 跨任务明文/资源表 SELECT，不增加第三套 List/Gateway/Owner，不假装能用 test-only HMAC Key 认定生产 Host。真实 PA05/T0 的成员/企业/Feature 授权 Epoch 与不可变 Outbox、生产 KMS/decrypt 权属、双物理 Host 进程崩溃与网络分区、持久 Scheduler、正式 Human 与 Personal Agent 会话的下载时再授权以及 WAL/备份保留策略仍为 **C / 未验**。与 CV03 `N1=NOT_CERTIFIED`、SAVE OFF、正式 EXPORT OFF、#1184 受管文件不修改的既定决定完全兼容。
 
 新增证据不包括第三方网页原文（本窗口未作外部资料浏览），也未新增截图。每次后续交接均需凭 PR 最终 HEAD、受保护 main Actions、东京真实 release/HTTPS/认证与 Branch Hygiene 日志单独核验，不以前次 PR PASS 代替。
+
+
+## 11. NEXT-04 / 独立 Host SQL 会话派工与真实 Worker OS 进程崩溃重领（2026-11-12）
+
+本节增量记录本窗口**直接查阅的仓库原文**，不扩写成未访问的网络来源；遵守 A=已读源码/参考正文、B=原始 CI 记录、C=未验。
+
+| 等级 / 原始网址 / 查阅日期 | G：源事实 | D：工程决策及适用条件 |
+| --- | --- | --- |
+| A · [SQL Host/Worker Lease 原文件](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/apps/business-dictionary/export-job-pg-sql-lease.ts)（2026-11-12） | SQL Permit 30s、Lease 15s、Epoch 1→2、物理 SQL Host/Worker 登录隔离、资源 Scope/Revision 认证已实现，但没有真正的 Host-only Runnable Job 扫描。 | 在现有 Lease installer 内增加 `cv04_export_runnable_jobs`，限定 Host LOGIN，字段只含待授权派工 Metadata；新增活跃 ISSUED Permit/物理 RUNNING Lease 重叠签发拒绝，不引入独立调度 Lease 表。 |
+| A · [原 Domain Owner `run()`](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/apps/business-dictionary/export-jobs.ts)、[原 HMAC SQL Gateway](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/tools/cv04-isolated-signed-export-gateway.mjs)（2026-11-12） | Owner 实际可凭原缓存加密快照恢复业务执行，已有 SQL signed CAS 必须同时验证 Worker Epoch 与业务 Revision；Attempt=2 是不可越过的预算。 | 调度器不调用原资源表 DML、不允许直接控制 Owner 结果，必须经注入的现有 signed `runWork`，失败不标记 DONE，未来 sweep 才可在双 Lease 到期后重试。 |
+| A · [现有到期清理](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/apps/business-dictionary/export-job-pg-maintenance.ts)、[原 SQL Lease PG16 回归](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/tests/agent-line/cv04-export-host-worker-sql-lease.test.mjs)、[原签名 PG16 回归](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/tests/agent-line/cv04-signed-export-gateway-pg.test.mjs)（2026-11-12） | 到期清理只扫描 `expiresAt<=PG now` 的任务，不能表示 Runnable Job；先前测试由两独立 SQL 会话模拟重领而非实际 Worker OS 进程被终止。 | 单独增加 PostgreSQL meta-only Runnable 入口及真实 `node` 子进程 `SIGKILL` 测试；分别证明 Host 两个独立连接并发排队与不同 Worker 进程重领，不偷换成两台生产 Host 或跨网故障证明。 |
+
+**比较**：选择复用原 Permit/Lease/Epoch/Resource CAS 并由 PostgreSQL DB 时间判定一秒冷却；排除 Node 内存队列/自动重试、建立另一张工作租约、借用 CV03 Signed View Gate、把 SQL Host 元数据视为 live 授权或把 Worker SELECT 原表当任务读取。新增 `createIsolatedDictionaryExportPgDispatcherV010` 仅作为可显式调用的**一次 sweep**、要求每任务 fresh Host 审批；不是常驻调度服务。实现细节及负向验收入口记录在 [现有 SQL Host/Worker 纵切文档](CV04-SQL-HOST-WORKER-LEASE-20261112.md) NEXT-04。
+
+**待查 C / 界限**：真实不同物理 Host 节点崩溃/网络分区与一致性时钟、PA05/T0 事件认证、独立 KMS、长期任务唤醒服务、真实上线授权故障闭环、WAL/WORM/备份清理、Personal Agent 会话、正式 EXPORT/SAVE 准入仍未认证。下一步先验真实 PG16 和最终 HEAD CI；成功后单独核对 protected-main、东京 TLS/Basic Auth 与 Branch Hygiene。正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`，SAVE OFF，PR #1184 独占文件不碰。本轮无新增第三方网站资料/截图。
