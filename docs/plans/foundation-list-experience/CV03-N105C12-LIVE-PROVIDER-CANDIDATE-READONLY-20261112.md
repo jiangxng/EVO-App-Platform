@@ -32,3 +32,21 @@
 - **G 本轮已读正式源码**：`manager/server.ts` GET routes / resolveAuthorizationProvider 相关段，`manager/service.ts` listEffectiveServiceProviders，`manager/provider-resolution.ts`、`providers/authorization/package.ts`、N1-05c-11 已归档文件原文及原只读 workflow，2026-11-12。
 - **历史已有 G，本轮未重读物理日志**：N1-05c-11 Tokyo #43141987143 的原始日志已由上一 PR 文档归档；本次不升级其证据等级。
 - **P 尚未取得**：此次修改后的真实 main-only GET job 日志、独立 Owner 批准、持久生产 Provider 和真实 SQL Producer/KMS。没有新增外部网页；历史参考 URLs 不重新标为“已读原文”。
+
+## G / 2026-11-12 受保护 main 实际 Host GET 验收和清理（非生产认证）
+
+- [PR #1256](https://github.com/jiangxng/EVO-App-Platform/pull/1256) 精确最终 HEAD `fde27035b868c52112e3445052552c6cd6d30d00`，PR 阶段 **5 SUCCESS**（source syntax、Human UI、Lightweight Host、两次 Continuity）和 **1 SKIPPED**（main-only physical）。首次源语法检查曾 FAIL（[`#43144000676`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43144000676)），原始日志表明检查脚本定位 `HOST_RUNTIME` 时误命中自身 Python 源字符串；同一 PR 的第二提交改为匹配真实 heredoc 的独立行，修复后才通过。失败历史不抹除、不给它物理证明。
+- 源码经正常 Ready→Merge 合入 `main@5a0eedf634a9c997676e97a684528f45bd336d8b`。受保护 main 上新增 [Tokyo physical #43144446590](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43144446590) job `130938859928` **SUCCESS**。2026-11-12 02:53 UTC 已**读取 Job 原始日志**：既有 `CV03_N105C11_HOST_METADATA_READONLY_PASS`、`CV03_N105C11_REAL_ORIGINAL_PG_METADATA_READONLY_PASS`、`CV03_N105C11_PROTECTED_MAIN_PHYSICAL_READONLY_TERMINAL_PASS`，及新增的实际运行时输出：
+  - `CV03_N105C12_LIVE_EFFECTIVE_AUTH_PROVIDER_COUNT=1`
+  - `CV03_N105C12_LIVE_AUTH_BINDING_COUNT=0`
+  - `CV03_N105C12_STATIC_PROVIDER_CANDIDATE_PROVEN_PASS`
+  - `CV03_N105C12_RESOLVED_POLICY_AND_PG_T0_NOT_PROVEN`
+  - `CV03_N105C12_PROTECTED_MAIN_LIVE_PROVIDER_GET_READONLY_TERMINAL_PASS`
+- **最窄 G 结论**：当次真正运行的东京 Host 提供 exactly one 已知 `host.static-authorization` 有效候选、该 Capability 绑定数 0。**不代表实际 `resolveAuthorizationProvider` 处理一次业务请求时的选择、每条规则决策已获验证，更不代表真实持久 Pg 授权事实源**。使用真实 running deployment，但当前预览 `CV03_N105C11_PREVIEW_LAST_HEALTHY_SHA=0ab405611539881f8024b708e2f0b220db521326`，**不是**此次合并的 main。请勿把工作流 SHA 当已发布镜像 SHA。
+- [Branch Hygiene #43144447981](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43144447981) job `130938863504` **SUCCESS**；原始日志验证 `DELETED_VERIFIED_MERGED_PR_BRANCH ci/cv03-n105c12-tokyo-live-provider-candidates-20261112 @ fde27035b868c52112e3445052552c6cd6d30d00`。GitHub 分支 ref 也已不存在。[protected main Continuity #43144446695](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43144446695) SUCCESS；[东京 preview preflight #43144475327](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43144475327) SUCCESS、实际 deploy **SKIPPED**（workflow/docs-only 无镜像变更），不宣称发布。
+- 固定状态仍是 `N1=NOT_CERTIFIED`、SAVE OFF、正式 POST 403、未注册 GET 404；[`#1212`](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 的真实 PA05、AuthorizationProvider、DB、Security/Operations、Domain Owner 批准和正式 Schema/SQL Producer/KMS/跨物理 Host/完整 Scope 恢复合同仍缺失，[`#1184`](https://github.com/jiangxng/EVO-App-Platform/pull/1184) Owner 受管文档没有修改。
+- **来源分级更新**：以上标记现为本次**原始 protected-main Action 日志已读 G**，不是 PR 物理 SKIP 推断；此前文件的“P 尚未取得这次 main-only GET 日志”仅指合并前预期，此节取代该部分状态。未新增第三方原文资料或外部产品比较。
+
+### 实际接续
+
+真正的下一关是独立 Owner 在 #1212 签署**正式单一持久授权权威和 SQL Owner/Producer、签名密钥轮换、完整 Scope/tombstone/generation watermark、失败关闭和跨物理 Host 回滚合同**。静态 Provider 候选已可见，但继续开发另一套 QA Owner/绑定计数不会解决跨源 T0；尚未获批前不得挂载生产 Saved View/改 SAVE。
