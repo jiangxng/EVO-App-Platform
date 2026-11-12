@@ -135,26 +135,26 @@ function setup() {
   );
   manager.install(businessDictionaryPackage.packageId);
   manager.install(counterpartyPackage.packageId);
+  let authorizationOnline=true;
   const projectionService=createCounterpartyProjectionServiceV010({
     repository:counterparty,roleRepository:roles,responsibilityRepository:responsibilities,
-    resolveAuthorizationProvider:()=>auth,
+    resolveAuthorizationProvider:()=>authorizationOnline?auth:undefined,
     fieldIds:()=>["displayName","code","subjectType"]
   });
   const handlers=[
     ...createBusinessDictionaryActionHandlersV010({
       repository:dictionary,
-      canRead:(principal,contextId)=>principal.subjectId==="seller-a" && contextId===ENT_A,
+      canRead:(principal,contextId)=>authorizationOnline && principal.subjectId==="seller-a" && contextId===ENT_A,
       canManage:()=>false
     }),
     ...createCounterpartyProjectionActionHandlersV010({
       service:projectionService,resolveEnterpriseRelationshipKind:()=> "MEMBER"
     })
   ];
-  let authorizationOnline=true;
   const router=createAppActionRouter(handlers,
     featureId=>manager.getSnapshot().activeFeatures.some(x=>x.featureId===featureId),
     createCapabilityOperationActionPreExecuteV010({
-      manager,resolveAuthorizationProvider:()=>auth
+      manager,resolveAuthorizationProvider:()=>authorizationOnline?auth:undefined
     })
   );
   const agent=contextInput=>createPersonalAgentCapabilityToolRegistrationsV010({
