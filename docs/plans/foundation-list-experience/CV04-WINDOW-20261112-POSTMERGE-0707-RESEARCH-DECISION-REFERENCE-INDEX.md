@@ -314,3 +314,22 @@
 - 这次只是 known-name 源码防线，不是对所有动态 ActionRouter 入口的完整安全审计。已选择的**方案 A：同一 PostgreSQL ACID T0**不改变；本轮未新增生产授权源或 signer。
 - 继续等待 PA05 Lifecycle、AuthorizationProvider、PostgreSQL/DB、Security/Ops、Domain 五种具名 Owner 提供有效环境/角色/日期/来源 SHA/审批 URL、完整 Scope（企业、主体、Actor、Feature、Operation）、Epoch/Generation、Outbox/DENY/Tombstone、水印、最小权限 Producer/KMS、撤权及回滚证据。#1212 不可自行关闭。
 - 真正执行结果须以独立 Draft PR 精确 HEAD CI、受保护 main、东京运行镜像身份、Actions Branch Hygiene 原始证据更新；此处不预填 PASS。正式后台 EXPORT OFF/unregistered；CV03 N1=NOT_CERTIFIED，SAVE OFF。
+
+## 17. Window 08 自动续跑 #01/07：正式 EXPORT Operation 命名空间关闭守卫（2026-11-12）
+
+> 继承 §16，沿用同一 NEXT-05a gate、同一六项顶层对抗测试及同一研究索引；不是新安全框架、不是生产 Owner 授权。本增量由实际对照 SQL Gateway 操作枚举发现，原 #1289 三操作检查不完整。
+
+### G — 新直接查看的原文与冲突
+
+| 原文与等级 | 实际观察 | 决策用途 |
+| --- | --- | --- |
+| **A（main 原文）** [原隔离 Signed SQL Export Gateway](../../../tools/cv04-isolated-signed-export-gateway.mjs) 的 `cv04_export_signed_put` 校验分支 | `requested_op` 明确允许 `dictionary.collection.export.job.request`、`worker`、`download` 和 **`expire`**。它仍是一次性测试 Schema 与手动 Authority mirror，**没有生产 PA05/T0 接线**。 | `expire` 同属后台 Export 能力，不能由于未列在前三项而绕过正式未注册守卫。 |
+| **A（main 原文）** [CV04 NEXT-05a 旧关闭门禁](../../../tools/cv04-next05-production-authority-release-gate.mjs)、[旧六项对抗测试](../../../tests/agent-line/cv04-next05-production-authority-release-gate.test.mjs) | 旧 gate 仅检查 `request`/`worker`/`download` 三个全名在 `manager/server.ts` 与 `catalog/seed.ts` 中是否出现；只注册 `expire` 或未来新命名会被漏掉。 | 在**原 gate** 上由操作枚举收紧为整个 `dictionary.collection.export.job.` 前缀，两个正式源码入口均拒绝，原测试新增 expire 与未知后缀各 2 个注入负例。 |
+| **B（本轮 Live GitHub）** [Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[并行 PR #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) | #1212 仍 OPEN/PENDING，勾选框非具名生产批准；#1184 仍 OPEN。当前基础 main 为 `0fedfad19319155c27210173c19411877224c899`。 | 无生产 SQL/KMS/Host 变更、不修改 PR #1184 管理的文件。 |
+
+### D — 采用理由与限制
+
+- 选择**整个正式后台 job Operation 前缀**的负向守卫，而非继续手动枚举 SQL gateway 的 operation；它复用已经交付的 CV04 NEXT-05a CI/对抗测试，防止新 operation 名在未来静默遗漏。新增注入只增加原一项测试的内部场景，不改变六项顶层协议。
+- 该检查依然是指定 Manager/Catalog 源码的**字面字符串防线**；不构成 AST 级动态别名审计，也不能证明真实运行中所有未知 Action 不存在。Runtime 仍以此前 [Tokyo read-only](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md) 狭义现场证据为限。
+- 生产方向仍为**已选方案 A / 同 PostgreSQL ACID T0**。真实 PA05/AuthorizationProvider 完整 Scope、Authority Epoch、Source Generation、Outbox、DENY/Tombstone/水印、DB 低权 Producer、Signer/KMS 的身份、轮换、撤权、迁移与回滚必须由真实 Owner 独立具名签署；本轮代码不实现或宣称这些生产前置条件。
+- 精确 PR HEAD CI、受保护 main、东京 preflight/deploy SKIP 和 Branch Hygiene 结果须以真实执行日志分别追证，不提前填写 PASS。正式跨页 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`，SAVE OFF。
