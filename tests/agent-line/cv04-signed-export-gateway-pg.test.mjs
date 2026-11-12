@@ -458,3 +458,135 @@ test("CV04 signed SQL: DB fences active Worker lease, max 2 attempts and signed 
     console.log("CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS");
   });
 });
+
+
+const approval=(jobId,revision)=>({
+  contextId:ctx,jobId,expectedRevision:revision,
+  enterpriseId:enterprise,subjectId:subject,actorType:"HUMAN",
+  approvalId:"signed-host-"+randomUUID()
+});
+const physicalProof=(token,claim)=>({
+  workerLeaseEpoch:claim.epoch,workerLeaseTokenHash:md5(token)
+});
+
+test("CV04 fenced PG: physical Worker lease epoch and exact CAS revision both required for STARTED and READY",realPG,async()=>{
+  await fixture(async({put,raw,read,cryptoKey,host,workerA,client,q})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const created=encryptJob(job,cryptoKey,0);
+    assert.equal((await put(permit(created))).revision,0);
+    const token=await host.issue(approval(id,0));
+    const lease=await workerA.claim(token);
+    assert.equal(lease.expectedRevision,0);
+    assert.equal(lease.epoch,1);
+    const running={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const runDoc=encryptJob(running,cryptoKey,1,created);
+    await assert.rejects(put(permit(runDoc)),/CV04_GATEWAY_PHYSICAL_LEASE_PROOF_REQUIRED/);
+    await assert.rejects(put(permit(runDoc,{envelope:{
+      ...physicalProof(token,lease),workerLeaseEpoch:2
+    }})),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    await assert.rejects(put(permit(runDoc,{envelope:{
+      ...physicalProof(token,lease),workerLeaseTokenHash:"0".repeat(32)
+    }})),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    await assert.rejects(put(permit(runDoc,{expectedRevision:7,
+      envelope:physicalProof(token,lease)})),
+      /CV04_GATEWAY_PHYSICAL_LEASE_FENCED|ENTERPRISE_RESOURCE_REVISION_CONFLICT/);
+    assert.equal((await raw.get(addr(id))).revision,0);
+    assert.equal((await put(permit(runDoc,{envelope:physicalProof(token,lease)}))).revision,1);
+
+    const csv="\\uFEFFdictionaryId\\r\\nrow-01\\r\\n";
+    const ready={...running,state:"READY",pages:[],csv,csvSha256:sha(csv),
+      leaseUntil:undefined,
+      audit:[...running.audit,event("COMPLETED",1,csv.length),event("READY",1,csv.length)]};
+    const readyDoc=encryptJob(ready,cryptoKey,2,runDoc);
+    assert.equal((await put(permit(readyDoc,{
+      envelope:physicalProof(token,lease)
+    }))).state,"READY");
+    assert.equal(await workerA.complete(token,lease.epoch),"DONE");
+    assert.equal((await raw.get(addr(id))).revision,2);
+    assert.deepEqual((await read(id)).map(x=>x.stage),
+      ["REQUESTED","STARTED","COMPLETED","READY"]);
+    await assert.rejects(client.unsafe("SELECT * FROM "+q+".cv04_export_work_leases"),
+      /permission denied/);
+    console.log("CV04_SIGNED_PHYSICAL_LEASE_OWNER_REVISION_READY_ATOMIC_PASS");
+  },{physical:true});
+});
+
+test("CV04 fenced PG: concurrent reclaimed epoch denies stale Worker signed CAS and preserves one winner",realPG,async()=>{
+  await fixture(async({sql,q,put,raw,read,cryptoKey,host,workerA,workerB})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const created=encryptJob(job,cryptoKey,0);
+    await put(permit(created));
+    const token1=await host.issue(approval(id,0));
+    const lease1=await workerA.claim(token1);
+    const run1={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+1350).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const doc1=encryptJob(run1,cryptoKey,1,created);
+    assert.equal((await put(permit(doc1,{
+      envelope:physicalProof(token1,lease1)
+    }))).revision,1);
+    // Disposable PG clock simulation of an abandoned physical lease. Do not
+    // replace a real multi-Host/partition acceptance with this admin injection.
+    await new Promise(r=>setTimeout(r,1460));
+    await sql.unsafe("UPDATE "+q+".cv04_export_work_leases "+
+      "SET claimed_until=clock_timestamp()-interval '1 second' "+
+      "WHERE context_id=$1 AND job_id=$2",[ctx,id]);
+    const token2=await host.issue(approval(id,1));
+    const lease2=await workerB.claim(token2);
+    assert.equal(lease2.epoch,2);
+    await assert.rejects(workerA.complete(token1,1),
+      /CV04_EXPORT_SQL_STALE_LEASE_FENCE/);
+    const run2={...run1,attempt:2,
+      leaseUntil:new Date(Date.now()+6000).toISOString(),
+      audit:[...run1.audit,event("STARTED")]};
+    const doc2=encryptJob(run2,cryptoKey,2,doc1);
+    await assert.rejects(put(permit(doc2,{
+      envelope:physicalProof(token1,lease1)
+    })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id))).revision,1);
+    assert.equal((await put(permit(doc2,{
+      envelope:physicalProof(token2,lease2)
+    }))).revision,2);
+    const csv="\\uFEFFdictionaryId\\r\\nrow-01\\r\\n";
+    const ready={...run2,state:"READY",pages:[],csv,csvSha256:sha(csv),
+      leaseUntil:undefined,
+      audit:[...run2.audit,event("COMPLETED",1,csv.length),event("READY",1,csv.length)]};
+    const readyDoc=encryptJob(ready,cryptoKey,3,doc2);
+    await assert.rejects(put(permit(readyDoc,{
+      envelope:physicalProof(token1,lease1)
+    })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await put(permit(readyDoc,{
+      envelope:physicalProof(token2,lease2)
+    }))).revision,3);
+    assert.equal(await workerB.complete(token2,2),"DONE");
+    assert.deepEqual((await read(id)).map(x=>x.stage),
+      ["REQUESTED","STARTED","STARTED","COMPLETED","READY"]);
+    console.log("CV04_SIGNED_PHYSICAL_LEASE_RECLAIM_STALE_CAS_FENCED_PASS");
+  },{physical:true});
+});
+
+test("CV04 fenced PG: Host lease revoke and principal-wide epoch deny signed Worker write even if revision valid",realPG,async()=>{
+  await fixture(async({sql,q,put,raw,cryptoKey,host,workerA})=>{
+    const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id);
+    const created=encryptJob(job,cryptoKey,0);
+    await put(permit(created));
+    const token=await host.issue(approval(id,0));
+    const lease=await workerA.claim(token);
+    const running={...job,state:"RUNNING",attempt:1,
+      leaseUntil:new Date(Date.now()+7000).toISOString(),
+      audit:[...job.audit,event("STARTED")]};
+    const doc=encryptJob(running,cryptoKey,1,created);
+    const signed=permit(doc,{envelope:physicalProof(token,lease)});
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=false,authority_epoch=2 WHERE context_id=$1",[ctx]);
+    await assert.rejects(put(signed),/CV04_GATEWAY_PRINCIPAL_EPOCH_FENCED/);
+    await sql.unsafe("UPDATE "+q+".cv04_export_principal_fence "+
+      "SET enabled=true,authority_epoch=1 WHERE context_id=$1",[ctx]);
+    assert.equal(await host.revoke(ctx,id),"REVOKED");
+    await assert.rejects(put(signed),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+    assert.equal((await raw.get(addr(id))).revision,0);
+    console.log("CV04_SIGNED_PHYSICAL_LEASE_REVOKE_PRINCIPAL_DENY_PASS");
+  },{physical:true});
+});
