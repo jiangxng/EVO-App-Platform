@@ -34,3 +34,27 @@
 - 生产 EXPORT 仍关闭，Human/Personal Agent 正式登录、浏览器下载、跨两个物理 Host/T0/密钥轮换/受管 SQL 角色签核均未完成。不得把 GitHub runner 两 SQL LOGIN 误写成东京生产验收。
 
 研究来源：仅 2026-11-12 已直接阅读的仓库原文，涉及 `apps/object-extension/pa05-host-sql-permit.ts`、`apps/object-extension/pa05-physical-sql-guard.ts`、`providers/enterprise-context/resources-postgres.ts`、CV04 PG CAS、Host Capability 与原 PG 审计；没有补造新外部参考资料。最终状态以精确提交 SHA 的 GitHub CI 原始日志为准。
+
+
+## NEXT-04 / 2026-11-12：已有 SQL Permit/Lease 上的 Host-only 调度 sweep、崩溃重领与 DB 冷却
+
+> **独立隔离工程 NOT PRODUCTION ADMITTED。** #1282 合入 `main@42389e2dfe27b7ec959b3c6c57d8ee50b8d65647` 后接续。本阶段只扩展**原** `cv04_export_work_permits`、`cv04_export_work_leases` 和原签名 Owner CAS，没有新增调度租约、持久任务复制表、后台服务、PA05 授权源或 Host 产品路由。此前记录的 #1275 单独 SQL 物理围栏局限依旧是历史来源事实；后续 #1281/#1282 已在其它文档中补足签名 CAS/真实 Owner 的**隔离验证**，请以各自合并 SHA 区分前后。
+
+### A / 2026-11-12 直接查阅原始源码
+
+- [原 SQL Lease `main@42389e2...`](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/apps/business-dictionary/export-job-pg-sql-lease.ts)：真实 SQL Host `issue/revoke/status/due`、真实 SQL Worker `claim/complete/readCiphertext`。物理 `cv04_export_work_leases` 主键为 `(context_id,job_id)`，Epoch 仅为 1/2，短期 Permit 30s、物理 Worker Lease 15s，claim 使用 CAS+超时检查；原本**无**可扫描正在等待执行或可重领 Job 的最小 Host 元数据入口，也没有跨多个 Host 的常规调度 sweep。
+- [原签名 SQL CAS](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/tools/cv04-isolated-signed-export-gateway.mjs)、[实际 Domain Owner `run()`](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/apps/business-dictionary/export-jobs.ts)：只有带 Host HMAC、相同 Principal/Operation Epoch、有效物理 Worker Token+Epoch 和原 Job Resource Revision 才可写入，包括 Owner 真实 `RUNNING→RUNNING` 审计。原普通 `Owner.run` 在正常恢复时用自己可用的加密快照重跑，必须配合 `trustedSqlLeaseUntil` 而不能人为延长物理租约。
+- [原 TTL tombstone 维护](https://github.com/jiangxng/EVO-App-Platform/blob/42389e2dfe27b7ec959b3c6c57d8ee50b8d65647/apps/business-dictionary/export-job-pg-maintenance.ts)：已有独立 Host `due()` 只查到期记录，先撤销 Lease 再在共享 PG CAS 中 EXPIRED。它用于到期清理，不应复用为 Worker 调度候选或新增业务权限来源。
+
+### D / 选择和约束
+
+1. 同一个隔离物理 SQL Lease 安装器增加 **`cv04_export_runnable_jobs(context,limit)`**，`SECURITY DEFINER` + `session_user=hostLoginRole` + schema 最小 EXECUTE，范围最多 25 Job，只返回 opaque `jobId`、`expectedRevision`、Enterprise/Subject/Actor 与 Attempt，绝不返回快照、CSV、AES-GCM 密文、密钥或独立 Audit。Worker SQL 角色不得 EXECUTE，也不得 SELECT `resources/permit/lease`。候选为 QUEUED+Attempt=0+无物理 Lease，或 RUNNING+Attempt=1+物理 Lease Epoch=1 已到期且业务 Lease 同时到期；后者必须额外经过 **1 秒数据库墙钟冷却**。READY/FAILED/EXPIRED/Attempt=2 不再派工。
+2. Host `issue` 在带 `authorityEpoch` 的联合签名模式下，使用原 Job advisory transaction lock，在签发 Permit 前拒绝仍存在**未过期 ISSUED 许可**或**活跃 RUNNING 物理租约**，返回 `CV04_EXPORT_SQL_DISPATCH_BUSY`。两个 Host 可能先读到同一个候选，但最多只有一个 live issuer 得到有效派工；原七参数未盖章的独立 Lease QA 模式兼容。新 Permit 不等于授权：每个候选在签发前必须由调用者执行 live Host 审核并提供新审批 ID + 单调 `authorityEpoch`，不可把 DB Metadata 当真实 PA05/T0 授权。
+3. 新 `createIsolatedDictionaryExportPgDispatcherV010` 是 **`NODE_ENV=test + isolatedTestOnly:true`、主动调用的 bounded `sweep()`**，只使用现有 Host SQL `runnable/issue` 和 Worker SQL `claim/complete` 与注入的原签名 CAS `runWork`；每批 1–25、Worker 并发 1–4。失败后**绝不虚报 DONE、不用内存自动重试**：被杀的 Worker 的物理 Lease 留存于数据库，下一次 sweep 在双租约和冷却到期后、凭新 Host 授权进入 Epoch=2。第二次失败后达预算停止。不构建新进程常驻定时器、无记忆队列。
+4. 真 PostgreSQL16 CI 在同一临时 `cv03_*` schema 下使用两个独立 Host SQL 连接/调度 sweep 与**不同 Node OS 子进程 Worker**；第一 Worker claim 后由测试驱动 `SIGKILL`，其未完成的 RUNNING Job 经 HMAC 签名 CAS 保留。数据库注入物理 Lease 过期后若业务 Lease 尚未到期仍不得重领；经过数据库双租约 + 冷却，到新的 Worker 子进程 claim Epoch=2 且用原签名 SQL CAS 完成 READY + 元数据审计；旧 Token、旧 Epoch 不得完成。另一回归覆盖 Host live deny（不生成 Permit）、待领取 30s Permit 冷却、过期可重签、Worker 不得枚举和 Host revoke。
+5. 这证明的是**两个独立 Host 数据库连接**和**真实不同 Worker OS 进程**在隔离 PG16 的 fencing 与 bounded recovery，**不是**两个真正跨网络 Host 机器、网络分区/WAL 恢复、独立 KMS、持续 dispatch service 或生产签名身份认证。CI 人工模拟墙钟到期时只修改 Disposable PG 的物理租约，不能据此宣称真实 15 秒调度时效保证。
+
+### B/C：结果须按 GitHub 原始证据回填
+
+- B / 新 PR 的完整精确 HEAD PostgreSQL marker、复用 #1281/#1282 正常 Owner 13/13 原套件、原 SQL Host/Worker、Immutable Audit、AES-GCM、Chromium、CI、受保护 main、东京实际发布、Branch Hygiene **只在本次真实日志成功后确认**。请保留失败→修复记录，不以后一次绿灯覆盖此前问题。
+- C / 真实 PA05/T0 source/outbox 与撤权、物理 Host 身份、Signer/KMS、不同网络分区 Host、自动 cron/daemon、SLA、跨进程独立加密密钥保管、备份与 WORM 保留、真实 Human/Personal Agent 生产交互仍未认证；**正式 EXPORT OFF、CV03 N1=NOT_CERTIFIED、SAVE OFF，#1184 文件不动。**
