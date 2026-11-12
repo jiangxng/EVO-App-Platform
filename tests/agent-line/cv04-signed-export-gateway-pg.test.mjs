@@ -181,7 +181,7 @@ test("CV04 gateway SQL builder rejects unsafe non-isolated schemas",()=>{
     /CV04_EXPORT_GATEWAY_ISOLATED_SCHEMA_REQUIRED/);
 });
 test("CV04 signed SQL: EXECUTE-only Host proof creates ciphertext job and immutable audit in one transaction",realPG,async()=>{
-  await fixture(async({put,client,q,read,encrypted,cryptoKey})=>{
+  await fixture(async({put,client,q,read,encrypted,raw,cryptoKey})=>{
     const id="exj-"+randomBytes(24).toString("hex");
     const job=buildJob(id),doc=encryptJob(job,cryptoKey,0);
     const signed=permit(doc);
@@ -195,9 +195,11 @@ test("CV04 signed SQL: EXECUTE-only Host proof creates ciphertext job and immuta
     assert.equal(loaded.payload.pages[0].rows[0].cells.displayName,
       "Private CV04 Export Row");
     await assert.rejects(put(signed),/CV04_GATEWAY_REPLAY_OR_CONFLICT/);
-    const rawText=await client.unsafe("SELECT resource FROM "+q+".resources")
-      .then(x=>x[0]?.resource),neverSeen=rawText===undefined;
-    assert.ok(neverSeen);
+    await assert.rejects(client.unsafe("SELECT resource FROM "+q+".resources"),
+      /permission denied/);
+    const rawBytes=JSON.stringify((await raw.get(addr(id))).payload);
+    assert.ok(!rawBytes.includes("Private CV04 Export Row"),
+      "Encrypted JSONB must not expose readable Dictionary rows");
     const metadata=JSON.stringify((await encrypted.get(addr(id))).payload.audit);
     assert.ok(!metadata.includes("Private CV04 Export Row"));
     console.log("CV04_SIGNED_PG_EXECUTE_ONLY_CIPHERTEXT_ATOMIC_AUDIT_PASS");
