@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 Dictionary 独立 EXPORT Host Capability 受控装载（不进入正式 Host）
+
+[独立 `dictionary.export` 能力描述符及现有 Manager/Capability Fabric/ActionRouter/真实 Dictionary Owner Human/Agent 拒绝和授权回归](CV04-DICTIONARY-EXPORT-HOST-CAPABILITY-20261112.md)：动态能力目录、授权、撤权与 Feature 停用均在隔离测试装载；**没有正式 Host 注册、没有 Eidos 或 Agent 真实下载入口**。只有 SQL 签名准入、审计、KMS 与真实会话通过后才能发布；生产 SAVE OFF 不变。
+
 ## 2026-11-12 CV-04 PostgreSQL 原子不可变审计与 SQL 角色隔离（隔离证明）
 
 [Dictionary Export PG 原子审计触发器、独立 append-only 元数据表及真实低权限 SQL login 拒绝测试](CV04-PG-IMMUTABLE-EXPORT-AUDIT-20261112.md)：复用原 PG Enterprise Resource CAS，与任务 revision 在一个事务提交，不额外造业务 Store。审计触发器无法抵御 DB owner/superuser，实际 Host EXPORT Capability、生产 SQL gateway、数据加密密钥和多主机认证**尚未开放或完成**；保留 CV-03 N1 SAVE OFF。
