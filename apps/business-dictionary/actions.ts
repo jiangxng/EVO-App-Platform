@@ -116,7 +116,7 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
             download: {
               fileName: "business-dictionaries-page-" + (result.pageInfo.page + 1) + ".csv",
               mediaType: "text/csv;charset=utf-8",
-              content: "\\uFEFF" + csv
+              content: "\uFEFF" + csv
             },
             pageInfo: { page: result.pageInfo.page, rows: result.rows.length,
               hasMore: result.pageInfo.hasMore }
