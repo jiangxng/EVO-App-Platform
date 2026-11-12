@@ -23,3 +23,28 @@
 - **D 本次设计**：独立 CI、真实 Host 非生产静态身份 + 真浏览器自动下载、6 路矩阵、未授权/隐藏数据不泄漏和实际 CSV Artifact。新增文件在 CI green 前均为待验证实现。
 - **P 保留**：真实 Tokyo 登录用户、移动真机、手工键盘和屏幕阅读器、两个真实企业撤权、真实 LLM 自然语言 Agent 会话，及跨页安全 Export Job。不能称此条完成 CV04 或 List 基础插件。
 - **N1 与生产安全不受影响**：`N1=NOT_CERTIFIED`、`APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF`、SAVE POST 403 / 未注册 GET 404 保持；#1184 Owner 受管文档不改；User 免的是普通 List 开发逐步审批，不是突破数据库/KMS 生产安全。
+
+## 2026-11-12 主线实际证据追加（G：直接读取 GitHub Actions 和原始 Job Logs）
+
+- [工程 PR #1263](https://github.com/jiangxng/EVO-App-Platform/pull/1263) 最终 HEAD **`d588d96b1dcf25d541ca25997d18261f776a78b1`**，5/5 GitHub PR checks **SUCCESS**，执行 Draft→Ready→严格 expected HEAD merge，受保护 `main@8a7d3d6811ba7eccfd3d1d4984a82d77dc8d81ed`。
+- 保留首版 [Actions #43154790599](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43154790599) 的 **FAILURE**：测试初始化器将 `dictionary.draft.save` 的 Host 标准 `result.data.version` 误解成 `result.version`；这是 fixture contract 断言错误，不是 Dictionary Owner 保存失败。按已读原始源 `apps/business-dictionary/actions.ts` 修复后，重新跑最终 SHA；没有移除真实浏览器验收项。
+- 精确最终 HEAD [浏览器 Actions #43154945153](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43154945153)、job **`130972588345`** SUCCESS。已读取**原始 job log 终端输出**，并非从测试文件推断：
+  - `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:dictionary:1280`
+  - `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:my-customers:1280`
+  - `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:my-suppliers:1280`
+  - `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:dictionary:390`
+  - `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:my-customers:390`
+  - `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:my-suppliers:390`
+  - **`CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6`**
+  - `CV04_REAL_HOST_BROWSER_ARTIFACT_CONTRACT_PASS`
+- **已存实际截图/结果**：[Actions artifact `cv04-real-host-eidos-csv-chromium-evidence`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43154945153)，artifact ID `13915826586`、458745 bytes，包含 6 张浏览器 screenshot、JSON 验收结果和 fixture Host log。自动下载检查测试使用正常 Blob 文件，检查 UTF-8 BOM、当前页只有表头 + 1 行、前后页与其他责任人数据不能出现在 CSV、UI 当前列头一致、路由保留、无 JS page errors 和文档横向溢出。
+- 受保护主线复跑 [Actions #43155275632](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43155275632) job **`130973653156` SUCCESS**；已读取**原始 main 日志**，以上六个场景和两个总标记**再次全部出现**。主线 `Continuity`、`Protocol/Core`、`Lightweight Host` 全 SUCCESS。说明**该验收机制自身已经在受保护 main 上有效执行**，非仅 PR 测试脚本通过。
+- [Branch Hygiene #43155276801](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43155276801) job `130973656306` **SUCCESS**，已读取真实日志 `DELETED_VERIFIED_MERGED_PR_BRANCH test/cv04-real-host-chromium-csv-download-20261112 @ d588d96b1dcf25d541ca25997d18261f776a78b1`，经 GitHub branch matching-refs 校验已无过程分支。
+- 本批仅新增 `tools/cv04` 隔离 Host fixture、`tests/cv04` Chromium test、`.github/workflows/cv04-real-host-browser-csv.yml` 及文档，没有任何业务运行时代码变化，故 [东京自动发布 #43155305268](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43155305268) 正确 **preflight SUCCESS / deploy SKIPPED**；**上一次已证实部署的业务运行镜像仍是 `73b5875756a41b20d560cd1b2f95523efdf46f93`**，不把新的测试 main SHA 冒充线上镜像。
+
+## 阶段结论与下一次有效工作
+
+- 现在可标 **`CV04_CURRENT_PAGE_CSV_OWNER_ACTION_EIDOS_CHROMIUM_DESKTOP_PHONE_AUTOMATION_PASS`**：当前页下载在真实隔离 Host/Chromium 桌面 1280px 和手机模拟 390px 6/6 PASS，直接对比实际浏览器导出字节与原 Owner 授权范围。
+- **仍不能标 `HUMAN_PASS`**：没有真实 Tokyo 企业成员账号端到端登录/点击，没有物理手机 Safari/Android、键盘/辅助技术人工验收，也没有使用真实 LLM 的 Agent 自然语言对话。此界限在完成全 List 插件之前始终保留，不以“模拟触控”替代“物理手机”。
+- **下一步优先级**：补实际多企业/撤权 UI 会话及个人代理自然语言调用的非生产 Host 负例与浏览器证据；然后做有单独 Owner `EXPORT` 权限、完整 Snapshot 一致性、字段/行范围、审计、TTL 和任务预算的真正安全**跨页/大数据导出**。不能在前端循环分页伪装正式导出，也不能随意复活生产 CV-03 `SAVE`。
+- 资料等级：**G**=上述 Actions、实际源码和真实 job logs（2026-11-12）；**D**=此阶段结论/下一步工程判断；**P**=真实员工、实机、跨企业实际撤权、Agent 自然语言及生产 Export Job。新增网页材料无，未补造网络原文出处。
