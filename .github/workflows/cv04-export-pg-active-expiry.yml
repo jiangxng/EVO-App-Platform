@@ -1,0 +1,96 @@
+name: CV04 PostgreSQL Export Active TTL Purge and Audit
+
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/export-job-pg-maintenance.ts"
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
+      - "apps/business-dictionary/export-job-pg-store.ts"
+      - "tests/agent-line/cv04-export-pg-active-expiry-maintenance.test.mjs"
+      - ".github/workflows/cv04-export-pg-active-expiry.yml"
+      - "docs/plans/foundation-list-experience/CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/export-job-pg-maintenance.ts"
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
+      - "apps/business-dictionary/export-job-pg-store.ts"
+      - "tests/agent-line/cv04-export-pg-active-expiry-maintenance.test.mjs"
+      - ".github/workflows/cv04-export-pg-active-expiry.yml"
+      - "docs/plans/foundation-list-experience/CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  active-expiry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cv04_ci
+          POSTGRES_PASSWORD: cv04_ci_disposable
+          POSTGRES_DB: cv04_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cv04_ci -d cv04_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      CV04_EXPORT_TEST_DATABASE_URL: postgres://cv04_ci:cv04_ci_disposable@127.0.0.1:5432/cv04_ci
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Real PostgreSQL encrypted TTL purge, physical Host due discovery and atomic EXPIRED audit
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/agent-line/cv04-export-pg-active-expiry-maintenance.test.mjs \
+            | tee /tmp/cv04-active-expiry.log
+          grep -q CV04_EXPORT_PG_ACTIVE_TTL_READY_QUEUED_PURGE_AUDIT_PASS /tmp/cv04-active-expiry.log
+          grep -q CV04_EXPORT_PG_ACTIVE_TTL_TWO_CONNECTION_SINGLE_EXPIRE_PASS /tmp/cv04-active-expiry.log
+          grep -q CV04_EXPORT_PG_ACTIVE_TTL_REVOKE_TENANT_FAILCLOSED_PASS /tmp/cv04-active-expiry.log
+          grep -q 'ℹ pass 4' /tmp/cv04-active-expiry.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-active-expiry.log
+      - name: Existing real PG physical lease, encrypted CAS and immutable audit remain green
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test \
+            tests/agent-line/cv04-export-host-worker-sql-lease.test.mjs \
+            tests/agent-line/cv04-dictionary-export-job-pg-encrypted.test.mjs \
+            tests/agent-line/cv04-dictionary-export-pg-immutable-audit.test.mjs \
+            | tee /tmp/cv04-pg-existing-regression.log
+          grep -q 'ℹ pass 14' /tmp/cv04-pg-existing-regression.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-pg-existing-regression.log
+      - name: Original Dictionary Owner contract unchanged
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/protocol/cv04-dictionary-export-job-owner.test.mjs \
+            | tee /tmp/cv04-owner-regression.log
+          grep -q 'ℹ pass 8' /tmp/cv04-owner-regression.log
+      - name: Prove no live Host export or CV03 N1 SAVE admission opened
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const h=readFileSync("manager/server.ts","utf8");
+            const m=readFileSync("catalog/seed.ts","utf8");
+            const s=readFileSync("apps/business-dictionary/export-job-pg-maintenance.ts","utf8");
+            if(h.includes("dictionary.collection.export.job.request")
+              ||m.includes("dictionary.collection.export.job.request")
+              ||!s.includes("CV04_EXPORT_MAINTENANCE_PRODUCTION_DISABLED"))
+              throw Error("CV04_EXPORT_EXPIRY_PUBLIC_RELEASE_GUARD_FAILED");
+            console.log("CV04_EXPORT_ACTIVE_EXPIRY_NO_LIVE_HOST_ROUTE_PASS");
+          '
