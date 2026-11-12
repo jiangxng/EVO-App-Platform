@@ -109,11 +109,11 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "namespace='evo.dictionary.export-jobs' AND "+
         "collection_id='bounded-csv-jobs' AND "+
         "resource_type='evo.dictionary.export.job' AND resource_id=p_job; "+
-        "IF NOT FOUND OR record_revision<>p_revision OR "+
+        "IF NOT FOUND OR m IS NULL OR record_revision<>p_revision OR "+
         "m->>'contextId'<>p_context OR m->>'jobId'<>p_job OR "+
         "m->>'enterpriseId'<>p_enterprise OR "+
         "m->>'subjectId'<>p_subject OR m->>'actorType'<>p_actor OR "+
-        "m->>'state' NOT IN ('QUEUED','RUNNING') OR "+
+        "m->>'state' IS NULL OR m->>'state' NOT IN ('QUEUED','RUNNING') OR "+
         "(m->>'expiresAt')::timestamptz<=clock_timestamp() "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_JOB_NOT_ADMISSIBLE'; END IF; "+
         "token:=replace(gen_random_uuid()::text,'-',''); "+
@@ -142,7 +142,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "AND collection_id='bounded-csv-jobs' AND "+
         "resource_type='evo.dictionary.export.job' AND "+
         "resource_id=permit.job_id FOR SHARE; "+
-        "IF NOT FOUND OR current_revision<>permit.job_revision OR "+
+        "IF NOT FOUND OR m IS NULL OR current_revision<>permit.job_revision OR "+
         "m->>'contextId'<>permit.context_id OR "+
         "m->>'enterpriseId'<>permit.enterprise_id OR "+
         "m->>'subjectId'<>permit.subject_id OR "+
@@ -184,7 +184,7 @@ export async function prepareIsolatedDictionaryExportSqlLeaseV010(input:{
         "namespace='evo.dictionary.export-jobs' AND "+
         "collection_id='bounded-csv-jobs' AND "+
         "resource_type='evo.dictionary.export.job' AND resource_id=permit.job_id; "+
-        "IF NOT FOUND OR m->>'state'<>'READY' OR "+
+        "IF NOT FOUND OR m IS NULL OR m->>'state' IS DISTINCT FROM 'READY' OR "+
         "(m->>'expiresAt')::timestamptz<=clock_timestamp() "+
         "THEN RAISE EXCEPTION 'CV04_EXPORT_SQL_OWNER_NOT_READY'; END IF; "+
         "UPDATE "+leases+" SET state='DONE' WHERE "+
