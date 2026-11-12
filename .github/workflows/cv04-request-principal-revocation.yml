@@ -1,0 +1,67 @@
+name: CV04 Request-Bound Human AI Governance CSV Revocation
+
+on:
+  pull_request:
+    paths:
+      - "tools/cv04/real-host-request-principal-revocation.mjs"
+      - ".github/workflows/cv04-request-principal-revocation.yml"
+      - "docs/plans/foundation-list-experience/CV04-REQUEST-BOUND-PRINCIPAL-REVOKE-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "tools/cv04/real-host-request-principal-revocation.mjs"
+      - ".github/workflows/cv04-request-principal-revocation.yml"
+      - "docs/plans/foundation-list-experience/CV04-REQUEST-BOUND-PRINCIPAL-REVOKE-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  request-bound-governance-revoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Actual Host, distinct request Principal Sessions and governance revoke
+        run: |
+          mkdir -p artifacts/cv04-request-principal-revoke
+          node tools/cv04/real-host-request-principal-revocation.mjs \
+            > artifacts/cv04-request-principal-revoke/terminal.log 2>&1 || {
+            cat artifacts/cv04-request-principal-revoke/terminal.log
+            exit 1
+          }
+          cat artifacts/cv04-request-principal-revoke/terminal.log
+          grep -qx 'CV04_REQUEST_BOUND_PRINCIPALS_GOVERNANCE_REVOKE_PASS' \
+            <(grep 'CV04_REQUEST_BOUND_PRINCIPALS_GOVERNANCE_REVOKE_PASS' \
+            artifacts/cv04-request-principal-revoke/terminal.log)
+      - name: Verify no production identity or missing revocation evidence
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const p=JSON.parse(readFileSync(
+              "artifacts/cv04-request-principal-revoke/result.json","utf8"));
+            if(!p.notProduction||!p.noCustomerData||p.enterpriseCount!==2
+              || p.principals?.length!==3||!p.bearerTokensRedacted
+              || !p.relationshipEventRevoked||!p.revokedGrantConfirmed
+              || !p.staleSessionDenied||p.independentExportPermissionCertified!==false)
+              throw new Error("CV04_REQUEST_PRINCIPAL_EVIDENCE_CONTRACT_FAILED");
+            console.log("CV04_REQUEST_PRINCIPAL_EVIDENCE_CONTRACT_PASS");
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cv04-request-principal-governance-revocation
+          path: artifacts/cv04-request-principal-revoke/
+          if-no-files-found: warn
