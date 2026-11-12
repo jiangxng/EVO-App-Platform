@@ -1,0 +1,96 @@
+name: CV04 Retire Subsumed PR1276 Ref (SHA-pinned one-time)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cv04-retire-pr1276-subsumed.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  retire-equivalent-conflicted-ref:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Verify old PR closed, all source files equivalent, no active refs, then delete only pinned ref
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner,repo}=context.repo;
+            const branch='feat/cv04-export-pg-active-expiry-maintenance-20261112';
+            const expected='8ffd6efa3a327417d2d0a147cf78a93d5084c3c0';
+            const exact=[
+              '.github/workflows/cv04-export-pg-active-expiry.yml',
+              'apps/business-dictionary/export-job-pg-maintenance.ts',
+              'apps/business-dictionary/export-job-pg-sql-lease.ts',
+              'apps/business-dictionary/export-job-pg-store.ts',
+              'docs/plans/foundation-list-experience/CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md',
+              'tests/agent-line/cv04-export-pg-active-expiry-maintenance.test.mjs'
+            ];
+            const read=async(path,ref)=>{
+              const {data}=await github.rest.repos.getContent({owner,repo,path,ref});
+              if(Array.isArray(data)||data.type!=='file'||typeof data.content!=='string')
+                throw Error('CV04_1276_NOT_A_FILE '+path);
+              return {sha:data.sha,text:Buffer.from(data.content,'base64').toString('utf8')};
+            };
+            const pr=(await github.rest.pulls.get({owner,repo,pull_number:1276})).data;
+            if(pr.state!=='closed'||pr.merged||pr.head.ref!==branch||
+               pr.head.sha!==expected||pr.base.ref!=='main')
+              throw Error('CV04_1276_PR_NOT_RETIRED_OR_HEAD_CHANGED');
+            const changed=await github.paginate(github.rest.pulls.listFiles,{
+              owner,repo,pull_number:1276,per_page:100
+            });
+            const names=changed.map(x=>x.filename).sort();
+            const approved=[...exact,'docs/plans/foundation-list-experience/README.md'].sort();
+            if(JSON.stringify(names)!==JSON.stringify(approved))
+              throw Error('CV04_1276_UNEXPECTED_CHANGED_FILES');
+            const ref=async()=>{
+              try {return (await github.rest.git.getRef({
+                owner,repo,ref:'heads/'+branch
+              })).data.object.sha;}
+              catch(e){if(e.status===404)return null;throw e;}
+            };
+            const original=await ref();
+            if(original===null){core.info('CV04_1276_ALREADY_ABSENT');return;}
+            if(original!==expected)throw Error('CV04_1276_PIN_MISMATCH');
+            const b=(await github.rest.repos.getBranch({owner,repo,branch})).data;
+            if(b.protected)throw Error('CV04_1276_PROTECTED_BRANCH');
+            const open=await github.paginate(github.rest.pulls.list,{
+              owner,repo,state:'open',per_page:100
+            });
+            if(open.some(p=>p.base.ref===branch||
+               (p.head.repo?.full_name===owner+'/'+repo&&p.head.ref===branch)))
+              throw Error('CV04_1276_ACTIVE_PR_REFERENCE');
+            const main=(await github.rest.repos.getBranch({
+              owner,repo,branch:'main'
+            })).data.commit.sha;
+            for(const path of exact){
+              const old=await read(path,expected);
+              const now=await read(path,main);
+              if(old.sha!==now.sha)
+                throw Error('CV04_1276_UNABSORBED_FILE '+path);
+              core.info('CV04_1276_BLOB_EQUIVALENT '+path+' @ '+old.sha);
+            }
+            // The README conflicted with merged #1274. All its prior nonblank
+            // lines survive except one rewritten link that still documents
+            // the same TTL feature and explicit production-OFF boundaries.
+            const readme='docs/plans/foundation-list-experience/README.md';
+            const oldR=(await read(readme,expected)).text;
+            const newR=(await read(readme,main)).text;
+            const current=new Set(newR.split('\n').map(x=>x.trim()));
+            const missing=oldR.split('\n').map(x=>x.trim()).filter(
+              x=>x.length>0&&!current.has(x));
+            if(missing.length!==1||
+               !missing[0].includes('CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md')||
+               !newR.includes('CV04-ACTIVE-EXPORT-TTL-MAINTENANCE-20261112.md')||
+               !newR.includes('正式 EXPORT 仍不注册')||
+               !newR.includes('CV03 N1 SAVE OFF'))
+              throw Error('CV04_1276_README_NOT_SEMANTICALLY_ABSORBED');
+            if(await ref()!==expected)throw Error('CV04_1276_REF_MOVED_BEFORE_DELETE');
+            await github.rest.git.deleteRef({owner,repo,ref:'heads/'+branch});
+            core.info('CV04_1276_SUBSUMED_SHA_PINNED_BRANCH_DELETED '+branch+' @ '+expected);
