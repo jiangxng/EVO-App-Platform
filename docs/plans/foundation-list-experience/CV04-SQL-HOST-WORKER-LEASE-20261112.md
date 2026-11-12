@@ -82,3 +82,9 @@
 - B / [NEXT-04b PR 入口待确认](https://github.com/jiangxng/EVO-App-Platform/pulls)：真 PostgreSQL 测试正覆盖轮询 stop/restart、OS Host crash、旧签名 Epoch fencing、原 Owner/audit/加密回归。**不能预填 CI success、main SHA 或东京健康标记**，每次应在 GitHub log 里找到 PASS marker 与 zero skip。
 - C / 尚未完成的真实两个物理 Host/网络分区、真实 PA05/T0 授权签名与失联反应、Signer/KMS、持久 supervisor 服务注册、长期独立心跳 SLA、租约时间的真实物理时钟漂移/跨机器 DB 长尾、备份 WAL/保留策略、Human/Agent 生产会话认证均为未认证。独立进程试验依靠 GitHub Runner 内临时 SQL LOGIN，不等于生产身份。
 - 原禁令不变：**正式 EXPORT OFF/unregistered；CV03 `N1=NOT_CERTIFIED`、SAVE OFF；不触碰 PR #1184 文件**。
+
+
+### B — 已读取的第一轮真实 PG16 CI（2026-11-12；随后文档提交必须重跑）
+
+- [PR #1284 / 实际 PostgreSQL16 Workflow #43204722304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43204722304)，[原始 job #131136864897](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43204722304/job/131136864897)，测试代码 HEAD `16389bd7bccbdc6f70826cf89b56f23513a41421`：`CV04_POLL_SINGLE_FLIGHT_BACKOFF_STOP_FAILCLOSED_PASS`、`CV04_PG_POLL_STOP_RESTART_EPOCH_RECLAIM_READY_PASS`、`CV04_INDEPENDENT_HOST_OS_PROCESS_RESTART_EPOCH_FENCE_PASS` **均在真正测试输出出现**，签名/派工/Host PID 回归 **18/18 PASS、0 FAIL、0 SKIP**。原真实 PG immutable audit **5/5**、AES-GCM CAS **5/5**、Domain Owner **8/8**，并输出 `CV04_SIGNED_EXPORT_NOT_PUBLISHED_TO_HOST_PASS`。
+- 这只是**第一轮有代码的 HEAD** 证据。补充此段、索引后会产生新的最终 PR HEAD，应当再逐项核验最终 HEAD 全绿，不能沿用旧记录认定新 HEAD 已验收。Protected `main` 的 merge SHA、东京镜像身份、公开 HTTPS/Basic Auth 及过程分支仍需合并后另行核实。
