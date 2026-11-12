@@ -120,7 +120,7 @@ export function createIsolatedDictionaryExportPgMaintenanceV010(input:{
             ownerPackageId:OWNER,storageKind:"DOCUMENT",
             payload:JSON.parse(JSON.stringify(redacted)) as EnterpriseResourceJsonV010,
             actorSubjectId:CV04_EXPORT_MAINTENANCE_ACTOR_V010,
-            recordedAt:time,expectedRevision:found.revision
+            recordedAt:time,expectedRevision:found.revision!
           });
           report.expired++;
           committed=true;
