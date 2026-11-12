@@ -31,7 +31,7 @@ const request=(key="key_export_001",fields=["dictionaryId","displayName"])=>({
 });
 function setup(opts={}){
   const resources=opts.resources??createMemoryEnterpriseResourceRepositoryV010();
-  const repository=createBusinessDictionaryRepositoryV010(opts.repositoryResources??resources);
+  const repository=opts.repository??createBusinessDictionaryRepositoryV010(opts.repositoryResources??resources);
   let time=Date.parse("2026-11-12T00:00:00.000Z");
   const live=new Set(["owner","member","owner:AI","member:AI"]);
   let exportGranted=true,featureActive=true;
@@ -176,7 +176,13 @@ test("CV04 real fixed-snapshot expiry deletes bytes, with no resurrected idempot
   assert.equal(same.state,"EXPIRED");
 });
 test("CV04 budget, malformed and private column requests fail before persistent job exists",async()=>{
-  const h=setup();h.seed(1001);const owner=h.make(),ctx=context();
+  // Large row-budget rejection requires only a genuine Owner-shaped list;
+  // avoid creating 2002 unrelated persisted dictionary history revisions.
+  const large=Array.from({length:1001},(_,i)=>({
+    dictionaryId:"d"+String(i).padStart(4,"0"),
+    displayName:"Visible "+i,state:"PUBLISHED",version:1,options:[]
+  }));
+  const h=setup({repository:{list:()=>large}});const owner=h.make(),ctx=context();
   await assert.rejects(owner.request(ctx,request()),/COLLECTION_EXPORT_ROW_BUDGET_EXCEEDED/);
   for(const input of [
     request("abc",["dictionaryId"]),request("key_test_005",["options"]),
