@@ -1,0 +1,67 @@
+name: CV04 Dictionary Independent EXPORT Host Capability Staging
+
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/export-capability.ts"
+      - "tests/protocol/cv04-dictionary-export-host-capability.test.mjs"
+      - ".github/workflows/cv04-dictionary-export-host-capability.yml"
+      - "docs/plans/foundation-list-experience/CV04-DICTIONARY-EXPORT-HOST-CAPABILITY-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/export-capability.ts"
+      - "tests/protocol/cv04-dictionary-export-host-capability.test.mjs"
+      - ".github/workflows/cv04-dictionary-export-host-capability.yml"
+      - "docs/plans/foundation-list-experience/CV04-DICTIONARY-EXPORT-HOST-CAPABILITY-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staged-export-capability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Actual Manager CapabilityFabric + ActionRouter + Dictionary Owner Human/AI export gate
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/protocol/cv04-dictionary-export-host-capability.test.mjs \
+            | tee /tmp/cv04-host-export-capability.log
+          grep -q 'CV04_HOST_CAPABILITY_EXPORT_DISCOVERY_READ_DENY_ACTOR_PARITY_PASS' /tmp/cv04-host-export-capability.log
+          grep -q 'CV04_HOST_CAPABILITY_REAL_OWNER_HUMAN_AI_REVOKE_DISABLED_PASS' /tmp/cv04-host-export-capability.log
+          grep -q 'ℹ pass 4' /tmp/cv04-host-export-capability.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-host-export-capability.log
+      - name: Existing Owner/EXPORT budget contracts still pass
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/protocol/cv04-dictionary-export-job-owner.test.mjs \
+            tests/protocol/cv04-cross-page-export-budget.test.mjs \
+            | tee /tmp/cv04-owner-contract.log
+          grep -q 'ℹ pass 15' /tmp/cv04-owner-contract.log
+      - name: No new live Host or seed manifest route; no CV03 SAVE unlock
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const h=readFileSync("manager/server.ts","utf8");
+            const m=readFileSync("catalog/seed.ts","utf8");
+            const d=readFileSync("apps/business-dictionary/export-capability.ts","utf8");
+            if(h.includes("dictionary.collection.export.job.request")
+              ||m.includes("dictionary.collection.export.job.request")
+              ||!d.includes("Deliberately NOT registered"))
+              throw Error("CV04_EXPORT_HOST_CAPABILITY_PREMATURELY_ACTIVATED");
+            console.log("CV04_STAGED_EXPORT_CAPABILITY_NOT_IN_LIVE_HOST_PASS");
+          '
