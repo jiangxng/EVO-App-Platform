@@ -204,3 +204,9 @@
 | A / [原 NEXT-04 部署与研究约束](https://github.com/jiangxng/EVO-App-Platform/blob/e68928ed4ee600e7a0ef09e6fdaa5db3db590ca0/docs/plans/foundation-list-experience/CV04-SQL-HOST-WORKER-LEASE-20261112.md) / 2026-11-12 | Host 仍无生产签名授权 outbox 与 KMS，调度是 isolate-only；没有物理异地时钟/网络分区 SLA。 | 继续保持正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`/SAVE OFF，禁改并行 #1184 所有权文件。 |
 
 **工程状态和证据分界**：本次最终 HEAD 的真实 PG16 新 marker、含原有审计/Owner 的 full regression、main/东京/Branch Hygiene 应在 Actions 原文看见后再列为 B=已读日志；还未发生时属于 C=待验证。失联后自动恢复当前仅由测试显式启动新 Host 进程（不是 supervisor 自主重启）；真实 PA05/T0 授权源、跨机网络分区、受管 Cron/daemon、完整生产 Owner Signer/KMS、Human/Agent 正式功能均是 C=未验。本节没有外网第三方研究，也没有新的截图/附件。
+
+
+### B / NEXT-04b 第一轮原始测试证据（2026-11-12）
+
+- [PR #1284 第一轮原始 PG16 Actions #43204722304](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43204722304) / [源日志 job #131136864897](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43204722304/job/131136864897)，源代码 HEAD `16389bd7bccbdc6f70826cf89b56f23513a41421`：真实日志 `CV04_POLL_SINGLE_FLIGHT_BACKOFF_STOP_FAILCLOSED_PASS`、`CV04_PG_POLL_STOP_RESTART_EPOCH_RECLAIM_READY_PASS`、`CV04_INDEPENDENT_HOST_OS_PROCESS_RESTART_EPOCH_FENCE_PASS`，签名+巡检 **18/18 PASS，0 FAIL，0 SKIP**；不可变 Audit **5/5**、加密 PG CAS **5/5**、Owner **8/8**；`CV04_SIGNED_EXPORT_NOT_PUBLISHED_TO_HOST_PASS`。使用独立真实 Node Host OS 子进程，在 disposable PG 内模拟物理 Lease 超时，测试父进程仍保留 CI 签名材料；这不认证生产 signer 的失败恢复。
+- 该记录不覆盖此后研究文档更新产生的最终 HEAD；待最终 HEAD CI 全绿、merge protected `main`、东京实际发布和 Branch Hygiene 核实后，应在 PR post-merge evidence 评论按准确 SHA 归档。来源没有额外网页搜索、付费资料或截图；尚未研究的跨物理机网络分区/时钟漂移不冒充已测。
