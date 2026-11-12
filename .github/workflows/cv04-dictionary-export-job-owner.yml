@@ -41,7 +41,8 @@ jobs:
           grep -q 'CV04_DICTIONARY_EXPORT_OWNER_DURABLE_RESTART_205_ROWS_PASS' /tmp/cv04-job-owner.log
           grep -q 'CV04_DICTIONARY_EXPORT_OWNER_SEPARATE_GRANT_REVOKE_DOWNLOAD_GATE_PASS' /tmp/cv04-job-owner.log
           grep -q 'CV04_DICTIONARY_EXPORT_OWNER_HUMAN_AI_SCOPE_ISOLATION_PASS' /tmp/cv04-job-owner.log
-          grep -q 'ℹ pass 7' /tmp/cv04-job-owner.log
+          grep -q 'CV04_DICTIONARY_EXPORT_OWNER_SNAPSHOT_DOWNLOAD_BUDGET_PASS' /tmp/cv04-job-owner.log
+          grep -q 'ℹ pass 8' /tmp/cv04-job-owner.log
       - name: Confirm no Host/manifest route activated and production SAVE locked
         shell: bash
         run: |
