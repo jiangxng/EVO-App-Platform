@@ -227,3 +227,10 @@
 **比较与排除（D）**：采用复用上游 Owner evidence gate + 增加 CV04 产品入口/Stage 关闭一致性检查；不采用从静态 Policy `ALLOW` 直接签发 Export、用 QA SQL LOGIN/手工 mirror 充当 T0、拷贝测试 HMAC 作生产 KMS、把五个勾选框当审批、创建另一套 Owner 审批/调度框架。保留 Human/Agent 正常页面 CSV 与正式后台跨页 EXPORT 的严格边界。正常的 **绿色是维持禁止状态**；任何非预期源漂移显示 RED 交真正 Owner，而不是“自动可发布”。
 
 **C / 当前未取得**：生产真实 T0 Source/Outbox 和完整所有 Enterprise+Actor+Operation+Feature scope snapshot，生产 Owner 签署与可核对的 Review，真实 Producer/SQL 权威身份、KMS/HSM 密钥轮换、两个不同物理 Host 断网/恢复、正式 Agent 与 Human 全链路、归档与合规保留。本轮没有新第三方网页/截图。**正式 EXPORT OFF、CV03 N1=NOT_CERTIFIED、SAVE OFF，#1184 受管文件未修改。** 新 PR/Workflow 的实测 6/6、Live GitHub 读取、精确 HEAD、protected-main、东京若运行及 Branch Hygiene 均需以真实 CI 结果为准。
+
+
+### B / NEXT-05a 第一轮真实 Live Gate 原始日志（2026-11-12）
+
+- **失败原始来源（不可误写为 PASS）**：[Actions #43208158346](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43208158346) job `131148526302`，源代码对抗回归 **5/6 PASS、1 FAIL**；仅存一处 test-only SQL Lease 字符串仍被门禁误判正常，实际 SQL `install` 子分支 guard 已遭用例削弱。修复为分别检查 **install/use** 和 **dispatcher/poller** 各两个 test-only 拒绝位置，增强对应反向测试。
+- **修复原始来源**：[Actions #43208410247](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43208410247) job `131149367497` 的真实日志：六项固定安全反例 marker、`ℹ pass 6`、`ℹ fail 0`、`ℹ skipped 0`；从真实 GitHub 读取 #1212 Issue / #1184 PR 的 check 通过，且明确输出 `CV04_NEXT05_NON_CERTIFYING_RELEASE_GATE_TERMINAL_PASS`。**只证明“必须继续 OFF”**，并不证明真实 PA05/T0 Signer/KMS 可信。
+- 再次强调：当前研究文档修订后 PR HEAD 会变化，必须以**最终 HEAD** 安全门禁及受保护 `main` 单独核对，不把旧成功沿用至新 SHA。实际生产认证仍属 **C=未验**，无新网页/截图。
