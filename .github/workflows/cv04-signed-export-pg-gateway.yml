@@ -59,7 +59,8 @@ jobs:
           grep -q CV04_SIGNED_PG_RUNTIME_ROLE_EXECUTE_ONLY_RAW_DML_DENIED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_WRONG_PROOF_TENANT_REVOKE_EPOCH_LEASE_FAILCLOSED_PASS /tmp/cv04-signed-pg.log
           grep -q CV04_SIGNED_PG_TWO_RUNTIME_CAS_ONE_AUDIT_WINNER_PASS /tmp/cv04-signed-pg.log
-          grep -q 'ℹ pass 5' /tmp/cv04-signed-pg.log
+          grep -q CV04_SIGNED_PG_WORKER_LEASE_RECLAIM_TTL_TOMBSTONE_PASS /tmp/cv04-signed-pg.log
+          grep -q 'ℹ pass 6' /tmp/cv04-signed-pg.log
           grep -q 'ℹ skipped 0' /tmp/cv04-signed-pg.log
       - name: Existing immutable SQL audit, AES-GCM PG CAS and Owner budget regression
         shell: bash
