@@ -139,3 +139,88 @@ export function createIsolatedDictionaryExportPgDispatcherV010(input:{
   }
   return {sweep};
 }
+
+
+/**
+ * CV04 NEXT-04b: an explicitly started, disposable polling driver for the
+ * EXISTING bounded SQL-backed sweep. No second queue, lease, timer registry,
+ * authorization cache, or production daemon is installed.
+ *
+ * Stop is graceful: prevent the NEXT cycle, await the current bounded sweep,
+ * never revoke its in-flight permit or claim success on behalf of a Worker.
+ * A killed process cannot run cleanup; a newly created Host process starts
+ * afresh by scanning the durable PostgreSQL job, permit and lease state.
+ * A failed sweep rejects "done" and stops rather than looping untrusted work.
+ */
+export function createIsolatedDictionaryExportPgPollingV010(input:{
+  dispatcher:Pick<ReturnType<typeof createIsolatedDictionaryExportPgDispatcherV010>,
+    "sweep">;
+  intervalMs:number;
+  maxIdleIntervalMs:number;
+  batchLimit?:number;
+  onTick?:(result:Readonly<Cv04ExportDispatchReportV010>,
+    nextDelayMs:number)=>void;
+  isolatedTestOnly:true;
+}){
+  if(process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true)
+    throw Error("CV04_EXPORT_POLL_PRODUCTION_DISABLED");
+  if(!input.dispatcher||typeof input.dispatcher.sweep!=="function"||
+    !Number.isSafeInteger(input.intervalMs)||
+    input.intervalMs<20||input.intervalMs>60000||
+    !Number.isSafeInteger(input.maxIdleIntervalMs)||
+    input.maxIdleIntervalMs<input.intervalMs||
+    input.maxIdleIntervalMs>60000||
+    (input.batchLimit!==undefined&&
+      (!Number.isSafeInteger(input.batchLimit)||
+        input.batchLimit<1||input.batchLimit>25))||
+    (input.onTick!==undefined&&typeof input.onTick!=="function"))
+    throw Error("CV04_EXPORT_POLL_CONFIG_INVALID");
+  let started=false,stopping=false,done:Promise<void>|undefined;
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  let wake:()=>void=()=>{};
+  let ticks=0,consecutiveIdle=0;
+  const sleep=(ms:number)=>new Promise<void>(resolve=>{
+    wake=()=>{
+      if(timer!==undefined)clearTimeout(timer);
+      timer=undefined;wake=()=>{};resolve();
+    };
+    timer=setTimeout(wake,ms);
+  });
+  async function loop(){
+    try{
+      while(!stopping){
+        const report=await input.dispatcher.sweep({
+          limit:input.batchLimit??10
+        });
+        ticks++;
+        const idle=report.claimed===0&&report.issued===0;
+        consecutiveIdle=idle?Math.min(consecutiveIdle+1,20):0;
+        const delay=idle?Math.min(input.maxIdleIntervalMs,
+          input.intervalMs*2**Math.min(consecutiveIdle-1,20)):
+          input.intervalMs;
+        input.onTick?.(Object.freeze({...report}),delay);
+        if(!stopping)await sleep(delay);
+      }
+    }finally{
+      stopping=true;
+      wake();
+    }
+  }
+  function start():{done:Promise<void>;stop:()=>Promise<void>;
+    status:()=>{running:boolean;stopping:boolean;ticks:number}}{
+    if(started)throw Error("CV04_EXPORT_POLL_ALREADY_STARTED");
+    started=true;
+    done=loop();
+    return {
+      done,
+      stop:async()=>{
+        stopping=true;
+        wake();
+        await done;
+      },
+      status:()=>({running:started&&!stopping,
+        stopping,ticks})
+    };
+  }
+  return {start};
+}
