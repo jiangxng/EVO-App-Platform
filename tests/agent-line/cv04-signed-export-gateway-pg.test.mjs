@@ -21,7 +21,8 @@ import {createBusinessDictionaryRepositoryV010}
   from "../../dist/apps/business-dictionary/repository.js";
 import {createHostStaticAuthorizationProviderV010}
   from "../../dist/providers/authorization/runtime.js";
-import {createIsolatedDictionaryExportPgDispatcherV010}
+import {createIsolatedDictionaryExportPgDispatcherV010,
+  createIsolatedDictionaryExportPgPollingV010}
   from "../../dist/apps/business-dictionary/export-job-pg-dispatch.js";
 import {prepareIsolatedDictionaryExportSqlLeaseV010,
   createIsolatedDictionaryExportSqlHostLeaseIssuerV010,
@@ -1082,5 +1083,173 @@ test("CV04 Host dispatcher: live deny, active issued permit cooldown, Worker can
     assert.equal((await host.runnable(ctx,10)).length,0);
     assert.equal((await raw.get(addr(id))).revision,0);
     console.log("CV04_HOST_DISPATCH_LIVE_DENY_COOLDOWN_WORKER_DISCOVERY_DENIED_PASS");
+  },{physical:true});
+});
+
+
+test("CV04 polling controller: bounded single-flight, DB-rescan backoff, graceful drain and fail-stop",async()=>{
+  assert.throws(()=>createIsolatedDictionaryExportPgPollingV010({
+    dispatcher:{sweep:async()=>{}},intervalMs:0,maxIdleIntervalMs:200,
+    isolatedTestOnly:true
+  }),/CV04_EXPORT_POLL_CONFIG_INVALID/);
+  let inFlight=0,maxInFlight=0,tick=0;
+  const delays=[];
+  let observed;
+  const reached=new Promise(resolve=>{observed=resolve;});
+  const poll=createIsolatedDictionaryExportPgPollingV010({
+    dispatcher:{sweep:async()=>{
+      inFlight++;maxInFlight=Math.max(maxInFlight,inFlight);
+      await new Promise(resolve=>setTimeout(resolve,12));
+      inFlight--;return {contractVersion:"0.1.0",scanned:0,issued:0,
+        claimed:0,completed:0,skipped:0,failed:0};
+    }},
+    intervalMs:25,maxIdleIntervalMs:100,isolatedTestOnly:true,
+    onTick:(report,delay)=>{
+      tick++;delays.push(delay);
+      if(tick>=4)observed();
+      assert.equal(report.claimed,0);
+    }
+  });
+  const running=poll.start();
+  await reached;
+  await running.stop();
+  await running.done;
+  assert.equal(maxInFlight,1);
+  assert.deepEqual(delays.slice(0,4),[25,50,100,100]);
+  assert.equal(running.status().running,false);
+  const fixedTick=tick;
+  await new Promise(resolve=>setTimeout(resolve,140));
+  assert.equal(tick,fixedTick);
+  assert.throws(()=>poll.start(),/CV04_EXPORT_POLL_ALREADY_STARTED/);
+
+  let begin,release,stopped=false;
+  const entered=new Promise(resolve=>{begin=resolve;});
+  const pending=new Promise(resolve=>{release=resolve;});
+  const draining=createIsolatedDictionaryExportPgPollingV010({
+    dispatcher:{sweep:async()=>{
+      begin();await pending;
+      return {contractVersion:"0.1.0",scanned:1,issued:1,
+        claimed:1,completed:0,skipped:0,failed:1};
+    }},
+    intervalMs:25,maxIdleIntervalMs:50,isolatedTestOnly:true
+  });
+  const control=draining.start();
+  await entered;
+  const drain=control.stop().then(()=>{stopped=true;});
+  await Promise.resolve();
+  assert.equal(stopped,false);
+  release();
+  await drain;
+  assert.equal(control.status().ticks,1);
+  const failClosed=createIsolatedDictionaryExportPgPollingV010({
+    dispatcher:{sweep:async()=>{throw Error("CV04_PG_UNAVAILABLE");}},
+    intervalMs:25,maxIdleIntervalMs:100,isolatedTestOnly:true
+  });
+  await assert.rejects(failClosed.start().done,/CV04_PG_UNAVAILABLE/);
+  console.log("CV04_POLL_SINGLE_FLIGHT_BACKOFF_STOP_FAILCLOSED_PASS");
+});
+
+test("CV04 auto-wakeup PG: stop, new Host session rescan, expired Worker epoch reclaim to READY",realPG,async()=>{
+  await fixture(async({sql,q,host,hostUrl,schema,workerA,workerB,put,raw,read,cryptoKey})=>{
+    const hostB=createIsolatedDictionaryExportSqlHostLeaseIssuerV010({
+      connectionString:hostUrl,schema,isolatedTestOnly:true
+    });
+    try{
+      const id="exj-"+randomBytes(24).toString("hex"),job=buildJob(id),
+        queued=encryptJob(job,cryptoKey,0);
+      await put(permit(queued));
+      let firstToken,firstLease,firstDoc,firstJob;
+      let firstWake;
+      const firstCompleted=new Promise(resolve=>{firstWake=resolve;});
+      let authChecks=0;
+      const authorize=async candidate=>{
+        authChecks++;
+        assert.equal(candidate.jobId,id);
+        return {approvalId:"cv04-auto-wake-"+randomUUID(),authorityEpoch:1};
+      };
+      const first=createIsolatedDictionaryExportPgDispatcherV010({
+        host,workers:[workerA],contextId:ctx,isolatedTestOnly:true,
+        authorizeFresh:authorize,
+        runWork:async({token,lease})=>{
+          firstToken=token;firstLease=lease;
+          firstJob={...job,state:"RUNNING",attempt:1,
+            leaseUntil:new Date(Date.now()+1800).toISOString(),
+            audit:[...job.audit,event("STARTED")]};
+          firstDoc=encryptJob(firstJob,cryptoKey,1,queued);
+          assert.equal((await put(permit(firstDoc,{
+            envelope:physicalProof(token,lease)
+          }))).revision,1);
+          throw Error("CV04_WORKER_SIMULATED_PROCESS_LOSS");
+        }
+      });
+      const controllerA=createIsolatedDictionaryExportPgPollingV010({
+        dispatcher:first,intervalMs:30,maxIdleIntervalMs:120,
+        isolatedTestOnly:true,onTick:report=>{
+          if(report.failed===1)firstWake();
+        }
+      }).start();
+      await firstCompleted;
+      await controllerA.stop();
+      const ticksA=controllerA.status().ticks;
+      await new Promise(resolve=>setTimeout(resolve,80));
+      assert.equal(controllerA.status().ticks,ticksA);
+      assert.equal((await raw.get(addr(id))).revision,1);
+      assert.equal((await hostB.runnable(ctx,10)).length,0);
+      // Precisely simulate physical SQL connection death in isolated PG;
+      // business lease still rejects premature redispatch.
+      await sql.unsafe("UPDATE "+q+".cv04_export_work_leases "+
+        "SET claimed_until=clock_timestamp()-interval '3 seconds' "+
+        "WHERE context_id=$1 AND job_id=$2",[ctx,id]);
+      assert.equal((await hostB.runnable(ctx,10)).length,0);
+      const delay=Date.parse(firstJob.leaseUntil)+1300-Date.now();
+      if(delay>0)await new Promise(resolve=>setTimeout(resolve,delay));
+      let recovered;
+      const recoveredSignal=new Promise(resolve=>{recovered=resolve;});
+      let successorEpoch;
+      const second=createIsolatedDictionaryExportPgDispatcherV010({
+        host:hostB,workers:[workerB],contextId:ctx,isolatedTestOnly:true,
+        authorizeFresh:authorize,
+        runWork:async({token,lease})=>{
+          successorEpoch=lease.epoch;
+          assert.equal(lease.epoch,2);
+          const restarted={...firstJob,attempt:2,
+            leaseUntil:new Date(Date.now()+6800).toISOString(),
+            audit:[...firstJob.audit,event("STARTED")]};
+          const doc2=encryptJob(restarted,cryptoKey,2,firstDoc);
+          await assert.rejects(put(permit(doc2,{
+            envelope:physicalProof(firstToken,firstLease)
+          })),/CV04_GATEWAY_PHYSICAL_LEASE_FENCED/);
+          assert.equal((await put(permit(doc2,{
+            envelope:physicalProof(token,lease)
+          }))).revision,2);
+          const csv="\\uFEFFdictionaryId\\r\\nrow-01\\r\\n";
+          const ready={...restarted,state:"READY",pages:[],csv,
+            csvSha256:sha(csv),leaseUntil:undefined,
+            audit:[...restarted.audit,event("COMPLETED",1,csv.length),
+              event("READY",1,csv.length)]};
+          assert.equal((await put(permit(encryptJob(ready,cryptoKey,3,doc2),{
+            envelope:physicalProof(token,lease)
+          }))).revision,3);
+          return "READY";
+        }
+      });
+      const controllerB=createIsolatedDictionaryExportPgPollingV010({
+        dispatcher:second,intervalMs:30,maxIdleIntervalMs:120,
+        isolatedTestOnly:true,onTick:report=>{
+          if(report.completed===1)recovered();
+        }
+      }).start();
+      await recoveredSignal;
+      await controllerB.stop();
+      assert.equal(successorEpoch,2);
+      assert.equal((await raw.get(addr(id))).revision,3);
+      assert.deepEqual((await read(id)).map(row=>row.stage),
+        ["REQUESTED","STARTED","STARTED","COMPLETED","READY"]);
+      assert.equal((await hostB.runnable(ctx,10)).length,0);
+      assert.ok(authChecks>=2);
+      await assert.rejects(workerA.complete(firstToken,1),
+        /CV04_EXPORT_SQL_STALE_LEASE_FENCE/);
+      console.log("CV04_PG_POLL_STOP_RESTART_EPOCH_RECLAIM_READY_PASS");
+    }finally{await hostB.close();}
   },{physical:true});
 });
