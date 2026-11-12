@@ -381,3 +381,33 @@
 **D / 采用**：沿用原 Owner 并添加纯字段投影 `projectAuthorizedDictionaryExportPageV010`，严格执行 `requestedIds ⊆ ownerReadableIds ⊆ knownFields`，保留原行 ID、仅复制获准字段；用受限字段合成 Owner 页面做可执行的负向用例，连同原 Owner 测试一起走既有 Workflow。拒绝直接将请求字段列表提升为可读权限、拒绝在 CSV Serializer 之后再过滤（快照已持久化过宽时为时已晚）、拒绝另建授权层。详细技术依据与限制见 [Owner NEXT-07](CV04-DICTIONARY-EXPORT-JOB-OWNER-20261112.md)。
 
 **C/P**：纯投影没有新授权 Provider 或业务资源签名，未来真正动态列级授权仍须由 Owner/PA05/AuthorizationProvider 提供按主体/Actor/企业的权威 `readableFieldIds`。该工作仍是 `NODE_ENV=test + isolatedTestOnly` 的未注册 Job 基础能力。#1212 仍 OPEN/PENDING 真正生产 Owner；#1184 受管文件未动；正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`、SAVE OFF。PR 精确 HEAD、主线、东京镜像与分支卫生要等实际 CI 结果再补原始 B 级证据。
+
+
+## 22. Window 08 / 自动续跑 #07/07：最终读源、决策与下一窗口可执行资料索引（2026-11-12）
+
+> 本节是 §§16–21 的**增量导航**，不是新第三方网络研究。更新时间 2026-11-12（香港/北京时间）。最终核验基线 `main@1fbf937f24c801b8812340f2da26d76adcc94ad8`，**9/9 check-runs SUCCESS**。本节交接 Docs PR 合并会另生成主线 SHA，必须再核验。新窗口请从 [Window 08 最终交接入口](CV04-WINDOW08-20261112-FINAL-POSTMERGE-HANDOFF-ENTRY.md) 开始。
+
+### 已访问来源（不补造第三方原文）
+
+| 证据等级、标题与原始位置（本轮实际读取 2026-11-12） | 来源事实 G | 对项目的直接用途 |
+| --- | --- | --- |
+| **A · 本仓库源文件** [Dictionary Export Owner](../../../apps/business-dictionary/export-jobs.ts)，[Domain Collection READ](../../../apps/business-dictionary/collection-query.ts)，[Owner 既有测试](../../../tests/protocol/cv04-dictionary-export-job-owner.test.mjs) | Owner `run()` 同一 attempt/lease 及时间围栏、快照投影按 owner-readable 先验字段集合做白名单；当前字典 Collection 仍固定 5 项 readable 字段；Owner 构造继续 `isolatedTestOnly + NODE_ENV=test` | #1293/#1294/#1295 原地修补，保持 Eidos/Platform 原列权限边界；**不声称已实现动态主体级字段 ACL** |
+| **A · 生产权威 Owner 提案** [CV03-N105C10](CV03-N105C10-PRODUCTION-AUTHORITY-CUTOVER-OWNER-CONTRACT-20261112.md)，[未挂载 T0 客户端](../../../manager/cv03-n105b-authority-t0-pg.ts)，[未挂载 PA05 生命周期适配器](../../../manager/cv03-n105b-pa05-host-lifecycle.ts) | 方案 A 需要同一 PG ACID T0 锁定 sourceGeneration/authorityEpoch/Scope、DENY/tombstone、Outbox、最小权限 Producer；SQL 签名身份需真实 Owner。现有适配器明文声明 UNMOUNTED，QA 不可生产化 | #1212 生产数据/身份/权限来源的审议模板，杜绝直接接线与无来源迁移 |
+| **A · 原发布门禁 + 东京只读 Workflow** [Source Owner Gate](../../../tools/cv04-next05-production-authority-release-gate.mjs)，[Tokyo Catalog 只读 Workflow](../../../.github/workflows/cv04-next05b-tokyo-export-readonly.yml)，[东京设计/物理报告](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md) | 整个 `dictionary.collection.export.job.` 已知正式命名空间须源码和 live Catalog 缺席；东京老库已知 CV04 非 QA SQL 名称 0/0、旧账号是超管，不能做 Producer | 控制 Export **OFF**，明确绿色说明挡住启用，而非通过审批；物理只读不是动态授权 `check()` 证据 |
+| **B · GitHub PR 与各自原始日志** [#1288](https://github.com/jiangxng/EVO-App-Platform/pull/1288) ～ [#1295](https://github.com/jiangxng/EVO-App-Platform/pull/1295)，[Owner CI #43249855724](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43249855724)，[PG CI #43249855761](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43249855761)，[最终 main commit](https://github.com/jiangxng/EVO-App-Platform/commit/1fbf937f24c801b8812340f2da26d76adcc94ad8) | 八项 PR 已分别 MERGED；#1295 原 Owner 11/11、真实 PG adapter 5/5；最终精确 main **9/9 SUCCESS** | 复用已交付成果，避免再开同类 isolated Gate/PG/Worker PR；各 PR 评论按 source、preview、physical 级别分开 |
+| **B · 东京真实发布原始 Job** [Workflow #43250322812](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43250322812)、[deploy Job #131295528291](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43250322812/job/131295528291) | 原始日志有当前真实运行镜像 `1fbf937f24c801b8812340f2da26d76adcc94ad8`，DEV_LOCAL_HEALTH、PUBLIC_HTTPS、BASIC_AUTH 三类 PASS；并非 Docs-only SKIP | 新窗口确认预览镜像版本/健康，**不得**据此申请生产 Export |
+| **B · Owner 现况原始 GitHub** [Issue #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[PR #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) | #1212 OPEN/PENDING；勾选框非真实签署；#1184 OPEN、reviews []（本轮所见） | 明确生产准入停机点、不触碰 #1184 受管文件，避免冒充 Owner 认可 |
+| **C · 待真实 Owner 认证，未取得原文** 真正 PA05/Provider 持久源、PG Owner 资源/环境身份、Producer/Signer/KMS custody/rotation、两个独立物理 Host、WAL/PITR/回滚/Fail-Closed 验收 | 以上**没有**独立生产来源或具名 APPROVED PR；不可把合成 PG schema / Tokyo 当前超管 / 现场只读负证据填成源事实 | 下一阶段 #1212 先行，获批后独立接线 PR；不提前执行生产 DDL/DML/启用 |
+
+### 方案选择与限制（区分来源 G 与本轮判断 D）
+
+- **已选 D**：共享真实 PG 一次 ACID T0，PA05 生命周期与 AuthorizationProvider 权威同 Scope/epoch/generation、完整 DENY/outbox/水印、DB owner + Security/KMS；仍基于原 Platform + Eidos + Dictionary Domain Owner。源依据：上表 A 的 N105C10 文档（是一份建议/契约，**并非**生产审批）。
+- **已排除 D**：静态或文件 ALLOW 作为 SQL Authority、CI 自带的 SQL/HMAC/KMS fixture、`evo` 超级用户、分批 per-subject DENY、仅 Node 事件回调、新并行 Export 队列/框架，以及先开正式 EXPORT 再补安全；理由是都无法建立同一真实 Owner/SQL T0 和旧 Actor/离线 Scope 完整 fail-closed。
+- **原证据冲突或局限**：#1289 仅检查三种已知操作，#1290 才覆盖全名前缀；#1291 东京 live Catalog 是对当时旧镜像 `81262c...` 的真正只读证据，**不是**新镜像部署；#1292 属 docs-only；#1293～#1295 后来已真实部署新 SHA。早期文档若称 #1284 镜像“当前”，仅为各自时点快照。当前字典固定五字段，不等于动态字段 ACL，#1295 修复的是**未来扩展边界**。东京 0/0 计数仅覆盖特定 SQL 名称/Schema，不排除未知对象；绿色 Gate 断言 OFF，非生产认证。
+- **最值得继续访问的原始来源**：由 PA05 Lifecycle、AuthorizationProvider、DB、Security/Ops、Domain Owner 在 [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 提交非敏感真实环境/来源 SHA、审核身份与日期、Approved PR、实际 Provider Binding+策略覆盖、PG role/DDL 迁移与回滚、Signer KMS escrow/rotation、双物理 Host 故障录像/原始日志；再复核原始 production WORM/Outbox watermark。**本窗口尚未读到这些，不能推断不存在，只能标注待提供。**
+
+### 工程落点与终端条件
+
+- **已完成 / 不复刻**：Owner `export-jobs.ts`、PG encrypt/audit/lease、Signed SQL Gateway、worker dispatcher/maintenance、Source Owner Closed Gate、东京只读验收和当前页 CSV；具体原始文件和判断均在新交接入口 §2/4。
+- **下一步 P**：先最新 `main` 和 #1212/#1184 审查 → 非侵入只读真实生产来源核验并由 Owner 签认 → Owner-approved T0/Signer/DB migration/rollback → 不同物理 Host 的故障/撤权/全 Scope→产品 Human/Agent 端到端 → 独立产品发布许可。没签署则保持所有正式操作 OFF，禁止在生产操作 DDL/DML/KMS，不用重复 isolated tests 代替这些。
+- **待本交接 PR 真正完成后再补**：该 docs-only PR 的精确 HEAD checks、main checks、东京预检与 deploy SKIP、Branch Hygiene 的真实证据，应用原 PR 评论收录；本页不能假设 CI 已成功。
