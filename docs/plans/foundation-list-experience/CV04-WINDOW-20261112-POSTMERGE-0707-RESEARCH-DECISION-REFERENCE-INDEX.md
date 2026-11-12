@@ -247,3 +247,11 @@
 | B · [真实 Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) | 本次开始仍 OPEN/PENDING，既有签署需求仍未消除；受管 #1184 未修改。 | 只有 Owner 可决定实际认证身份、Scope、Outbox/KMS 与生产接线；只读检查 **GREEN 不能提升 RELEASE**。 |
 
 **排除方案**：不执行测试用 Owner `request()` 对真实环境写入、不打 POST 探测未知 Action、不查询具体业务对象/策略，不创建第三套 Authority 或生产 SQL 角色，不在 PR 阶段读取 Tokyo secrets。保留 CV03 `N1=NOT_CERTIFIED`、SAVE OFF、正式 EXPORT OFF。需要读源之外的真实工作流记录时按准确最终 commit HEAD、run/job 链接、已查看 marker/快照 SHA、真实 Branch Hygiene 状态回填；任何未执行的步骤标 C=待验，不将源码假设称物理证据。
+
+
+### B / NEXT-05b 首个实际受保护 main 东京 Host+原 PG 只读证据（2026-11-12）
+
+- **已读原始来源**：[PR #1286](https://github.com/jiangxng/EVO-App-Platform/pull/1286) 合并保护主线 `main@efbcaf8b7fc9228ff500fed729870736a0a04c67`；[东京只读 Actions #43211654823](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43211654823)，[原始 Job #131160514844](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43211654823/job/131160514844) **SUCCESS**。本次确实读取了源日志，而不是仅依赖历史报告或 Actions 状态。
+- **现场 G 事实**：运行镜像 SHA `81262c348b2abf0440ddc0501495aa9c572f2e23`，与本轮 workflow main SHA 不同；真实运行容器健康；GET Catalog 没有列出三个已知正式持久 Export Job Operation；live Provider 候选仍是一个静态授权候选、binding 0；Saved View Feature 未激活；原 `evo_dev` 的非 QA schema 内已知 `cv04_export_%` 函数和表计数均 **0**；原 `evo` SQL Session 是超级用户而非可接受的最小权限签名 Producer。所有日志只输出固定标记、不输出业务数据。
+- **物理 terminal**：`CV04_NEXT05B_LIVE_CATALOG_FORMAL_EXPORT_ABSENT_PASS`、`CV04_NEXT05B_ORIGINAL_PG_NONQA_EXPORT_OBJECTS_ABSENT_PASS`、`CV04_NEXT05B_ORIGINAL_SQL_USER_IS_SUPERUSER_NOT_PRODUCER_PASS`、`CV04_NEXT05B_PHYSICAL_READONLY_TERMINAL_PASS` 等源日志标记均存在。对应的完整选择/限制见 [NEXT05b 详细现场报告](CV04-NEXT05B-TOKYO-LIVE-EXPORT-READONLY-20261112.md) §5。
+- **D/C 不变**：这只证明运行中的已知 Catalog 名称和 SQL 前缀范围，没有证明未注册的其它 Action、未知 SQL 名或真实 Provider `check()` 的正式 PA05/T0 授权来源。#1212 独立 Owner 签署仍 OPEN/PENDING，不能凭零对象或静态候选给出 KMS/Signed Producer/正式 EXPORT 认证。正式 EXPORT OFF、CV03 `N1=NOT_CERTIFIED`、SAVE OFF，#1184 受管资料不动。此 docs-only 证据补录也不能当作重新部署了最新 Runtime 镜像。
