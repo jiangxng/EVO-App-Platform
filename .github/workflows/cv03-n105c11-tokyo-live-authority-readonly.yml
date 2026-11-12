@@ -63,7 +63,10 @@ jobs:
           assert "APP_PLATFORM_CV03_HUMAN_SAVE_MODE" in physical
           assert "APP_PLATFORM_PROVIDER_BINDINGS_FILE" in physical
           assert "cv03_n105b_commit_deny_t0" in physical
-          assert "docker compose exec -T --interactive=false evo node -" in physical
+          assert "docker compose exec -T evo node -" in physical
+          assert "docker compose exec -T --interactive=false evo node -" not in physical
+          assert "docker compose exec -T --interactive=false" not in physical
+          assert "grep -Fxq CV03_N105C11_HOST_METADATA_READONLY_PASS" in physical
           print("CV03_N105C11_SOURCE_READONLY_SHELL_AND_HOST_NODE_SYNTAX_PASS")
           PY
 
@@ -120,7 +123,7 @@ jobs:
           # Parse only preselected metadata from *running* app container.
           # Never print environment values, policy rules, subject/enterprise ids,
           # file JSON, credentials, arbitrary Provider IDs, or business data.
-          docker compose exec -T --interactive=false evo node - <<'HOST_NODE'
+          hostout="$(docker compose exec -T evo node - <<'HOST_NODE'
           const fs = require("node:fs");
           const path = require("node:path");
           try {
@@ -178,12 +181,17 @@ jobs:
             process.exitCode = 1;
           }
           HOST_NODE
+          )"
+          grep -Fxq CV03_N105C11_HOST_METADATA_READONLY_PASS <<< "$hostout"
+          grep -Fxq CV03_N105C11_HOST_SAVE_MODE_OFF_PASS <<< "$hostout"
+          printf '%s\n' "$hostout"
+          echo CV03_N105C11_HOST_ACTUAL_HEREDOC_OUTPUT_ENFORCED_PASS >&2
 
           stage=READ_PG_CATALOG
           echo CV03_N105C11_HOST_STAGE_COMPLETED_NO_WRITE >&2
           # PostgreSQL metadata only. Even the pre-existing SQL admin login is
           # forced into a read-only transaction. No business table contents.
-          sqlout="$(docker compose exec -T --interactive=false \
+          sqlout="$(docker compose exec -T \
             -e PGOPTIONS='-c default_transaction_read_only=on' postgres \
             psql -X -qAt -v ON_ERROR_STOP=1 -U evo -d evo_dev <<'SQL'
           BEGIN TRANSACTION READ ONLY;
@@ -210,7 +218,8 @@ jobs:
           SQL
           )"
           stage=VERIFY_PG_CATALOG
-          echo CV03_N105C11_SQL_READONLY_QUERY_COMPLETED >&2
+          test -n "$sqlout"
+          echo CV03_N105C11_SQL_READONLY_QUERY_WITH_STDIN_COMPLETED >&2
           # Identify a single unexpected catalog value without printing any
           # untrusted DB role name, object metadata, credential or business row.
           check_exact() {
