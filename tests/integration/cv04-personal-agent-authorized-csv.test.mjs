@@ -190,7 +190,8 @@ test("CV-04 actual Domain Owners: Human and Personal Agent invoke the same autho
     const description=await reg(regs,PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID)
       .execute({operationId},[]);
     assert.equal(description.operation.effect,"READ");
-    assert.equal(description.operation.binding.type,"ACTION_HOST");
+    assert.equal(description.operation.operationId,operationId,
+      "Agent describe exposes governed operation metadata, not internal ActionHost binding");
     const human=await f.router.execute(request(operationId,csvInputs[operationId]),context());
     assert.equal(human.ok,true,JSON.stringify(human.error));
     const agent=await reg(regs,PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID)
