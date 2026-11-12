@@ -106,6 +106,8 @@ test("weakened stage gates, absent SQL gateway and missing sources are RED",()=>
       s.replace('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true',"false")],
     ["apps/business-dictionary/export-job-pg-dispatch.ts",s=>
       s.replace("CV04_EXPORT_POLL_PRODUCTION_DISABLED","CV04_EXPORT_POLL_ALLOWED")],
+    ["apps/business-dictionary/export-job-pg-dispatch.ts",s=>
+      s.replace('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true',"false")],
     ["tools/cv04-isolated-signed-export-gateway.mjs",s=>
       s.replace("CV04_EXPORT_GATEWAY_ISOLATED_SCHEMA_REQUIRED","UNSAFE_PUBLIC_SCHEMA")]
   ];
