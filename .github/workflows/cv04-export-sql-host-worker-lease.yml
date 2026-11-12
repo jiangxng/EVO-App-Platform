@@ -1,0 +1,84 @@
+name: CV04 Export Physical SQL Host Worker Lease Fence
+
+on:
+  pull_request:
+    paths:
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
+      - "tests/agent-line/cv04-export-host-worker-sql-lease.test.mjs"
+      - ".github/workflows/cv04-export-sql-host-worker-lease.yml"
+      - "docs/plans/foundation-list-experience/CV04-SQL-HOST-WORKER-LEASE-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "apps/business-dictionary/export-job-pg-sql-lease.ts"
+      - "tests/agent-line/cv04-export-host-worker-sql-lease.test.mjs"
+      - ".github/workflows/cv04-export-sql-host-worker-lease.yml"
+      - "docs/plans/foundation-list-experience/CV04-SQL-HOST-WORKER-LEASE-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-sql-host-worker-lease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cv04_ci
+          POSTGRES_PASSWORD: cv04_ci_disposable
+          POSTGRES_DB: cv04_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cv04_ci -d cv04_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      CV04_EXPORT_TEST_DATABASE_URL: postgres://cv04_ci:cv04_ci_disposable@127.0.0.1:5432/cv04_ci
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Actual PostgreSQL16 distinct physical SQL Host/Worker login lease permits
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/agent-line/cv04-export-host-worker-sql-lease.test.mjs \
+            | tee /tmp/cv04-export-host-worker-lease.log
+          grep -q CV04_EXPORT_PHYSICAL_SQL_HOST_WORKER_ONE_SHOT_PROVENANCE_PASS /tmp/cv04-export-host-worker-lease.log
+          grep -q CV04_EXPORT_SQL_MULTI_WORKER_CAS_EPOCH_FENCING_PASS /tmp/cv04-export-host-worker-lease.log
+          grep -q CV04_EXPORT_SQL_LEASE_REVOKE_STALE_AUTHORITY_FAILCLOSED_PASS /tmp/cv04-export-host-worker-lease.log
+          grep -q 'ℹ pass 4' /tmp/cv04-export-host-worker-lease.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-export-host-worker-lease.log
+      - name: Existing real encrypted PostgreSQL and audit contracts still pass
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/agent-line/cv04-dictionary-export-job-pg-encrypted.test.mjs \
+            tests/agent-line/cv04-dictionary-export-pg-immutable-audit.test.mjs \
+            | tee /tmp/cv04-pg-regression.log
+          grep -q 'ℹ pass 10' /tmp/cv04-pg-regression.log
+          grep -q 'ℹ skipped 0' /tmp/cv04-pg-regression.log
+      - name: Never activate public Host Export or unlock CV03 SAVE
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const h=readFileSync("manager/server.ts","utf8");
+            const m=readFileSync("catalog/seed.ts","utf8");
+            const s=readFileSync("apps/business-dictionary/export-job-pg-sql-lease.ts","utf8");
+            if(h.includes("dictionary.collection.export.job.request")
+              ||m.includes("dictionary.collection.export.job.request")
+              ||!s.includes("CV04_EXPORT_LEASE_PRODUCTION_INSTALL_DENIED")
+              ||!s.includes("CV04_EXPORT_LEASE_PRODUCTION_USE_DENIED"))
+              throw Error("CV04_EXPORT_SQL_LEASE_PUBLIC_RELEASE_VIOLATION");
+            console.log("CV04_EXPORT_SQL_WORKER_LEASE_PUBLIC_HOST_GATE_PASS");
+          '
