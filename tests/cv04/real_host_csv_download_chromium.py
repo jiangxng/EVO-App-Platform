@@ -16,8 +16,13 @@ assert fixture["isolated"] is True and fixture["productionUsed"] is False
 HOST=fixture["hostUrl"]; CTX=fixture["contextId"]
 assert HOST.startswith("http://127.0.0.1:")
 assert len(fixture["plans"])==3
+BCTX=fixture["secondaryContextId"]
+B_ONLY=fixture["secondaryNames"]
+assert BCTX!=CTX and set(B_ONLY)==set(p["name"] for p in fixture["plans"])
 errors=[]
 results=[]
+switch_results=[]
+action_inputs={}
 expected={
     "dictionary": "Beta CSV Dictionary",
     "my-customers": "Customer Beta CV04",
@@ -39,7 +44,7 @@ with sync_playwright() as api:
         )
         context.add_init_script("""
           if(location.origin===%s){
-            localStorage.setItem("evo.context.id",%s);
+            if(!localStorage.getItem("evo.context.id")) localStorage.setItem("evo.context.id",%s);
             localStorage.setItem("evo.locale","zh-CN");
           }
         """ % (json.dumps(HOST),json.dumps(CTX)))
@@ -60,6 +65,7 @@ with sync_playwright() as api:
             assert actions.get_attribute("data-eidos-command")==plan["command"]
             assert "当前页" in actions.inner_text()
             actual_values=json.loads(actions.get_attribute("data-eidos-action-values"))
+            action_inputs[name]=actual_values
             assert actual_values["page"]==1 and actual_values["pageSize"]==1
             assert actual_values["fieldIds"],"Missing current-table field selection"
             diagnostics=page.evaluate("""() => ({
@@ -105,13 +111,99 @@ with sync_playwright() as api:
             })
             print("CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:%s:%d"%(name,size),flush=True)
             page.close()
+        # Same browser storage/session: context A -> enterprise B -> A.
+        # This is an isolated static HUMAN fixture, not two real user logins.
+        for plan in fixture["plans"]:
+            name=plan["name"]
+            swapped=context.new_page()
+            swapped.on("pageerror",lambda error: errors.append(str(error)))
+            swapped.goto(HOST+"/?surface=desktop#"+plan["route"],wait_until="domcontentloaded")
+            expect(swapped.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
+            swapped.evaluate("(id) => localStorage.setItem('evo.context.id',id)",BCTX)
+            b_route=plan["route"].replace("page=1","page=0")
+            swapped.goto(HOST+"/?surface=desktop#"+b_route,wait_until="domcontentloaded")
+            swapped.reload(wait_until="domcontentloaded")
+            table=swapped.locator('[data-eidos-catalog-table]')
+            expect(table.locator("tbody tr")).to_have_count(1,timeout=30000)
+            expect(table.locator("tbody tr").first).to_contain_text(B_ONLY[name])
+            assert expected[name] not in table.inner_text(),(
+                "CV04_CROSS_ENTERPRISE_A_ROW_LEAK:"+name)
+            b_action=swapped.locator('[data-eidos-catalog-action="export-current-page"]')
+            expect(b_action).to_be_visible()
+            assert b_action.get_attribute("data-eidos-command")==plan["command"]
+            b_values=json.loads(b_action.get_attribute("data-eidos-action-values"))
+            assert b_values["page"]==0 and b_values["pageSize"]==1
+            with swapped.expect_download(timeout=20000) as b_event:
+                b_action.click()
+            b_download=b_event.value
+            assert b_download.failure() is None,b_download.failure()
+            assert b_download.suggested_filename.endswith("-page-1.csv")
+            b_raw=Path(b_download.path()).read_bytes()
+            assert b_raw.startswith(b"\\xef\\xbb\\xbf"),"CV04_SECOND_CONTEXT_BOM_MISSING"
+            b_csv=b_raw.decode("utf-8-sig")
+            b_rows=list(csv.reader(io.StringIO(b_csv,newline="")))
+            assert len(b_rows)==2 and B_ONLY[name] in b_rows[1],(
+                "CV04_SECOND_CONTEXT_CSV_WRONG:"+name)
+            assert b_rows[0]==b_values["fieldIds"]
+            for forbidden in [expected[name],"Alpha CSV Dictionary",
+                              "Customer Alpha CV04","Supplier Alpha CV04",
+                              "PRIVATE-","SECRET-","B Private Option"]:
+                assert forbidden not in b_csv,{"name":name,"crossTenantLeak":forbidden}
+            swapped.screenshot(
+                path=str(OUT/("%s-%s-enterprise-b.png"%
+                              (name,"phone390" if is_phone else "desktop1280"))),
+                full_page=True)
+            # Re-enter A using the same browser storage and assert old scoped
+            # page is freshly re-queried rather than retaining B's Blob.
+            swapped.evaluate("(id) => localStorage.setItem('evo.context.id',id)",CTX)
+            swapped.goto(HOST+"/?surface=desktop#"+plan["route"],wait_until="domcontentloaded")
+            swapped.reload(wait_until="domcontentloaded")
+            restored=swapped.locator('[data-eidos-catalog-table] tbody tr')
+            expect(restored).to_have_count(1,timeout=30000)
+            expect(restored.first).to_contain_text(expected[name])
+            assert B_ONLY[name] not in restored.first.inner_text()
+            switch_results.append({"surface":name,"viewportWidth":size,
+              "fromEnterprise":"A","toEnterprise":"B","restoredEnterprise":"A",
+              "secondEnterpriseDownload":b_download.suggested_filename,
+              "foreignDataAbsent":True})
+            print("CV04_PHYSICAL_CHROMIUM_ENTERPRISE_SWITCH_PASS:%s:%d"%(name,size),flush=True)
+            swapped.close()
         context.close()
     assert not errors,"EIDOS_BROWSER_PAGE_ERRORS:"+repr(errors)
     browser.close()
+    # Real installed Host lifecycle change after browser reads: stale action
+    # submissions must fail, not mint a CSV download after Feature disable.
+    api_ctx=api.request.new_context(base_url=HOST,
+      extra_http_headers={"x-evo-context-id":CTX})
+    disabled=api_ctx.post("/v1/disable",data={"packageId":"evo-business-dictionary"})
+    assert disabled.status==200,("CV04_HOST_DISABLE_FAILED",disabled.status,disabled.text()[:900])
+    assert not any(x.get("packageId")=="evo-business-dictionary"
+      for x in disabled.json()["snapshot"].get("activePackages",[])),(
+        "CV04_HOST_DICTIONARY_STILL_ACTIVE")
+    stale={
+      "contractVersion":"0.1.0","type":"command",
+      "command":{"code":"dictionary.collection.page.export.csv","inputVersion":"0.1.0"},
+      "values":action_inputs["dictionary"],
+      "sourceInteractionId":"cv04-real-host-stale-blob",
+      "actionId":"export-current-page","requiresConfirmation":False
+    }
+    response=api_ctx.post("/v1/actions",data=stale)
+    denied=response.json()
+    assert denied.get("ok") is False,("CV04_DISABLED_EXPORT_ALLOWED",denied)
+    assert "download" not in json.dumps(denied),(
+      "CV04_DISABLED_EXPORT_CONTAINED_BLOB")
+    assert denied.get("error",{}).get("code")=="ACTION_FEATURE_NOT_ACTIVE",denied
+    api_ctx.dispose()
+    print("CV04_REAL_HOST_DISABLED_FEATURE_STALE_EXPORT_DENIED_PASS",flush=True)
 
 assert len(results)==6
+assert len(switch_results)==6
 (OUT/"browser-results.json").write_text(
     json.dumps({"sourceSha":fixture["sourceSha"],"fixture":"ISOLATED_ACTUAL_HOST",
       "notProduction":True,"notHuman":True,
-      "results":results},ensure_ascii=False,indent=2),encoding="utf-8")
+      "results":results,"enterpriseSwitchResults":switch_results,
+      "featureDisabledExportDenied":True},ensure_ascii=False,indent=2),encoding="utf-8")
 print("CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6",flush=True)
+
+print("CV04_REAL_HOST_CHROMIUM_ENTERPRISE_SWITCH_TERMINAL_PASS=6",flush=True)
+print("CV04_REAL_HOST_CHROMIUM_DISABLED_FEATURE_DENY_TERMINAL_PASS=1",flush=True)
