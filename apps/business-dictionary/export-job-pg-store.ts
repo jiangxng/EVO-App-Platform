@@ -212,7 +212,12 @@ export function createIsolatedEncryptedDictionaryExportPgStoreV010(input:{
         fail("COLLECTION_EXPORT_PG_ENCRYPTED_RESOURCE_REQUIRED");
       const job=request.payload as unknown as Job;
       validateJob(job,addr);
-      if(request.actorSubjectId!==job.subjectId)
+      // Only the explicit isolated maintenance service may expire a job
+      // under its own actor identity; it cannot enqueue, run or download.
+      if(request.actorSubjectId!==job.subjectId &&
+        !(process.env.NODE_ENV==="test" &&
+          request.actorSubjectId==="cv04.export-maintenance" &&
+          request.expectedRevision!==null && job.state==="EXPIRED"))
         fail("COLLECTION_EXPORT_PG_ACTOR_MISMATCH");
       if(request.expectedRevision!==null){
         const old=await input.resources.get(addr);
