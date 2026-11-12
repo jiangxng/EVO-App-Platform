@@ -54,7 +54,10 @@ jobs:
           for block in blocks:
               check=subprocess.run(["bash","-n"],input=block,text=True,capture_output=True)
               assert check.returncode==0, "Embedded shell syntax invalid"
-          physical=next((b for b in blocks if "<<'HOST_READONLY'" in b),None)
+          # Never match this Python source block, which also mentions the
+          # heredoc marker as a literal. Locate the actual SSH proof step.
+          physical=next((b for b in blocks if b.splitlines()[0].strip()=="set -euo pipefail"
+            and len(b.splitlines())>1 and b.splitlines()[1].startswith("proof=")),None)
           assert physical, "Physical Host GET proof missing"
           match=re.search(r"<<'HOST_READONLY'\n(.*?)\nHOST_READONLY",physical,re.S)
           assert match, "Embedded Host Node script missing"
