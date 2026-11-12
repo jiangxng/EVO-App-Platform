@@ -75,7 +75,7 @@ test("CV-02 dictionaries: view change keeps query and resets pagination",()=>{
   assert.ok(page.table.views[1].route.includes("view=draft"));
   assert.equal(page.table.search.value,"Beta");
   const canWrite=dictionaryPage("/business-dictionaries?view=all",true);
-  assert.deepEqual(canWrite.actions.map(x=>x.id),["create"]);
+  assert.deepEqual(canWrite.actions.map(x=>x.id),["export-current-page","create"]);
   const legacy=createBusinessDictionaryDirectoryPageV010({
     dictionaries,canManage:false,locale:"zh-CN"
   });
