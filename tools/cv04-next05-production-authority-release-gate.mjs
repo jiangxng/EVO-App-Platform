@@ -81,8 +81,14 @@ export function inspectCv04Next05ReleaseGate(input,{root=rootDefault}={}){
     checks.stagedEncryptedPgStoreStillProductionDisabled=
       encrypted.includes('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true')&&
       encrypted.includes("COLLECTION_EXPORT_PG_PRODUCTION_ADMISSION_NOT_CERTIFIED");
+    // The installer and the independent Host/Worker client each require
+    // their OWN test-only guard. A single surviving string is insufficient:
+    // weakening either branch must independently fail the release gate.
+    const leaseGuards=lease.split(
+      'process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true'
+    ).length-1;
     checks.physicalSqlLeaseStillProductionDisabled=
-      lease.includes('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true')&&
+      leaseGuards>=2&&
       lease.includes("CV04_EXPORT_LEASE_PRODUCTION_INSTALL_DENIED")&&
       lease.includes("CV04_EXPORT_LEASE_PRODUCTION_USE_DENIED");
     checks.pollingAndDispatcherStillProductionDisabled=
