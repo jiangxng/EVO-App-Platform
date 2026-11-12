@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { AuthorizationProviderV010, PlatformRequestContextV010 } from "../../contracts/platform-services.js";
-import type { EnterpriseResourceRepositoryV010, EnterpriseResourceJsonV010 } from "../../contracts/enterprise-resource.js";
+import type { EnterpriseResourceRepositoryV010, EnterpriseResourceConditionalAsyncRepositoryV010,
+  EnterpriseResourceJsonV010 } from "../../contracts/enterprise-resource.js";
 import type { DataCollectionResultV010 } from "../../contracts/data-collection/query.js";
 import { createAuthorizedCrossPageCsvV010, type AuthorizedCrossPageExportPolicyV010 } from
   "../../foundation/collection-query/authorized-cross-page-csv.js";
@@ -28,7 +29,7 @@ const DEFAULT_POLICY:AuthorizedCrossPageExportPolicyV010={
   pageSize:100,maxPages:10,maxRows:1000,maxBytes:262144,maxDurationMs:30000
 };
 export type DictionaryExportJobStateV010="QUEUED"|"RUNNING"|"READY"|"FAILED"|"EXPIRED";
-interface JobAudit {
+export interface DictionaryExportJobAuditV010 {
   eventId:string;
   type:"REQUESTED"|"STARTED"|"COMPLETED"|"REJECTED"|"READY"|"DOWNLOAD_AUTHORIZED"|"EXPIRED";
   at:string;
@@ -36,7 +37,7 @@ interface JobAudit {
   bytes:number;
   code?:string;
 }
-interface JobRecord {
+export interface DictionaryExportJobRecordV010 {
   contractVersion:"0.1.0";
   jobId:string;
   requestDigest:string;
@@ -56,8 +57,10 @@ interface JobRecord {
   rowCount:number;
   csv?:string;
   csvSha256?:string;
-  audit:JobAudit[];
+  audit:DictionaryExportJobAuditV010[];
 }
+type JobAudit=DictionaryExportJobAuditV010;
+type JobRecord=DictionaryExportJobRecordV010;
 export interface DictionaryExportOwnerRequestV010 {
   idempotencyKey:string;
   query:{
@@ -116,7 +119,7 @@ function summary(job:JobRecord):DictionaryExportJobSummaryV010 {
 
 export function createDictionaryExportJobOwnerV010(input:{
   repository:BusinessDictionaryRepositoryV010;
-  resources:EnterpriseResourceRepositoryV010;
+  resources:EnterpriseResourceRepositoryV010|EnterpriseResourceConditionalAsyncRepositoryV010;
   resolveAuthorizationProvider():AuthorizationProviderV010|undefined;
   /** Live Enterprise relationship check; never a cached membership Boolean. */
   hasLiveRelationship(context:PlatformRequestContextV010):boolean;
@@ -136,8 +139,8 @@ export function createDictionaryExportJobOwnerV010(input:{
   const address=(contextId:string,jobId:string)=>({
     contextId,namespace:NS,collectionId:COLLECTION,resourceType:TYPE,resourceId:jobId
   });
-  const write=(job:JobRecord,revision:number|null)=>{
-    const resource=input.resources.putIfRevision!({
+  const write=async(job:JobRecord,revision:number|null)=>{
+    const resource=await input.resources.putIfRevision!({
       ...address(job.contextId,job.jobId),schemaRef:SCHEMA,ownerPackageId:"evo-business-dictionary",
       payload:JSON.parse(JSON.stringify(job)) as EnterpriseResourceJsonV010,
       storageKind:"DOCUMENT",actorSubjectId:job.subjectId,recordedAt:iso(),
@@ -145,10 +148,10 @@ export function createDictionaryExportJobOwnerV010(input:{
     });
     return {job,revision:resource.revision??0};
   };
-  const load=(context:PlatformRequestContextV010,jobId:string)=>{
+  const load=async(context:PlatformRequestContextV010,jobId:string)=>{
     const s=scope(context);
     if (!/^exj-[0-9a-f]{48}$/u.test(jobId))return fail("COLLECTION_EXPORT_JOB_NOT_FOUND");
-    const r=input.resources.get(address(s.contextId,jobId));
+    const r=await input.resources.get(address(s.contextId,jobId));
     if (!r || r.lifecycleState!=="ACTIVE" || !r.payload
       || typeof r.revision!=="number")return fail("COLLECTION_EXPORT_JOB_NOT_FOUND");
     const j=r.payload as unknown as JobRecord;
@@ -180,7 +183,7 @@ export function createDictionaryExportJobOwnerV010(input:{
     if (decision?.allowed!==true) return fail("COLLECTION_EXPORT_PERMISSION_DENIED");
     return s;
   };
-  const expire=(job:JobRecord,revision:number)=>{
+  const expire=async(job:JobRecord,revision:number)=>{
     if (clock()<Date.parse(job.expiresAt))return {job,revision};
     if (job.state==="EXPIRED")return {job,revision};
     const next=audit({...job,state:"EXPIRED",pages:[],csv:undefined,
@@ -193,11 +196,11 @@ export function createDictionaryExportJobOwnerV010(input:{
     const digest=hash(JSON.stringify(requestValues));
     const jobId="exj-"+hash([s.contextId,s.enterpriseId,s.subjectId,s.actorType,
       details.idempotencyKey].join("|")).slice(0,48);
-    let previous=input.resources.get(address(s.contextId,jobId));
+    let previous=await input.resources.get(address(s.contextId,jobId));
     if (previous) {
-      const old=load(context,jobId);
+      const old=await load(context,jobId);
       if (old.job.requestDigest!==digest) return fail("COLLECTION_EXPORT_IDEMPOTENCY_CONFLICT");
-      return summary(expire(old.job,old.revision).job);
+      return summary((await expire(old.job,old.revision)).job);
     }
     // Capture precisely one Domain Owner repository list. The serialized
     // snapshot only persists chosen readable fields, NEVER dictionary options.
@@ -236,40 +239,40 @@ export function createDictionaryExportJobOwnerV010(input:{
       audit:[]
     };
     const toSave=audit(job,"REQUESTED",time);
-    try { return summary(write(toSave,null).job) }
+    try { return summary((await write(toSave,null)).job) }
     catch(error) {
       if ((error as Error).message!=="ENTERPRISE_RESOURCE_REVISION_CONFLICT")throw error;
-      previous=input.resources.get(address(s.contextId,jobId));
+      previous=await input.resources.get(address(s.contextId,jobId));
       if (!previous)throw error;
-      const conflict=load(context,jobId);
+      const conflict=await load(context,jobId);
       if(conflict.job.requestDigest!==digest)return fail("COLLECTION_EXPORT_IDEMPOTENCY_CONFLICT");
       return summary(conflict.job);
     }
   }
   async function status(context:PlatformRequestContextV010,jobId:string){
     await authorize(context);
-    const current=load(context,jobId);
-    return summary(expire(current.job,current.revision).job);
+    const current=await load(context,jobId);
+    return summary((await expire(current.job,current.revision)).job);
   }
   async function run(context:PlatformRequestContextV010,jobId:string) {
     await authorize(context);
-    let state=load(context,jobId);
-    state=expire(state.job,state.revision);
+    let state=await load(context,jobId);
+    state=await expire(state.job,state.revision);
     if (state.job.state==="READY")return summary(state.job);
     if (state.job.state==="EXPIRED"||state.job.state==="FAILED")
       return fail("COLLECTION_EXPORT_JOB_NOT_RUNNABLE");
     if (state.job.state==="RUNNING" && Date.parse(state.job.leaseUntil??"")>clock())
       return fail("COLLECTION_EXPORT_JOB_ALREADY_RUNNING");
     if (state.job.attempt>=MAX_ATTEMPTS)return fail("COLLECTION_EXPORT_JOB_ATTEMPT_EXHAUSTED");
-    state=write(audit({
+    state=await write(audit({
       ...state.job,state:"RUNNING",attempt:state.job.attempt+1,
       leaseUntil:new Date(clock()+LEASE_MS).toISOString()
     },"STARTED",iso()),state.revision);
     // Audit append is CAS-atomic in exactly the same durable job resource.
-    const append=(type:JobAudit["type"],rows:number,bytes:number,code?:string)=>{
-      const curr=load(context,jobId);
+    const append=async(type:JobAudit["type"],rows:number,bytes:number,code?:string)=>{
+      const curr=await load(context,jobId);
       if(curr.job.state!=="RUNNING")return fail("COLLECTION_EXPORT_JOB_NOT_RUNNING");
-      write(audit(curr.job,type,iso(),rows,bytes,code),curr.revision);
+      await write(audit(curr.job,type,iso(),rows,bytes,code),curr.revision);
     };
     try {
       const result=await createAuthorizedCrossPageCsvV010({
@@ -287,26 +290,26 @@ export function createDictionaryExportJobOwnerV010(input:{
           }
         }),
         audit:async entry=>{
-          append(entry.stage==="REJECTED"?"REJECTED":
+          await append(entry.stage==="REJECTED"?"REJECTED":
             entry.stage==="COMPLETED"?"COMPLETED":"STARTED",
             entry.rowCount,entry.byteCount,entry.denialCode);
         }
       });
       await authorize(context);
-      const current=load(context,jobId);
+      const current=await load(context,jobId);
       if(current.job.state!=="RUNNING")return fail("COLLECTION_EXPORT_JOB_NOT_RUNNING");
       const next=audit({
         ...current.job,state:"READY",pages:[],leaseUntil:undefined,
         csv:result.csv,csvSha256:hash(result.csv),rowCount:result.rowCount
       },"READY",iso(),result.rowCount,result.byteCount);
-      return summary(write(next,current.revision).job);
+      return summary((await write(next,current.revision)).job);
     } catch(error) {
       const code=error instanceof Error && /^[A-Z0-9_]+$/u.test(error.message)
         ?error.message:"COLLECTION_EXPORT_EXECUTION_FAILED";
       try{
-        const current=load(context,jobId);
+        const current=await load(context,jobId);
         if(current.job.state==="RUNNING"){
-          write(audit({...current.job,state:"FAILED",pages:[],csv:undefined,
+          await write(audit({...current.job,state:"FAILED",pages:[],csv:undefined,
             leaseUntil:undefined},"REJECTED",iso(),0,0,code),current.revision);
         }
       }catch{/* fail closed; stale RUNNING lease can be resumed from saved snapshot */}
@@ -315,8 +318,8 @@ export function createDictionaryExportJobOwnerV010(input:{
   }
   async function download(context:PlatformRequestContextV010,jobId:string){
     await authorize(context);
-    let current=load(context,jobId);
-    current=expire(current.job,current.revision);
+    let current=await load(context,jobId);
+    current=await expire(current.job,current.revision);
     if(current.job.state!=="READY" || typeof current.job.csv!=="string"
       || !current.job.csvSha256 || hash(current.job.csv)!==current.job.csvSha256)
       return fail("COLLECTION_EXPORT_DOWNLOAD_NOT_READY");
@@ -324,7 +327,7 @@ export function createDictionaryExportJobOwnerV010(input:{
     if(current.job.audit.filter(e=>e.type==="DOWNLOAD_AUTHORIZED").length>=MAX_DOWNLOAD_AUDITS)
       return fail("COLLECTION_EXPORT_DOWNLOAD_BUDGET_EXCEEDED");
     // A durable, metadata-only access audit must commit before bytes escape.
-    current=write(audit(current.job,"DOWNLOAD_AUTHORIZED",iso(),
+    current=await write(audit(current.job,"DOWNLOAD_AUTHORIZED",iso(),
       current.job.rowCount,Buffer.byteLength(current.job.csv,"utf8")),current.revision);
     await authorize(context);
     if(clock()>=Date.parse(current.job.expiresAt))
