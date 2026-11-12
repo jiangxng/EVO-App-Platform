@@ -12,6 +12,14 @@ import {prepareIsolatedDictionaryExportAuditV010,readIsolatedDictionaryExportAud
   from "../../dist/apps/business-dictionary/export-job-pg-audit.js";
 import {cv04IsolatedSignedExportGatewaySqlV010}
   from "../../tools/cv04-isolated-signed-export-gateway.mjs";
+import {createDictionaryExportJobOwnerV010}
+  from "../../dist/apps/business-dictionary/export-jobs.js";
+import {createMemoryEnterpriseResourceRepositoryV010}
+  from "../../dist/providers/enterprise-context/resources.js";
+import {createBusinessDictionaryRepositoryV010}
+  from "../../dist/apps/business-dictionary/repository.js";
+import {createHostStaticAuthorizationProviderV010}
+  from "../../dist/providers/authorization/runtime.js";
 import {prepareIsolatedDictionaryExportSqlLeaseV010,
   createIsolatedDictionaryExportSqlHostLeaseIssuerV010,
   createIsolatedDictionaryExportSqlWorkerLeaseV010}
