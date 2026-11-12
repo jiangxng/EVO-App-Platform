@@ -216,3 +216,23 @@ test("CV04 recovering previously RUNNING CAS task resumes from persistent snapsh
   assert.equal(resumed.attempts,2);
   assert.ok((await h.make().download(ctx,q.jobId)).content.includes("d0002"));
 });
+
+
+test("CV04 queued snapshot storage and completed download-attempt budget reject without leaking bytes",async()=>{
+  const fake=setup({repository:{list:()=>[{
+    dictionaryId:"d001",displayName:"X".repeat(300000),
+    state:"PUBLISHED",version:1,options:[]
+  }]}});
+  await assert.rejects(fake.make().request(context(),request("key_big_snapshot")),
+    /COLLECTION_EXPORT_SNAPSHOT_BYTE_BUDGET_EXCEEDED/);
+  const h=setup();h.seed(2);
+  const owner=h.make(),ctx=context();
+  const queued=await owner.request(ctx,request("key_dl_budget_3"));
+  await owner.run(ctx,queued.jobId);
+  for(let i=0;i<3;i++)
+    assert.ok((await owner.download(ctx,queued.jobId)).content.includes("d0001"));
+  await assert.rejects(owner.download(ctx,queued.jobId),
+    /COLLECTION_EXPORT_DOWNLOAD_BUDGET_EXCEEDED/);
+  assert.equal((await owner.status(ctx,queued.jobId)).state,"READY");
+  console.log("CV04_DICTIONARY_EXPORT_OWNER_SNAPSHOT_DOWNLOAD_BUDGET_PASS");
+});
