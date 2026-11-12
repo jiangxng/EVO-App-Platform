@@ -27,3 +27,16 @@
 - Register **distinct** Capability Operations for enqueue/status/download with independent EXPORT authorization (and write-safety/idempotency admission), plus real Host ActionRouter + Personal Agent request context; test actual endpoint with multiple Sessions and real Enterprise relationship revoke and disabled feature after queued/READY. Require rate limits, queue fairness/worker lease and operational retention; do not create a fire-and-forget parallel task without durable status.
 - Investigate **concurrent fetch/auth/durable audit races** and CAS contention on multi-workers with a real PostgreSQL source; provide download-attempt audit and TTL purge independent of client polling. Test Google OIDC live account/physical phone separately. Production Owner signoff issue #1212 remains PENDING.
 - Source grade: code/contract facts from GitHub directly read 2026-11-12; no new external research or production-side observations; current document is engineering design until CI and protected-main results are appended.
+
+
+## 2026-11-12 首次专项 CI 结果（真实日志已读）
+
+[精确工程 HEAD `c1170c1f0c002ded6bfdd625146572bc2f84714a` 的独立 Actions #43164923654](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43164923654)，job `131004460519`，**SUCCESS**。本轮直接读取该 job 原始日志而非推断：
+
+- `CV04_DICTIONARY_EXPORT_OWNER_DURABLE_RESTART_205_ROWS_PASS`：205 行三页、文件 CAS 重启、相同 idempotency Key 与冲突拒绝、单一 CSV 表头、CSV 公式防注入、私密 Dictionary Option 未泄漏；日志显示单项约 5.8 秒。
+- `CV04_DICTIONARY_EXPORT_OWNER_SEPARATE_GRANT_REVOKE_DOWNLOAD_GATE_PASS`：READ-only 不授予 EXPORT，授权撤销、关系撤销、插件 inactive 后原完成任务不能取文件。
+- `CV04_DICTIONARY_EXPORT_OWNER_HUMAN_AI_SCOPE_ISOLATION_PASS`：不同主体、同主体不同 Actor 与不同企业 Job 不互认，合法独立 AI 使用同 Owner 产生相同公开 CSV。
+- `tests 7 / pass 7 / fail 0`：另有 TTL 过期清除、无效输入/大行数/私密字段、非共享生产 Authority 构造拒绝和 RUNNING 过期 Lease 从持久快照恢复。
+- `CV04_DICTIONARY_EXPORT_OWNER_NOT_PUBLICLY_REGISTERED_PASS`：GitHub CI 精确检查 Host/Manifest 没有打开后台导出操作。**这不是东京生产帐号已验收，不是已经部署的全量 EXPORT 下载**。
+
+本轮未查阅新的外部网页，全部依据为 GitHub 源码、协议和 Actions 原始日志。待工程最终 HEAD 全项检查、受保护 main 后合并复测、分支清理完成，另在 PR 讨论记录最终 SHA；不要以此单次专项 success 替代主线全绿。
