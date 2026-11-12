@@ -1,0 +1,56 @@
+name: CV04 Bounded Cross-Page EXPORT Authorization and Audit Contract
+
+on:
+  pull_request:
+    paths:
+      - "foundation/collection-query/authorized-cross-page-csv.ts"
+      - "tests/protocol/cv04-cross-page-export-budget.test.mjs"
+      - ".github/workflows/cv04-bounded-export-contract.yml"
+      - "docs/plans/foundation-list-experience/CV04-BOUNDED-EXPORT-CONTRACT-20261112.md"
+  push:
+    branches: [main]
+    paths:
+      - "foundation/collection-query/authorized-cross-page-csv.ts"
+      - "tests/protocol/cv04-cross-page-export-budget.test.mjs"
+      - ".github/workflows/cv04-bounded-export-contract.yml"
+      - "docs/plans/foundation-list-experience/CV04-BOUNDED-EXPORT-CONTRACT-20261112.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-export-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: npm ci
+      - run: npm run build
+      - name: Strict snapshot, independent permission, audit and budget denial matrix
+        run: |
+          set -o pipefail
+          node --test tests/protocol/cv04-cross-page-export-budget.test.mjs \
+            | tee /tmp/cv04-bounded-export-tests.log
+          grep -qx "CV04_CROSS_PAGE_SNAPSHOT_AUDITED_BUDGET_PASS" \
+            <(grep "CV04_CROSS_PAGE_SNAPSHOT_AUDITED_BUDGET_PASS" \
+            /tmp/cv04-bounded-export-tests.log)
+      - name: No runtime export route, manifest or Eidos download published
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const helper=readFileSync("foundation/collection-query/authorized-cross-page-csv.ts","utf8");
+            const manifest=readFileSync("catalog/seed.ts","utf8");
+            if (!helper.includes("authorizeExport")||!helper.includes("openSnapshot")
+              ||!helper.includes("audit(event"))
+              throw new Error("CV04_EXPORT_FAILCLOSED_DEPENDENCIES_MISSING");
+            if (manifest.includes("dictionary.collection.export.bounded.csv"))
+              throw new Error("CV04_EXPORT_ROUTE_PREMATURELY_EXPOSED");
+            console.log("CV04_EXPORT_CONTRACT_NOT_EXPOSED_PASS");
+          '

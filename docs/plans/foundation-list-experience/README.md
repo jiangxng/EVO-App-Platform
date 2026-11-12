@@ -3,6 +3,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-12 CV-04 有界跨页 EXPORT 安全合同（尚未开放产品导出）
+
+[受独立 EXPORT 授权/固定快照/审计回执/行数、页数、字节和时间预算约束的跨页 CSV 合同](CV04-BOUNDED-EXPORT-CONTRACT-20261112.md)：复用原 `foundation/collection-query` 和当前页 CSV 安全序列化，新增真实代码与协议反例测试，但**未注册 ActionHost Operation、UI 下载按钮或持久 Job**；缺真实 Owner `dictionary.export` 策略与持久审计时对线上不可用。不能用此合同 CI 成功宣布 List 基础插件或跨页导出已上线。
+
 ## 2026-11-12 CV-04 Request-Bound 双 Human Principal 与真实 Governance 撤权
 
 [真实 Host 请求身份、企业邀请/接受/撤权、已建立 Human/AI 会话导出拒绝与证据分层](CV04-REQUEST-BOUND-PRINCIPAL-REVOKE-20261112.md)：复用原 Bearer Session、Enterprise Governance Store/关系 Action、字典 Owner 和 ActionRouter，在两个不同 Human Subject 与 MEMBER AI 下运行隔离测试。它优于单一静态用户 A/B 切换，但仍不是东京 Google 登录、真实 PA05 PostgreSQL T0、外部 LLM 或物理手机验收；独立 EXPORT/跨页异步任务还需后续工程。生产 N1/SAVE 禁用不变。
