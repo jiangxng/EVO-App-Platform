@@ -29,3 +29,23 @@
 
 - 本次新增第三方网页研究 **无**；不改变 [2026-11-06 原 EX01–EX08/内部 H01–H10](COLLECTION-VIEW-AI-NATIVE-REFERENCE-INDEX-20261106.md)、[2026-11-12 研究恢复索引](CV04-WINDOW-20261112-RESEARCH-DECISION-REFERENCE-INDEX.md) 的访问等级。
 - G=本次读取原 GitHub 源；D=本测试用例设计；P=尚未取得 CI/真实登录/生产安全签核；历史 #1263 6/6 的 G 仅证明原始基线。
+
+
+## 2026-11-12 / 首版失败与修复（G；实际读取原始 job log）
+
+- [首次 CI #43159005352](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159005352) / job `130985513274` **FAILURE**：`tests/integration/cv04-personal-agent-authorized-csv.test.mjs` 的首项断言错误读取 `describe.operation.binding.type`。公开 Agent `describe` 只给当前授权的公开元数据，内部 `ActionHost binding` 不应暴露；这是新增测试的错误假设，**不是实际 CSV Owner 导出失败/不是越权**。修复为验证 `operationId` 和 effect；第二、三项权限负例当时已 PASS。首次失败记录保留。
+- [修复后精确 PR HEAD `ef3eccd047c977f094f29fa1911976907b48e33f`](https://github.com/jiangxng/EVO-App-Platform/commit/ef3eccd047c977f094f29fa1911976907b48e33f)，[真实 Host/Chromium Actions #43159104298](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159104298)、job `130985826587` **SUCCESS**。本轮已**直接读取该 job 原始日志**而非从源码推断：Agent/Human 同权限、字典+我的供应商 CSV 内容一致并且 `tests 3 / pass 3 / fail 0`；终端标记：
+  - `CV04_AGENT_HUMAN_OWNER_CSV_PARITY_PASS=dictionary.collection.page.export.csv`
+  - `CV04_AGENT_HUMAN_OWNER_CSV_PARITY_PASS=counterparty.collection.my-suppliers.page.export.csv`
+  - `CV04_AGENT_ENTERPRISE_REVOKE_FEATURE_FAILCLOSED_PASS`
+  - `CV04_AGENT_EXPORT_BOUND_FIELDS_AND_EFFECT_PASS`
+  - 原有六个 `CV04_PHYSICAL_CHROMIUM_DOWNLOAD_PASS:{dictionary,my-customers,my-suppliers}:{1280,390}`
+  - 新增六个 `CV04_PHYSICAL_CHROMIUM_ENTERPRISE_SWITCH_PASS:{dictionary,my-customers,my-suppliers}:{1280,390}`
+  - `CV04_REAL_HOST_DISABLED_FEATURE_STALE_EXPORT_DENIED_PASS`
+  - **`CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6`**
+  - **`CV04_REAL_HOST_CHROMIUM_ENTERPRISE_SWITCH_TERMINAL_PASS=6`**
+  - **`CV04_REAL_HOST_CHROMIUM_DISABLED_FEATURE_DENY_TERMINAL_PASS=1`**
+  - `CV04_REAL_HOST_BROWSER_ARTIFACT_CONTRACT_PASS`
+- 实际 [Actions Artifact `13916613561`](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43159104298)（名称 `cv04-real-host-eidos-csv-chromium-evidence`，812207 bytes，`sha256:254dabb61e8730bf66d9040b107819f44ad28d6db6ef71d9fdb782c600b6fdb1`），含隔离 Host bootstrap、12 张真实 Chromium 截图、JSON、fixture。当前 GitHub 显示保存至 2027-02-10；到期可能无法再下载，索引不等于永久保存截图。
+- **精确证据界限**：同一测试 subject 自建两企业、浏览器真实 context 切换/Blob 文件、实际 installed Host disable 已证实；`setAuthorizationOnline(false)` 是隔离 Agent/Owner 的 authorization provider fail-closed 试验，**不代表实在 PG 授权事件或两个真实账号的成员撤权**。物理手机/东京员工账号/外部 LLM Agent Run/完整 List 与独立 EXPORT Job 仍 P。此 PR 没有业务运行时代码变化、未开启 SAVE、未改 #1184。
+- 以上是首个通过的**工程 HEAD** 日志，后续若增补 docs/CI 行变更须在最终 HEAD 再跑 workflow 并核实，不提前称当前整个 PR/main 全绿。
