@@ -74,7 +74,7 @@ function encryptJob(job,cryptoKey,revision,prior){
     storageKind:"DOCUMENT",lifecycleState:"ACTIVE",revision,
     createdAt:prior?.createdAt??job.createdAt,
     createdBySubjectId:prior?.createdBySubjectId??subject,
-    updatedAt:new Date().toISOString(),updatedBySubjectId:subject,
+    updatedAt:revision===0?job.createdAt:new Date().toISOString(),updatedBySubjectId:subject,
     payload:{
       contractVersion:"0.1.0",kind:"dictionary.export-job.encrypted",meta,
       secret:{algorithm:"AES-256-GCM",keyId:"cv04-data-key-v1",
