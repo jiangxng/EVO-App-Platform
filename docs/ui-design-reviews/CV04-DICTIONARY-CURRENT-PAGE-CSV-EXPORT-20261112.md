@@ -34,3 +34,64 @@
 ## 5. 来源
 
 G：本轮已读项目原文 `apps/business-dictionary/page.ts`、`manager/server.ts`、`catalog/seed.ts`、`vendor/eidos/src/catalog-browser/{contracts,render}.ts`、`vendor/eidos/src/app-host/{page-controller,action-download}.ts`、既有 CV-02/04 Protocol tests（2026-11-12）。D：此次页面动作设计及权限继承边界。P：真人浏览器、390px、辅助技术实际操作。未访问新的第三方来源。
+
+## 目标与完成条件
+
+由拥有当前企业 `dictionary.read` 的 Human 在原字典 Directory（`apps/business-dictionary/page.ts`）完成「筛选→分页→导出当前页」，只得到当时可读列和可读行。Personal Agent 通过相同合法 READ Operation 获得同样范围。机器验收必须证明 Handler 真正返回 Eidos `download` 结构，不能仅检查按钮是否存在；真实 390px/Human 仍单独验收。
+
+## 流程与步骤
+
+先选择当前企业，进入业务字典目录，切换全部/草稿/已发布视图，执行搜索排序，翻页后点击次要操作「导出当前页 CSV」；原 Eidos page-controller 解析 Action result 并通过浏览器 Blob 下载，不刷新或重置当前页面。无 READ 权限、Enterprise 身份漂移或 Feature 停用时 Host 拒绝，不保留旧下载地址。
+
+## 导航与信息架构
+
+工作归属是现有 Business Dictionary app-domain 的当前列表页；不新增全局导航、第二个列表入口或通用下载菜单。导出成功后仍停在原筛选/分页目录；可以打开详情再按原 `returnTo` 回到同一目录。父级导航由原 Eidos Context Navigation/Directory 承担。
+
+## 视觉与颜色
+
+复用 Eidos Catalog Browser 原 action 列表和 Design Language tokens，导出属于次要 Command，管理者「新建」仍是唯一 primary；不得复写颜色和 CSS。对照业务字典原表格，功能差异仅一条受限下载动作；布局不插入新卡片/工具栏；颜色完全继承既有 Eidos 按钮语义。截图对照尚未取得。
+
+## 记忆与注意力
+
+不要求用户重做当前搜索、排序、系统视图和分页；点击下载之后原页面维持。名称明确包含「当前页」避免误导为全部导出。没有 Row 选择要求，也不在 status 输出全部 CSV 原文造成认知负担或数据曝光；优先展示成功/失败的简短 Action 信息。
+
+## 无障碍与跨年龄
+
+原 Eidos Command 行为是焦点可达按钮，中文动作词清楚且前后无歧义；成功状态沿用页面 Action 状态区。390px 应由 Eidos 原按钮容器响应式布局展示而非自行写 CSS，必须在正式预览上补截图和键盘/触摸操作证据；未验证的屏幕阅读器支持不得标 PASS。
+
+## 安全与数据修复
+
+URL 查询只是呈现意图：Host ActionRouter 重新核验 Enterprise Context、Membership、Feature 和 Operation；Dictionary Owner 重新查询筛选结果，不接受用户传入的任意 CSV/rows/私密字段。超长 cell、非法 fieldIds、公式风险和值越界按底座拒绝或转义。取消操作不修改任何字典，失败之后留在当前页面且可在权限恢复后重新执行合法 READ；不会自动重试 WRITE。
+
+## 证据与剩余问题
+
+G：本次已读原 Eidos `vendor/eidos/src/app-host/page-controller.ts` 与 `vendor/eidos/src/app-host/action-download.ts`、`apps/business-dictionary/page.ts`、`apps/business-dictionary/actions.ts` 和既有 Collection 协议。D：本次页面入口、主次操作与权限语义。P：真正中文桌面、390px、键盘/辅助设备、真实用户与 Agent 对话结果。机器通过也不等于 Human PASS。
+
+## 页面模式与导航归属
+
+采用当前 `CatalogBrowserV010` Directory 表格页及系统 View Tabs；属于应用内现有管理列表，不创造第二框架。原返回父级、详情页和企业切换器不变。业务字典导出不是企业上下文的一级导航能力。
+
+## 功能、布局、颜色对照
+
+功能：新增「导出当前页 CSV」且受真实 READ 权限/当前 query 控制，保留原新建与详情功能；全量/敏感字段导出待独立设计。
+布局：沿用原页顶级次要 Action，管理主按钮不动；桌面/390px 的像素与触控实测尚未取得。
+颜色：完全使用 Eidos 既有设计 tokens 与按钮样式；没有自定义状态色或独立 CSS，真实预览截图待补。
+
+## 入口、退出与恢复矩阵
+
+| 入口 | 当前动作 | 退出 / 返回父级 | 异常恢复 |
+| --- | --- | --- | --- |
+| 企业已授权字典目录 | 选择已发布视图→搜索→第 2 页→导出 | 下载后保持当前目录、第 2 页及视图，详情仍可回当前目录 | 无读权限时 Action DENY、页面不失去查询状态 |
+| 有管理权的字典目录 | 导出当前页（非主）或新建（主） | 新建/详情仍走已有 Directory 返回路径 | Feature 停用时 Host 拒绝，不复用旧下载 |
+| 只读成员的字典目录 | 导出有权当前页 | 留在 Directory，可继续分页 | 企业切换/撤权必须重查授权 |
+| 旧无分页字典页 | 不显示误导性导出入口 | 老 Directory 行为不变 | 不凭旧无界数据进行下载 |
+
+入口：原有 Enterprise Context 下 Business Dictionary Directory；有效系统 View 的真实分页表格。
+退出：下载后停在原列表，详情与父级返回继续走既有 `returnTo` / Eidos Navigation。
+异常恢复：授权/Feature/查询失效显示原 Action 错误提示、不修改数据、不默默导出旧缓存。
+
+## 浏览器与 Human 证据
+
+桌面：待实测实际预览 Chrome/桌面中文下载、列表页按钮排列和返回行为；已有协议 HTML Render + ActionDownload 自动检查但不是浏览器截图。
+移动：390px Chromium/真机触控与布局截图待取得，不得宣称无溢出已验收。
+Human：实际用户点击、企业身份、跨企业拒绝和下载文件核对尚未签收；仍为 HUMAN_PENDING。
