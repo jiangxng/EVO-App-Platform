@@ -222,3 +222,89 @@ test("CV-05 preview rechecks revocation, enterprise switch, and plugin lifecycle
   await assert.rejects(()=>preview.execute(args,[]),
     /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
 });
+
+
+const aggregateOperationId="dictionary.collection.aggregate.state";
+function aggregateRequest(values) {
+  return {
+    ...request(values),command:{code:aggregateOperationId,inputVersion:"0.1.0"},
+    actionId:aggregateOperationId
+  };
+}
+
+test("CV06 Human and Personal Agent use the same real Dictionary Owner aggregate, never page totals",async()=>{
+  const env=fixture();
+  const query={view:"all",search:"Supplier",sort:"displayName",direction:"asc",page:99,pageSize:1};
+  const human=await env.router.execute(aggregateRequest(query),requestContext());
+  assert.equal(human.ok,true,JSON.stringify(human.error));
+  const data=human.result.data;
+  assert.equal(data.metricId,"dictionary.count.by-state");
+  assert.equal(data.scope,"AUTHORIZED_ALL_MATCHING_ROWS");
+  assert.equal(data.countKind,"SUPPRESSED");
+  assert.equal(data.total,null);
+  assert.deepEqual(data.buckets,[
+    {key:"DRAFT",count:0,countKind:"EXACT"},
+    {key:"PUBLISHED",count:null,countKind:"SUPPRESSED"}
+  ]);
+  assert.equal(JSON.stringify(data).includes("Private label"),false);
+  assert.equal(JSON.stringify(data).includes(contextId),false);
+
+  const regs=env.agent(requestContext());
+  const found=await tool(regs,PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID)
+    .execute({query:"dictionary"},[]);
+  assert.ok(found.items.some(x=>x.operationId===aggregateOperationId));
+  const described=await tool(regs,PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID)
+    .execute({operationId:aggregateOperationId},[]);
+  assert.equal(described.operation.effect,"READ");
+  const invoked=await tool(regs,PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID)
+    .execute({operationId:aggregateOperationId,input:query},[]);
+  const agent=invoked.result.data;
+  assert.deepEqual(agent.buckets,data.buckets);
+  assert.equal(agent.total,data.total);
+  assert.equal(agent.metricId,data.metricId);
+  assert.equal(agent.countKind,data.countKind);
+
+  const first=await env.router.execute(
+    aggregateRequest({...query,page:0,pageSize:25}),requestContext());
+  assert.equal(first.ok,true);
+  assert.deepEqual(first.result.data.buckets,data.buckets);
+  assert.equal(first.result.data.total,data.total);
+  await assert.rejects(()=>tool(regs,PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
+    .execute({operationId:aggregateOperationId,input:query},[]),
+    /PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED/);
+  await assert.rejects(()=>tool(regs,PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID)
+    .execute({operationId:aggregateOperationId,input:query},[]),
+    /PERSONAL_AGENT_CAPABILITY_EFFECT_MISMATCH/);
+});
+
+test("CV06 aggregate authorization is independently revoked for tenant, policy and feature",async()=>{
+  const env=fixture();
+  const args={operationId:aggregateOperationId,input:{view:"all",pageSize:1}};
+  const authorized=tool(env.agent(requestContext()),
+    PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID);
+  assert.equal((await authorized.execute(args,[])).result.data.countKind,"SUPPRESSED");
+  const other=env.agent(requestContext("HUMAN",{
+    enterpriseId:"other",contextId:"enterprise-context:other"
+  }));
+  const search=await tool(other,PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID)
+    .execute({query:"aggregate"},[]);
+  assert.ok(!search.items.some(x=>x.operationId===aggregateOperationId));
+  await assert.rejects(()=>tool(other,PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID)
+    .execute(args,[]),/PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+  const otherHuman=await env.router.execute(aggregateRequest(args.input),requestContext("HUMAN",{
+    enterpriseId:"other",contextId:"enterprise-context:other"
+  }));
+  assert.equal(otherHuman.ok,false);
+
+  env.setAllowed(false);
+  const revoked=await env.router.execute(aggregateRequest(args.input),requestContext());
+  assert.equal(revoked.ok,false);
+  await assert.rejects(()=>authorized.execute(args,[]),
+    /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+  env.setAllowed(true);
+  env.manager.disable(packageId);
+  const disabled=await env.router.execute(aggregateRequest(args.input),requestContext());
+  assert.equal(disabled.ok,false);
+  await assert.rejects(()=>authorized.execute(args,[]),
+    /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+});
