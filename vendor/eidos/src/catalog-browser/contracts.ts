@@ -22,6 +22,7 @@ export interface CatalogBrowserTableV010 {
   };
 }
 
+import type { CatalogAuthorizedAggregateBarsV010 } from "./authorized-bars.js";
 import type { JsonValue } from "../runtime/contracts.js";
 import type {
   EidosContextNavigationV010
