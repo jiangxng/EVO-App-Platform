@@ -227,6 +227,89 @@ function canonicalizationProposalFromMemoryReview(
   };
 }
 
+/**
+ * CV-05: a read-only, Host-evidenced Collection result may offer one Eidos
+ * navigation action. Tool output is untrusted for links: never turn arbitrary
+ * tool text, model prose or a route into an authorized business operation.
+ * Avoid importing optional business applications into the Agent startup path.
+ */
+function collectionNavigationFromRead(
+  reply: PersonalAgentReplyV010, locale: string
+): ChatMessagePartV020 | undefined {
+  const routes: Record<string, string> = {
+    "dictionary.collection.query": "/business-dictionaries",
+    "counterparty.collection.my-customers.query": "/counterparties/my-customers",
+    "counterparty.collection.my-suppliers.query": "/counterparties/my-suppliers"
+  };
+  const descriptor = reply.tools.find(tool =>
+    tool.id === "evo.collection.read.preview" && tool.effect === "READ"
+  );
+  if (!descriptor) return undefined;
+
+  // Never resurrect a prior success after a later failed/revoked read.
+  const observation = [...reply.observations].reverse().find(item =>
+    item.tool === descriptor.id
+  );
+  if (!observation || !observation.ok || !observation.result
+    || typeof observation.result !== "object"
+    || Array.isArray(observation.result)) return undefined;
+  const result = observation.result as Record<string, unknown>;
+  if (result.kind !== "evo.personal-agent-collection.read-preview"
+    || result.contractVersion !== "0.1.0"
+    || typeof result.operationId !== "string") return undefined;
+  const expectedPath = routes[result.operationId];
+  if (!expectedPath) return undefined;
+
+  const navigation = result.navigation;
+  const pageInfo = result.pageInfo;
+  if (!navigation || typeof navigation !== "object"
+    || Array.isArray(navigation)
+    || !pageInfo || typeof pageInfo !== "object"
+    || Array.isArray(pageInfo)) return undefined;
+  const nav = navigation as Record<string, unknown>;
+  const info = pageInfo as Record<string, unknown>;
+  const route = nav.route;
+  if (nav.kind !== "EIDOS_COLLECTION_PAGE"
+    || nav.authority !== "PRESENTATION_ONLY_REAUTHORIZE_ON_OPEN"
+    || typeof route !== "string"
+    || route.length > 650
+    || !route.startsWith("/") || route.startsWith("//")
+    || route.includes("\\") || route.includes("#")
+    || !Number.isSafeInteger(info.total) || (info.total as number) < 0
+    || !Number.isSafeInteger(info.page) || (info.page as number) < 0
+    || info.countKind !== "EXACT") return undefined;
+
+  const url = new URL(route, "https://eidos.invalid");
+  if (url.origin !== "https://eidos.invalid"
+    || url.pathname !== expectedPath || url.hash) return undefined;
+  const allowedParameters = new Set(result.operationId === "dictionary.collection.query"
+    ? ["view", "search", "sort", "direction", "page", "pageSize"]
+    : ["search", "sort", "direction", "page", "pageSize"]);
+  const seen = new Set<string>();
+  for (const key of url.searchParams.keys()) {
+    if (!allowedParameters.has(key) || seen.has(key)) return undefined;
+    seen.add(key);
+  }
+
+  const zh = locale.toLowerCase().startsWith("zh");
+  const ja = locale.toLowerCase().startsWith("ja");
+  const title = zh ? "有权列表查询结果" : ja
+    ? "アクセス可能な一覧の検索結果" : "Authorized Collection results";
+  const label = zh ? "在列表中打开" : ja ? "一覧で開く" : "Open in list";
+  const summary = zh
+    ? `已读取第 ${(info.page as number) + 1} 页，服务端精确计数 ${info.total} 条。打开列表时会重新核验当前企业与权限。`
+    : ja
+      ? `ページ ${(info.page as number) + 1} を読み込みました。正確な件数: ${info.total} 件。開く際に権限を再確認します。`
+      : `Read page ${(info.page as number) + 1}; exact server count: ${info.total}. Opening the list rechecks enterprise access.`;
+  return {
+    type: "proposal", title, summary,
+    actions: [{
+      id: "open-authorized-collection",
+      label, type: "navigate", route, primary: true
+    }]
+  };
+}
+
 export function presentPersonalAgentReplyV020(
   reply: PersonalAgentReplyV010,
   locale = "en"
@@ -268,6 +351,9 @@ export function presentPersonalAgentReplyV020(
 
   const proposal = proposalFromInstallPlan(reply);
   if (proposal) parts.push(proposal);
+
+  const collectionNavigation = collectionNavigationFromRead(reply, locale);
+  if (collectionNavigation) parts.push(collectionNavigation);
 
   return parts;
 }
