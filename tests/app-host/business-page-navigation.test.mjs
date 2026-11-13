@@ -140,3 +140,16 @@ test("shared business-page navigation uses Eidos-owned responsive realization", 
   assert.match(eidosProductiveWorkbenchCss, /data-eidos-catalog-density="compact"/);
   assert.match(eidosProductiveWorkbenchCss, /@media \(max-width:700px\)/);
 });
+
+test("Collection view navigation keeps Eidos-owned touch, focus, and selected states", () => {
+  const rule=eidosProductiveWorkbenchCss.match(
+    /\[data-eidos-catalog-view-navigation\] button\{([^}]+)\}/
+  )?.[1];
+  assert.ok(rule,"catalog view switcher needs its own actual Eidos CSS");
+  assert.match(rule,/min-height:var\(--eidos-touch-target\)/);
+  assert.match(rule,/min-width:var\(--eidos-touch-target\)/);
+  assert.match(eidosProductiveWorkbenchCss,
+    /\[data-eidos-catalog-view-navigation\] button\[aria-current="page"\]/);
+  assert.match(eidosProductiveWorkbenchCss,
+    /\[data-eidos-catalog-view-navigation\] button:focus-visible/);
+});
