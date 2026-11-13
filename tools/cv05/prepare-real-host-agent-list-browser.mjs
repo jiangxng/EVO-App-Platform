@@ -27,7 +27,7 @@ assert.ok(contextId && cv04.secondaryContextId!==contextId);
 const out=resolve("artifacts/cv05-agent-list-browser");
 mkdirSync(out,{recursive:true});
 
-async function ownerRead(operationId,query){
+async function ownerRead(operationId,query,readContextId=contextId){
   const request={
     contractVersion:"0.1.0",type:"command",
     command:{code:operationId,inputVersion:"0.1.0"},values:query,
@@ -37,7 +37,7 @@ async function ownerRead(operationId,query){
   const resp=await fetch(host+"/v1/actions",{
     method:"POST",headers:{
       accept:"application/json","content-type":"application/json",
-      "x-evo-context-id":contextId
+      "x-evo-context-id":readContextId
     },body:JSON.stringify(request)
   });
   const value=await resp.json();
@@ -64,6 +64,14 @@ const plans=[
 const result=[];
 for(const plan of plans){
   const read=await ownerRead(plan.operationId,plan.query);
+  const secondEnterpriseRead=await ownerRead(
+    plan.operationId,plan.query,cv04.secondaryContextId
+  );
+  const unwrap=raw=>raw?.data?.readableFieldIds??raw?.readableFieldIds;
+  const readableFieldsA=unwrap(read);
+  const readableFieldsB=unwrap(secondEnterpriseRead);
+  assert.ok(Array.isArray(readableFieldsA),"CV05_CURRENT_FIELD_GRANTS_REQUIRED");
+  assert.ok(Array.isArray(readableFieldsB),"CV05_SECOND_FIELD_GRANTS_REQUIRED");
   const preview=await presentPersonalAgentCollectionReadV010({
     operationId:plan.operationId,query:plan.query,
     result:read,correlationId:"cv05-real-host-chromium"
@@ -98,6 +106,7 @@ for(const plan of plans){
     name:plan.name,operationId:plan.operationId,query:plan.query,
     expectedA:plan.expectedA,expectedB:plan.expectedB,
     route:nav.route,messageHtml,
+    readableFieldsA,readableFieldsB,
     pageInfo:preview.pageInfo
   });
   console.log("CV05_OWNER_REAL_READ_TO_EIDOS_CHAT_PASS="+plan.name);
