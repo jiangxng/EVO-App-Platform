@@ -20,6 +20,8 @@ on:
       - "providers/authorization/runtime.ts"
       - "providers/enterprise-context/resources-postgres.ts"
       - "providers/enterprise-context/package.ts"
+      - "tools/cv03-n1-postgres-role-audit.mjs"
+      - "tools/cv03-n105a-authority-boundary-preflight.mjs"
   push:
     branches: [main]
     paths:
@@ -37,6 +39,8 @@ on:
       - "providers/authorization/runtime.ts"
       - "providers/enterprise-context/resources-postgres.ts"
       - "providers/enterprise-context/package.ts"
+      - "tools/cv03-n1-postgres-role-audit.mjs"
+      - "tools/cv03-n105a-authority-boundary-preflight.mjs"
   issues:
     types: [edited, closed, reopened]
   workflow_dispatch:
