@@ -3970,4 +3970,37 @@ form[data-eidos-id="evo-data-import.mapping"]
     grid-template-columns:28px minmax(0,1fr);gap:var(--eidos-space-sm);
   }
 }
+/* CV06 authorized aggregate chart: source and count stay legible without JS. */
+[data-eidos-authorized-aggregate-bars]{
+  display:grid;gap:var(--eidos-space-sm);max-width:100%;min-width:0;
+  margin:var(--eidos-space-lg) 0;padding:var(--eidos-space-lg);
+  border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);
+}
+[data-eidos-authorized-aggregate-bars] h2{margin:0;font-size:var(--eidos-font-body)}
+[data-eidos-authorized-chart-source]{display:flex;flex-wrap:wrap;gap:var(--eidos-space-lg);margin:0;color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta)}
+[data-eidos-authorized-chart-source] div{display:flex;gap:var(--eidos-space-xs)}
+[data-eidos-authorized-chart-source] dd{margin:0;font-variant-numeric:tabular-nums}
+[data-eidos-authorized-bars-list]{display:grid;gap:var(--eidos-space-md);padding:0;margin:0;list-style:none;min-width:0}
+[data-eidos-authorized-bars-list] li{
+  display:grid;grid-template-columns:minmax(5rem,8rem) minmax(0,1fr) minmax(3rem,auto);
+  align-items:center;gap:var(--eidos-space-sm);min-width:0
+}
+[data-eidos-authorized-bar-label]{overflow-wrap:anywhere}
+[data-eidos-authorized-bar-track]{
+  display:block;min-width:0;height:1.125rem;border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg-subtle);overflow:hidden
+}
+[data-eidos-authorized-bar-fill]{
+  display:block;height:100%;background:var(--eidos-primary);border-radius:inherit
+}
+[data-eidos-authorized-bar-suppressed]{display:block;height:100%;border:1px dashed var(--eidos-border)}
+[data-eidos-authorized-bar-count]{font-variant-numeric:tabular-nums;text-align:end;overflow-wrap:anywhere}
+@media(max-width:700px){
+  [data-eidos-authorized-bars-list] li{grid-template-columns:minmax(5rem,1fr) minmax(3rem,auto)}
+  [data-eidos-authorized-bar-track]{grid-column:1 / -1;grid-row:2}
+  [data-eidos-authorized-bar-label]{grid-column:1;grid-row:1}
+  [data-eidos-authorized-bar-count]{grid-column:2;grid-row:1}
+}
+
 `;

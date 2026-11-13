@@ -64,6 +64,18 @@ const plans=[
 const result=[];
 for(const plan of plans){
   const read=await ownerRead(plan.operationId,plan.query);
+  // CV06: this must use the ACTUAL running Host lazy command registry, not
+  // an isolated in-memory ActionRouter test fixture. Catches a missing
+  // manager/server.ts registration even when capability metadata exists.
+  if(plan.name==="dictionary"){
+    const aggregate=await ownerRead("dictionary.collection.aggregate.state",plan.query);
+    assert.equal(aggregate?.data?.kind,"business-dictionary.collection.aggregate.state");
+    assert.equal(aggregate.data.scope,"AUTHORIZED_ALL_MATCHING_ROWS");
+    assert.equal(aggregate.data.metricId,"dictionary.count.by-state");
+    assert.equal(aggregate.data.countKind,"SUPPRESSED");
+    assert.equal(aggregate.data.total,null);
+    console.log("CV06_REAL_HOST_LAZY_AGGREGATE_READ_PASS=dictionary");
+  }
   const secondEnterpriseRead=await ownerRead(
     plan.operationId,plan.query,cv04.secondaryContextId
   );

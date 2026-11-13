@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createAppActionRouter } from "../../dist/actions/router.js";
+import { createBusinessDictionaryDirectoryPageV010 } from "../../dist/apps/business-dictionary/page.js";
+import { withCv06AuthorizedDictionaryChartV010 } from "../../dist/manager/cv06-dictionary-chart-presentation.js";
+import { renderCatalogBrowserToHtml } from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import { businessDictionaryPackage } from "../../dist/catalog/seed.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
@@ -107,7 +110,7 @@ function fixture() {
     resolveAuthorizationProvider:()=>provider
   });
   return {
-    manager,router,agent,
+    manager,router,agent,repository,
     setAllowed(value){policyAllowed=value;}
   };
 }
@@ -307,4 +310,92 @@ test("CV06 aggregate authorization is independently revoked for tenant, policy a
   assert.equal(disabled.ok,false);
   await assert.rejects(()=>authorized.execute(args,[]),
     /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+});
+
+test("CV06 Eidos chart renders only separately authorized complete Owner aggregate, never current page",async()=>{
+  const env=fixture(),context=requestContext();
+  const selection={view:"all",query:{page:0,pageSize:1}};
+  const page=createBusinessDictionaryDirectoryPageV010({
+    dictionaries:env.repository.list(contextId),
+    directorySelection:selection,canManage:false,locale:"zh-CN"
+  });
+  assert.equal(page.table.rows.length,1);
+  assert.equal(page.table.pageInfo.total,3);
+  const read=await env.router.execute(aggregateRequest({view:"all",page:99,pageSize:1}),context);
+  assert.equal(read.ok,true);
+  assert.equal(read.result.data.total,null);
+  assert.deepEqual(read.result.data.buckets.map(x=>x.count),[null,null]);
+  const visible=await withCv06AuthorizedDictionaryChartV010({
+    page,actionRouter:env.router,context,directorySelection:selection,locale:"zh-CN"
+  });
+  assert.ok(visible.authorizedChart);
+  assert.equal(visible.authorizedChart.metricId,"dictionary.count.by-state");
+  assert.equal(visible.authorizedChart.scope,"AUTHORIZED_ALL_MATCHING_ROWS");
+  assert.equal(visible.authorizedChart.total,null);
+  assert.deepEqual(visible.authorizedChart.buckets.map(x=>x.count),[null,null]);
+  assert.equal(visible.table.rows.length,1,"chart must not replace list data");
+  const html=renderCatalogBrowserToHtml(visible);
+  assert.match(html,/data-eidos-authorized-aggregate-bars/);
+  assert.match(html,/字典状态统计/);
+  assert.match(html,/少于 3 条（已隐藏）/);
+  assert.doesNotMatch(html,/Private label/);
+  assert.equal((html.match(/data-eidos-authorized-bar-key=/g)||[]).length,2);
+  assert.doesNotMatch(renderCatalogBrowserToHtml(page),
+    /data-eidos-authorized-aggregate-bars/);
+
+  env.setAllowed(false);
+  const revoked=await withCv06AuthorizedDictionaryChartV010({
+    page,actionRouter:env.router,context,directorySelection:selection,locale:"zh-CN"
+  });
+  assert.equal(revoked.authorizedChart,undefined);
+  assert.deepEqual(revoked.table,page.table);
+  env.setAllowed(true);
+  env.manager.disable(packageId);
+  const stopped=await withCv06AuthorizedDictionaryChartV010({
+    page,actionRouter:env.router,context,directorySelection:selection,locale:"zh-CN"
+  });
+  assert.equal(stopped.authorizedChart,undefined);
+});
+
+test("CV06 chart never trusts URL/hinted private view nor a forged or mismatched Host aggregate",async()=>{
+  const env=fixture(),ctx=requestContext();
+  const selection={view:"published",query:{search:"Supplier",page:0,pageSize:1}};
+  const base=createBusinessDictionaryDirectoryPageV010({
+    dictionaries:env.repository.list(contextId),canManage:false,
+    directorySelection:selection,locale:"en"
+  });
+  const legitimate=await withCv06AuthorizedDictionaryChartV010({
+    page:base,actionRouter:env.router,context:ctx,directorySelection:selection
+  });
+  assert.equal(legitimate.authorizedChart.countKind,"SUPPRESSED");
+  assert.equal(legitimate.authorizedChart.total,null);
+  const fake={
+    contractVersion:"0.1.0",kind:"business-dictionary.collection.aggregate.state",
+    collectionId:"evo.business-dictionary.directory",
+    schemaRef:"evo.business-dictionary.directory/0.1.0",
+    metricId:"dictionary.count.by-state",dimensionFieldId:"state",
+    unit:"dictionary",scope:"AUTHORIZED_ALL_MATCHING_ROWS",
+    asOf:"2026-11-13T12:00:00.000Z",
+    query:{view:"all",search:"Supplier"},
+    privacy:{minimumVisibleBucketCount:3,suppressionApplied:false},
+    countKind:"EXACT",total:999,
+    buckets:[{key:"DRAFT",count:0,countKind:"EXACT"},
+      {key:"PUBLISHED",count:999,countKind:"EXACT"}]
+  };
+  const maliciousRouter={execute:async()=>({ok:true,result:{data:fake}})};
+  const forged=await withCv06AuthorizedDictionaryChartV010({
+    page:base,actionRouter:maliciousRouter,context:ctx,directorySelection:selection
+  });
+  assert.equal(forged.authorizedChart,undefined);
+  const hinted=await withCv06AuthorizedDictionaryChartV010({
+    page:base,actionRouter:env.router,context:ctx,
+    directorySelection:{...selection,personalViewId:"private-guess"}
+  });
+  assert.equal(hinted.authorizedChart,undefined);
+  const wrongContext=await withCv06AuthorizedDictionaryChartV010({
+    page:base,actionRouter:env.router,
+    context:requestContext("HUMAN",{enterpriseId:"other",contextId:"enterprise-context:other"}),
+    directorySelection:selection
+  });
+  assert.equal(wrongContext.authorizedChart,undefined);
 });

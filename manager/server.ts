@@ -921,6 +921,7 @@ import {
   BUSINESS_DICTIONARY_PACKAGE_ID, BUSINESS_DICTIONARY_FEATURE_ID,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010, BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
   BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010,
+  BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010,
   BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010,
   BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010,
@@ -5645,6 +5646,7 @@ const actionRouter = createAppActionRouter(
     ...[
       BUSINESS_DICTIONARY_LIST_COMMAND_V010,
       BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010,
+      BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010,
       BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010,
       BUSINESS_DICTIONARY_DRAFT_COMMAND_V010,
       BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010,
@@ -7736,9 +7738,40 @@ const server = createServer(async (request, response) => {
               return json(response,200,viewPage);
             }
           }
-          return json(response, 200, page.createBusinessDictionaryDirectoryPageV010({
+          const baseDictionaryPage = page.createBusinessDictionaryDirectoryPageV010({
             dictionaries, effectiveVersions, canManage, locale, directorySelection
-          }));
+          });
+          // CV06: an optional Eidos visualization must use a fresh Host READ,
+          // not the currently displayed page's rows or an untrusted URL sum.
+          // If a stricter Owner/Principal authorization rejects it, preserve
+          // the original catalog without leaking a cached chart.
+          const aggregateIntent: AppActionRequestV010 = {
+            contractVersion: "0.1.0", type: "command",
+            command: {
+              code: BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010,
+              inputVersion: "0.1.0"
+            },
+            actionId: BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010,
+            sourceInteractionId: "cv06.dictionary.page:" + randomUUID(),
+            requiresConfirmation: false, values: {}
+          };
+          let aggregateContext: PlatformRequestContextV010 | undefined;
+          try {
+            aggregateContext = createPlatformRequestContextV010(
+              session, registry, aggregateIntent, request.headers, locale
+            );
+          } catch {
+            // Chart omitted if current session/context fails Host admission.
+          }
+          const cv06Presentation = await import(
+            "./cv06-dictionary-chart-presentation.js"
+          );
+          const directoryPageWithChart =
+            await cv06Presentation.withCv06AuthorizedDictionaryChartV010({
+              page: baseDictionaryPage, actionRouter,
+              context: aggregateContext, directorySelection, locale
+            });
+          return json(response, 200, directoryPageWithChart);
         }
         const route = page.parseBusinessDictionaryRouteV010(
           url.searchParams.get("route") ?? undefined,

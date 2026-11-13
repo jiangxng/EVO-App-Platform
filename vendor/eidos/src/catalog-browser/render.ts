@@ -1,4 +1,5 @@
 import type { CatalogBrowserV010 } from "./contracts.js";
+import { assertAuthorizedAggregateBarsV010, renderAuthorizedAggregateBarsToHtmlV010 } from "./authorized-bars.js";
 import {
   assertContextNavigationV010,
   renderContextNavigationV010
@@ -49,6 +50,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
     throw new Error("EIDOS_CATALOG_COLLECTION_DESCRIPTION_INVALID");
   }
   assertContextNavigationV010(input.contextNavigation);
+  if (input.authorizedChart) assertAuthorizedAggregateBarsV010(input.authorizedChart);
   if (input.actions !== undefined) {
     if (!Array.isArray(input.actions)) {
       throw new Error("EIDOS_CATALOG_PAGE_ACTIONS_INVALID");
@@ -282,6 +284,7 @@ ${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
 </header>
 ${search}
 ${viewNavigation}
+${model.authorizedChart ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : ""}
 ${serverSearch}
 ${table}
 ${model.collectionTitle
