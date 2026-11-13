@@ -17,6 +17,8 @@ import type {
   EnterpriseAgentToolRegistrationV010
 } from "./host-tool-catalog.js";
 
+export const PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID =
+  "evo.collection.read.preview" as const;
 export const PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID =
   "evo.capabilities.search" as const;
 export const PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID =
@@ -355,6 +357,51 @@ export function createPersonalAgentCapabilityToolRegistrationsV010(input: {
     }),
     execute(args) {
       return invoke(args, ["READ", "PLAN"]);
+    }
+  }, {
+    descriptor: descriptor({
+      id: PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
+      modelName: "evo_collection_read_preview",
+      title: "Preview authorized Collection in Eidos",
+      description:
+        "Use after discovering and describing a currently authorized Dictionary or My Customer/Supplier Collection READ. Supply a bounded structured query derived from the Human's request. This tool executes the actual Owner READ through Host authorization and returns only the current page preview plus a presentation-only Eidos list route. The route never grants access: opening it reauthorizes. This is not saved view, bulk export, WRITE or an aggregate over all records.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["operationId", "input"],
+        properties: {
+          operationId: {
+            type: "string",
+            description: "Exact currently authorized Collection READ operationId."
+          },
+          input: {
+            type: "object",
+            description: "Structured Owner query from the operation's described inputSchema, not SQL."
+          }
+        }
+      },
+      effect: "READ",
+      ownerPackageId: "evo-app-platform",
+      capability: "platform.capability-operation"
+    }),
+    async execute(args) {
+      const operationId = stringArgument(args, "operationId");
+      // Entire preview adapter is deferred until this optional Agent tool
+      // is invoked; Lightweight Host must not eagerly load it on startup.
+      const {
+        PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010,
+        presentPersonalAgentCollectionReadV010
+      } = await import("./collection-read-preview.js");
+      // Reject unrelated READ operations before invoking any domain handler.
+      if (!PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(operationId)) {
+        throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
+      }
+      const query = objectArgument(args, "input");
+      const executed = await invoke({ operationId, input: query }, ["READ"]);
+      return presentPersonalAgentCollectionReadV010({
+        operationId, query, result: executed.result,
+        correlationId: executed.correlationId
+      });
     }
   }, {
     descriptor: descriptor({

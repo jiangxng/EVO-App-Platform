@@ -13,6 +13,7 @@ import { createBusinessDictionaryActionHandlersV010 } from "../../dist/apps/busi
 import {
   createPersonalAgentCapabilityToolRegistrationsV010,
   PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID,
+  PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
   PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID,
   PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID,
   PERSONAL_AGENT_CAPABILITY_INVOKE_WRITE_TOOL_ID
@@ -158,4 +159,66 @@ test("CV-02 Agent capability discovery/invoke revokes immediately on policy chan
     /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
   assert.equal((await env.router.execute(request({}),requestContext())).error.code,
     "ACTION_FEATURE_NOT_ACTIVE");
+});
+
+test("CV-05 Agent Collection preview uses a real authorized owner page and Eidos route without saving",async()=>{
+  const env=fixture();
+  const query={view:"published",search:"Supplier",sort:"displayName",direction:"asc",page:0,pageSize:25};
+  const human=await env.router.execute(request(query),requestContext());
+  assert.equal(human.ok,true);
+  const preview=await tool(env.agent(requestContext()),
+    PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
+    .execute({operationId,input:query},[]);
+  assert.equal(preview.kind,"evo.personal-agent-collection.read-preview");
+  assert.equal(preview.operationId,operationId);
+  assert.equal(preview.collectionId,human.result.data.collectionId);
+  assert.deepEqual(preview.rows,human.result.data.rows);
+  assert.deepEqual(preview.pageInfo,human.result.data.pageInfo);
+  assert.equal(preview.pageInfo.total,2);
+  assert.equal(preview.navigation.authority,"PRESENTATION_ONLY_REAUTHORIZE_ON_OPEN");
+  assert.match(preview.navigation.route,/^\/business-dictionaries\?view=published&/);
+  assert.ok(preview.navigation.route.includes("search=Supplier"));
+  assert.equal(JSON.stringify(preview).includes("Private label"),false);
+  assert.equal(JSON.stringify(preview).includes("contextId"),false);
+  assert.equal(Object.hasOwn(preview,"receipt"),false);
+});
+
+test("CV-05 preview rejects unsupported, unsafe and write-side operations without executing them",async()=>{
+  const env=fixture();
+  const preview=tool(env.agent(requestContext()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID);
+  await assert.rejects(()=>preview.execute({
+    operationId:"dictionary.publish",input:{}
+  },[]),/PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED/);
+  await assert.rejects(()=>preview.execute({
+    operationId:"dictionary.list",input:{}
+  },[]),/PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED/);
+  await assert.rejects(()=>preview.execute({
+    operationId,input:{view:"published",sort:"internalSecret"}
+  },[]),/CAPABILITY_OPERATION_INPUT|COLLECTION_QUERY_SORT_INVALID/);
+  await assert.rejects(()=>preview.execute({
+    operationId,input:{view:"all",pageSize:10000}
+  },[]),/CAPABILITY_OPERATION_INPUT|COLLECTION_QUERY_PAGE_SIZE_INVALID/);
+  await assert.rejects(()=>preview.execute({
+    operationId,input:{view:"all",enterpriseId:"other"}
+  },[]),/CAPABILITY_OPERATION_INPUT|COLLECTION_QUERY_FIELD_UNSUPPORTED/);
+});
+
+test("CV-05 preview rechecks revocation, enterprise switch, and plugin lifecycle",async()=>{
+  const env=fixture();
+  const regs=env.agent(requestContext());
+  const preview=tool(regs,PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID);
+  const args={operationId,input:{view:"published",page:0,pageSize:2}};
+  assert.equal((await preview.execute(args,[])).pageInfo.total,2);
+  const switched=tool(env.agent(requestContext("HUMAN",{
+    enterpriseId:"other",contextId:"enterprise-context:other"
+  })),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID);
+  await assert.rejects(()=>switched.execute(args,[]),
+    /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+  env.setAllowed(false);
+  await assert.rejects(()=>preview.execute(args,[]),
+    /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+  env.setAllowed(true);
+  env.manager.disable(packageId);
+  await assert.rejects(()=>preview.execute(args,[]),
+    /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
 });

@@ -9,6 +9,7 @@ import { createCapabilityOperationActionPreExecuteV010 } from
 import {
   createPersonalAgentCapabilityToolRegistrationsV010,
   PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID,
+  PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
   PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID,
   PERSONAL_AGENT_CAPABILITY_INVOKE_READ_PLAN_TOOL_ID
 } from "../../dist/agents/enterprise-agent/capability-fabric-tools.js";
@@ -228,4 +229,35 @@ test("CV-02 agent denies enterprise-switch, disabled plugin and missing authoriz
       .execute({operationId:DICTIONARY_READ,input:{}},[]),
     /PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/
   );
+});
+
+test("CV-05 Personal Agent previews real My Suppliers Owner READ with safe Eidos navigation",async()=>{
+  const {router,agent}=setup();
+  const query={search:"Supplier",sort:"displayName",direction:"asc",page:0,pageSize:25};
+  const human=await router.execute(request(COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,query),context());
+  assert.equal(human.ok,true,JSON.stringify(human.error));
+  const preview=await reg(agent(context()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
+    .execute({operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,input:query},[]);
+  assert.equal(preview.kind,"evo.personal-agent-collection.read-preview");
+  assert.deepEqual(preview.rows,human.result.rows);
+  assert.deepEqual(preview.pageInfo,human.result.pageInfo);
+  assert.deepEqual(preview.rows.map(x=>x.rowId),["supplier-hk"]);
+  assert.equal(JSON.stringify(preview).includes("supplier-other"),false);
+  assert.equal(preview.readableFieldIds.includes("email"),false);
+  assert.match(preview.navigation.route,/^\/counterparties\/my-suppliers\?/);
+  assert.ok(preview.navigation.route.includes("search=Supplier"));
+
+  const switched=reg(agent(context("ent-b")),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID);
+  // Counterparty's policy permits a READ in B, but B contains no A-owned
+  // records. Unlike Dictionary's enterprise-specific grant, this is an
+  // authorized empty projection, not a Capability discovery denial.
+  const otherPreview=await switched.execute({
+    operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,input:query
+  },[]);
+  assert.deepEqual(otherPreview.rows,[]);
+  assert.equal(otherPreview.pageInfo.total,0);
+  await assert.rejects(()=>reg(agent(context()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
+    .execute({operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+      input:{sort:"email",page:0}},[]),
+  /CAPABILITY_OPERATION_INPUT|COUNTERPARTY_QUERY_SORT_INVALID|COUNTERPARTY_QUERY_SORT_FORBIDDEN/);
 });
