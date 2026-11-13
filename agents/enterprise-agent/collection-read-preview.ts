@@ -2,20 +2,10 @@ import {
   BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010,
   BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010
 } from "../../contracts/reference-data/dictionary-operations.js";
-import {
-  COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
-  COUNTERPARTY_MY_CUSTOMERS_ROUTE,
-  COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
-  COUNTERPARTY_MY_SUPPLIERS_ROUTE
-} from "../../apps/counterparty/constants.js";
-import {
-  businessDictionaryDirectoryQueryRouteV010,
-  parseBusinessDictionaryDirectoryRouteV010
-} from "../../apps/business-dictionary/directory-query.js";
-import {
-  counterpartyProjectionQueryRouteV010,
-  parseCounterpartyProjectionRouteQueryV010
-} from "../../apps/counterparty/projection-query.js";
+// Operation IDs are public contracts; plugin code is lazy-loaded *after*
+// Host READ authorization, respecting Lightweight Host architecture.
+const MY_CUSTOMERS_READ = "counterparty.collection.my-customers.query";
+const MY_SUPPLIERS_READ = "counterparty.collection.my-suppliers.query";
 
 /**
  * CV-05: present the result of an already authorized, actually executed
@@ -25,26 +15,22 @@ import {
  */
 export const PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010: readonly string[] = [
   BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010,
-  COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010,
-  COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010
+  MY_CUSTOMERS_READ,
+  MY_SUPPLIERS_READ
 ];
 
 function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function viewRoute(operationId: string, query: Record<string, unknown>): string {
-  const route = operationId === BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010
-    ? BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010
-    : operationId === COUNTERPARTY_MY_CUSTOMERS_COLLECTION_QUERY_V010
-      ? COUNTERPARTY_MY_CUSTOMERS_ROUTE
-      : operationId === COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010
-        ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
-        : undefined;
-  if (!route) throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
+async function viewRoute(
+  operationId: string, query: Record<string, unknown>
+): Promise<string> {
+  const supported = PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(operationId);
+  if (!supported) throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
 
-  // Never let untrusted model text supply a hostname, path or arbitrary filter.
-  // The existing domain parsers enforce every allowed parameter and value.
+  // The domain parser is used at invocation time only. No eager import of an
+  // optional Application is introduced into the Personal Agent Host startup.
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if ((typeof value !== "string" && typeof value !== "number")
@@ -53,11 +39,25 @@ function viewRoute(operationId: string, query: Record<string, unknown>): string 
     }
     params.set(key, String(value));
   }
-  const candidate = route + (params.size ? "?" + params.toString() : "");
-  if (route === BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010) {
+
+  if (operationId === BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010) {
+    const { businessDictionaryDirectoryQueryRouteV010,
+      parseBusinessDictionaryDirectoryRouteV010 } =
+      await import("../../apps/business-dictionary/directory-query.js");
+    const route = BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010;
+    const candidate = route + (params.size ? "?" + params.toString() : "");
     const parsed = parseBusinessDictionaryDirectoryRouteV010(candidate);
     return businessDictionaryDirectoryQueryRouteV010(parsed, parsed.query.page ?? 0);
   }
+
+  const { COUNTERPARTY_MY_CUSTOMERS_ROUTE, COUNTERPARTY_MY_SUPPLIERS_ROUTE } =
+    await import("../../apps/counterparty/constants.js");
+  const { counterpartyProjectionQueryRouteV010,
+    parseCounterpartyProjectionRouteQueryV010 } =
+    await import("../../apps/counterparty/projection-query.js");
+  const route = operationId === MY_CUSTOMERS_READ
+    ? COUNTERPARTY_MY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_SUPPLIERS_ROUTE;
+  const candidate = route + (params.size ? "?" + params.toString() : "");
   const parsed = parseCounterpartyProjectionRouteQueryV010(candidate, route);
   return counterpartyProjectionQueryRouteV010(route, parsed, parsed.page ?? 0);
 }
@@ -70,7 +70,7 @@ const PREVIEW_MAX_ROWS_V010 = 10;
  * Do not let an LLM-provided result, unsupported operation, or page-sized
  * sample pose as an aggregate over all authorized records.
  */
-export function presentPersonalAgentCollectionReadV010(input: {
+export async function presentPersonalAgentCollectionReadV010(input: {
   operationId: string;
   query: Record<string, unknown>;
   result: unknown;
@@ -79,7 +79,7 @@ export function presentPersonalAgentCollectionReadV010(input: {
   if (!PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(input.operationId)) {
     throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
   }
-  const route = viewRoute(input.operationId, input.query);
+  const route = await viewRoute(input.operationId, input.query);
   const envelope = input.result;
   const collection = record(envelope) && record(envelope.data)
     ? envelope.data : envelope;
