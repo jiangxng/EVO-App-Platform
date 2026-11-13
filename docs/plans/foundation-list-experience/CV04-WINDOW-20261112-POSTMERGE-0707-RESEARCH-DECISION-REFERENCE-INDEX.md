@@ -411,3 +411,27 @@
 - **已完成 / 不复刻**：Owner `export-jobs.ts`、PG encrypt/audit/lease、Signed SQL Gateway、worker dispatcher/maintenance、Source Owner Closed Gate、东京只读验收和当前页 CSV；具体原始文件和判断均在新交接入口 §2/4。
 - **下一步 P**：先最新 `main` 和 #1212/#1184 审查 → 非侵入只读真实生产来源核验并由 Owner 签认 → Owner-approved T0/Signer/DB migration/rollback → 不同物理 Host 的故障/撤权/全 Scope→产品 Human/Agent 端到端 → 独立产品发布许可。没签署则保持所有正式操作 OFF，禁止在生产操作 DDL/DML/KMS，不用重复 isolated tests 代替这些。
 - **待本交接 PR 真正完成后再补**：该 docs-only PR 的精确 HEAD checks、main checks、东京预检与 deploy SKIP、Branch Hygiene 的真实证据，应用原 PR 评论收录；本页不能假设 CI 已成功。
+
+
+## 23. Window 09 / 2026-11-13：生产权威准入只读再核验与 Railway 来源边界（未认证）
+
+> **仅增加本窗口真正新读取的证据**；不重复 §16–22 的已交付工程与东京实验，不新增生产 SQL/Key/Host 变更。查询时 GitHub \`main@b18284348c84fa523dd68741bf50c264be66ef08\`，PR #1296 MERGED；这是本节开始时的已核验基线，后续 Docs PR 合入必须另核最新 main。正式 EXPORT **OFF/未注册**；CV03 \`N1=NOT_CERTIFIED\`、\`APP_PLATFORM_CV03_HUMAN_SAVE_MODE=OFF\`。**Railway 名为 production 的环境不能自证是 CV03/CV04 正式权威源。**
+
+### 新核验来源、读取范围及等级
+
+| 等级与原始来源，读取日期 2026-11-13 | 本轮原始观察（G：事实） | 决策用途及限制 |
+| --- | --- | --- |
+| **B · GitHub API（已读取结构化原始结果）**：[main ref](https://api.github.com/repos/jiangxng/EVO-App-Platform/git/ref/heads/main)、[PR #1296](https://github.com/jiangxng/EVO-App-Platform/pull/1296)、[main SHA check-runs](https://api.github.com/repos/jiangxng/EVO-App-Platform/commits/b18284348c84fa523dd68741bf50c264be66ef08/check-runs?per_page=100)、[Tokyo Workflow #43252817583](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43252817583)、[最终 PR 评论](https://github.com/jiangxng/EVO-App-Platform/pull/1296#issuecomment-6828595051) | main HEAD 与交接 SHA 一致，#1296 MERGED；精确 SHA 5 check-runs：**4 SUCCESS + 1 deploy SKIPPED**。原评论记载上一次真正东京镜像为 \`1fbf937f24c801b8812340f2da26d76adcc94ad8\`；本轮**未重新读取东京真实 Host 或 deploy job 原始日志**。 | 确认代码基线及 Docs-only 未触发新部署；历史镜像版本不得冒称本次重新物理验收。 |
+| **B · GitHub Issue/Reviews（已读取原始数据）**：[Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[原 Issue comments](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[PR #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) | #1212 **OPEN/PENDING**，30 条已返回评论的作者均为仓库帐号，内容主要是既往实验/交接，不构成独立五方 Owner 具名签署；checkbox 五项已勾选，但无可核验的真实审批。#1184 **OPEN、Review []**，三份受管文件未改。#1250 的 Review [] 同样不提供生产 Owner 批准。 | 阻断正式 T0/Export/SAVE 接线。没有独立签署不意味着可推断谁是生产 Owner；仅表示 **本次检索未取得证明**。 |
+| **A · main 当前源码（直接读取相关段）**：[manager/server.ts](../../../manager/server.ts)、[manager/service.ts](../../../manager/service.ts)、[manager/provider-resolution.ts](../../../manager/provider-resolution.ts)、[providers/authorization/runtime.ts](../../../providers/authorization/runtime.ts)、[未挂载 PG T0](../../../manager/cv03-n105b-authority-t0-pg.ts)、[未挂载 PA05 adapter](../../../manager/cv03-n105b-pa05-host-lifecycle.ts)、[Dictionary Export Owner](../../../apps/business-dictionary/export-jobs.ts)、[Source Owner 关闭门禁](../../../tools/cv04-next05-production-authority-release-gate.mjs) | Manager \`deactivateFeature\` 仍先本地 \`store.deleteActiveFeature\` 再发布 lifecycle event；ProviderBindingStore 仍支持 File/Memory，Runtime 的静态规则可 DENY/ALLOW；N105b 适配器明确 \`UNMOUNTED\`。Source Gate 对正式 \`dictionary.collection.export.job.\` 整个命名空间要求未注册，并检查测试专用构造。 | 现有源代码还不是正式 ACID T0；源码静态关闭门禁和测试隔离是负向安全边界，**不证明**已建立生产 SQL session_user/Producer/KMS。 |
+| **B · 用户已连接 Railway 项目只读元数据**：2026-11-13 通过 Railway connector 的 \`list_projects\`、\`describe_environment\`、\`describe_service\` 实时读取；该 connector 结果没有可公开回溯的原始网页 URL，故**不伪造原始网址**；内部环境/服务 ID、域名与变量值不写入公开仓库。 | 可访问项目 **EVO Ledger Runtime MVP**，包含名为 \`production\` 的 Railway 环境；其中 Postgres 服务来源为 \`ghcr.io/railwayapp-templates/postgres-ssl:18\`，区域 sfo、单 replica、有数据卷，服务被标记 \`live\`，但 \`latestDeployment=null\`；Ledger Configurator 使用 \`jiangxng/EVO-App-Platform@main\`，其可见最后部署时间为 **2026-10-08** 且状态 **FAILED**。配置仅查看**变量名**，可见原 \`APP_PLATFORM_STATE_FILE\`、静态 Authorization Policy 和 Conversation DB 相关名称；**没有读取变量值、凭据、SQL 或实际 PG 权限**。 | 这是此前 §16–22 未记录的**另一环境配置证据**，不能与东京 Host、正式 CV03 PG authority 或当前 main 版本直接等同。\`production\` 只是 Railway 环境标签；Postgres \`live\` 不代表实际数据库健康、Owner 认证、已签最小权限/Outbox 或被 Host 使用。既不证明它具备正式授权，也不排除尚未取得的外部正式源。 |
+| **C · 尚未取得**：五类 Owner 真实环境标识/具名 APPROVED PR；PA05 lifecycle + deployed AuthorizationProvider 持久源；正式 PG primary/schema/SQL LOGIN/GRANT/Outbox 与 complete Scope、Epoch/generation、水印；Signer/KMS custody/rotation；两个不同物理 Host 的分区、撤权、恢复与 rollback/PITR 原始证据 | 以上本轮没有现场原文/独立生产访问授权与签署。过去东京 QA、Railway 服务列表或公开 repo 源码**不能补齐**这些缺失。 | **PENDING OWNER**；等待独立真实主体明确源归属、真实身份及批准的只读证据访问方法。 |
+
+### 方案判断（D）与实施断点
+
+- **方案 A 不变**：同一个实际受权 PostgreSQL **ACID T0**，覆盖授权 Scope、authorityEpoch、sourceGeneration、不可变 Outbox、完整 package/feature DENY fence、tombstone 与 watermark；Producer 最小权限和 Signer/KMS 经 DB+Security/Ops 独立认可。正式 Host 只可在具名 Owner 批准并落实迁移、回滚与双物理 Host fail-closed 验证后，以独立受审 PR 最小接线。
+- **新增分歧澄清**：Railway \`production\` 与东京 \`preview\` 是两个不同的观察对象；既不能将 Railway \`production\` 字样等价为权限权威，也不能将东京旧 \`evo\` SQL superuser 或隔离 QA signed gateway 当成最小权限正式 Producer。现有资料没有任何可靠连接证据可将这两个观测直接统一成同一正式 T0。
+- **不重做工作**：Owner 11/11、PG 5/5、Lease/Dispatcher/Signed Gateway、源码关闭门禁、东京只读和当前页 CSV 已有相应 PR 与原始证据。未找到独立可复现的新代码缺口；不再新增 synthetic QA 或源码变更 PR。
+- **下一明确动作**：#1212 中分别取得 PA05 Lifecycle、AuthorizationProvider、DB、Security/Ops、Domain Owner 的实际审批人/角色、UTC 日期、环境/source SHA、独立 APPROVED 决策和可查权限/故障日志；生产只读核验也须使用经 Owner 授权的账号与范围。没有这些证据，**停在认证门前**，继续保持 EXPORT/SAVE 关闭；#1184 管理的三份文档继续不动。
+
+**范围声明**：本节只读并保留新来源的证据边界；没有执行 Railway 部署/变量更改、PG DDL/DML、KMS 操作、GitHub Owner 自签或正式 Feature 注册。Railway connector 当前观察无法提供不可变日志/可复核 URL，等级 B 仅描述当次结构化配置读取，不等同于 GitHub Actions 历史 B 级不可变记录。
