@@ -1,5 +1,7 @@
 # EVO App Platform
 
+> **2026-11-13 部署入口更新：** 现行 EVO-App-Platform 开发/预览默认目标为 [腾讯云东京 Lighthouse + main CI-Gated Actions](docs/operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)，不是旧 Railway 部署。旧 Railway 记录仅为历史/独立资源事实，**并未迁移或销毁**；腾讯东京预览健康不代表 CV03/CV04 生产授权。
+
 > **Current ecosystem:** EVO-App-Platform is one of four current owner projects: **EVO-App-Platform / EVO / Eidos / Experience-Compiler**. Ownership and cross-project placement rules: `docs/architecture/EVO-ECOSYSTEM-PROJECT-BOUNDARIES-v0.1.md`. The old `EVO-EC-Eidos-Convergence` repository is historical evidence only.
 
 **Status:** Personal Agent vertical experience checkpoint  

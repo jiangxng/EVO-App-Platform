@@ -1,5 +1,7 @@
 # BEX-01 V3 / M06｜Window 14 简短交接入口：main 发布、Railway 阻断、静态预览考古（2026-10-22）
 
+> **现行部署与历史范围说明（2026-11-13）：** 这是一份 2026-10-22 的 **Railway 发布尝试历史交接**，并非 2026-11-13 当前发布目标。后续 EVO-App-Platform `main` 统一以 [腾讯云东京 CI-Gated 预览发布入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md) 核验；历史 Railway 故障、网址和日志原文均保留，不表示数据已迁移或资源被删除。
+
 > **先读本文，再读** [Window 14 详细研究资料与决策参考索引](BEX-01-V3-M06-WINDOW-14-RAILWAY-RESEARCH-DECISION-REFERENCE-INDEX-20261022.md)。本页记录截至 2026-10-22 的**历史快照**；执行前必须重新查询 GitHub 与 Railway 实时状态。继续遵守 [AI-BOOTSTRAP](../../../AI-BOOTSTRAP.md)、[开发交付工作流](../../architecture/DEVELOPMENT-DELIVERY-WORKFLOW-v1.0.md)，不以 CI 成功替代线上部署或客户 Human 签收。
 
 ## 一、这一窗口用户的明确指令与决定

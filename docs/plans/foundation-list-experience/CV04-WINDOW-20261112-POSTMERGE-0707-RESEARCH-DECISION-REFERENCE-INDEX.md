@@ -435,3 +435,14 @@
 - **下一明确动作**：#1212 中分别取得 PA05 Lifecycle、AuthorizationProvider、DB、Security/Ops、Domain Owner 的实际审批人/角色、UTC 日期、环境/source SHA、独立 APPROVED 决策和可查权限/故障日志；生产只读核验也须使用经 Owner 授权的账号与范围。没有这些证据，**停在认证门前**，继续保持 EXPORT/SAVE 关闭；#1184 管理的三份文档继续不动。
 
 **范围声明**：本节只读并保留新来源的证据边界；没有执行 Railway 部署/变量更改、PG DDL/DML、KMS 操作、GitHub Owner 自签或正式 Feature 注册。Railway connector 当前观察无法提供不可变日志/可复核 URL，等级 B 仅描述当次结构化配置读取，不等同于 GitHub Actions 历史 B 级不可变记录。
+
+## 24. Window 09 / 2026-11-13 当前发布入口切换：Railway 历史 → 腾讯云东京预览
+
+> **用户新决定：** 以后本仓库最新 `main` 的代码、验收和部署追踪统一指向**腾讯云东京 Lighthouse**，不再把历史 Railway deployment 当作最新上线依据。准确落点：[现行腾讯东京部署权威入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)。本节在 #23 的 CV03/CV04 权威来源核验之后追加，**发布环境选择 ≠ 生产授权来源迁移**。
+
+- **A · 本轮已读源码（2026-11-13）：** [实际腾讯云东京发布工作流](../../../.github/workflows/evo-tokyo-dev-deploy.yml)，[腾讯云东京 Compose](../../../deploy/tencent-tokyo/compose.yaml)、[bootstrap](../../../deploy/tencent-tokyo/bootstrap.sh)，[原 2026-10-28 发布策略](../../operations/EVO-TOKYO-CI-GATED-PREVIEW-RELEASE-20261028.md)。现有发布实现本来就走 protected `main` → exact-SHA GitHub CI → GHCR → Tencent Tokyo `evo-tokyo-dev`；未发现需要重写的当前 Railway 发布代码。**只确认上述实际已读入口，不声称已逐字扫描全部 2580 个 blob**。
+- **B · 历史物理与结构证据：** [#43250322812](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43250322812) 的东京镜像 `1fbf937f24c801b8812340f2da26d76adcc94ad8` 和 health/401 来源为 Window08 历史已读原始 Actions 日志（本轮未重新 SSH/读取 job），#1296、#1297 的 Docs-only 镜像并未因此被证实重部署；Railway connector 2026-11-13 一手只读目录配置见上文 §23（旧应用 latest deployment FAILED，不能据此销毁旧库）。
+- **D · 已采用：** 新增一个唯一 [当前发布入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)，修正 README、AI-BOOTSTRAP、Agent/CV04 导航、东京 Runbook 的过时状态，给旧 BEX/PA05/TR01 Railway 专属研究记录顶部明确注明“历史快照”。不改 `docs/roadmap/HANDOFF-LATEST.md`（`project.status.json` 的生成物）及 2026-10 原始研究、文件名、旧 PR/URL；不创建第二套云发布 Workflow。
+- **排除并说明：** 不能全局把 Railpack/Railway 历史部署 UUID、Operator R5-01/02、部署/故障时间改成“腾讯云”，那会**伪造证据**；不能将已存在的 Railway `production` 标签当正式 CV03/04 授权 PG，也不能删除/覆盖旧 Railway 数据/Secrets/卷或提前启用 Export/SAVE。
+- **C · 仍待真实运营证明：** 云资源最终退役、真实业务数据迁移、DNS/流量/备份/回滚、正式生产权威源身份，以及 #1212 五类具名 Owner 签署。现行腾讯东京只是已健康验证过的 **dev/preview**；CV04 跨页 EXPORT OFF/unregistered、CV03 `N1=NOT_CERTIFIED` / SAVE OFF，#1184 三份 Owner 文档不修改。
+- **工程闭环位置：** 本节及关联文档通过独立 PR 在精确 HEAD CI、受保护 main checks、东京 docs-only preflight/deploy 判断和 Actions Branch Hygiene 清理后，需在 PR 评论回填最终 SHA/实际 Actions 结果；**在未出现真实结果前不记为 PASS**。正式业务 Owner T0 接线仍由 #1212 Gate 决定。
