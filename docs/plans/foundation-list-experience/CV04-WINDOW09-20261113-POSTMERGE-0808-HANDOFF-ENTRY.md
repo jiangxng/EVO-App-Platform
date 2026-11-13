@@ -34,7 +34,7 @@
 | [最新一次 Tokyo #43363628979](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43363628979) | `preflight=SUCCESS / deploy=SKIPPED`；原始日志 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE`，本轮文档/工具/CI 变更没有重部署 | 看到绿色 Workflow 就等于有新镜像 |
 | Railway `EVO Ledger Runtime MVP / production`（旧命名） | 只读 API 五服务 `offline`，无 active deployment/pending work；GitHub Source、旧域名、部分持久卷仍在 | Railway 旧数据/消费者已无用、曾关闭 Autodeploy、可安全删库或解绑 |
 
-现行发布权威阅读：[腾讯云东京部署入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)；[Tokyo CI-Gated Workflow](../../.github/workflows/evo-tokyo-dev-deploy.yml)。
+现行发布权威阅读：[腾讯云东京部署入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)；[Tokyo CI-Gated Workflow](../../../.github/workflows/evo-tokyo-dev-deploy.yml)。
 
 ## 4. 未完成 ≠ 本轮失败：两个必须由真实 Owner 解除的阻断
 
@@ -48,7 +48,7 @@
 
 ## 5. 下一窗口可直接执行的最短路径
 
-1. 先取 `refs/heads/main` 和对应 **all check-runs**，核对 [#1304](https://github.com/jiangxng/EVO-App-Platform/pull/1304) 以及本交接 PR 的合并 SHA；打开 [东京工作流](../../.github/workflows/evo-tokyo-dev-deploy.yml) 的最新实际 Run/日志区分 `preflight PASS` 与 `deploy SKIPPED`，避免凭 Git HEAD 代替服务器版本。
+1. 先取 `refs/heads/main` 和对应 **all check-runs**，核对 [#1304](https://github.com/jiangxng/EVO-App-Platform/pull/1304) 以及本交接 PR 的合并 SHA；打开 [东京工作流](../../../.github/workflows/evo-tokyo-dev-deploy.yml) 的最新实际 Run/日志区分 `preflight PASS` 与 `deploy SKIPPED`，避免凭 Git HEAD 代替服务器版本。
 2. 优先查 [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 是否获得真实 Operator 的 Autodeploy 和旧生产数据/消费者/备份/回滚收据；没有便保留 `UNVERIFIED`，不得重复只读重扫后声称已签署。
 3. 并行查 [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 的**独立具名审批 PR、环境、角色、日期和回滚演练**；证据未足继续冻结 SAVE/EXPORT；不得自行签字。
 4. 当真实受权浏览器身份与东京测试企业/Principal 已就绪，**只按需**从 [归档](../../archive/railway-live-production-proof-actions-20261113/README.md) 恢复仍有价值的专项测试，保留 Basic Auth/401/撤权负例，使用现有 Eidos + Platform，禁止伪造 200。
