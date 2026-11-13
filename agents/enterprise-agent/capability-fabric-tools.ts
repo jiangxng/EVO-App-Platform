@@ -17,11 +17,6 @@ import type {
   EnterpriseAgentToolRegistrationV010
 } from "./host-tool-catalog.js";
 
-import {
-  PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010,
-  presentPersonalAgentCollectionReadV010
-} from "./collection-read-preview.js";
-
 export const PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID =
   "evo.collection.read.preview" as const;
 export const PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID =
@@ -391,6 +386,12 @@ export function createPersonalAgentCapabilityToolRegistrationsV010(input: {
     }),
     async execute(args) {
       const operationId = stringArgument(args, "operationId");
+      // Entire preview adapter is deferred until this optional Agent tool
+      // is invoked; Lightweight Host must not eagerly load it on startup.
+      const {
+        PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010,
+        presentPersonalAgentCollectionReadV010
+      } = await import("./collection-read-preview.js");
       // Reject unrelated READ operations before invoking any domain handler.
       if (!PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(operationId)) {
         throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
