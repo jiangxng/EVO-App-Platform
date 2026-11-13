@@ -1,0 +1,101 @@
+name: CV05 Real Host Agent List Chromium
+
+on:
+  pull_request:
+    paths:
+      - "tests/cv05/**"
+      - "tools/cv05/**"
+      - "agents/enterprise-agent/collection-read-preview.ts"
+      - "agents/enterprise-agent/reply-presentation.ts"
+      - "vendor/eidos/src/chat/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "vendor/eidos/src/design-language/productive-workbench-css.ts"
+      - ".github/workflows/cv05-real-host-agent-list-chromium.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tests/cv05/**"
+      - "tools/cv05/**"
+      - "agents/enterprise-agent/collection-read-preview.ts"
+      - "agents/enterprise-agent/reply-presentation.ts"
+      - "vendor/eidos/src/chat/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "vendor/eidos/src/design-language/productive-workbench-css.ts"
+      - ".github/workflows/cv05-real-host-agent-list-chromium.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-host-chat-list-1280-390:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      - run: python -m pip install "playwright==1.56.0"
+      - run: python -m playwright install --with-deps chromium
+      - name: Start reused isolated installed Host and synthetic A/B business data
+        run: |
+          mkdir -p artifacts/cv04-csv-browser artifacts/cv05-agent-list-browser
+          node tools/cv04/real-host-csv-browser-fixture.mjs > artifacts/cv05-agent-list-browser/bootstrap.log 2>&1 &
+          echo $! > /tmp/cv05-agent-list-host.pid
+          ready=0
+          for i in $(seq 1 110); do
+            if grep -q 'CV04_REAL_HOST_CSV_BROWSER_READY=' artifacts/cv05-agent-list-browser/bootstrap.log; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$(cat /tmp/cv05-agent-list-host.pid)" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat artifacts/cv05-agent-list-browser/bootstrap.log
+            exit 1
+          fi
+      - name: Make Eidos Chat card from genuine authorized Owner READ
+        run: node tools/cv05/prepare-real-host-agent-list-browser.mjs
+      - name: Real Chromium 1280 and 390 Agent action, list, return and A/B authorization
+        run: python tests/cv05/real_host_agent_list_chromium.py
+      - name: Assert isolated four-case Chromium acceptance artifact
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const data=JSON.parse(readFileSync("artifacts/cv05-agent-list-browser/browser-results.json","utf8"));
+            if(!data.notProduction||!data.notHuman||!data.notLiveLLM||data.results.length!==4
+              || !data.results.every(x=>x.listRead&&x.detailReturnFilterPreserved
+                &&x.enterpriseSwitchReauthorized&&x.noHorizontalOverflow
+                &&x.actionInputFromRealOwner))
+              process.exit(1);
+            console.log("CV05_REAL_HOST_BROWSER_CHROME_ARTIFACT_PASS=4");
+          '
+      - name: Show isolated Host bootstrap on failure
+        if: failure()
+        run: cat artifacts/cv05-agent-list-browser/bootstrap.log || true
+      - name: Stop disposable Host and remove temporary state
+        if: always()
+        run: |
+          if [ -f /tmp/cv05-agent-list-host.pid ]; then
+            kill "$(cat /tmp/cv05-agent-list-host.pid)" 2>/dev/null || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cv05-real-host-eidos-chat-list-chromium-evidence
+          path: artifacts/cv05-agent-list-browser/
+          if-no-files-found: warn
