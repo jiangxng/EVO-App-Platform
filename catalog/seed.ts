@@ -529,6 +529,16 @@ export const businessDictionaryCapabilityContributionsV010:
         page: { type: "integer", minimum: 0, maximum: 100000 },
         pageSize: { type: "integer", minimum: 1, maximum: 100 }
       }),
+    businessDictionaryOp(BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010, "READ",
+      BUSINESS_DICTIONARY_READ_ACTION_V010,
+      BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010, {
+        view: { type: "string", enum: ["all", "draft", "published"] },
+        search: { type: "string", maxLength: 120 },
+        sort: { type: "string", enum: ["dictionaryId", "displayName", "state", "version"] },
+        direction: { type: "string", enum: ["asc", "desc"] },
+        page: { type: "integer", minimum: 0, maximum: 100000 },
+        pageSize: { type: "integer", minimum: 1, maximum: 100 }
+      }),
     businessDictionaryOp(BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010, "READ",
       BUSINESS_DICTIONARY_READ_ACTION_V010, BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010, {
         view: { type: "string", enum: ["all", "draft", "published"] },
