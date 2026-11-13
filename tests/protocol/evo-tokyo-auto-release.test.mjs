@@ -38,3 +38,29 @@ test("Tokyo immutable release uses preflight SHA throughout and retains existing
   assert.match(workflow, /EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS/);
   assert.match(workflow, /Remove temporary SSH credentials from runner/);
 });
+
+test("Tokyo runtime path classifier includes actual Agent code and still skips documentation", () => {
+  const matched = workflow.match(
+    /git diff --name-only HEAD\\^ HEAD -- \\| grep -Eq '([^']+)'/
+  );
+  assert.ok(matched, "missing exact merge-diff runtime classifier");
+  const deployablePath = new RegExp(matched[1]);
+  for (const path of [
+    "agents/enterprise-agent/reply-presentation.ts",
+    "agents/enterprise-agent/collection-read-preview.ts",
+    "agents/enterprise-agent/chat-action-handler.ts",
+    "apps/business-dictionary/page.ts",
+    "manager/server.ts",
+    ".github/workflows/evo-tokyo-dev-deploy.yml"
+  ]) {
+    assert.equal(deployablePath.test(path), true, path + " must release");
+  }
+  for (const path of [
+    "docs/plans/foundation-list-experience/CV05-WINDOW11-RESEARCH.md",
+    "docs/ui-design-reviews/CV05-NAVIGATION.md",
+    ".github/workflows/branch-hygiene.yml",
+    "README.md"
+  ]) {
+    assert.equal(deployablePath.test(path), false, path + " must remain non-runtime");
+  }
+});
