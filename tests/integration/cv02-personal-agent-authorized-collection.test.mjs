@@ -4,6 +4,18 @@ import { presentPersonalAgentReplyV020 } from
   "../../dist/agents/enterprise-agent/reply-presentation.js";
 import { renderChatMessageToHtml } from
   "../../dist/vendor/eidos/src/chat/index.js";
+import { createEnterpriseAgentRuntime } from
+  "../../dist/agents/enterprise-agent/runtime.js";
+import { createProviderBackedAgentModel } from
+  "../../dist/agents/enterprise-agent/provider-model.js";
+import { createEnterpriseAgentHostToolCatalogV010 } from
+  "../../dist/agents/enterprise-agent/host-tool-catalog.js";
+import { parseCounterpartyProjectionRouteQueryV010 } from
+  "../../dist/apps/counterparty/projection-query.js";
+import { parseBusinessDictionaryDirectoryRouteV010 } from
+  "../../dist/apps/business-dictionary/directory-query.js";
+import { COUNTERPARTY_MY_SUPPLIERS_ROUTE } from
+  "../../dist/apps/counterparty/constants.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
@@ -299,4 +311,161 @@ test("CV-05 real My Suppliers Host READ produces a navigable Chinese Eidos chat 
   assert.ok(html.includes('data-eidos-route="/counterparties/my-suppliers?'));
   assert.equal(html.includes("supplier-other"),false);
   assert.equal(html.includes("email"),false);
+});
+
+/**
+ * CV05 Window11 #03/08. The scripted inference responses deliberately do
+ * NOT establish real LLM reasoning quality. They exercise production
+ * Provider-backed Agent → real Host catalog → actual ActionRouter/Owner →
+ * Eidos Chat render → exact business route reauthorization as one journey.
+ */
+function cv05ScriptedModel(operationId, query) {
+  const calls=[
+    {name:"evo_capabilities_search",arguments:{query:operationId}},
+    {name:"evo_capabilities_describe",arguments:{operationId}},
+    {name:"evo_collection_read_preview",arguments:{operationId,input:query}}
+  ];
+  let index=0;
+  return {
+    get calls(){return index;},
+    provider:{
+      providerId:"cv05-scripted-test-provider",modelId:"scripted-tools-v1",
+      async infer(input) {
+        assert.ok(input.messages.some(message=>message.role==="user"
+          && message.content.includes("请")));
+        const selected=calls[index++];
+        if(selected) {
+          assert.ok(input.tools.some(tool=>tool.name===selected.name),
+            "model requested a tool omitted by current Host catalog: "+selected.name);
+        }
+        return {
+          contractVersion:"0.1.0",providerId:"cv05-scripted-test-provider",
+          modelId:"scripted-tools-v1",
+          text:selected?"":"已根据当前企业权限找到列表，请在列表中打开。",
+          toolCalls:selected?[selected]:[],
+          usage:{inputTokens:20,outputTokens:5},
+          finishReason:selected?"tool_calls":"stop"
+        };
+      }
+    }
+  };
+}
+
+function cv05RealHostCatalog(env,requestCtx) {
+  return createEnterpriseAgentHostToolCatalogV010({
+    manager:env.manager,principal:requestCtx.principal,context:requestCtx.context,
+    listAvailableContexts:()=>[requestCtx.context.activeContext],
+    listProviderBindings:()=>[],getProviderHealth:()=>({state:"UNKNOWN"}),
+    searchHelp:()=>[]
+  },env.agent(requestCtx));
+}
+
+async function cv05RuntimeJourney(env,operationId,query,requestCtx) {
+  const scripted=cv05ScriptedModel(operationId,query);
+  const runtime=createEnterpriseAgentRuntime(
+    createProviderBackedAgentModel(scripted.provider),
+    cv05RealHostCatalog(env,requestCtx),8
+  );
+  const reply=await runtime.chat(
+    "请查询当前有权限的供应商列表，保留筛选和排序，然后让我在列表中打开。",
+    requestCtx.context,requestCtx.principal
+  );
+  assert.equal(scripted.calls,4,"Search → Describe → Preview → Final");
+  return reply;
+}
+
+test("CV-05 scripted natural-language Agent tool journey uses real Supplier Owner and reauthorizes Eidos list",async()=>{
+  const env=setup(),reqCtx=context();
+  const operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
+  const query={search:"Supplier",sort:"displayName",direction:"asc",page:0,pageSize:25};
+  const reply=await cv05RuntimeJourney(env,operationId,query,reqCtx);
+  assert.deepEqual(reply.observations.map(x=>x.tool),[
+    PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID,
+    PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID,
+    PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID
+  ]);
+  assert.equal(reply.observations.every(x=>x.ok),true);
+  assert.ok(reply.observations[0].result.items.some(x=>x.operationId===operationId));
+  assert.equal(reply.observations[1].result.operation.operationId,operationId);
+  const preview=reply.observations[2].result;
+  assert.deepEqual(preview.rows.map(row=>row.rowId),["supplier-hk"]);
+  assert.equal(preview.pageInfo.total,1);
+  assert.equal(JSON.stringify(preview).includes("supplier-other"),false);
+  assert.equal(preview.readableFieldIds.includes("email"),false);
+
+  const parts=presentPersonalAgentReplyV020(reply,"zh-CN");
+  const nav=parts.filter(part=>part.type==="proposal")
+    .flatMap(part=>part.actions??[])
+    .find(action=>action.id==="open-authorized-collection");
+  assert.ok(nav);
+  assert.equal(nav.type,"navigate");
+  assert.equal(nav.route,preview.navigation.route);
+  const html=renderChatMessageToHtml({
+    id:"cv05-scripted-agent-journey",contractVersion:"0.2.0",
+    role:"assistant",parts
+  });
+  assert.match(html,/data-eidos-chat-action="open-authorized-collection"/);
+  assert.match(html,/data-eidos-action-type="navigate"/);
+  assert.equal(html.includes("supplier-other"),false);
+
+  // URL and button are presentation coordinates, not bearer access tokens.
+  // A second real Host READ (the Eidos page's expected authority boundary)
+  // must preserve the query and Owner-scoped rows.
+  const routeQuery=parseCounterpartyProjectionRouteQueryV010(
+    nav.route,COUNTERPARTY_MY_SUPPLIERS_ROUTE
+  );
+  assert.deepEqual(routeQuery,query);
+  const human=await env.router.execute(request(operationId,routeQuery),context());
+  assert.equal(human.ok,true,JSON.stringify(human.error));
+  assert.deepEqual(human.result.rows,preview.rows);
+
+  // An old chat button opened in another enterprise cannot read A's rows.
+  const switched=await env.router.execute(
+    request(operationId,routeQuery),context("ent-b")
+  );
+  assert.equal(switched.ok,true,JSON.stringify(switched.error));
+  assert.deepEqual(switched.result.rows,[]);
+  assert.equal(switched.result.pageInfo.total,0);
+
+  // A previously rendered navigation button cannot reactivate the feature.
+  env.manager.disable(counterpartyPackage.packageId);
+  const disabled=await env.router.execute(
+    request(operationId,routeQuery),context()
+  );
+  assert.equal(disabled.ok,false);
+});
+
+test("CV-05 Agent may not reuse Dictionary navigation across enterprise and revoked plugin",async()=>{
+  const env=setup(),operationId=DICTIONARY_READ;
+  const query={view:"published",search:"supplier",sort:"displayName",page:0,pageSize:25};
+  const reply=await cv05RuntimeJourney(env,operationId,query,context());
+  assert.equal(reply.observations.every(x=>x.ok),true);
+  const preview=reply.observations[2].result;
+  assert.deepEqual(preview.rows.map(row=>row.rowId),["supplier-category"]);
+  const parts=presentPersonalAgentReplyV020(reply,"zh-CN");
+  const route=parts.filter(x=>x.type==="proposal")
+    .flatMap(x=>x.actions??[]).find(x=>x.id==="open-authorized-collection")?.route;
+  assert.ok(route?.startsWith("/business-dictionaries?"));
+  const selected=parseBusinessDictionaryDirectoryRouteV010(route);
+  const readQuery={view:selected.view,...selected.query};
+  const same=await env.router.execute(request(operationId,readQuery),context());
+  assert.equal(same.ok,true);
+  assert.deepEqual(same.result.data.rows,preview.rows);
+  const switched=await env.router.execute(
+    request(operationId,readQuery),context("ent-b")
+  );
+  assert.equal(switched.ok,false,"Enterprise B has no Dictionary READ grant");
+  env.manager.disable(businessDictionaryPackage.packageId);
+  const disabled=await env.router.execute(
+    request(operationId,readQuery),context()
+  );
+  assert.equal(disabled.ok,false);
+
+  // Replaying an old scripted model choice after plugin disable must fail at
+  // Host, and no new navigable Eidos result may be rendered for that turn.
+  const replay=await cv05RuntimeJourney(env,operationId,query,context());
+  assert.equal(replay.observations.at(-1).ok,false);
+  const partsAfter=presentPersonalAgentReplyV020(replay,"zh-CN");
+  assert.equal(partsAfter.some(p=>p.type==="proposal"
+    && p.actions?.some(a=>a.id==="open-authorized-collection")),false);
 });
