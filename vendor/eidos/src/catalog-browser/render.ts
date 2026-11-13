@@ -284,6 +284,7 @@ ${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
 </header>
 ${search}
 ${viewNavigation}
+${model.authorizedChart ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : ""}
 ${serverSearch}
 ${table}
 ${model.collectionTitle
