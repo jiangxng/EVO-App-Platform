@@ -1,5 +1,7 @@
 # BEX-01 E4-02｜真实 /map 紧凑核对界面：合并、部署与剩余验收（2026-10-16）
 
+> **2026-11-13 历史部署提示：** 本文中的 Railway SUCCESS、`8f2b86a7` 与具体 Import Job URL 只代表 2026-10-16 当时的授权现场快照；不是目前的主线部署版本，也未证明客户私有 Job 在腾讯云东京可访问。现行预览发布和验收应从[腾讯云东京唯一部署入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)核对精确 `main`、GHCR 运行镜像和真实授权浏览器环境。保留原始证据/截图和未完成的人类签收事项，不跨环境复用账户、Job ID、数据、Session 或授权。
+
 > 状态：**E4-02 scoped implementation merged + isolated Host Chromium PASS + Railway deployment SUCCESS；真实客户原文件与 Human V3 视觉签收仍待完成。** 本页是追加证据，不覆盖 [E4-01 已恢复截图](BEX-01-E4-01-V3-TO-REAL-MAP-EVIDENCE-20261016.md) 或 [E4 总交接](BEX-01-E4-V3-RECOVERY-AND-EVIDENCE-20261016.md)。没有复制原型 CSS、修改 Host 安全规则或模拟真实用户签收。
 
 ## 1. 当前准确事实
