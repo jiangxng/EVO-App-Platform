@@ -1,5 +1,9 @@
 # EA-1B2C — Google OIDC Production Live Cutover Runbook
 
+> **2026-11-13 状态修订：HISTORICAL_RAILWAY_OIDC_RUNBOOK / DO_NOT_EXECUTE_FOR_TENCENT_TOKYO。** 下方 2026-09-30 的“LIVING RUNBOOK”、Railway `production` 网址、`/auth/callback`、`RAILWAY_PUBLIC_DOMAIN` 和启用指令，是当时特定 Railway Host/IdP 客户端的操作与证据，不是当前 EVO-App-Platform 的发布配置或东京生产 Google OIDC 准入。当前开发/预览统一入口是[腾讯云东京 CI-Gated 发布说明](../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)。保留原值仅为审计，不要照此设置新的 Google redirect URI、Host Secrets、Session、External Agent OAuth/MCP 或部署变量。
+>
+> **新环境重新启用必须先独立验收：** 真实 IdP/Identity、Security/Ops、Host/业务 Owner 明确环境和回调域名，分别确认已部署 Provider、经认证的 Principal/Session、Google Client redirect URI、Secret custody/rotation、完整授权/撤权、回滚和 Human/Agent 端到端证明。当前东京 Compose 的 managed-session、External Agent OAuth/MCP 明确 OFF，Basic Auth/兼容 demo Principal **不是** Google OIDC 身份证明。未取得具名批准和新环境原始证据前，不运行下方 Gate A/B/C 或发布操作；也不能把 Railway 旧 SUCCESS 当成东京认证。
+
 **Status:** LIVING RUNBOOK — HUMAN LOGIN PASS / INSPECTOR E2E SECURITY PASS  
 **Date:** 2026-09-30  
 **Milestone:** External-Agent-First Platform Validation v0.1  
