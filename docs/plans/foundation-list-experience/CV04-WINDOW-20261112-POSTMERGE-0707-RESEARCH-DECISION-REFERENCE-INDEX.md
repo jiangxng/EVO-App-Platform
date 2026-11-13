@@ -446,3 +446,29 @@
 - **排除并说明：** 不能全局把 Railpack/Railway 历史部署 UUID、Operator R5-01/02、部署/故障时间改成“腾讯云”，那会**伪造证据**；不能将已存在的 Railway `production` 标签当正式 CV03/04 授权 PG，也不能删除/覆盖旧 Railway 数据/Secrets/卷或提前启用 Export/SAVE。
 - **C · 仍待真实运营证明：** 云资源最终退役、真实业务数据迁移、DNS/流量/备份/回滚、正式生产权威源身份，以及 #1212 五类具名 Owner 签署。现行腾讯东京只是已健康验证过的 **dev/preview**；CV04 跨页 EXPORT OFF/unregistered、CV03 `N1=NOT_CERTIFIED` / SAVE OFF，#1184 三份 Owner 文档不修改。
 - **工程闭环位置：** 本节及关联文档通过独立 PR 在精确 HEAD CI、受保护 main checks、东京 docs-only preflight/deploy 判断和 Actions Branch Hygiene 清理后，需在 PR 评论回填最终 SHA/实际 Actions 结果；**在未出现真实结果前不记为 PASS**。正式业务 Owner T0 接线仍由 #1212 Gate 决定。
+
+## 25. Window 09 / 2026-11-13 Railway 运行状态与 GitHub Source 残留差异：仅只读证据
+
+> 承接 §23 的 Railway 资源盘点及 §24 的腾讯云东京唯一现行 DEV/PREVIEW 发布决策。本节**没有执行**任何 Railway/Tencent 部署、解除 GitHub 绑定、Secrets/数据库操作或迁移。本节读取时 GitHub `main@59fe344ab732ba564ff45b34e59e0c4ef3d9214b`；该 main 已有 #1300 docs-only 受保护主线 `3 SUCCESS + 1 deploy SKIPPED`，最近一次真正东京镜像仍从 [原始 Actions #43355000425](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43355000425) 得到 `b58e660fdc01f98e0840247115f7ca3b8c43c0b3`。不要将文档 main HEAD 冒称新的运行镜像。
+
+### 本轮新增一手来源、等级和观察（G）
+
+| 来源与查阅日期 | 精确可证实的范围 | 不可推断的内容 |
+| --- | --- | --- |
+| **B · Railway 已连接项目只读 `describe_environment` / `describe_service`，2026-11-13**；项目 `EVO Ledger Runtime MVP`，环境标签 `production`。Railway connector 结果无公开不可变原始 URL，故不虚构。 | 服务/卷仍有 5 个资源配置，Resource `state=live` 表示资源存在；`Ledger Configurator` 的 source repo 仍为 `jiangxng/EVO-App-Platform`、branch `main`、Builder `RAILPACK`；`describe_service.latestDeployment` 报 **2026-10-08 FAILED**。仅查看变量**名称**。 | 配置 `live` 不代表程序在运行，不代表数据库主库/授权生产来源；source repo 连着 `main` 也不证明自动部署现在会或不会触发。 |
+| **B · Railway `environment_status(includeSuccessful=true)`，2026-11-13** | 同环境 **5/5 服务 `state=offline`**，均 `activeDeployments=[]`，`pendingWork=[]`，包括 Ledger Configurator、EVO Runtime、Postgres、Experience Compiler、App Host Validator。 | 不能从 Offline 推出持久卷已删除、备份存在、客户无消费者、数据库对象已迁移、计费已停止或部署源已解绑。 |
+| **B · Railway `list_deployments`（Ledger Configurator 只读，2026-11-13）** | 该列表中的更晚 **2026-10-21** 部署记录当前状态为 `REMOVED`；与 `describe_service.latestDeployment` 的 2026-10-08 FAILED 字段并列记录，**不将它们强行合成为同一个“最新部署”事实**。 | 无法据列表证明所有历史部署完整性、自动构建触发开关或服务旧域名实时网络状态。 |
+| **B · GitHub API（2026-11-13）**：[main](https://github.com/jiangxng/EVO-App-Platform/commit/59fe344ab732ba564ff45b34e59e0c4ef3d9214b)、[#1300](https://github.com/jiangxng/EVO-App-Platform/pull/1300)、[东京 preflight #43356987396](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43356987396) | #1300 已合并并由 Actions Branch Hygiene 删除过程分支；Tokyo docs-only preflight 明确 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE`；真实源代码和发布入口仍为已核验腾讯云东京工作流。 | 该 docs-only merge 没有新的物理应用部署，不能认证 CV03/CV04。 |
+
+### 来源冲突的解读（D）与处理选择
+
+- **不是运行状态矛盾**：`describe_environment.state=live` 指 Railway 资源配置存在；`environment_status.state=offline` 指当前没有活动实例。两者观测层次不同；本文同时保留，不以任一字段替代另一字段。
+- **不是已完成迁移**：旧 Railway 的 `source.repo=jiangxng/EVO-App-Platform` / `branch=main` 仍在；虽然当前全部 Offline 且更近的 deployment 已 REMOVED，但**没有证据证明 Autodeploy 被禁用**。发布决策依旧只有腾讯云东京这条经核验的正式**预览**链路，Railway 是需 Operator 审议的遗留资源/自动触发风险。
+- **为什么不自动解绑/删除**：直接改 Railway Service Source、关闭服务、删除 Postgres 卷或更换 OAuth / DNS，均可能影响未知历史消费者或使旧数据丢失；当前没有具名 Operator 的备份一致性、消费者/DNS、回滚、Autodeploy 触发与最终退役批准。**OffLine 并不赋予数据删除授权。**
+- **实施落点**：更新已有[腾讯云东京唯一发布入口](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)，只对旧资源归类补充现场证据；后续若真正退役 Railway，应由 Operator 核验可用完整备份/PITR、消费流量、域名/Google Redirect、Postgres/Secrets 引用、GitHub Auto Deploy 触发开关，再单独有回滚的执行与销毁批准。不要再创建重复的 Synthetic/PG/Exporter 门禁。
+
+### 与 CV03/CV04 正式 Owner 准入的隔离
+
+Railway 曾有标签 `production` 并不等于 CV03/04 正式授权环境；腾讯云东京目前也只是 DEV/PREVIEW。[#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 仍 OPEN/PENDING，五个 checkbox 非具名独立批准；[#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍 OPEN/无 Review；PA05 Lifecycle、AuthorizationProvider、DB、Security/Ops 与 Domain Owner 真实签署及同 PG T0 / Epoch / SourceGeneration / Outbox / tombstone / watermark / Producer / KMS / 两物理 Host 验收均未补齐。因此 **CV04 EXPORT OFF/未注册，CV03 `N1=NOT_CERTIFIED`、SAVE OFF**，本轮不接入生产。
+
+**证据限制**：Railway 结构化连接器读取不提供可永久复查的原始 URL/签名原文，故仅记录当时返回字段，并明确未读具体机密值、PG 实库、客户消费者、生产 Key 或跨云迁移日志。本节不是外部官网原文研究，也没有重新读取旧 Railway 一手博客全文。
