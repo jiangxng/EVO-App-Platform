@@ -480,6 +480,33 @@ form[data-eidos-id] button,
 [data-eidos-catalog-search-empty]{margin:var(--eidos-space-lg) 0 0;color:var(--eidos-fg-muted)}
 
 
+/* Shared Collection view switcher: every tab is a real keyboard/touch target.
+   Eidos owns the responsive behavior; business plugins only supply view routes. */
+[data-eidos-catalog-view-navigation]{
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:var(--eidos-space-sm);min-width:0;margin-top:var(--eidos-space-lg);
+}
+[data-eidos-catalog-view-navigation] [data-eidos-catalog-view-id]{
+  display:inline-flex;max-width:100%;
+}
+[data-eidos-catalog-view-navigation] button{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:var(--eidos-touch-target);min-height:var(--eidos-touch-target);
+  max-width:100%;padding:0 var(--eidos-space-lg);
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg);font:inherit;
+}
+[data-eidos-catalog-view-navigation] button[aria-current="page"]{
+  border-color:var(--eidos-primary);background:var(--eidos-bg-selected);
+  color:var(--eidos-primary);font-weight:650;
+}
+[data-eidos-catalog-view-navigation] button:not([aria-current="page"]):hover{
+  background:var(--eidos-bg-hover);
+}
+[data-eidos-catalog-view-navigation] button:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+
 [data-eidos-catalog-server-search]{display:flex;align-items:flex-end;gap:var(--eidos-space-sm);flex-wrap:wrap;margin-top:var(--eidos-space-lg)}
 [data-eidos-catalog-server-search] label{flex:1 1 200px;min-width:0;display:grid;gap:var(--eidos-space-xs)}
 [data-eidos-catalog-server-search] input,[data-eidos-catalog-server-search] button{min-height:44px;padding:0 var(--eidos-space-md);border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);background:var(--eidos-bg);color:var(--eidos-fg)}
