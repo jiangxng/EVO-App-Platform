@@ -48,3 +48,48 @@ test("missing upstream authority gate path on main push fails closed", () => {
   assert.throws(() => verifyCoverage(broken), /CV04 owner gate PR\/main push path filters must match/);
   console.log("CV04_OWNER_RELEASE_MISSING_PUSH_PATH_FAILCLOSED_PASS");
 });
+
+const cv03OwnerReleaseWorkflowPath =
+  ".github/workflows/cv03-n105c09-owner-release-evidence.yml";
+
+function verifyCv03OwnerReleaseCoverage(workflow) {
+  const pr = triggerPaths(workflow, "pull_request", "push");
+  const push = triggerPaths(workflow, "push", "issues");
+  for (const path of [
+    "manager/service.ts",
+    "manager/store.ts",
+    "contracts/platform-services.ts",
+    "providers/authorization/runtime.ts",
+    "providers/enterprise-context/resources-postgres.ts",
+    "providers/enterprise-context/package.ts"
+  ]) {
+    assert.ok(pr.includes(path), `CV03 must monitor ${path}`);
+  }
+  assert.deepEqual(push, pr, "CV03 Owner gate PR/main push path filters must match");
+}
+
+test("CV03 Owner release gate PR and main-push authorization paths stay symmetric", () => {
+  const workflow = readFileSync(cv03OwnerReleaseWorkflowPath, "utf8");
+  verifyCv03OwnerReleaseCoverage(workflow);
+  console.log("CV03_OWNER_RELEASE_GITHUB_PUSH_PATH_PARITY_PASS");
+});
+
+test("removing PA05 lifecycle or AuthorizationProvider from main push is RED", () => {
+  const workflow = readFileSync(cv03OwnerReleaseWorkflowPath, "utf8");
+  const pushStart = workflow.indexOf("  push:\n");
+  const issueStart = workflow.indexOf("  issues:\n", pushStart);
+  assert.ok(pushStart >= 0 && issueStart > pushStart);
+  const original = workflow.slice(pushStart, issueStart);
+  for (const path of ["manager/service.ts", "providers/authorization/runtime.ts"]) {
+    const entry = `      - "${path}"\n`;
+    assert.ok(original.includes(entry), `missing baseline ${path}`);
+    const broken = workflow.slice(0, pushStart) + original.replace(entry, "") +
+      workflow.slice(issueStart);
+    assert.throws(
+      () => verifyCv03OwnerReleaseCoverage(broken),
+      /CV03 Owner gate PR\/main push path filters must match/,
+      `mutation should fail: ${path}`
+    );
+  }
+  console.log("CV03_OWNER_RELEASE_LIFECYCLE_PROVIDER_PUSH_OMISSION_RED_PASS");
+});
