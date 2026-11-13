@@ -20,6 +20,57 @@ export const CV03_N105A_SOURCE_FILES = Object.freeze([
   "tools/cv03-n1-postgres-role-audit.mjs"
 ]);
 
+/**
+ * Lexical-only source evidence: comments cannot stand in for active safety
+ * statements. Quoted strings remain intact (including URLs); this is NOT
+ * a TypeScript parser, runtime verification or production approval.
+ */
+export function maskJsTsSourceCommentsV010(source){
+  if(typeof source!=="string")throw Error("SOURCE_TEXT_REQUIRED");
+  let out="",quote=null;
+  for(let i=0;i<source.length;){
+    const c=source[i],next=source[i+1];
+    if(quote){
+      out+=c;
+      if(c==="\\"){
+        i++;
+        if(i<source.length)out+=source[i];
+      }else if(c===quote){quote=null;}
+      i++;continue;
+    }
+    if(c==="'"||c==='"'||c===String.fromCharCode(96)){
+      quote=c;out+=c;i++;continue;
+    }
+    if(c==="/"&&next==="/"){
+      out+="  ";i+=2;
+      while(i<source.length&&source[i]!=="\n"){out+=" ";i++;}
+      continue;
+    }
+    if(c==="/"&&next==="*"){
+      out+="  ";i+=2;let closed=false;
+      while(i<source.length){
+        if(source[i]==="*"&&source[i+1]==="/"){
+          out+="  ";i+=2;closed=true;break;
+        }
+        out+=source[i]==="\n"?"\n":" ";
+        i++;
+      }
+      if(!closed)throw Error("SOURCE_COMMENT_UNTERMINATED");
+      continue;
+    }
+    out+=c;i++;
+  }
+  if(quote)throw Error("SOURCE_QUOTE_UNTERMINATED");
+  return out;
+}
+
+const mustBeActiveSourceAnchorsV010=new Set([
+  "HOST_STARTUP_WRITE_AND_RESTORE_GATES",
+  "HOST_SAVE_DENIAL_STILL_WIRED",
+  "SAVE_MODE_IS_OFF_ONLY",
+  "SQL_RUNTIME_AUDIT_CANNOT_CERTIFY"
+]);
+
 const evidence = Object.freeze([
   {
     id:"HOST_RESOURCE_DEFAULT_IS_FILE_OR_MEMORY",
@@ -125,7 +176,14 @@ export function inspectCv03N105aAuthorityBoundary(root=resolve(dirname(fileURLTo
   }
   const findings=evidence.map(({id,file,matches})=>{
     const source=sources.get(file);
-    const matched=source?.text!==null && matches(source.text);
+    let inspected=source?.text??null;
+    // Preserve deliberate documentation-only anchors, but active safety
+    // guards must appear outside comments. Ambiguous source is DRIFT.
+    if(inspected!==null&&mustBeActiveSourceAnchorsV010.has(id)){
+      try{inspected=maskJsTsSourceCommentsV010(inspected);}
+      catch{inspected=null;}
+    }
+    const matched=inspected!==null && matches(inspected);
     return {id,file,sourceGrade:"G_SOURCE_ANCHOR",matched:!!matched,sha256:source?.sha256??null};
   });
   return {

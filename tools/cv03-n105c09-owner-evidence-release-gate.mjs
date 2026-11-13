@@ -13,7 +13,7 @@
 import {readFileSync} from "node:fs";
 import {dirname,resolve} from "node:path";
 import {fileURLToPath,pathToFileURL} from "node:url";
-import {inspectCv03N105aAuthorityBoundary} from
+import {inspectCv03N105aAuthorityBoundary,maskJsTsSourceCommentsV010} from
   "./cv03-n105a-authority-boundary-preflight.mjs";
 
 const rootDefault=resolve(dirname(fileURLToPath(import.meta.url)),"..");
@@ -62,14 +62,16 @@ export function inspectCv03N105c09OwnerEvidenceGate(input,{root=rootDefault}={})
     const admission=read(root,"manager/cv03-personal-saved-view-host-admission.ts");
     const t0=read(root,"manager/cv03-n105b-authority-t0-pg.ts");
     const lifecycle=read(root,"manager/cv03-n105b-pa05-host-lifecycle.ts");
+    const activeServer=maskJsTsSourceCommentsV010(server);
+    const activeAdmission=maskJsTsSourceCommentsV010(admission);
     isolatedSeamsUnmounted=
       t0.includes("UNMOUNTED")&&lifecycle.includes("UNMOUNTED")&&
       !/\bcreateCv03N105b(?:DenyT0Pg|Pa05HostLifecycleBarrier)V010\b/.test(server);
     explicitAdmissionHardDeny=
-      admission.includes('if(value!=="OFF")throw Error("CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED")')&&
-      admission.includes('code:"CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED"')&&
-      server.includes("assertCv03HumanSaveNotEnabledV010(process.env)")&&
-      server.includes("cv03UnadmittedWriteDenialV010(action)");
+      activeAdmission.includes('if(value!=="OFF")throw Error("CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED")')&&
+      activeAdmission.includes('code:"CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED"')&&
+      activeServer.includes("assertCv03HumanSaveNotEnabledV010(process.env)")&&
+      activeServer.includes("cv03UnadmittedWriteDenialV010(action)");
   }catch{
     // An absent or unreadable source is UNKNOWN, never release permission.
   }

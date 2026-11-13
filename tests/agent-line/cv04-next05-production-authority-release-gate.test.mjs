@@ -114,10 +114,16 @@ test("weakened stage gates, absent SQL gateway and missing sources are RED",()=>
     ["apps/business-dictionary/export-jobs.ts",s=>
       s.replace('const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test"',
         "const testScope=true")],
+    ["apps/business-dictionary/export-jobs.ts",s=>
+      s.replace('const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test"',
+        '/* const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test" */ const testScope=true')],
     ["apps/business-dictionary/export-job-pg-store.ts",s=>
       s.replace('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true',"false")],
     ["apps/business-dictionary/export-job-pg-sql-lease.ts",s=>
       s.replace('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true',"false")],
+    ["apps/business-dictionary/export-job-pg-sql-lease.ts",s=>
+      s.replace('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true',
+        '/* process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true */ false')],
     ["apps/business-dictionary/export-job-pg-dispatch.ts",s=>
       s.replace("CV04_EXPORT_POLL_PRODUCTION_DISABLED","CV04_EXPORT_POLL_ALLOWED")],
     ["apps/business-dictionary/export-job-pg-dispatch.ts",s=>
