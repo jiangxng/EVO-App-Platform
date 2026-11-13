@@ -93,5 +93,7 @@ export interface CatalogBrowserV010 {
   };
   items: CatalogBrowserItemV010[];
   table?: CatalogBrowserTableV010;
+  /** Eidos #210: optional Owner-authorized full-query chart. */
+  authorizedChart?: CatalogAuthorizedAggregateBarsV010;
   emptyMessage?: string;
 }
