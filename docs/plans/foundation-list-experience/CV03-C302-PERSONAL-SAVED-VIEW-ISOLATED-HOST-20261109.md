@@ -46,3 +46,11 @@
 - 真实 PG18 测试包含不同 Node 进程竞争、同 key 重放、回执 INSERT 失败回滚业务资源、历史回执拒绝 UPDATE/DELETE。见 [同事务回执专属证据](CV03-C302-ATOMIC-HOST-RECEIPT-POSTGRES-20261109.md)。
 - **尚不代表真实 Host 发行、正式生产注册与 Eidos/Human/LLM 验收**。#1182 的准确合并状态由最终 HEAD CI 判断，不将 #1180 的 9/9 结果冒充 #1182。
 
+
+## 6. 已合并签名回执纵切与下一窗口入口（2026-11-09）
+
+- [#1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182) 已合并 `d982c1655a02260b309d401d52530dd7e5614c32`：**同一个 PostgreSQL 事务**同时提交私有 Saved View revision 与不可变 `AgentActionReceiptV010` 历史事实；最终 HEAD 10/10 CI、真实 PG18 7/7 PASS。
+- [#1183](https://github.com/jiangxng/EVO-App-Platform/pull/1183) 已合并 `91cef31fa6518f328b1480d897afe0ef47339f57`：增加当前 Host WRITE Capability Operation/授权复查和 HMAC-SHA256 准入，Owner 无密钥或签名伪造时 fail closed；最终 HEAD 10/10 CI、真实 PG18 7/7 PASS。
+- 原本的 **`assertHostWriteReceipt` 无返回前置 stub** 已由 `issueHostWriteReceipt(ctx,request,{input,inputDigest})` + PG 原子提交取代；后者由真实 Host 专用签发器负责，**在隔离测试 Host 中接线，不在正式 `manager/server.ts` 注册**。
+- 主生产 Host 原有 Agent Receipt Service 是 JSONL/Memory 事件存储，**未与 CV-03 PG 事务自动合一**。生产签发密钥、SQL 物理角色/PA05 permit、正式 PG 路由、Eidos/390px/真实 Human/LLM 仍需独立验收，详见[完整合并证据](CV03-C302-ATOMIC-HOST-RECEIPT-POSTGRES-20261109.md)。
+

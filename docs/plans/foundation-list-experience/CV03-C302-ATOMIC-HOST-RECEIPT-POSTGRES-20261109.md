@@ -1,6 +1,6 @@
 # CV-03 / C3-02：同事务资源修订与不可变 Agent 回执（2026-11-09）
 
-> **状态：ISOLATED_CODE_IN_PR / FINAL_CI_PENDING / REAL_HOST_ISSUER_OPEN / PRODUCTION_WRITE_OFF。** 工程为 [PR #1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182)，继已合 [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180) 和 [#1181](https://github.com/jiangxng/EVO-App-Platform/pull/1181)。**不得声称自然语言模型、Human UI、真实 Host 独立回执签发或生产部署已通过。**
+> **状态：ISOLATED_CODE_MERGED / REAL_PG18_7_OF_7_PASS / HOST_SIGNED_PATH_TESTED / PRODUCTION_HOST_ISSUER_UNWIRED / PRODUCTION_WRITE_OFF。** 工程为 [PR #1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182)，继已合 [#1180](https://github.com/jiangxng/EVO-App-Platform/pull/1180) 和 [#1181](https://github.com/jiangxng/EVO-App-Platform/pull/1181)。**不得声称自然语言模型、Human UI、真实 Host 独立回执签发或生产部署已通过。**
 
 ## 决策与原因
 
@@ -38,4 +38,15 @@
 - [真实 PG18/Host 集成测试](../../../tests/agent-line/cv03-personal-saved-view-postgres.test.mjs) 验证当前授权、撤权、插件停用、跨主体和签名等负例；[原同事务测试](../../../tests/agent-line/cv03-resource-postgres-atomic-receipt.test.mjs) 也验证无 verifier 或伪造 proof 的拒绝；继续保留两个 OS 进程的同一事务竞赛与 lost ACK。
 - [同 PR 的 Human UI 设计边界审核](../../ui-design-reviews/cv03-host-signed-receipt-admission-20261109.md) 明确 **未更改 UI、不能视为 Human 验收**。
 
-**重要保留门禁**：`manager/server.ts` 当前正式 Agent Receipt Service 采用 JSONL/Memory（配置 `APP_PLATFORM_AGENT_ACTION_RECEIPT_FILE`），并**没有**与 CV-03 PostgreSQL 在一个数据库事务里自动关联；#1183 是隔离 Host 签名代码，不是生产签发许可/PA05 跨数据库物理授权。生产 secret/key rotation、业务 SQL 登录物理权限、正式 PG/备份/迁移、Eidos/390px/真实模型调用仍然 OPEN，生产 Feature 继续不注册。**以 PR 最终准确 HEAD CI/合并结果为准**，不能用 #1182 的 10/10 结果代替 #1183。
+**重要保留门禁**：`manager/server.ts` 当前正式 Agent Receipt Service 采用 JSONL/Memory（配置 `APP_PLATFORM_AGENT_ACTION_RECEIPT_FILE`），并**没有**与 CV-03 PostgreSQL 在一个数据库事务里自动关联；#1183 是隔离 Host 签名代码，不是生产签发许可/PA05 跨数据库物理授权。生产 secret/key rotation、业务 SQL 登录物理权限、正式 PG/备份/迁移、Eidos/390px/真实模型调用仍然 OPEN，生产 Feature 继续不注册。**#1182、#1183 的最终 HEAD CI 均已单独验证为 10/10 SUCCESS**；不能用隔离签名测试冒充生产真实 Host permit。
+
+## 6. 两项 PR 的最终合并与测试证据（2026-11-09）
+
+| 工程纵切 | 最终 HEAD（已核对） | GitHub CI（同 HEAD） | main merge commit |
+| --- | --- | --- | --- |
+| [#1182](https://github.com/jiangxng/EVO-App-Platform/pull/1182) — 资源 CAS 与不可变 Agent 回执同 PG 事务、历史 readback | `c3b10d37daf3840e8909895fa7a827d11cfd9049` | **10/10 SUCCESS**，含真实 PostgreSQL 18 专项 **7/7 PASS、0 SKIP** | `d982c1655a02260b309d401d52530dd7e5614c32` |
+| [#1183](https://github.com/jiangxng/EVO-App-Platform/pull/1183) — Host live 授权复核 + HMAC-SHA256 签发准入、数据库验签 | `36801d9362f461fe101d6d12610268c8451f2ce3` | **10/10 SUCCESS**，含真实 PostgreSQL 18 专项 **7/7 PASS、0 SKIP**，新增签名/密钥/撤权/停用负例 | `91cef31fa6518f328b1480d897afe0ef47339f57` |
+
+实际 GitHub 检查包括 Platform `protocol-and-core`、`lightweight-host`、`continuity`、`human-ui-design-review`、`isolated-postgres-resource-cas` 与相关插件 workflow；**机器 UI Review PASS 仅意味着审查文档合规，绝非浏览器/Human 签收**。
+
+**最终判定：** 已交付可复用的隔离代码与真 PostgreSQL 交易/签名证据；`manager/server.ts` 正式 Host 未注册 C3-02 Feature、未接入签发密钥/实际生产数据库，也未完成数据库业务 LOGIN 的物理授权隔离。当前 Host 的 Agent receipt JSONL/Memory 与本 PG Owner 不是原子双写。跨数据权威一致性、生产身份/密钥轮换/迁移/回滚、真实 Eidos 保存/切换 UI、LLM Tool Run 和 390px Human 签收**仍全部 OPEN**。不得仅凭 #1182/#1183 已合就启用生产 WRITE。
