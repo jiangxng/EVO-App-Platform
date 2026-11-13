@@ -40,9 +40,10 @@ test("Tokyo immutable release uses preflight SHA throughout and retains existing
 });
 
 test("Tokyo runtime path classifier includes actual Agent code and still skips documentation", () => {
-  const matched = workflow.match(
-    /git diff --name-only HEAD\\^ HEAD -- \\| grep -Eq '([^']+)'/
+  const classifier = workflow.split("\n").find(line =>
+    line.includes("git diff --name-only HEAD^ HEAD -- | grep -Eq ")
   );
+  const matched = classifier?.match(/grep -Eq '([^']+)'/);
   assert.ok(matched, "missing exact merge-diff runtime classifier");
   const deployablePath = new RegExp(matched[1]);
   for (const path of [
