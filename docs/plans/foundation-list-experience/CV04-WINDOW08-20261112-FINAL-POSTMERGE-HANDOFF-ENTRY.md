@@ -1,3 +1,5 @@
+> **更新入口（2026-11-13 / Window 09 #08/08）：** 此文件仅是 2026-11-12 Window08 历史快照，**不是当前 Main 或运行东京镜像**。最新连续 #01–#08 的合并证据/Owner 阻断见 [Window09 最终交接](CV04-WINDOW09-20261113-POSTMERGE-0808-HANDOFF-ENTRY.md) 与 [本轮来源/决策索引](CV04-WINDOW09-20261113-RESEARCH-DECISION-REFERENCE-INDEX.md)。两份新文档也各自注明原始核验基线及 PR 合并后须重新核验，历史本文其余内容不倒改。
+
 # CV-04 / Window 08 / 自动续跑 #07/07 — 2026-11-12 主线最终交接入口
 
 > **阅读优先级最高，核验基线是 `main@1fbf937f24c801b8812340f2da26d76adcc94ad8`（#1295 已合并）。** 这里的 SHA 是 2026-11-12（香港/北京时间）本轮开始时的真实 protected main，交接 Docs PR 合并后 `main` 会变化；下一窗口必须再次查询最新 `main`。新交接是唯一最新事实入口，保留 [Window 07 原入口](CV04-WINDOW-20261112-POSTMERGE-0707-HANDOFF-ENTRY.md) 的历史稿及 [原有完整研究与决策索引](CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md) §1–22，不复制七十千字资料。
