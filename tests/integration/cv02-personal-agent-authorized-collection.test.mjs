@@ -296,7 +296,7 @@ test("CV-05 real My Suppliers Host READ produces a navigable Chinese Eidos chat 
   });
   assert.match(html,/data-eidos-chat-action="open-authorized-collection"/);
   assert.match(html,/data-eidos-action-type="navigate"/);
-  assert.match(html,/data-eidos-route="\\/counterparties\\/my-suppliers\\?/);
+  assert.ok(html.includes('data-eidos-route="/counterparties/my-suppliers?'));
   assert.equal(html.includes("supplier-other"),false);
   assert.equal(html.includes("email"),false);
 });
