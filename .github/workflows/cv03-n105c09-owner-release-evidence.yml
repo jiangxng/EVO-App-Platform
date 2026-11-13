@@ -26,10 +26,17 @@ on:
       - ".github/workflows/cv03-n105c09-owner-release-evidence.yml"
       - "tools/cv03-n105c09-owner-evidence-release-gate.mjs"
       - "tests/agent-line/cv03-n105c09-owner-evidence-release-gate.test.mjs"
+      - "docs/plans/foundation-list-experience/CV03-N105C-09-OWNER-RELEASE-EVIDENCE-GATE-20261111.md"
       - "manager/server.ts"
+      - "manager/store.ts"
+      - "manager/service.ts"
       - "manager/cv03-personal-saved-view-host-admission.ts"
       - "manager/cv03-n105b-authority-t0-pg.ts"
       - "manager/cv03-n105b-pa05-host-lifecycle.ts"
+      - "contracts/platform-services.ts"
+      - "providers/authorization/runtime.ts"
+      - "providers/enterprise-context/resources-postgres.ts"
+      - "providers/enterprise-context/package.ts"
   issues:
     types: [edited, closed, reopened]
   workflow_dispatch:
