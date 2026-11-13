@@ -248,9 +248,14 @@ test("CV-05 Personal Agent previews real My Suppliers Owner READ with safe Eidos
   assert.ok(preview.navigation.route.includes("search=Supplier"));
 
   const switched=reg(agent(context("ent-b")),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID);
-  await assert.rejects(()=>switched.execute({
+  // Counterparty's policy permits a READ in B, but B contains no A-owned
+  // records. Unlike Dictionary's enterprise-specific grant, this is an
+  // authorized empty projection, not a Capability discovery denial.
+  const otherPreview=await switched.execute({
     operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,input:query
-  },[]),/PERSONAL_AGENT_CAPABILITY_NOT_AVAILABLE/);
+  },[]);
+  assert.deepEqual(otherPreview.rows,[]);
+  assert.equal(otherPreview.pageInfo.total,0);
   await assert.rejects(()=>reg(agent(context()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
     .execute({operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
       input:{sort:"email",page:0}},[]),
