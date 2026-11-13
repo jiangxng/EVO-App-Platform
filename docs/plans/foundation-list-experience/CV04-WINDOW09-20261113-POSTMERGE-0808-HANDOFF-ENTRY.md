@@ -1,3 +1,5 @@
+> **2026-11-13 Window10 #07/07 最新交接**：[最终里程碑入口](CV04-WINDOW10-20261113-0707-FINAL-HANDOFF-ENTRY.md) · [证据/决策索引](CV04-WINDOW10-20261113-0707-EVIDENCE-DECISION-INDEX.md)。以下 Window09 文件保留为前轮不可变历史快照；当前 main、CI 与东京镜像请以新入口及 GitHub 原证重新核验。
+
 > **2026-11-13 新窗口恢复增量**：[聊天要求 / 源码与原证分层核对 / 仍缺证据](CV04-WINDOW10-20261113-RECOVERED-CONTEXT-EVIDENCE-DELTA.md)。仅作为当前增量追溯；以下 Window 09 交接原文及历史快照不作回写。
 
 # EVO-App-Platform / CV04 Window 09 / 自动续跑 #08/08 — 2026-11-13 最终交接入口
