@@ -37,3 +37,32 @@ Eidos Owner 输出 `section/h2/aria-labelledby/dl/ul/li`，可被读屏器按文
 **回归验收路径：** `tests/protocol/cv02-real-owner-agent-human-collection.test.mjs` 新增真实 ActionRouter → Chart 适配正负用例，检测当前页=1 行与完整 Owner 聚合不同、撤权/Feature 停用无 Chart、恶意数据被拒、旧列表照常；原 `tests/cv05/real_host_agent_list_chromium.py` 增加 1280/390 Dictionary 图表可见/企业 B 重新授权/390px 不溢出断言，保留之前全部 4/4 浏览器旅程。所有 CI/发布结果必须按精确 HEAD 原始 Actions 核验，本记录不预先宣布合并或成功。
 
 **未完成：** Kanban 是另一种真实业务语义、需独立 Eidos Owner contract；柱状图不是完整 CV-06 的看板+图表验收。真实模型文字解释、Human Google 登录、真实移动端/读屏器、生产 Owner 签收均待独立证据。#1092、#1212、#1184 其他 Owner 文件保持不变。
+
+
+## 页面模式与导航归属
+
+这是原 Enterprise Business Dictionary 目录内的**可选只读图表区域**；`eidos.catalog-browser` 原 Surface 与 App Host 页面控制器拥有渲染/导航，`manager/server.ts` 只执行已有 Principal/Enterprise/Feature 受管 READ。旧 Page URL、主菜单、系统/个人 View、详情返回及手机卡片不变，没有新 Chart Route 或独立 BI Shell。
+
+## 功能、布局、颜色对照
+
+功能：新增合法 Dictionary Owner 全量状态统计 Chart 的可选呈现；搜索/切 View/分页/打开详情/返回、CSV 当前页和权限行为完全继承原列表，正式保存与后台导出仍 OFF。
+
+布局：原目录在 View 导航后、Server Search 前增加一个可选聚合段；1280px 标签、柱条、计数横向三列，390px 两行紧凑排布；失败、未知或权限不足时只保留原列表。
+
+颜色：只使用原 Eidos primary、bg、fg、border tokens；压制桶虚线与明确文字，不以浅色代替真实隐藏，不用新私有品牌色。
+
+## 入口、退出与恢复矩阵
+
+入口：正常已授权 Enterprise → 业务字典目录通过原 App Host source → 同一 Host 身份下追加 Aggregate READ → Chart 仅在许可与口径相符时出现。
+
+退出：切换系统 View、搜索、翻页、进入详情再返回均走原 Eidos Router 和业务 Owner；图表不是第二个导航树，无新增退出按钮；离开页面不留本地 Chart 缓存。
+
+异常恢复：授权撤销、切企业、停用插件、无当前 Enterprise、Host Aggregate 失败或格式失效，都必须 fail closed：不显示旧图表，仍保留有权的原列表；刷新/重新获权后重新由 Host 读取，不使用前端历史结果兜底。
+
+## 浏览器与 Human 证据
+
+桌面：`tests/cv05/real_host_agent_list_chromium.py` 1280px 会在真正的 Host/Eidos 页面断言 Chart、行列文本、受抑制计数和列表/详情/返回完整流程；CI 原始 Job 完成前保持未验。
+
+移动：同一 Chromium 矩阵 390px 测真实 DOM chart 和边界，触控 View/详情仍按原 Eidos；本记录不将 headless Chromium 视为真机签收。
+
+Human：真实 Google/OIDC 企业用户、物理手机、VoiceOver/TalkBack、视觉人工审稿与生产责任人签署**尚未取得**；不能把 CI GREEN 当 HUMAN_PASS。
