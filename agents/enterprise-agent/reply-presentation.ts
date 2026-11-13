@@ -246,10 +246,11 @@ function collectionNavigationFromRead(
   );
   if (!descriptor) return undefined;
 
+  // Never resurrect a prior success after a later failed/revoked read.
   const observation = [...reply.observations].reverse().find(item =>
-    item.tool === descriptor.id && item.ok === true
+    item.tool === descriptor.id
   );
-  if (!observation || !observation.result
+  if (!observation || !observation.ok || !observation.result
     || typeof observation.result !== "object"
     || Array.isArray(observation.result)) return undefined;
   const result = observation.result as Record<string, unknown>;
