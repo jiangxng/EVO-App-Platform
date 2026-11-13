@@ -56,7 +56,7 @@ const plans=[
   {
     name:"dictionary",
     operationId:"dictionary.collection.query",
-    query:{view:"published",search:"CSV",sort:"displayName",
+    query:{view:"published",search:"Dictionary",sort:"displayName",
       direction:"asc",page:0,pageSize:1},
     expectedA:"Alpha CSV Dictionary",expectedB:cv04.secondaryNames.dictionary
   }
