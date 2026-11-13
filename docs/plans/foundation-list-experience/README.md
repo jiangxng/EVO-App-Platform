@@ -1,5 +1,7 @@
 # 企业业务应用通用体验框架与基础对象实施计划
 
+> **部署入口（2026-11-13）：** [腾讯云东京 Lighthouse / CI-Gated main 发布](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md) 为现行预览部署，Railway 相关链接仍是各自日期的历史记录，不应重复以 Railway 部署验收最新 CV04。正式跨页 EXPORT OFF，CV03 SAVE OFF。
+
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 

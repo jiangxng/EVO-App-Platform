@@ -1,5 +1,7 @@
 # AI Project Bootstrap
 
+> **Deployment authority (2026-11-13):** Read [Tencent Tokyo Lighthouse / current main CI-gated preview](docs/operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md) before making deployment claims. Older Railway deployment references are time-scoped historical evidence, not today's default release target. Production authorization remains gated.
+
 This file is the stable entry point for every fresh ChatGPT / LLM / Agent conversation working on EVO App Platform.
 
 Architecture authority: `docs/architecture/PROJECT-CONTINUITY-PROTOCOL-v0.1.md`.
