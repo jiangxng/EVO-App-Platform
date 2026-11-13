@@ -32,6 +32,7 @@ on:
       - "apps/business-dictionary/export-job-pg-sql-lease.ts"
       - "apps/business-dictionary/export-job-pg-dispatch.ts"
       - "tools/cv04-isolated-signed-export-gateway.mjs"
+      - "tools/cv03-n105c09-owner-evidence-release-gate.mjs"
       - "docs/plans/foundation-list-experience/CV04-SIGNED-PG-EXPORT-GATEWAY-20261112.md"
       - "docs/plans/foundation-list-experience/CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md"
   issues:
