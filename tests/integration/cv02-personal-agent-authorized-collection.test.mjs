@@ -1,5 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { presentPersonalAgentReplyV020 } from
+  "../../dist/agents/enterprise-agent/reply-presentation.js";
+import { renderChatMessageToHtml } from
+  "../../dist/vendor/eidos/src/chat/index.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
@@ -260,4 +264,39 @@ test("CV-05 Personal Agent previews real My Suppliers Owner READ with safe Eidos
     .execute({operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
       input:{sort:"email",page:0}},[]),
   /CAPABILITY_OPERATION_INPUT|COUNTERPARTY_QUERY_SORT_INVALID|COUNTERPARTY_QUERY_SORT_FORBIDDEN/);
+});
+
+test("CV-05 real My Suppliers Host READ produces a navigable Chinese Eidos chat action",async()=>{
+  const {agent}=setup();
+  const operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
+  const query={search:"Supplier",sort:"displayName",page:0,pageSize:25};
+  const actual=await reg(agent(context()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
+    .execute({operationId,input:query},[]);
+  assert.deepEqual(actual.rows.map(row=>row.rowId),["supplier-hk"]);
+  const parts=presentPersonalAgentReplyV020({
+    contractVersion:"0.1.0",agentId:"enterprise-agent",message:"已找到当前有权供应商。",
+    tools:[{
+      id:PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
+      title:"Preview authorized Collection",
+      ownerPackageId:"evo-app-platform",effect:"READ"
+    }],
+    observations:[{
+      tool:PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
+      ok:true,result:actual
+    }]
+  },"zh-CN");
+  const navigate=parts.find(p=>p.type==="proposal" && p.actions?.some(a=>
+    a.id==="open-authorized-collection"
+  ));
+  assert.ok(navigate);
+  assert.equal(navigate.actions[0].type,"navigate");
+  assert.equal(navigate.actions[0].route,actual.navigation.route);
+  const html=renderChatMessageToHtml({
+    contractVersion:"0.2.0",id:"cv05-real-owner",role:"assistant",parts
+  });
+  assert.match(html,/data-eidos-chat-action="open-authorized-collection"/);
+  assert.match(html,/data-eidos-action-type="navigate"/);
+  assert.match(html,/data-eidos-route="\\/counterparties\\/my-suppliers\\?/);
+  assert.equal(html.includes("supplier-other"),false);
+  assert.equal(html.includes("email"),false);
 });
