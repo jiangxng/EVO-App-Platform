@@ -109,8 +109,16 @@ with sync_playwright() as playwright:
             expect(catalog).to_contain_text(plan["expectedA"])
             assert plan["expectedB"] not in catalog.inner_text(),(
                 "CV05_ENTERPRISE_B_LEAKED_IN_A",name)
-            assert "PRIVATE-" not in catalog.inner_text()
-            assert "SECRET-" not in catalog.inner_text()
+            # Phone cards may legitimately show a locally authorized field
+            # that desktop's compact Table omits. Use real Owner field grants,
+            # never assume all synthetic tax IDs are forbidden to the operator.
+            visible_a=catalog.inner_text()
+            if "email" not in plan["readableFieldsA"]:
+                assert "PRIVATE-" not in visible_a,("CV05_EMAIL_LEAK_A",name)
+            if "taxIdentifier" not in plan["readableFieldsA"]:
+                assert "SECRET-" not in visible_a,("CV05_TAX_ID_LEAK_A",name)
+            assert "SECRET-B_SUPPLIER" not in visible_a
+            assert "PRIVATE-B_SUPPLIER" not in visible_a
             opened=screenshot(page,f"{name}-{width}-list")
 
             # Real Eidos catalog row activation and domain-owned returnTo.
@@ -149,8 +157,15 @@ with sync_playwright() as playwright:
             expect(catalog_b).to_contain_text(plan["expectedB"],timeout=30000)
             assert plan["expectedA"] not in catalog_b.inner_text(),(
                 "CV05_STALE_AGENT_LINK_READ_FOREIGN_ENTERPRISE",name)
-            assert "SECRET-" not in catalog_b.inner_text()
-            assert "PRIVATE-" not in catalog_b.inner_text()
+            visible_b=catalog_b.inner_text()
+            if "taxIdentifier" not in plan["readableFieldsB"]:
+                assert "SECRET-" not in visible_b,("CV05_TAX_ID_LEAK_B",name)
+            if "email" not in plan["readableFieldsB"]:
+                assert "PRIVATE-" not in visible_b,("CV05_EMAIL_LEAK_B",name)
+            # Explicit foreign-tenant synthetic sentinels must never appear.
+            for foreign in ("SECRET-S_ALPHA","SECRET-S_BETA","SECRET-S_HIDDEN",
+                            "PRIVATE-S_ALPHA","PRIVATE-S_BETA","PRIVATE-S_HIDDEN"):
+                assert foreign not in visible_b,("CV05_ENTERPRISE_A_FIELD_LEAK",foreign)
             screenshot(page,f"{name}-{width}-enterprise-b")
 
             # A -> B -> A context switch restores scoped source data.
