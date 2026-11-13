@@ -15,6 +15,8 @@ import {dirname,resolve} from "node:path";
 import {fileURLToPath,pathToFileURL} from "node:url";
 import {inspectCv03N105c09OwnerEvidenceGate} from
   "./cv03-n105c09-owner-evidence-release-gate.mjs";
+import {maskJsTsSourceCommentsV010} from
+  "./cv03-n105a-authority-boundary-preflight.mjs";
 
 const rootDefault=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const issueUrl="https://github.com/jiangxng/EVO-App-Platform/issues/1212";
@@ -70,6 +72,11 @@ export function inspectCv04Next05ReleaseGate(input,{root=rootDefault}={}){
     const lease=source(root,"apps/business-dictionary/export-job-pg-sql-lease.ts");
     const dispatch=source(root,"apps/business-dictionary/export-job-pg-dispatch.ts");
     const gateway=source(root,"tools/cv04-isolated-signed-export-gateway.mjs");
+    const ownerCode=maskJsTsSourceCommentsV010(owner);
+    const encryptedCode=maskJsTsSourceCommentsV010(encrypted);
+    const leaseCode=maskJsTsSourceCommentsV010(lease);
+    const dispatchCode=maskJsTsSourceCommentsV010(dispatch);
+    const gatewayCode=maskJsTsSourceCommentsV010(gateway);
     // Deny the whole formal background Export namespace rather than an
     // incomplete operation list. The isolated SQL gateway also recognizes
     // 'expire'; future additions must not silently bypass this source gate.
@@ -77,33 +84,33 @@ export function inspectCv04Next05ReleaseGate(input,{root=rootDefault}={}){
     checks.formalExportOperationStillUnregistered=
       !server.includes(formalJobNamespace)&&!catalog.includes(formalJobNamespace);
     checks.stagedDomainOwnerStillProductionDisabled=
-      owner.includes('const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test"')&&
-      owner.includes('throw new Error("COLLECTION_EXPORT_SHARED_AUTHORITY_REQUIRED")');
+      ownerCode.includes('const testScope=input.isolatedTestOnly===true && process.env.NODE_ENV==="test"')&&
+      ownerCode.includes('throw new Error("COLLECTION_EXPORT_SHARED_AUTHORITY_REQUIRED")');
     checks.stagedEncryptedPgStoreStillProductionDisabled=
-      encrypted.includes('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true')&&
-      encrypted.includes("COLLECTION_EXPORT_PG_PRODUCTION_ADMISSION_NOT_CERTIFIED");
+      encryptedCode.includes('process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true')&&
+      encryptedCode.includes("COLLECTION_EXPORT_PG_PRODUCTION_ADMISSION_NOT_CERTIFIED");
     // The installer and the independent Host/Worker client each require
     // their OWN test-only guard. A single surviving string is insufficient:
     // weakening either branch must independently fail the release gate.
-    const leaseGuards=lease.split(
+    const leaseGuards=leaseCode.split(
       'process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true'
     ).length-1;
     checks.physicalSqlLeaseStillProductionDisabled=
       leaseGuards>=2&&
-      lease.includes("CV04_EXPORT_LEASE_PRODUCTION_INSTALL_DENIED")&&
-      lease.includes("CV04_EXPORT_LEASE_PRODUCTION_USE_DENIED");
+      leaseCode.includes("CV04_EXPORT_LEASE_PRODUCTION_INSTALL_DENIED")&&
+      leaseCode.includes("CV04_EXPORT_LEASE_PRODUCTION_USE_DENIED");
     // Both the one-shot dispatcher and the opt-in polling controller
     // must independently reject production; keep both guards intact.
-    const dispatchGuards=dispatch.split(
+    const dispatchGuards=dispatchCode.split(
       'process.env.NODE_ENV!=="test"||input.isolatedTestOnly!==true'
     ).length-1;
     checks.pollingAndDispatcherStillProductionDisabled=
       dispatchGuards>=2&&
-      dispatch.includes("CV04_EXPORT_DISPATCH_PRODUCTION_DISABLED")&&
-      dispatch.includes("CV04_EXPORT_POLL_PRODUCTION_DISABLED");
+      dispatchCode.includes("CV04_EXPORT_DISPATCH_PRODUCTION_DISABLED")&&
+      dispatchCode.includes("CV04_EXPORT_POLL_PRODUCTION_DISABLED");
     checks.isolatedSignedSqlGatewayNotProductMounted=
-      gateway.includes("CV04_EXPORT_GATEWAY_ISOLATED_SCHEMA_REQUIRED")&&
-      gateway.includes("cv04.dictionary-export.host-write/0.1.0")&&
+      gatewayCode.includes("CV04_EXPORT_GATEWAY_ISOLATED_SCHEMA_REQUIRED")&&
+      gatewayCode.includes("cv04.dictionary-export.host-write/0.1.0")&&
       !server.includes("cv04IsolatedSignedExportGatewaySqlV010")&&
       !server.includes("createIsolatedDictionaryExportPgPollingV010")&&
       !server.includes("createDictionaryExportJobOwnerV010")&&
