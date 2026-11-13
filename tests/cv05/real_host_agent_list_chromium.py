@@ -114,13 +114,14 @@ with sync_playwright() as playwright:
             opened=screenshot(page,f"{name}-{width}-list")
 
             # Real Eidos catalog row activation and domain-owned returnTo.
-            rows=page.locator("[data-eidos-catalog-row-route]:visible")
-            assert rows.count()>0,("CV05_ROW_UNAVAILABLE",name,page.url)
-            row=rows.first
-            if row.locator("td").count()>0:
-                row.locator("td").first.click()
-            else:
-                row.click()
+            # Eidos semantic Table deliberately renders a "view" action in
+            # its first cell; data-eidos-catalog-row-route is for the separate
+            # card surface, not table <tr>. Activate the real Table button.
+            detail=page.locator(
+                '[data-eidos-catalog-table] tbody tr:first-child '
+                '[data-eidos-catalog-action="view"]')
+            expect(detail).to_be_visible(timeout=10000)
+            detail.click()
             return_link=page.locator(
                 '[data-eidos-context-route="'+plan["route"]+'"]')
             expect(return_link.first).to_be_visible(timeout=30000)
