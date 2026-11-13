@@ -1,4 +1,5 @@
 import type { CatalogBrowserV010 } from "./contracts.js";
+import { assertAuthorizedAggregateBarsV010, renderAuthorizedAggregateBarsToHtmlV010 } from "./authorized-bars.js";
 import {
   assertContextNavigationV010,
   renderContextNavigationV010
