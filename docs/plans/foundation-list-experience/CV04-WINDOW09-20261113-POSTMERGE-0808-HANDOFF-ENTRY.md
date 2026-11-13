@@ -1,3 +1,5 @@
+> **2026-11-13 新窗口恢复增量**：[聊天要求 / 源码与原证分层核对 / 仍缺证据](CV04-WINDOW10-20261113-RECOVERED-CONTEXT-EVIDENCE-DELTA.md)。仅作为当前增量追溯；以下 Window 09 交接原文及历史快照不作回写。
+
 # EVO-App-Platform / CV04 Window 09 / 自动续跑 #08/08 — 2026-11-13 最终交接入口
 
 > **当前接续权威入口（截至 #08/08 工程交接起点）**。准确仓库 [jiangxng/EVO-App-Platform](https://github.com/jiangxng/EVO-App-Platform)，唯一合并基线 `main`。截至本交接 PR 建立前，受保护 `main@e0d7aee63b1963d1f0457e5f5f6d8b8fffc4a447` 已通过 **4 SUCCESS + 1 预期东京 deploy SKIPPED**。**本交接自身合并会生成更新的 main SHA；下一窗口必须重新查询 `refs/heads/main`、main check-runs、东京工作流和 PR 证据，禁止把此处固定快照称为永久最新。**
