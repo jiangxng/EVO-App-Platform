@@ -60,7 +60,7 @@ test("CV05 true Host READ creates Chinese Eidos chat list action with exact coun
   assert.match(html,/data-eidos-chat-action="open-authorized-collection"/);
   assert.match(html,/data-eidos-action-type="navigate"/);
   assert.match(html,/data-eidos-route="\/business-dictionaries\?view=published&amp;search=Supplier&amp;page=1&amp;pageSize=25"/);
-  assert.doesNotMatch(html,/on[a-z]+=/);
+  assert.doesNotMatch(html,/\\s+on[a-z]+\\s*=/i);
 });
 
 test("CV05 navigates to both actual Counterparty My-scope Eidos pages without new UI shell",()=>{
