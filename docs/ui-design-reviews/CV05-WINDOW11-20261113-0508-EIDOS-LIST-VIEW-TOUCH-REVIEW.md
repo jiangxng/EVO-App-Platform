@@ -1,31 +1,39 @@
-# CV05 Window11 #05/08 — Eidos Collection Views Touch Target UI Review
+# CV05 Window11 #05/08 — Eidos Collection View Switch Touch Review
 
-> 2026-11-13。**同 PR UI 审查资料，非 Human 生产视觉签收**。实际主线基线 `main@c9ec5b5e9eef0019bb5392fe31bc23c76f9c23c5`。由原 Chromium screenshot/源文件复现，不用渲染想象图替代浏览器证据。
+> 2026-11-13，same-PR Human UI Review gate artifact。受保护 main 基线 `c9ec5b5e9eef0019bb5392fe31bc23c76f9c23c5`。此项为 Eidos 通用 `CatalogBrowser` 的触摸目标，不是新插件 Experience 模式。精确 UI 源文件：`vendor/eidos/src/design-language/productive-workbench-css.ts`。真实 Chromium 截图来自 [#1318 artifact #14034273210](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43422243845/artifacts/14034273210)。无实人签收，不借 CI 声称生产 UX PASS。
 
-## 发现与屏幕证据
+## 目标与完成条件
 
-- 阅读上轮已合并 #1318 的 [Chromium screenshots artifact](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43422243845/artifacts/14034273210)，尤其 `my-suppliers-390-list.png` 和 `dictionary-390-list.png`：390px 下供应商「供应商 / 我的供应商」、字典「全部 / 草稿 / 已发布」呈现为紧贴的原生小按钮，明显小于旁边 44px Search / Pagination 的 Eidos 控件。
-- 核对源文件 `vendor/eidos/src/catalog-browser/render.ts`：视图按钮已使用 `data-eidos-catalog-view-navigation`，每个有 `select-view-*` 的原合法 Domain 路由，当前选中原生 `aria-current="page"`。
-- 核对源文件 `vendor/eidos/src/design-language/productive-workbench-css.ts`：Search/Pagination 已用 44px，原 CSS **没有上述 viewNavigation 的样式规则**，导致其落回浏览器默认按钮；Eidos Design Token `--eidos-touch-target:44px` 已存在，可直接复用。
+业务用户（包括手指触控者和键盘用户）在供应商/业务字典列表之间切换已有的 View，不需要瞄准极小原生按钮。完成条件：Eidos 统一视图按钮均达到 44×44 CSS px，当前选中与焦点清楚，390px 可自动换行不横向溢出；保留现有 Domain Query / Host 二次授权 / A/B 企业隔离 / 详情返回。视觉来源：原有 Eidos Productive CSS 和设计 token `--eidos-touch-target:44px`，不新建 UI 体系。
 
-## 设计决定 / 减法优先
+## 流程与步骤
 
-- Eidos 统一层为每个按钮设定 `min-height` 与 `min-width` 为 `var(--eidos-touch-target)`，flex-wrap + token 间距；对 `aria-current="page"` 使用原蓝色/selected tokens，维持视觉可识别已选；`:focus-visible` 使用原 primary 外框，保持键盘使用者的焦点可见。
-- 不增加页面菜单、View Model 字段、权限绕道、新 List 控件或 Supplier/Dictionary 定制 CSS。原 `data-eidos-route` / Controller / Host 重新授权语义不变。小屏可自动换行，控制不超出 390px viewport。
-- 所有 Eidos 业务 Catalog 共同继承该规则；桌面亦不再显示无样式的原生小按钮。
+进入现有业务列表 → 已选 View 用原 `aria-current="page"` 明确识别 → 点击/触摸/按 Enter 选择另一视图 → 原 Eidos `onNavigate` 打开 Domain Owner 路由 → 使用原列表入口恢复带筛选/排序/页码的状态。对无结果或无权情况继续沿用原 Host 查询与页面错误/空状态，不创建前端假授权。实际自动用例为 `tests/cv05/real_host_agent_list_chromium.py`，非假设浏览器可点击。
 
-## 对比方案及不采用原因
+## 导航与信息架构
 
-1. **采用**：共享 Eidos CSS，沿用原 HTML/route/aria-current；改动最小，与轻量 Host/业务插件继承原则一致。
-2. **排除**：在 Supplier 与 Dictionary 各写一套 CSS，重复实现会造成不同插件视觉差异与回退风险。
-3. **排除**：新增 View Tab 组件/新的导航事件，既有 Eidos 原 Controller 已支持完整行为，没有独立逻辑缺口。
-4. **排除**：只加 CSS 静态断言而不做浏览器验收；之前的截图就是可见尺寸问题，须实际测量。
+视图属于列表内部同一 Business Domain 的 View 层，不额外加入顶层菜单、全局导航、第二组切换控件或 View 编译器。供应商保留「供应商」「我的供应商」，字典保留「全部」「草稿」「已发布」。被选中与路由仍由 `vendor/eidos/src/catalog-browser/render.ts` 的 `data-eidos-catalog-view-navigation` + `data-eidos-catalog-action=select-view-*` + `aria-current=page` 驱动，未变更现有合同。
 
-## 同一 PR 验收矩阵及边界
+## 视觉与颜色
 
-- 现有 `tests/cv05/real_host_agent_list_chromium.py` 对 **My Suppliers/Dictionary × 1280/390** 均测所有 `select-view-*` 的实际矩形 ≥44×44、位置在 viewport 内、恰好一个 `aria-current`，且实际 Enter（桌面）/tap（390）切换至另一 Domain View 后仍能回到原搜索、排序与分页。保留同套 A/B Owner、详情返回、横向溢出安全回归。
-- `tests/app-host/business-page-navigation.test.mjs` 的 Eidos Shared CSS source 断言与专用 CV05 Chromium Workflow 同时运行；所有 CI 必须以 GitHub **精确 HEAD 原始 Jobs** 为证，不在评审文档里预写成功。
-- 390px 是 headless Chromium 的 viewport，不是物理 iOS/Android 真机，更不是正式 Google 登录、Live LLM、Human UX approval。现有 CV03 Human SAVE OFF、正式 CV04 后台 EXPORT OFF、#1212 `N1=NOT_CERTIFIED` 不变。
-- 发布归属：这是运行时 CSS，合并后必须核对东京 Preview 对新 `main` SHA 的实际 deploy Job 与本机/HTTPS/BasicAuth 原始标记；CI GREEN 不等于已部署。回滚可按既有东京 immutable SHA/上一镜像回滚机制执行，不在此开新的部署路径。
+**功能：** 原视图 ID、路由与按钮行为不改；修复原样式遗漏。**布局：** 一行优先、窄屏自动换行，min-width/min-height 44px，沿用 Eidos space tokens，桌面 1280px 与手机 390px 保持区域内可触达。**颜色：** 非选中使用 Eidos bg/fg/border，已选使用 `--eidos-bg-selected` + primary 色与边框，focus-visible 使用原 primary 外框；不引入新品牌色。原 Chromium `my-suppliers-390-list.png` / `dictionary-390-list.png` 显示之前 buttons 原生缩小；本 PR 的后图与测量数据只在新 Chromium CI 真实执行时成立。没有假定截图差异为像素级人工验收。
 
-关联研究/交接：[本切片独立缺陷与方案](../plans/foundation-list-experience/CV05-WINDOW11-20261113-0508-VIEW-SWITCH-TOUCH-HANDOFF.md)、[前轮真实 Chromium 交接](../plans/foundation-list-experience/CV05-WINDOW11-20261113-0408-REAL-HOST-CHROMIUM-HANDOFF.md)。
+## 记忆与注意力
+
+保持原有 `aria-current` 显示所处 View，减少用户在跨 View、详情返回之间重新判断位置的成本。控件紧邻列表搜索与分页，避免新建悬浮导航重复信息。已存在的筛选参数由 Domain Query Route 保存，本次不另存本地/服务端视图状态；内存和权限均不向 UI 做自定义缓存。
+
+## 无障碍与跨年龄
+
+用现有原生 `button`，支持键盘焦点和 Enter。44px 触控目标降低手指点击错误和年龄/运动控制差异。高对比 focus-visible、唯一已选 `aria-current=page` 由浏览器读回核实；另需真实屏幕阅读器、物理 Android/iOS 和不同缩放级 Human 测试，当前自动 Chromium 不能取代这些证明。没有变更业务文本本地化或语言方向。
+
+## 安全与数据修复
+
+选择 View 只是导航，不能访问跨企业数据或绕开 Domain Owner。原 A→B→A 企业切换、READ 重新授权、插件禁用和隐藏字段由既有受保护测试维持；CV03 Human SAVE OFF、CV04 正式后台 Export OFF，#1212 N1=NOT_CERTIFIED 不变。无需数据库迁移、数据修复、重新发布 CSV 或扩大 Scope。若发生 UI 回退，按正常受保护 main + 东京不可变 SHA 发布回滚，不碰 #1092 Railway。
+
+## 证据与剩余问题
+
+**已读源码（A）：** `vendor/eidos/src/catalog-browser/render.ts` 原按钮标记；`vendor/eidos/src/design-language/productive-workbench-css.ts` 原先缺 view nav 样式、现在最小补 Eidos token；`tools/ui-design-review-gate.mjs` 所需八章节；`docs/governance/PLUGIN-HUMAN-EXPERIENCE-DELIVERY-GATE-20261028.md` 审查标准。
+
+**原始浏览器证据（B）：** [#1318 Run #43422243845](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43422243845) 的 390px 原始截图给出缺陷场景；本 PR 原始 Chromium 输出使用 `CV05_EIDOS_COLLECTION_VIEW_44PX_SWITCH_PASS:<name>:<viewport>`，对于 My Suppliers/Dictionary × 1280/390 应当 4/4。#1319 初版 CI 曾因缺少同 PR UI Review 与后续缺固定八章节被**正确 FAIL CLOSED**，已按原门禁补文件，不更改门禁逻辑。最终 Head/main Actions、东京健康/401 和分支清理以 PR 最终评论为准，不预写成功。
+
+**未完成：** 真实 Google OIDC 登录、在线 LLM 语义准确率、物理手机/真实人手持点击、屏幕阅读器、Human 生产签收；维持待验。文档关系：[Window11 #05 研究与决策](../plans/foundation-list-experience/CV05-WINDOW11-20261113-0508-VIEW-SWITCH-TOUCH-HANDOFF.md)、[#04 Chromium 交接](../plans/foundation-list-experience/CV05-WINDOW11-20261113-0408-REAL-HOST-CHROMIUM-HANDOFF.md)。
