@@ -80,7 +80,8 @@ jobs:
             if(!data.notProduction||!data.notHuman||!data.notLiveLLM||data.results.length!==4
               || !data.results.every(x=>x.listRead&&x.detailReturnFilterPreserved
                 &&x.enterpriseSwitchReauthorized&&x.noHorizontalOverflow
-                &&x.actionInputFromRealOwner))
+                &&x.actionInputFromRealOwner&&x.viewTargets44px
+                &&x.alternateViewKeyboardOrTouch))
               process.exit(1);
             console.log("CV05_REAL_HOST_BROWSER_CHROME_ARTIFACT_PASS=4");
           '

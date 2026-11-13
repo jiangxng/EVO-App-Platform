@@ -183,12 +183,69 @@ with sync_playwright() as playwright:
             catalog_a=page.locator('[data-eidos-catalog-has-table="true"]')
             expect(catalog_a).to_contain_text(plan["expectedA"],timeout=30000)
             assert plan["expectedB"] not in catalog_a.inner_text()
+
+            # CV05 #05: inspect the actual rendered view switcher at both
+            # viewport sizes. Prior real 390px screenshots showed unstyled
+            # native buttons below Eidos' 44px touch target.
+            switcher=page.locator('[data-eidos-catalog-view-navigation]')
+            expect(switcher).to_be_visible(timeout=15000)
+            nav_metrics=page.evaluate("""() => {
+                return [...document.querySelectorAll(
+                    '[data-eidos-catalog-view-navigation] button')].map(b=>{
+                    const rect=b.getBoundingClientRect();
+                    return {
+                        id:b.dataset.eidosCatalogAction,
+                        selected:b.getAttribute('aria-current')==='page',
+                        height:rect.height,width:rect.width,
+                        left:rect.left,right:rect.right
+                    };
+                });
+            }""")
+            assert len(nav_metrics)>=2,("CV05_VIEW_CHOICES_MISSING",name,nav_metrics)
+            assert sum(item["selected"] for item in nav_metrics)==1,(
+                "CV05_VIEW_SELECTION_NOT_UNIQUE",name,nav_metrics)
+            for item in nav_metrics:
+                assert item["height"]>=44 and item["width"]>=44,(
+                    "CV05_VIEW_TOUCH_TARGET_UNDERSIZED",name,width,item)
+                assert item["left"]>=-1 and item["right"]<=width+2,(
+                    "CV05_VIEW_BUTTON_OUTSIDE_VIEWPORT",name,width,item)
+            assert page.evaluate("document.documentElement.scrollWidth")<=width+2
+
+            # Real native keyboard / tap on an unselected Eidos view option.
+            # The Host must navigate through the existing business page
+            # route, not a duplicate client-side filter implementation.
+            alternate=page.locator(
+                '[data-eidos-catalog-view-navigation] '
+                'button:not([aria-current="page"])').first
+            expect(alternate).to_be_visible()
+            alternate_route=alternate.get_attribute("data-eidos-route")
+            assert alternate_route and alternate_route.startswith("/")
+            if phone:
+                alternate.tap()
+            else:
+                alternate.focus()
+                alternate.press("Enter")
+            page.wait_for_function(
+                "(route) => location.hash === '#' + route",
+                arg=alternate_route,timeout=20000)
+            expect(page.locator('[data-eidos-catalog-has-table="true"]')).to_have_count(
+                1,timeout=30000)
+            # Return to the exact old filtered route, including its page and
+            # current-tenant owner scope, after switching to another view.
+            page.goto(HOST+"/?surface=desktop#"+plan["route"],
+                wait_until="domcontentloaded")
+            expect(page.locator('[data-eidos-catalog-has-table="true"]')).to_contain_text(
+                plan["expectedA"],timeout=30000)
+            assert plan["route"] in page.url
+            assert page.evaluate("document.documentElement.scrollWidth")<=width+2
+            print(f"CV05_EIDOS_COLLECTION_VIEW_44PX_SWITCH_PASS:{name}:{width}",flush=True)
             results.append({
                 "name":name,"viewport":width,
                 "actionInputFromRealOwner":True,"actionMethod":"touch" if phone else "keyboard",
                 "navRoute":plan["route"],"listRead":True,
                 "detailReturnFilterPreserved":True,"enterpriseSwitchReauthorized":True,
-                "noHorizontalOverflow":True,"chatScreenshot":initial,
+                "noHorizontalOverflow":True,"viewTargets44px":True,
+                "alternateViewKeyboardOrTouch":True,"chatScreenshot":initial,
                 "listScreenshot":opened,
                 "notHuman":True,"notLiveLLM":True
             })
