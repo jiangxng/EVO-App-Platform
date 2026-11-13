@@ -119,6 +119,26 @@ with sync_playwright() as playwright:
                 assert "SECRET-" not in visible_a,("CV05_TAX_ID_LEAK_A",name)
             assert "SECRET-B_SUPPLIER" not in visible_a
             assert "PRIVATE-B_SUPPLIER" not in visible_a
+            # CV06: chart is actual Eidos browser content sourced from a
+            # SECOND authorized Host aggregate READ, not these table rows.
+            chart=page.locator('[data-eidos-authorized-aggregate-bars]')
+            if name=="dictionary":
+                expect(chart).to_be_visible(timeout=12000)
+                assert chart.get_attribute("data-eidos-chart-scope")==(
+                    "AUTHORIZED_ALL_MATCHING_ROWS")
+                assert chart.locator('[data-eidos-authorized-bar-key]').count()==2
+                assert "PRIVATE OPTION VALUE" not in chart.inner_text()
+                # Values from low-count synthetic data remain hidden.
+                suppressed=chart.locator('[data-eidos-count-kind="SUPPRESSED"]')
+                assert suppressed.count()>0
+                assert chart.locator('[data-eidos-authorized-bar-count]').count()==2
+                chart_size=chart.bounding_box()
+                assert chart_size is not None
+                assert chart_size["x"]>=-1 and chart_size["x"]+chart_size["width"]<=width+2,(
+                    "CV06_CHART_HORIZONTAL_OVERFLOW",name,width,chart_size)
+                assert page.evaluate("document.documentElement.scrollWidth")<=width+2
+            else:
+                expect(chart).to_have_count(0)
             opened=screenshot(page,f"{name}-{width}-list")
 
             # Real Eidos catalog row activation and domain-owned returnTo.
@@ -173,6 +193,15 @@ with sync_playwright() as playwright:
             for foreign in ("SECRET-S_ALPHA","SECRET-S_BETA","SECRET-S_HIDDEN",
                             "PRIVATE-S_ALPHA","PRIVATE-S_BETA","PRIVATE-S_HIDDEN"):
                 assert foreign not in visible_b,("CV05_ENTERPRISE_A_FIELD_LEAK",foreign)
+            if name=="dictionary":
+                # A previously rendered Chat route cannot keep an A-domain
+                # chart after the actual Enterprise B context is active.
+                chart_b=catalog_b.locator('[data-eidos-authorized-aggregate-bars]')
+                expect(chart_b).to_be_visible(timeout=12000)
+                assert chart_b.locator('[data-eidos-authorized-bar-key]').count()==2
+                assert "Alpha CSV Dictionary" not in chart_b.inner_text()
+                assert chart_b.get_attribute("data-eidos-chart-scope")==(
+                    "AUTHORIZED_ALL_MATCHING_ROWS")
             screenshot(page,f"{name}-{width}-enterprise-b")
 
             # A -> B -> A context switch restores scoped source data.
@@ -245,6 +274,7 @@ with sync_playwright() as playwright:
                 "navRoute":plan["route"],"listRead":True,
                 "detailReturnFilterPreserved":True,"enterpriseSwitchReauthorized":True,
                 "noHorizontalOverflow":True,"viewTargets44px":True,
+                "dictionaryAuthorizedChart":name=="dictionary",
                 "alternateViewKeyboardOrTouch":True,"chatScreenshot":initial,
                 "listScreenshot":opened,
                 "notHuman":True,"notLiveLLM":True
