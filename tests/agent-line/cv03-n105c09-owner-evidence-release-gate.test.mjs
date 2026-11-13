@@ -119,3 +119,38 @@ test("any attempt to use the source gate as release certification fails",()=>{
   assert.equal(r.status,2);
   assert.match(r.stderr,/CV03_N105C09_RELEASE_CERTIFICATION_FORBIDDEN/);
 });
+
+test("comment-only copies of SAVE and Host startup guards cannot satisfy source gates",()=>{
+  const temp=tempDir("cv03-n105c09-comment-spoof-");
+  try{
+    for(const path of new Set([
+      ...CV03_N105A_SOURCE_FILES,
+      ...CV03_N105C09_OWNER_GATE_SOURCE_FILES
+    ])){
+      const dest=resolve(temp,path);
+      mkdirSync(dirname(dest),{recursive:true});
+      cpSync(resolve(root,path),dest);
+    }
+    const scenarios=[
+      ["manager/cv03-personal-saved-view-host-admission.ts",
+        'if(value!=="OFF")throw Error("CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED")',
+        '/* if(value!=="OFF")throw Error("CV03_HUMAN_SAVE_PRODUCTION_ADMISSION_REQUIRED") */ void value'],
+      ["manager/server.ts",
+        "assertCv03HumanSaveNotEnabledV010(process.env)",
+        "/* assertCv03HumanSaveNotEnabledV010(process.env) */ void 0"]
+    ];
+    for(const [path,target,replacement] of scenarios){
+      const name=resolve(temp,path),before=readFileSync(name,"utf8");
+      assert.ok(before.includes(target),path);
+      const changed=before.replace(target,replacement);
+      assert.notEqual(changed,before);
+      assert.ok(changed.includes(target),"the old raw includes predicate was spoofable");
+      writeFileSync(name,changed);
+      const report=inspectCv03N105c09OwnerEvidenceGate(fixture(),{root:temp});
+      assert.equal(report.gateStatus,"DRIFT_OR_UNVERIFIABLE_REVIEW_REQUIRED",path);
+      assert.equal(report.certification,"NOT_CERTIFIED");
+      writeFileSync(name,before);
+    }
+  }finally{rmSync(temp,{recursive:true,force:true});}
+  console.log("CV03_COMMENT_ONLY_SAVE_GUARDS_FAILCLOSED_PASS");
+});
