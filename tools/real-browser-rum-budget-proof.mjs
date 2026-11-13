@@ -4,8 +4,8 @@ import {
   evaluateWebSurfaceBudgetV010
 } from "../dist/manager/web-performance-budgets.js";
 
-const host = process.env.HOST
-  ?? "https://ledger-configurator-production.up.railway.app";
+const host = process.env.HOST?.trim();
+if (!host) throw new Error("HOST is required; select an authorized target explicitly");
 const chrome = process.env.CHROME;
 if (!chrome) throw new Error("CHROME is required");
 const expectedRevision = process.env.EXPECTED_REVISION?.trim();
