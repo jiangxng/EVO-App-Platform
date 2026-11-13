@@ -50,6 +50,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
     throw new Error("EIDOS_CATALOG_COLLECTION_DESCRIPTION_INVALID");
   }
   assertContextNavigationV010(input.contextNavigation);
+  if (input.authorizedChart) assertAuthorizedAggregateBarsV010(input.authorizedChart);
   if (input.actions !== undefined) {
     if (!Array.isArray(input.actions)) {
       throw new Error("EIDOS_CATALOG_PAGE_ACTIONS_INVALID");
