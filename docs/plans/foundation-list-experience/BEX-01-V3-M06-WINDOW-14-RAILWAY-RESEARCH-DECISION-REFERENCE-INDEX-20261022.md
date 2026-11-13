@@ -1,5 +1,7 @@
 # BEX-01 V3 / M06｜Window 14 研究资料与决策详细索引：Railway、GitHub、RawGitHack（2026-10-22）
 
+> **现行部署与历史范围说明（2026-11-13）：** 本索引只代表 2026-10-22 **Railway 发布/安全研究历史证据**。当前本仓库 `main` 的默认预览部署已使用 [腾讯云东京 CI-Gated 工作流](../../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)；不要将本文件旧 Railway 部署记录当成最新线上版本。原始研究链接与结论不可改写成腾讯云现场证据。
+
 > **配套**：[简短交接入口](BEX-01-V3-M06-WINDOW-14-RAILWAY-DELIVERY-HANDOFF-ENTRY-20261022.md)。本索引是本窗口新增的**可审核增量资料**，沿用 [Window 13 原研究索引](BEX-01-V3-M06-WINDOW-13-RESEARCH-DECISION-REFERENCE-INDEX-20261022.md) 及 [Window 12 历史索引](BEX-01-V3-M06-WINDOW-12-RESEARCH-DECISION-REFERENCE-INDEX-20261021.md)；不会把旧文档写成“当前状态”。本文件仅保存文献和决策，不触发任何部署、权限或生产状态变更。
 
 ## 0. 证据等级与时间口径

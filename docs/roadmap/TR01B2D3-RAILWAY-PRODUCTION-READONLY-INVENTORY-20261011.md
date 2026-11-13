@@ -1,5 +1,7 @@
 # TR01B2D3｜Railway 生产环境只读清点与部署预检（2026-10-11）
 
+> **现行部署与历史范围说明（2026-11-13）：** 本文件只记录 2026-10-11 的 **Railway 只读生产资源快照**。2026-11-13 本仓库的当前 **EVO-App-Platform DEV/PREVIEW 发布入口为[腾讯云东京 Lighthouse](../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)**；两套环境/业务授权源不能等同，也没有执行 Railway→东京的数据迁移、停服或密钥切换。此处的旧权限/部署事实应作为历史资料保留。
+
 **文档类别：HISTORICAL_SNAPSHOT**。**结论：真实生产 Finance Owner 独立部署仍未存在，B2D3 OPEN / NOT_CERTIFIED。**
 
 ## 证据等级与取得方式

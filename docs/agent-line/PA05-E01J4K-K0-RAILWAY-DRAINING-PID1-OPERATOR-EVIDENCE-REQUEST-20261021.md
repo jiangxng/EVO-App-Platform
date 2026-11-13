@@ -1,5 +1,7 @@
 # PA05 / E01J4K / K0 — Railway 生产 Draining / PID1 / SIGTERM 独立证据请求（2026-10-21）
 
+> **现行部署与历史范围说明（2026-11-13）：** 本 Operator 请求针对 2026-10-21 的 **Railway Draining/PID1**，仍保留原始缺口；它不是当前东京 Host 的进程/超时/信号验收。新 `main` 的实际预览发布查询入口为 [腾讯云东京](../operations/EVO-DEPLOYMENT-CURRENT-TENCENT-TOKYO-20261113.md)；PA05 生产停机/身份 Owner 认证仍单独阻断，不能把旧铁路云与东京测试混用。
+
 > **性质：K0 R5 生产 Operator 的只读证据收集与非生产验证计划；不是变更申请、授权、认证通过或发布操作。**
 >
 > K0 / 完整 E01J4 / PA05-05 E01–E05 / W06 全部 `NOT_SIGNED`；production material WRITE `OFF`；Issues #988/#979/#913 `OPEN`；#1071/#1074/#1081/#1082 四 Draft 不合并、不部署。**未授权前不改变 Railway draining/overlap、启动命令、生产进程、Secrets、SQL 或 validator。**
