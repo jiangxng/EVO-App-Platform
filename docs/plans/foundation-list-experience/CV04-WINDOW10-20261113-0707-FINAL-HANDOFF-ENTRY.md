@@ -1,3 +1,5 @@
+> **2026-11-13 最终研究资料/决策交接（换窗口优先）**：[简短入口](CV04-WINDOW10-20261113-RESEARCH-HANDOFF-ENTRY.md) · [详细网络来源与决策索引](CV04-WINDOW10-20261113-RESEARCH-SOURCES-DECISIONS-INDEX.md)。以下 #07/07 原工程交接保留不倒改；新文档自身的合并 SHA/Actions/分支清理以其 GitHub PR Final 评论和实时 main 为准。
+
 # EVO-App-Platform / CV04 Window10 · 自动续跑 #07/07 最终里程碑与交接入口（2026-11-13）
 
 > **历史快照而不是永久最新 HEAD。** 本交接开始时直接读取的受保护 `main` 为 [`3f9f165e8908438a0bb5f0c47fa9d6b05c9d10b1`](https://github.com/jiangxng/EVO-App-Platform/commit/3f9f165e8908438a0bb5f0c47fa9d6b05c9d10b1)，对应 [PR #1310](https://github.com/jiangxng/EVO-App-Platform/pull/1310) 已 MERGED。本文件自己的 Docs PR **尚待创建、验收和合并**；完成后以该 PR 最终评论、重新获取的 `main` 和 Actions 为准，不得将此段预写为其自身的 CI PASS。
