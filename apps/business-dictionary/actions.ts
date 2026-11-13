@@ -7,12 +7,14 @@ import type {
 import type { BusinessDictionaryOptionV010 } from "../../contracts/reference-data/dictionary.js";
 import type { BusinessDictionaryRepositoryV010 } from "./repository.js";
 import { queryBusinessDictionaryCollectionV010 } from "./collection-query.js";
+import { aggregateBusinessDictionaryStatesV010 } from "./collection-aggregate.js";
 import { serializeAuthorizedCollectionPageCsvV010 } from "../../foundation/collection-query/page-csv.js";
 import {
   BUSINESS_DICTIONARY_DRAFT_COMMAND_V010 as DRAFT,
   BUSINESS_DICTIONARY_OPTION_SAVE_COMMAND_V010 as OPTION_SAVE,
   BUSINESS_DICTIONARY_LIST_COMMAND_V010 as LIST,
   BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010 as COLLECTION_QUERY,
+  BUSINESS_DICTIONARY_COLLECTION_STATE_AGGREGATE_COMMAND_V010 as STATE_AGGREGATE,
   BUSINESS_DICTIONARY_PAGE_CSV_EXPORT_COMMAND_V010 as PAGE_CSV_EXPORT,
   BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010 as PUBLISH,
   BUSINESS_DICTIONARY_RESOLVE_COMMAND_V010 as RESOLVE,
@@ -136,6 +138,10 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
     handler(COLLECTION_QUERY, false, (repo, _ctx, contextId, values) =>
       queryBusinessDictionaryCollectionV010({
         dictionaries: repo.list(contextId), query: values
+      })),
+    handler(STATE_AGGREGATE, false, (repo, _ctx, contextId, values) =>
+      aggregateBusinessDictionaryStatesV010({
+        dictionaries: repo.list(contextId), contextId, query: values, now: now()
       })),
     handler(RESOLVE, false, (repo, _ctx, contextId, values) =>
       repo.resolveBatch({
