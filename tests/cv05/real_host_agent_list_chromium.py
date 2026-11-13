@@ -138,7 +138,7 @@ with sync_playwright() as playwright:
                 expect(detail).to_be_visible(timeout=10000)
                 detail.click()
             return_link=page.locator(
-                '[data-eidos-context-route="'+plan["route"]+'"]')
+                '[data-eidos-context-route="'+plan["route"]+'"]:visible')
             expect(return_link.first).to_be_visible(timeout=30000)
             return_link.first.click()
             expect(page.locator('[data-eidos-catalog-has-table="true"]')).to_have_count(
