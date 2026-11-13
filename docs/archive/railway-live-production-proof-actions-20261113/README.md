@@ -21,6 +21,10 @@
 - `.github/workflows/web-security-delivery-production-proof.yml` → `web-security-delivery-production-proof.yml`
 - `.github/workflows/web-version-skew-rum-production-proof.yml` → `web-version-skew-rum-production-proof.yml`
 
+## 旧脚本缺省 Host 收口（2026-11-13 后续工程修复）
+
+为避免用户从命令行手动执行旧工具时不经意请求 Railway，七个保留的浏览器脚本已取消 `HOST` 的旧 Railway 默认地址；现在必须由调用者显式给出非空 `HOST`，缺失则在启动 Chrome 或网络访问之前 fail-closed。相关安全回归位于 `tests/protocol/legacy-railway-proof-host-opt-in.test.mjs`。**这不是东京自动化浏览器身份准入**：仅指定 URL 不能绕过 Basic Auth、替代真实 Principal 或声称旧生产证明在东京 PASS。归档在本目录的十份 YAML 原文仍保持完整 Git Blob 不变；测试其余行为待真实环境授权后重新验收。
+
 ## 恢复到腾讯云东京的独立准入（目前 NOT_ADMITTED）
 
 未来若确有业务必要，先由实际 Identity/Host/Security/Ops Owner 提供已批准的**非生产**浏览器身份、最小授权的测试 Tenant/Principal、可保密的 Basic Auth / Session 处理、可撤权的 ephemeral 资源、实际 UI 网络 200/401 验收、明确的环境/部署 SHA/镜像、不会执行生产写入的证明；再从本目录选择需要保留的断言，以**独立、真实、可失败**的腾讯云东京 Workflow PR 恢复。**不能直接复制旧 Railway URL、历史 OAuth Redirect/Token 或 RAILPACK 证据**。
