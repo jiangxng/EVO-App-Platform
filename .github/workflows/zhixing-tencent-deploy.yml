@@ -1,0 +1,114 @@
+name: Zhixing Tencent - Private Sidecar Deploy
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/zhixing-tencent-deploy.yml]
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [prepare, deploy]
+        default: prepare
+        required: true
+      source_sha:
+        description: Verified full SHA in the private a-share-quant-workbench repository
+        type: string
+        required: false
+
+permissions:
+  contents: read
+concurrency:
+  group: zhixing-tencent-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: evo-tokyo-dev
+    env:
+      RELEASE_MODE: ${{ inputs.mode || 'prepare' }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+    steps:
+      - name: Prepare existing pinned Tokyo SSH identity
+        env:
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          ssh-keygen -y -P '' -f "$HOME/.ssh/id_ed25519" >/dev/null
+      - name: Verify capacity and prepare read-only source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes evo-deploy@43.167.252.197 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          test "$(id -un)" = evo-deploy
+          docker info >/dev/null
+          docker network inspect evo-tokyo-dev_internal >/dev/null
+          test -f /opt/evo-tokyo/Caddyfile
+          available=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)
+          disk=$(df -Pk /home/evo-deploy | awk 'NR==2 {print $4}')
+          echo "Capacity: RAM ${available} KiB; disk ${disk} KiB"
+          (( available >= 650000 && disk >= 2000000 ))
+          umask 077
+          root=/home/evo-deploy/zhixing
+          install -d -m 0700 "$root" "$root/releases"
+          if [[ ! -f "$root/source-key" ]]; then
+            ssh-keygen -q -t ed25519 -N '' -C zhixing-tokyo-readonly -f "$root/source-key"
+          fi
+          chmod 600 "$root/source-key"
+          # This public key is safe to publish. Its private half never leaves Tokyo.
+          cat "$root/source-key.pub"
+          REMOTE
+      - name: Deploy verified private source
+        if: env.RELEASE_MODE == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes evo-deploy@43.167.252.197 "bash -s -- '$SOURCE_SHA'" <<'REMOTE'
+          set -euo pipefail
+          sha="$1"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          root=/home/evo-deploy/zhixing
+          umask 077
+          # GitHub host keys come from its authenticated HTTPS metadata endpoint,
+          # never from an unauthenticated ssh-keyscan of the target connection.
+          python3 -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("https://api.github.com/meta",timeout=15)); print("\n".join("github.com "+k for k in d["ssh_keys"]))' > "$root/github_known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $root/source-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$root/github_known_hosts"
+          release="$root/releases/$sha"
+          if [[ ! -d "$release" ]]; then
+            git clone --quiet git@github.com:jiangxng/a-share-quant-workbench.git "$release"
+            git -C "$release" checkout --quiet --detach "$sha"
+          fi
+          test "$(git -C "$release" rev-parse HEAD)" = "$sha"
+          bash "$release/deploy/tencent-tokyo/install.sh" "$sha"
+          REMOTE
+      - name: Verify public protection and neighboring services
+        if: env.RELEASE_MODE == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --max-time 15 https://zhixing.43.167.252.197.sslip.io/health \
+            | python3 -c 'import json,os,sys; v=json.load(sys.stdin); assert v["revision"]==os.environ["SOURCE_SHA"]; print("ZHIXING_PUBLIC_HEALTH_PASS")'
+          for path in / /api/state /api/export /api/research/state /api/screen; do
+            test "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://zhixing.43.167.252.197.sslip.io$path")" = 401
+          done
+          for site in evo tracking scraper; do
+            curl --fail --silent --show-error --max-time 15 "https://$site.43.167.252.197.sslip.io/health" >/dev/null
+          done
+          echo 'ZHIXING_AUTH_AND_NEIGHBOR_HEALTH_PASS'
+      - name: Remove runner-only SSH material
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
