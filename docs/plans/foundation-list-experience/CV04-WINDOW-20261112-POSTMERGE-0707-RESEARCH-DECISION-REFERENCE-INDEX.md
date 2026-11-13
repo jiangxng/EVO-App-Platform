@@ -472,3 +472,22 @@
 Railway 曾有标签 `production` 并不等于 CV03/04 正式授权环境；腾讯云东京目前也只是 DEV/PREVIEW。[#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 仍 OPEN/PENDING，五个 checkbox 非具名独立批准；[#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍 OPEN/无 Review；PA05 Lifecycle、AuthorizationProvider、DB、Security/Ops 与 Domain Owner 真实签署及同 PG T0 / Epoch / SourceGeneration / Outbox / tombstone / watermark / Producer / KMS / 两物理 Host 验收均未补齐。因此 **CV04 EXPORT OFF/未注册，CV03 `N1=NOT_CERTIFIED`、SAVE OFF**，本轮不接入生产。
 
 **证据限制**：Railway 结构化连接器读取不提供可永久复查的原始 URL/签名原文，故仅记录当时返回字段，并明确未读具体机密值、PG 实库、客户消费者、生产 Key 或跨云迁移日志。本节不是外部官网原文研究，也没有重新读取旧 Railway 一手博客全文。
+
+## 26. Window 09 / 2026-11-13 活动 Actions 仍指向 Railway：真实验收触发退役
+
+> **这是一项新发现的可复现工程缺口**，不是 §23–25 重复状态调查。2026-11-13 `main@e1c24f2355065de0f7f9fd0e482b1c2bd364acfe` 全树共 201 个 workflow；对业务/浏览器/production 相关候选进一步直接读取，发现下列十个**仍在活动 `.github/workflows/` 目录**的 Workflow 把 `HOST` 设为旧 `https://ledger-configurator-production.up.railway.app`，部分仍 `push(main)` 自动触发。当前东京默认预览发布及独立 Basic Auth 已上线，旧环境当日 Connector runtime 5/5 Offline。因此这些 Workflow 不能代表当前东京生产浏览器验收。
+
+### 新证据（与判断分离）
+
+- **A · 已读当前源码（2026-11-13）：** `.github/workflows/{browser-lifecycle,eog-mobile-read,mobile-review,mobile-task-inbox,real-browser-rum-budget,surface-production-browser,surface-scoped-loading,web-delivery,web-security-delivery,web-version-skew-rum}-production-proof.yml`（其中部分实际文件名与大括号简写不同，以[归档 README 的十个精确路径](../../archive/railway-live-production-proof-actions-20261113/README.md)为准）；每份完整 YAML 已读取，含 `HOST`、`on`、脚本/步骤。额外审查其他浏览器与 CV04 的 12 条候选 Workflow，未在该组发现直接硬编码 Railway Host。此结论不声称已逐个打开本仓库每一份脚本。
+- **B · Railway 当前连接器只读原始字段（2026-11-13）：** `get_service_config` 的 `Ledger Configurator` Source 为 `EVO-App-Platform/main`、`checkSuites:false`；`EVO Runtime` Source 为 `EVO/main` 且仍有 `preDeployCommand=["node dist/scripts/migrate.js"]`。这是一项**潜在意外再部署/数据迁移风险**，并非证明当前 Autodeploy 已启用（连接器未提供该开关的确认值），也未执行该迁移。旧 Railway 上五服务当前无 active deployment，存在持久卷与配置（详见 §25）。
+- **W · 官方来源已读页面（2026-11-13）：** [Railway / Controlling GitHub Autodeploys](https://docs.railway.com/deployments/github-autodeploys) 说明从 GitHub 连接分支的 push 可触发自动部署，Service Settings 可点 Disable，且 CI 等待设置与 Autodeploy 是两件事；[Railway Services](https://docs.railway.com/services) 说明连接 GitHub Source 的默认构建行为。**官方默认行为 ≠ 当前用户服务开关已证实值。**
+
+### 方案比较、风险边界与执行选择（D）
+
+- **采用：撤销十个过时活动 Workflow 的触发**，将十份原始 YAML 原封不动移至 `docs/archive/railway-live-production-proof-actions-20261113/`，保留既有 `tools/*.mjs` 供将来独立授权后的浏览器改造。不会改动现行 GitHub Actions 东京 CI-Gated 主发布、真实 Host、PG、KMS、OIDC 或产品功能。此方案彻底移出活动 Actions 名录，既不对旧 Railway 发请求，也不假称东京通过专项生产验证。
+- **排除：直接全量替换 HOST 为腾讯东京并保持自动运行**。东京当前 Caddy Basic Auth、demo Principal 与旧 Railway 原身份不可互换；无真实已批准的自动化浏览器身份时，可能收到 401、误判授权或试图采用假密钥/关闭认证。
+- **排除：仅加文档提醒、保留旧 push/main 触发**。文档无法阻断真实 Actions 出站请求和可能的错误证据，因此本项确为必要工程修复。
+- **未做：解绑旧 Railway GitHub Source、关闭未知 Autodeploy、执行 `EVO Runtime` 迁移或删除任何旧 PG/卷**。须先由独立 Operator 在 Railway Settings 证明 Autodeploy 状态、备份/消费者/回滚及批准范围。Railway `production` 标签和东京 preview 均不能自证正式 CV03/CV04 授权；#1212 OPEN，#1184 受管文件不动，CV04 EXPORT OFF、CV03 N1=NOT_CERTIFIED/SAVE OFF。
+
+**东京恢复条件：** [归档 README](../../archive/railway-live-production-proof-actions-20261113/README.md) 明确要求批准的 Basic Auth+Session 测试适配、真实 Principal/Enterprise 最小授权、现场镜像和操作边界、正负 200/401、真实截图/网络证据及独立审查。只恢复确实仍属有效产品能力的测试，不需重复整个旧 Railway 套件。**本节 CI/主线发布结果在 PR 完成后再记录，尚不预称 PASS。**
