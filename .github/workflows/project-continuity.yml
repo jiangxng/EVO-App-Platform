@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: 22.22.2
       - run: node tools/project-continuity.mjs --check
+      - name: Reject archived Railway live proof reactivation
+        run: node --test tests/protocol/legacy-railway-proof-host-opt-in.test.mjs
       - name: Mandatory Human UI review before merge
         if: github.event_name == 'pull_request'
         env:

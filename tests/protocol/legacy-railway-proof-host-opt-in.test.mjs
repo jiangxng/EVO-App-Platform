@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const browserProofs = [
@@ -33,5 +33,28 @@ test("running legacy browser proofs without HOST exits before any browser or rem
     });
     assert.notEqual(child.status, 0, path);
     assert.match(child.stderr, /HOST is required/, path);
+  }
+});
+
+// The Platform CI paths filter intentionally excludes most workflow-only PRs.
+// The Project Continuity workflow runs this same test for *every* PR/push.
+test("archived Railway live proofs cannot re-enter active Actions workflows", () => {
+  const archiveDir = "docs/archive/railway-live-production-proof-actions-20261113";
+  const archived = readdirSync(archiveDir)
+    .filter(name => /\.ya?ml$/i.test(name));
+  assert.equal(archived.length, 10, "ten original Railway proof YAMLs must remain archived");
+
+  const workflowDir = ".github/workflows";
+  const active = readdirSync(workflowDir)
+    .filter(name => /\.ya?ml$/i.test(name));
+  for (const name of archived) {
+    assert.ok(!active.includes(name), `retired Railway proof reactivated: ${name}`);
+  }
+  for (const name of active) {
+    const body = readFileSync(`${workflowDir}/${name}`, "utf8");
+    assert.doesNotMatch(
+      body, /[a-z0-9-]+\.up\.railway\.app\b/i,
+      `active Action ${name} must not target a legacy Railway service`
+    );
   }
 });
