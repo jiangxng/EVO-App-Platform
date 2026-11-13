@@ -73,7 +73,7 @@ if [[ ! -f /etc/ssh/ssh_host_ed25519_key.pub ]]; then
   exit 1
 fi
 host_pub="$(awk '{print $2}' /etc/ssh/ssh_host_ed25519_key.pub)"
-printf '\nBOOTSTRAP COMPLETE. No application was started and no Railway data was changed.\n'
+printf '\nBOOTSTRAP COMPLETE. No application was started and no other deployment or data was changed.\n'
 printf 'GitHub environment secret EVO_TOKYO_SSH_KNOWN_HOSTS:\n43.167.252.197 ssh-ed25519 %s\n' "$host_pub"
 printf '\nGitHub environment secret EVO_TOKYO_SSH_PRIVATE_KEY: read the file below in the secure Tencent console and paste into GitHub Secrets (NEVER this chat):\n'
 printf '  sudo cat %s\n' "$private_key"
