@@ -122,14 +122,21 @@ with sync_playwright() as playwright:
             opened=screenshot(page,f"{name}-{width}-list")
 
             # Real Eidos catalog row activation and domain-owned returnTo.
-            # Eidos semantic Table deliberately renders a "view" action in
-            # its first cell; data-eidos-catalog-row-route is for the separate
-            # card surface, not table <tr>. Activate the real Table button.
-            detail=page.locator(
-                '[data-eidos-catalog-table] tbody tr:first-child '
-                '[data-eidos-catalog-action="view"]')
-            expect(detail).to_be_visible(timeout=10000)
-            detail.click()
+            # Eidos Productive CSS switches semantic Table to authorized
+            # cards under 700px. Use the actual visible activation in each
+            # responsive surface; never force a hidden desktop Table click.
+            if phone:
+                card=page.locator(
+                    '[data-eidos-catalog-items] '
+                    '[data-eidos-catalog-row-route]:visible').first
+                expect(card).to_be_visible(timeout=10000)
+                card.tap()
+            else:
+                detail=page.locator(
+                    '[data-eidos-catalog-table] tbody tr:first-child '
+                    '[data-eidos-catalog-action="view"]')
+                expect(detail).to_be_visible(timeout=10000)
+                detail.click()
             return_link=page.locator(
                 '[data-eidos-context-route="'+plan["route"]+'"]')
             expect(return_link.first).to_be_visible(timeout=30000)
