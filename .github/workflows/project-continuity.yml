@@ -21,6 +21,8 @@ jobs:
       - run: node tools/project-continuity.mjs --check
       - name: Reject archived Railway live proof reactivation
         run: node --test tests/protocol/legacy-railway-proof-host-opt-in.test.mjs
+      - name: Preserve CV04 Owner release gate PR/main trigger coverage
+        run: node --test tests/protocol/cv04-owner-release-workflow-paths.test.mjs
       - name: Mandatory Human UI review before merge
         if: github.event_name == 'pull_request'
         env:
