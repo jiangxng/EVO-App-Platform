@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {CV03_N105A_SOURCE_FILES} from
+  "../../tools/cv03-n105a-authority-boundary-preflight.mjs";
+import {CV03_N105C09_OWNER_GATE_SOURCE_FILES} from
+  "../../tools/cv03-n105c09-owner-evidence-release-gate.mjs";
+import {CV04_NEXT05_RELEASE_SOURCE_FILES} from
+  "../../tools/cv04-next05-production-authority-release-gate.mjs";
 
 const workflowPath = ".github/workflows/cv04-next05-owner-source-release-gate.yml";
 const upstreamGatePath = "tools/cv03-n105c09-owner-evidence-release-gate.mjs";
@@ -92,4 +98,74 @@ test("removing PA05 lifecycle or AuthorizationProvider from main push is RED", (
     );
   }
   console.log("CV03_OWNER_RELEASE_LIFECYCLE_PROVIDER_PUSH_OMISSION_RED_PASS");
+});
+
+/**
+ * The negative Owner gates call each other: CV04 -> CV03/N105c09 ->
+ * CV03/N105a. Trigger parity alone is not enough if BOTH events omit an
+ * imported source or one of the files inspected by the delegated gate.
+ * Read the original exported file lists rather than maintaining a copy.
+ */
+const transitiveCv03SourcePaths = [...new Set([
+  ...CV03_N105A_SOURCE_FILES,
+  ...CV03_N105C09_OWNER_GATE_SOURCE_FILES,
+  "tools/cv03-n105a-authority-boundary-preflight.mjs",
+  "tools/cv03-n105c09-owner-evidence-release-gate.mjs"
+])];
+const transitiveCv04SourcePaths = [...new Set([
+  ...transitiveCv03SourcePaths,
+  ...CV04_NEXT05_RELEASE_SOURCE_FILES,
+  "tools/cv04-next05-production-authority-release-gate.mjs"
+])];
+
+function assertTransitiveOwnerWorkflowCoverage(workflow, requiredPaths) {
+  const pr = triggerPaths(workflow, "pull_request", "push");
+  const push = triggerPaths(workflow, "push", "issues");
+  assert.deepEqual(push, pr, "Owner release PR/main trigger parity");
+  for (const path of requiredPaths) {
+    assert.ok(pr.includes(path), `Owner gate transitive dependency missing in PR: ${path}`);
+    assert.ok(push.includes(path), `Owner gate transitive dependency missing in main push: ${path}`);
+  }
+}
+
+test("CV03 Owner gate watches all directly and transitively inspected sources", () => {
+  assertTransitiveOwnerWorkflowCoverage(
+    readFileSync(cv03OwnerReleaseWorkflowPath, "utf8"),
+    transitiveCv03SourcePaths
+  );
+  console.log("CV03_OWNER_GATE_TRANSITIVE_SOURCE_COVERAGE_PASS");
+});
+
+test("CV04 Owner gate watches all CV03 authority and CV04 Export dependencies", () => {
+  assertTransitiveOwnerWorkflowCoverage(
+    readFileSync(workflowPath, "utf8"),
+    transitiveCv04SourcePaths
+  );
+  console.log("CV04_OWNER_GATE_TRANSITIVE_SOURCE_COVERAGE_PASS");
+});
+
+test("PR/main-symmetric omissions of imported PG and Provider code fail closed", () => {
+  for (const [file,required,dependency] of [
+    [cv03OwnerReleaseWorkflowPath,transitiveCv03SourcePaths,
+      "tools/cv03-n105a-authority-boundary-preflight.mjs"],
+    [cv03OwnerReleaseWorkflowPath,transitiveCv03SourcePaths,
+      "tools/cv03-n1-postgres-role-audit.mjs"],
+    [workflowPath,transitiveCv04SourcePaths,
+      "manager/cv03-personal-saved-view-host-admission.ts"],
+    [workflowPath,transitiveCv04SourcePaths,
+      "providers/authorization/runtime.ts"]
+  ]) {
+    const original = readFileSync(file, "utf8");
+    const entry = `      - "${dependency}"\n`;
+    assert.equal(original.split(entry).length - 1, 2, `both triggers must watch ${dependency}`);
+    // Mimic a regression that deletes the dependency from BOTH trigger lists:
+    // ordinary equality-only checks would incorrectly stay green.
+    const broken = original.split(entry).join("");
+    assert.throws(
+      () => assertTransitiveOwnerWorkflowCoverage(broken,required),
+      /Owner gate transitive dependency missing/,
+      `symmetric dependency omission must fail: ${dependency}`
+    );
+  }
+  console.log("CV03_CV04_OWNER_GATE_SYMMETRIC_DEPENDENCY_OMISSION_RED_PASS");
 });
