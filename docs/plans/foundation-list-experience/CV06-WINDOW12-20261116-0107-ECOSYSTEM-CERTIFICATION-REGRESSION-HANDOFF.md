@@ -284,3 +284,47 @@
 - **严禁越权**：[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092)、[#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 本轮复核仍 OPEN，[#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍 OPEN；`N1=NOT_CERTIFIED`、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF。不得按此清单擅自启用权限，Eidos 图表和通用列表已实现部分不重复建设，Kanban 暂不新增。
 - **交付纪律**：本轮仅对原 Window12 Markdown append-only；短期 docs PR、exact HEAD Continuity/UI/Lightweight Host 门禁、protected main 合并、原有 Branch Hygiene 清除本 PR 的 SHA-pinned 过程分支。纯文档不触发实际东京部署，必须从原 Job 核对真实 SKIP，绝不预填 CI 结果。本章节只代表 **#06 证据风险整理与 #07 工作入口**，不得假装已经补出新物理 Job。
 
+---
+
+## 9. 2026-11-16 #07/07 跨窗口恢复与当前主线复核（不新增运行时工作）
+
+> 证据等级：C=可恢复的用户聊天要求，D=已确认方案取舍，A=已合入源码/文档，B=GitHub 原始 Run/Job/PR，U=未取得当前物理认证。追加至原 Window12 交接，不改先前历史快照。本轮未取得旧聊天的逐字完整附件；仅使用可恢复的聊天要点、前窗口索引与现有 GitHub 原证，不能将索引改写为原话。
+
+### 9.1 明确要求与已确认决定（C/D）
+
+- 只继续 #07/07 的 **PA02 async worker 和 PA04 consolidated 两条现有 PG18 Actions**，在指定 main SHA 上取新 Run、Job、PG18 隔离和 Node 零跳过原证；不重做 127 项分析、26 个历史 Jobs、Eidos 图表或其他业务功能。
+- 保留 protected main、独立短期 docs PR、exact-HEAD CI 和现有 Branch Hygiene 的 SHA-pinned 过程分支清理；禁止直接 push main 或误删并行 #1184 分支；仅修改本 Window12 交接文件。
+- 已采用：全量 nightly 测试配合严格 Skip 审计；127/127 测试名→源文件→26 个既有专项 YAML 的静态映射；26/26 历史 PG Job/SHA；比较真实 Blob 与测试直接 import 的变化，按风险最小化复验。**历史 PG SUCCESS、通用 nightly 的零 FAIL 和当前源码一致不能替代当下 PG18 物理 Job。**
+- 已放弃：为清掉 SKIP 把共享/生产 PG、三独立集群或外部证书塞入泛用 nightly；虚改 workflow path filter 间接触发；增加新测试框架、Workflow、Kanban 或重写 Eidos 图表；在未签署前开启生产 N1、CV03 Human SAVE、CV04 后台 EXPORT。理由是隔离与最小权限、已有真实入口、Owner 分工与证据不能越级。
+- 更早确定的 Eidos 展示 / Domain Owner 授权聚合 / Host ActionRouter 同权 Human+Agent 方案已由 Window11、Platform #1320/#1321 和 Eidos #210 实现；本窗口不再开发。业务 Kanban 仍需独立 Owner 契约，图表完成不代表全部 CV06 DONE。
+
+### 9.2 复用过的研究资料及网址（A/B，不重新研究）
+
+| 已有来源 | 已采纳结论或舍弃理由 |
+| --- | --- |
+| [Window11 #07/08 交接](CV06-WINDOW11-20261113-0708-EIDOS-AUTHORIZED-CHART-HANDOFF.md)、[Eidos #210](https://github.com/jiangxng/eidos/pull/210)、[Platform #1320](https://github.com/jiangxng/EVO-App-Platform/pull/1320) / [#1321](https://github.com/jiangxng/EVO-App-Platform/pull/1321) | 授权聚合与可读图表已有 Owner 实现；不能在 Platform 另起 Chart/Kanban，不能从分页数据臆造聚合或绕过 Host READ。 |
+| [#1323](https://github.com/jiangxng/EVO-App-Platform/pull/1323) 与本文 §1–§5 | 夜间全量测试原 14 FAIL 已针对既有测试预期漂移修复；127 个 PG 条目在普通环境依旧 SKIP，不是成功运行。 |
+| [#1325](https://github.com/jiangxng/EVO-App-Platform/pull/1325)、[既有 Skip 审计器](../../../tools/ecosystem-skip-proof-inventory.mjs) | 拒绝未经审计的新增 SKIP、非物理 DB skip 和真实失败；不降低测试门禁。 |
+| [#1326](https://github.com/jiangxng/EVO-App-Platform/pull/1326)、本文 §6.2 | 127/127 静态映射：CV03=14、CV04=31、PA02=40、PA04=9、PA05=33，26 个现存专用 Workflow，**不是当前 SHA 全部实际 PASS**。 |
+| [#1327](https://github.com/jiangxng/EVO-App-Platform/pull/1327)、[PA02 研究索引](../../agent-line/PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)、[PA04 研究索引](../../agent-line/PA04-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)、本文 §7 | 历史缺失 16/16 Jobs 已定位，26/26 历史物理证据保留；[PA02 async 旧 Run #38652026320](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38652026320/job/116152850045) 为 26 PASS/0 FAIL/0 SKIP，[PA04 consolidated 旧 Run #38673188190](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38673188190/job/116220784361) 为 42/0/0。 |
+| [#1328](https://github.com/jiangxng/EVO-App-Platform/pull/1328)、本文 §8 | 历史测试/YAML 字节不变仍可能有 PA02 协调器、Worker、Run Store 共享依赖改动；从而选择上述两条 P0，而不盲重跑其余 24 条。 |
+| [PA02 P0 workflow](../../../.github/workflows/agent-pa02-async-read-worker.yml)、[PA04 P0 workflow](../../../.github/workflows/agent-pa04-c01-c06-consolidated.yml)、[Branch Hygiene](../../../.github/workflows/branch-hygiene.yml) | 两条现有 YAML 均有 workflow_dispatch、隔离 postgres:18、Node 24 与 node --test；PA04 含 C01/C02/C03/C05 marker 检查。Branch Hygiene 合并后只清理精确 SHA 且祖先校验通过的本 PR 分支。 |
+
+### 9.3 当前 GitHub 现场核对：聊天提出 / 已实现 / 已验证
+
+- **当前主线**：直接读取 GitHub branches/main = **6b3f500fa8139f24733b9ece025665b167158e47**；与 [PR #1328](https://github.com/jiangxng/EVO-App-Platform/pull/1328) merge SHA 一致。[#1327](https://github.com/jiangxng/EVO-App-Platform/pull/1327) 已合并，merge SHA **05859415df7f05ef57eace032cd334e422040790**。两项此前 docs-only，不修改运行时。没有必要重做 #05、#06 的 PR。
+- **C（聊天提出）**：#07 在现行 main 补两条 P0 的物理 PostgreSQL18 Job；提出的验收不是已执行。
+- **A（代码实现）**：审计器、127 条唯一静态归属、26 个 YAML、两条 PG18 P0 工具入口已存在；不因为 docs-only 再编一套测试。
+- **B（历史验证）**：PA02 async 旧 26/0/0、PA04 consolidated 旧 42/0/0；26/26 历史原证参见 §7，但都不是当前 main 执行。
+- **B（当前主线非 PG CI）**：通过 GitHub Actions REST 按精确 head_sha 检索到 3 个完成的 workflow runs：Continuity CI、Lightweight Host Architecture、EVO Tokyo Dev Preview Release，均为 success，**这三项不包含两条 P0 PG18**。不能把它们记为 PG 认证。原 [main commit](https://github.com/jiangxng/EVO-App-Platform/commit/6b3f500fa8139f24733b9ece025665b167158e47) 可追溯。
+- **U（当前主线 PG 物理复验）**：连接允许读取 GitHub PR/Actions/Job 与写 Git/PR，**没有已授权 workflow_dispatch 操作**。本轮没有触发新 P0，也没有新 P0 Run/Job ID；不能使用重跑历史 Job 来宣称当前 SHA 已验证。
+- **U（生产签署）**：[Operator #1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) OPEN、[Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) OPEN、[并行 PR #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) OPEN；仍为 **N1=NOT_CERTIFIED、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF**。生产 Human/Owner/Operator 验收不能靠绿色 CI 解锁。
+
+### 9.4 剩余唯一 P0 工作与阻塞交接（U）
+
+1. 在有 Actions workflow_dispatch 授权的执行窗口，锁定操作时的 main 完整 SHA；**仅**手动运行现有 Agent PA-02 Async Read Worker 与 Agent PA-04 C01-C06 Consolidated Acceptance。不可为间接触发更改 path filter、测试、YAML 或生产权限。
+2. 对每条收集 **新 Run URL、head_sha、Job ID、PG18 service、原始 Node reporter tests/pass/fail/skipped、GitHub conclusion**；PA04 逐一核 C01/C02/C03/C05 marker。只有 head_sha 对应锁定 main，Jobs 真实 success 且 fail=0/skip=0，才把这**两条**标记当前主线有界 B 证据。
+3. 真失败只依据真实测试名分析，不能添加 skip 或放宽权限。两条均 PASS 也不能升级为 26/26 当前 SHA 物理证明或生产正式签署。
+4. 继续沿用**本**文档记录未来实际 Job；本次 docs PR 通过 exact-HEAD 门禁后合并 main，使用原 Branch Hygiene Actions 只清理本窗口短期分支。勿触碰其他窗口已拥有的 Issue、PR 或分支。
+
+**无法恢复或验证的材料**：完整旧聊天逐字原件（只取得可核对的恢复要点和历史索引）；最新 main 两条 P0 的新 PostgreSQL18 Job；全部 26 个 Workflow 同 SHA 的重新验证；生产签字。严格标为 **U**，不能从旧 26/26 统计、普通 suite 零失败或 docs PR CI 推断补足。
