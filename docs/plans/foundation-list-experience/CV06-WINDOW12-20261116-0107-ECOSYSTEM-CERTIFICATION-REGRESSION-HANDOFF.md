@@ -33,3 +33,39 @@
 - #1092 Railway Operator 和 #1212 生产 Owner 继续 OPEN；`N1=NOT_CERTIFIED`、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF。
 - 如果 exact-HEAD CI 仍失败，读取其原始失败行在**同一 PR**修复，不跳过不放宽；只有全量、轻量 Host、Continuity 和所有自动触发的 Owner/跨项目 Gate 成功才 Ready→protected main。
 - 本窗口仅收口定时全量基础测试证据；后续 #02/07 依赖真实新缺口而定，Kanban 的业务 Owner 枚举和 Eidos 上游仍须先行，不得在 Platform 私造。
+
+---
+
+## 5. 2026-11-16 自动续跑 #03/07：127 项 SKIP 的实际原因与独立验证证据
+
+**此节是对 #1323 合并后主线的证据核验，不修改运行时代码/授权/测试。** 检查基线 `main@ad5dc57c3453901cae8f90510636bad0934ca08a`；原始 [merged-main Ecosystem Certification #43790513022](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43790513022) Job #133047621880：**2368 tests / 2241 pass / 0 fail / 127 SKIP**。独立从该 Job 的每一条 `ok N ... # SKIP <reason>` 逐条提取，127 条都有显式的数据库预置条件；**全量测试在该任务中没有执行这 127 条**，绿色总数不代表这些条目在相同环境都成功。
+
+### 5.1 全部 127 条按照理由的互斥归类（B）
+
+| Skip 原因归类（按明确环境条件，互斥） | 数量 | 对应主要业务线 |
+| --- | ---: | --- |
+| `CV03_RESOURCE_PROOF_DATABASE_URL` 或 `localhost/cv03proof` | **14** | CV03 N1 SQL 权威、C3-01/C3-02 含 Human/Agent/真实 HTTP |
+| `CV04_EXPORT_TEST_DATABASE_URL` 或 `localhost/cv04_ci` | **31** | CV04 encrypted CAS、immutable audit、物理 Host/Worker、TTL、signed gateway |
+| `PA02A_PROOF_DATABASE_URL` 显式指定 | **17** | PA02A/B/C、Host/Worker durable Run、PA05 单节点 Owner |
+| 其他需单实例隔离 PostgreSQL18/真实 PG 的条目 | **51** | PA02 Run、PA04 C01–06、PA05 单节点 Owner 与 E01J |
+| 明确需要**三个彼此独立 PostgreSQL18 集群** | **14** | PA05 Cross-DB / E01J / Object Extension 跨数据库约束 |
+| **合计** | **127** | 100% 有显式 PG 隔离条件；非无原因 SKIP |
+
+> 分类仅按原始日志的 `SKIP reason` 优先级分组，**不是**按功能名归类。例如 PA05 的单数据库项在“其他单 PG”或 `PA02A_PROOF_DATABASE_URL`，而其三物理集群项进入“3 集群”。这些分类可重算，不要把“存在专项文件”推断为 127/127 在当前 main 被实际运行。
+
+### 5.2 已复用的专项 Workflow、实际 Jobs 与证据边界（A/B）
+
+| 能力及原始 Workflow | 真实已完成的原证 | 有界结论 |
+| --- | --- | --- |
+| CV03 [PostgreSQL18 Atomic CAS](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/cv03-resource-postgres-atomic.yml) | [Run #43436767862](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43436767862), Job #131923790874, **38 pass / 0 fail / 0 skip**；真实 C3-02 Human Eidos Signed PG / N1 SQL denial markers | 已在 2026-11-13 的历史 PR SHA 验证；不是当前生产 Human/Owner 认证，也不是当前 main 上 127 个 SKIP 被重新执行。 |
+| CV04 [Encrypted PG CAS](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/cv04-dictionary-export-pg-encrypted.yml)、[Signed PG gateway](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/cv04-signed-export-pg-gateway.yml)；另有 [immutable audit](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/cv04-pg-export-immutable-audit.yml)、[Host/Worker lease](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/cv04-export-sql-host-worker-lease.yml)、[TTL](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/cv04-export-pg-active-expiry.yml) | [Signed #43209191962](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43209191962), Job #131152054027: 18/18 signed + 5/5 immutable + 5/5 encrypted + 8/8 Owner 全部 0 skip；[Encrypted #43250268315](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43250268315), Job #131293848960: 5/5 PG encrypted + 11/11 Owner, 0 skip。 | PostgreSQL16 disposable 独立 CI 先前真实运行过；生产 Host **没有**启用正式 EXPORT。不能为压低 nightly SKIP 计数把专用证书/数据库环境塞到泛用 Suite。 |
+| PA02 [A durable PostgreSQL](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa02a-postgres-durability.yml)、[B fenced authority](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa02b-fenced-run-authority.yml)、[C atomic cancellation](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa02c-atomic-run-cancel.yml)；[Host optional READ](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa02-host-optional-read.yml) | [Host optional READ #43436768323](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43436768323), Job #131923792794: **3 pass / 0 fail / 0 skip**，`defaultOff=true`、无主机 DDL/WRITE、跨企业拒绝、`productionEnabled=false`；其它 PA02A/B/C 同类 PostgreSQL18 专项工作流已查实配置，但**本次未逐个取得最新 Job 全文**。 | PA02A/B/C 有隔离 PG18 workflow，而不是默认 nightly 的共享 DB；尚不能把 17 + 51 中全部 PA02 条目标为当日单项复验完成。 |
+| PA04 [C01–C06 consolidated](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa04-c01-c06-consolidated.yml)；[C02 revocation](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa04-c02-source-revocation.yml)；[C05 injection](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa04-c05-tool-injection.yml) | 现有 YAML 均配置 disposable PostgreSQL18、`PA02A_PROOF_DATABASE_URL` 并调用对应 tests，consolidated 另有防 skip 验证；**本次未核到与最新 main 一致的原始成功 Job**。 | **A=已有运行入口，不等于 B=当前运行成功。** 这是需要保留的证据缺口，不能把运行预期写成实际通过。 |
+| PA05 [three independent PostgreSQL18 clusters](https://github.com/jiangxng/EVO-App-Platform/blob/main/.github/workflows/agent-pa05-cross-database-admission.yml) | [Run #43437374010](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43437374010) main@d3d07b7ed981fc8f6b92218091c47e53f7e34720, Job #131925858011：**28 pass / 0 fail / 0 skip**，独立端口 5432、5433、5434 / 独立三服务。原日志 `physicalClusters=3`，但同时明确 `productionWriteEnabled=false`、`privilegedTableOwnerCanStillDisableTrigger=true`、`realProductionDataMigrated=false`；部分场景明确 `productionCrossStoreAtomicityCertified=false`。 | 隔离三集群有真实成功实验，但证明的是受限、非生产的拒绝/分段一致性边界，不是跨库原子性或生产 Owner 完整获证。 |
+
+### 5.3 结论与后续严格范围（D/U）
+
+1. **已完成：** 对合并主线 `127/127` 条 skip 分别定位到 DB 环境前置原因；查到现成专项工作流和 CV03、CV04、PA02 Host READ、PA05 三物理集群的历史真实 SUCCESS+零 Skip 原始日志。无需修复业务代码、放宽隔离权限、发明第二套 CI。
+2. **未完成（U）：** PA02A/B/C 与 PA04、PA05 单数据库/其余 51 条的**逐条现行 exact-main zero-SKIP 作证**尚未完成；隔离工作流可能在旧提交有成功，但本次未读到所有原始日志。所有 127 条在同一个 nightly 中完全运行、生产真实 Operator/Owner Human 签署也未获证；后者不应由 CI 取代。
+3. **明确不做：** 不给 Generic Ecosystem Certification 默认附上真实/共享生产 PostgreSQL 或三套外部凭据；不为追求 `skipped 0` 让 CV03/CV04 生产默认开启；不对多集群的隔离测试成绩声称生产全局原子、真实在线数据、持续可用。非签署状态维持 `N1=NOT_CERTIFIED`、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF；[Operator #1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) / [Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) / [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 不跨窗口修改。
+4. **#04/07 的最小必要动作：** 如果仍需收紧 CI 证据，优先按已有专项 Workflow 的实际 Job、test-name/marker、commit SHA 补齐 PA04 与 PA02 逐条映射，再决定是否存在真正**未覆盖的**跳过条目；只对证实缺失的项目触发专项复核或提窄化 Gate PR。**不重新跑全量“研究”和全部127条，也不造 Kanban。**
