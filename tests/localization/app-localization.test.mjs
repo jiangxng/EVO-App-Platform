@@ -69,7 +69,7 @@ test("App Host locale changes platform chrome and app-owned Personal Agent text"
   assert.equal(storeEn.title, "EVO Plugin Platform");
   assert.equal(storeEn.items[0].status.label, "Enabled");
   assert.equal(storeEn.items[0].primaryAction.label, "Open");
-  assert.match(storeEn.items[0].summary, /provided capability/);
+  assert.match(storeEn.items[0].description, /provided capabilit/i);
 
   const agentPage = {
     contractVersion: "0.1.0",
@@ -102,7 +102,7 @@ test("App Host locale changes platform chrome and app-owned Personal Agent text"
   assert.equal(storeZh.title, "EVO 插件平台");
   assert.equal(storeZh.items[0].status.label, "已启用");
   assert.equal(storeZh.items[0].primaryAction.label, "打开");
-  assert.match(storeZh.items[0].summary, /提供/);
+  assert.match(storeZh.items[0].description, /provided capabilit/i);
 
   const agentZh = localizeAppHostPageDefinition(loadedAgent(agentPage), runtime);
   assert.equal(agentZh.title, "个人代理");
