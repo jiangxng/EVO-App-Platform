@@ -237,3 +237,50 @@
 **#06/07 下一最小动作**：若确需把 26 个专项升级为“当前 SHA 已重新执行”，先按上表将无测试/YAML Blob 漂移的历史记录保留作开发证据；只针对 **有实际 runtime/数据契约变化风险且不能由现有 owner gate 覆盖** 的专项，通过原有 `workflow_dispatch` 在明确 SHA/临时 PG 条件下复验，留存 Job zero-SKIP；无法从本对话工具触发时标记 U，**不得伪称运行或为触发去改 path-filter**。本轮范围无缺失 Workflow、无缺失测试文件，不新增 YAML/测试/框架，不动生产 Authorizer。真实 Owner [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、Operator [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 和并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍独立处理。
 
 交接仍通过原 Window12 文档 append-only 入库；独立 docs PR 精确 HEAD 通过后合并受保护 main，由现有 Branch Hygiene Actions SHA-pinned 删除**本轮**过程分支；本轮不预填门禁/合并/东京 SKIP 成功。
+
+
+---
+
+## 8. 2026-11-16 自动续跑 #06/07：从历史物理 Run 到当前源码的有限变更风险对账
+
+> 对账基线为 protected `main@05859415df7f05ef57eace032cd334e422040790`（[#1327](https://github.com/jiangxng/EVO-App-Platform/pull/1327) 已合并）。本节是 **A=Git Tree Blob / 当前测试实际 import** 与 **B=原历史 Run** 的来源分析，不是新的 PostgreSQL 执行结果。#05/07 已恢复 26/26 专项历史 zero-skip Job，故本轮不重复检索 127 条，也不为了造 PR 重新运行全部 Job。
+
+### 8.1 有界检索和源码差异：避免把 test/YAML 不变误说成 runtime 不变
+
+读取当前 main 与三个具有代表性的历史成功 SHA 的完整 Git Tree（均 `truncated=false`）：PA04 consolidated [历史 #38673188190](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38673188190) `f45af7c58d363e327700c366baf89c88d52b53e2`；PA02 async/atomic [历史 #38652026320](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38652026320) `2094c74ebaa143d67c246e742d794facfd27687d`；PA05 三 PG18 [历史 #43437374010](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43437374010) `d3d07b7ed981fc8f6b92218091c47e53f7e34720`。又读当前 PA04 C01/C03/C05、C02 与 PA02 async 的真实测试源码 import，而不是按业务名称猜运行时依赖。
+
+| 直接依赖的源码路径 | 历史 PA04 `f45af7c` → 现 `main` | 历史 PA02 `2094c74` → 现 `main` | 有界解释 |
+| --- | --- | --- | --- |
+| `manager/agent-async-read-worker-runtime.ts` | 一致 | **不同** | PA04 C01/C03/C05 测试直接导入；对 PA04 那次历史证明未见此文件漂移 |
+| `agents/enterprise-agent/run-action-handlers.ts` | 一致 | 一致 | C01/C03/C05 直接导入，单文件一致 |
+| `manager/agent-run-store.ts` | 一致 | **不同** | PA04 直接 import；旧 PA02 跨版本 Run 接口不可直接等同当前 |
+| `agents/enterprise-agent/provider-model.ts` | 一致 | **不同** | PA04 C05 直接 import；PA02 更老的 Provider 行为仍需谨慎 |
+| `manager/conversation-context-assembly.ts` / `manager/conversation-context-postgres-store.ts` | 一致 / 一致 | **不同 / 不同** | PA04 C02 直接 import，PA04 该历史 Job 与现 main 对这两文件一致 |
+| `manager/conversation-postgres-store.ts` | 一致 | 一致 | PA04 C02 直接 import，证明有限于这一文件 |
+| `agents/enterprise-agent/pa02a-postgres-durability-proof.ts` | 一致 | 一致 | PA02 async 直接 import，不代表全部 Runtime 相同 |
+| `agents/enterprise-agent/pa02b-postgres-coordination.ts` | **不同** | **不同** | **真实剩余变更**：旧 `80ba2768f940...` → 现 `78f2be83921b...`，新增 PA05 opt-in `requirePluginWriteLifecycleFence` / Owner link 及 `PREPARED→INVOKING` 事务内检查；无权判断所有调用语义不受影响 |
+| `agents/enterprise-agent/pa02c-atomic-run-cancel.ts` / `pa02b-fenced-run-authority.ts` | 一致 / 一致 | 一致 / 一致 | 两个 PA02 async 直接 import 路径的文件与历史一致 |
+| `agents/enterprise-agent/pa02-async-read-worker.ts` | 一致 | **不同** | 旧 PA02 Worker 实现曾变；新旧历史 Job 的靶向测试本身一致仍不保证 Runtime 等效 |
+| `package-lock.json` | 一致 | 一致 | 依赖锁定文件相同；非生产环境一致认证 |
+| `package.json` | **不同** | **不同** | 执行脚本/包配置存在字节差异；不凭差异大小直接宣告测试失败 |
+
+这些仅是**有界直接依赖**的 SHA 对比，不是递归模块图/部署配置证明。PA02 旧源码比当前有更多不同路径；CV03/PA05 较新的历史 success SHA 对当前主线按 Git Tree 变更筛选，所检查的 `agents/`、`manager/`、`contracts/`、`apps/` 与相关 `tests/` 范围未发现同路径 Blob 改动（不能推断全部生产条件未改变）。真实源码变更不能仅因为旧专项曾 SUCCESS 就变成当前测试 PASS。
+
+### 8.2 只针对已证风险的专项复验顺序（非扩范围）
+
+| 次序 | 现有 Workflow（不新增） | 为什么优先 / 下一步需要什么原证 | 当前状态 |
+| --- | --- | --- | --- |
+| P0 | [agent-pa02-async-read-worker.yml](../../../.github/workflows/agent-pa02-async-read-worker.yml) | 旧成功后协调器、Worker 与包配置已变化；先确认其真实 PG18 `node --test` 当天 Run、HEAD、zero-SKIP，并保留 PA05 opt-in Owner/Fence 否定场景 | **U：未重新运行** |
+| P0 | [agent-pa04-c01-c06-consolidated.yml](../../../.github/workflows/agent-pa04-c01-c06-consolidated.yml) | 旧 42/0/0 原证有效，但共用 `pa02b-postgres-coordination.ts` 的新增 fenced WRITE 生命周期前提存在依赖风险；需要当前 HEAD disposable PG18 Job 证明 C01、C02 #127、C03/C05 完整恢复/拒绝，不做新测试框架 | **U：未重新运行** |
+| P1 · 按需 | [agent-pa02-host-async-read-execution.yml](../../../.github/workflows/agent-pa02-host-async-read-execution.yml) / [agent-pa02b-fenced-run-authority.yml](../../../.github/workflows/agent-pa02b-fenced-run-authority.yml) | 仅在 P0 的实际 failure、相关 CI 触发变更或新依赖证据指向该路径时补原 Workflow；历史 zero-skip 不作废 | **历史 B 已有，当前 SHA U** |
+| 保留历史原证，不盲重跑 | CV03 PG18 / CV04 PG16 / PA05 三独立 PG18 | 已有 26/26 历史 Run 和 #05 的源证核验；无新单项失效数据，不为降低泛用 SKIP 或文档 PR 一次触发三套 DB | **B=历史，U=exact-main** |
+
+本连接当前可执行的 GitHub 操作包括 Git/PR/Actions 读取、历史 Job 日志、分支/文件/PR 写入，但**没有已授权的 `workflow_dispatch` 动作**；不用为了间接触发 CI 而虚改 workflow 或测试 path filter，不生成虚假 run ID。若在有受权 dispatch 的执行窗口进行 P0 复验，必须先确认工作流能在目标 main commit 运行，随后原始 Job 逐条 `tests/pass/fail/skipped` 及环境隔离条件取证；不能宣称本窗口已触发或成功。
+
+### 8.3 #07/07 接续清单：只做真正未结项
+
+- **完成且已入库的事实**：[#1323](https://github.com/jiangxng/EVO-App-Platform/pull/1323) 原 14 项全量回归复原；[#1325](https://github.com/jiangxng/EVO-App-Platform/pull/1325) 实际主线 2246 pass / 0 fail / 127 intentional physical SKIP 的 CI 增长/分类门禁；[#1326](https://github.com/jiangxng/EVO-App-Platform/pull/1326) 127/127 静态对应与 26 既有物理执行入口；[#1327](https://github.com/jiangxng/EVO-App-Platform/pull/1327) 26/26 历史独立 PostgreSQL 成功 Run/Job/SHA 与 16 项缺证恢复。本 #06 只分析该证据时效，未碰运行时。
+- **仍未完成（U）**：P0 两个现成独立 PG18 workflow 在 *现行 main* 的最新实际 Run；26/26 exact-main 同时通过未认证；真实 Human/Owner/Operator 生产批准、密钥/SQL 物理最小权限/持续运行真实签署、真实 LLM/Human 移动验收仍独立。不得将证据表格的零静态缺口当生产 Go。
+- **严禁越权**：[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092)、[#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 本轮复核仍 OPEN，[#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍 OPEN；`N1=NOT_CERTIFIED`、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF。不得按此清单擅自启用权限，Eidos 图表和通用列表已实现部分不重复建设，Kanban 暂不新增。
+- **交付纪律**：本轮仅对原 Window12 Markdown append-only；短期 docs PR、exact HEAD Continuity/UI/Lightweight Host 门禁、protected main 合并、原有 Branch Hygiene 清除本 PR 的 SHA-pinned 过程分支。纯文档不触发实际东京部署，必须从原 Job 核对真实 SKIP，绝不预填 CI 结果。本章节只代表 **#06 证据风险整理与 #07 工作入口**，不得假装已经补出新物理 Job。
+
