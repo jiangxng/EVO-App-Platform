@@ -69,3 +69,29 @@
 2. **未完成（U）：** PA02A/B/C 与 PA04、PA05 单数据库/其余 51 条的**逐条现行 exact-main zero-SKIP 作证**尚未完成；隔离工作流可能在旧提交有成功，但本次未读到所有原始日志。所有 127 条在同一个 nightly 中完全运行、生产真实 Operator/Owner Human 签署也未获证；后者不应由 CI 取代。
 3. **明确不做：** 不给 Generic Ecosystem Certification 默认附上真实/共享生产 PostgreSQL 或三套外部凭据；不为追求 `skipped 0` 让 CV03/CV04 生产默认开启；不对多集群的隔离测试成绩声称生产全局原子、真实在线数据、持续可用。非签署状态维持 `N1=NOT_CERTIFIED`、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF；[Operator #1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) / [Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) / [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 不跨窗口修改。
 4. **#04/07 的最小必要动作：** 如果仍需收紧 CI 证据，优先按已有专项 Workflow 的实际 Job、test-name/marker、commit SHA 补齐 PA04 与 PA02 逐条映射，再决定是否存在真正**未覆盖的**跳过条目；只对证实缺失的项目触发专项复核或提窄化 Gate PR。**不重新跑全量“研究”和全部127条，也不造 Kanban。**
+
+## 5. #03/07 — 127 条物理 PG 跳过证据与 CI 反回退（2026-11-16）
+
+**证据基线**：合并后的 [Ecosystem Certification Run #43790513022 / Job #133047621880](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43790513022) 原始 TAP：2368 total / 2241 PASS / 0 FAIL / **127 SKIP**。从每个 `ok N - NAME # SKIP REASON` 而非关键词模糊计数提取，全体 127 条均说明需要物理 PostgreSQL/独立数据库证明，分别为：
+
+| 归属工作线 | 原始 TAP 的 skip 数 | 典型跳过前提 | 项目已有独立 Actions（只是存在，非今日 127 项均被重验） |
+| --- | ---: | --- | --- |
+| CV03 | 14 | `CV03_RESOURCE_PROOF_DATABASE_URL`、PG18 `localhost/cv03proof` | `cv03-resource-postgres-atomic.yml`（PG18）及现有 CV03 N1 专项 |
+| CV04 | 31 | `CV04_EXPORT_TEST_DATABASE_URL`、`CV04_EXPORT_SIGNED_GATEWAY_ONLY=YES_DISPOSABLE_CI`、PG16 | `cv04-dictionary-export-pg-encrypted.yml`、`cv04-pg-export-immutable-audit.yml`、`cv04-export-sql-host-worker-lease.yml`、`cv04-export-pg-active-expiry.yml`、`cv04-signed-export-pg-gateway.yml` |
+| PA02 | 40 | `PA02A_PROOF_DATABASE_URL`、独立 PG18、真实 Worker/Host | `agent-pa02a-postgres-durability.yml`、`agent-pa02b-fenced-run-authority.yml`、`agent-pa02c-atomic-run-cancel.yml` 和既有 Host READ workflows |
+| PA04 | 9 | PG18、Model/Run 严格证据、C02/C03/C05 测试 | `agent-pa04-c03-read-freshness.yml`、`agent-pa04-c05-tool-injection.yml` 及既有 C02/C01 检查 |
+| PA05 | 33 | PG18，多数需要认证的三个物理独立 PG18 实例 | `agent-pa05-cross-database-admission.yml`（三 PG18）、`agent-pa05-governed-write.yml` |
+| **合计** | **127** | **仅通用套件跳过，不是通过** | 专项多为 path-filter PR/push 与显式 `workflow_dispatch`，不可按存在即算成功 |
+
+**实际已有原证的例子（B）**：
+- [PA05 三 PG18 cross-database 原 Action #43437374010](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43437374010) 为 2026-11-13 `main@d3d07b7...` SUCCESS；只证明该历史时点对应 job 的范围，不可冒称今日 SHA 5e64cb1 的 33 条都重新通过。
+- [CV03 Enterprise Resource PG 原 Action #43436767862](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43436767862) 为 2026-11-13 旧 PR HEAD SUCCESS，不能替代今日完整集。
+- CV04 PG16 workflows 逐一核对显示真实 `postgres:16-alpine` service、`NODE_ENV=test` 与隔离 schema、合法 admission flags；PA02/PA04 workflows 为 `postgres:18` service + `PA02A_PROOF_DATABASE_URL`。**本轮尚未核实这些独立 Actions 在今日 main 的新执行结果**，此处不标记 “127/127 covered by recent physical CI”。
+
+**已实际增加的 CI 反回退（非业务运行时）**：
+- 新增 `tools/ecosystem-skip-proof-inventory.mjs` 读取 `npm run test:all` 完整 TAP；要求 TAP `tests=pass+fail+skip`，逐一识别数据库原因与 CV03/CV04/PA02/PA04/PA05 工作线，超出当前可审计 baseline `127` 或出现未知跳过失败，明确输出“这些不是已认证的 PASS”。
+- 新增 `tests/ci/ecosystem-skip-proof-inventory.test.mjs`：正常五工作线计数、未知 skip 拒绝、增长拒绝、summary/真实 FAIL 拒绝、GitHub timestamp prefix 校验。旧 127 项在通用套件中**仍然 SKIP**，绝不将跳过静默清零；不是为通过 CI 而跳过测试。
+- 更新既有 `.github/workflows/ecosystem-certification.yml`：保留原完整 `npm run test:all`、`NODE_ENV=test`、`schedule`；用 `set -o pipefail` + `tee` 保存 TAP 后执行审计；只有测试本身和审计均成功时 full-suite SUCCESS。仅将这两个审计文件增入既有 PR/main path filters；不让 193 个专项 workflows 每次 docs push 全量跑三 PG 集群。
+- **验收要求**：只有本 PR exact HEAD + 合并后 main 的新 full-suite 原 Job 完成，才可标记此反回退机制生效。127 条专项物理验收依然单独作为开放证据，不等于 `N1` 生产签署；#1092/#1212 OPEN、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF 不变。
+
+**潜在后续精确任务**：逐条映射 `测试文件 → workflow command → 最近 run/head SHA → 物理 DB 环境`，只给真正无覆盖的用例新增窄门禁；绝不借机创建第二套 Eidos Chart/Kanban，或部署实验 PostgreSQL EXPORT 到生产 Host。
