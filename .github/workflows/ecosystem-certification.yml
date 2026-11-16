@@ -13,6 +13,8 @@ on:
       - "tests/integration/cv02-eidos-catalog-views.test.mjs"
       - "tests/localization/app-localization.test.mjs"
       - "tests/manager/manager.test.mjs"
+      - "tests/ci/ecosystem-skip-proof-inventory.test.mjs"
+      - "tools/ecosystem-skip-proof-inventory.mjs"
   push:
     branches: [main]
     paths:
@@ -21,6 +23,8 @@ on:
       - "tests/integration/cv02-eidos-catalog-views.test.mjs"
       - "tests/localization/app-localization.test.mjs"
       - "tests/manager/manager.test.mjs"
+      - "tests/ci/ecosystem-skip-proof-inventory.test.mjs"
+      - "tools/ecosystem-skip-proof-inventory.mjs"
 
 concurrency:
   group: ecosystem-certification
@@ -40,4 +44,8 @@ jobs:
       - name: Full ecosystem regression with test-only admission
         env:
           NODE_ENV: test
-        run: npm run test:all
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:all | tee "$RUNNER_TEMP/ecosystem-full-suite.tap"
+          node tools/ecosystem-skip-proof-inventory.mjs "$RUNNER_TEMP/ecosystem-full-suite.tap"
