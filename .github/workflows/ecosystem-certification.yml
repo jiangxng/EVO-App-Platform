@@ -18,4 +18,9 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm run test:all
+      # Isolated CV04 contracts are test-only and deliberately reject NODE_ENV != test.
+      # Do not weaken production admission; match the dedicated CV04 workflows.
+      - name: Full ecosystem regression with test-only admission
+        env:
+          NODE_ENV: test
+        run: npm run test:all
