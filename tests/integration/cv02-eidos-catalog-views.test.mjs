@@ -11,7 +11,10 @@ const base = {
   layout: "list",
   density: "compact",
   contextNavigation: {
-    items: [{id: "suppliers", label: "供应商", route: "/counterparties/suppliers"}]
+    items: [
+      {id: "counterparties", label: "往来管理", route: "/counterparties"},
+      {id: "suppliers", label: "供应商"}
+    ]
   },
   actions: [{id:"import",label:"导入",type:"navigate",route:"/data-import",primary:true}],
   items: [{id:"supplier-a",title:"Hong Kong Supplier",primaryAction:{

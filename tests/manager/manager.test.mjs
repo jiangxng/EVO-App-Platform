@@ -13,6 +13,18 @@ import {
 import { createMemoryLifecycleStore } from "../../dist/manager/store.js";
 import { createAppManagerService } from "../../dist/manager/service.js";
 
+// Synthetic dependency provider for lifecycle graph tests only. This is NOT a
+// Host AuthorizationProvider, production license, or runtime binding approval.
+const runtimeBindingFixture = {
+  contractVersion: "0.1.0", packageId: "fixture-app-runtime-binding",
+  displayName: "Fixture Runtime Binding", version: "0.1.0",
+  type: "RUNTIME_EXTENSION",
+  features: [{contractVersion:"0.1.0",featureId:"fixture-app-runtime-binding.default",
+    packageId:"fixture-app-runtime-binding",version:"0.1.0",
+    activationScope:"INSTALLATION",defaultActivation:true,
+    providesCapabilities:["enterprise.application-runtime-binding"]}]
+};
+
 test("planInstall is side-effect free", () => {
   const catalog = createPackageCatalog([companyNotesPackage]);
   const store = createMemoryLifecycleStore();
@@ -65,9 +77,17 @@ test("page asset is hidden before activation and available after install", () =>
 });
 
 test("Proof B plan resolves Trading Lite through EVO capabilities", () => {
-  const catalog = createPackageCatalog([companyNotesPackage, evoFoundationPackage, tradingLitePackage]);
+  const catalog = createPackageCatalog([companyNotesPackage, evoFoundationPackage, runtimeBindingFixture, tradingLitePackage]);
   const store = createMemoryLifecycleStore();
   const manager = createAppManagerService(catalog, store, () => new Date("2026-09-23T00:00:00Z"), referenceExperienceAssets);
+
+  // Production catalog without this runtime binding must continue to fail closed.
+  const missing = createAppManagerService(
+    createPackageCatalog([companyNotesPackage, evoFoundationPackage, tradingLitePackage]),
+    createMemoryLifecycleStore()
+  ).planInstall("trading-lite");
+  assert.ok(missing.blockers.some(x => x.code === "MISSING_CAPABILITY"
+    && x.message.includes("enterprise.application-runtime-binding")));
 
   const before = manager.getSnapshot();
   const plan = manager.planInstall("trading-lite");
@@ -76,32 +96,35 @@ test("Proof B plan resolves Trading Lite through EVO capabilities", () => {
   assert.deepEqual(after, before);
   assert.deepEqual(plan.blockers, []);
   assert.deepEqual(plan.missingCapabilities, []);
-  assert.deepEqual(plan.installPackages, ["evo.core", "trading-lite"]);
+  assert.deepEqual(plan.installPackages, ["evo.core", "fixture-app-runtime-binding", "trading-lite"]);
   assert.deepEqual(plan.activateFeatures, [
     "evo.balance",
     "evo.business-data",
     "evo.ledger",
     "evo.posting",
+    "fixture-app-runtime-binding.default",
     "trading-lite.default"
   ]);
 });
 
 test("Proof B install activates only required EVO Features and exposes Trading Lite", () => {
-  const catalog = createPackageCatalog([companyNotesPackage, evoFoundationPackage, tradingLitePackage]);
+  const catalog = createPackageCatalog([companyNotesPackage, evoFoundationPackage, runtimeBindingFixture, tradingLitePackage]);
   const store = createMemoryLifecycleStore();
   const manager = createAppManagerService(catalog, store, () => new Date("2026-09-23T00:00:00Z"), referenceExperienceAssets);
 
   const snapshot = manager.install("trading-lite");
 
-  assert.deepEqual(snapshot.installedPackages.map(x => x.packageId), ["evo.core", "trading-lite"]);
+  assert.deepEqual(snapshot.installedPackages.map(x => x.packageId), ["evo.core", "fixture-app-runtime-binding", "trading-lite"]);
   assert.deepEqual(snapshot.activeFeatures.map(x => x.featureId), [
     "evo.balance",
     "evo.business-data",
     "evo.ledger",
     "evo.posting",
+    "fixture-app-runtime-binding.default",
     "trading-lite.default"
   ]);
   assert.deepEqual(snapshot.effectiveCapabilities, [
+    "enterprise.application-runtime-binding",
     "evo.balance",
     "evo.business-data",
     "evo.ledger",
@@ -155,10 +178,13 @@ test("Ledger Runtime Configurator installs as an ordinary plugin with EVO ledger
   const snapshot = manager.install("evo-ledger-runtime-configurator");
   assert.equal(snapshot.effectiveCapabilities.includes("evo.ledger-runtime.configurator"), true);
 
-  const page = manager.loadExperiencePage("app://evo-ledger-runtime-configurator/pages/home");
-  assert.equal(page.id, "evo-ledger-runtime-configurator.home");
-  assert.equal(page.command.code, "evo-ledger-runtime-configurator.validate-default");
-  assert.equal(page.metadata.defaultConfiguration.postingRules, 912);
+  // Legacy configurator is a governed READ capability, not a standalone page.
+  assert.equal(manager.loadExperiencePage("app://evo-ledger-runtime-configurator/pages/home"), undefined);
+  assert.deepEqual(manager.listEffectiveCapabilityOperations("ledger.runtime.configuration")
+    .map(x => x.operationId), [
+    "ledger.runtime.configuration.describe",
+    "ledger.runtime.configuration.section.read"
+  ]);
 });
 
 
@@ -174,7 +200,7 @@ test("package lifecycle closes install enable disable uninstall loop", () => {
 
   manager.install("evo-ledger-runtime-configurator");
   assert.equal(
-    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    manager.listEffectiveCapabilityOperations("ledger.runtime.configuration").some(x => x.packageId === "evo-ledger-runtime-configurator"),
     true
   );
 
@@ -184,7 +210,7 @@ test("package lifecycle closes install enable disable uninstall loop", () => {
 
   manager.disable("evo-ledger-runtime-configurator");
   assert.equal(
-    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    manager.listEffectiveCapabilityOperations("ledger.runtime.configuration").some(x => x.packageId === "evo-ledger-runtime-configurator"),
     false
   );
   assert.equal(
@@ -194,7 +220,7 @@ test("package lifecycle closes install enable disable uninstall loop", () => {
 
   manager.enable("evo-ledger-runtime-configurator");
   assert.equal(
-    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    manager.listEffectiveCapabilityOperations("ledger.runtime.configuration").some(x => x.packageId === "evo-ledger-runtime-configurator"),
     true
   );
 
@@ -207,7 +233,7 @@ test("package lifecycle closes install enable disable uninstall loop", () => {
     false
   );
   assert.equal(
-    manager.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+    manager.listEffectiveCapabilityOperations("ledger.runtime.configuration").some(x => x.packageId === "evo-ledger-runtime-configurator"),
     false
   );
   assert.equal(
@@ -218,7 +244,7 @@ test("package lifecycle closes install enable disable uninstall loop", () => {
 });
 
 test("disable/uninstall fail closed when another active feature depends on package capability", () => {
-  const catalog = createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage, tradingLitePackage]);
+  const catalog = createPackageCatalog([evoFoundationPackage, ledgerRuntimeConfiguratorPackage, runtimeBindingFixture, tradingLitePackage]);
   const store = createMemoryLifecycleStore();
   const manager = createAppManagerService(
     catalog,
@@ -269,7 +295,7 @@ test("file lifecycle store survives process-style reopen", async () => {
       true
     );
     assert.equal(
-      reopened.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+      reopened.listEffectiveCapabilityOperations("ledger.runtime.configuration").some(x => x.packageId === "evo-ledger-runtime-configurator"),
       true
     );
 
@@ -286,7 +312,7 @@ test("file lifecycle store survives process-style reopen", async () => {
       true
     );
     assert.equal(
-      reopenedDisabled.listEffectiveExperiences().some(x => x.packageId === "evo-ledger-runtime-configurator"),
+      reopenedDisabled.listEffectiveCapabilityOperations("ledger.runtime.configuration").some(x => x.packageId === "evo-ledger-runtime-configurator"),
       false
     );
   } finally {
@@ -347,7 +373,7 @@ test("active application owns localization bundles and lifecycle removes them", 
 
   manager.install("enterprise-agent");
   const active = manager.listEffectiveLocalizationBundles();
-  assert.deepEqual(active.map(x => x.locale), ["en", "zh-CN"]);
+  assert.deepEqual(active.map(x => x.locale), ["en", "ja", "zh-CN", "zh-TW"]);
   assert.ok(active.every(x => x.namespace === "enterprise-agent"));
   assert.equal(
     active.find(x => x.locale === "zh-CN")?.messages["chat.enterprise-agent.home.composer.sendLabel"],
@@ -358,7 +384,7 @@ test("active application owns localization bundles and lifecycle removes them", 
   assert.deepEqual(manager.listEffectiveLocalizationBundles(), []);
 
   manager.enable("enterprise-agent");
-  assert.equal(manager.listEffectiveLocalizationBundles().length, 2);
+  assert.equal(manager.listEffectiveLocalizationBundles().length, 4);
 
   manager.uninstall("enterprise-agent");
   assert.deepEqual(manager.listEffectiveLocalizationBundles(), []);

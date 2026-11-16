@@ -4,6 +4,23 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "17 3 * * *"
+  # The nightly suite remains authoritative for all changes; these scoped
+  # paths also verify contract-test repairs on the exact PR and merged main.
+  pull_request:
+    paths:
+      - ".github/workflows/ecosystem-certification.yml"
+      - "tests/app-host/read-only-form-values.test.mjs"
+      - "tests/integration/cv02-eidos-catalog-views.test.mjs"
+      - "tests/localization/app-localization.test.mjs"
+      - "tests/manager/manager.test.mjs"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ecosystem-certification.yml"
+      - "tests/app-host/read-only-form-values.test.mjs"
+      - "tests/integration/cv02-eidos-catalog-views.test.mjs"
+      - "tests/localization/app-localization.test.mjs"
+      - "tests/manager/manager.test.mjs"
 
 concurrency:
   group: ecosystem-certification
@@ -18,4 +35,9 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm run test:all
+      # Isolated CV04 contracts are test-only and deliberately reject NODE_ENV != test.
+      # Do not weaken production admission; match the dedicated CV04 workflows.
+      - name: Full ecosystem regression with test-only admission
+        env:
+          NODE_ENV: test
+        run: npm run test:all
