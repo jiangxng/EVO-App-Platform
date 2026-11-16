@@ -173,3 +173,67 @@
 2. 不新增泛用 CI、第二套 PG 测试或重新运行全部 127；不能靠 docs PR 的绿色 Continuity 证明物理 SQL，也不因 127 条跳过开启 N1、CV03 SAVE 或 CV04 EXPORT。原 #1325 审计继续拒绝未批准 skip 增长。
 3. [Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 与 [Operator #1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 本轮复核仍 **OPEN**，[并行 #1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍未合并。**N1=NOT_CERTIFIED；CV03 Human SAVE OFF；CV04 正式后台 EXPORT OFF**。Eidos Chart 完成不代表 Kanban / 真实登录 Human / 生产移动验收结束。
 4. 本轮只更新 Window12 既有交接一份文档；独立短期 docs PR，保留 protected main，成功合并后让现存 [Branch Hygiene](../../../.github/workflows/branch-hygiene.yml) 依准确已合入 SHA 清理**本 PR 自己的**过程分支，不能越权删除并行分支。东京对于纯 docs 变更应该跳过，但必须以原始 Job 为准，不预写 SUCCESS。
+
+
+---
+
+## 7. 2026-11-16 自动续跑 #05/07：PA02 + PA04 旧缺证的逐项原始 Job 恢复（附 #06 证据时效核验）
+
+> **复核当前基线**：protected `main@836c73f8ee72dfabec3041cf11fb5d20d32ffab9`，先前 #04 已把 127/127 SKIP 文件唯一映射至 26 个现存专用 Workflow。本节不重复造工程 CI、不改 runtime/权限；**B=直接读取 GitHub Actions Run 元数据/Job 日志；A=比较两个 Git Tree 的 YAML/测试 Blob SHA；U=未获 exact-current-main 物理执行或生产签字**。
+
+### 7.1 16/16 个此前“历史 Job/SHA 尚未逐一取得”的专用 Workflow 已找回 B 级日志
+
+检索路径：先从 [PA02 R01–R10 原始证据账](../../agent-line/PA02-R01-R10-EVIDENCE-LEDGER-20261014.md)、[PA02 研究/来源索引](../../agent-line/PA02-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md)、[PA04 历史来源与决定索引](../../agent-line/PA04-WINDOW-RESEARCH-REFERENCE-INDEX-20261015.md) 恢复已使用的 Run 链接；对未留链接的条目，通过 GitHub Actions 指定日期区间和对应 PR SHA 精确定位 Workflow，不依赖搜索摘要“猜成功”；随后逐一读取 **Run head SHA + job ID + 原始 Node reporter `tests/pass/fail/skipped`**。下面的统计列顺序是 **pass / fail / skipped**，均为当时一次 Job 的历史独立 PG18 结果，测试之间可能交叠，不能相加为通用 suite 的 127 项。
+
+| 已有专项 Workflow（本轮 16 条） | 关联 SKIP 主题 | 真正原始 Run / Job | 该 Job 的 head SHA | 历史 pass / fail / skipped |
+| --- | --- | --- | --- | --- |
+| [agent-pa02-async-read-worker.yml](../../../.github/workflows/agent-pa02-async-read-worker.yml) | PA02 READ/Owner/R03/R10 | [38652026320](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38652026320/job/116152850045) | `2094c74ebaa143d67c246e742d794facfd27687d` | **26 / 0 / 0** |
+| [agent-pa02-host-async-reader.yml](../../../.github/workflows/agent-pa02-host-async-reader.yml) | Host scoped READ port | [38362913299](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38362913299/job/115181123866) | `687634e5447dbf3463a5c98d53bc20087cb9f82e` | **1 / 0 / 0** |
+| [agent-pa02-host-action-pg-e2e.yml](../../../.github/workflows/agent-pa02-host-action-pg-e2e.yml) | Host PG action | [38363335879](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38363335879/job/115182485338) | `44dfab3cd8eb065f0494a4706899f68e8be21a11` | **1 / 0 / 0** |
+| [agent-pa02-real-worker-process-recovery.yml](../../../.github/workflows/agent-pa02-real-worker-process-recovery.yml) | SIGKILL / fenced recovery | [38370171372](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38370171372/job/115204904227) | `8c949beb3a78976b9036eccaa5f7f7f21a250fcb` | **3 / 0 / 0** |
+| [agent-pa02-real-thread-resume-pg.yml](../../../.github/workflows/agent-pa02-real-thread-resume-pg.yml) | Thread.resume | [38371077639](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38371077639/job/115207931401) | `f73fd8d075debdb0507c7b784dd5d2e6e8547737` | **1 / 0 / 0** |
+| [agent-pa02-real-thread-send-pg.yml](../../../.github/workflows/agent-pa02-real-thread-send-pg.yml) | thread.send | [38372106908](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38372106908/job/115211360821) | `245f7a57b6cfec4dd2230046a82acf00e21218c1` | **1 / 0 / 0** |
+| [agent-pa02-cooperative-worker-release.yml](../../../.github/workflows/agent-pa02-cooperative-worker-release.yml) | Worker yield / stale fence | [38832195633](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38832195633/job/116753247128) | `3891657b774895c739bca6d463b2af8529eb9f0a` | **3 / 0 / 0** |
+| [agent-pa02a-host-async-seam.yml](../../../.github/workflows/agent-pa02a-host-async-seam.yml) | PA02A Host bridge | [38348081884](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38348081884/job/115134013876) | `fd5238dc1016b09c8514f45cfa81f6269eca5cbf` | **1 / 0 / 0** |
+| [agent-pa02a-postgres-durability.yml](../../../.github/workflows/agent-pa02a-postgres-durability.yml) | PA02A PG18 durable claim | [38349327169](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38349327169/job/115137864977) | `fd4d8ddff92d5095b4ce51b713e43fcc62866b46` | **2 / 0 / 0** |
+| [agent-pa02b-fenced-run-authority.yml](../../../.github/workflows/agent-pa02b-fenced-run-authority.yml) | PA02B Worker lease/Run fencing | [38365479802](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38365479802/job/115189454525) | `cc51963b91040eb9df0615089c1c05cf13790f72` | **2 / 0 / 0** |
+| [agent-pa02b-fencing-outbox.yml](../../../.github/workflows/agent-pa02b-fencing-outbox.yml) | PA02B persisted WRITE intent | [38347246849](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38347246849/job/115131388567) | `4e4147b8716e945ece07f93f92bd81d0c2f140d7` | **1 / 0 / 0** |
+| [agent-pa02b-governed-owner-write-handoff.yml](../../../.github/workflows/agent-pa02b-governed-owner-write-handoff.yml) | PA02B bounded Owner lost ACK | [38496399614](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38496399614/job/115633033078) | `9f137c25bd4a1b07b3d06a43ea399c15d079f84f` | **3 / 0 / 0** |
+| [agent-pa02b-owner-reconciliation.yml](../../../.github/workflows/agent-pa02b-owner-reconciliation.yml) | Owner UNKNOWN resolution | [38515066568](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38515066568/job/115691904851) | `5c06e9f3b86d6a57f9217886ae1bdd412a0fb8fa` | **2 / 0 / 0** |
+| [agent-pa02c-atomic-run-cancel.yml](../../../.github/workflows/agent-pa02c-atomic-run-cancel.yml) | PA02C atomic cancel | [38652026240](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38652026240/job/116152849428) | `2094c74ebaa143d67c246e742d794facfd27687d` | **4 / 0 / 0** |
+| [agent-pa02c-cancellation.yml](../../../.github/workflows/agent-pa02c-cancellation.yml) | PA02C durable cancel barrier | [38350778851](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38350778851/job/115142437946) | `74c789f0df80147c3bbda5c743574cf905a37db2` | **2 / 0 / 0** |
+| [agent-pa04-c01-c06-consolidated.yml](../../../.github/workflows/agent-pa04-c01-c06-consolidated.yml) | PA04 C01–C06 PG18; C02 #127 | [38673188190](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38673188190/job/116220784361) | `f45af7c58d363e327700c366baf89c88d52b53e2` | **42 / 0 / 0** |
+
+**可核对的例外边界**：
+- PA04 consolidated [Job #116220784361](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38673188190/job/116220784361) 的 Node reporter 确为 **42 PASS / 0 FAIL / 0 SKIP**，stdout 明确记录 `PA04_C01_HISTORY_PRIORITY_PG`、`PA04_C02_DERIVED_REVOCATION_PG`、`PA04_C03_FRESH_READ_PG`、`PA04_C05_TOOL_INJECTION_PG` 等，所有 marker 仍声明 `productionUsed=false`。单独 C02 [#38668765032 / Job #116206647042](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38668765032/job/116206647042) **12 / 0 / 0**。因此原第 6.3 节“PA04 未找到历史成功 Job”已由**新增原证**解决，但**不**提升为产品上线认证。
+- PA02 15 个 Workflow（含恢复 Worker、Host、R10、Owner、cancel）都核到真实 `skipped=0` 的 Node summary。日志中出现预期拒绝 SQL 的 `ERROR` 行属于负向场景，不能据此改写 reporter 的 **0 fail**；如复验失败，必须看实际不通过的 test 名。
+- #04 已有的其他 **10/26** Workflow 历史 Run/SHA 保留有效。又直接补读 CV04 先前仅核成功状态的三个原始 Job：[immutable audit #43170992605](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43170992605)（5/0/0 + 5/0/0 + 8/0/0），[active expiry #43202471796](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43202471796)（4/0/0 + 14/0/0 + 8/0/0），[Host/Worker lease #43205474710](https://github.com/jiangxng/EVO-App-Platform/actions/runs/43205474710)（4/0/0 + 10/0/0）；因此**26/26 存在可定位的历史 SUCCESS Run 和其对应范围的零跳过物理记录**。这个“历史入口证明完整”不同于“127/127 每个测试在当前 main 均已复验 PASS”，不允许替换概念。
+
+### 7.2 进一步避免用“过期历史测试”冒充当前测试：Blob SHA 差异与改正
+
+本轮把上述 16 个 Workflow 的历史 Run commit Git Tree 与当前 `main` Tree **逐字节 SHA 对比**，验证：**16/16 条 Workflow 文件 Blob 未改变**；每条 Workflow 指向的 **127 SKIP 中归属该 Workflow 的主要 PG 测试文件**也比对（PA04 包括 `tests/protocol/pa04-c02-derived-source-revocation.test.mjs`）。
+
+最初选定的旧 Run 中恰有三处测试文件 Blob 在之后发生变更；没有隐瞒，而是继续找了在改动**之后**的实际成功 Run 并重对 SHA，替换旧失效样本：
+
+| 旧证据为何不够 | 改用的真实原始 Run / Job 与结果 | 当前 `main` 靶向测试 Blob / Workflow Blob |
+| --- | --- | --- |
+| `pa02-real-read-worker-process-recovery.test.mjs` 经后续 durable cancel 增强 | [#38370171372 / Job #115204904227](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38370171372/job/115204904227)，**3 / 0 / 0**；历史 SHA `8c949beb3a78976b9036eccaa5f7f7f21a250fcb` | 两者一致 |
+| `pa02-worker-cooperative-release.test.mjs` 补全 Run 预算夹具 | [#38832195633 / Job #116753247128](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38832195633/job/116753247128)，**3 / 0 / 0**；历史 SHA `3891657b774895c739bca6d463b2af8529eb9f0a` | 两者一致 |
+| `pa02a-postgres-proof.test.mjs` 补强 Receipt 来源及重启 | [#38349327169 / Job #115137864977](https://github.com/jiangxng/EVO-App-Platform/actions/runs/38349327169/job/115137864977)，**2 / 0 / 0**；历史 SHA `fd4d8ddff92d5095b4ce51b713e43fcc62866b46` | 两者一致 |
+
+**边界必须同时保留**：本对比只证明这些 Workflow 及其**相应测试源码**字节未漂移，并不证明所依赖的 runtime 模块、Node 生态、真实服务配置或生产 Host 在 2026-11-16 完全不变。源码一致 + 历史 PG18 成功，仍**不能**代替在 `main@836c73f` 上执行新的隔离数据库 Job。PA04 C01 的真实 tokenizer、外部记忆/缓存传播、真实业务插件新鲜度、生产 Tool policy 均仍有 Owner 签收缺口。
+
+### 7.3 收口判断：现成执行入口已完整，无必要重新开发或泛用重跑
+
+| 证据维度 | 恢复前（第 6.3 节历史快照） | 本轮核到的事实 |
+| --- | --- | --- |
+| 127 个 SKIP 精确源文件/测试标题/Workflow | 127/127 静态映射，26 个既有工作流 | **保持 127/127；不修改任何测试或 Workflow** |
+| 26 个主归属 PG 专项 Workflow 的历史 Run + SHA | 10 已定位、16 待补证 | **26 已定位、0 未定位**；16 个新补项均逐 Job zero-SKIP |
+| 新补 16 个 Workflow 与被映射物理用例测试代码 SHA 一致性 | 未逐 SHA 核验 | **16/16 工作流 YAML 一致；对应靶向测试 Blob 均由所列历史成功 SHA 覆盖** |
+| latest `main` 的全部 26 个 PG Workflows exact-SHA success | **U** | **仍 U**，本轮没有调用 workflow_dispatch，不将 Git tree 一致视作 CI 成功 |
+| 泛用主线全量跳过审计 | [#1325](https://github.com/jiangxng/EVO-App-Platform/pull/1325) 2,246 PASS / 0 FAIL / 127 SKIP | 维持现有反回退逻辑；本轮 docs-only 无新物理结果 |
+| 生产签字及 gates | #1092/#1212 OPEN；N1 NOT_CERTIFIED | **未变**：CV03 Human SAVE OFF，CV04 正式后台 EXPORT OFF，PA02/PA04 隔离成功不等于生产 AUTH/Provider/Owner |
+
+**#06/07 下一最小动作**：若确需把 26 个专项升级为“当前 SHA 已重新执行”，先按上表将无测试/YAML Blob 漂移的历史记录保留作开发证据；只针对 **有实际 runtime/数据契约变化风险且不能由现有 owner gate 覆盖** 的专项，通过原有 `workflow_dispatch` 在明确 SHA/临时 PG 条件下复验，留存 Job zero-SKIP；无法从本对话工具触发时标记 U，**不得伪称运行或为触发去改 path-filter**。本轮范围无缺失 Workflow、无缺失测试文件，不新增 YAML/测试/框架，不动生产 Authorizer。真实 Owner [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、Operator [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 和并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184) 仍独立处理。
+
+交接仍通过原 Window12 文档 append-only 入库；独立 docs PR 精确 HEAD 通过后合并受保护 main，由现有 Branch Hygiene Actions SHA-pinned 删除**本轮**过程分支；本轮不预填门禁/合并/东京 SKIP 成功。
