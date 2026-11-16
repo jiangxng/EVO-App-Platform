@@ -68,6 +68,6 @@ test("App Host form collection excludes read-only fields before submission", asy
   );
   assert.match(
     controller,
-    /for \(const field of document\.fields\) \{\s*if \(field\.readOnly\) continue;/
+    /for \(const field of document\.fields\) \{\s*if \(field\.readOnly\)\s*continue;/
   );
 });
