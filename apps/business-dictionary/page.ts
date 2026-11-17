@@ -217,7 +217,12 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           direction:query.sort === "version" && query.direction !== "desc"
             ? "desc" : "asc"}})},
       {id:"optionCount",label:t.detail}
-    ];
+    ].map(column=>({
+      ...column,
+      // Only an owner-provided active sort is announced; no Eidos-side sorting.
+      ...(query.sort === column.id ? {sortDirection:
+        query.direction === "desc" ? "descending" as const : "ascending" as const} : {})
+    }));
   const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
     columns: personalColumns
       ? personalColumns.flatMap(id => baseColumns.filter(column=>column.id===id))
