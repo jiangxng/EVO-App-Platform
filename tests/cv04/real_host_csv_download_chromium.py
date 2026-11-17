@@ -24,6 +24,7 @@ results=[]
 switch_results=[]
 action_inputs={}
 column_results=[]
+counterparty_columns=[]
 expected={
     "dictionary": "Beta CSV Dictionary",
     "my-customers": "Customer Beta CV04",
@@ -141,6 +142,36 @@ with sync_playwright() as api:
                 column_results.append({"viewportWidth":size,"columns":selected["fieldIds"],
                     "pagePreserved":True,"csvParity":True,"horizontalOverflow":False})
                 print("CV02_OWNER_COLUMN_CHROMIUM_CSV_PARITY_PASS:%d"%size,flush=True)
+            elif name in ("my-customers","my-suppliers"):
+                # A physical Eidos click triggers a fresh authorized Owner READ.
+                chooser=page.locator("[data-eidos-catalog-column-controls]")
+                expect(chooser).to_have_count(1)
+                chooser.locator("summary").click()
+                chooser.locator('[data-eidos-catalog-action="column-toggle-code"]').click()
+                assert "columns=" in page.url,page.url
+                expect(page.locator('[data-eidos-catalog-table] [data-eidos-col="code"]')).to_have_count(0)
+                current=page.locator('[data-eidos-catalog-action="export-current-page"]')
+                expect(current).to_be_visible()
+                selected=json.loads(current.get_attribute("data-eidos-action-values"))
+                assert selected["page"]==1 and selected["pageSize"]==1
+                assert "code" not in selected["fieldIds"],selected
+                assert selected["fieldIds"][0]=="displayName"
+                assert page.locator('[data-eidos-catalog-table] thead th').count()==len(selected["fieldIds"])
+                with page.expect_download(timeout=20000) as changed_event:
+                    current.click()
+                changed_bytes=Path(changed_event.value.path()).read_bytes()
+                assert changed_bytes.startswith(b"\xef\xbb\xbf")
+                rows=list(csv.reader(io.StringIO(changed_bytes.decode("utf-8-sig"),newline="")))
+                assert rows[0]==selected["fieldIds"],{"name":name,"csv":rows[0],"table":selected}
+                assert len(rows)==2 and expected[name] in rows[1]
+                for secret in absent[name]:
+                    assert secret not in changed_bytes.decode("utf-8-sig"),secret
+                no_overflow=page.evaluate("document.documentElement.scrollWidth <= innerWidth+2")
+                assert no_overflow,{"name":name,"width":size}
+                page.screenshot(path=str(OUT/("%s-layout-%d.png"%(name,size))),full_page=True)
+                counterparty_columns.append({"surface":name,"viewportWidth":size,
+                    "columns":selected["fieldIds"],"pagePreserved":True,"csvParity":True})
+                print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_CSV_PARITY_PASS:%s:%d"%(name,size),flush=True)
             page.close()
         # Same browser storage/session: context A -> enterprise B -> A.
         # This is an isolated static HUMAN fixture, not two real user logins.
@@ -230,11 +261,13 @@ with sync_playwright() as api:
 assert len(results)==6
 assert len(switch_results)==6
 assert len(column_results)==2
+assert len(counterparty_columns)==4
 (OUT/"browser-results.json").write_text(
     json.dumps({"sourceSha":fixture["sourceSha"],"fixture":"ISOLATED_ACTUAL_HOST",
       "notProduction":True,"notHuman":True,
       "results":results,"enterpriseSwitchResults":switch_results,
       "columnControlsResults":column_results,
+      "counterpartyColumnResults":counterparty_columns,
       "featureDisabledExportDenied":True},ensure_ascii=False,indent=2),encoding="utf-8")
 print("CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6",flush=True)
 
@@ -242,3 +275,5 @@ print("CV04_REAL_HOST_CHROMIUM_ENTERPRISE_SWITCH_TERMINAL_PASS=6",flush=True)
 print("CV04_REAL_HOST_CHROMIUM_DISABLED_FEATURE_DENY_TERMINAL_PASS=1",flush=True)
 
 print("CV02_OWNER_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=2",flush=True)
+
+print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
