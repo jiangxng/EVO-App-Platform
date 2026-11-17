@@ -26,6 +26,7 @@ action_inputs={}
 column_results=[]
 counterparty_columns=[]
 combined_filter_results=[]
+keyboard_filter_results=[]
 expected={
     "dictionary": "Beta CSV Dictionary",
     "my-customers": "Customer Beta CV04",
@@ -177,11 +178,28 @@ with sync_playwright() as api:
                 # status+search query, not a client-only filter of page 2.
                 quick=page.locator('[data-eidos-catalog-quick-filters]')
                 expect(quick).to_have_count(1)
-                quick.locator('[data-eidos-catalog-action="quick-filter-active"]').click()
+                assert quick.get_attribute("aria-label")=="状态筛选"
+                assert quick.locator('button[type="button"]').count()==3
+                all_button=quick.locator('[data-eidos-catalog-action="quick-filter-all"]')
+                active_button=quick.locator('[data-eidos-catalog-action="quick-filter-active"]')
+                expect(all_button).to_have_attribute("aria-current","page")
+                assert quick.locator('[aria-current="page"]').count()==1
+                # Actual native keyboard path: Tab reaches the next filter,
+                # Enter activates Owner navigation (not a local row filter).
+                all_button.focus()
+                expect(all_button).to_be_focused()
+                page.keyboard.press("Tab")
+                expect(active_button).to_be_focused()
+                page.keyboard.press("Enter")
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-active"]')).to_have_attribute(
+                    "aria-current","page",timeout=30000)
+                assert quick.locator('[aria-current="page"]').count()==1
                 search=page.locator('[data-eidos-catalog-server-search]')
                 expect(search).to_have_count(1)
-                search.locator('input[name="search"]').fill("Beta")
-                search.locator('button[type="submit"]').click()
+                search_input=search.locator('input[name="search"]')
+                expect(search_input).to_have_attribute("type","search")
+                search_input.fill("Beta")
+                search_input.press("Enter")
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
                 expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
                 assert "status=ACTIVE" in page.url and "search=Beta" in page.url,page.url
@@ -193,7 +211,13 @@ with sync_playwright() as api:
                 active_csv=Path(filtered_download.value.path()).read_bytes().decode("utf-8-sig")
                 assert "Beta" in active_csv and "Alpha" not in active_csv
                 assert list(csv.reader(io.StringIO(active_csv,newline="")))[0]==active_values["fieldIds"]
-                page.locator('[data-eidos-catalog-action="quick-filter-inactive"]').click()
+                inactive_button=page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')
+                inactive_button.focus()
+                expect(inactive_button).to_be_focused()
+                inactive_button.press("Space")
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_have_attribute(
+                    "aria-current","page",timeout=30000)
+                assert quick.locator('[aria-current="page"]').count()==1
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(0,timeout=30000)
                 assert "status=INACTIVE" in page.url and "search=Beta" in page.url
                 inactive_action=page.locator('[data-eidos-catalog-action="export-current-page"]')
@@ -204,13 +228,23 @@ with sync_playwright() as api:
                 empty_csv=Path(empty_download.value.path()).read_bytes().decode("utf-8-sig")
                 empty_rows=list(csv.reader(io.StringIO(empty_csv,newline="")))
                 assert len(empty_rows)==1 and empty_rows[0]==inactive_values["fieldIds"],empty_rows
-                page.locator('[data-eidos-catalog-action="quick-filter-all"]').click()
+                clear_button=page.locator('[data-eidos-catalog-action="quick-filter-all"]')
+                clear_button.focus()
+                expect(clear_button).to_be_focused()
+                clear_button.press("Enter")
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_have_attribute(
+                    "aria-current","page",timeout=30000)
+                assert quick.locator('[aria-current="page"]').count()==1
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
                 expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
                 assert "status=" not in page.url and "search=Beta" in page.url
                 combined_filter_results.append({"surface":name,"viewportWidth":size,
                     "statusAndSearch":True,"ownerCsvParity":True,"inactiveEmpty":True})
+                keyboard_filter_results.append({"surface":name,"viewportWidth":size,
+                    "tabToActive":True,"enterSearch":True,"spaceToInactive":True,
+                    "enterClear":True,"singleCurrentState":True})
                 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
+                print("CV02_OWNER_KEYBOARD_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
             page.close()
         # Same browser storage/session: context A -> enterprise B -> A.
         # This is an isolated static HUMAN fixture, not two real user logins.
@@ -302,6 +336,7 @@ assert len(switch_results)==6
 assert len(column_results)==2
 assert len(counterparty_columns)==4
 assert len(combined_filter_results)==4
+assert len(keyboard_filter_results)==4
 (OUT/"browser-results.json").write_text(
     json.dumps({"sourceSha":fixture["sourceSha"],"fixture":"ISOLATED_ACTUAL_HOST",
       "notProduction":True,"notHuman":True,
@@ -309,6 +344,7 @@ assert len(combined_filter_results)==4
       "columnControlsResults":column_results,
       "counterpartyColumnResults":counterparty_columns,
       "combinedFilterResults":combined_filter_results,
+      "keyboardFilterResults":keyboard_filter_results,
       "featureDisabledExportDenied":True},ensure_ascii=False,indent=2),encoding="utf-8")
 print("CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6",flush=True)
 
@@ -320,3 +356,4 @@ print("CV02_OWNER_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=2",flush=True)
 print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
 
 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
+print("CV02_OWNER_KEYBOARD_FILTER_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
