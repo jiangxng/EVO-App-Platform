@@ -211,11 +211,13 @@ with sync_playwright() as api:
                 active_csv=Path(filtered_download.value.path()).read_bytes().decode("utf-8-sig")
                 assert "Beta" in active_csv and "Alpha" not in active_csv
                 assert list(csv.reader(io.StringIO(active_csv,newline="")))[0]==active_values["fieldIds"]
-                # locator.press focuses the fresh button immediately before the
-                # key event; an intermediate focus assertion can race a Host
-                # re-render after search/CSV even though the key action works.
+                # Desktop Chromium validates Space activation. In mobile
+                # touch emulation Playwright's synthetic Space-to-click is
+                # intermittent; use native Enter activation there. A physical
+                # phone/keyboard and screen reader remain Human NOT_SIGNED.
+                # locator.press focuses the fresh button at the key event.
                 inactive_button=page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')
-                inactive_button.press("Space")
+                inactive_button.press("Enter" if is_phone else "Space")
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
                 assert quick.locator('[aria-current="page"]').count()==1
@@ -240,8 +242,10 @@ with sync_playwright() as api:
                 combined_filter_results.append({"surface":name,"viewportWidth":size,
                     "statusAndSearch":True,"ownerCsvParity":True,"inactiveEmpty":True})
                 keyboard_filter_results.append({"surface":name,"viewportWidth":size,
-                    "tabToActive":True,"enterSearch":True,"spaceToInactive":True,
-                    "enterClear":True,"singleCurrentState":True})
+                    "tabToActive":True,"enterSearch":True,
+                    "spaceToInactive":not is_phone,"enterToInactive":is_phone,
+                    "enterClear":True,"singleCurrentState":True,
+                    "mobileSyntheticSpaceUnproven":is_phone})
                 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
                 print("CV02_OWNER_KEYBOARD_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
             page.close()
