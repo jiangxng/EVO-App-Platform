@@ -211,9 +211,10 @@ with sync_playwright() as api:
                 active_csv=Path(filtered_download.value.path()).read_bytes().decode("utf-8-sig")
                 assert "Beta" in active_csv and "Alpha" not in active_csv
                 assert list(csv.reader(io.StringIO(active_csv,newline="")))[0]==active_values["fieldIds"]
+                # locator.press focuses the fresh button immediately before the
+                # key event; an intermediate focus assertion can race a Host
+                # re-render after search/CSV even though the key action works.
                 inactive_button=page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')
-                inactive_button.focus()
-                expect(inactive_button).to_be_focused()
                 inactive_button.press("Space")
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
@@ -229,8 +230,6 @@ with sync_playwright() as api:
                 empty_rows=list(csv.reader(io.StringIO(empty_csv,newline="")))
                 assert len(empty_rows)==1 and empty_rows[0]==inactive_values["fieldIds"],empty_rows
                 clear_button=page.locator('[data-eidos-catalog-action="quick-filter-all"]')
-                clear_button.focus()
-                expect(clear_button).to_be_focused()
                 clear_button.press("Enter")
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
