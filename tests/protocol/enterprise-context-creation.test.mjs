@@ -101,6 +101,26 @@ function allowCreateProvider() {
   });
 }
 
+test("Tokyo demo-only preview cannot be mistaken for signed-in enterprise Human identity", () => {
+  const compose = readFileSync("deploy/tencent-tokyo/compose.yaml", "utf8");
+  const caddy = readFileSync("deploy/tencent-tokyo/Caddyfile.template", "utf8");
+
+  // A single Basic Auth password and the compatibility-local demo-user do
+  // not supply independent authenticated enterprise Principals. Until an
+  // approved Identity/Security/Ops cutover, this preview must fail closed
+  // rather than silently enabling managed login beside the demo grant.
+  assert.match(compose, /^\s*APP_PLATFORM_MANAGED_SESSION_ENABLED:\s*"false"\s*$/m);
+  assert.match(compose, /^\s*APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED:\s*"false"\s*$/m);
+  assert.match(compose, /^\s*APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED:\s*"false"\s*$/m);
+  assert.match(compose, /"subjectIds":\["demo-user"\]/);
+  assert.match(compose, /"actions":\["enterprise\.context\.create"\]/);
+  assert.match(caddy, /^\s*basic_auth\s*\{/m);
+  assert.match(caddy, /^\s*@health path \/health\s*$/m);
+
+  // This is a deployment-policy regression, NOT a live authenticated Human,
+  // physical-device, OIDC Provider health, or production-signoff test.
+});
+
 test("Tokyo preview grants only demo human enterprise creation, with explicit DENY overriding", () => {
   const compose = readFileSync("deploy/tencent-tokyo/compose.yaml", "utf8");
   const match = compose.match(/^\s*APP_PLATFORM_AUTHORIZATION_POLICY_OVERLAY_JSON:\s*'([^'\n]+)'\s*$/m);
