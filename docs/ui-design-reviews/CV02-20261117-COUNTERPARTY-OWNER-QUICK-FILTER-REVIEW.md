@@ -28,7 +28,7 @@ Eidos Catalog 在原搜索附近渲染三个清晰文字按钮，selected 使用
 
 ## 安全与数据修复
 
-状态仅接受 ACTIVE 或 INACTIVE，明确拒绝空串、其他值和重复参数。Owner 如果未授予 status 字段读取权，筛选请求必须以 COUNTERPARTY_QUERY_STATUS_FORBIDDEN 拒绝，不能靠总数泄漏隐藏字段。服务端先按责任/企业/字段裁剪，再执行 AND 状态与原有搜索。CSV 与 Agent Operation 共享 enum 白名单，仍需每次重新认证，旧权限/停插件/跨企业拒绝不变。N1 NOT_CERTIFIED、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF、#1212 Owner OPEN 与 #1092 Operator OPEN 保持。
+状态仅接受 ACTIVE 或 INACTIVE，明确拒绝空串、其他值和重复参数。既有存储 status 现列入 Core Schema 的只读 LIST/FILTER/EXPORT/AGENT_READ 表面，但仍必须由 counterparty.field.read 按当前 Principal 明确授权；Owner 如果未授予 status 字段读取权，筛选请求必须以 COUNTERPARTY_QUERY_STATUS_FORBIDDEN 拒绝，不能靠总数泄漏隐藏字段。服务端先按责任/企业/字段裁剪，再执行 AND 状态与原有搜索。CSV 与 Agent Operation 共享 enum 白名单，仍需每次重新认证，旧权限/停插件/跨企业拒绝不变。N1 NOT_CERTIFIED、CV03 Human SAVE OFF、CV04 正式后台 EXPORT OFF、#1212 Owner OPEN 与 #1092 Operator OPEN 保持。
 
 ## 证据与剩余问题
 
@@ -60,6 +60,7 @@ Human：未签收；真实企业账号、物理设备和屏幕阅读器仍为独
 
 - apps/counterparty/page.ts
 - apps/counterparty/projection-query.ts
+- apps/counterparty/foundation-object.ts：把既有 persisted status 纳入 READ-ONLY Core Schema，在原 counterparty.field.read 策略下授权；无政策放行
 - apps/counterparty/capability-manifest.ts
 - vendor/eidos/src/catalog-browser/contracts.ts
 - vendor/eidos/src/catalog-browser/render.ts
