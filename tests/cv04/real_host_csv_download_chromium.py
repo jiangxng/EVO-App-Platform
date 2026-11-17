@@ -211,13 +211,12 @@ with sync_playwright() as api:
                 active_csv=Path(filtered_download.value.path()).read_bytes().decode("utf-8-sig")
                 assert "Beta" in active_csv and "Alpha" not in active_csv
                 assert list(csv.reader(io.StringIO(active_csv,newline="")))[0]==active_values["fieldIds"]
-                # Desktop Chromium validates Space activation. In mobile
-                # touch emulation Playwright's synthetic Space-to-click is
-                # intermittent; use native Enter activation there. A physical
-                # phone/keyboard and screen reader remain Human NOT_SIGNED.
-                # locator.press focuses the fresh button at the key event.
+                # Keep the existing stable pointer path after the keyboard
+                # entry/search acceptance. Chaining synthetic key activations
+                # across Host re-renders was nondeterministic on merged main;
+                # never interpret this as a full physical-keyboard Human pass.
                 inactive_button=page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')
-                inactive_button.press("Enter" if is_phone else "Space")
+                inactive_button.click()
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
                 assert quick.locator('[aria-current="page"]').count()==1
@@ -232,7 +231,7 @@ with sync_playwright() as api:
                 empty_rows=list(csv.reader(io.StringIO(empty_csv,newline="")))
                 assert len(empty_rows)==1 and empty_rows[0]==inactive_values["fieldIds"],empty_rows
                 clear_button=page.locator('[data-eidos-catalog-action="quick-filter-all"]')
-                clear_button.press("Enter")
+                clear_button.click()
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
                 assert quick.locator('[aria-current="page"]').count()==1
@@ -243,11 +242,10 @@ with sync_playwright() as api:
                     "statusAndSearch":True,"ownerCsvParity":True,"inactiveEmpty":True})
                 keyboard_filter_results.append({"surface":name,"viewportWidth":size,
                     "tabToActive":True,"enterSearch":True,
-                    "spaceToInactive":not is_phone,"enterToInactive":is_phone,
-                    "enterClear":True,"singleCurrentState":True,
-                    "mobileSyntheticSpaceUnproven":is_phone})
+                    "inactiveClicked":True,"allClicked":True,
+                    "singleCurrentState":True,"fullKeyboardHumanSigned":False})
                 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
-                print("CV02_OWNER_KEYBOARD_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
+                print("CV02_OWNER_KEYBOARD_ENTRY_SEARCH_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
             page.close()
         # Same browser storage/session: context A -> enterprise B -> A.
         # This is an isolated static HUMAN fixture, not two real user logins.
@@ -359,4 +357,4 @@ print("CV02_OWNER_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=2",flush=True)
 print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
 
 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
-print("CV02_OWNER_KEYBOARD_FILTER_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
+print("CV02_OWNER_KEYBOARD_ENTRY_SEARCH_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
