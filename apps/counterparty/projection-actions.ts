@@ -88,12 +88,14 @@ export function createCounterpartyProjectionActionHandlersV010(input: (
         );
         // A stale browser action is not an authorization token. The export
         // checks the current Enterprise scope, relationship and owner again.
-        if (exportCurrentPage && (
+        if ((exportCurrentPage || collectionQuery) && (
           !relationship
           || context.context?.activeContext.kind !== "ENTERPRISE"
           || context.scope.enterpriseId !== context.context.activeContext.enterpriseId
           || (context.scope.userId && context.scope.userId !== context.principal.subjectId)
-        )) throw new Error("COUNTERPARTY_EXPORT_CONTEXT_DENIED");
+        )) throw new Error(exportCurrentPage
+          ? "COUNTERPARTY_EXPORT_CONTEXT_DENIED"
+          : "COUNTERPARTY_QUERY_CONTEXT_DENIED");
         const { fieldIds, confirmed, ...exportQueryValues } = request.values;
         if (exportCurrentPage && (
           (confirmed !== undefined && confirmed !== false)
