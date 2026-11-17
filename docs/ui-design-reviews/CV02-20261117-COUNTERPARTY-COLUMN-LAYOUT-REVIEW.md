@@ -62,3 +62,11 @@ Eidos CatalogBrowser 是统一 UI；Counterparty ProjectionService 是授权 REA
 桌面：隔离真实 Host Chromium 1280px 测试中，结果以精确 HEAD CI 为准
 移动：隔离真实 Host Chromium 390px 测试中，非物理设备验收
 Human：未签收；真实账户与屏幕阅读器尚无独立回执
+
+## 本轮精确 UI 源码清单
+
+- `apps/counterparty/page.ts`：实际客户/供应商 Owner 表格列布局与 CSV/详情返回一致性
+- `apps/counterparty/projection-query.ts`：仅解析受限列布局 URL，不产生授权
+- `manager/server.ts`：Owner Query 前剥离 URL 列布局 presentation hint
+- `tests/protocol/cv02-business-collection-views.test.mjs`：真实两插件页面和防越权反例
+- `tests/cv04/real_host_csv_download_chromium.py`：真实隔离 Host 的桌面/手机列按钮与 CSV 回归
