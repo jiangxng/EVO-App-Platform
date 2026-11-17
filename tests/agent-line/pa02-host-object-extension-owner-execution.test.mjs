@@ -148,7 +148,8 @@ test("PA02 real Host Run handlers: trusted Object Extension SQL Owner WRITE, imm
       resolveIdentitySession:()=>({contractVersion:"0.1.0",principal}),
       resolveContext:()=>context,createToolCatalog:catalog,
       runId:()=> "pa02-host-e2e:"+randomUUID(),
-      now:()=>new Date("2026-10-14T04:00:00.000Z")
+      // A fresh Host-owned Run must not inherit a stale October fixture clock.
+      now:()=>new Date()
     }).map(handler=>[handler.commandCode,handler]));
     const start=handlers.get("enterprise-agent.run.start");
     const action=request("enterprise-agent.run.start",{
