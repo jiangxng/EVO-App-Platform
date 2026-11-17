@@ -7,6 +7,8 @@ import {
 /** BEX-01: bounded read-side query, never an authority or SQL expression. */
 export interface CounterpartyProjectionQueryV010 {
   search?: string;
+  /** A bounded exact-match predicate, AND-combined with search. */
+  status?: "ACTIVE" | "INACTIVE";
   sort?: "displayName" | "code" | "status";
   direction?: "asc" | "desc";
   page?: number;
@@ -39,7 +41,7 @@ export interface CounterpartyProjectionPageInfoV010 {
   hasMore: boolean;
 }
 
-const keys = new Set(["search", "sort", "direction", "page", "pageSize"]);
+const keys = new Set(["search", "status", "sort", "direction", "page", "pageSize"]);
 export function parseCounterpartyProjectionQueryV010(
   values: Record<string, unknown>
 ): CounterpartyProjectionQueryV010 {
@@ -52,6 +54,10 @@ export function parseCounterpartyProjectionQueryV010(
   if (values.search !== undefined && (
     typeof values.search !== "string" || values.search.length > 120
   )) throw new Error("COUNTERPARTY_QUERY_SEARCH_INVALID");
+  if (values.status !== undefined
+    && values.status !== "ACTIVE" && values.status !== "INACTIVE") {
+    throw new Error("COUNTERPARTY_QUERY_STATUS_INVALID");
+  }
   if (values.sort !== undefined
     && !["displayName", "code", "status"].includes(String(values.sort))) {
     throw new Error("COUNTERPARTY_QUERY_SORT_INVALID");
@@ -72,6 +78,7 @@ export function parseCounterpartyProjectionQueryV010(
   }
   return {
     ...(values.search !== undefined ? { search: String(values.search).trim() } : {}),
+    ...(values.status !== undefined ? { status: values.status as CounterpartyProjectionQueryV010["status"] } : {}),
     ...(values.sort !== undefined ? { sort: values.sort as CounterpartyProjectionQueryV010["sort"] } : {}),
     ...(values.direction !== undefined ? { direction: values.direction as CounterpartyProjectionQueryV010["direction"] } : {}),
     ...(values.page !== undefined ? { page: values.page as number } : {}),
@@ -92,10 +99,16 @@ export function pageCounterpartyProjectionV010(input: {
   const search = (query.search ?? "").toLocaleLowerCase();
   const sort = query.sort ?? "displayName";
   if (!readable.has(sort)) throw new Error("COUNTERPARTY_QUERY_SORT_FORBIDDEN");
+  // Filtering is performed strictly after Principal/Enterprise/row grants and
+  // must not expose hidden status through a changed total or zero-result test.
+  if (query.status && !readable.has("status")) {
+    throw new Error("COUNTERPARTY_QUERY_STATUS_FORBIDDEN");
+  }
   const direction = query.direction === "desc" ? -1 : 1;
   const filtered = input.counterparties.filter(item =>
-    !search || item.displayName.toLocaleLowerCase().includes(search)
-      || (readable.has("code") && item.code.toLocaleLowerCase().includes(search))
+    (!query.status || item.status === query.status)
+    && (!search || item.displayName.toLocaleLowerCase().includes(search)
+      || (readable.has("code") && item.code.toLocaleLowerCase().includes(search)))
   );
   filtered.sort((a, b) =>
     direction * String(a[sort]).localeCompare(String(b[sort]))
@@ -147,6 +160,7 @@ export function counterpartyProjectionQueryRouteV010(
   const params = new URLSearchParams();
   if (query.columns) params.set("columns",requireProjectionColumns(query.columns).join(","));
   if (query.search) params.set("search", query.search);
+  if (query.status) params.set("status", query.status);
   if (query.sort) params.set("sort", query.sort);
   if (query.direction) params.set("direction", query.direction);
   params.set("page", String(page));

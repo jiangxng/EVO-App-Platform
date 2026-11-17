@@ -25,6 +25,7 @@ switch_results=[]
 action_inputs={}
 column_results=[]
 counterparty_columns=[]
+combined_filter_results=[]
 expected={
     "dictionary": "Beta CSV Dictionary",
     "my-customers": "Customer Beta CV04",
@@ -172,6 +173,44 @@ with sync_playwright() as api:
                 counterparty_columns.append({"surface":name,"viewportWidth":size,
                     "columns":selected["fieldIds"],"pagePreserved":True,"csvParity":True})
                 print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_CSV_PARITY_PASS:%s:%d"%(name,size),flush=True)
+                # The Eidos quick filter navigates to full authorized Owner
+                # status+search query, not a client-only filter of page 2.
+                quick=page.locator('[data-eidos-catalog-quick-filters]')
+                expect(quick).to_have_count(1)
+                quick.locator('[data-eidos-catalog-action="quick-filter-active"]').click()
+                search=page.locator('[data-eidos-catalog-server-search]')
+                expect(search).to_have_count(1)
+                search.locator('input[name="search"]').fill("Beta")
+                search.locator('button[type="submit"]').click()
+                expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
+                expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
+                assert "status=ACTIVE" in page.url and "search=Beta" in page.url,page.url
+                active_action=page.locator('[data-eidos-catalog-action="export-current-page"]')
+                active_values=json.loads(active_action.get_attribute("data-eidos-action-values"))
+                assert active_values["status"]=="ACTIVE" and active_values["search"]=="Beta"
+                with page.expect_download(timeout=20000) as filtered_download:
+                    active_action.click()
+                active_csv=Path(filtered_download.value.path()).read_bytes().decode("utf-8-sig")
+                assert "Beta" in active_csv and "Alpha" not in active_csv
+                assert list(csv.reader(io.StringIO(active_csv,newline="")))[0]==active_values["fieldIds"]
+                page.locator('[data-eidos-catalog-action="quick-filter-inactive"]').click()
+                expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(0,timeout=30000)
+                assert "status=INACTIVE" in page.url and "search=Beta" in page.url
+                inactive_action=page.locator('[data-eidos-catalog-action="export-current-page"]')
+                inactive_values=json.loads(inactive_action.get_attribute("data-eidos-action-values"))
+                assert inactive_values["status"]=="INACTIVE" and inactive_values["search"]=="Beta"
+                with page.expect_download(timeout=20000) as empty_download:
+                    inactive_action.click()
+                empty_csv=Path(empty_download.value.path()).read_bytes().decode("utf-8-sig")
+                empty_rows=list(csv.reader(io.StringIO(empty_csv,newline="")))
+                assert len(empty_rows)==1 and empty_rows[0]==inactive_values["fieldIds"],empty_rows
+                page.locator('[data-eidos-catalog-action="quick-filter-all"]').click()
+                expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
+                expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
+                assert "status=" not in page.url and "search=Beta" in page.url
+                combined_filter_results.append({"surface":name,"viewportWidth":size,
+                    "statusAndSearch":True,"ownerCsvParity":True,"inactiveEmpty":True})
+                print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
             page.close()
         # Same browser storage/session: context A -> enterprise B -> A.
         # This is an isolated static HUMAN fixture, not two real user logins.
@@ -262,12 +301,14 @@ assert len(results)==6
 assert len(switch_results)==6
 assert len(column_results)==2
 assert len(counterparty_columns)==4
+assert len(combined_filter_results)==4
 (OUT/"browser-results.json").write_text(
     json.dumps({"sourceSha":fixture["sourceSha"],"fixture":"ISOLATED_ACTUAL_HOST",
       "notProduction":True,"notHuman":True,
       "results":results,"enterpriseSwitchResults":switch_results,
       "columnControlsResults":column_results,
       "counterpartyColumnResults":counterparty_columns,
+      "combinedFilterResults":combined_filter_results,
       "featureDisabledExportDenied":True},ensure_ascii=False,indent=2),encoding="utf-8")
 print("CV04_REAL_HOST_CHROMIUM_DESKTOP_PHONE_CSV_TERMINAL_PASS=6",flush=True)
 
@@ -277,3 +318,5 @@ print("CV04_REAL_HOST_CHROMIUM_DISABLED_FEATURE_DENY_TERMINAL_PASS=1",flush=True
 print("CV02_OWNER_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=2",flush=True)
 
 print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
+
+print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)

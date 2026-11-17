@@ -13,7 +13,8 @@ import {
 import { createCounterpartyProjectionPageV010 } from "../../dist/apps/counterparty/page.js";
 import {
   parseCounterpartyProjectionRouteQueryV010,
-  counterpartyProjectionQueryRouteV010
+  counterpartyProjectionQueryRouteV010,
+  pageCounterpartyProjectionV010
 } from "../../dist/apps/counterparty/projection-query.js";
 import {
   COUNTERPARTY_SUPPLIER_PROJECTION_V010,
@@ -367,4 +368,85 @@ test("CV-02 Counterparty: up/down reorder only currently readable nonidentity fi
     reordered.table.columns.map(x=>x.id));
   assert.deepEqual(Object.keys(reordered.table.rows[0].cells),
     reordered.table.columns.map(x=>x.id));
+});
+test("CV-02 Owner quick filter: status AND search before pagination, no cross-page fake filtering",()=>{
+  const records=[
+    {counterpartyId:"a1",displayName:"Alpha Vendor",code:"A1",status:"ACTIVE"},
+    {counterpartyId:"a2",displayName:"Alpha Vendor 2",code:"A2",status:"INACTIVE"},
+    {counterpartyId:"a3",displayName:"Alpha Supplier",code:"A3",status:"ACTIVE"},
+    {counterpartyId:"b1",displayName:"Beta Vendor",code:"B1",status:"INACTIVE"}
+  ];
+  const query={search:"Alpha",status:"ACTIVE",sort:"displayName",direction:"asc",
+    page:1,pageSize:1};
+  const result=pageCounterpartyProjectionV010({
+    counterparties:records,readableFieldIds:["displayName","code","status"],query
+  });
+  assert.equal(result.pageInfo.total,2);
+  assert.equal(result.pageInfo.page,1);
+  assert.equal(result.pageInfo.hasMore,false);
+  assert.deepEqual(result.counterparties.map(x=>x.counterpartyId),["a1"]);
+  const inactive=pageCounterpartyProjectionV010({
+    counterparties:records,readableFieldIds:["displayName","code","status"],
+    query:{...query,status:"INACTIVE",page:0}
+  });
+  assert.deepEqual(inactive.counterparties.map(x=>x.counterpartyId),["a2"]);
+  assert.equal(inactive.pageInfo.total,1);
+  assert.throws(()=>pageCounterpartyProjectionV010({
+    counterparties:records,readableFieldIds:["displayName","code"],query
+  }),/COUNTERPARTY_QUERY_STATUS_FORBIDDEN/);
+  for(const bad of ["","active","DELETED","INACTIVE OR 1=1"]){
+    assert.throws(()=>parseCounterpartyProjectionRouteQueryV010(
+      "/counterparties/my-suppliers?status="+encodeURIComponent(bad),
+      "/counterparties/my-suppliers"),/COUNTERPARTY_QUERY_STATUS_INVALID/);
+  }
+  assert.throws(()=>parseCounterpartyProjectionRouteQueryV010(
+    "/counterparties/my-suppliers?status=ACTIVE&status=INACTIVE",
+    "/counterparties/my-suppliers"),/COUNTERPARTY_QUERY_DUPLICATE_PARAMETER/);
+});
+
+test("CV-02 Counterparty quick filter reuses Eidos and keeps search, sort, columns and CSV owner state",()=>{
+  const projectionId=COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010;
+  const base="/counterparties/my-suppliers";
+  const full={search:"Hong",status:"ACTIVE",sort:"displayName",direction:"desc",
+    page:0,pageSize:15,columns:["displayName","status"]};
+  const page=createCounterpartyProjectionPageV010({
+    projectionId,locale:"zh-CN",canManage:false,
+    readableFieldIds:["displayName","code","status"],
+    tableQuery:full,pageInfo:{page:0,pageSize:15,total:1,hasMore:false},
+    counterparties:[{contractVersion:"0.1.0",counterpartyId:"s1",
+      displayName:"Hong Supplier",status:"ACTIVE",code:"S1"}]
+  });
+  const choices=page.table.quickFilters.options;
+  assert.deepEqual(choices.map(x=>[x.id,x.selected]),[
+    ["all",false],["active",true],["inactive",false]
+  ]);
+  const off=choices.find(x=>x.id==="inactive").route;
+  const parsed=parseCounterpartyProjectionRouteQueryV010(off,base);
+  assert.equal(parsed.status,"INACTIVE");
+  assert.equal(parsed.search,"Hong");
+  assert.equal(parsed.sort,"displayName");
+  assert.equal(parsed.direction,"desc");
+  assert.deepEqual(parsed.columns,["displayName","status"]);
+  assert.equal(parsed.page,0);
+  assert.equal(parsed.pageSize,15);
+  assert.ok(page.table.views.find(x=>x.id==="all").route.includes("status=ACTIVE"));
+  assert.ok(page.table.search.route.includes("status=ACTIVE"));
+  assert.equal(page.actions.find(x=>x.id==="export-current-page").values.status,"ACTIVE");
+  assert.deepEqual(page.actions.find(x=>x.id==="export-current-page").values.fieldIds,
+    ["displayName","status"]);
+  const rowRoute=page.items[0].primaryAction.route;
+  assert.ok(rowRoute.includes("status%3DACTIVE"),rowRoute);
+  const html=renderCatalogBrowserToHtml(page);
+  assert.match(html,/data-eidos-catalog-quick-filters/);
+  assert.match(html,/data-eidos-catalog-action="quick-filter-inactive"/);
+  assert.match(html,/data-eidos-quick-filter-id="active" data-eidos-quick-filter-selected="true"/);
+  assert.doesNotMatch(html,/data-eidos-col="code"/);
+  const noField=createCounterpartyProjectionPageV010({
+    projectionId,locale:"zh-CN",canManage:false,
+    readableFieldIds:["displayName","code"],
+    tableQuery:{search:"Hong"},pageInfo:{page:0,pageSize:25,total:0,hasMore:false},
+    counterparties:[]
+  });
+  assert.equal(noField.table.quickFilters,undefined);
+  assert.doesNotMatch(renderCatalogBrowserToHtml(noField),/data-eidos-catalog-quick-filters/);
 });
