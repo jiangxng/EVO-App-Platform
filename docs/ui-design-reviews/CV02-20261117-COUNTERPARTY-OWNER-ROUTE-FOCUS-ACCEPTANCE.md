@@ -33,3 +33,8 @@ Owner 按既有企业/责任范围/字段权限先裁剪，再执行 status AND 
 ## 证据与剩余问题
 
 上游 [Eidos #215](https://github.com/jiangxng/eidos/pull/215) 的 release-check / Human UI Design Review 和本次 Platform 真正的 `tests/cv04/real_host_csv_download_chromium.py` 才是工程来源。要求同一个准确 PR HEAD 下真正 4/4 状态焦点与 CSV 端到端、Platform Continuity、Lightweight Host、Human UI Review、随后受保护 main 真实 Chromium 再过；东京 DEV 按实际 runtime diff 和一致 SHA 决策发布、Actions 精确 HEAD 清分支。此前 #1337–#1340 的“模拟多步键盘”失败原日志继续留在 PR #1340 评论，不改成已过。正式登录 Human、真实读屏器/手机与生产 Owner 签收仍是独立阻塞，不触碰并行 #1184。
+
+
+## 2026-11-17 Eidos #216 实测纠偏（同范围）
+
+真实 Host 首轮在 ACTIVE 已选中的情况下读到焦点 inactive，说明只在 `renderRoute` 捕获可能晚于 hash 导航时机。上游 [Eidos #216](https://github.com/jiangxng/eidos/pull/216) 已在 `e656d0442034d1a0585418361b019f761430f84d` 合并：先在合法同一 pathname 的 `navigate` 中捕获受管控件 ID，严格绑定目标完整 route，接受一次 Owner 重查后恢复；取消过期请求的渲染，且不跨页或持久化。Platform 不覆盖其他 Eidos vendor 定制，只移植此最小点。早期 Chromium `quick-filter-active` 焦点不恢复的失败是**真实未通过**，此 PR 最终验收必须以修正后的精确 HEAD 和合并后 main Chromium 实际原证为准。另有 PA01B2 Chromium 运行器固定 Ubuntu 24.04 仅为 Playwright 1.56 兼容；这不改变安全/功能门禁。#1212/#1092/Human 真实签收仍保持 OPEN/NOT_SIGNED。
