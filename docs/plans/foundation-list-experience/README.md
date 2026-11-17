@@ -5,6 +5,11 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-17 CV-02 Window14 #04/04 组合筛选合并后恢复（最新专项入口）
+
+**[旧聊天决策 / EX01–EX08 研究取舍 / 原代码与精确 HEAD Actions / 东京 DEV 证据 / 待签门禁的分级交接](CV02-WINDOW14-20261117-POSTMERGE-CONTEXT-RECOVERY-HANDOFF.md)**。Eidos #214、Platform #1335 已合并，Platform `main@359114a5f021331bc7cbcd494104887ff0900987` 的组合状态 AND 搜索、Owner/Agent/当前页 CSV 与真实 Chromium 4/4、东京预览已从原证核验；**CV-02 Human / 完整 List Foundation 未签收，CV03 SAVE OFF、CV04 正式 EXPORT OFF，#1212/#1092 OPEN**。此处只增加现状导航，不改下面历史各日期计划，也不重复开发已闭环功能。
+
+
 ## 2026-11-12 CV-04 #05–#07 最终研究资料与决策交接（新窗口优先）
 
 **[简短交接入口](CV04-WINDOW-20261112-POSTMERGE-0707-HANDOFF-ENTRY.md) → [详细源码/PR/Actions 原始资料、阅读等级、方案取舍、并行 #1274/#1276 冲突及后续认证索引](CV04-WINDOW-20261112-POSTMERGE-0707-RESEARCH-DECISION-REFERENCE-INDEX.md)**。工程 main 已核验 `91356ae77df0a1af9f1993cdfc0909a1f3235f1e` 的 8/8 checks 与东京部署成功；#1272/#1273/#1275/#1277 已合并，另一窗口 #1274 signed PG gateway 已并入且**不可重复开发**。正式 EXPORT 仍没有 Host 路由，CV03 N1 SAVE OFF；#1276 旧 Draft 已关闭、未合并，原旧分支待 SHA-safe 清理。交接 docs 的最终合并提交以本次交接 PR 为准。
