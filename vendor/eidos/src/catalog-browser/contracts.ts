@@ -1,6 +1,7 @@
 /** A read-only server-owned page. Rows must not carry hidden fields. */
 export interface CatalogBrowserTableV010 {
-  columns: { id: string; label: string; sortRoute?: string }[];
+  /** The Domain supplies the current order; Eidos never sorts local rows. */
+  columns: { id: string; label: string; sortRoute?: string; sortDirection?: "ascending" | "descending" }[];
   search?: { route: string; label: string; placeholder: string; value?: string; submitLabel: string };
   /** Eidos owner PR #209: optional authorized view navigation; no query or permission logic. */
   views?: {
