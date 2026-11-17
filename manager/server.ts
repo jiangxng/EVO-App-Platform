@@ -7983,10 +7983,12 @@ const server = createServer(async (request, response) => {
             url.searchParams.get("route"), projectionRoute
           );
           const pagingQuery = { ...userQuery, pageSize: userQuery.pageSize ?? 25 };
+          // Column layout is a presentation hint, never a Domain Query/field grant.
+          const { columns: _layoutColumns, ...ownerQuery } = pagingQuery;
           const projection = await runtime.projectionService.read({
             contextId: active.contextId,
             projectionId,
-            query: pagingQuery,
+            query: ownerQuery,
             requestContext: readContext,
             enterpriseRelationshipKind: relationship?.kind
           });
