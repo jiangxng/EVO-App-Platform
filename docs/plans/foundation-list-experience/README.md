@@ -7,7 +7,7 @@
 
 ## 2026-11-17 CV-02 #1343：独立真实身份测试环境（方案 A）准入准备
 
-[方案 A 原则选择、现有 Host/OIDC 复用、最小输入 I01–I03/B01–B02/H01–H02、实际 Security/Ops 准入 Gate 与禁止动作](CV02-ISSUE1343-ISOLATED-IDENTITY-ADMISSION-PREFLIGHT-20261117.md)。**仅选择准备方向；非正式身份审批，未开通登录、未部署隔离环境、未授予任何生产权限**。唯一 Human 结果入口仍是 [#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343)，`BLOCKED_IDENTITY_CONFIG / HUMAN_NOT_SIGNED / 0/12`；原 Window16 执行包与 Window17 研究资料继续复用，无功能重复开发。
+[方案 A 原则选择、现有 Host/OIDC 复用、最小输入 I01–I03/B01–B02/H01–H02、实际 Security/Ops 准入 Gate 与禁止动作](CV02-ISSUE1343-ISOLATED-IDENTITY-ADMISSION-PREFLIGHT-20261117.md)。**2026-11-17 产品负责人新决策：优先完成可演示最小 MVP；Google OIDC 为旧 Railway 已用过的复用方向，但东京未验证。独立真实身份环境与设备/独立 Human 签收推迟到上线前（或明确身份依赖功能出现时），不是普通功能开发阻塞；没有启用登录、部署环境或授予生产权限**。唯一 Human 结果入口仍是 [#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343)，`BLOCKED_IDENTITY_CONFIG / HUMAN_NOT_SIGNED / 0/12`；原 Window16 执行包与 Window17 研究资料继续复用，无功能重复开发。
 
 ## 2026-11-17 CV-02 #07/07：最终研究资料与决策交接（最新窗口接续入口）
 

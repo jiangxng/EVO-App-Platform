@@ -4,6 +4,18 @@
 > **当前状态：BLOCKED_IDENTITY_CONFIG / BLOCKED_HUMAN_RESOURCES / HUMAN_NOT_SIGNED；12 个实际 Human 通道 0/12。**
 > 本文仅收口 #1343 的非授权准备。**没有**创建/部署隔离环境，没有启用 Managed Session/OIDC，没有分配角色、账号或生产权限，没有验证 VPS 私有配置，也没有实际测试或替代 Human 签署。
 
+## 2026-11-17 后续产品负责人决策：MVP 开发优先，真实 Human 准入移至上线前
+
+> **优先级修订：DEFERRED_PRE_RELEASE，不是取消门禁或验收通过。** 现在距离“商业版可演示的最小 MVP”仍有较大功能差距；#1343 真实企业身份的 12 通道人工签收**不是现阶段普通功能开发的阻塞条件**。暂停主动推进隔离身份环境、批准人分工、设备和独立审核人筹备；不因没有这些资源而阻止既有 Eidos + Platform 列表、业务能力与真实 Agent 的受限工程开发和普通 CI。原 0/12 继续保持 NOT_SIGNED。
+
+- **身份提供商方向已确定：Google OIDC。** 用户确认历史上曾在 Railway 环境部署 Google 登录；[2026-09-30 历史 Railway OIDC Runbook](../../runbooks/EA-1B2C-GOOGLE-OIDC-PRODUCTION-LIVE-CUTOVER.md)记载彼时 Google 登录 Human PASS，但该页已明确标记 `HISTORICAL_RAILWAY_OIDC_RUNBOOK / DO_NOT_EXECUTE_FOR_TENCENT_TOKYO`。**不能**据此断言当前东京或未来隔离测试环境已配置登录、客户端/redirect 仍有效。复用既有标准 Generic OIDC/Host Managed Session 程序资产；仅在真正需要身份启用时审查新环境。
+- **工程期协作**：AI 助手做代码阅读、自动 CI、隔离真实 Host/Chromium 回归、缺陷修复和交接；用户可作实际产品体验者、确认 MVP 功能和交互预期。**AI 不能成为独立 Human 测试者/审批签署人**；临近对外真实登录或商业上线时再安排有授权责任人、真实设备和独立审核角色，无需今天指定姓名。
+- **场景分级**：`INTERNAL_DEMO_DEV = CONTINUE`，仍遵守现行 demo-only/无敏感客户数据/最小权限；`REAL_IDENTITY_ENABLEMENT = NOT_APPROVED`；`EXTERNAL_CUSTOMER_OR_PRODUCTION_RELEASE = BLOCKED_UNTIL_REVIEW`。基础安全拒绝回归、撤权隔离、防数据泄漏不能被“延期 Human 验收”豁免。
+- **恢复 #1343 的触发条件**：产品接近带真实账号的外部可演示/试用/商业上线；或某个明确的在研 MVP 功能**确实依赖**真实身份才可验证，届时仅针对该功能启动最小隔离验证；或出现真实身份/权限安全缺陷。此时再由有权 Owner 评估方案 A、审核 OIDC Provider/Session/权限/回滚并执行完整 Human 回执。
+- **范围不变**：CV03 `N1=NOT_CERTIFIED` / Human SAVE OFF、CV04 正式后台 EXPORT OFF、Owner #1212 / Operator #1092 OPEN、并行 #1184 不动；不因延期开放这些能力。下方 G1–G5 是**未来正式准入的保留清单**，不是今日待立即完成的开发任务。
+
+**对早期记录的解释**：本文原先的 `BLOCKED_IDENTITY_CONFIG` 仍准确描述真实身份/Human 验收门禁，但不再代表**整个 Foundation List Experience 或 MVP 工程开发暂停**；优先级以本节最新用户决策为准，不修改 Window16/17 的历史证据。
+
 ## 1. 现场事实与来源
 
 - 2026-11-17 用户在 CV-02 #1343 续跑中原则选择**方案 A：独立真实身份测试环境**，明确要求“继续执行不涉及真实授权的准备工作；列出身份提供商、负责人和验收资源；不要擅自启用登录或授予生产权限”。这是**方向选择**，并非正式 Security/Ops 审批或凭据授权。
@@ -26,7 +38,7 @@
 
 | 编号 | 提供方/负责人（当前未指定） | 需要的**非敏感**决定或资源 | 进入下一关的有效证据 |
 | --- | --- | --- | --- |
-| I01 | 用户/有权 Identity Owner | 选定现有 OIDC Identity Provider（例如 Google Workspace/Cloud Identity、Microsoft Entra ID 或其他合规提供商）及管理员责任人；如无现成提供商，明确“尚无” | Provider 类型、管理责任方、允许的测试用途和正式审批位置；不得在公开 Issue 贴 client secret/token |
+| I01 | 用户/有权 Identity Owner | **Google OIDC 已选为复用方向**；临近身份启用时才确认 Google 管理员、实际 client/redirect、现有凭据状态及授权用途 | 历史 Railway 登录不等于东京 READY；不得在公开 Issue 贴 client secret/token |
 | I02 | Identity / Security / Ops | 正式批准独立测试环境用途、边界、Owner 和回滚责任；选宿主/环境别名、域名/TLS 策略、隔离方式与费用承担 | 有权审批人角色、日期、批准范围和受控记录链接；未批准即保持 BLOCKED |
 | I03 | Identity / Ops | 现有 Host `IdentityAuthenticationProvider`、`IdentityUserDirectoryProvider` 与持久 Managed Session 的实际安装/绑定/健康；OIDC issuer、client registration、HTTPS redirect/callback、Secrets 存管方式；登出与撤权 | 不含秘密的环境+runtime SHA、Provider/Session 正常与撤权/回滚测试回执；**不是**单纯 CI/mock 或 Basic Auth 401 |
 | B01 | Counterparty Domain Owner | 测试企业、合法最小 READ 授权：四路由及 `counterparty.field.read` 对 `status`；正常人类身份与另一合法受限身份/企业用于拒绝检查 | 真实授权决定/生效范围/可撤销性回执；不在 GitHub 公开账号 ID、个人资料或客户信息 |
@@ -52,6 +64,6 @@
 - 无新授权/真实失败时，不改现有 Eidos / Platform 的 status AND search、CSV、Workbench 焦点；不创建新的身份框架、登录按钮或临时跨域 SQL；不触碰并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184)。
 - [CV03 Owner #1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212) 与 [Operator #1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 仍 OPEN；CV03 `N1=NOT_CERTIFIED`、Human SAVE OFF；CV04 正式跨页后台 EXPORT OFF。CV02 进展不解除这些门禁。
 - GitHub 公开 Issue/PR 只存**非敏感**批准摘要、环境别名、准确 SHA、时间、责任角色及受控证据 URL/hash。**不写密码、OIDC secrets、Session cookies、用户标识、企业详细 ID、客户 CSV 或未遮挡录像**。
-- **恢复条件**：[#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343) 收到 I01–I03/B01–B02/H01–H02 的真实决定/资源，并可验证；或出现真实 Human FAIL。未来新增事实增量记录在本页或同目录关联文件，实际 Human 结果留在 #1343 与原 Window16 执行矩阵，不新建重复签收入口。
+- **恢复条件（上线前或某明确身份依赖功能触发，非当前 MVP 普通开发前置）**：[#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343) 收到 I01–I03/B01–B02/H01–H02 的真实决定/资源，并可验证；或出现真实 Human FAIL。未来新增事实增量记录在本页或同目录关联文件，实际 Human 结果留在 #1343 与原 Window16 执行矩阵，不新建重复签收入口。
 
-**本次结论**：`方案 A = PREPARATION_CHOSEN`；`identity = BLOCKED`；`business grants/data = BLOCKED`；`devices/reviewer = UNVERIFIED`；`Human = 0/12 / NOT_SIGNED`；`provisioning = NOT_STARTED`。
+**阶段结论（2026-11-17 修订）**：`MVP_ENGINEERING = CONTINUE`；`Option A = DEFERRED_PRE_RELEASE`；`Google OIDC = HISTORICAL_RAILWAY_REUSE_CANDIDATE / TOKYO_UNVERIFIED`；`REAL_IDENTITY_ENABLEMENT = NOT_APPROVED`；`business grants/data = BLOCKED_FOR_REAL_HUMAN_ONLY`；`devices/reviewer = DEFERRED`；`Human = 0/12 / NOT_SIGNED`；`provisioning = NOT_STARTED`。
