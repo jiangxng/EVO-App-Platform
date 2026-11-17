@@ -14,6 +14,15 @@ function esc(value: unknown): string {
     .replaceAll("'", "&#39;");
 }
 
+/** Domain-owned catalog navigation must stay on this origin. It is not an ACL check. */
+function isLocalCatalogRoute(route: unknown): route is string {
+  return typeof route === "string"
+    && route.startsWith("/")
+    && !route.startsWith("//")
+    && !route.includes("\\")
+    && !/[\u0000-\u001f\u007f]/.test(route);
+}
+
 function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   if (input.contractVersion !== "0.1.0" || input.kind !== "catalog-browser") {
     throw new Error("EIDOS_CATALOG_VERSION_UNSUPPORTED");
@@ -86,8 +95,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
       let selectedCount = 0;
       for (const view of views) {
         if (!view.id?.trim() || !view.label?.trim() || ids.has(view.id)
-          || !view.route?.startsWith("/") || view.route.startsWith("//")
-          || view.route.includes("\\") || typeof view.selected !== "undefined"
+          || !isLocalCatalogRoute(view.route) || typeof view.selected !== "undefined"
           && typeof view.selected !== "boolean") {
           throw new Error("EIDOS_CATALOG_TABLE_VIEW_INVALID");
         }
@@ -96,8 +104,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
       }
       if (selectedCount > 1) throw new Error("EIDOS_CATALOG_TABLE_VIEW_SELECTION_INVALID");
     }
-    if (input.table.search && (!input.table.search.route.startsWith("/")
-      || input.table.search.route.startsWith("//")
+    if (input.table.search && (!isLocalCatalogRoute(input.table.search.route)
       || !input.table.search.label || !input.table.search.submitLabel)) {
       throw new Error("EIDOS_CATALOG_TABLE_SEARCH_INVALID");
     }
@@ -110,7 +117,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
     const columnIds = new Set<string>();
     for (const column of columns) {
       if (!column.id?.trim() || !column.label?.trim() || columnIds.has(column.id)
-        || (column.sortRoute !== undefined && !column.sortRoute.startsWith("/"))) {
+        || (column.sortRoute !== undefined && !isLocalCatalogRoute(column.sortRoute))) {
         throw new Error("EIDOS_CATALOG_TABLE_COLUMN_INVALID");
       }
       columnIds.add(column.id);
@@ -130,7 +137,7 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
         || !Number.isSafeInteger(page.pageSize) || page.pageSize < 1
         || !Number.isSafeInteger(page.total) || page.total < rows.length
         || [page.previousRoute,page.nextRoute].some(route =>
-          route !== undefined && !route.startsWith("/"))) {
+          route !== undefined && !isLocalCatalogRoute(route))) {
         throw new Error("EIDOS_CATALOG_TABLE_PAGE_INVALID");
       }
     }
