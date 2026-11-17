@@ -22,43 +22,6 @@ import {
 import { renderAppHostPageToHtml } from "./page-renderer.js";
 import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.js";
 
-/**
- * Capture only the control that requested a governed Catalog re-query.
- * Never persist a free-form selector, row value, Principal, or business data.
- */
-type CatalogRouteFocusIntentV010 =
-  | { kind: "quick-filter"; actionId: string }
-  | { kind: "server-search" };
-
-function captureCatalogRouteFocusV010(slot: HTMLElement): CatalogRouteFocusIntentV010 | undefined {
-  const active = document.activeElement;
-  if (!(active instanceof HTMLElement) || !slot.contains(active)) return undefined;
-  if (active.matches('[data-eidos-catalog-server-search] input[name="search"]')) {
-    return {kind:"server-search"};
-  }
-  if (active instanceof HTMLButtonElement
-    && active.closest("[data-eidos-catalog-quick-filters]")) {
-    const actionId = active.dataset.eidosCatalogAction;
-    if (actionId?.startsWith("quick-filter-")) {
-      return {kind:"quick-filter",actionId};
-    }
-  }
-  return undefined;
-}
-
-function restoreCatalogRouteFocusV010(
-  slot: HTMLElement,
-  intent: CatalogRouteFocusIntentV010 | undefined
-): void {
-  if (!intent) return;
-  const target = intent.kind === "server-search"
-    ? slot.querySelector<HTMLInputElement>('[data-eidos-catalog-server-search] input[name="search"]')
-    : Array.from(slot.querySelectorAll<HTMLButtonElement>(
-      '[data-eidos-catalog-quick-filters] button[data-eidos-catalog-action]'
-    )).find(button => button.dataset.eidosCatalogAction === intent.actionId);
-  target?.focus({preventScroll:true});
-}
-
 export interface BrowserAppHostShellOptions {
   host: AppHost;
   container: HTMLElement | string;
@@ -131,10 +94,6 @@ export async function mountBrowserAppHostShell(
   let disposed = false;
   let activePath = currentPath();
   let mountedPage: MountedAppHostPage | undefined;
-  // Eidos #216: keep same-page governed focus intent before hash changes.
-  let pendingCatalogFocus:
-    | { route: string; intent: CatalogRouteFocusIntentV010 }
-    | undefined;
   const routeReadGate = createSupersedingRequestGateV010();
   let activeSurfaceId: string | undefined;
 
@@ -266,10 +225,6 @@ export async function mountBrowserAppHostShell(
 
   async function renderRoute(path: string): Promise<void> {
     if (disposed) return;
-    // Eidos #216 captures before the hash-change can blur the old control.
-    // Route-keyed intent survives a superseded in-flight Owner read.
-    const requestedFocus = pendingCatalogFocus;
-    const oldControlFocus = captureCatalogRouteFocusV010(pageContainer);
     mountedPage?.dispose();
     mountedPage = undefined;
     pageContainer.replaceChildren();
@@ -293,19 +248,7 @@ export async function mountBrowserAppHostShell(
     }
 
     activePath = resolvedPath;
-    const catalogFocus = requestedFocus?.route === resolvedPath
-      ? requestedFocus.intent : oldControlFocus;
-    const read = routeReadGate.begin();
-    let loaded;
-    try {
-      loaded = await host.loadRoute(resolvedPath, {signal:read.signal});
-    } catch (error) {
-      if (!read.isCurrent() || (error instanceof DOMException && error.name === "AbortError")) {
-        return;
-      }
-      throw error;
-    }
-    if (!read.isCurrent()) return;
+    const loaded = await host.loadRoute(resolvedPath);
     pageContainer.setAttribute("data-eidos-page", loaded?.page.id ?? "not-found");
 
     if (!loaded) {
@@ -343,8 +286,6 @@ export async function mountBrowserAppHostShell(
           }
         }
       });
-      restoreCatalogRouteFocusV010(pageContainer, catalogFocus);
-      if (requestedFocus?.route === resolvedPath) pendingCatalogFocus = undefined;
     } catch (error) {
       const pre = document.createElement("pre");
       pre.textContent = error instanceof Error ? error.message : String(error);
@@ -458,9 +399,6 @@ export async function mountBrowserAppHostShell(
       throw new Error(`EIDOS_APP_HOST_ROUTE_NOT_FOUND: ${resolvedPath}`);
     }
 
-    const intent = activePath.split("?")[0] === resolvedPath.split("?")[0]
-      ? captureCatalogRouteFocusV010(pageContainer) : undefined;
-    pendingCatalogFocus = intent ? {route:resolvedPath,intent} : undefined;
     if (surface?.resolution.kind === "HANDOFF") {
       await renderRoute(path);
     } else if (currentPath() !== resolvedPath) {
