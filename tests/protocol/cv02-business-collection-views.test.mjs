@@ -210,3 +210,64 @@ test("CV-02 owners expose one truthful accessible sort state for dictionary and 
   assert.equal(noCode.table.columns.find(c=>c.id==="displayName").sortDirection,"ascending");
   assert.equal(noCode.table.columns.some(c=>c.sortDirection),true);
 });
+test("CV-02 Dictionary owner: column visibility and order use one bounded URL, table, export and detail return",()=>{
+  const initial=dictionaryPage(
+    "/business-dictionaries?view=draft&search=Alpha&sort=displayName&direction=asc&page=0&pageSize=1");
+  const state=initial.table.columnControls.options.find(x=>x.id==="state");
+  assert.equal(state.visible,true);
+  assert.ok(state.toggle.route.includes("columns=displayName%2CdictionaryId%2Cversion%2CoptionCount"));
+  const changed=dictionaryPage(state.toggle.route);
+  assert.deepEqual(changed.table.columns.map(x=>x.id),
+    ["displayName","dictionaryId","version","optionCount"]);
+  assert.deepEqual(Object.keys(changed.table.rows[0].cells),
+    ["displayName","dictionaryId","version","optionCount"]);
+  assert.equal(changed.table.pageInfo.pageSize,1);
+  assert.equal(changed.table.pageInfo.total,1);
+  assert.equal(changed.table.search.value,"Alpha");
+  assert.ok(changed.table.views.find(x=>x.id==="published").route.includes("columns="));
+  const csv=changed.actions.find(x=>x.id==="export-current-page");
+  assert.deepEqual(csv.values.fieldIds,changed.table.columns.map(x=>x.id));
+  assert.ok(changed.items[0].primaryAction.route.includes("columns%3DdisplayName"));
+  const html=renderCatalogBrowserToHtml(changed);
+  assert.match(html,/<details data-eidos-catalog-column-controls>/);
+  assert.doesNotMatch(html,/data-eidos-col="state"/);
+  assert.match(html,/data-eidos-column-choice="state" data-eidos-column-visible="false"/);
+
+  const shown=dictionaryPage(changed.table.columnControls.options.find(x=>x.id==="state").toggle.route);
+  assert.deepEqual(shown.table.columns.map(x=>x.id),
+    ["displayName","dictionaryId","version","optionCount","state"]);
+  const move=shown.table.columnControls.options.find(x=>x.id==="state").moveUp.route;
+  const reordered=dictionaryPage(move);
+  assert.deepEqual(reordered.table.columns.map(x=>x.id),
+    ["displayName","dictionaryId","version","state","optionCount"]);
+  assert.deepEqual(reordered.actions.find(x=>x.id==="export-current-page").values.fieldIds,
+    reordered.table.columns.map(x=>x.id));
+  const reset=dictionaryPage(reordered.table.columnControls.reset.route);
+  assert.deepEqual(reset.table.columns.map(x=>x.id),
+    ["displayName","dictionaryId","state","version","optionCount"]);
+  assert.equal(reset.table.columnControls.reset,undefined);
+  assert.equal(reset.table.pageInfo.page,0);
+});
+
+test("CV-02 Dictionary column hints are presentation-only and reject invalid or ambiguous fields",()=>{
+  for(const columns of [
+    "state","displayName,displayName","displayName,secret",
+    "displayName,version,state,optionCount,dictionaryId,other",""
+  ]){
+    assert.throws(()=>parseBusinessDictionaryDirectoryRouteV010(
+      "/business-dictionaries?view=all&columns="+encodeURIComponent(columns)
+    ),/BUSINESS_DICTIONARY_DIRECTORY_COLUMNS_INVALID/,columns);
+  }
+  assert.throws(()=>parseBusinessDictionaryDirectoryRouteV010(
+    "/business-dictionaries?columns=displayName&columns=displayName"
+  ),/BUSINESS_DICTIONARY_DIRECTORY_PARAMETER_DUPLICATE/);
+  const sorted=dictionaryPage(
+    "/business-dictionaries?view=all&sort=version&direction=desc&page=0&pageSize=25");
+  assert.equal(sorted.table.columnControls.options.find(x=>x.id==="version").toggle,undefined,
+    "active sorted column cannot be hidden accidentally");
+  assert.equal(sorted.table.columnControls.options.find(x=>x.id==="displayName").toggle,undefined,
+    "primary identity column stays visible");
+  assert.doesNotMatch(renderCatalogBrowserToHtml(
+    createBusinessDictionaryDirectoryPageV010({dictionaries,canManage:false,locale:"zh-CN"})
+  ),/data-eidos-catalog-column-controls/,"legacy list remains unchanged");
+});
