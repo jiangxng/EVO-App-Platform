@@ -18,7 +18,9 @@ permissions:
 
 jobs:
   full-host-chromium:
-    runs-on: ubuntu-latest
+    # Playwright 1.56 Chromium cannot install on ubuntu-26.04 latest.
+    # Use the same pinned runner as the existing CV04 real-Host Chromium gate.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
