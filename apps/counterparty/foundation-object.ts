@@ -151,6 +151,30 @@ export const counterpartyCoreSchemaV010: FoundationObjectCoreSchemaV010 = {
       "IMPORT", "EXPORT", "FILTER", "AGENT_READ", "AGENT_WRITE"
     ]
   }, {
+    // Status is already a persisted CounterpartySubject value. Publish it
+    // through the shared read-only Core Schema so the existing field.read
+    // provider can explicitly authorize full-query status filtering.
+    fieldId: "status",
+    slotId: COUNTERPARTY_IDENTITY_SLOT_V010,
+    semanticType: "counterparty-lifecycle-status",
+    valueType: "ENUM",
+    control: "select",
+    label: {
+      default: "Status",
+      translations: { "zh-CN": "状态" }
+    },
+    required: false,
+    readOnly: true,
+    order: 25,
+    surfaces: ["DETAIL", "LIST", "FILTER", "EXPORT", "AGENT_READ"],
+    enumOptions: [{
+      value: "ACTIVE",
+      label: { default: "Active", translations: { "zh-CN": "启用" } }
+    }, {
+      value: "INACTIVE",
+      label: { default: "Inactive", translations: { "zh-CN": "停用" } }
+    }]
+  }, {
     fieldId: "subjectType",
     slotId: COUNTERPARTY_IDENTITY_SLOT_V010,
     semanticType: "counterparty-subject-type",
