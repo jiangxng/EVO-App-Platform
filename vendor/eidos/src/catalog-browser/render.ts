@@ -115,12 +115,23 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
       throw new Error("EIDOS_CATALOG_TABLE_INVALID");
     }
     const columnIds = new Set<string>();
+    let sortedColumnCount = 0;
     for (const column of columns) {
       if (!column.id?.trim() || !column.label?.trim() || columnIds.has(column.id)
         || (column.sortRoute !== undefined && !isLocalCatalogRoute(column.sortRoute))) {
         throw new Error("EIDOS_CATALOG_TABLE_COLUMN_INVALID");
       }
+      if (column.sortDirection !== undefined) {
+        if (!column.sortRoute
+          || !["ascending", "descending"].includes(column.sortDirection)) {
+          throw new Error("EIDOS_CATALOG_TABLE_COLUMN_SORT_INVALID");
+        }
+        sortedColumnCount++;
+      }
       columnIds.add(column.id);
+    }
+    if (sortedColumnCount > 1) {
+      throw new Error("EIDOS_CATALOG_TABLE_SORT_SELECTION_INVALID");
     }
     const itemIds = new Set(input.items.map(item => item.id));
     const rowIds = new Set<string>();
@@ -216,11 +227,13 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
   const table = model.table ? (() => {
     const records = new Map(model.items.map(item => [item.id, item]));
     const heads = model.table!.columns.map(column =>
-      `<th scope="col">${column.sortRoute
+      `<th scope="col"${column.sortDirection ? ` aria-sort="${column.sortDirection}"` : ""}>${column.sortRoute
         ? actionButton(undefined as never, {
             id: "sort-" + column.id, label: column.label,
             type: "navigate", route: column.sortRoute
-          }, false)
+          }, false) + (column.sortDirection
+            ? `<span data-eidos-sort-indicator aria-hidden="true">${column.sortDirection === "ascending" ? "↑" : "↓"}</span>`
+            : "")
         : esc(column.label)}</th>`
     ).join("");
     const rows = model.table!.rows.map(row => {

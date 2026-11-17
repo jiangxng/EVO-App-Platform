@@ -392,7 +392,10 @@ export function createCounterpartyProjectionPageV010(input: {
           route,{...input.tableQuery,sort:column.id as CounterpartyProjectionQueryV010["sort"],
             direction:input.tableQuery?.sort === column.id
               && input.tableQuery.direction !== "desc" ? "desc" : "asc"},0
-        )} : {})
+        )} : {}),
+    ...(input.tableQuery?.sort === column.id
+      ? {sortDirection:input.tableQuery.direction === "desc"
+          ? "descending" as const : "ascending" as const} : {})
   }));
   const query = input.tableQuery ?? {};
   const pageInfo = input.pageInfo;

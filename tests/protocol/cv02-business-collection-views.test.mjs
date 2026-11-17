@@ -178,3 +178,35 @@ test("CV-02 real dictionary presentation rejects off-origin navigation from any 
   // The existing local Domain route must remain renderable after adoption.
   assert.match(renderCatalogBrowserToHtml(page),/data-eidos-catalog-table/);
 });
+test("CV-02 owners expose one truthful accessible sort state for dictionary and supplier views",()=>{
+  const unsorted=dictionaryPage("/business-dictionaries?view=all&page=0&pageSize=25");
+  assert.doesNotMatch(renderCatalogBrowserToHtml(unsorted),/aria-sort=/);
+  const dictAsc=dictionaryPage(
+    "/business-dictionaries?view=draft&sort=displayName&direction=asc&page=0&pageSize=25");
+  assert.equal(dictAsc.table.columns.find(c=>c.id==="displayName").sortDirection,"ascending");
+  const dictHtml=renderCatalogBrowserToHtml(dictAsc);
+  assert.match(dictHtml,/<th scope="col" aria-sort="ascending">/);
+  assert.match(dictHtml,/data-eidos-sort-indicator aria-hidden="true">↑/);
+  assert.equal((dictHtml.match(/aria-sort="/g)||[]).length,1);
+  assert.match(dictHtml,/data-eidos-catalog-action="sort-displayName"/);
+
+  const dictDesc=dictionaryPage(
+    "/business-dictionaries?view=all&sort=version&direction=desc&page=0&pageSize=25");
+  assert.equal(dictDesc.table.columns.find(c=>c.id==="version").sortDirection,"descending");
+  assert.match(renderCatalogBrowserToHtml(dictDesc),/aria-sort="descending"/);
+
+  const mine=supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,{
+    sort:"code",direction:"desc",page:0,pageSize:15
+  });
+  assert.equal(mine.table.columns.find(c=>c.id==="code").sortDirection,"descending");
+  const mineHtml=renderCatalogBrowserToHtml(mine);
+  assert.match(mineHtml,/aria-sort="descending"/);
+  assert.match(mineHtml,/data-eidos-sort-indicator aria-hidden="true">↓/);
+  assert.equal((mineHtml.match(/aria-sort="/g)||[]).length,1);
+
+  const noCode=supplierPage(COUNTERPARTY_SUPPLIER_PROJECTION_V010,{
+    sort:"displayName",direction:"asc",page:0,pageSize:15
+  });
+  assert.equal(noCode.table.columns.find(c=>c.id==="displayName").sortDirection,"ascending");
+  assert.equal(noCode.table.columns.some(c=>c.sortDirection),true);
+});
