@@ -37,7 +37,9 @@ permissions:
 
 jobs:
   real-host-desktop-phone-csv:
-    runs-on: ubuntu-latest
+    # Playwright 1.56 Chromium does not support the ubuntu-26.04 latest runner.
+    # Match the already-pinned CV05 real Host Chromium runner; keep real browser tests.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       NODE_ENV: test

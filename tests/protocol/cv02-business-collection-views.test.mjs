@@ -152,3 +152,29 @@ test("CV-02 Personal Agent and Human share one owner-authorized dictionary syste
     dictionaries,query:{view:"unapproved"}
   }),/BUSINESS_DICTIONARY_COLLECTION_VIEW_INVALID/);
 });
+test("CV-02 real dictionary presentation rejects off-origin navigation from any table control",()=>{
+  const page=dictionaryPage("/business-dictionaries?view=draft&page=0&pageSize=1");
+  for(const unsafe of [
+    "//outside.invalid/business-dictionaries",
+    "/\\outside.invalid/business-dictionaries",
+    "/business-dictionaries\ncross-line"
+  ]){
+    const render=tableChanges=>renderCatalogBrowserToHtml({
+      ...page,table:{...page.table,...tableChanges}
+    });
+    assert.throws(()=>render({views:[{
+      ...page.table.views[0],route:unsafe
+    },...page.table.views.slice(1)]}),/EIDOS_CATALOG_TABLE_VIEW_INVALID/);
+    assert.throws(()=>render({search:{
+      ...page.table.search,route:unsafe
+    }}),/EIDOS_CATALOG_TABLE_SEARCH_INVALID/);
+    assert.throws(()=>render({columns:[{
+      ...page.table.columns[0],sortRoute:unsafe
+    },...page.table.columns.slice(1)]}),/EIDOS_CATALOG_TABLE_COLUMN_INVALID/);
+    assert.throws(()=>render({pageInfo:{
+      ...page.table.pageInfo,nextRoute:unsafe
+    }}),/EIDOS_CATALOG_TABLE_PAGE_INVALID/);
+  }
+  // The existing local Domain route must remain renderable after adoption.
+  assert.match(renderCatalogBrowserToHtml(page),/data-eidos-catalog-table/);
+});

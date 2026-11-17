@@ -19,7 +19,9 @@ permissions:
 
 jobs:
   supplier-desktop-touch-chromium:
-    runs-on: ubuntu-latest
+    # Playwright 1.56 Chromium does not support the ubuntu-26.04 latest runner.
+    # Match the already-pinned CV05 real Host Chromium runner; keep real browser tests.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       NODE_ENV: test
