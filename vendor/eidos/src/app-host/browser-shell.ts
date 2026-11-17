@@ -131,6 +131,10 @@ export async function mountBrowserAppHostShell(
   let disposed = false;
   let activePath = currentPath();
   let mountedPage: MountedAppHostPage | undefined;
+  // Eidos #216: keep same-page governed focus intent before hash changes.
+  let pendingCatalogFocus:
+    | { route: string; intent: CatalogRouteFocusIntentV010 }
+    | undefined;
   const routeReadGate = createSupersedingRequestGateV010();
   let activeSurfaceId: string | undefined;
 
@@ -262,9 +266,10 @@ export async function mountBrowserAppHostShell(
 
   async function renderRoute(path: string): Promise<void> {
     if (disposed) return;
-    // This vendored Platform shell remounts before its awaited Owner READ.
-    // Capture the existing focused Eidos control BEFORE clearing the slot.
-    const catalogFocus = captureCatalogRouteFocusV010(pageContainer);
+    // Eidos #216 captures before the hash-change can blur the old control.
+    // Route-keyed intent survives a superseded in-flight Owner read.
+    const requestedFocus = pendingCatalogFocus;
+    const oldControlFocus = captureCatalogRouteFocusV010(pageContainer);
     mountedPage?.dispose();
     mountedPage = undefined;
     pageContainer.replaceChildren();
@@ -288,7 +293,19 @@ export async function mountBrowserAppHostShell(
     }
 
     activePath = resolvedPath;
-    const loaded = await host.loadRoute(resolvedPath);
+    const catalogFocus = requestedFocus?.route === resolvedPath
+      ? requestedFocus.intent : oldControlFocus;
+    const read = routeReadGate.begin();
+    let loaded;
+    try {
+      loaded = await host.loadRoute(resolvedPath, {signal:read.signal});
+    } catch (error) {
+      if (!read.isCurrent() || (error instanceof DOMException && error.name === "AbortError")) {
+        return;
+      }
+      throw error;
+    }
+    if (!read.isCurrent()) return;
     pageContainer.setAttribute("data-eidos-page", loaded?.page.id ?? "not-found");
 
     if (!loaded) {
@@ -327,6 +344,7 @@ export async function mountBrowserAppHostShell(
         }
       });
       restoreCatalogRouteFocusV010(pageContainer, catalogFocus);
+      if (requestedFocus?.route === resolvedPath) pendingCatalogFocus = undefined;
     } catch (error) {
       const pre = document.createElement("pre");
       pre.textContent = error instanceof Error ? error.message : String(error);
@@ -440,6 +458,9 @@ export async function mountBrowserAppHostShell(
       throw new Error(`EIDOS_APP_HOST_ROUTE_NOT_FOUND: ${resolvedPath}`);
     }
 
+    const intent = activePath.split("?")[0] === resolvedPath.split("?")[0]
+      ? captureCatalogRouteFocusV010(pageContainer) : undefined;
+    pendingCatalogFocus = intent ? {route:resolvedPath,intent} : undefined;
     if (surface?.resolution.kind === "HANDOFF") {
       await renderRoute(path);
     } else if (currentPath() !== resolvedPath) {
