@@ -179,6 +179,14 @@ with sync_playwright() as p:
    page.goto(HOST+'/?surface=desktop#/enterprise-agent',wait_until='domcontentloaded')
    composer=page.locator('[data-eidos-workspace-content] [data-eidos-chat-composer] textarea').first
    expect(composer).to_be_visible(timeout=30000)
+   # The real Thread/Run page first replays durable thread history; while
+   # recovery is busy the composer remains visible but submit() deliberately
+   # returns without dispatching a model request. Wait for the real Host UI
+   # to finish that recovery rather than racing a synthetic Enter.
+   send=page.locator('[data-eidos-workspace-content] [data-eidos-chat-composer] button[type="submit"]').first
+   expect(send).to_be_visible(timeout=30000)
+   expect(send).to_be_enabled(timeout=30000)
+   expect(composer).to_be_enabled(timeout=30000)
    old=len(requests()['requests']);mark=len(events)
    composer.fill('Fixture ordinary conversation without task context')
    composer.press('Enter')

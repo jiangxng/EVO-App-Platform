@@ -24,6 +24,11 @@ import {
   type ContextualAgentInteractionV010,
   type MountedAppHostPage
 } from "../app-host/page-controller.js";
+import {
+  captureCatalogRouteFocusV010,
+  restoreCatalogRouteFocusV010,
+  type CatalogRouteFocusIntentV010
+} from "../app-host/catalog-route-focus.js";
 import { renderAppHostPageToHtml } from "../app-host/page-renderer.js";
 import {
   createBrowserWorkbenchLayoutStateStore,
@@ -200,6 +205,10 @@ export async function mountWorkbenchShell(
   let disposed = false;
   let sideMount: MountedAppHostPage | undefined;
   let workspaceMount: MountedAppHostPage | undefined;
+  // Eidos #217: one bounded same-page Owner navigation focus intent.
+  let pendingCatalogFocus:
+    | {route:string;intent:CatalogRouteFocusIntentV010}
+    | undefined;
   let activeSurfaceId: string | undefined = options.surfaceId;
   let activeSurfaceTarget: AppHostSurfaceTargetV010 = "DESKTOP_WORKBENCH";
   let workspaceMode: "app" | "web" = state.workspaceTarget.startsWith("/") ? "app" : "web";
@@ -723,6 +732,9 @@ export async function mountWorkbenchShell(
   }
 
   async function renderInternalWorkspace(path: string): Promise<void> {
+    // Vendored Workbench removes old controls before awaiting the Owner READ.
+    const oldControlFocus = captureCatalogRouteFocusV010(workspaceContent);
+    const requestedFocus = pendingCatalogFocus;
     const read = workspaceReadGate.begin();
     workspaceDraft?.dispose();
     workspaceDraft = undefined;
@@ -760,6 +772,8 @@ export async function mountWorkbenchShell(
       throw error;
     }
     if (!read.isCurrent()) return;
+    const catalogFocus = requestedFocus?.route === resolvedPath
+      ? requestedFocus.intent : oldControlFocus;
     if (!loaded) {
       const empty = document.createElement("p");
       empty.textContent = hostText(
@@ -803,6 +817,8 @@ export async function mountWorkbenchShell(
     });
     statusRight.textContent = loaded.page.title ?? resolvedPath;
     workspaceDraft = trackContextualFormDraftV010(workspaceContent);
+    restoreCatalogRouteFocusV010(workspaceContent, catalogFocus);
+    if (pendingCatalogFocus?.route === resolvedPath) pendingCatalogFocus = undefined;
   }
 
   async function navigateWorkspace(target: string): Promise<void> {
@@ -825,6 +841,12 @@ export async function mountWorkbenchShell(
         );
       }
 
+      const samePage = state.workspaceTarget.split("?")[0]
+        === resolvedTarget.split("?")[0];
+      const focusIntent = samePage && surface?.resolution.kind !== "HANDOFF"
+        ? captureCatalogRouteFocusV010(workspaceContent) : undefined;
+      pendingCatalogFocus = focusIntent
+        ? {route:resolvedTarget,intent:focusIntent} : undefined;
       state.workspaceTarget = resolvedTarget;
       updateFocusedRoutePresentation();
       if (

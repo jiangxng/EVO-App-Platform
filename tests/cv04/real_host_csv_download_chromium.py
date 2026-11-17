@@ -193,6 +193,9 @@ with sync_playwright() as api:
                 page.keyboard.press("Enter")
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-active"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
+                # Eidos #215: a newly mounted Owner query returns focus to
+                # the same governed control instead of leaving it on body.
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-active"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
                 search=page.locator('[data-eidos-catalog-server-search]')
                 expect(search).to_have_count(1)
@@ -203,6 +206,7 @@ with sync_playwright() as api:
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
                 expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
                 assert "status=ACTIVE" in page.url and "search=Beta" in page.url,page.url
+                expect(page.locator('[data-eidos-catalog-server-search] input[name="search"]')).to_be_focused()
                 active_action=page.locator('[data-eidos-catalog-action="export-current-page"]')
                 active_values=json.loads(active_action.get_attribute("data-eidos-action-values"))
                 assert active_values["status"]=="ACTIVE" and active_values["search"]=="Beta"
@@ -219,6 +223,7 @@ with sync_playwright() as api:
                 inactive_button.click()
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(0,timeout=30000)
                 assert "status=INACTIVE" in page.url and "search=Beta" in page.url
@@ -234,6 +239,7 @@ with sync_playwright() as api:
                 clear_button.click()
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
                 expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
@@ -243,9 +249,11 @@ with sync_playwright() as api:
                 keyboard_filter_results.append({"surface":name,"viewportWidth":size,
                     "tabToActive":True,"enterSearch":True,
                     "inactiveClicked":True,"allClicked":True,
-                    "singleCurrentState":True,"fullKeyboardHumanSigned":False})
+                    "singleCurrentState":True,"routeFocusRestored":True,
+                    "fullKeyboardHumanSigned":False})
                 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
                 print("CV02_OWNER_KEYBOARD_ENTRY_SEARCH_CHROMIUM_PASS:%s:%d"%(name,size),flush=True)
+                print("CV02_OWNER_ROUTE_FOCUS_RESTORED_PASS:%s:%d"%(name,size),flush=True)
             page.close()
         # Same browser storage/session: context A -> enterprise B -> A.
         # This is an isolated static HUMAN fixture, not two real user logins.
@@ -358,3 +366,4 @@ print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
 
 print("CV02_OWNER_COMBINED_FILTER_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
 print("CV02_OWNER_KEYBOARD_ENTRY_SEARCH_CHROMIUM_DESKTOP_PHONE_PASS=4",flush=True)
+print("CV02_OWNER_ROUTE_FOCUS_RESTORED_DESKTOP_PHONE_PASS=4",flush=True)

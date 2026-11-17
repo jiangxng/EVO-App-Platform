@@ -14,7 +14,9 @@ permissions:
 
 jobs:
   native-chromium-preflight:
-    runs-on: ubuntu-latest
+    # Playwright 1.56 Chromium is unsupported on ubuntu-26.04 latest.
+    # Keep identical real browser gate on the repository's pinned 24.04 runner.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
