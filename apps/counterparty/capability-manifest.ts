@@ -96,6 +96,7 @@ function readOperation(input: {
         additionalProperties: false,
         properties: {
           search: { type: "string", maxLength: 120 },
+          status: { type: "string", enum: ["ACTIVE", "INACTIVE"] },
           sort: { type: "string", enum: ["displayName", "code", "status"] },
           direction: { type: "string", enum: ["asc", "desc"] },
           page: { type: "integer", minimum: 0, maximum: 100000 },
