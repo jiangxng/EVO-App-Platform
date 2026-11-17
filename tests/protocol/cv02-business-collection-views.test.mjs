@@ -12,6 +12,10 @@ import {
 } from "../../dist/apps/business-dictionary/directory-query.js";
 import { createCounterpartyProjectionPageV010 } from "../../dist/apps/counterparty/page.js";
 import {
+  parseCounterpartyProjectionRouteQueryV010,
+  counterpartyProjectionQueryRouteV010
+} from "../../dist/apps/counterparty/projection-query.js";
+import {
   COUNTERPARTY_SUPPLIER_PROJECTION_V010,
   COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
   COUNTERPARTY_CUSTOMER_PROJECTION_V010
@@ -270,4 +274,97 @@ test("CV-02 Dictionary column hints are presentation-only and reject invalid or 
   assert.doesNotMatch(renderCatalogBrowserToHtml(
     createBusinessDictionaryDirectoryPageV010({dictionaries,canManage:false,locale:"zh-CN"})
   ),/data-eidos-catalog-column-controls/,"legacy list remains unchanged");
+});
+test("CV-02 Counterparty: one authorized transient column route drives My Supplier table, CSV and return",()=>{
+  const path="/counterparties/my-suppliers";
+  const baseQuery={search:"Hong Kong",sort:"displayName",direction:"asc",page:0,pageSize:15};
+  const before=supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,baseQuery);
+  assert.deepEqual(before.table.columns.map(c=>c.id),["displayName","code"]);
+  assert.equal(before.table.columnControls.options.find(x=>x.id==="code").visible,true);
+  assert.equal(before.table.columnControls.options.find(x=>x.id==="displayName").toggle,undefined);
+  const hide=before.table.columnControls.options.find(x=>x.id==="code").toggle.route;
+  const selected=parseCounterpartyProjectionRouteQueryV010(hide,path);
+  assert.deepEqual(selected.columns,["displayName"]);
+  assert.equal(selected.search,"Hong Kong");
+  assert.equal(selected.sort,"displayName");
+  assert.equal(selected.pageSize,15);
+  const hidden=supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,selected);
+  assert.deepEqual(hidden.table.columns.map(c=>c.id),["displayName"]);
+  assert.deepEqual(Object.keys(hidden.table.rows[0].cells),["displayName"]);
+  assert.deepEqual(hidden.actions.find(x=>x.id==="export-current-page").values.fieldIds,
+    ["displayName"]);
+  assert.ok(hidden.items[0].primaryAction.route.includes("columns%3DdisplayName"));
+  assert.ok(hidden.table.views.find(x=>x.id==="all").route.includes("columns="));
+  assert.equal(hidden.table.search.value,"Hong Kong");
+  assert.match(renderCatalogBrowserToHtml(hidden),
+    /data-eidos-column-choice="code" data-eidos-column-visible="false"/);
+  assert.doesNotMatch(renderCatalogBrowserToHtml(hidden),/data-eidos-col="code"/);
+  const show=hidden.table.columnControls.options.find(x=>x.id==="code").toggle.route;
+  const shown=supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+    parseCounterpartyProjectionRouteQueryV010(show,path));
+  assert.deepEqual(shown.table.columns.map(c=>c.id),["displayName","code"]);
+  const reset=shown.table.columnControls.reset.route;
+  assert.deepEqual(supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+    parseCounterpartyProjectionRouteQueryV010(reset,path)).table.columns.map(x=>x.id),
+    ["displayName","code"]);
+  assert.equal(shown.table.columnControls.reset.route.includes("columns="),false);
+});
+
+test("CV-02 Counterparty: owner enforces readable column whitelist before Eidos renderer",()=>{
+  for(const malformed of [
+    "code","displayName,displayName","displayName,email",
+    "displayName,code,status,subjectType,countryOrRegion,unknown",""
+  ]){
+    assert.throws(()=>parseCounterpartyProjectionRouteQueryV010(
+      "/counterparties/my-suppliers?columns="+encodeURIComponent(malformed),
+      "/counterparties/my-suppliers"),/COUNTERPARTY_COLUMNS_INVALID/,malformed);
+  }
+  assert.throws(()=>parseCounterpartyProjectionRouteQueryV010(
+    "/counterparties/my-suppliers?columns=displayName&columns=displayName",
+    "/counterparties/my-suppliers"),/COUNTERPARTY_QUERY_DUPLICATE_PARAMETER/);
+  assert.throws(()=>supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,{
+    columns:["displayName","status"],page:0,pageSize:25
+  }),/COUNTERPARTY_COLUMNS_UNREADABLE/);
+  assert.throws(()=>counterpartyProjectionQueryRouteV010(
+    "/counterparties/my-suppliers",{columns:["displayName","email"]},0),
+    /COUNTERPARTY_COLUMNS_INVALID/);
+  const page=supplierPage(COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,{
+    sort:"code",direction:"desc",page:0,pageSize:25
+  });
+  assert.equal(page.table.columnControls.options.find(x=>x.id==="code").toggle,undefined,
+    "actively sorted field may not be hidden");
+  const legacy=createCounterpartyProjectionPageV010({
+    projectionId:COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+    counterparties:[],locale:"zh-CN",canManage:false
+  });
+  assert.equal(legacy.table,undefined);
+});
+
+test("CV-02 Counterparty: up/down reorder only currently readable nonidentity fields",()=>{
+  const supplier={contractVersion:"0.1.0",counterpartyId:"s-2",
+    displayName:"HK Supplier",code:"HK-2",status:"ACTIVE",subjectType:"ORGANIZATION"};
+  const page=createCounterpartyProjectionPageV010({
+    projectionId:COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+    counterparties:[supplier],locale:"zh-CN",
+    readableFieldIds:["displayName","code","status","subjectType"],
+    tableQuery:{sort:"displayName",page:0,pageSize:25},
+    pageInfo:{page:0,pageSize:25,total:1,hasMore:false}
+  });
+  const opts=page.table.columnControls.options;
+  assert.equal(opts.find(x=>x.id==="displayName").moveDown,undefined);
+  const move=opts.find(x=>x.id==="subjectType").moveUp.route;
+  const selected=parseCounterpartyProjectionRouteQueryV010(
+    move,"/counterparties/my-suppliers");
+  const reordered=createCounterpartyProjectionPageV010({
+    projectionId:COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+    counterparties:[supplier],locale:"zh-CN",
+    readableFieldIds:["displayName","code","status","subjectType"],
+    tableQuery:selected,pageInfo:{page:0,pageSize:25,total:1,hasMore:false}
+  });
+  assert.deepEqual(reordered.table.columns.map(x=>x.id),
+    ["displayName","code","subjectType","status"]);
+  assert.deepEqual(reordered.actions.find(x=>x.id==="export-current-page").values.fieldIds,
+    reordered.table.columns.map(x=>x.id));
+  assert.deepEqual(Object.keys(reordered.table.rows[0].cells),
+    reordered.table.columns.map(x=>x.id));
 });

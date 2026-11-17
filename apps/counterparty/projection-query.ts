@@ -13,6 +13,25 @@ export interface CounterpartyProjectionQueryV010 {
   pageSize?: number;
 }
 
+/** UI-only layout: never passed into Domain read, CSV or an Agent Operation. */
+export interface CounterpartyProjectionRouteSelectionV010 extends CounterpartyProjectionQueryV010 {
+  columns?: readonly string[];
+}
+const DISPLAY_COLUMNS = ["displayName","code","status","subjectType","countryOrRegion"] as const;
+function requireProjectionColumns(value: unknown): string[] {
+  const columns = typeof value === "string" ? value.split(",") : value;
+  if (!Array.isArray(columns) || columns.length < 1
+    || columns.length > DISPLAY_COLUMNS.length
+    || columns[0] !== "displayName"
+    || new Set(columns).size !== columns.length
+    || columns.some(id => typeof id !== "string" || !DISPLAY_COLUMNS.includes(
+      id as typeof DISPLAY_COLUMNS[number]
+    ))) {
+    throw new Error("COUNTERPARTY_COLUMNS_INVALID");
+  }
+  return [...columns];
+}
+
 export interface CounterpartyProjectionPageInfoV010 {
   page: number;
   pageSize: number;
@@ -97,7 +116,7 @@ export function pageCounterpartyProjectionV010(input: {
 export function parseCounterpartyProjectionRouteQueryV010(
   route: string | null | undefined,
   expectedPath: string
-): CounterpartyProjectionQueryV010 {
+): CounterpartyProjectionRouteSelectionV010 {
   if (!route) return {};
   if (!route.startsWith("/") || route.startsWith("//")
     || route.includes("#") || route.includes("\\")
@@ -113,15 +132,20 @@ export function parseCounterpartyProjectionRouteQueryV010(
     }
     values[key] = key === "page" || key === "pageSize" ? Number(value) : value;
   }
-  return parseCounterpartyProjectionQueryV010(values);
+  const columns = values.columns === undefined
+    ? undefined : requireProjectionColumns(values.columns);
+  delete values.columns;
+  return { ...parseCounterpartyProjectionQueryV010(values),
+    ...(columns ? {columns} : {}) };
 }
 
 export function counterpartyProjectionQueryRouteV010(
   path: string,
-  query: CounterpartyProjectionQueryV010,
+  query: CounterpartyProjectionRouteSelectionV010,
   page: number
 ): string {
   const params = new URLSearchParams();
+  if (query.columns) params.set("columns",requireProjectionColumns(query.columns).join(","));
   if (query.search) params.set("search", query.search);
   if (query.sort) params.set("sort", query.sort);
   if (query.direction) params.set("direction", query.direction);
