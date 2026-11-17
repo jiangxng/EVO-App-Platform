@@ -5,6 +5,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-17 CV-02 #03/07：真实 Human 键盘 / 读屏 / 实体手机签收执行包（最新验收入口）
+
+**[四个 Counterparty 列表 C1–C4、11 项真实操作、12 通道空白矩阵、隐私保护与审核人回执模板](CV02-WINDOW16-20261117-REAL-HUMAN-A11Y-ACCEPTANCE-KIT.md)**：工程基线为 Platform `main@a211b5bfcfbed4ceadc942dff3df27bb5fc3327b`、Eidos #217 / Platform #1341 和东京 DEV 同 SHA 真正部署。**只建立可执行 Human 验收与审计输入，并未取得真实登录企业用户、物理手机、NVDA/VoiceOver 或独立审核人的签署，状态仍为 `HUMAN_NOT_SIGNED`**。自动化焦点 4/4、CSV/Owner 结果和 DEV 部署不可代签；生产 N1 NOT_CERTIFIED / CV03 SAVE OFF / CV04 正式 EXPORT OFF、#1212/#1092 OPEN 与并行 #1184 不变。旧 Window14 段落保留其历史 SHA，不应视为今日最新 main。
+
 ## 2026-11-17 CV-02 Window14 #04/04 组合筛选合并后恢复（最新专项入口）
 
 **[旧聊天决策 / EX01–EX08 研究取舍 / 原代码与精确 HEAD Actions / 东京 DEV 证据 / 待签门禁的分级交接](CV02-WINDOW14-20261117-POSTMERGE-CONTEXT-RECOVERY-HANDOFF.md)**。Eidos #214、Platform #1335 已合并，Platform `main@359114a5f021331bc7cbcd494104887ff0900987` 的组合状态 AND 搜索、Owner/Agent/当前页 CSV 与真实 Chromium 4/4、东京预览已从原证核验；**CV-02 Human / 完整 List Foundation 未签收，CV03 SAVE OFF、CV04 正式 EXPORT OFF，#1212/#1092 OPEN**。此处只增加现状导航，不改下面历史各日期计划，也不重复开发已闭环功能。
