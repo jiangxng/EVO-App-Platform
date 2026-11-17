@@ -9,7 +9,7 @@
 - 2026-11-17 用户在 CV-02 #1343 续跑中原则选择**方案 A：独立真实身份测试环境**，明确要求“继续执行不涉及真实授权的准备工作；列出身份提供商、负责人和验收资源；不要擅自启用登录或授予生产权限”。这是**方向选择**，并非正式 Security/Ops 审批或凭据授权。
 - 本准备的起始受保护 [Platform main `ad09ea56d2a0836b87516189438327289029b85b`](https://github.com/jiangxng/EVO-App-Platform/commit/ad09ea56d2a0836b87516189438327289029b85b) 及 [#1345 已合并的 Window17 原始交接](CV02-WINDOW17-20261117-0707-RESEARCH-HANDOFF-ENTRY.md) / [详细来源索引](CV02-WINDOW17-20261117-0707-RESEARCH-DECISION-REFERENCE-INDEX.md)，其 SHA 只是**本次准备起点**，未来需再核对 main。
 - [#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343) 是**唯一 Human 准入和回执入口**；[Window16 H01–H11 / 12 通道空白执行包](CV02-WINDOW16-20261117-REAL-HUMAN-A11Y-ACCEPTANCE-KIT.md) 是唯一人工验收操作基线。本次不复制或预填原矩阵。
-- 现行东京 [Compose](../../..//deploy/tencent-tokyo/compose.yaml) 的 checked-in 配置明确为 Managed Session **false**、共享 demo-user create-only overlay、Caddy Basic Auth；最后一条经原部署日志验证的东京运行镜像为 `a211b5bfcfbed4ceadc942dff3df27bb5fc3327b`，不是人类 OIDC 登录证明。原 [#1344](https://github.com/jiangxng/EVO-App-Platform/pull/1344) regression 保留此 fail-closed 边界；旧 Railway 身份 Runbook 标记不可用于东京。
+- 现行东京 [Compose](../../../deploy/tencent-tokyo/compose.yaml) 的 checked-in 配置明确为 Managed Session **false**、共享 demo-user create-only overlay、Caddy Basic Auth；最后一条经原部署日志验证的东京运行镜像为 `a211b5bfcfbed4ceadc942dff3df27bb5fc3327b`，不是人类 OIDC 登录证明。原 [#1344](https://github.com/jiangxng/EVO-App-Platform/pull/1344) regression 保留此 fail-closed 边界；旧 Railway 身份 Runbook 标记不可用于东京。
 - 相关 Host 身份代码已有能力：`manager/server.ts`、`manager/authentication-flow.ts`、`manager/session-cookie.ts`、`providers/oidc/host-runtime.ts`；**存在代码并不等于**部署了可用 IdP、持久 Session、真实 Principal、经授权的企业和字段 grants。
 
 ## 2. 方案选择 / 采用与排除
