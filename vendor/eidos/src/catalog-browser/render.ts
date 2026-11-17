@@ -104,6 +104,26 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
       }
       if (selectedCount > 1) throw new Error("EIDOS_CATALOG_TABLE_VIEW_SELECTION_INVALID");
     }
+    if (input.table.quickFilters !== undefined) {
+      const filters = input.table.quickFilters;
+      if (!filters || !filters.label?.trim()
+        || !Array.isArray(filters.options) || filters.options.length < 2
+        || filters.options.length > 8) {
+        throw new Error("EIDOS_CATALOG_QUICK_FILTER_INVALID");
+      }
+      const seen = new Set<string>();
+      let selected = 0;
+      for (const choice of filters.options) {
+        if (!choice || !choice.id?.trim() || !choice.label?.trim()
+          || seen.has(choice.id) || !isLocalCatalogRoute(choice.route)
+          || (choice.selected !== undefined && typeof choice.selected !== "boolean")) {
+          throw new Error("EIDOS_CATALOG_QUICK_FILTER_INVALID");
+        }
+        seen.add(choice.id);
+        if (choice.selected) selected++;
+      }
+      if (selected !== 1) throw new Error("EIDOS_CATALOG_QUICK_FILTER_SELECTION_INVALID");
+    }
     if (input.table.search && (!isLocalCatalogRoute(input.table.search.route)
       || !input.table.search.label || !input.table.search.submitLabel)) {
       throw new Error("EIDOS_CATALOG_TABLE_SEARCH_INVALID");
@@ -321,6 +341,17 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     return `<details data-eidos-catalog-column-controls><summary>${esc(controls.label)}</summary><div data-eidos-catalog-column-options>${options}</div>${controlAction("reset", "reset", controls.reset)}</details>`;
   })() : "";
 
+  // Eidos renders only navigation to Owner re-queries, never filters local rows.
+  const quickFilters = model.table?.quickFilters ? (() => {
+    const filters = model.table!.quickFilters!;
+    return `<nav data-eidos-catalog-quick-filters aria-label="${esc(filters.label)}"><span>${esc(filters.label)}</span>${filters.options.map(choice =>
+      `<span data-eidos-quick-filter-id="${esc(choice.id)}" data-eidos-quick-filter-selected="${choice.selected === true ? "true" : "false"}">${actionButton(undefined,{
+        id:"quick-filter-" + choice.id,label:choice.label,type:"navigate",
+        route:choice.route
+      },false,choice.selected === true)}</span>`
+    ).join("")}</nav>`;
+  })() : "";
+
   const serverSearch = model.table?.search ? `<form data-eidos-catalog-server-search data-eidos-search-route="${esc(model.table.search.route)}" role="search"><label><span data-eidos-catalog-search-label>${esc(model.table.search.label)}</span> <input type="search" name="search" value="${esc(model.table.search.value ?? "")}" maxlength="120" placeholder="${esc(model.table.search.placeholder)}"></label><button type="submit">${esc(model.table.search.submitLabel)}</button></form>` : "";
   const search = model.search
     ? `<div data-eidos-catalog-search><input type="search" data-eidos-catalog-search-input placeholder="${esc(model.search.placeholder ?? "Search")}" aria-label="${esc(model.search.ariaLabel ?? model.search.placeholder ?? "Search catalog")}"></div>`
@@ -350,6 +381,7 @@ ${search}
 ${viewNavigation}
 ${model.authorizedChart ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : ""}
 ${serverSearch}
+${quickFilters}
 ${columnControls}
 ${table}
 ${model.collectionTitle
