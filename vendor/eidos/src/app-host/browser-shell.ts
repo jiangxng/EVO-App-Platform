@@ -22,6 +22,43 @@ import {
 import { renderAppHostPageToHtml } from "./page-renderer.js";
 import { createSupersedingRequestGateV010 } from "../realtime/browser-lifecycle.js";
 
+/**
+ * Capture only the control that requested a governed Catalog re-query.
+ * Never persist a free-form selector, row value, Principal, or business data.
+ */
+type CatalogRouteFocusIntentV010 =
+  | { kind: "quick-filter"; actionId: string }
+  | { kind: "server-search" };
+
+function captureCatalogRouteFocusV010(slot: HTMLElement): CatalogRouteFocusIntentV010 | undefined {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || !slot.contains(active)) return undefined;
+  if (active.matches('[data-eidos-catalog-server-search] input[name="search"]')) {
+    return {kind:"server-search"};
+  }
+  if (active instanceof HTMLButtonElement
+    && active.closest("[data-eidos-catalog-quick-filters]")) {
+    const actionId = active.dataset.eidosCatalogAction;
+    if (actionId?.startsWith("quick-filter-")) {
+      return {kind:"quick-filter",actionId};
+    }
+  }
+  return undefined;
+}
+
+function restoreCatalogRouteFocusV010(
+  slot: HTMLElement,
+  intent: CatalogRouteFocusIntentV010 | undefined
+): void {
+  if (!intent) return;
+  const target = intent.kind === "server-search"
+    ? slot.querySelector<HTMLInputElement>('[data-eidos-catalog-server-search] input[name="search"]')
+    : Array.from(slot.querySelectorAll<HTMLButtonElement>(
+      '[data-eidos-catalog-quick-filters] button[data-eidos-catalog-action]'
+    )).find(button => button.dataset.eidosCatalogAction === intent.actionId);
+  target?.focus({preventScroll:true});
+}
+
 export interface BrowserAppHostShellOptions {
   host: AppHost;
   container: HTMLElement | string;
@@ -225,6 +262,9 @@ export async function mountBrowserAppHostShell(
 
   async function renderRoute(path: string): Promise<void> {
     if (disposed) return;
+    // This vendored Platform shell remounts before its awaited Owner READ.
+    // Capture the existing focused Eidos control BEFORE clearing the slot.
+    const catalogFocus = captureCatalogRouteFocusV010(pageContainer);
     mountedPage?.dispose();
     mountedPage = undefined;
     pageContainer.replaceChildren();
@@ -286,6 +326,7 @@ export async function mountBrowserAppHostShell(
           }
         }
       });
+      restoreCatalogRouteFocusV010(pageContainer, catalogFocus);
     } catch (error) {
       const pre = document.createElement("pre");
       pre.textContent = error instanceof Error ? error.message : String(error);
