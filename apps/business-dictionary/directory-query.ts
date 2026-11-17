@@ -12,9 +12,24 @@ export interface BusinessDictionaryDirectorySelectionV010 {
    * to an owner-saved view or its underlying business Collection.
    */
   personalViewId?: string;
+  /** Transient layout hint; never a Saved View write or field grant. */
+  columns?: readonly string[];
 }
 const SORTABLE_FIELDS = ["dictionaryId", "displayName", "state", "version"];
 const PERSONAL_VIEW_ID = /^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,79}$/;
+const DISPLAY_COLUMNS = ["displayName","dictionaryId","state","version","optionCount"] as const;
+function requireColumns(value: unknown): string[] {
+  const columns = typeof value === "string" ? value.split(",") : value;
+  if (!Array.isArray(columns) || columns.length < 1
+    || columns.length > DISPLAY_COLUMNS.length
+    || columns[0] !== "displayName"
+    || new Set(columns).size !== columns.length
+    || columns.some(x=>typeof x !== "string"
+      || !DISPLAY_COLUMNS.some(id=>id===x))) {
+    throw new Error("BUSINESS_DICTIONARY_DIRECTORY_COLUMNS_INVALID");
+  }
+  return [...columns];
+}
 
 /** A route is presentation intent only; the Host must independently authorize every read. */
 export function parseBusinessDictionaryDirectoryRouteV010(
@@ -34,7 +49,7 @@ export function parseBusinessDictionaryDirectoryRouteV010(
     if (Object.prototype.hasOwnProperty.call(raw, key)) {
       throw new Error("BUSINESS_DICTIONARY_DIRECTORY_PARAMETER_DUPLICATE");
     }
-    if (!["view", "search", "sort", "direction", "page", "pageSize", "personalViewId"].includes(key)) {
+    if (!["view", "search", "sort", "direction", "page", "pageSize", "personalViewId", "columns"].includes(key)) {
       throw new Error("BUSINESS_DICTIONARY_DIRECTORY_PARAMETER_UNSUPPORTED");
     }
     raw[key] = key === "page" || key === "pageSize" ? Number(value) : value;
@@ -48,11 +63,13 @@ export function parseBusinessDictionaryDirectoryRouteV010(
     (typeof personalViewId !== "string" || !PERSONAL_VIEW_ID.test(personalViewId))) {
     throw new Error("BUSINESS_DICTIONARY_PERSONAL_VIEW_ID_INVALID");
   }
-  const { view: _ignored, personalViewId: _hint, ...queryValues } = raw;
+  const columns = raw.columns === undefined ? undefined : requireColumns(raw.columns);
+  const { view: _ignored, personalViewId: _hint, columns: _columnHint, ...queryValues } = raw;
   const query = parseDataCollectionQueryV010(queryValues, {
     sortableFields: SORTABLE_FIELDS
   });
-  return { view, query, ...(personalViewId ? {personalViewId} : {}) };
+  return { view, query, ...(personalViewId ? {personalViewId} : {}),
+    ...(columns ? {columns} : {}) };
 }
 
 export function businessDictionaryDirectoryQueryRouteV010(
@@ -67,6 +84,7 @@ export function businessDictionaryDirectoryQueryRouteV010(
     }
     params.set("personalViewId", selection.personalViewId);
   }
+  if (selection.columns) params.set("columns", requireColumns(selection.columns).join(","));
   if (selection.query.search) params.set("search", selection.query.search);
   if (selection.query.sort) params.set("sort", selection.query.sort);
   if (selection.query.direction) params.set("direction", selection.query.direction);

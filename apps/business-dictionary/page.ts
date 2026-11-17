@@ -145,7 +145,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
   const pageInfo = result?.pageInfo;
   const start = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
   const viewSelection = (view: "all" | "draft" | "published") =>
-    ({view, query: {...query}});
+    ({view, query: {...query},
+      ...(selection?.columns ? {columns:selection.columns} : {})});
   const savedViews = pageInfo && result && selection
     ? (input.authorizedPersonalViews ?? []).flatMap(saved => {
         // Presentation is never an authorization step. These exact checks
@@ -198,7 +199,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
   const personalColumns = savedViews.find(view=>view.selected)?.columns;
   const effectiveSelection: BusinessDictionaryDirectorySelectionV010 = personalSelected
     ? selection!
-    : {view: selection?.view ?? "all",query: selection?.query ?? {}};
+    : {view: selection?.view ?? "all",query: selection?.query ?? {},
+      ...(selection?.columns ? {columns:selection.columns} : {})};
   const baseColumns: NonNullable<CatalogBrowserV010["table"]>["columns"] = [
       {id:"displayName",label:t.name,sortRoute:businessDictionaryDirectoryQueryRouteV010(
         {...effectiveSelection,query:{...query,sort:"displayName",
@@ -223,10 +225,65 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
       ...(query.sort === column.id ? {sortDirection:
         query.direction === "desc" ? "descending" as const : "ascending" as const} : {})
     }));
+  const authorizedColumnIds = baseColumns
+    .filter(column=>result?.readableFieldIds.includes(column.id))
+    .map(column=>column.id);
+  // The route is presentation intent only. Do not allow it to request a
+  // non-readable column or rewrite the Host-authorized Saved View resource.
+  if (selection?.columns && selection.columns.some(id=>!authorizedColumnIds.includes(id))) {
+    throw new Error("BUSINESS_DICTIONARY_DIRECTORY_COLUMN_UNREADABLE");
+  }
+  const activeColumnIds = selection?.columns ?? personalColumns
+    ?? baseColumns.map(column=>column.id);
+  const canConfigure = Boolean(pageInfo && result && selection
+    && activeColumnIds[0] === "displayName"
+    && activeColumnIds.every(id=>authorizedColumnIds.includes(id)));
+  const isZh = (input.locale ?? "").startsWith("zh");
+  const layoutRoute = (columns?: string[]) =>
+    businessDictionaryDirectoryQueryRouteV010({
+      ...effectiveSelection,columns
+    },pageInfo?.page ?? 0);
+  const swapColumns = (a:number,b:number) => {
+    const next=[...activeColumnIds];
+    [next[a],next[b]]=[next[b],next[a]];
+    return next;
+  };
+  const columnControls: NonNullable<CatalogBrowserV010["table"]>["columnControls"]
+    | undefined = canConfigure ? {
+      label:isZh ? "列设置" : "Columns",
+      options:[
+        ...activeColumnIds,
+        ...authorizedColumnIds.filter(id=>!activeColumnIds.includes(id))
+      ].map(id=>{
+        const column=baseColumns.find(col=>col.id===id)!;
+        const index=activeColumnIds.indexOf(id);
+        const visible=index>=0;
+        const toggleAllowed=id!=="displayName" && !(visible && query.sort===id);
+        return {id,label:column.label,visible,
+          ...(toggleAllowed ? {toggle:{
+            label:(isZh ? (visible?"隐藏 ":"显示 ") : (visible?"Hide ":"Show "))+column.label,
+            route:layoutRoute(visible
+              ? activeColumnIds.filter(columnId=>columnId!==id)
+              : [...activeColumnIds,id])
+          }} : {}),
+          ...(index>1 ? {moveUp:{
+            label:(isZh?"上移 ":"Move up ")+column.label,
+            route:layoutRoute(swapColumns(index-1,index))
+          }} : {}),
+          ...(index>=1 && index<activeColumnIds.length-1 ? {moveDown:{
+            label:(isZh?"下移 ":"Move down ")+column.label,
+            route:layoutRoute(swapColumns(index,index+1))
+          }} : {})
+        };
+      }),
+      ...(selection?.columns ? {reset:{
+        label:isZh?"恢复默认列":"Restore columns",
+        route:layoutRoute(undefined)
+      }} : {})
+    } : undefined;
   const table: CatalogBrowserV010["table"] | undefined = pageInfo && result && selection ? {
-    columns: personalColumns
-      ? personalColumns.flatMap(id => baseColumns.filter(column=>column.id===id))
-      : baseColumns,
+    columns: activeColumnIds.flatMap(id=>baseColumns.filter(column=>column.id===id)),
+    ...(columnControls ? {columnControls} : {}),
     views: [
       {id:"all",label:(input.locale ?? "").startsWith("zh") ? "全部" : "All",
         route:businessDictionaryDirectoryQueryRouteV010(viewSelection("all")),
@@ -253,10 +310,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         optionCount:row.cells.optionCount
       };
       return {itemId:row.rowId,
-        cells:personalColumns
-          ? Object.fromEntries(personalColumns.map(id =>
-              [id,cells[id as keyof typeof cells]]))
-          : cells};
+        cells:Object.fromEntries(activeColumnIds.map(id =>
+          [id,cells[id as keyof typeof cells]]))};
     }),
     pageInfo:{
       page:pageInfo.page,pageSize:pageInfo.pageSize,total:pageInfo.total,
