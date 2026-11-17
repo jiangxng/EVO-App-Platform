@@ -51,3 +51,14 @@ Eidos CatalogBrowser 是统一 UI；Counterparty ProjectionService 是授权 REA
 ## 浏览器与 Human 证据
 
 真实隔离 Host Chromium 在 1280px 和 390px 检验点击、列/CSV 一致性、无溢出与跨企业行隔离；这是自动化**非生产**测试，不是企业账号真人验收。结果只在真实 Actions success 后闭合。Human 仍为 **NOT_SIGNED**。
+## 逐项可核验交付状态
+
+功能：Counterparty 当前有权列的显示、隐藏、次序调整和默认恢复，非法 URL/越权字段拒绝
+布局：原 Eidos Catalog Table 顶部折叠控制，沿用原响应式
+颜色：无私有硬编码颜色，保留既有 Eidos Token
+入口：原客户、供应商、我的客户、我的供应商列表
+退出：原列表上级导航或折叠列设置，恢复默认不持久写入
+异常恢复：Owner、Host 重新授权并拒绝越权列、禁用插件、跨企业请求
+桌面：隔离真实 Host Chromium 1280px 测试中，结果以精确 HEAD CI 为准
+移动：隔离真实 Host Chromium 390px 测试中，非物理设备验收
+Human：未签收；真实账户与屏幕阅读器尚无独立回执
