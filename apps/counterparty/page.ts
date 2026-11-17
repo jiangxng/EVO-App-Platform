@@ -346,7 +346,7 @@ export function createCounterpartyProjectionPageV010(input: {
   canManage?: boolean;
   importRoute?: string;
   pageInfo?: CounterpartyProjectionPageInfoV010;
-  tableQuery?: CounterpartyProjectionQueryV010;
+  tableQuery?: import("./projection-query.js").CounterpartyProjectionRouteSelectionV010;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const title = projectionTitleV010(
@@ -372,14 +372,14 @@ export function createCounterpartyProjectionPageV010(input: {
       : input.projectionId === COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
         ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_SUPPLIERS_ROUTE;
   const scopeQuery = input.tableQuery;
-  const scopeDestination = scopeQuery?.search || scopeQuery?.sort || scopeQuery?.direction
+  const scopeDestination = scopeQuery?.search || scopeQuery?.sort || scopeQuery?.direction || scopeQuery?.columns
     ? counterpartyProjectionQueryRouteV010(scopeRoute, scopeQuery, 0)
     : scopeRoute;
   const readable = input.readableFieldIds
     ? new Set(input.readableFieldIds)
     : undefined;
   const canRead = (fieldId: string) => !readable || readable.has(fieldId);
-  const columns = [
+  const baseColumns = [
     {id:"displayName",label:text.displayName},
     ...(canRead("code") ? [{id:"code",label:text.code}] : []),
     ...(canRead("status") ? [{id:"status",label:(input.locale ?? "").startsWith("zh") ? "状态" : "Status"}] : []),
@@ -399,6 +399,57 @@ export function createCounterpartyProjectionPageV010(input: {
   }));
   const query = input.tableQuery ?? {};
   const pageInfo = input.pageInfo;
+  // A presentation route can only choose from fields already granted by the
+  // current Owner read. Never turn a URL hint into a field authorization.
+  const allowlistedColumns = baseColumns.map(column=>column.id);
+  if (query.columns && (
+    !input.readableFieldIds?.includes("displayName")
+    || query.columns.length<1 || query.columns[0]!=="displayName"
+    || new Set(query.columns).size !== query.columns.length
+    || query.columns.some(id=>!allowlistedColumns.includes(id))
+  )) throw new Error("COUNTERPARTY_COLUMNS_UNREADABLE");
+  const activeColumnIds = query.columns ?? allowlistedColumns;
+  const columns = activeColumnIds.flatMap(id=>baseColumns.filter(column=>column.id===id));
+  const columnRoute = (ids?: string[]) =>
+    counterpartyProjectionQueryRouteV010(route,{...query,columns:ids},pageInfo?.page ?? 0);
+  const zh = (input.locale ?? "").startsWith("zh");
+  const columnControls: NonNullable<CatalogBrowserV010["table"]>["columnControls"]
+    | undefined = pageInfo && input.readableFieldIds?.includes("displayName") ? {
+      label:zh ? "列设置" : "Columns",
+      options:[
+        ...activeColumnIds,
+        ...allowlistedColumns.filter(id=>!activeColumnIds.includes(id))
+      ].map(id=>{
+        const column=baseColumns.find(item=>item.id===id)!;
+        const index=activeColumnIds.indexOf(id);
+        const visible=index>=0;
+        const toggleAllowed=id!=="displayName" && !(visible && query.sort===id);
+        const swap=(a:number,b:number)=>{
+          const next=[...activeColumnIds];
+          [next[a],next[b]]=[next[b],next[a]];
+          return next;
+        };
+        return {id,label:column.label,visible,
+          ...(toggleAllowed ? {toggle:{
+            label:(zh?(visible?"隐藏 ":"显示 "):(visible?"Hide ":"Show "))+column.label,
+            route:columnRoute(visible
+              ? activeColumnIds.filter(name=>name!==id)
+              : [...activeColumnIds,id])
+          }} : {}),
+          ...(index>1 ? {moveUp:{
+            label:(zh?"上移 ":"Move up ")+column.label,
+            route:columnRoute(swap(index-1,index))
+          }} : {}),
+          ...(index>=1 && index<activeColumnIds.length-1 ? {moveDown:{
+            label:(zh?"下移 ":"Move down ")+column.label,
+            route:columnRoute(swap(index,index+1))
+          }} : {})
+        };
+      }),
+      ...(query.columns ? {reset:{
+        label:zh?"恢复默认列":"Restore columns",route:columnRoute(undefined)
+      }} : {})
+    } : undefined;
   const totalStart = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
   // CV-02: owner-governed projection routes, rendered by the existing Eidos
   // CatalogBrowser table. These links do not grant a different read scope.
@@ -408,12 +459,13 @@ export function createCounterpartyProjectionPageV010(input: {
     || input.projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010;
   const allRoute = supplierScope ? COUNTERPARTY_SUPPLIERS_ROUTE : COUNTERPARTY_CUSTOMERS_ROUTE;
   const myRoute = supplierScope ? COUNTERPARTY_MY_SUPPLIERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
-  const scopeViewRoute = (path: string) => query.search || query.sort || query.direction
+  const scopeViewRoute = (path: string) => query.search || query.sort || query.direction || query.columns
     || query.pageSize !== undefined
     ? counterpartyProjectionQueryRouteV010(path, query, 0)
     : path;
   const table: CatalogBrowserV010["table"] | undefined = pageInfo ? {
     columns,
+    ...(columnControls ? {columnControls} : {}),
     views: [{
       id: "all", label: supplierScope ? text.suppliers : text.customers,
       route: scopeViewRoute(allRoute), selected: !myScope
@@ -430,7 +482,7 @@ export function createCounterpartyProjectionPageV010(input: {
     },
     rows: input.counterparties.map(subject => ({
       itemId:subject.counterpartyId,
-      cells: {
+      cells: Object.fromEntries(activeColumnIds.map(id=>[id, ({
         displayName:subject.displayName,
         ...(canRead("code") ? {code:subject.code ?? ""} : {}),
         ...(canRead("status")
@@ -439,7 +491,7 @@ export function createCounterpartyProjectionPageV010(input: {
           ? {subjectType:subjectTypeLabel(subject.subjectType,input.locale)} : {}),
         ...(canRead("countryOrRegion")
           ? {countryOrRegion:subject.countryOrRegion ?? ""} : {})
-      }
+      } as Record<string,string | number | boolean | null>)[id]]))
     })),
     pageInfo: {
       ...pageInfo,
