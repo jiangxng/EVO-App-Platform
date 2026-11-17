@@ -5,6 +5,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-17 CV-02 #1343：独立真实身份测试环境（方案 A）准入准备
+
+[方案 A 原则选择、现有 Host/OIDC 复用、最小输入 I01–I03/B01–B02/H01–H02、实际 Security/Ops 准入 Gate 与禁止动作](CV02-ISSUE1343-ISOLATED-IDENTITY-ADMISSION-PREFLIGHT-20261117.md)。**仅选择准备方向；非正式身份审批，未开通登录、未部署隔离环境、未授予任何生产权限**。唯一 Human 结果入口仍是 [#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343)，`BLOCKED_IDENTITY_CONFIG / HUMAN_NOT_SIGNED / 0/12`；原 Window16 执行包与 Window17 研究资料继续复用，无功能重复开发。
+
 ## 2026-11-17 CV-02 #07/07：最终研究资料与决策交接（最新窗口接续入口）
 
 **[简短恢复与里程碑交接](CV02-WINDOW17-20261117-0707-RESEARCH-HANDOFF-ENTRY.md) → [逐条原始 URL / 阅读分级 / 源码与 Actions 原日志 / 方案取舍 / 未决冲突 / artifact 保全索引](CV02-WINDOW17-20261117-0707-RESEARCH-DECISION-REFERENCE-INDEX.md)**。工作线 #1341/#1342/#1344 已合并，真实 Workbench 焦点、状态组合查询、当前页 CSV 和东京 DEV 机器验收已核验；交接前主线基线 `cb5bfd5ca28d26d99c4687c409c962975fdf848f`。**#1343 真实 Human 签收仍 `BLOCKED_IDENTITY_CONFIG / NOT_SIGNED`、0/12**；CV03 N1 / SAVE OFF、CV04 后台 EXPORT OFF、Owner #1212/Operator #1092 OPEN、并行 #1184 不变。外部竞品网址为历史索引转引，**本窗口未重读外站**；后续准确 main SHA 必须按交接 PR 合并结果刷新，下面旧窗口段落仍保留其历史日期。
