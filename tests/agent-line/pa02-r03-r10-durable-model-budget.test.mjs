@@ -24,7 +24,9 @@ const request=(code,values,actionId)=>({
   sourceInteractionId:"pa02:r03:r10:ui",actionId,
   requiresConfirmation:false
 });
-function handlerMap(runtime,provider,catalog,createdAt="2026-10-14T07:00:00.000Z"){
+// Fresh Host Runs use the actual current time; the explicit stale-date test below
+// remains a separate proof that the persisted 72h deadline cannot be bypassed.
+function handlerMap(runtime,provider,catalog,createdAt=new Date().toISOString()){
   return new Map(createPersonalAgentRunActionHandlersV010({
     runStore:createAgentRunStoreV010({
       eventStore:createMemoryAgentRunEventStoreV010(),eventId:randomUUID
@@ -224,7 +226,7 @@ test("PA02 R10: persisted whole-Run wall deadline blocks new work after 72h, pre
       deps:{resolveProvider:()=>provider,createToolCatalog:catalog}
     });
     // This is an actual Host Run; only its Host-owned creation timestamp is
-    // old. The runtime's real wall clock is October 14 (72h has elapsed).
+    // old; the runtime's real wall clock is well beyond its 72h deadline.
     const oldHandlers=handlerMap(runtime,provider,catalog,
       "2026-10-09T00:00:00.000Z");
     const expired=await oldHandlers.get("enterprise-agent.run.start").execute(
