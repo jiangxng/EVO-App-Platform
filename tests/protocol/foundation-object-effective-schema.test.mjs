@@ -84,7 +84,15 @@ test("Counterparty satisfies the reusable Foundation Object conformance boundary
   });
   assert.equal(report.objectType, "counterparty.subject");
   assert.equal(report.schemaRef, "evo.counterparty/0.1.0");
-  assert.equal(report.fieldCount, 19);
+  assert.equal(report.fieldCount, 20);
+  const status=counterpartyCoreSchemaV010.fields.find(f=>f.fieldId==="status");
+  assert.ok(status,"existing persisted status must enter the governed Core Schema");
+  assert.equal(status.readOnly,true);
+  assert.deepEqual(status.enumOptions.map(option=>option.value),["ACTIVE","INACTIVE"]);
+  assert.ok(status.surfaces.includes("FILTER"));
+  assert.ok(status.surfaces.includes("AGENT_READ"));
+  assert.equal(status.surfaces.includes("AGENT_WRITE"),false);
+  assert.equal(status.surfaces.includes("CREATE"),false);
   assert.equal(report.extensionSlotCount, 5);
   assert.ok(report.surfaces.includes("IMPORT"));
   assert.ok(report.surfaces.includes("AGENT_READ"));
