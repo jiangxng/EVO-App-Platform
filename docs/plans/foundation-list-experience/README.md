@@ -5,6 +5,10 @@
 日期：2026-10-12（香港）  
 状态：**待评审实施计划；不是已实现能力，也不改变主线排期。**
 
+## 2026-11-17 CV-02 #07/07：最终研究资料与决策交接（最新窗口接续入口）
+
+**[简短恢复与里程碑交接](CV02-WINDOW17-20261117-0707-RESEARCH-HANDOFF-ENTRY.md) → [逐条原始 URL / 阅读分级 / 源码与 Actions 原日志 / 方案取舍 / 未决冲突 / artifact 保全索引](CV02-WINDOW17-20261117-0707-RESEARCH-DECISION-REFERENCE-INDEX.md)**。工作线 #1341/#1342/#1344 已合并，真实 Workbench 焦点、状态组合查询、当前页 CSV 和东京 DEV 机器验收已核验；交接前主线基线 `cb5bfd5ca28d26d99c4687c409c962975fdf848f`。**#1343 真实 Human 签收仍 `BLOCKED_IDENTITY_CONFIG / NOT_SIGNED`、0/12**；CV03 N1 / SAVE OFF、CV04 后台 EXPORT OFF、Owner #1212/Operator #1092 OPEN、并行 #1184 不变。外部竞品网址为历史索引转引，**本窗口未重读外站**；后续准确 main SHA 必须按交接 PR 合并结果刷新，下面旧窗口段落仍保留其历史日期。
+
 ## 2026-11-17 CV-02 #03/07：真实 Human 键盘 / 读屏 / 实体手机签收执行包（最新验收入口）
 
 **[四个 Counterparty 列表 C1–C4、11 项真实操作、12 通道空白矩阵、隐私保护与审核人回执模板](CV02-WINDOW16-20261117-REAL-HUMAN-A11Y-ACCEPTANCE-KIT.md)**：工程基线为 Platform `main@a211b5bfcfbed4ceadc942dff3df27bb5fc3327b`、Eidos #217 / Platform #1341 和东京 DEV 同 SHA 真正部署。**只建立可执行 Human 验收与审计输入，并未取得真实登录企业用户、物理手机、NVDA/VoiceOver 或独立审核人的签署，状态仍为 `HUMAN_NOT_SIGNED`**。自动化焦点 4/4、CSV/Owner 结果和 DEV 部署不可代签；生产 N1 NOT_CERTIFIED / CV03 SAVE OFF / CV04 正式 EXPORT OFF、#1212/#1092 OPEN 与并行 #1184 不变。旧 Window14 段落保留其历史 SHA，不应视为今日最新 main。
