@@ -38,3 +38,8 @@ Owner 按既有企业/责任范围/字段权限先裁剪，再执行 status AND 
 ## 2026-11-17 Eidos #216 实测纠偏（同范围）
 
 真实 Host 首轮在 ACTIVE 已选中的情况下读到焦点 inactive，说明只在 `renderRoute` 捕获可能晚于 hash 导航时机。上游 [Eidos #216](https://github.com/jiangxng/eidos/pull/216) 已在 `e656d0442034d1a0585418361b019f761430f84d` 合并：先在合法同一 pathname 的 `navigate` 中捕获受管控件 ID，严格绑定目标完整 route，接受一次 Owner 重查后恢复；取消过期请求的渲染，且不跨页或持久化。Platform 不覆盖其他 Eidos vendor 定制，只移植此最小点。早期 Chromium `quick-filter-active` 焦点不恢复的失败是**真实未通过**，此 PR 最终验收必须以修正后的精确 HEAD 和合并后 main Chromium 实际原证为准。另有 PA01B2 Chromium 运行器固定 Ubuntu 24.04 仅为 Playwright 1.56 兼容；这不改变安全/功能门禁。#1212/#1092/Human 真实签收仍保持 OPEN/NOT_SIGNED。
+
+
+## 2026-11-17 真实 Workbench Owner 修正与最终采用边界
+
+更深入跟踪 `manager/app-host-client.ts` 与 `manager/desktop-workbench-runtime.ts`，确定 Counterparty 在桌面使用 Eidos `mountWorkbenchShell`，不是 `mountBrowserAppHostShell`。前者在 `vendor/eidos/src/workbench/shell.ts` 的 `navigateWorkspace`、`renderInternalWorkspace` 管理导航；因此先前 Browser Shell 试验不可能关闭本测试。上游已由 [Eidos #217](https://github.com/jiangxng/eidos/pull/217) 在准确 HEAD release-check + UI Review 通过后合并 `4c2bfea1eb21e4c10091b88aa033339a33c8d8cd`：抽出原有 `catalog-route-focus` 轻量共享 helper、修正实际 Workbench 导航并保留原有 superseding read gate。Platform 只增加共享 helper 和实际 Workbench 的受限焦点恢复；**主动撤回此前对非实际入口 vendor Browser Shell 的试验改动**。本次真实 Host CI 全绿前，不能将焦点恢复记为已验证。PA01B2 Chromium 原工作流需 Ubuntu 24.04 才能安装其 Playwright 1.56，固定 runner 不放松任何正反向用例。真实登录 Human、实体 390px 手机外接键盘、读屏器及全键盘完整链路继续未签。
