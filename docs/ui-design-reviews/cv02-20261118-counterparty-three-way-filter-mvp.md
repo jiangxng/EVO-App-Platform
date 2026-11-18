@@ -33,3 +33,33 @@
 ## 证据与剩余问题
 
 定向协议/集成测试复用 `tests/protocol/cv02-business-collection-views.test.mjs` 和 `cv04-counterparty-my-page-csv-export.test.mjs`，包括实际 Owner 库、Human/Agent 同权、CSV 和撤权/禁用/企业切换拒绝。后续需要检查现有 CV05 隔离真实 Host 1280/390 Chromium 的两组按钮、真实 Eidos 交互与 44px；合并以精确 HEAD PR/Actions 为准。本工程**不**完成个人 Saved View WRITE、业务导入旅程、Kanban、外部 Google 登录、真实真人 Human 签收、正式 CV04 后台导出，也不改 #1184/#1212/#1092 安全门禁。
+
+## 页面模式与导航归属
+
+使用现有 Eidos `CatalogBrowser.layout=list` + `table.quickFilterGroups`，属于 Counterparty 业务域一级列表的**查询工具**，而不是新的导航模块。全部客户/供应商与我的客户/供应商仍是同一套 Eidos Scope Views；状态、主体类型是两个就近的正交过滤维度。业务人员切换筛选无需去 Agent/设置，创建/导入依旧只在业务允许处出现。没有重复的“筛选中”悬浮卡片或第二个列表表头。
+
+## 功能、布局、颜色对照
+
+| 维度 | 现有已实现状态 | 本次可复核增量 / 未完成项 |
+| --- | --- | --- |
+| **功能** | 搜索 AND 状态、分页/列设置、详情返回、当前页 CSV 已存在 | 增加主体类型严格精确匹配并组成三条件 AND、同权 Human/Agent/CSV、非法条件和字段撤权反例；未做 CV03 保存视图 |
+| **布局** | 同一 Eidos 目录及 Scope Views、桌面表格、390px 紧凑列表 | 在搜索与列表数据之间使用两个独立 44px Group，窄屏可折行；不搬 V3 导入工作区的布局过来 |
+| **颜色** | 统一 Eidos Productive/Business Office tokens | 沿用 `--eidos-primary` / `--eidos-focus` / `--eidos-border`，selected 有边框/文本和 `aria-current`，不增加私有色 |
+| **风险** | 旧浏览器假过滤禁止；非法页/排序/字段权限拒绝 | 本次强制真实 Owner/Host 查询；实际商业客户数据和独立 Human 12 通道仍待上线前 |
+
+## 入口、退出与恢复矩阵
+
+| 入口 | 业务动作与目标 | 退出/返回 | 异常与恢复 |
+| --- | --- | --- | --- |
+| 我的供应商 | 搜索 Hong → 状态启用 → 主体机构 → 当前页结果 | 进入供应商详情 → 原 `returnTo` 回当前筛选/列设置/页码 | 无结果显示 0，切类型/状态回第 0 页；无权字段不显示筛选 |
+| 全部供应商 | 两组筛选与“我的”视图切换 | 切回我的供应商，带合法查询状态，重新授权 | 责任范围改变拒绝/裁剪，不缓存全量结果 |
+| 客户/我的客户 | 同一两组 UI 与 API 合同 | 原详情父级导航保留当前状态 | 不合法/重复主体类型参数拒绝，无权限不能用筛选总数推断 |
+| 真实 Agent/当前页 CSV | Agent READ 查询同两条件 + search，CSV 下载当前授权页 | 重新打开真实列表后按当前 Host 权限查询 | 撤权、跨企业、停用 Feature fail-closed；不执行保存/跨页 EXPORT |
+
+## 浏览器与 Human 证据
+
+- **代码/接口**：实际 Platform 既有 `pageCounterpartyProjectionV010`、Capability Manifest、真实 Owner/ActionRouter 与 CSV；新增协议测试和上游 Eidos #218 同步采用，合并前必须确认精确 HEAD 全绿。
+- **自动 Desktop**：既有 CV05 真实隔离 Host+Chromium 1280px 验证两筛选组、44px 按钮、Enter 导航、状态与主体类型同时保留，以及返回原结果；最终截图/日志以 CI 原件为准，不能预写 PASS。
+- **自动 Mobile**：同一 Chrome fixture 390px Touch tap、按钮宽高、横向溢出、查询重授权；原生 Playwright 触控不是实体手机。
+- **真人 Human**：0/12 / NOT_SIGNED，真实 Google 登录、实体键盘/手机、NVDA/VoiceOver 和独立审核仍处于 #1343 上线前门禁，**不是当前 MVP 普通开发阻断**。
+- **当前不涉及**：个人 Saved View 保存、审批、Agent WRITE、CV04 后台跨页 EXPORT、生产 RBAC/KMS/Secrets、生产登录或旧 Railway 退役。
