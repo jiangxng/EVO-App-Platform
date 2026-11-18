@@ -364,7 +364,7 @@ export function createPersonalAgentCapabilityToolRegistrationsV010(input: {
       modelName: "evo_collection_read_preview",
       title: "Preview authorized Collection in Eidos",
       description:
-        "Use after discovering and describing a currently authorized Dictionary or My Customer/Supplier Collection READ. Supply a bounded structured query derived from the Human's request. This tool executes the actual Owner READ through Host authorization and returns only the current page preview plus a presentation-only Eidos list route. The route never grants access: opening it reauthorizes. This is not saved view, bulk export, WRITE or an aggregate over all records.",
+        "Use after discovering and describing a currently authorized Dictionary or My Customer/Supplier Collection READ. Supply a bounded structured query derived from the Human's request. This tool executes the actual Owner READ through Host authorization and returns only the current page preview plus a presentation-only Eidos list route. The route never grants access: opening it reauthorizes. For Dictionary only, optional presentation=table|chart|board selects a route hint; the Host independently authorizes chart aggregation on page open. Never add presentation to the Owner query, and ask for clarification instead of guessing an ambiguous filter or view. This is not saved view, bulk export, WRITE or an aggregate over all records.",
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -377,6 +377,11 @@ export function createPersonalAgentCapabilityToolRegistrationsV010(input: {
           input: {
             type: "object",
             description: "Structured Owner query from the operation's described inputSchema, not SQL."
+          },
+          presentation: {
+            type: "string",
+            enum: ["table", "chart", "board"],
+            description: "Optional Dictionary-only display hint, never a READ grant; chart requires separate Host aggregation on page open."
           }
         }
       },
@@ -396,10 +401,18 @@ export function createPersonalAgentCapabilityToolRegistrationsV010(input: {
       if (!PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(operationId)) {
         throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
       }
+      const presentation = args.presentation;
+      if (presentation !== undefined &&
+        presentation !== "table" && presentation !== "chart" && presentation !== "board") {
+        throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_PRESENTATION_INVALID");
+      }
+      if (presentation !== undefined && operationId !== "dictionary.collection.query") {
+        throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_PRESENTATION_UNSUPPORTED");
+      }
       const query = objectArgument(args, "input");
       const executed = await invoke({ operationId, input: query }, ["READ"]);
       return presentPersonalAgentCollectionReadV010({
-        operationId, query, result: executed.result,
+        operationId, query, presentation, result: executed.result,
         correlationId: executed.correlationId
       });
     }

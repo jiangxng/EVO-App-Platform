@@ -24,10 +24,19 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 
 async function viewRoute(
-  operationId: string, query: Record<string, unknown>
+  operationId: string, query: Record<string, unknown>,
+  presentation?: "table" | "chart" | "board"
 ): Promise<string> {
   const supported = PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(operationId);
   if (!supported) throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
+  if (presentation !== undefined &&
+    presentation !== "table" && presentation !== "chart" && presentation !== "board") {
+    throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_PRESENTATION_INVALID");
+  }
+  if (presentation !== undefined &&
+    operationId !== BUSINESS_DICTIONARY_COLLECTION_QUERY_COMMAND_V010) {
+    throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_PRESENTATION_UNSUPPORTED");
+  }
 
   // The domain parser is used at invocation time only. No eager import of an
   // optional Application is introduced into the Personal Agent Host startup.
@@ -47,7 +56,9 @@ async function viewRoute(
     const route = BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010;
     const candidate = route + (params.size ? "?" + params.toString() : "");
     const parsed = parseBusinessDictionaryDirectoryRouteV010(candidate);
-    return businessDictionaryDirectoryQueryRouteV010(parsed, parsed.query.page ?? 0);
+    return businessDictionaryDirectoryQueryRouteV010({
+      ...parsed, ...(presentation ? { presentation } : {})
+    }, parsed.query.page ?? 0);
   }
 
   const { COUNTERPARTY_MY_CUSTOMERS_ROUTE, COUNTERPARTY_MY_SUPPLIERS_ROUTE } =
@@ -73,13 +84,15 @@ const PREVIEW_MAX_ROWS_V010 = 10;
 export async function presentPersonalAgentCollectionReadV010(input: {
   operationId: string;
   query: Record<string, unknown>;
+  /** Untrusted navigation hint, never sent to the Domain Owner as a query. */
+  presentation?: "table" | "chart" | "board";
   result: unknown;
   correlationId: string;
 }) {
   if (!PERSONAL_AGENT_COLLECTION_PREVIEW_OPERATIONS_V010.includes(input.operationId)) {
     throw new Error("PERSONAL_AGENT_COLLECTION_PREVIEW_NOT_SUPPORTED");
   }
-  const route = await viewRoute(input.operationId, input.query);
+  const route = await viewRoute(input.operationId, input.query, input.presentation);
   const envelope = input.result;
   const collection = record(envelope) && record(envelope.data)
     ? envelope.data : envelope;
