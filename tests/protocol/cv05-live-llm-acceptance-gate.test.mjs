@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   CV05_LIVE_CONSENT,
   validateCv05LiveEnvironment
@@ -54,4 +55,23 @@ test("CV05 live provider test forbids arbitrary HTTP endpoints and never returns
   }),/CV05_LIVE_CUSTOM_ENDPOINT_FORBIDDEN/);
   assert.equal(JSON.stringify(validateCv05LiveEnvironment(valid))
     .includes(valid.EVO_CV05_LIVE_LLM_TEST_API_KEY),false);
+});
+
+
+test("CV05 manual workflow protects QA key behind main-ref and consent admission",()=>{
+  const source=readFileSync(new URL(
+    "../../.github/workflows/cv05-live-llm-isolated-acceptance.yml",
+    import.meta.url
+  ),"utf8");
+  assert.match(source,/^on:\s*\n\s+workflow_dispatch:/m);
+  assert.doesNotMatch(source,/^\s+(?:pull_request|push|workflow_run):/m);
+  assert.match(source,/^  admission:\s*$/m);
+  const [admission,secretJob]=source.split(/^  isolated-real-inference:\s*$/m);
+  assert.ok(secretJob,"CV05_LIVE_SEPARATE_SECRET_JOB_REQUIRED");
+  assert.match(admission,/GITHUB_REF.*refs\/heads\/main/);
+  assert.match(admission,/I_ACCEPT_TEST_LLM_CHARGES/);
+  assert.doesNotMatch(admission,/secrets\.CV05_LIVE_LLM_TEST_API_KEY/);
+  assert.match(secretJob,/needs:\s*admission/);
+  assert.match(secretJob,/if:\s*github\.ref == 'refs\/heads\/main'/);
+  assert.match(secretJob,/secrets\.CV05_LIVE_LLM_TEST_API_KEY/);
 });
