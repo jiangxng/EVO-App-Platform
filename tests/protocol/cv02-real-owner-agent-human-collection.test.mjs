@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createAppActionRouter } from "../../dist/actions/router.js";
-import { createBusinessDictionaryDirectoryPageV010 } from "../../dist/apps/business-dictionary/page.js";
+import {
+  createBusinessDictionaryDirectoryPageV010,
+  withBusinessDictionaryDisplayModesV010
+} from "../../dist/apps/business-dictionary/page.js";
 import { withCv06AuthorizedDictionaryChartV010 } from "../../dist/manager/cv06-dictionary-chart-presentation.js";
 import { renderCatalogBrowserToHtml } from "../../dist/vendor/eidos/src/catalog-browser/render.js";
 import { createPackageCatalog } from "../../dist/catalog/catalog.js";
@@ -342,6 +345,30 @@ test("CV06 Eidos chart renders only separately authorized complete Owner aggrega
   assert.equal((html.match(/data-eidos-authorized-bar-key=/g)||[]).length,2);
   assert.doesNotMatch(renderCatalogBrowserToHtml(page),
     /data-eidos-authorized-aggregate-bars/);
+  // The display selector must use the SAME real Host-governed aggregate.
+  // Suppressed full-query counts remain hidden even on a one-row UI page.
+  const chartMode=withBusinessDictionaryDisplayModesV010({
+    page:visible,directorySelection:{...selection,presentation:"chart"},locale:"zh-CN"
+  });
+  assert.equal(chartMode.presentation,"chart");
+  assert.deepEqual(chartMode.table.presentationViews.map(x=>x.id),
+    ["table","chart","board"]);
+  const chartHtml=renderCatalogBrowserToHtml(chartMode);
+  assert.match(chartHtml,/data-eidos-authorized-aggregate-bars/);
+  assert.doesNotMatch(chartHtml,/data-eidos-catalog-table-wrap/);
+  assert.doesNotMatch(chartHtml,/data-eidos-catalog-pagination/);
+  const boardMode=withBusinessDictionaryDisplayModesV010({
+    page:visible,directorySelection:{...selection,presentation:"board"},locale:"zh-CN"
+  });
+  assert.equal(boardMode.presentation,"board");
+  assert.equal(boardMode.readOnlyKanban.scope,"AUTHORIZED_CURRENT_PAGE");
+  assert.equal(boardMode.readOnlyKanban.groups.flatMap(g=>g.itemIds).length,1);
+  assert.match(renderCatalogBrowserToHtml(boardMode),/data-eidos-read-only-kanban/);
+  const tableMode=withBusinessDictionaryDisplayModesV010({
+    page:visible,directorySelection:selection,locale:"zh-CN"
+  });
+  assert.equal(tableMode.presentation,"table");
+  assert.doesNotMatch(renderCatalogBrowserToHtml(tableMode),/data-eidos-authorized-aggregate-bars/);
 
   env.setAllowed(false);
   const revoked=await withCv06AuthorizedDictionaryChartV010({
@@ -349,6 +376,13 @@ test("CV06 Eidos chart renders only separately authorized complete Owner aggrega
   });
   assert.equal(revoked.authorizedChart,undefined);
   assert.deepEqual(revoked.table,page.table);
+  const deniedChart=withBusinessDictionaryDisplayModesV010({
+    page:revoked,directorySelection:{...selection,presentation:"chart"},locale:"zh-CN"
+  });
+  assert.equal(deniedChart.presentation,"table");
+  assert.equal(deniedChart.table.presentationViews.some(x=>x.id==="chart"),false);
+  assert.doesNotMatch(renderCatalogBrowserToHtml(deniedChart),
+    /data-eidos-authorized-aggregate-bars/);
   env.setAllowed(true);
   env.manager.disable(packageId);
   const stopped=await withCv06AuthorizedDictionaryChartV010({
