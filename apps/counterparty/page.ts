@@ -583,6 +583,18 @@ export function createCounterpartyProjectionPageV010(input: {
       }]
     },
     actions: [
+      // A quick way out of compound predicates. Re-query the Owner at page
+      // zero; keep this authorized projection, display layout and sorting.
+      // Clearing filters never changes the business READ scope or CSV grant.
+      ...(pageInfo && (query.search || query.status || query.subjectType) ? [{
+        id: "clear-filters",
+        label: zh ? "清除筛选条件" : "Clear filters",
+        type: "navigate" as const,
+        route: counterpartyProjectionQueryRouteV010(route,{
+          ...query,search:undefined,status:undefined,subjectType:undefined
+        },0),
+        requiresConfirmation: false
+      }] : []),
       ...(exportFields && pageInfo ? [{
         id: "export-current-page", label: text.exportCurrentPage,
         type: "command" as const, command: exportCommand,
