@@ -72,3 +72,12 @@
 - 独立分支 `fix/cv05-live-acceptance-main-secrets-reauth-20261118` 修复：先完成无 Secret/no checkout 的 main+费用+model Admission，第二个 Job 必须 depends on admission 并重新检查 main 才能取得专用 QA key；离线 CI 增加工作流结构负例；L05 必须真实 Owner/Agent 旧路线重读失败；断言与 Provider 错误脱敏。
 - [在线验收规范与执行方法](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md) 同步更新。此处仅为候选范围，未收到本分支精确 HEAD CI、主线、东京回执前，不得写本轮已合并。后续完成后将本轮最终证据记录在 PR 原始评论中。
 - 不打开身份/OIDC/#1343、N1/Human SAVE/#1212、后台正式 EXPORT、生产 WRITE、#1092，#1184 独立保留。**真实在线模型状态仍为 `LIVE_LLM_UNVERIFIED`**。
+
+
+## 9. 自动续跑 #05/07 · GitHub 环境控制面安全缺口
+
+- 最新已核验受保护 `main@59de29a8d56ffaebb5b46fa2723015b1318c6d02`，#1356 已合并且原始合并后检查 `4 SUCCESS, deploy SKIPPED NON_RUNTIME_CHANGE`，无运行时变更；旧东京实际运行镜像 `f704394474fcf4d11d66d3714c060491a178e698` 仍为最近已验收值。
+- 发现 `workflow_dispatch` 可运行针对不同 ref 的**分支自己的工作流文件**，可被修改以删除 YAML 内的 `main` 条件。仅凭 #1356 的 Admission 不足以保护放在 Repository/Organization scope 的 QA key。GitHub 官方部署 Environment branch rules + Environment-only Secret 是不可被分支代码替代的控制面。官方参考：https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments。
+- 独立工程分支 `fix/cv05-live-qa-protected-environment-20261118` 增加 `environment: cv05-live-qa`、受保护引用双重检查、明确环境级专属 Secret 名称，以及静态 CI 回归约束；详细管理员操作前置写入 [在线 QA 验收协议](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md)。
+- 当前 GitHub 连接器没有可用的 Environment 配置/Secret 查询或修改工具，不能证明外部配置已完成，**即使本次 PR CI 全绿也必须写 `ENVIRONMENT_POLICY_NOT_VERIFIED / LIVE_LLM_UNVERIFIED`**；不应开始联网付费验收。
+- 如完成准确 HEAD CI、受保护主线合并、Tokyo 预检（非运行时变更应跳过实际部署）及过程分支精确清理后，可在工程回执中签收 **代码级约束完成**；不要冒充 GitHub 控制面管理员配置或 L01–L05 的真实模型结果。

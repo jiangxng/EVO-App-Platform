@@ -43,7 +43,7 @@ jobs:
           CV05_MODEL: ${{ inputs.model }}
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+          if [[ "${GITHUB_REF}" != "refs/heads/main" || "${GITHUB_REF_PROTECTED:-false}" != "true" ]]; then
             echo "::error title=CV05_LIVE_REF_FORBIDDEN::Only protected main may run metered inference."
             exit 1
           fi
@@ -67,7 +67,14 @@ jobs:
 
   isolated-real-inference:
     needs: admission
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.ref_protected
+    # Code-level ref checks are not an authorization boundary for modified
+    # branch workflow files. The repository owner MUST configure this GitHub
+    # Environment with "Selected branches and tags" = main ONLY and keep
+    # the dedicated key exclusively in its Environment secrets (never a
+    # repository/organization-level secret). Required reviewer recommended.
+    environment:
+      name: cv05-live-qa
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
@@ -82,7 +89,9 @@ jobs:
           EVO_CV05_LIVE_LLM_CONSENT: ${{ inputs.consent }}
           EVO_CV05_LIVE_LLM_PROVIDER: ${{ inputs.provider }}
           EVO_CV05_LIVE_LLM_MODEL: ${{ inputs.model }}
-          # Dedicated non-production QA key. This workflow does not access
-          # OPENAI_API_KEY, DEEPSEEK_API_KEY, Tokyo SSH or Host DB secrets.
-          EVO_CV05_LIVE_LLM_TEST_API_KEY: ${{ secrets.CV05_LIVE_LLM_TEST_API_KEY }}
+          # Environment-scoped, non-production QA key ONLY. Never add this
+          # name at repository/org level: doing so makes it accessible from
+          # independently modified workflow files on unrelated branches.
+          # The Environment MUST restrict deployments to protected main.
+          EVO_CV05_LIVE_LLM_TEST_API_KEY: ${{ secrets.CV05_LIVE_QA_ENVIRONMENT_ONLY_API_KEY }}
         run: npm run test:cv05:live-llm
