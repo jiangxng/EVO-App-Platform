@@ -283,8 +283,10 @@ function collectionNavigationFromRead(
   if (url.origin !== "https://eidos.invalid"
     || url.pathname !== expectedPath || url.hash) return undefined;
   const allowedParameters = new Set(result.operationId === "dictionary.collection.query"
-    ? ["view", "search", "sort", "direction", "page", "pageSize"]
-    : ["search", "sort", "direction", "page", "pageSize"]);
+    ? ["view", "search", "sort", "direction", "page", "pageSize",
+       "columns", "presentation"]
+     : ["search", "status", "subjectType", "sort", "direction", "page",
+       "pageSize", "columns"]);
   const seen = new Set<string>();
   for (const key of url.searchParams.keys()) {
     if (!allowedParameters.has(key) || seen.has(key)) return undefined;
