@@ -1,0 +1,50 @@
+name: CV05 Isolated Live LLM Acceptance (manual)
+
+# Never triggered on push, pull_request, or Tokyo deployment. The
+# live Provider test spends real tokens and requires isolated credentials.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Isolated inference Provider"
+        type: choice
+        required: true
+        options:
+          - openai
+          - deepseek
+      model:
+        description: "Explicit authorized test model ID"
+        type: string
+        required: true
+      consent:
+        description: "Type I_ACCEPT_TEST_LLM_CHARGES to authorize test API charges"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv05-live-llm-manual-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-real-inference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install repo-locked dependencies without model credentials
+        run: npm ci
+      - name: Run bounded isolated CV05 live llm.inference with real Domain Owner
+        env:
+          EVO_CV05_LIVE_LLM_CONSENT: ${{ inputs.consent }}
+          EVO_CV05_LIVE_LLM_PROVIDER: ${{ inputs.provider }}
+          EVO_CV05_LIVE_LLM_MODEL: ${{ inputs.model }}
+          # Dedicated non-production QA key. This workflow does not access
+          # OPENAI_API_KEY, DEEPSEEK_API_KEY, Tokyo SSH or Host DB secrets.
+          EVO_CV05_LIVE_LLM_TEST_API_KEY: ${{ secrets.CV05_LIVE_LLM_TEST_API_KEY }}
+        run: npm run test:cv05:live-llm
