@@ -47,7 +47,11 @@ function boundedDirectory(route:string):BusinessDictionaryDirectorySelectionV010
   const selection=parseBusinessDictionaryDirectoryRouteV010(route);
   // Source may be a previously selected private view. "Save as" creates a
   // NEW private view from currently visible bounded filters, not an update.
-  return {view:selection.view,query:selection.query};
+  // Keep the current validated visible column order when saving "as". The
+  // personalViewId is only a navigation hint and must not carry over as
+  // authority/ownership for the new private view.
+  return {view:selection.view,query:selection.query,
+    ...(selection.columns ? {columns:selection.columns} : {})};
 }
 
 export function createCv03PersonalSavedViewHumanFormV010(input:{
@@ -148,8 +152,17 @@ export async function executeCv03HumanSavedViewFormV010(input:{
       readableFieldIds.some(field=>typeof field!=="string")) {
       throw Error("CV03_HUMAN_FORM_SOURCE_SCHEMA_INVALID");
     }
-    const columns=ownerColumns.filter(id=>readableFieldIds.includes(id));
-    if(!columns.includes("displayName") || !columns.includes("dictionaryId")) {
+    const availableColumns=ownerColumns.filter(id=>readableFieldIds.includes(id));
+    if(!availableColumns.includes("displayName") ||
+       !availableColumns.includes("dictionaryId")) {
+      throw Error("CV03_HUMAN_FORM_COLUMNS_UNAVAILABLE");
+    }
+    // Column layout came from the same bounded directory route displayed to
+    // the Human, not from an arbitrary form field. Revalidate each column
+    // against the CURRENT Owner READ: stale/revoked fields cannot be saved.
+    const columns=selection.columns ? [...selection.columns] : availableColumns;
+    const authorizedColumns=new Set<string>(availableColumns);
+    if(columns.some(id=>!authorizedColumns.has(id))) {
       throw Error("CV03_HUMAN_FORM_COLUMNS_UNAVAILABLE");
     }
     // No arbitrary SQL or column list from the browser; the signed owner
