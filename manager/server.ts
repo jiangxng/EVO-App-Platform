@@ -7735,7 +7735,14 @@ const server = createServer(async (request, response) => {
                 dictionaries,effectiveVersions,directorySelection,canManage,locale,
                 selectedPersonalViewId:directorySelection.personalViewId
               });
-              return json(response,200,viewPage);
+              // CV03 private views stay on the separately governed READ path.
+              // They may use the current authorized page board, but never
+              // infer permission to show the independent full-query chart.
+              return json(response,200,
+                page.withBusinessDictionaryDisplayModesV010({
+                  page:viewPage,directorySelection,locale
+                })
+              );
             }
           }
           const baseDictionaryPage = page.createBusinessDictionaryDirectoryPageV010({
@@ -7771,7 +7778,11 @@ const server = createServer(async (request, response) => {
               page: baseDictionaryPage, actionRouter,
               context: aggregateContext, directorySelection, locale
             });
-          return json(response, 200, directoryPageWithChart);
+          return json(response, 200,
+            page.withBusinessDictionaryDisplayModesV010({
+              page:directoryPageWithChart,directorySelection,locale
+            })
+          );
         }
         const route = page.parseBusinessDictionaryRouteV010(
           url.searchParams.get("route") ?? undefined,
