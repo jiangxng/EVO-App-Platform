@@ -9,6 +9,8 @@ export interface CounterpartyProjectionQueryV010 {
   search?: string;
   /** A bounded exact-match predicate, AND-combined with search. */
   status?: "ACTIVE" | "INACTIVE";
+  /** Subject kind is Owner-filtered, never an inferred field grant. */
+  subjectType?: "ORGANIZATION" | "PERSON";
   sort?: "displayName" | "code" | "status";
   direction?: "asc" | "desc";
   page?: number;
@@ -41,7 +43,7 @@ export interface CounterpartyProjectionPageInfoV010 {
   hasMore: boolean;
 }
 
-const keys = new Set(["search", "status", "sort", "direction", "page", "pageSize"]);
+const keys = new Set(["search", "status", "subjectType", "sort", "direction", "page", "pageSize"]);
 export function parseCounterpartyProjectionQueryV010(
   values: Record<string, unknown>
 ): CounterpartyProjectionQueryV010 {
@@ -57,6 +59,10 @@ export function parseCounterpartyProjectionQueryV010(
   if (values.status !== undefined
     && values.status !== "ACTIVE" && values.status !== "INACTIVE") {
     throw new Error("COUNTERPARTY_QUERY_STATUS_INVALID");
+  }
+  if (values.subjectType !== undefined
+    && values.subjectType !== "ORGANIZATION" && values.subjectType !== "PERSON") {
+    throw new Error("COUNTERPARTY_QUERY_SUBJECT_TYPE_INVALID");
   }
   if (values.sort !== undefined
     && !["displayName", "code", "status"].includes(String(values.sort))) {
@@ -79,6 +85,7 @@ export function parseCounterpartyProjectionQueryV010(
   return {
     ...(values.search !== undefined ? { search: String(values.search).trim() } : {}),
     ...(values.status !== undefined ? { status: values.status as CounterpartyProjectionQueryV010["status"] } : {}),
+    ...(values.subjectType !== undefined ? { subjectType: values.subjectType as CounterpartyProjectionQueryV010["subjectType"] } : {}),
     ...(values.sort !== undefined ? { sort: values.sort as CounterpartyProjectionQueryV010["sort"] } : {}),
     ...(values.direction !== undefined ? { direction: values.direction as CounterpartyProjectionQueryV010["direction"] } : {}),
     ...(values.page !== undefined ? { page: values.page as number } : {}),
@@ -104,9 +111,13 @@ export function pageCounterpartyProjectionV010(input: {
   if (query.status && !readable.has("status")) {
     throw new Error("COUNTERPARTY_QUERY_STATUS_FORBIDDEN");
   }
+  if (query.subjectType && !readable.has("subjectType")) {
+    throw new Error("COUNTERPARTY_QUERY_SUBJECT_TYPE_FORBIDDEN");
+  }
   const direction = query.direction === "desc" ? -1 : 1;
   const filtered = input.counterparties.filter(item =>
     (!query.status || item.status === query.status)
+    && (!query.subjectType || item.subjectType === query.subjectType)
     && (!search || item.displayName.toLocaleLowerCase().includes(search)
       || (readable.has("code") && item.code.toLocaleLowerCase().includes(search)))
   );
@@ -161,6 +172,7 @@ export function counterpartyProjectionQueryRouteV010(
   if (query.columns) params.set("columns",requireProjectionColumns(query.columns).join(","));
   if (query.search) params.set("search", query.search);
   if (query.status) params.set("status", query.status);
+  if (query.subjectType) params.set("subjectType", query.subjectType);
   if (query.sort) params.set("sort", query.sort);
   if (query.direction) params.set("direction", query.direction);
   params.set("page", String(page));
