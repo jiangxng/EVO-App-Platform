@@ -213,6 +213,70 @@ with sync_playwright() as playwright:
             expect(catalog_a).to_contain_text(plan["expectedA"],timeout=30000)
             assert plan["expectedB"] not in catalog_a.inner_text()
 
+            # CV02 MVP #01: two native filter groups invoke *real* Owner
+            # re-queries in Chromium; not a current-page JS predicate.
+            if name=="my-suppliers":
+                fields=set(plan["readableFieldsA"])
+                assert {"status","subjectType"}.issubset(fields),(
+                    "CV02_MVP_REQUIRED_FILTER_FIELD_GRANTS_MISSING",fields)
+                filters=page.locator('[data-eidos-quick-filter-group]')
+                expect(filters).to_have_count(2,timeout=15000)
+                metrics=page.evaluate("""() => [...document.querySelectorAll(
+                    '[data-eidos-quick-filter-group]')].map(nav=>({
+                      id:nav.getAttribute('data-eidos-quick-filter-group'),
+                      selected:[...nav.querySelectorAll('button[aria-current="page"]')].length,
+                      buttons:[...nav.querySelectorAll('button')].map(b=>{
+                        const r=b.getBoundingClientRect();
+                        return {height:r.height,width:r.width,left:r.left,right:r.right};
+                      })
+                    }))""")
+                assert [g["id"] for g in metrics]==["status","subjectType"],metrics
+                for group in metrics:
+                    assert group["selected"]==1,("CV02_FILTER_SELECTION",group)
+                    for control in group["buttons"]:
+                        assert control["height"]>=44 and control["width"]>=44,(
+                            "CV02_FILTER_TOUCH_TARGET",width,control)
+                        assert control["left"]>=-1 and control["right"]<=width+2,(
+                            "CV02_FILTER_OVERFLOW",width,control)
+                person=page.locator(
+                    '[data-eidos-catalog-action="quick-filter-subjectType-person"]')
+                expect(person).to_be_visible(timeout=10000)
+                person_route=person.get_attribute("data-eidos-route")
+                assert "subjectType=PERSON" in person_route and "search=Supplier" in person_route
+                if phone: person.tap()
+                else:
+                    person.focus()
+                    person.press("Enter")
+                page.wait_for_function("(route)=>location.hash==='#'+route",
+                    arg=person_route,timeout=20000)
+                selected=page.locator(
+                    '[data-eidos-catalog-action="quick-filter-subjectType-person"]')
+                expect(selected).to_have_attribute("aria-current","page",timeout=15000)
+                inactive=page.locator(
+                    '[data-eidos-catalog-action="quick-filter-status-inactive"]')
+                inactive_route=inactive.get_attribute("data-eidos-route")
+                assert "status=INACTIVE" in inactive_route and "subjectType=PERSON" in inactive_route
+                if phone: inactive.tap()
+                else:
+                    inactive.focus()
+                    inactive.press("Enter")
+                page.wait_for_function("(route)=>location.hash==='#'+route",
+                    arg=inactive_route,timeout=20000)
+                expect(page.locator(
+                    '[data-eidos-catalog-action="quick-filter-status-inactive"]')
+                ).to_have_attribute("aria-current","page",timeout=15000)
+                expect(page.locator(
+                    '[data-eidos-catalog-has-table="true"]')).not_to_contain_text(
+                    plan["expectedA"])
+                # Return to original authorized query before exercising view
+                # switching, detail and tenant continuity in this same test.
+                page.goto(HOST+"/?surface=desktop#"+plan["route"],
+                    wait_until="domcontentloaded")
+                expect(page.locator('[data-eidos-catalog-has-table="true"]')
+                    ).to_contain_text(plan["expectedA"],timeout=30000)
+                assert page.evaluate("document.documentElement.scrollWidth")<=width+2
+                print(f"CV02_MVP_MULTI_FILTER_REAL_HOST_PASS:{width}",flush=True)
+
             # CV05 #05: inspect the actual rendered view switcher at both
             # viewport sizes. Prior real 390px screenshots showed unstyled
             # native buttons below Eidos' 44px touch target.
