@@ -176,12 +176,18 @@ with sync_playwright() as api:
                 print("CV02_COUNTERPARTY_COLUMN_CHROMIUM_CSV_PARITY_PASS:%s:%d"%(name,size),flush=True)
                 # The Eidos quick filter navigates to full authorized Owner
                 # status+search query, not a client-only filter of page 2.
-                quick=page.locator('[data-eidos-catalog-quick-filters]')
+                quick=page.locator('[data-eidos-quick-filter-group="status"]')
+                subject=page.locator('[data-eidos-quick-filter-group="subjectType"]')
                 expect(quick).to_have_count(1)
+                expect(subject).to_have_count(1)
+                assert subject.get_attribute("aria-label")=="主体类型"
+                assert subject.locator('button[type="button"]').count()==3
+                expect(subject.locator('[data-eidos-catalog-action="quick-filter-subjectType-all"]')
+                  ).to_have_attribute("aria-current","page")
                 assert quick.get_attribute("aria-label")=="状态筛选"
                 assert quick.locator('button[type="button"]').count()==3
-                all_button=quick.locator('[data-eidos-catalog-action="quick-filter-all"]')
-                active_button=quick.locator('[data-eidos-catalog-action="quick-filter-active"]')
+                all_button=quick.locator('[data-eidos-catalog-action="quick-filter-status-all"]')
+                active_button=quick.locator('[data-eidos-catalog-action="quick-filter-status-active"]')
                 expect(all_button).to_have_attribute("aria-current","page")
                 assert quick.locator('[aria-current="page"]').count()==1
                 # Actual native keyboard path: Tab reaches the next filter,
@@ -191,11 +197,11 @@ with sync_playwright() as api:
                 page.keyboard.press("Tab")
                 expect(active_button).to_be_focused()
                 page.keyboard.press("Enter")
-                expect(page.locator('[data-eidos-catalog-action="quick-filter-active"]')).to_have_attribute(
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-status-active"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
                 # Eidos #215: a newly mounted Owner query returns focus to
                 # the same governed control instead of leaving it on body.
-                expect(page.locator('[data-eidos-catalog-action="quick-filter-active"]')).to_be_focused()
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-status-active"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
                 search=page.locator('[data-eidos-catalog-server-search]')
                 expect(search).to_have_count(1)
@@ -219,11 +225,11 @@ with sync_playwright() as api:
                 # entry/search acceptance. Chaining synthetic key activations
                 # across Host re-renders was nondeterministic on merged main;
                 # never interpret this as a full physical-keyboard Human pass.
-                inactive_button=page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')
+                inactive_button=page.locator('[data-eidos-catalog-action="quick-filter-status-inactive"]')
                 inactive_button.click()
-                expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_have_attribute(
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-status-inactive"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
-                expect(page.locator('[data-eidos-catalog-action="quick-filter-inactive"]')).to_be_focused()
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-status-inactive"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(0,timeout=30000)
                 assert "status=INACTIVE" in page.url and "search=Beta" in page.url
@@ -235,11 +241,11 @@ with sync_playwright() as api:
                 empty_csv=Path(empty_download.value.path()).read_bytes().decode("utf-8-sig")
                 empty_rows=list(csv.reader(io.StringIO(empty_csv,newline="")))
                 assert len(empty_rows)==1 and empty_rows[0]==inactive_values["fieldIds"],empty_rows
-                clear_button=page.locator('[data-eidos-catalog-action="quick-filter-all"]')
+                clear_button=page.locator('[data-eidos-catalog-action="quick-filter-status-all"]')
                 clear_button.click()
-                expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_have_attribute(
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-status-all"]')).to_have_attribute(
                     "aria-current","page",timeout=30000)
-                expect(page.locator('[data-eidos-catalog-action="quick-filter-all"]')).to_be_focused()
+                expect(page.locator('[data-eidos-catalog-action="quick-filter-status-all"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
                 expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(1,timeout=30000)
                 expect(page.locator('[data-eidos-catalog-table] tbody tr').first).to_contain_text("Beta")
