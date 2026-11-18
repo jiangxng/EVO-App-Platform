@@ -97,6 +97,7 @@ function readOperation(input: {
         properties: {
           search: { type: "string", maxLength: 120 },
           status: { type: "string", enum: ["ACTIVE", "INACTIVE"] },
+          subjectType: { type: "string", enum: ["ORGANIZATION", "PERSON"] },
           sort: { type: "string", enum: ["displayName", "code", "status"] },
           direction: { type: "string", enum: ["asc", "desc"] },
           page: { type: "integer", minimum: 0, maximum: 100000 },
