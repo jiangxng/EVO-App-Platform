@@ -45,3 +45,15 @@
 - 东京 Tencent DEV/PREVIEW 与生产 RELEASE 不能混称；没有真实在线推理证据时仅标 `LIVE_LLM_UNVERIFIED`。
 
 参见：[CV05 小切片交接首页](CV05-MVP-0506-20261118-RECOVERY-HANDOFF.md) 和 [现有研究原证索引](CV05-MVP-0506-20261118-RESEARCH-EVIDENCE-INDEX.md)。
+
+
+## 自动续跑 #04/07（2026-11-18）· 人工执行工作流加固与撤权真负例
+
+此次复核定位 **已上线的手动工作流缺少 protected main 引用约束**：原 `workflow_dispatch` 可选择分支，`actions/checkout` 在有专用 QA Secret 的作业中执行，不能允许测试密钥暴露给过程分支代码。修复在独立短期分支 `fix/cv05-live-acceptance-main-secrets-reauth-20261118`：
+
+1. 新增**不使用 Secret、不 checkout** 的 `admission` 作业，明确校验 `GITHUB_REF=refs/heads/main`、费用同意、Provider、模型 ID；`isolated-real-inference` 作业通过 `needs: admission` 且自身再次检验 main 引用，之后才 checkout、安装依赖、注入专用 QA key。任何其他 ref/费用未授权/输入非法均 FAIL/BLOCKED，**不能触发付费测试，也不能进入有密钥的 Job**。
+2. `tests/protocol/cv05-live-llm-acceptance-gate.test.mjs` 为上述分支/密钥分离添加静态回归门禁。既有成本同意、密钥不回退生产变量、Endpoint 白名单负例继续保留。
+3. L05 修复了**只检查 Agent 不生成按钮却不验证旧 Eidos 路由重新访问**的证据漏洞：保留 L04 的真实有权路由，禁用 Counterparty Plugin 后，分别用旧路由的真实 ActionRouter/Domain Owner READ、现有 Agent Preview READ 重新访问，**两者必须被拒绝**；再要求 LLM 回答并确认无新导航。在线失败消息改为固定错误码，歧义追问等断言不打印模型文本、Owner 行体或 Provider HTTP 错误原文。
+4. 这些改进只加固测试基础设施，不新增业务权限、模型访问或可写工具。隔离在线测试依然需要授权人员配置的 `CV05_LIVE_LLM_TEST_API_KEY`、明确 API 计费同意和真实手动 Run；直到实际完成，`LIVE_LLM_UNVERIFIED` 不变。
+
+**证据纪律：** 工程 PR 需先完成其精确 HEAD CI、受保护 main 合并、合并后验收、东京 SHA/healthy/HTTPS/401 和 Actions 安全分支清理，才能写 `ENGINEERING_ACCEPTED`。本段仅描述修复意图，不代替原始 CI 或真实 LLM 记录。
