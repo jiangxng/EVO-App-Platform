@@ -517,6 +517,39 @@ form[data-eidos-id] button,
 }
 
 
+/* CV06 read-only, owner-partitioned current-page board; never a draggable workflow. */
+[data-eidos-catalog-presentation-navigation]{
+  display:flex;gap:var(--eidos-space-sm);flex-wrap:wrap;
+  margin-top:var(--eidos-space-lg);
+}
+[data-eidos-catalog-presentation-navigation] button{
+  min-height:44px;padding:0 var(--eidos-space-md);
+  background:var(--eidos-bg);color:var(--eidos-fg);
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);
+}
+[data-eidos-catalog-presentation-navigation] button[aria-current="page"]{
+  border-color:var(--eidos-primary);color:var(--eidos-primary);font-weight:600;
+}
+[data-eidos-read-only-kanban]{margin-top:var(--eidos-space-lg);min-width:0}
+[data-eidos-read-only-kanban]>header{display:grid;gap:var(--eidos-space-xs)}
+[data-eidos-read-only-kanban]>header h2{font-size:var(--eidos-font-heading);margin:0}
+[data-eidos-board-scope]{color:var(--eidos-fg-muted);margin:0;font-size:var(--eidos-font-meta)}
+[data-eidos-board-columns]{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));
+  gap:var(--eidos-space-md);margin-top:var(--eidos-space-md);align-items:start;min-width:0;
+}
+[data-eidos-board-column]{
+  border:1px solid var(--eidos-border);border-radius:var(--eidos-radius-md);
+  background:var(--eidos-bg-subtle);padding:var(--eidos-space-md);min-width:0;
+}
+[data-eidos-board-column]>h3{font-size:var(--eidos-font-body);margin:0 0 var(--eidos-space-md)}
+[data-eidos-board-cards]{display:grid;gap:var(--eidos-space-md);min-width:0}
+[data-eidos-board-cards] [data-eidos-catalog-item]{min-width:0}
+[data-eidos-board-empty]{color:var(--eidos-fg-muted);margin:0}
+@media(max-width:700px){
+  [data-eidos-board-columns]{grid-template-columns:minmax(0,1fr)}
+}
+
 /* Read-only collection table: compact on desktop, semantic cards on phone. */
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-has-table="true"] [data-eidos-catalog-items],
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-has-table="true"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{display:none}

@@ -4,9 +4,12 @@ import { BUSINESS_DICTIONARY_DIRECTORY_ROUTE_V010 as DIRECTORY } from "./constan
 
 /** Domain-owned, read-only system views over the existing authorized dictionary collection. */
 export type BusinessDictionaryDirectoryViewV010 = "all" | "draft" | "published";
+export type BusinessDictionaryDirectoryPresentationV010 = "table" | "chart" | "board";
 export interface BusinessDictionaryDirectorySelectionV010 {
   view: BusinessDictionaryDirectoryViewV010;
   query: DataCollectionQueryV010;
+  /** Presentation hint only; not a new Data Collection query or grant. */
+  presentation?: BusinessDictionaryDirectoryPresentationV010;
   /**
    * UI selection hint only. Neither this ID nor the URL authorizes access
    * to an owner-saved view or its underlying business Collection.
@@ -49,7 +52,7 @@ export function parseBusinessDictionaryDirectoryRouteV010(
     if (Object.prototype.hasOwnProperty.call(raw, key)) {
       throw new Error("BUSINESS_DICTIONARY_DIRECTORY_PARAMETER_DUPLICATE");
     }
-    if (!["view", "search", "sort", "direction", "page", "pageSize", "personalViewId", "columns"].includes(key)) {
+    if (!["view", "search", "sort", "direction", "page", "pageSize", "personalViewId", "columns", "presentation"].includes(key)) {
       throw new Error("BUSINESS_DICTIONARY_DIRECTORY_PARAMETER_UNSUPPORTED");
     }
     raw[key] = key === "page" || key === "pageSize" ? Number(value) : value;
@@ -64,12 +67,19 @@ export function parseBusinessDictionaryDirectoryRouteV010(
     throw new Error("BUSINESS_DICTIONARY_PERSONAL_VIEW_ID_INVALID");
   }
   const columns = raw.columns === undefined ? undefined : requireColumns(raw.columns);
-  const { view: _ignored, personalViewId: _hint, columns: _columnHint, ...queryValues } = raw;
+  const presentation = raw.presentation;
+  if (presentation !== undefined
+    && presentation !== "table" && presentation !== "chart" && presentation !== "board") {
+    throw new Error("BUSINESS_DICTIONARY_DIRECTORY_PRESENTATION_INVALID");
+  }
+  const { view: _ignored, personalViewId: _hint, columns: _columnHint,
+    presentation: _presentationHint, ...queryValues } = raw;
   const query = parseDataCollectionQueryV010(queryValues, {
     sortableFields: SORTABLE_FIELDS
   });
   return { view, query, ...(personalViewId ? {personalViewId} : {}),
-    ...(columns ? {columns} : {}) };
+    ...(columns ? {columns} : {}),
+    ...(presentation ? {presentation: presentation as BusinessDictionaryDirectoryPresentationV010} : {}) };
 }
 
 export function businessDictionaryDirectoryQueryRouteV010(
@@ -78,6 +88,12 @@ export function businessDictionaryDirectoryQueryRouteV010(
 ): string {
   const params = new URLSearchParams();
   params.set("view", selection.view);
+  if (selection.presentation && selection.presentation !== "table") {
+    if (selection.presentation !== "chart" && selection.presentation !== "board") {
+      throw new Error("BUSINESS_DICTIONARY_DIRECTORY_PRESENTATION_INVALID");
+    }
+    params.set("presentation",selection.presentation);
+  }
   if (selection.personalViewId) {
     if (!PERSONAL_VIEW_ID.test(selection.personalViewId)) {
       throw new Error("BUSINESS_DICTIONARY_PERSONAL_VIEW_ID_INVALID");

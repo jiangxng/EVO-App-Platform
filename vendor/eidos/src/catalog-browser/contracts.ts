@@ -39,6 +39,13 @@ export interface CatalogBrowserTableV010 {
     route: string;
     selected?: boolean;
   }[];
+  /** Owner-supplied display switches. Eidos only navigates. */
+  presentationViews?: {
+    id: "table" | "chart" | "board";
+    label: string;
+    route: string;
+    selected?: boolean;
+  }[];
   rows: { itemId: string; cells: Record<string, string | number | boolean | null> }[];
   pageInfo?: {
     page: number;
@@ -95,6 +102,18 @@ export interface CatalogBrowserItemV010 {
   metadata?: Record<string, string | number | boolean | null>;
 }
 
+/** This board groups only the already-authorized page; never asserts global counts. */
+export interface CatalogReadOnlyKanbanV010 {
+  contractVersion: "0.1.0";
+  kind: "read-only-kanban";
+  scope: "AUTHORIZED_CURRENT_PAGE";
+  title: string;
+  scopeLabel: string;
+  groupFieldId: string;
+  emptyLabel: string;
+  groups: readonly {id:string;label:string;itemIds:readonly string[]}[];
+}
+
 export interface CatalogBrowserV010 {
   contractVersion: "0.1.0";
   kind: "catalog-browser";
@@ -123,6 +142,9 @@ export interface CatalogBrowserV010 {
   };
   items: CatalogBrowserItemV010[];
   table?: CatalogBrowserTableV010;
+  /** Eidos #219: owner-governed read-only current-page board. */
+  presentation?: "table" | "chart" | "board";
+  readOnlyKanban?: CatalogReadOnlyKanbanV010;
   /** Eidos #210: optional Owner-authorized full-query chart. */
   authorizedChart?: CatalogAuthorizedAggregateBarsV010;
   emptyMessage?: string;

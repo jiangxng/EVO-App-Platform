@@ -119,16 +119,26 @@ with sync_playwright() as playwright:
                 assert "SECRET-" not in visible_a,("CV05_TAX_ID_LEAK_A",name)
             assert "SECRET-B_SUPPLIER" not in visible_a
             assert "PRIVATE-B_SUPPLIER" not in visible_a
-            # CV06: chart is actual Eidos browser content sourced from a
-            # SECOND authorized Host aggregate READ, not these table rows.
+            # CV06 MVP #04: real 1280/390 click path Table -> separately
+            # Host-authorized full-query Chart -> current-page read-only Board
+            # -> Table, all on the same domain-owned filter and enterprise.
             chart=page.locator('[data-eidos-authorized-aggregate-bars]')
             if name=="dictionary":
+                expect(chart).to_have_count(0)
+                modes=page.locator('[data-eidos-catalog-presentation-navigation]')
+                expect(modes).to_be_visible(timeout=12000)
+                expect(modes.locator('[data-eidos-catalog-presentation-id]')).to_have_count(3)
+                chart_button=modes.locator('[data-eidos-catalog-action="presentation-chart"]')
+                if phone:
+                    chart_button.tap()
+                else:
+                    chart_button.click()
+                chart=page.locator('[data-eidos-authorized-aggregate-bars]')
                 expect(chart).to_be_visible(timeout=12000)
                 assert chart.get_attribute("data-eidos-chart-scope")==(
                     "AUTHORIZED_ALL_MATCHING_ROWS")
                 assert chart.locator('[data-eidos-authorized-bar-key]').count()==2
                 assert "PRIVATE OPTION VALUE" not in chart.inner_text()
-                # Values from low-count synthetic data remain hidden.
                 suppressed=chart.locator('[data-eidos-count-kind="SUPPRESSED"]')
                 assert suppressed.count()>0
                 assert chart.locator('[data-eidos-authorized-bar-count]').count()==2
@@ -137,6 +147,35 @@ with sync_playwright() as playwright:
                 assert chart_size["x"]>=-1 and chart_size["x"]+chart_size["width"]<=width+2,(
                     "CV06_CHART_HORIZONTAL_OVERFLOW",name,width,chart_size)
                 assert page.evaluate("document.documentElement.scrollWidth")<=width+2
+                screenshot(page,f"{name}-{width}-authorized-chart")
+
+                board_button=page.locator(
+                    '[data-eidos-catalog-action="presentation-board"]')
+                if phone:
+                    board_button.tap()
+                else:
+                    board_button.click()
+                board=page.locator('[data-eidos-read-only-kanban]')
+                expect(board).to_be_visible(timeout=15000)
+                assert "仅展示当前有权分页" in board.inner_text()
+                assert board.locator('[data-eidos-board-column]').count()==2
+                assert plan["expectedA"] in board.inner_text()
+                assert plan["expectedB"] not in board.inner_text()
+                assert "PRIVATE OPTION VALUE" not in board.inner_text()
+                assert page.evaluate("document.documentElement.scrollWidth")<=width+2,(
+                    "CV06_KANBAN_390_HORIZONTAL_OVERFLOW",name,width)
+                screenshot(page,f"{name}-{width}-current-page-kanban")
+
+                table_button=page.locator(
+                    '[data-eidos-catalog-action="presentation-table"]')
+                if phone:
+                    table_button.tap()
+                else:
+                    table_button.click()
+                expect(page.locator('[data-eidos-read-only-kanban]')).to_have_count(0)
+                expect(page.locator('[data-eidos-authorized-aggregate-bars]')).to_have_count(0)
+                expect(page.locator('[data-eidos-catalog-has-table="true"]')
+                       ).to_contain_text(plan["expectedA"],timeout=15000)
             else:
                 expect(chart).to_have_count(0)
             opened=screenshot(page,f"{name}-{width}-list")
@@ -194,14 +233,29 @@ with sync_playwright() as playwright:
                             "PRIVATE-S_ALPHA","PRIVATE-S_BETA","PRIVATE-S_HIDDEN"):
                 assert foreign not in visible_b,("CV05_ENTERPRISE_A_FIELD_LEAK",foreign)
             if name=="dictionary":
-                # A previously rendered Chat route cannot keep an A-domain
-                # chart after the actual Enterprise B context is active.
-                chart_b=catalog_b.locator('[data-eidos-authorized-aggregate-bars]')
+                # Old A-origin Chat route now resolves B. A chart must be
+                # separately reauthorized for B and never reuse A's result.
+                expect(catalog_b.locator('[data-eidos-authorized-aggregate-bars]')
+                       ).to_have_count(0)
+                chart_button=catalog_b.locator(
+                    '[data-eidos-catalog-action="presentation-chart"]')
+                if phone:
+                    chart_button.tap()
+                else:
+                    chart_button.click()
+                chart_b=page.locator('[data-eidos-authorized-aggregate-bars]')
                 expect(chart_b).to_be_visible(timeout=12000)
                 assert chart_b.locator('[data-eidos-authorized-bar-key]').count()==2
                 assert "Alpha CSV Dictionary" not in chart_b.inner_text()
                 assert chart_b.get_attribute("data-eidos-chart-scope")==(
                     "AUTHORIZED_ALL_MATCHING_ROWS")
+                table_button=page.locator(
+                    '[data-eidos-catalog-action="presentation-table"]')
+                if phone:
+                    table_button.tap()
+                else:
+                    table_button.click()
+                expect(page.locator('[data-eidos-authorized-aggregate-bars]')).to_have_count(0)
             screenshot(page,f"{name}-{width}-enterprise-b")
 
             # A -> B -> A context switch restores scoped source data.
