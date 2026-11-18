@@ -73,3 +73,17 @@
 桌面 1280px：扩展原独立 Host Chromium 脚本验证展示三态操作和状态分组，当前 PR 未得到终态前不写 PASS。
 手机 390px：相同真点击与横向溢出验收，真实物理手机 Human 签收尚未完成。
 Human：#1343 仍 0/12 NOT_SIGNED；CV03 LIVE SAVE 仍 OFF，N1 NOT_CERTIFIED。
+
+## 工程门禁要求的精确路径与逐项状态
+
+实际变更的人机界面源：`apps/business-dictionary/page.ts`、`vendor/eidos/src/design-language/productive-workbench-css.ts`、`vendor/eidos/src/catalog-browser/render.ts`。此处明确用于同 PR Eidos UI Review 检查，不代表人工体验验收。
+
+功能：表格/独立授权图表/当前页只读看板共享原 Dictionary Domain Owner 的查询、分页、详情入口，实时拒绝无权图表。
+布局：桌面采用已合并 Eidos #219 多状态列，390px 单列、复用原 Catalog 卡片。
+颜色：严格复用 Eidos token，选中使用 aria-current 文字/语义，不依赖颜色单独判别。
+入口：用户在当前企业业务字典表格的 Display modes 导航进入图表或看板。
+退出：单击「表格」回到原目录，或在看板点击详情后走原 returnTo 返回。
+异常恢复：Host Aggregate DENIED、非法路由、撤权、跨企业和 Feature 关闭时回落原有合法列表，不生成伪图或看板数据。
+桌面：已提交真实 Chromium 1280px 真点击回归脚本，必须在准确 PR HEAD CI 成功后才标 PASS。
+移动：已提交真实 Chromium 390px 真点击及横向溢出回归脚本，实体设备未签收。
+Human：#1343 仍 0/12 NOT_SIGNED，CI 不能替代本人及独立审阅。
