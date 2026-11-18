@@ -372,7 +372,7 @@ export function createCounterpartyProjectionPageV010(input: {
       : input.projectionId === COUNTERPARTY_MY_CUSTOMER_PROJECTION_V010
         ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_SUPPLIERS_ROUTE;
   const scopeQuery = input.tableQuery;
-  const scopeDestination = scopeQuery?.search || scopeQuery?.status || scopeQuery?.sort || scopeQuery?.direction || scopeQuery?.columns
+  const scopeDestination = scopeQuery?.search || scopeQuery?.status || scopeQuery?.subjectType || scopeQuery?.sort || scopeQuery?.direction || scopeQuery?.columns
     ? counterpartyProjectionQueryRouteV010(scopeRoute, scopeQuery, 0)
     : scopeRoute;
   const readable = input.readableFieldIds
@@ -450,22 +450,42 @@ export function createCounterpartyProjectionPageV010(input: {
         label:zh?"恢复默认列":"Restore columns",route:columnRoute(undefined)
       }} : {})
     } : undefined;
-  // Quick filters are Owner-certified search AND status predicates over the
-  // full authorized result, not browser predicates on a current page.
+  // Owner-authorized, server-wide predicates: search AND status AND
+  // subjectType are combined before total/pagination, never on page rows.
+  // A missing readable field never exposes its filter or a conditional count.
+  const statusChoices = pageInfo && input.readableFieldIds?.includes("status") ? {
+    label:zh ? "状态筛选" : "Status filter",
+    options:[
+      {id:"all",label:zh?"全部状态":"All statuses",status:undefined},
+      {id:"active",label:text.active,status:"ACTIVE" as const},
+      {id:"inactive",label:text.inactive,status:"INACTIVE" as const}
+    ].map(option=>({
+      id:option.id,label:option.label,selected:query.status===option.status,
+      route:counterpartyProjectionQueryRouteV010(route,{
+        ...query,status:option.status
+      },0)
+    }))
+  } : undefined;
+  const subjectTypeChoices = pageInfo && input.readableFieldIds?.includes("subjectType") ? {
+    label:text.subjectType,
+    options:[
+      {id:"all",label:zh?"全部主体":"All types",subjectType:undefined},
+      {id:"organization",label:text.organization,subjectType:"ORGANIZATION" as const},
+      {id:"person",label:text.person,subjectType:"PERSON" as const}
+    ].map(option=>({
+      id:option.id,label:option.label,selected:query.subjectType===option.subjectType,
+      route:counterpartyProjectionQueryRouteV010(route,{
+        ...query,subjectType:option.subjectType
+      },0)
+    }))
+  } : undefined;
   const quickFilters: NonNullable<CatalogBrowserV010["table"]>["quickFilters"]
-    | undefined = pageInfo && input.readableFieldIds?.includes("status") ? {
-      label:zh ? "状态筛选" : "Status filter",
-      options:[
-        {id:"all",label:zh?"全部状态":"All statuses",status:undefined},
-        {id:"active",label:zh?"启用":"Active",status:"ACTIVE" as const},
-        {id:"inactive",label:zh?"停用":"Inactive",status:"INACTIVE" as const}
-      ].map(option=>({
-        id:option.id,label:option.label,selected:query.status===option.status,
-        route:counterpartyProjectionQueryRouteV010(route,{
-          ...query,status:option.status
-        },0)
-      }))
-    } : undefined;
+    | undefined = statusChoices && !subjectTypeChoices ? statusChoices
+    : subjectTypeChoices && !statusChoices ? subjectTypeChoices : undefined;
+  const quickFilterGroups: NonNullable<CatalogBrowserV010["table"]>["quickFilterGroups"]
+    | undefined = statusChoices && subjectTypeChoices ? [
+      {id:"status",...statusChoices},{id:"subjectType",...subjectTypeChoices}
+    ] : undefined;
   const totalStart = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
   // CV-02: owner-governed projection routes, rendered by the existing Eidos
   // CatalogBrowser table. These links do not grant a different read scope.
@@ -475,13 +495,14 @@ export function createCounterpartyProjectionPageV010(input: {
     || input.projectionId === COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010;
   const allRoute = supplierScope ? COUNTERPARTY_SUPPLIERS_ROUTE : COUNTERPARTY_CUSTOMERS_ROUTE;
   const myRoute = supplierScope ? COUNTERPARTY_MY_SUPPLIERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
-  const scopeViewRoute = (path: string) => query.search || query.status || query.sort || query.direction || query.columns
+  const scopeViewRoute = (path: string) => query.search || query.status || query.subjectType || query.sort || query.direction || query.columns
     || query.pageSize !== undefined
     ? counterpartyProjectionQueryRouteV010(path, query, 0)
     : path;
   const table: CatalogBrowserV010["table"] | undefined = pageInfo ? {
     columns,
     ...(quickFilters ? {quickFilters} : {}),
+    ...(quickFilterGroups ? {quickFilterGroups} : {}),
     ...(columnControls ? {columnControls} : {}),
     views: [{
       id: "all", label: supplierScope ? text.suppliers : text.customers,
@@ -569,6 +590,7 @@ export function createCounterpartyProjectionPageV010(input: {
         values: {
           ...(query.search ? { search: query.search } : {}),
           ...(query.status ? { status: query.status } : {}),
+          ...(query.subjectType ? { subjectType: query.subjectType } : {}),
           ...(query.sort ? { sort: query.sort } : {}),
           ...(query.direction ? { direction: query.direction } : {}),
           page: pageInfo.page, pageSize: pageInfo.pageSize,
