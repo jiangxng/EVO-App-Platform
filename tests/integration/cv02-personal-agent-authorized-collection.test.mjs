@@ -494,3 +494,166 @@ test("CV-05 rejects non-Dictionary display hints and forbidden Owner filters",as
     input:{search:"Supplier",status:"ACTIVE"}
   },[]),/COUNTERPARTY_QUERY_STATUS_FORBIDDEN|CAPABILITY_OPERATION_INPUT|CAPABILITY_OPERATION/);
 });
+
+
+/**
+ * CV05 MVP #05/06: deterministic provider decisions prove the *runtime and
+ * real Host* behavior, not live-LLM linguistic correctness.
+ */
+function cv05RecoveryScenarioProvider(steps,onInfer=()=>{}) {
+  let index=0;
+  return {
+    get count(){return index;},
+    provider:{
+      providerId:"cv05-recovery-scripted",modelId:"bounded-recovery-v1",
+      async infer(input) {
+        onInfer(input,index);
+        const next=steps[index++];
+        assert.ok(next,"unexpected extra model inference call");
+        if(next.name) assert.ok(input.tools.some(tool=>tool.name===next.name),
+          "scenario selected unavailable Host tool: "+next.name);
+        return {
+          contractVersion:"0.1.0",providerId:"cv05-recovery-scripted",
+          modelId:"bounded-recovery-v1",
+          text:next.text??"",
+          toolCalls:next.name?[{
+            name:next.name,arguments:next.arguments
+          }]:[],
+          usage:{inputTokens:18,outputTokens:8},
+          finishReason:next.name?"tool_calls":"stop"
+        };
+      }
+    }
+  };
+}
+const cv05Search=(operationId)=>({
+  name:"evo_capabilities_search",arguments:{query:operationId}
+});
+const cv05Describe=(operationId)=>({
+  name:"evo_capabilities_describe",arguments:{operationId}
+});
+const cv05Preview=(operationId,input,presentation)=>({
+  name:"evo_collection_read_preview",arguments:{
+    operationId,input,...(presentation?{presentation}:{})
+  }
+});
+const cv05Navigate=(reply)=>presentPersonalAgentReplyV020(reply,"zh-CN")
+  .filter(part=>part.type==="proposal")
+  .flatMap(part=>part.actions??[])
+  .find(action=>action.id==="open-authorized-collection");
+
+test("CV05 #05: ambiguous intent asks without Owner READ; corrected intent re-reads and opens exact authorized list",async()=>{
+  const env=setup(),scope=context(),operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
+  const intent="请帮我看供应商或者业务字典的状态。";
+  const question="你想查看负责的供应商，还是业务字典？";
+  const corrected="查看我负责的供应商，名称包含 Supplier，类型是组织。";
+  const query={search:"Supplier",subjectType:"ORGANIZATION",page:0,pageSize:25};
+  let verifiedInstructions=false,verifiedHistory=false;
+  const scripted=cv05RecoveryScenarioProvider([
+    {text:question},cv05Search(operationId),cv05Describe(operationId),
+    cv05Preview(operationId,query),{text:"已查询当前有权供应商，可以在列表中打开。"}
+  ],(input,index)=>{
+    if(index===0) {
+      const system=input.messages.find(msg=>msg.role==="system")?.content??"";
+      assert.match(system,/For business Collection list requests/);
+      assert.match(system,/ask one short clarifying question/);
+      assert.match(system,/do not silently remove or loosen filters/);
+      verifiedInstructions=true;
+    }
+    if(index===1) {
+      assert.ok(input.messages.some(msg=>msg.role==="assistant" && msg.content===question));
+      assert.ok(input.messages.some(msg=>msg.role==="user" && msg.content===intent));
+      verifiedHistory=true;
+    }
+  });
+  const runtime=createEnterpriseAgentRuntime(
+    createProviderBackedAgentModel(scripted.provider),
+    cv05RealHostCatalog(env,scope),8
+  );
+  const ambiguous=await runtime.chat(intent,scope.context,scope.principal);
+  assert.equal(ambiguous.message,question);
+  assert.deepEqual(ambiguous.observations,[]);
+  assert.equal(cv05Navigate(ambiguous),undefined);
+  const resolved=await runtime.chat(corrected,scope.context,scope.principal,[
+    {role:"user",content:intent},{role:"assistant",content:question}
+  ]);
+  assert.ok(verifiedInstructions && verifiedHistory);
+  assert.equal(scripted.count,5);
+  assert.equal(resolved.observations.every(item=>item.ok),true);
+  const route=cv05Navigate(resolved)?.route;
+  assert.ok(route?.startsWith(COUNTERPARTY_MY_SUPPLIERS_ROUTE));
+  const parsed=parseCounterpartyProjectionRouteQueryV010(
+    route,COUNTERPARTY_MY_SUPPLIERS_ROUTE
+  );
+  assert.deepEqual(parsed,query);
+  const reopened=await env.router.execute(request(operationId,parsed),scope);
+  assert.equal(reopened.ok,true);
+  assert.deepEqual(reopened.result.rows,resolved.observations.at(-1).result.rows);
+  assert.deepEqual(reopened.result.rows.map(row=>row.rowId),["supplier-hk"]);
+});
+
+test("CV05 #05: forbidden filter fails without fake list action; Human correction must start new authorized READ",async()=>{
+  const env=setup(),scope=context(),operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
+  // The actual fixture grants displayName, code, subjectType, but not status.
+  const forbidden={search:"Supplier",status:"ACTIVE",page:0,pageSize:25};
+  const corrected={search:"Supplier",subjectType:"ORGANIZATION",page:0,pageSize:25};
+  const scripted=cv05RecoveryScenarioProvider([
+    cv05Search(operationId),cv05Describe(operationId),
+    cv05Preview(operationId,forbidden),{text:"状态字段不可查询，请修改筛选条件。"},
+    cv05Search(operationId),cv05Describe(operationId),
+    cv05Preview(operationId,corrected),{text:"已按你修改后的组织类型查询。"}
+  ]);
+  const runtime=createEnterpriseAgentRuntime(
+    createProviderBackedAgentModel(scripted.provider),
+    cv05RealHostCatalog(env,scope),8
+  );
+  const denied=await runtime.chat(
+    "请查状态为启用的 Supplier 供应商。",scope.context,scope.principal
+  );
+  assert.equal(denied.observations.at(-1).ok,false);
+  assert.match(denied.observations.at(-1).error.code,/COUNTERPARTY_QUERY_STATUS_FORBIDDEN|CAPABILITY_OPERATION/);
+  assert.equal(cv05Navigate(denied),undefined);
+  assert.equal(presentPersonalAgentReplyV020(denied,"zh-CN")
+    .some(part=>part.type==="activity" && part.state==="error"),true);
+  const reply=await runtime.chat(
+    "不再按状态过滤，改成类型为组织的 Supplier。",scope.context,scope.principal,[
+      {role:"user",content:"请查状态为启用的 Supplier 供应商。"},
+      {role:"assistant",content:denied.message}
+    ]
+  );
+  assert.equal(scripted.count,8);
+  const route=cv05Navigate(reply)?.route;
+  assert.ok(route,"new Host preview must be the sole source of a fresh route");
+  const parsed=parseCounterpartyProjectionRouteQueryV010(
+    route,COUNTERPARTY_MY_SUPPLIERS_ROUTE
+  );
+  assert.deepEqual(parsed,corrected);
+  assert.equal("status" in parsed,false);
+  const reopened=await env.router.execute(request(operationId,parsed),scope);
+  assert.equal(reopened.ok,true);
+  assert.deepEqual(reopened.result.rows,reply.observations.at(-1).result.rows);
+});
+
+test("CV05 #05: a subsequent failed Host inspection suppresses earlier successful preview action",async()=>{
+  const env=setup(),scope=context(),operationId=DICTIONARY_READ;
+  const scripted=cv05RecoveryScenarioProvider([
+    cv05Search(operationId),cv05Describe(operationId),
+    cv05Preview(operationId,{view:"published",search:"supplier",page:0,pageSize:25},"board"),
+    cv05Describe("dictionary.nonexistent.operation"),
+    {text:"后续授权检查失败，不能提供之前的列表入口。"}
+  ]);
+  const runtime=createEnterpriseAgentRuntime(
+    createProviderBackedAgentModel(scripted.provider),
+    cv05RealHostCatalog(env,scope),8
+  );
+  const reply=await runtime.chat("请查看有权的字典看板并复核授权。",scope.context,scope.principal);
+  assert.equal(reply.observations[2].ok,true);
+  assert.match(reply.observations[2].result.navigation.route,/presentation=board/);
+  assert.equal(reply.observations[3].ok,false);
+  assert.equal(cv05Navigate(reply),undefined);
+  const html=renderChatMessageToHtml({
+    contractVersion:"0.2.0",id:"cv05-stale-route-reject",
+    role:"assistant",parts:presentPersonalAgentReplyV020(reply,"zh-CN")
+  });
+  assert.doesNotMatch(html,/data-eidos-chat-action="open-authorized-collection"/);
+});
