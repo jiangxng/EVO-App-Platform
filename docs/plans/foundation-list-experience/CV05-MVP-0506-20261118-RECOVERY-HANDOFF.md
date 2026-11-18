@@ -81,3 +81,10 @@
 - 独立工程分支 `fix/cv05-live-qa-protected-environment-20261118` 增加 `environment: cv05-live-qa`、受保护引用双重检查、明确环境级专属 Secret 名称，以及静态 CI 回归约束；详细管理员操作前置写入 [在线 QA 验收协议](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md)。
 - 当前 GitHub 连接器没有可用的 Environment 配置/Secret 查询或修改工具，不能证明外部配置已完成，**即使本次 PR CI 全绿也必须写 `ENVIRONMENT_POLICY_NOT_VERIFIED / LIVE_LLM_UNVERIFIED`**；不应开始联网付费验收。
 - 如完成准确 HEAD CI、受保护主线合并、Tokyo 预检（非运行时变更应跳过实际部署）及过程分支精确清理后，可在工程回执中签收 **代码级约束完成**；不要冒充 GitHub 控制面管理员配置或 L01–L05 的真实模型结果。
+
+## 10. 自动续跑 #06/07 · 回归测试平台协议的真实集成路径
+
+- 已核对受保护 `main@9c96f52023ff1bb3f7ff854d9b2692663d5ba9a4` 及 #1357 工程验收。**Environment 设置不可核验，在线模型 L01–L05 尚未运行；缺管理员的 Environment main-only 策略、环境专属 QA 密钥和付费权限证据。**
+- 新小切片 `test/cv05-offline-responses-provider-host-journey-20261118` 不实现新的 Agent/Provider/列表类基类，仅复用 `providers/openai/runtime.ts` 与 `providers/deepseek/runtime.ts` 的实际 Responses transport adapter，并以合成 HTTP response 驱动真实 `createProviderBackedAgentModel`、Host Catalog、Domain Owner/ActionRouter、Eidos 的 READ/导航/撤权旧链接负例。此为**合成决策、零网络传输适配回归**，不可升级 `LIVE_LLM_UNVERIFIED`。
+- 普通 PR Platform CI 即可执行这两项测试，不需新 Workflow 或任何密钥。故意保持原 `cv05-live-qa` GitHub Environment 部署规则、人工认证项和 #1184 并行工作不变。
+- 当前仅为待准确 HEAD CI 的候选；继续关注最终 PR/主线 CI、东京非运行时变更 SKIP 和 Actions 安全清理，完成后只在 PR 评论登记原证，不冒充真实 API 调用。
