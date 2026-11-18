@@ -247,9 +247,15 @@ function collectionNavigationFromRead(
   if (!descriptor) return undefined;
 
   // Never resurrect a prior success after a later failed/revoked read.
-  const observation = [...reply.observations].reverse().find(item =>
+  const lastPreviewIndex = reply.observations.findLastIndex(item =>
     item.tool === descriptor.id
   );
+  const observation = reply.observations[lastPreviewIndex];
+  // Later Host failures can invalidate an earlier successful preview in this
+  // turn. Never offer stale navigation after a denial, failed re-read or
+  // failed context/feature inspection, even if model prose still says success.
+  if (lastPreviewIndex < 0 || reply.observations.slice(lastPreviewIndex + 1)
+    .some(item => !item.ok)) return undefined;
   if (!observation || !observation.ok || !observation.result
     || typeof observation.result !== "object"
     || Array.isArray(observation.result)) return undefined;
