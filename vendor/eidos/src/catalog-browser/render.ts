@@ -124,6 +124,38 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
       }
       if (selected !== 1) throw new Error("EIDOS_CATALOG_QUICK_FILTER_SELECTION_INVALID");
     }
+    if (input.table.quickFilterGroups !== undefined) {
+      const groups = input.table.quickFilterGroups;
+      if (input.table.quickFilters !== undefined || !Array.isArray(groups)
+        || groups.length < 2 || groups.length > 4) {
+        throw new Error("EIDOS_CATALOG_QUICK_FILTER_GROUPS_INVALID");
+      }
+      const groupIds = new Set<string>();
+      for (const group of groups) {
+        if (!group || typeof group.id !== "string" || !/^[a-zA-Z0-9_-]{1,40}$/.test(group.id)
+          || groupIds.has(group.id) || typeof group.label !== "string"
+          || !group.label.trim() || !Array.isArray(group.options)
+          || group.options.length < 2 || group.options.length > 8) {
+          throw new Error("EIDOS_CATALOG_QUICK_FILTER_GROUP_INVALID");
+        }
+        groupIds.add(group.id);
+        const optionIds = new Set<string>();
+        let selected = 0;
+        for (const choice of group.options) {
+          if (!choice || typeof choice.id !== "string" || !/^[a-zA-Z0-9_-]{1,40}$/.test(choice.id)
+            || optionIds.has(choice.id) || typeof choice.label !== "string"
+            || !choice.label.trim() || !isLocalCatalogRoute(choice.route)
+            || (choice.selected !== undefined && typeof choice.selected !== "boolean")) {
+            throw new Error("EIDOS_CATALOG_QUICK_FILTER_GROUP_OPTION_INVALID");
+          }
+          optionIds.add(choice.id);
+          if (choice.selected === true) selected++;
+        }
+        if (selected !== 1) {
+          throw new Error("EIDOS_CATALOG_QUICK_FILTER_GROUP_SELECTION_INVALID");
+        }
+      }
+    }
     if (input.table.search && (!isLocalCatalogRoute(input.table.search.route)
       || !input.table.search.label || !input.table.search.submitLabel)) {
       throw new Error("EIDOS_CATALOG_TABLE_SEARCH_INVALID");
@@ -352,6 +384,15 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     ).join("")}</nav>`;
   })() : "";
 
+  const quickFilterGroups = model.table?.quickFilterGroups?.map(group =>
+    `<nav data-eidos-catalog-quick-filters data-eidos-quick-filter-group="${esc(group.id)}" aria-label="${esc(group.label)}"><span>${esc(group.label)}</span>${group.options.map(choice =>
+      `<span data-eidos-quick-filter-id="${esc(choice.id)}" data-eidos-quick-filter-selected="${choice.selected === true ? "true" : "false"}">${actionButton(undefined, {
+        id:"quick-filter-" + group.id + "-" + choice.id,
+        label:choice.label,type:"navigate",route:choice.route
+      },false,choice.selected === true)}</span>`
+    ).join("")}</nav>`
+  ).join("") ?? "";
+
   const serverSearch = model.table?.search ? `<form data-eidos-catalog-server-search data-eidos-search-route="${esc(model.table.search.route)}" role="search"><label><span data-eidos-catalog-search-label>${esc(model.table.search.label)}</span> <input type="search" name="search" value="${esc(model.table.search.value ?? "")}" maxlength="120" placeholder="${esc(model.table.search.placeholder)}"></label><button type="submit">${esc(model.table.search.submitLabel)}</button></form>` : "";
   const search = model.search
     ? `<div data-eidos-catalog-search><input type="search" data-eidos-catalog-search-input placeholder="${esc(model.search.placeholder ?? "Search")}" aria-label="${esc(model.search.ariaLabel ?? model.search.placeholder ?? "Search catalog")}"></div>`
@@ -382,6 +423,7 @@ ${viewNavigation}
 ${model.authorizedChart ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : ""}
 ${serverSearch}
 ${quickFilters}
+${quickFilterGroups}
 ${columnControls}
 ${table}
 ${model.collectionTitle
