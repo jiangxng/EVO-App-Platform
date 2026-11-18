@@ -60,6 +60,57 @@ function assertCatalog(input: CatalogBrowserV010): CatalogBrowserV010 {
   }
   assertContextNavigationV010(input.contextNavigation);
   if (input.authorizedChart) assertAuthorizedAggregateBarsV010(input.authorizedChart);
+  if (input.presentation !== undefined && !["table","chart","board"].includes(input.presentation)) {
+    throw new Error("EIDOS_CATALOG_PRESENTATION_INVALID");
+  }
+  if (input.presentation === "chart" && (!input.table || !input.authorizedChart)) {
+    throw new Error("EIDOS_CATALOG_CHART_NOT_AUTHORIZED");
+  }
+  if (input.presentation === "board" && (!input.table || !input.readOnlyKanban)) {
+    throw new Error("EIDOS_CATALOG_BOARD_NOT_AUTHORIZED");
+  }
+  if (input.table?.presentationViews) {
+    const modes=input.table.presentationViews;
+    if (!Array.isArray(modes) || modes.length < 2 || modes.length > 3
+      || new Set(modes.map(m=>m.id)).size !== modes.length
+      || modes.some(m=>!m || !["table","chart","board"].includes(m.id)
+        || !m.label?.trim() || !isLocalCatalogRoute(m.route)
+        || (m.selected !== undefined && typeof m.selected !== "boolean"))
+      || modes.filter(m=>m.selected).length !== 1
+      || (input.presentation && !modes.some(m=>m.id===input.presentation && m.selected))) {
+      throw new Error("EIDOS_CATALOG_PRESENTATION_VIEWS_INVALID");
+    }
+  }
+  if (input.readOnlyKanban) {
+    const board=input.readOnlyKanban;
+    if (board.contractVersion!=="0.1.0" || board.kind!=="read-only-kanban"
+      || board.scope!=="AUTHORIZED_CURRENT_PAGE"
+      || !board.title?.trim() || board.title.length>100
+      || !board.scopeLabel?.trim() || board.scopeLabel.length>160
+      || !board.emptyLabel?.trim() || board.emptyLabel.length>100
+      || !/^[a-zA-Z0-9._:-]{1,80}$/.test(board.groupFieldId??"")
+      || !Array.isArray(board.groups) || board.groups.length<1 || board.groups.length>8
+      || !input.table || input.table.rows.length!==input.items.length
+      || input.items.length>100) throw new Error("EIDOS_CATALOG_BOARD_INVALID");
+    const ids=new Set(input.items.map(item=>item.id));
+    const seen=new Set<string>();
+    const groups=new Set<string>();
+    for(const group of board.groups) {
+      if(!group || !/^[a-zA-Z0-9._:-]{1,80}$/.test(group.id??"")
+        || groups.has(group.id) || !group.label?.trim()
+        || group.label.length>100 || !Array.isArray(group.itemIds)) {
+        throw new Error("EIDOS_CATALOG_BOARD_GROUP_INVALID");
+      }
+      groups.add(group.id);
+      for(const id of group.itemIds) {
+        if(typeof id!=="string" || !ids.has(id) || seen.has(id)) {
+          throw new Error("EIDOS_CATALOG_BOARD_ITEM_INVALID");
+        }
+        seen.add(id);
+      }
+    }
+    if(seen.size!==ids.size) throw new Error("EIDOS_CATALOG_BOARD_PARTITION_INVALID");
+  }
   if (input.actions !== undefined) {
     if (!Array.isArray(input.actions)) {
       throw new Error("EIDOS_CATALOG_PAGE_ACTIONS_INVALID");
@@ -266,7 +317,7 @@ function actionButton(itemId: string | undefined, action: import("./contracts.js
 
 export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
   const model = assertCatalog(input);
-  const items = model.items.map(item => {
+  const renderedItems = model.items.map(item => {
     const badges = (item.badges ?? []).map(x => `<span data-eidos-catalog-badge>${esc(x)}</span>`).join("");
     const metadata = Object.entries(item.metadata ?? {})
       .map(([key, value]) => `<span data-eidos-catalog-meta data-key="${esc(key)}">${esc(key)}: ${esc(value)}</span>`)
@@ -303,7 +354,22 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     ].join(" ").toLocaleLowerCase();
 
     return `<article data-eidos-catalog-item="${esc(item.id)}" data-eidos-catalog-search-text="${esc(searchText)}"${rowAttributes}>${thumbnail}<header><div><h2>${esc(item.title)}</h2>${item.version ? `<span data-eidos-catalog-version>${esc(item.version)}</span>` : ""}</div>${status}</header>${item.category ? `<div data-eidos-catalog-category>${esc(item.category)}</div>` : ""}${item.summary ? `<p>${esc(item.summary)}</p>` : ""}<div data-eidos-catalog-badges>${badges}</div><div data-eidos-catalog-metadata>${metadata}</div><footer>${actions}</footer>${rowPrimary ? '<span data-eidos-catalog-row-disclosure aria-hidden="true">›</span>' : ""}</article>`;
-  }).join("");
+  });
+  const items=renderedItems.join("");
+  // Each board card reuses the identical, already escaped authorized item.
+  // There is no drag target, mutation event, browser grouping or extra READ.
+  const itemHtml=new Map(model.items.map((item,i)=>[item.id,renderedItems[i]]));
+  const boardHtml=model.presentation==="board" && model.readOnlyKanban
+    ? '<section data-eidos-read-only-kanban aria-label="'+esc(model.readOnlyKanban.title)+'">'
+      + '<header><h2>'+esc(model.readOnlyKanban.title)+'</h2><p data-eidos-board-scope>'
+      + esc(model.readOnlyKanban.scopeLabel)+'</p></header>'
+      + '<div data-eidos-board-columns>'+model.readOnlyKanban.groups.map(group=>
+        '<section data-eidos-board-column="'+esc(group.id)+'"><h3>'
+        +esc(group.label)+'</h3><div data-eidos-board-cards>'
+        +(group.itemIds.length
+          ? group.itemIds.map(id=>itemHtml.get(id)!).join("")
+          : '<p data-eidos-board-empty>'+esc(model.readOnlyKanban!.emptyLabel)+'</p>')
+        +'</div></section>').join("")+'</div></section>' : "";
 
   // The semantic table and narrow-screen cards share the same authorized page.
   const table = model.table ? (() => {
@@ -358,6 +424,14 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
         }, false, view.selected === true)}</span>`
       ).join("")}</nav>`
     : "";
+
+  const presentationNavigation = model.table?.presentationViews?.length
+    ? `<nav data-eidos-catalog-presentation-navigation aria-label="Display modes">${model.table.presentationViews.map(view =>
+        `<span data-eidos-catalog-presentation-id="${esc(view.id)}" data-eidos-catalog-presentation-selected="${view.selected===true?"true":"false"}">${actionButton(undefined,{
+          id:"presentation-"+view.id,label:view.label,
+          type:"navigate",route:view.route
+        },false,view.selected===true)}</span>`
+      ).join("")}</nav>` : "";
 
   // Current Domain Owner supplies all routes; Eidos does not persist layout.
   const columnControls = model.table?.columnControls ? (() => {
@@ -420,17 +494,23 @@ ${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
 </header>
 ${search}
 ${viewNavigation}
-${model.authorizedChart ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : ""}
+${presentationNavigation}
+${model.presentation==="chart" && model.authorizedChart
+  ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart)
+  : (!model.presentation && model.authorizedChart
+    ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : "")}
 ${serverSearch}
 ${quickFilters}
 ${quickFilterGroups}
 ${columnControls}
-${table}
+${model.presentation==="table"||!model.presentation ? table : ""}
+${boardHtml}
 ${model.collectionTitle
   ? `<div data-eidos-collection-heading><div><h2>${esc(model.collectionTitle)}</h2>${model.collectionDescription ? `<p>${esc(model.collectionDescription)}</p>` : ""}</div></div>`
   : ""}
-<div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div>
+${model.presentation==="board"||model.presentation==="chart" ? ""
+  : `<div data-eidos-catalog-items>${items || `<p data-eidos-empty>${esc(model.emptyMessage ?? "No items")}</p>`}</div>`}
 ${noResults}
-${pagination}
+${model.presentation==="chart"?"":pagination}
 </section>`;
 }
