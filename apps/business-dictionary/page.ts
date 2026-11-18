@@ -146,7 +146,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
   const start = pageInfo ? pageInfo.page * pageInfo.pageSize : 0;
   const viewSelection = (view: "all" | "draft" | "published") =>
     ({view, query: {...query},
-      ...(selection?.columns ? {columns:selection.columns} : {})});
+      ...(selection?.columns ? {columns:selection.columns} : {}),
+      ...(selection?.presentation ? {presentation:selection.presentation} : {})});
   const savedViews = pageInfo && result && selection
     ? (input.authorizedPersonalViews ?? []).flatMap(saved => {
         // Presentation is never an authorization step. These exact checks
@@ -169,7 +170,9 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
           if(v !== "all" && v !== "draft" && v !== "published")
             return [];
           const selected: BusinessDictionaryDirectorySelectionV010 = {view: v,
-            personalViewId: saved.viewId, query: {
+            personalViewId: saved.viewId,
+            ...(selection.presentation ? {presentation:selection.presentation} : {}),
+            query: {
             ...(saved.query.search ? {search:saved.query.search} : {}),
             ...(saved.query.sort ? {sort:saved.query.sort} : {}),
             ...(saved.query.direction ? {direction:saved.query.direction} : {}),
@@ -200,7 +203,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
   const effectiveSelection: BusinessDictionaryDirectorySelectionV010 = personalSelected
     ? selection!
     : {view: selection?.view ?? "all",query: selection?.query ?? {},
-      ...(selection?.columns ? {columns:selection.columns} : {})};
+      ...(selection?.columns ? {columns:selection.columns} : {}),
+      ...(selection?.presentation ? {presentation:selection.presentation} : {})};
   const baseColumns: NonNullable<CatalogBrowserV010["table"]>["columns"] = [
       {id:"displayName",label:t.name,sortRoute:businessDictionaryDirectoryQueryRouteV010(
         {...effectiveSelection,query:{...query,sort:"displayName",
@@ -349,6 +353,25 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         route: OPTION, requiresConfirmation: false, primary: true }] : [])
     ],
     ...(table ? {table} : {}),
+    // Owner-owned read-only grouping of exactly the same authorized *page*.
+    // Counts here must not be confused with CV06's separate full-query Chart.
+    ...(table && pageInfo && result?.readableFieldIds.includes("state") ? {
+      readOnlyKanban: {
+        contractVersion:"0.1.0" as const,kind:"read-only-kanban" as const,
+        scope:"AUTHORIZED_CURRENT_PAGE" as const,
+        title:isZh ? "当前页状态看板" : "Current-page state board",
+        scopeLabel:(isZh ? "仅展示当前有权分页" : "Only current authorized page")
+          + " · " + table.pageInfo!.summary,
+        groupFieldId:"state",
+        emptyLabel:isZh ? "本页无此状态记录" : "No matching records on this page",
+        groups:[
+          {id:"DRAFT",label:t.draft,
+            itemIds:visible.filter(d=>d.state==="DRAFT").map(d=>d.dictionaryId)},
+          {id:"PUBLISHED",label:t.published,
+            itemIds:visible.filter(d=>d.state==="PUBLISHED").map(d=>d.dictionaryId)}
+        ]
+      }
+    } : {}),
     ...(table ? {} : {search: { placeholder: t.list, ariaLabel: t.list,
       noResultsMessage: t.empty }}),
     emptyMessage: t.empty,
