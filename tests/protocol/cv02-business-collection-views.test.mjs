@@ -450,3 +450,76 @@ test("CV-02 Counterparty quick filter reuses Eidos and keeps search, sort, colum
   assert.equal(noField.table.quickFilters,undefined);
   assert.doesNotMatch(renderCatalogBrowserToHtml(noField),/data-eidos-catalog-quick-filters/);
 });
+
+
+test("CV-02 clearing compound filters re-queries Owner without losing scope, sort or column layout",()=>{
+  const source=[
+    {counterpartyId:"s1",displayName:"Hong Supplier",code:"S1",
+      status:"ACTIVE",subjectType:"ORGANIZATION"},
+    {counterpartyId:"s2",displayName:"Local Supplier",code:"S2",
+      status:"INACTIVE",subjectType:"PERSON"}
+  ];
+  const initial={search:"Hong",status:"ACTIVE",subjectType:"ORGANIZATION",
+    sort:"displayName",direction:"desc",page:3,pageSize:15,
+    columns:["displayName","status","subjectType"]};
+  const cases=[
+    [COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,"/counterparties/my-suppliers"],
+    [COUNTERPARTY_SUPPLIER_PROJECTION_V010,"/counterparties/suppliers"],
+    [COUNTERPARTY_CUSTOMER_PROJECTION_V010,"/counterparties/customers"]
+  ];
+  for(const [projectionId,base] of cases){
+    const page=createCounterpartyProjectionPageV010({
+      projectionId,locale:"zh-CN",canManage:false,
+      readableFieldIds:["displayName","code","status","subjectType"],
+      tableQuery:initial,
+      pageInfo:{page:3,pageSize:15,total:1,hasMore:false},
+      counterparties:[]
+    });
+    const clear=page.actions.find(a=>a.id==="clear-filters");
+    assert.ok(clear,base);
+    assert.equal(clear.type,"navigate");
+    assert.equal(clear.label,"清除筛选条件");
+    assert.ok(clear.route.startsWith(base+"?"),clear.route);
+    const next=parseCounterpartyProjectionRouteQueryV010(clear.route,base);
+    assert.equal(next.search,undefined);
+    assert.equal(next.status,undefined);
+    assert.equal(next.subjectType,undefined);
+    assert.equal(next.page,0);
+    assert.equal(next.pageSize,15);
+    assert.equal(next.sort,"displayName");
+    assert.equal(next.direction,"desc");
+    assert.deepEqual(next.columns,["displayName","status","subjectType"]);
+    assert.match(renderCatalogBrowserToHtml(page),/clear-filters/);
+    const owner=pageCounterpartyProjectionV010({
+      counterparties:source,
+      readableFieldIds:["displayName","code","status","subjectType"],
+      query:next
+    });
+    assert.equal(owner.pageInfo.total,2,
+      "clear must query all currently authorized Owner rows, not the previous page");
+    assert.equal(owner.pageInfo.page,0);
+    assert.deepEqual(owner.counterparties.map(row=>row.counterpartyId),["s2","s1"]);
+    const noFilters=createCounterpartyProjectionPageV010({
+      projectionId,locale:"en",canManage:false,
+      readableFieldIds:["displayName","code","status","subjectType"],
+      tableQuery:next,pageInfo:owner.pageInfo,
+      counterparties:owner.counterparties
+    });
+    assert.equal(noFilters.actions.some(a=>a.id==="clear-filters"),false,
+      "clear action must disappear once all predicates are reset");
+    assert.deepEqual(noFilters.table.columns.map(c=>c.id),next.columns);
+    assert.equal(noFilters.table.pageInfo.total,2);
+  }
+  // A field-hidden principal cannot use the same route to recover that field.
+  assert.throws(()=>pageCounterpartyProjectionV010({
+    counterparties:source,readableFieldIds:["displayName","code"],
+    query:{status:"ACTIVE",sort:"displayName"}
+  }),/COUNTERPARTY_QUERY_STATUS_FORBIDDEN/);
+  const legacy=createCounterpartyProjectionPageV010({
+    projectionId:COUNTERPARTY_MY_SUPPLIER_PROJECTION_V010,
+    readableFieldIds:["displayName","code"],canManage:false,
+    counterparties:[]
+  });
+  assert.equal(legacy.actions.some(a=>a.id==="clear-filters"),false,
+    "legacy non-paginated pages do not advertise server filter controls");
+});
