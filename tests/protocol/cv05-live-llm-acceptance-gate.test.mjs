@@ -69,9 +69,13 @@ test("CV05 manual workflow protects QA key behind main-ref and consent admission
   const [admission,secretJob]=source.split(/^  isolated-real-inference:\s*$/m);
   assert.ok(secretJob,"CV05_LIVE_SEPARATE_SECRET_JOB_REQUIRED");
   assert.match(admission,/GITHUB_REF.*refs\/heads\/main/);
+  assert.match(admission,/GITHUB_REF_PROTECTED/);
   assert.match(admission,/I_ACCEPT_TEST_LLM_CHARGES/);
-  assert.doesNotMatch(admission,/secrets\.CV05_LIVE_LLM_TEST_API_KEY/);
+  assert.doesNotMatch(admission,/secrets\./);
   assert.match(secretJob,/needs:\s*admission/);
-  assert.match(secretJob,/if:\s*github\.ref == 'refs\/heads\/main'/);
-  assert.match(secretJob,/secrets\.CV05_LIVE_LLM_TEST_API_KEY/);
+  assert.match(secretJob,/if:\s*github\.ref == 'refs\/heads\/main' && github\.ref_protected/);
+  assert.match(secretJob,/environment:\s*\n\s+name:\s*cv05-live-qa/);
+  assert.match(secretJob,/secrets\.CV05_LIVE_QA_ENVIRONMENT_ONLY_API_KEY/);
+  assert.doesNotMatch(source,/secrets\.CV05_LIVE_LLM_TEST_API_KEY/);
+  assert.doesNotMatch(source,/(?:secrets\.OPENAI_API_KEY|secrets\.DEEPSEEK_API_KEY)/);
 });
