@@ -63,3 +63,12 @@
 - **本轮只增加 opt-in 测试工具，非业务实现重做：** [独立在线验收方案](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md)、只在手动 `workflow_dispatch` 启动的 Actions 工作流、需明确测试费用同意与独立 QA 密钥的本地 Launcher、保留真实 Domain Owner/ActionRouter 的五个联网业务断言，以及常规 CI 无网络的准入负例测试。
 - **当前事实状态：** 新代码待本 PR 准确 HEAD CI；没有专用 `CV05_LIVE_LLM_TEST_API_KEY` 是否存在的可信证据，更无实际 `/responses` 远程模型调用记录。因此 `LIVE_LLM_UNVERIFIED`，不可说 L01–L05 PASS。Manual workflow 绝不自动触发，也不能默默使用服务器的生产凭据。
 - 不放宽权限、不增加 WRITE、不开放 SAVE/后台 EXPORT、不解除 #1343 / #1212 / #1092，不改变 #1184。工程完成后按完整 CI→精确 HEAD→受保护主线合并→东京镜像及 HTTPS/401→Actions 分支治理收口；下一轮才在专用测试身份与密钥具备时运行真实模型质量验证。
+
+
+## 8. 自动续跑 #04/07 · 在线验收基础设施安全补强
+
+- 核验固定基线 `main@f704394474fcf4d11d66d3714c060491a178e698`、#1355 已合并，东京 Preview CI 发布成功（[#44294553561](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44294553561)）；原在线模型实测仍未执行，无 QA Secret 及授权费用的验收原证。
+- 复核发现两处待收紧：手动 `workflow_dispatch` 没有限定 protected main，可能使 QA 密钥随 `checkout` 交给非受保护分支；L05 原只校验无新 Agent 导航，未证实旧 Eidos 入口在停用插件后被真实 Host/Owner 拒绝。以及失败断言可能在公开 CI 日志输出模型原文/测试行体。
+- 独立分支 `fix/cv05-live-acceptance-main-secrets-reauth-20261118` 修复：先完成无 Secret/no checkout 的 main+费用+model Admission，第二个 Job 必须 depends on admission 并重新检查 main 才能取得专用 QA key；离线 CI 增加工作流结构负例；L05 必须真实 Owner/Agent 旧路线重读失败；断言与 Provider 错误脱敏。
+- [在线验收规范与执行方法](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md) 同步更新。此处仅为候选范围，未收到本分支精确 HEAD CI、主线、东京回执前，不得写本轮已合并。后续完成后将本轮最终证据记录在 PR 原始评论中。
+- 不打开身份/OIDC/#1343、N1/Human SAVE/#1212、后台正式 EXPORT、生产 WRITE、#1092，#1184 独立保留。**真实在线模型状态仍为 `LIVE_LLM_UNVERIFIED`**。
