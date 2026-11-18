@@ -1,6 +1,6 @@
 # List Foundation MVP #04→#05/06 · 跨窗口恢复与最小实施交接（2026-11-18）
 
-> **状态：RECOVERED + #05 小切片待准确 HEAD CI；不是商业上线或真人/在线 LLM 签收。**
+> **状态：RECOVERED + #1353/#1354 已合并并完成东京 DEV/PREVIEW 发布；#03/07 在线 LLM 独立验收工具候选待 CI；LIVE_LLM_UNVERIFIED，不是商业上线或 Human 签收。**
 > 当日 GitHub 受保护基线：Platform `main@4efbbc7043d695955b19b3e6866bc10aac2abd36`，Eidos `main@1350e8f6557d0622331aae882da12b170c483994`。本次独立分支 `feat/cv05-mvp-agent-exact-view-navigation-20261118`，不得直接 push main。
 
 ## 1. 用户明确要求 / 决定（C）与 owner 边界（A）
@@ -46,3 +46,20 @@
 - **真实 LLM 非自动冒充：** 本轮不能从 CI 中已有 scripted provider 证明自然语言质量。在未证实有可用在线 `llm.inference` 绑定和安全隔离的实际身份前，明确标记 `LIVE_LLM_UNVERIFIED`；不得读取/写入生产密钥、越过 #1343、#1212 或用演示预览代替登录上线。只有获得真实 Provider 的请求/回应、模型版本、脱敏测试记录与独立确认结果时，才能升级相应验收等级。
 
 **唯一继续方向：** 同 PR 修复其准确 HEAD CI 发现的错误，Protected Main 合并后核验 Tokio 当前实际 SHA、HTTPS/401 和 Actions 精确分支清理；之后针对在线 LLM 的真实澄清质量做独立可审计的实测，不开启 N1 SAVE/后台 EXPORT/WRITE。
+
+
+## 6. 自动续跑 #02/07 · 已核对的东京部署与分支清理
+
+- [#1354](https://github.com/jiangxng/EVO-App-Platform/pull/1354) 已合入主线：`main@8e2347fb05bab6dd3bab2dac980334ce33d690e9`，PR HEAD `5654b7900d16118c9ac760b31b51f04a936a4a39` 22/22 SUCCESS，合并主线 19/19 SUCCESS。
+- [CV05 合并后主线真实 Chromium #44290582355](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44290582355) 原始日志显示 Supplier/Dictionary 1280/390 4/4 和组合筛选回归通过。
+- [东京 CI-Gated #44290644461](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44290644461) 预检与部署 SUCCESS：真实 VPS `evo-tokyo-dev-evo-1` 的镜像 `ghcr.io/jiangxng/evo-app-platform:8e2347fb05bab6dd3bab2dac980334ce33d690e9`（healthy），`EVO_TOKYO_DEV_LOCAL_HEALTH_PASS`、`EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS`、`EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS`；映像 Build manifest `sha256:6773819873c87e45795b44e15e4d956cfcb4a6a7a455495eb85edc11d9af1897` 并非独立读取的运行容器 digest。
+- [Branch Hygiene #44290585623](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44290585623) 日志 `DELETED_VERIFIED_MERGED_PR_BRANCH feat/cv05-mvp-ambiguity-recovery-20261118 @ 5654b7900d16118c9ac760b31b51f04a936a4a39`。最终签收回执见 [#1354 评论](https://github.com/jiangxng/EVO-App-Platform/pull/1354#issuecomment-6976838749)。
+- 这只签收 #05 既有 Scripted Provider + 真实 Host/Owner + Eidos + 东京 DEV/PREVIEW；**没有真实在线模型意图推理证据**。
+
+## 7. 自动续跑 #03/07 · 实际在线推理隔离验收工程候选
+
+- 独立分支：`feat/cv05-live-llm-isolated-acceptance-20261118`，固定创建基线 `main@8e2347fb05bab6dd3bab2dac980334ce33d690e9`。后续若有真实 PR 合并/发布，用其新的准确 SHA 作为执行证据，不用旧 SHA 冒充。
+- 已核实两个真实 Provider（OpenAI/DeepSeek）均存在，但其现有自动化测试都使用 `fetchImpl` 假回应；GitHub CI 未找到真正联网的 CV05 语义验收。不得把合成推理称为在线成功。
+- **本轮只增加 opt-in 测试工具，非业务实现重做：** [独立在线验收方案](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md)、只在手动 `workflow_dispatch` 启动的 Actions 工作流、需明确测试费用同意与独立 QA 密钥的本地 Launcher、保留真实 Domain Owner/ActionRouter 的五个联网业务断言，以及常规 CI 无网络的准入负例测试。
+- **当前事实状态：** 新代码待本 PR 准确 HEAD CI；没有专用 `CV05_LIVE_LLM_TEST_API_KEY` 是否存在的可信证据，更无实际 `/responses` 远程模型调用记录。因此 `LIVE_LLM_UNVERIFIED`，不可说 L01–L05 PASS。Manual workflow 绝不自动触发，也不能默默使用服务器的生产凭据。
+- 不放宽权限、不增加 WRITE、不开放 SAVE/后台 EXPORT、不解除 #1343 / #1212 / #1092，不改变 #1184。工程完成后按完整 CI→精确 HEAD→受保护主线合并→东京镜像及 HTTPS/401→Actions 分支治理收口；下一轮才在专用测试身份与密钥具备时运行真实模型质量验证。
