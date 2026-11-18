@@ -90,21 +90,38 @@ export const DATA_IMPORT_REVIEW_PAGE_SOURCE =
 export const DATA_IMPORT_REVIEW_ROUTE =
   "/data-import/jobs/:importJobId/review" as const;
 
+/**
+ * Navigation only: the active business import target must additionally verify
+ * this exact scope/query before it can be stored in an enterprise Import Job.
+ */
+export function assertDataImportReturnRouteV010(route: unknown): string {
+  if (typeof route !== "string" || !route.startsWith("/")
+    || route.startsWith("//") || route.length > 600
+    || route.includes("#") || route.includes("\\")
+    || /[\u0000-\u001f]/u.test(route)) {
+    throw new Error("DATA_IMPORT_RETURN_ROUTE_INVALID");
+  }
+  return route;
+}
+
 export function dataImportUploadRouteV010(
   targetId: string,
-  initialParameters?: Readonly<Record<string, string>>
+  initialParameters?: Readonly<Record<string, string>>,
+  returnTo?: string
 ): string {
   const route = "/data-import/new/" + encodeURIComponent(targetId);
-  if (!initialParameters || Object.keys(initialParameters).length === 0) return route;
   const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(initialParameters)) {
+  for (const [key, value] of Object.entries(initialParameters ?? {})) {
     if (!/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(key)
       || !value.trim() || value.length > 120) {
       throw new Error("DATA_IMPORT_ROUTE_PARAMETER_INVALID");
     }
     query.set("parameter__" + key, value);
   }
-  return route + "?" + query.toString();
+  if (returnTo !== undefined) {
+    query.set("returnTo", assertDataImportReturnRouteV010(returnTo));
+  }
+  return route + (query.size ? "?" + query.toString() : "");
 }
 export function dataImportMappingRouteV010(importJobId: string): string {
   return "/data-import/jobs/" + encodeURIComponent(importJobId) + "/map";
@@ -137,6 +154,7 @@ export function parseDataImportRowCorrectRouteV010(route?: string):
 export function parseDataImportUploadIntentV010(route?: string): {
   targetId: string;
   initialParameters: Record<string, string>;
+  returnTo?: string;
 } | undefined {
   if (!route?.startsWith("/")) return undefined;
   let url: URL;
@@ -148,7 +166,14 @@ export function parseDataImportUploadIntentV010(route?: string): {
   const match = url.pathname.match(/^\/data-import\/new\/([^/?#]+)$/u);
   if (!match || url.hash || url.origin !== "http://evo.local") return undefined;
   const initialParameters: Record<string, string> = {};
+  let returnTo: string | undefined;
   for (const [name, value] of url.searchParams) {
+    if (name === "returnTo") {
+      if (returnTo !== undefined) return undefined;
+      try { returnTo = assertDataImportReturnRouteV010(value); }
+      catch { return undefined; }
+      continue;
+    }
     if (!name.startsWith("parameter__")
       || !/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(name.slice(11))
       || !value.trim() || value.length > 120
@@ -156,7 +181,8 @@ export function parseDataImportUploadIntentV010(route?: string): {
     initialParameters[name.slice(11)] = value;
   }
   try {
-    return { targetId: decodeURIComponent(match[1]), initialParameters };
+    return {targetId: decodeURIComponent(match[1]), initialParameters,
+      ...(returnTo ? {returnTo} : {})};
   } catch {
     return undefined;
   }
