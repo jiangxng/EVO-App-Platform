@@ -247,8 +247,8 @@ function collectionNavigationFromRead(
   if (!descriptor) return undefined;
 
   // Never resurrect a prior success after a later failed/revoked read.
-  const lastPreviewIndex = reply.observations.findLastIndex(item =>
-    item.tool === descriptor.id
+  const lastPreviewIndex = reply.observations.reduce(
+    (last, item, index) => item.tool === descriptor.id ? index : last, -1
   );
   const observation = reply.observations[lastPreviewIndex];
   // Later Host failures can invalidate an earlier successful preview in this
