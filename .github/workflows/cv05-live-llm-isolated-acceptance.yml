@@ -29,7 +29,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      # No checkout or secrets in admission: a manually dispatched workflow
+      # on another branch must never get the isolated QA credential.
+      - name: Require protected main, explicit paid-test consent and safe model
+        shell: bash
+        env:
+          CV05_CONSENT: ${{ inputs.consent }}
+          CV05_PROVIDER: ${{ inputs.provider }}
+          CV05_MODEL: ${{ inputs.model }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error title=CV05_LIVE_REF_FORBIDDEN::Only protected main may run metered inference."
+            exit 1
+          fi
+          if [[ "${CV05_CONSENT}" != "I_ACCEPT_TEST_LLM_CHARGES" ]]; then
+            echo "::error title=CV05_LIVE_EXPLICIT_CONSENT_REQUIRED::Explicit paid-test consent is required."
+            exit 1
+          fi
+          if [[ "${CV05_PROVIDER}" != "openai" && "${CV05_PROVIDER}" != "deepseek" ]]; then
+            echo "::error title=CV05_LIVE_PROVIDER_NOT_ALLOWED::Only approved providers are allowed."
+            exit 1
+          fi
+          if [[ ! "${CV05_MODEL}" =~ ^[a-zA-Z0-9._:/-]{2,80}$ ]] \
+            || [[ "${CV05_MODEL}" == .* ]] \
+            || [[ "${CV05_MODEL}" == /* ]] \
+            || [[ "${CV05_MODEL}" == *..* ]] \
+            || [[ "${CV05_MODEL}" == *://* ]]; then
+            echo "::error title=CV05_LIVE_EXPLICIT_MODEL_REQUIRED::Invalid explicit model ID."
+            exit 1
+          fi
+          echo "CV05_LIVE_MANUAL_ADMISSION_PASS"
+
   isolated-real-inference:
+    needs: admission
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
