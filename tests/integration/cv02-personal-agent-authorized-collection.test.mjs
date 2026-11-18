@@ -249,7 +249,8 @@ test("CV-02 agent denies enterprise-switch, disabled plugin and missing authoriz
 
 test("CV-05 Personal Agent previews real My Suppliers Owner READ with safe Eidos navigation",async()=>{
   const {router,agent}=setup();
-  const query={search:"Supplier",sort:"displayName",direction:"asc",page:0,pageSize:25};
+  const query={search:"Supplier",subjectType:"ORGANIZATION",
+    sort:"displayName",direction:"asc",page:0,pageSize:25};
   const human=await router.execute(request(COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,query),context());
   assert.equal(human.ok,true,JSON.stringify(human.error));
   const preview=await reg(agent(context()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID)
@@ -319,11 +320,13 @@ test("CV-05 real My Suppliers Host READ produces a navigable Chinese Eidos chat 
  * Provider-backed Agent → real Host catalog → actual ActionRouter/Owner →
  * Eidos Chat render → exact business route reauthorization as one journey.
  */
-function cv05ScriptedModel(operationId, query) {
+function cv05ScriptedModel(operationId, query, presentation) {
   const calls=[
     {name:"evo_capabilities_search",arguments:{query:operationId}},
     {name:"evo_capabilities_describe",arguments:{operationId}},
-    {name:"evo_collection_read_preview",arguments:{operationId,input:query}}
+    {name:"evo_collection_read_preview",arguments:{
+      operationId,input:query,...(presentation ? {presentation} : {})
+    }}
   ];
   let index=0;
   return {
@@ -360,8 +363,8 @@ function cv05RealHostCatalog(env,requestCtx) {
   },env.agent(requestCtx));
 }
 
-async function cv05RuntimeJourney(env,operationId,query,requestCtx) {
-  const scripted=cv05ScriptedModel(operationId,query);
+async function cv05RuntimeJourney(env,operationId,query,requestCtx,presentation) {
+  const scripted=cv05ScriptedModel(operationId,query,presentation);
   const runtime=createEnterpriseAgentRuntime(
     createProviderBackedAgentModel(scripted.provider),
     cv05RealHostCatalog(env,requestCtx),8
@@ -377,7 +380,8 @@ async function cv05RuntimeJourney(env,operationId,query,requestCtx) {
 test("CV-05 scripted natural-language Agent tool journey uses real Supplier Owner and reauthorizes Eidos list",async()=>{
   const env=setup(),reqCtx=context();
   const operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
-  const query={search:"Supplier",sort:"displayName",direction:"asc",page:0,pageSize:25};
+  const query={search:"Supplier",subjectType:"ORGANIZATION",
+    sort:"displayName",direction:"asc",page:0,pageSize:25};
   const reply=await cv05RuntimeJourney(env,operationId,query,reqCtx);
   assert.deepEqual(reply.observations.map(x=>x.tool),[
     PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID,
@@ -438,15 +442,19 @@ test("CV-05 scripted natural-language Agent tool journey uses real Supplier Owne
 test("CV-05 Agent may not reuse Dictionary navigation across enterprise and revoked plugin",async()=>{
   const env=setup(),operationId=DICTIONARY_READ;
   const query={view:"published",search:"supplier",sort:"displayName",page:0,pageSize:25};
-  const reply=await cv05RuntimeJourney(env,operationId,query,context());
+  const reply=await cv05RuntimeJourney(env,operationId,query,context(),"board");
   assert.equal(reply.observations.every(x=>x.ok),true);
   const preview=reply.observations[2].result;
   assert.deepEqual(preview.rows.map(row=>row.rowId),["supplier-category"]);
+  assert.match(preview.navigation.route,/presentation=board/);
   const parts=presentPersonalAgentReplyV020(reply,"zh-CN");
   const route=parts.filter(x=>x.type==="proposal")
     .flatMap(x=>x.actions??[]).find(x=>x.id==="open-authorized-collection")?.route;
   assert.ok(route?.startsWith("/business-dictionaries?"));
   const selected=parseBusinessDictionaryDirectoryRouteV010(route);
+  assert.equal(selected.presentation,"board");
+  assert.equal(selected.view,"published");
+  assert.equal(selected.query.search,"supplier");
   const readQuery={view:selected.view,...selected.query};
   const same=await env.router.execute(request(operationId,readQuery),context());
   assert.equal(same.ok,true);
@@ -468,4 +476,21 @@ test("CV-05 Agent may not reuse Dictionary navigation across enterprise and revo
   const partsAfter=presentPersonalAgentReplyV020(replay,"zh-CN");
   assert.equal(partsAfter.some(p=>p.type==="proposal"
     && p.actions?.some(a=>a.id==="open-authorized-collection")),false);
+});
+
+
+test("CV-05 rejects non-Dictionary display hints and forbidden Owner filters",async()=>{
+  const env=setup();
+  const tool=reg(env.agent(context()),PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID);
+  await assert.rejects(()=>tool.execute({
+    operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+    input:{search:"Supplier"},presentation:"board"
+  },[]),/PERSONAL_AGENT_COLLECTION_PREVIEW_PRESENTATION_UNSUPPORTED/);
+  await assert.rejects(()=>tool.execute({
+    operationId:DICTIONARY_READ,input:{view:"published"},presentation:"drag"
+  },[]),/PERSONAL_AGENT_COLLECTION_PREVIEW_PRESENTATION_INVALID/);
+  await assert.rejects(()=>tool.execute({
+    operationId:COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010,
+    input:{search:"Supplier",status:"ACTIVE"}
+  },[]),/COUNTERPARTY_QUERY_STATUS_FORBIDDEN|CAPABILITY_OPERATION_INPUT|CAPABILITY_OPERATION/);
 });
