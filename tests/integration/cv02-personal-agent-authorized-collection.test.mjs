@@ -794,7 +794,8 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
       item.tool===PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID),false,
     "CV05_LIVE_AMBIGUOUS_INTENT_MUST_NOT_GUESS_OWNER_READ");
     assert.equal(cv05Navigate(ambiguous),undefined);
-    assert.ok(ambiguous.message.trim().length>0,
+    assert.match(ambiguous.message,
+      /[?？]|(?:请|需要).*(?:确认|明确|选择)|哪(?:一|个|类)/,
       "CV05_LIVE_AMBIGUITY_QUESTION_REQUIRED");
     console.log("CV05_LIVE_SCENARIO_PASS=ambiguity_no_owner_read");
 
