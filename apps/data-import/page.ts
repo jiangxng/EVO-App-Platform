@@ -276,10 +276,12 @@ function importEvidenceMetadata(
 function objectWorkspaceNavigationV010(input: {
   target?: FoundationObjectImportTargetV010;
   parameters?: Readonly<Record<string, string | number | boolean | string[] | undefined>>;
+  originRoute?: string;
   locale?: string;
 }): { id: string; label: string; route: string } | undefined {
   const navigation = input.target?.completionNavigation?.({
     parameters: input.parameters,
+    originRoute: input.originRoute,
     locale: input.locale
   });
   if (!navigation) return undefined;
@@ -299,6 +301,7 @@ function objectWorkspaceNavigationV010(input: {
 function importContextNavigationV010(input: {
   target?: FoundationObjectImportTargetV010;
   parameters?: Readonly<Record<string, string | number | boolean | string[] | undefined>>;
+  originRoute?: string;
   locale?: string;
   step: "upload" | "mapping" | "review";
 }) {
@@ -425,8 +428,16 @@ export function createDataImportUploadPageV010(input: {
   target: FoundationObjectImportTargetV010;
   locale?: string;
   initialParameters?: Readonly<Record<string, string>>;
+  initialReturnTo?: string;
 }) {
   const t = text(input.locale);
+  if (input.initialReturnTo && input.target.completionNavigation?.({
+      parameters: input.initialParameters,
+      originRoute: input.initialReturnTo,
+      locale: input.locale
+    })?.route !== input.initialReturnTo) {
+    throw new Error("DATA_IMPORT_RETURN_ROUTE_INVALID");
+  }
   return {
     contractVersion: "0.1.1" as const,
     kind: "form" as const,
@@ -439,6 +450,7 @@ export function createDataImportUploadPageV010(input: {
     contextNavigation: importContextNavigationV010({
       target: input.target,
       parameters: input.initialParameters,
+      originRoute: input.initialReturnTo,
       locale: input.locale,
       step: "upload"
     }),
@@ -489,7 +501,15 @@ export function createDataImportUploadPageV010(input: {
         value: option.value,
         label: localizedTextV010(option.label, input.locale)
       }))
-    }))],
+    })), ...(input.initialReturnTo ? [{
+      key: "returnTo",
+      label: zh(input.locale) ? "返回原列表" : "Return to source list",
+      semanticType: "data-import-return-route",
+      control: "text" as const,
+      required: true,
+      hidden: true,
+      initialValue: input.initialReturnTo
+    }] : [])],
     actions: [{
       id: "stage",
       label: t.stage,
@@ -1078,6 +1098,7 @@ export function createDataImportMappingPageV010(input: {
     contextNavigation: importContextNavigationV010({
       target: input.target,
       parameters: input.job.targetParameters,
+      originRoute: input.job.returnTo,
       locale: input.locale,
       step:"mapping"
     }),
@@ -1197,6 +1218,7 @@ export function createDataImportReviewPageV010(input: {
   const workspace = objectWorkspaceNavigationV010({
     target: input.target,
     parameters: job.targetParameters,
+    originRoute: job.returnTo,
     locale: input.locale
   });
   const summaryActions = [
