@@ -875,3 +875,162 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
     }));
   });
 }
+
+
+/**
+ * CV05 #06/07 - zero-network protocol rehearsal of BOTH shipping Responses
+ * Provider adapters. Unlike a scripted LlmInferenceProvider, a synthetic
+ * Responses HTTP transport goes through the real OpenAI/DeepSeek request
+ * builder, strict/optional tool schema mapping, JSON response parser and
+ * Provider-backed model before reaching existing Host/Domain Owner/Eidos.
+ *
+ * IMPORTANT: This is a transport/integration contract only. The sequence of
+ * model decisions is prescribed; it is NOT model semantic inference and MUST
+ * NOT be reported as LIVE_LLM_VERIFIED or as a real provider request.
+ */
+for (const providerKind of ["openai","deepseek"]) {
+  test("CV05 #06 offline Responses "+providerKind+" transport replays real Host Owner denial, correction, revoked Eidos link",async()=>{
+    const {createOpenAiResponsesLlmProvider}=await import(
+      "../../dist/providers/openai/runtime.js"
+    );
+    const {createDeepSeekResponsesLlmProvider}=await import(
+      "../../dist/providers/deepseek/runtime.js"
+    );
+    const env=setup(),scope=context();
+    const operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
+    const good={search:"Supplier",subjectType:"ORGANIZATION",page:0,pageSize:25};
+    const forbidden={search:"Supplier",status:"ACTIVE",page:0,pageSize:25};
+    const steps=[
+      cv05Search(operationId),
+      cv05Describe(operationId),
+      cv05Preview(operationId,good),
+      {text:"已经获取当前企业中有权查看的供应商列表。"},
+      cv05Search(operationId),
+      cv05Describe(operationId),
+      cv05Preview(operationId,forbidden),
+      {text:"状态字段未获许可，需要明确修改筛选条件。"},
+      cv05Search(operationId),
+      cv05Describe(operationId),
+      cv05Preview(operationId,good),
+      {text:"已根据新条件重新取得当前权限下的列表。"}
+    ];
+    const allowed=new Set([
+      PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID,
+      PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID,
+      PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID
+    ]);
+    const raw=cv05RealHostCatalog(env,scope);
+    const catalog={
+      async list(){
+        return (await raw.list()).filter(t=>t.effect==="READ"&&allowed.has(t.id));
+      },
+      async invoke(call,observations){
+        assert.ok(allowed.has(call.tool),"CV05_OFFLINE_ONLY_THREE_READ_TOOLS");
+        return raw.invoke(call,observations);
+      }
+    };
+    const urlExpected=providerKind==="openai"
+      ?"https://api.openai.com/v1/responses"
+      :"https://api.deepseek.com/responses";
+    let transportRequests=0;
+    const offlineHttp=async(url,options)=>{
+      assert.equal(String(url),urlExpected,"CV05_OFFLINE_PROVIDER_ENDPOINT_UNEXPECTED");
+      assert.equal(options.method,"POST");
+      const requestBody=JSON.parse(options.body);
+      assert.equal(requestBody.model,"cv05-offline-fixture");
+      assert.equal(requestBody.tool_choice,"auto");
+      assert.ok(requestBody.instructions.includes("Host"),
+        "CV05_OFFLINE_SYSTEM_INSTRUCTIONS_MISSING");
+      assert.ok(Array.isArray(requestBody.tools));
+      assert.ok(requestBody.tools.length===3,
+        "CV05_OFFLINE_UNEXPECTED_CAPABILITY_EXPOSED");
+      assert.ok(requestBody.tools.every(t=>
+        ["evo_capabilities_search","evo_capabilities_describe",
+          "evo_collection_read_preview"].includes(t.name)
+      ));
+      const selected=steps[transportRequests++];
+      assert.ok(selected,"CV05_OFFLINE_EXTRA_PROVIDER_ROUND_TRIP");
+      if(selected.name) assert.ok(
+        requestBody.tools.some(t=>t.name===selected.name),
+        "CV05_OFFLINE_TOOL_MISSING_FROM_PROTOCOL_REQUEST"
+      );
+      return Response.json({
+        model:"cv05-offline-fixture",
+        output:selected.name
+          ?[{type:"function_call",name:selected.name,
+              arguments:JSON.stringify(selected.arguments)}]
+          :[{type:"message",content:[{type:"output_text",text:selected.text}]}],
+        usage:{input_tokens:11,output_tokens:5}
+      });
+    };
+    const provider=providerKind==="openai"
+      ?createOpenAiResponsesLlmProvider({
+          apiKey:"synthetic-offline-key",model:"cv05-offline-fixture",
+          fetchImpl:offlineHttp
+        })
+      :createDeepSeekResponsesLlmProvider({
+          apiKey:"synthetic-offline-key",model:"cv05-offline-fixture",
+          fetchImpl:offlineHttp
+        });
+    const runtime=createEnterpriseAgentRuntime(
+      createProviderBackedAgentModel(provider),catalog,8
+    );
+    const first=await runtime.chat(
+      "查看我负责的 Supplier 供应商，组织类型，提供列表。",
+      scope.context,scope.principal
+    );
+    assert.equal(transportRequests,4);
+    const firstRoute=cv05Navigate(first)?.route;
+    assert.ok(firstRoute?.startsWith(COUNTERPARTY_MY_SUPPLIERS_ROUTE),
+      "CV05_OFFLINE_FIRST_FRESH_NAVIGATION_REQUIRED");
+    assert.ok(first.observations.at(-1).ok);
+    assert.ok(first.observations.at(-1).result.rows.length===1);
+    assert.equal(first.observations.at(-1).result.rows[0].rowId,"supplier-hk");
+
+    const denied=await runtime.chat(
+      "必须精确查询 status=ACTIVE 的 Supplier，不能擅自去掉状态。",
+      scope.context,scope.principal
+    );
+    assert.equal(transportRequests,8);
+    assert.equal(cv05Navigate(denied),undefined);
+    assert.ok(denied.observations.some(x=>!x.ok &&
+      /COUNTERPARTY_QUERY_STATUS_FORBIDDEN|CAPABILITY_OPERATION/.test(
+        x.error?.code??""
+      )),"CV05_OFFLINE_REAL_OWNER_STATUS_DENIAL_REQUIRED");
+
+    const repaired=await runtime.chat(
+      "我明确取消 status 条件，改为 subjectType=ORGANIZATION 且搜索 Supplier。",
+      scope.context,scope.principal,[
+        {role:"user",content:"必须精确查询 status=ACTIVE 的 Supplier，不能擅自去掉状态。"},
+        {role:"assistant",content:denied.message}
+      ]
+    );
+    assert.equal(transportRequests,12);
+    const repairedRoute=cv05Navigate(repaired)?.route;
+    assert.ok(repairedRoute?.startsWith(COUNTERPARTY_MY_SUPPLIERS_ROUTE),
+      "CV05_OFFLINE_HUMAN_CORRECTED_FRESH_ROUTE_REQUIRED");
+    const parsed=parseCounterpartyProjectionRouteQueryV010(
+      repairedRoute,COUNTERPARTY_MY_SUPPLIERS_ROUTE
+    );
+    assert.ok(parsed.search==="Supplier" && parsed.subjectType==="ORGANIZATION");
+    assert.equal("status" in parsed,false);
+    const owner=await env.router.execute(request(operationId,parsed),scope);
+    assert.equal(owner.ok,true);
+    assert.equal(owner.result.rows.length,1);
+    assert.equal(owner.result.rows[0].rowId,"supplier-hk");
+
+    env.manager.disable(counterpartyPackage.packageId);
+    const oldOwner=await env.router.execute(request(operationId,parsed),scope);
+    assert.equal(oldOwner.ok,false,
+      "CV05_OFFLINE_REVOKED_OLD_EIDOS_ROUTE_DENIED");
+    const oldAgent=await cv05RealHostCatalog(env,scope).invoke({
+      tool:PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
+      arguments:{operationId,input:parsed}
+    },[]);
+    assert.equal(oldAgent.ok,false,
+      "CV05_OFFLINE_REVOKED_OLD_AGENT_PREVIEW_DENIED");
+    // Only simulation: never display business rows or authorize paid LLM.
+    console.log("CV05_OFFLINE_RESPONSES_HOST_REHEARSAL_PASS="+providerKind+
+      " protocol_decisions="+transportRequests);
+  });
+}
