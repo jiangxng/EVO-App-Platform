@@ -719,7 +719,14 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
         if(++modelDecisions>32) {
           throw new Error("CV05_LIVE_PROVIDER_DECISION_LIMIT");
         }
-        const result=await original.infer({...input,maxOutputTokens:700});
+        // The Provider may reflect model prose or tool arguments in an
+        // upstream HTTP error message. Never surface it in Actions logs.
+        let result;
+        try {
+          result=await original.infer({...input,maxOutputTokens:700});
+        }catch{
+          throw new Error("CV05_LIVE_PROVIDER_INFERENCE_FAILED_REDACTED");
+        }
         if(result.usage){
           inputTokens+=result.usage.inputTokens;
           outputTokens+=result.usage.outputTokens;
@@ -781,8 +788,13 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
         item.tool===PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID && item.ok
       )?.result;
       assert.ok(preview,"CV05_LIVE_SUCCESSFUL_HOST_PREVIEW_REQUIRED");
-      assert.deepEqual(owner.result.rows,preview.rows);
-      assert.deepEqual(owner.result.rows.map(row=>row.rowId),["supplier-hk"]);
+      // Preserve the source evidence in memory, not the public failed
+      // Actions assertion output (which must not print row bodies).
+      assert.ok(JSON.stringify(owner.result.rows)===JSON.stringify(preview.rows),
+        "CV05_LIVE_OWNER_PREVIEW_ROWS_MISMATCH");
+      assert.ok(owner.result.rows.length===1 &&
+        owner.result.rows[0].rowId==="supplier-hk",
+        "CV05_LIVE_SCOPED_SUPPLIER_REQUIRED");
       assert.equal(JSON.stringify(preview).includes("supplier-other"),false);
       assert.equal(preview.readableFieldIds.includes("email"),false);
       return route;
@@ -794,9 +806,10 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
       item.tool===PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID),false,
     "CV05_LIVE_AMBIGUOUS_INTENT_MUST_NOT_GUESS_OWNER_READ");
     assert.equal(cv05Navigate(ambiguous),undefined);
-    assert.match(ambiguous.message,
-      /[?？]|(?:请|需要).*(?:确认|明确|选择)|哪(?:一|个|类)/,
-      "CV05_LIVE_AMBIGUITY_QUESTION_REQUIRED");
+    assert.ok(
+      /[?？]|(?:请|需要).*(?:确认|明确|选择)|哪(?:一|个|类)/.test(ambiguous.message),
+      "CV05_LIVE_AMBIGUITY_QUESTION_REQUIRED"
+    );
     console.log("CV05_LIVE_SCENARIO_PASS=ambiguity_no_owner_read");
 
     const correction="明确是我负责的供应商列表，不是字典。名称筛选 Supplier，"
@@ -825,10 +838,29 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
       {role:"user",content:deniedMessage},
       {role:"assistant",content:denied.message}
     ]);
-    await assertAuthorizedRoute(repaired);
+    const previouslyAuthorizedRoute=await assertAuthorizedRoute(repaired);
     console.log("CV05_LIVE_SCENARIO_PASS=human_corrected_fresh_owner_read");
 
     env.manager.disable(counterpartyPackage.packageId);
+
+    // A previous Chat button is only a navigation coordinate, not a
+    // capability: directly reopening that exact route must now fail at
+    // the REAL ActionRouter/Domain Owner with the disabled package.
+    const staleQuery=parseCounterpartyProjectionRouteQueryV010(
+      previouslyAuthorizedRoute,COUNTERPARTY_MY_SUPPLIERS_ROUTE
+    );
+    const staleOwnerRead=await env.router.execute(
+      request(operationId,staleQuery),scope
+    );
+    assert.equal(staleOwnerRead.ok,false,
+      "CV05_LIVE_REVOKED_OLD_EIDOS_ROUTE_MUST_FAIL_OWNER_READ");
+    const staleAgentRead=await cv05RealHostCatalog(env,scope).invoke({
+      tool:PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID,
+      arguments:{operationId,input:staleQuery}
+    },[]);
+    assert.equal(staleAgentRead.ok,false,
+      "CV05_LIVE_REVOKED_OLD_AGENT_READ_MUST_FAIL_HOST");
+
     const revoked=await ask("刚才的供应商列表现在还能打开吗？请核对当前授权。");
     assert.equal(cv05Navigate(revoked),undefined,
       "CV05_LIVE_DISABLED_FEATURE_MUST_NOT_REISSUE_NAVIGATION");
