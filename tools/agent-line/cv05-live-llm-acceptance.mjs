@@ -18,7 +18,9 @@ export function validateCv05LiveEnvironment(env) {
     throw new Error("CV05_LIVE_PROVIDER_NOT_ALLOWED");
   }
   const model = env.EVO_CV05_LIVE_LLM_MODEL;
-  if (typeof model !== "string" || !/^[a-zA-Z0-9._:/-]{2,80}$/.test(model)) {
+  if (typeof model !== "string" || !/^[a-zA-Z0-9._:/-]{2,80}$/.test(model)
+      || model.startsWith(".") || model.startsWith("/")
+      || model.includes("..") || model.includes("://")) {
     throw new Error("CV05_LIVE_EXPLICIT_MODEL_REQUIRED");
   }
   if (typeof env.EVO_CV05_LIVE_LLM_TEST_API_KEY !== "string"
