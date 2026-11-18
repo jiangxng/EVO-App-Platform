@@ -31,7 +31,13 @@
 
 ## 如何真正执行（不伪造结果）
 
-**GitHub Actions：** 在 `CV05 Isolated Live LLM Acceptance (manual)` 选择受保护 main 对应的提交、provider `openai` 或 `deepseek`、授权的模型 ID，手动输入 `I_ACCEPT_TEST_LLM_CHARGES`。先由拥有密钥管理权限的操作者为仓库配置仅用于测试的 `CV05_LIVE_LLM_TEST_API_KEY` GitHub Actions Secret（账户、配额与轮换由操作员治理；请勿提交明文）。无 Secret、无授权或模型暂不可达时，本验收必须 FAILED / BLOCKED，不能回退模拟模型。
+**GitHub Actions：** 仅从**受保护 `main`** 手动启动 `CV05 Isolated Live LLM Acceptance (manual)`；选 `openai` / `deepseek`、获授权的模型 ID，手动输入 `I_ACCEPT_TEST_LLM_CHARGES`。真实付费调用还必须先完成下列**仓库管理员控制面配置**；工作流自身的 `if: main` 不是独立信任边界。
+
+**环境级安全前置（未配置/未核验时 BLOCKED）：** 在 GitHub 仓库 **Settings → Environments** 新建/核验名称严格为 `cv05-live-qa` 的 Environment。将 **Deployment branches and tags** 设置为 **Selected branches and tags**，**仅添加 `main`**（不能配置匹配任意分支的通配规则）；按仓库权限能力设置 Required reviewers、Prevent self-review，并避免未经审核的绕过。只在该 Environment 的 **Environment secrets** 中保存独立、低额度、可轮换的 `CV05_LIVE_QA_ENVIRONMENT_ONLY_API_KEY`；**绝不能**在 Repository secrets 或 Organization secrets 中保存这个名称的密钥，也不要把之前可能存在的 `CV05_LIVE_LLM_TEST_API_KEY` 仓库/组织级密钥保留为运行入口：必须由管理员审核并撤销或迁移。需要证明环境部署分支保护确实启用、环境级 Secret 有效且库级/组织级无同名可被其它工作流读取，方可执行真实付费 QA。
+
+**重要限制：** `workflow_dispatch` 允许指定其它 Git ref，且分支代码可被修改；即使原 YAML 内含 `if` 条件，也可以在修改后的分支 YAML 中被删除。真正的凭据访问限制来自**仓库管理控制面**的 Environment branch policy，而非 PR 内可编辑的 YAML。工作流现在具有不带 Secret 的独立 Admission 与绑定 `environment: cv05-live-qa` 的专用作业，但**仅提交这段 YAML 不证明外部 Environment 已配置**。本窗口无法通过现有 GitHub 连接器读取或修改该 Environment 配置，不能自我宣称完成了管理员配置。GitHub 官方机制详见 https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments 。
+
+无正确 Environment Secret、费用授权、Provider 可达性或真实模型时，本验收仍必须 FAILED / BLOCKED，不能回退模拟模型。
 
 **隔离本地同等验证：** 使用现有 `npm run test:cv05:live-llm`，并在进程环境中显式提供 `EVO_CV05_LIVE_LLM_PROVIDER`、`EVO_CV05_LIVE_LLM_MODEL`、`EVO_CV05_LIVE_LLM_CONSENT=I_ACCEPT_TEST_LLM_CHARGES`、`EVO_CV05_LIVE_LLM_TEST_API_KEY`。密钥应由受控环境/密钥管理系统注入，不放入命令行、脚本、截图或仓库。此命令会产生真实 API 费用与网络请求。
 
@@ -57,3 +63,12 @@
 4. 这些改进只加固测试基础设施，不新增业务权限、模型访问或可写工具。隔离在线测试依然需要授权人员配置的 `CV05_LIVE_LLM_TEST_API_KEY`、明确 API 计费同意和真实手动 Run；直到实际完成，`LIVE_LLM_UNVERIFIED` 不变。
 
 **证据纪律：** 工程 PR 需先完成其精确 HEAD CI、受保护 main 合并、合并后验收、东京 SHA/healthy/HTTPS/401 和 Actions 安全分支清理，才能写 `ENGINEERING_ACCEPTED`。本段仅描述修复意图，不代替原始 CI 或真实 LLM 记录。
+
+
+## 自动续跑 #05/07 · 独立控制面门禁发现与补齐（2026-11-18）
+
+- 固定创建基线：`main@59de29a8d56ffaebb5b46fa2723015b1318c6d02`（#1356 merged；Tokyo #1356 发布 WorkFlow `preflight SUCCESS / deploy SKIPPED NON_RUNTIME_CHANGE`，最后实际 Tokyo 运行镜像 `f704394474fcf4d11d66d3714c060491a178e698`）。
+- 审核结论：**#1356 的 workflow-level main 检查不足以隔离可编辑分支代码**。官方 `workflow_dispatch` 可以指定任意 ref，且分支中的 YAML 本身可改写。必须使用 GitHub **Environment** 级别的 deployment branch restriction + 环境级 Secret 限制独立访问，不能继续把普通 Repository Secret 当成“只限 main”。
+- 本轮独立 PR `fix/cv05-live-qa-protected-environment-20261118` 将有 Secret 的 Job 绑定 `cv05-live-qa`、额外检查 `github.ref_protected` 和 `GITHUB_REF_PROTECTED`；Secret 改为显式环境专属名称 `CV05_LIVE_QA_ENVIRONMENT_ONLY_API_KEY`；补离线回归保护工作流结构。**此处为待 CI 候选，并非环境已配置证明。**
+- 当前 GitHub 连接器没有列举/配置 Environment 或 Secret 的接口，且 read-only URL 获取 Environment 已明确不支持；**环境实际创建、主线限制、独立 QA Secret 管理、费用授权需仓库管理员通过 GitHub 控制面核验**。所有这些不足以阻碍工程 PR/CI 验收，但足以阻止在线 L01–L05 实际运行。
+- 不调用在线模型、不访问生产密钥、不修改 Human/OIDC/N1/SAVE/EXPORT/WRITE/PA05 门禁，也不动并行 #1184。
