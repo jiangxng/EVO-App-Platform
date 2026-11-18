@@ -45,7 +45,7 @@ function req(command,values={}) {
     sourceInteractionId:"evo-counterparty.projection",
     actionId:"export-current-page",requiresConfirmation:false};
 }
-function fixture(mixedStatus = false, grantStatus = true) {
+function fixture(mixedStatus = false, grantStatus = true, grantType = true) {
   const resources=createMemoryEnterpriseResourceRepositoryV010();
   const repository=createCounterpartyRepositoryV010(resources);
   const roles=createCounterpartyRoleRepositoryV010(resources,repository);
@@ -61,7 +61,8 @@ function fixture(mixedStatus = false, grantStatus = true) {
   for(const [id,name,role,assignee] of records) {
     repository.save({contextId:CONTEXT,
       subject:{contractVersion:"0.1.0",counterpartyId:id,
-        displayName:name,code:id,subjectType:"ORGANIZATION",
+        displayName:name,code:id,
+        subjectType:mixedStatus && id.endsWith("-beta") ? "PERSON" : "ORGANIZATION",
         status:mixedStatus && id.endsWith("-beta") ? "INACTIVE" : "ACTIVE",
         email:"hidden-"+id+"@example.invalid",taxIdentifier:"PRIVATE-"+id},
       actorSubjectId:"owner",recordedAt:"2026-11-12T00:00:00Z"});
@@ -79,7 +80,7 @@ function fixture(mixedStatus = false, grantStatus = true) {
     repository,roleRepository:roles,responsibilityRepository:responsibilities,
     resolveAuthorizationProvider:()=>allow?staticAuth:undefined,
     fieldIds:()=>["displayName","code",...(grantStatus ? ["status"] : []),
-      "subjectType","countryOrRegion"]
+      ...(grantType ? ["subjectType"] : []),"countryOrRegion"]
   });
   const handlers=createCounterpartyProjectionActionHandlersV010({
     service,resolveEnterpriseRelationshipKind:(_p,id)=>id===CONTEXT?"MEMBER":undefined
@@ -230,7 +231,8 @@ test("CV-02 bounded status AND search shares actual Owner, Human/Agent READ, CSV
   });
   assert.deepEqual(page.table.rows.map(x=>x.itemId),["customer-beta"]);
   assert.equal(page.table.pageInfo.total,1);
-  assert.equal(page.table.quickFilters.options[2].selected,true);
+  assert.equal(page.table.quickFilterGroups?.[0].options[2].selected,true);
+  assert.equal(page.table.quickFilterGroups?.[1].options[0].selected,true);
   const input=page.actions.find(x=>x.id==="export-current-page").values;
   assert.equal(input.status,"INACTIVE");
   assert.deepEqual(input.fieldIds,["displayName","status"]);
@@ -285,5 +287,76 @@ test("CV-02 bounded status AND search shares actual Owner, Human/Agent READ, CSV
     assert.deepEqual(op.inputSchema.properties.status.enum,["ACTIVE","INACTIVE"]);
     assert.equal(op.effect,"READ");
     assert.ok(op.exposure.includes("PERSONAL_AGENT"));
+  }
+});
+
+
+test("CV-02 MVP two independent Owner predicates: status AND subjectType AND search share Human, Agent and page CSV",async()=>{
+  const f=fixture(true);
+  const query={search:"Beta",status:"INACTIVE",subjectType:"PERSON",
+    sort:"displayName",direction:"asc",page:0,pageSize:1};
+  const projection=await f.service.read({contextId:CONTEXT,projectionId:CUSTOMER,
+    query,requestContext:ctx(),enterpriseRelationshipKind:"MEMBER"});
+  assert.equal(projection.pageInfo.total,1);
+  assert.deepEqual(projection.counterparties.map(x=>x.counterpartyId),["customer-beta"]);
+  const page=createCounterpartyProjectionPageV010({
+    projectionId:CUSTOMER,counterparties:projection.counterparties,
+    readableFieldIds:projection.readableFieldIds,pageInfo:projection.pageInfo,
+    tableQuery:{...query,columns:["displayName","status","subjectType"]},
+    locale:"zh-CN",canManage:false
+  });
+  const groups=page.table.quickFilterGroups;
+  assert.deepEqual(groups.map(g=>[g.id,g.options.find(x=>x.selected)?.id]),[
+    ["status","inactive"],["subjectType","person"]
+  ]);
+  const typeOrganization=groups[1].options.find(x=>x.id==="organization").route;
+  assert.match(typeOrganization,/status=INACTIVE/);
+  assert.match(typeOrganization,/subjectType=ORGANIZATION/);
+  assert.match(typeOrganization,/search=Beta/);
+  assert.match(typeOrganization,/page=0/);
+  const html=renderCatalogBrowserToHtml(page);
+  assert.match(html,/data-eidos-quick-filter-group="status"/);
+  assert.match(html,/data-eidos-quick-filter-group="subjectType"/);
+  const values=page.actions.find(x=>x.id==="export-current-page").values;
+  assert.equal(values.subjectType,"PERSON");
+  const human=await f.router.execute(req(CUSTOMER_QUERY,query),ctx());
+  const ai=await f.router.execute(req(CUSTOMER_QUERY,query),ctx("AI"));
+  assert.equal(human.ok,true,JSON.stringify(human.error));
+  assert.deepEqual(human.result,ai.result);
+  assert.equal(human.result.pageInfo.total,1);
+  assert.deepEqual(human.result.rows.map(x=>x.rowId),["customer-beta"]);
+  const csv=await f.router.execute(req(CUSTOMER_EXPORT,values),ctx());
+  const aiCsv=await f.router.execute(req(CUSTOMER_EXPORT,values),ctx("AI"));
+  assert.equal(csv.ok,true,JSON.stringify(csv.error));
+  assert.deepEqual(csv.result,aiCsv.result);
+  assert.match(csv.result.download.content,/Beta Customer/);
+  assert.doesNotMatch(csv.result.download.content,/Alpha Customer|Secret Other|hidden-|PRIVATE-/);
+  assert.equal((await f.router.execute(req(CUSTOMER_QUERY,{
+    ...query,subjectType:"ORGANIZATION"}),ctx())).result.pageInfo.total,0);
+  for(const bad of ["","person","PERSON OR 1=1","UNKNOWN"]){
+    const result=await f.router.execute(req(CUSTOMER_QUERY,{...query,subjectType:bad}),ctx());
+    assert.equal(result.ok,false,bad);
+    assert.equal(result.error.code,"COUNTERPARTY_QUERY_SUBJECT_TYPE_INVALID");
+  }
+  const noType=fixture(true,true,false);
+  for(const command of [CUSTOMER_QUERY,CUSTOMER_EXPORT]){
+    const result=await noType.router.execute(req(command,command===CUSTOMER_QUERY
+      ? query : values),ctx());
+    assert.equal(result.ok,false);
+    assert.equal(result.error.code,"COUNTERPARTY_QUERY_SUBJECT_TYPE_FORBIDDEN");
+  }
+  const spoof=ctx();spoof.scope.enterpriseId="another-enterprise";
+  assert.equal((await f.router.execute(req(CUSTOMER_QUERY,query),spoof)).ok,false);
+  f.setAllow(false);
+  assert.equal((await f.router.execute(req(CUSTOMER_QUERY,query),ctx())).ok,false);
+  f.setAllow(true);f.setActive(false);
+  assert.equal((await f.router.execute(req(CUSTOMER_QUERY,query),ctx())).error.code,
+    "ACTION_FEATURE_NOT_ACTIVE");
+  const operations=counterpartyPackage.features[0].contributions
+    .filter(x=>x.kind==="platform.capability-operation").map(x=>x.operation);
+  for(const id of [CUSTOMER_QUERY,CUSTOMER_EXPORT]){
+    const operation=operations.find(x=>x.operationId===id);
+    assert.deepEqual(operation.inputSchema.properties.subjectType.enum,
+      ["ORGANIZATION","PERSON"]);
   }
 });

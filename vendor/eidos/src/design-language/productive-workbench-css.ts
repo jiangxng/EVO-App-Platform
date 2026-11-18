@@ -3970,6 +3970,29 @@ form[data-eidos-id="evo-data-import.mapping"]
     grid-template-columns:28px minmax(0,1fr);gap:var(--eidos-space-sm);
   }
 }
+/* CV02 multiple Owner-defined quick-filter groups; never filter rows in CSS/JS. */
+[data-eidos-catalog-quick-filters]{
+  display:flex;align-items:center;flex-wrap:wrap;gap:var(--eidos-space-xs);
+  min-width:0;margin:var(--eidos-space-sm) 0
+}
+[data-eidos-catalog-quick-filters] > span:first-child{
+  color:var(--eidos-fg-muted);font-size:var(--eidos-font-meta);
+  margin-inline-end:var(--eidos-space-xs)
+}
+[data-eidos-catalog-quick-filters] button{
+  min-width:var(--eidos-touch-target);min-height:var(--eidos-touch-target);
+  padding:var(--eidos-space-xs) var(--eidos-space-sm);
+  border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg)
+}
+[data-eidos-catalog-quick-filters] button[aria-current="page"]{
+  border-color:var(--eidos-primary);color:var(--eidos-primary);
+  background:var(--eidos-bg-subtle);font-weight:600
+}
+[data-eidos-catalog-quick-filters] button:focus-visible{
+  outline:2px solid var(--eidos-focus);outline-offset:2px
+}
 /* CV06 authorized aggregate chart: source and count stay legible without JS. */
 [data-eidos-authorized-aggregate-bars]{
   display:grid;gap:var(--eidos-space-sm);max-width:100%;min-width:0;
