@@ -63,3 +63,15 @@
 - **自动 Mobile**：同一 Chrome fixture 390px Touch tap、按钮宽高、横向溢出、查询重授权；原生 Playwright 触控不是实体手机。
 - **真人 Human**：0/12 / NOT_SIGNED，真实 Google 登录、实体键盘/手机、NVDA/VoiceOver 和独立审核仍处于 #1343 上线前门禁，**不是当前 MVP 普通开发阻断**。
 - **当前不涉及**：个人 Saved View 保存、审批、Agent WRITE、CV04 后台跨页 EXPORT、生产 RBAC/KMS/Secrets、生产登录或旧 Railway 退役。
+
+## 三轴与平台验收摘要（供机械门禁精确核对）
+
+功能：已新增 Owner/ActionHost 服务端 status AND subjectType AND search + 分页/CSV/Agent READ；正式个人 Saved View 未开放。
+布局：复用 Eidos Catalog 页内两组筛选，1280/390 允许折行、不增加全站工具栏。
+颜色：复用 Eidos 产品 token；选中项以边框、字重、aria-current 标识，不仅靠颜色。
+入口：客户、供应商、我的客户、我的供应商的既有业务列表入口，需真实当前企业/责任权限。
+退出：原有 Eidos Context Navigation 到详情和父列表；returnTo 重新授权原筛选与列布局。
+异常恢复：非法/重复 query、字段撤权、企业上下文变更、Feature 停用全部 fail-closed，用户可清除单一筛选回原结果。
+桌面：1280px 真实 Host+Chromium 定向测试已编写，待准确 HEAD Workflow 成功后作为自动证据。
+移动：390px 真实 Host+Chromium Touch 定向测试已编写，实体手机仍待商业验收。
+Human：真实登录和独立人工签署 NOT_SIGNED 0/12；本次自动化与 Eidos UI Gate 不代签。
