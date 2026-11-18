@@ -43,6 +43,10 @@ import {
   COUNTERPARTY_CUSTOMERS_ROUTE,
   COUNTERPARTY_SUPPLIERS_ROUTE
 } from "./constants.js";
+import {
+  counterpartyProjectionQueryRouteV010,
+  parseCounterpartyProjectionRouteQueryV010
+} from "./projection-query.js";
 import type {
   CounterpartyAddressRepositoryV010,
   CounterpartyContactRepositoryV010,
@@ -436,8 +440,36 @@ export function createCounterpartyImportTargetV010(input: {
     }],
     objectType: "counterparty.subject",
     ownerPackageId: "evo-counterparty",
-    completionNavigation({ parameters }) {
+    completionNavigation({ parameters, originRoute }) {
       const mode = parameters?.relationshipMode;
+      // Keep the Human's exact, bounded supplier/customer worklist after
+      // import. This is only a navigation hint. The destination Host rechecks
+      // Enterprise, responsibility and field grants on each list READ.
+      const expectedPath = mode === "SUPPLIER"
+        ? COUNTERPARTY_SUPPLIERS_ROUTE
+        : mode === "CUSTOMER" ? COUNTERPARTY_CUSTOMERS_ROUTE : undefined;
+      if (originRoute && expectedPath) {
+        try {
+          const selection = parseCounterpartyProjectionRouteQueryV010(
+            originRoute, expectedPath
+          );
+          const canonical = counterpartyProjectionQueryRouteV010(
+            expectedPath, selection, selection.page ?? 0
+          );
+          if (canonical === originRoute) {
+            return {
+              route: originRoute,
+              label: mode === "SUPPLIER"
+                ? {default:"Back to suppliers",
+                    translations:{"zh-CN":"返回供应商列表"}}
+                : {default:"Back to customers",
+                    translations:{"zh-CN":"返回客户列表"}}
+            };
+          }
+        } catch {
+          // A stale, cross-scope, malformed or external route is never used.
+        }
+      }
       if (mode === "SUPPLIER") {
         return {
           route: COUNTERPARTY_SUPPLIERS_ROUTE,

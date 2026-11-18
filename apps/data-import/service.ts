@@ -22,6 +22,7 @@ import {
   dataImportTargetSchemaDigestV010,
   type DataImportRecipeRepositoryV010
 } from "./recipe.js";
+import {assertDataImportReturnRouteV010} from "./constants.js";
 
 /** Bind Human-confirmed preflight to the exact staged source and mapping. */
 function dataImportManagedSourceDigestV010(job: DataImportJobV010): string {
@@ -343,6 +344,8 @@ export interface DataImportServiceV010 {
     importJobId: string;
     targetId: string;
     targetParameters?: DataImportJobV010["targetParameters"];
+    /** Only a target-validated local worklist hint, not a data grant. */
+    returnTo?: string;
     source: DataImportSourceV010;
     mapping: DataImportMappingV010[];
     ignoredSourceColumns?: string[];
@@ -753,6 +756,9 @@ export function createDataImportServiceV010(input: {
         ),
         ...(stageInput.targetParameters
           ? { targetParameters: structuredClone(stageInput.targetParameters) }
+          : {}),
+        ...(stageInput.returnTo !== undefined
+          ? {returnTo: assertDataImportReturnRouteV010(stageInput.returnTo)}
           : {}),
         state: "STAGED",
         source: structuredClone(stageInput.source),

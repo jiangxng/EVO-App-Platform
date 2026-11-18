@@ -29,6 +29,10 @@ import {
   COUNTERPARTY_SUPPLIER_PROJECTION_V010
 } from "../../dist/apps/counterparty/projections.js";
 import {
+  counterpartyProjectionQueryRouteV010,
+  parseCounterpartyProjectionRouteQueryV010
+} from "../../dist/apps/counterparty/projection-query.js";
+import {
   dataImportUploadRouteV010,
   parseDataImportUploadIntentV010,
   parseDataImportUploadRouteV010
@@ -63,7 +67,7 @@ function fixture() {
   const service = createDataImportServiceV010({
     repository, recipeRepository: recipes, targets: [target]
   });
-  return { counterparties, roles, target, service };
+  return { counterparties, roles, target, service, repository };
 }
 
 const ctx = "enterprise-context:bex-a";
@@ -243,4 +247,109 @@ test("BEX-01 supplier validation failures retain return and explain missing fiel
   assert.doesNotMatch(row.summary,/DATA_IMPORT_REQUIRED_VALUE_MISSING/);
   // Reading the review / navigating home must not change the job state.
   assert.equal(result.state,"DRY_RUN_FAILED");
+});
+
+
+test("MVP #03 filtered supplier list → upload → mapping → receipt → exact authorized list return",()=>{
+  const {target,service,repository}=fixture();
+  const origin=counterpartyProjectionQueryRouteV010(COUNTERPARTY_SUPPLIERS_ROUTE,{
+    search:"Hong",status:"ACTIVE",subjectType:"ORGANIZATION",
+    sort:"displayName",direction:"desc",page:2,pageSize:15,
+    columns:["displayName","status","subjectType"]
+  },2);
+  const route=dataImportUploadRouteV010("counterparty.subject",
+    {relationshipMode:"SUPPLIER"},origin);
+  assert.deepEqual(parseDataImportUploadIntentV010(route),{
+    targetId:"counterparty.subject",
+    initialParameters:{relationshipMode:"SUPPLIER"},returnTo:origin
+  });
+  const originalPage=createCounterpartyProjectionPageV010({
+    projectionId:COUNTERPARTY_SUPPLIER_PROJECTION_V010,
+    counterparties:[],canManage:true,locale:"zh-CN",
+    tableQuery:parseCounterpartyProjectionRouteQueryV010(origin,COUNTERPARTY_SUPPLIERS_ROUTE),
+    pageInfo:{page:2,pageSize:15,total:32,hasMore:false},
+    readableFieldIds:["displayName","code","status","subjectType"],
+    importRoute:route
+  });
+  assert.equal(originalPage.actions.find(x=>x.id==="import")?.route,route);
+  const upload=createDataImportUploadPageV010({
+    target,locale:"zh-CN",initialParameters:{relationshipMode:"SUPPLIER"},
+    initialReturnTo:origin
+  });
+  assert.equal(upload.contextNavigation.items[0].route,origin);
+  assert.equal(upload.fields.find(x=>x.key==="returnTo")?.initialValue,origin);
+  const schema=target.describe({contextId:ctx,parameters:{relationshipMode:"SUPPLIER"}});
+  const staged=service.stage({
+    contextId:ctx,importJobId:"mvp-scoped-return",targetId:"counterparty.subject",
+    targetParameters:{relationshipMode:"SUPPLIER"},returnTo:origin,
+    source:supplierInput,mapping,mappingOrigin:"HUMAN",
+    actorSubjectId:"bex-operator",recordedAt:"2026-11-18T03:00:00.000Z"
+  });
+  assert.equal(staged.returnTo,origin);
+  const mapper=createDataImportMappingPageV010({job:staged,target,schema,locale:"zh-CN"});
+  assert.equal(mapper.contextNavigation.items[0].route,origin);
+  const ready=service.dryRun({
+    contextId:ctx,importJobId:staged.importJobId,actorSubjectId:"bex-operator",
+    recordedAt:"2026-11-18T03:01:00.000Z"
+  });
+  assert.equal(ready.state,"DRY_RUN_READY");
+  assert.equal(createDataImportReviewPageV010({job:ready,target,schema,locale:"zh-CN"})
+    .actions.find(x=>x.id==="return-to-target")?.route,origin);
+  const committed=service.commit({
+    contextId:ctx,importJobId:staged.importJobId,actorSubjectId:"bex-operator",
+    recordedAt:"2026-11-18T03:02:00.000Z"
+  });
+  assert.equal(committed.state,"COMMITTED");
+  const persisted=repository.get(ctx,staged.importJobId);
+  assert.equal(persisted.returnTo,origin,"return survives job reload");
+  const review=createDataImportReviewPageV010({
+    job:persisted,target,schema,locale:"zh-CN"
+  });
+  assert.equal(review.actions.find(x=>x.id==="return-to-target")?.route,origin);
+  assert.equal(review.contextNavigation.items[0].route,origin);
+  const returned=parseCounterpartyProjectionRouteQueryV010(
+    review.actions.find(x=>x.id==="return-to-target").route,
+    COUNTERPARTY_SUPPLIERS_ROUTE
+  );
+  assert.equal(returned.page,2);
+  assert.equal(returned.pageSize,15);
+  assert.equal(returned.search,"Hong");
+  assert.equal(returned.status,"ACTIVE");
+  assert.equal(returned.subjectType,"ORGANIZATION");
+  assert.equal(returned.direction,"desc");
+  assert.deepEqual(returned.columns,["displayName","status","subjectType"]);
+});
+
+test("MVP #03 a cross-role/external/duplicate return hint cannot replace target workspace",()=>{
+  const {target}=fixture();
+  const customer=counterpartyProjectionQueryRouteV010(
+    "/counterparties/customers",{search:"wrong-role",pageSize:25},0);
+  const supplier=counterpartyProjectionQueryRouteV010(
+    COUNTERPARTY_SUPPLIERS_ROUTE,{search:"Hong",pageSize:25},0);
+  const valid=target.completionNavigation({
+    parameters:{relationshipMode:"SUPPLIER"},originRoute:supplier
+  });
+  assert.equal(valid.route,supplier);
+  for(const unsafe of [customer,"https://evil.example/p","//evil.example",
+    "/counterparties/suppliers?search=one&search=two",
+    "/counterparties/suppliers?search=%0A"]) {
+    assert.equal(target.completionNavigation({
+      parameters:{relationshipMode:"SUPPLIER"},originRoute:unsafe
+    }).route,COUNTERPARTY_SUPPLIERS_ROUTE);
+    assert.throws(()=>createDataImportUploadPageV010({
+      target,initialParameters:{relationshipMode:"SUPPLIER"},initialReturnTo:unsafe
+    }),/DATA_IMPORT_RETURN_ROUTE_INVALID/);
+  }
+  const url=dataImportUploadRouteV010("counterparty.subject",
+    {relationshipMode:"SUPPLIER"},supplier);
+  assert.equal(parseDataImportUploadIntentV010(
+    url+"&returnTo="+encodeURIComponent(customer)),undefined);
+  assert.equal(parseDataImportUploadIntentV010(
+    url+"&redirect=https%3A%2F%2Fevil.example"),undefined);
+  assert.equal(parseDataImportUploadIntentV010(
+    "/data-import/new/counterparty.subject?returnTo="+encodeURIComponent("//evil.example")
+  ),undefined);
+  assert.throws(()=>dataImportUploadRouteV010(
+    "counterparty.subject",{relationshipMode:"SUPPLIER"},"https://evil.example"
+  ),/DATA_IMPORT_RETURN_ROUTE_INVALID/);
 });

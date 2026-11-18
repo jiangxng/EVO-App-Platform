@@ -4,6 +4,7 @@ import type {
   FoundationObjectImportPreparedRowV010,
   FoundationObjectImportTargetParametersV010
 } from "../../contracts/foundation-object/import.js";
+import {assertDataImportReturnRouteV010} from "./constants.js";
 
 export type DataImportRowCorrectionV010 = {
   rowNumber: number;
@@ -135,6 +136,8 @@ export interface DataImportJobV010 {
   importJobId: string;
   targetId: string;
   targetParameters?: FoundationObjectImportTargetParametersV010;
+  /** Bounded source-list navigation, never a business or permission grant. */
+  returnTo?: string;
   state: DataImportJobStateV010;
   source: DataImportSourceV010;
   mapping: DataImportMappingV010[];
@@ -374,6 +377,9 @@ export function assertDataImportJobV010(
     targetId: required(value.targetId, "DATA_IMPORT_TARGET_ID_REQUIRED"),
     ...(value.targetParameters
       ? { targetParameters: structuredClone(value.targetParameters) }
+      : {}),
+    ...(value.returnTo !== undefined
+      ? {returnTo: assertDataImportReturnRouteV010(value.returnTo)}
       : {}),
     state: value.state,
     source: {

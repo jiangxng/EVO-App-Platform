@@ -39,6 +39,13 @@ import {
   createCounterpartyImportTargetV010
 } from "../../dist/apps/counterparty/import-target.js";
 import {
+  counterpartyProjectionQueryRouteV010
+} from "../../dist/apps/counterparty/projection-query.js";
+import {
+  COUNTERPARTY_CUSTOMERS_ROUTE,
+  COUNTERPARTY_SUPPLIERS_ROUTE
+} from "../../dist/apps/counterparty/constants.js";
+import {
   createMemoryEnterpriseResourceRepositoryV010
 } from "../../dist/providers/enterprise-context/resources.js";
 import {
@@ -422,6 +429,31 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   assert.ok(review);
 
   const bytes = Buffer.from(XLSX_BASE64, "base64");
+  const originReturnTo = counterpartyProjectionQueryRouteV010(
+    COUNTERPARTY_CUSTOMERS_ROUTE,
+    {search:"Hong",sort:"displayName",direction:"desc",pageSize:15},2
+  );
+  const file = {
+    name: "往来对象.xlsx",
+    mediaType:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    size: bytes.byteLength,
+    contentBase64: XLSX_BASE64
+  };
+  const rejected = await stageFile.execute(
+    request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
+      targetId:"counterparty.subject",file,
+      parameter__relationshipMode:"CUSTOMER",
+      returnTo:counterpartyProjectionQueryRouteV010(
+        COUNTERPARTY_SUPPLIERS_ROUTE,{search:"wrong scope",pageSize:25},0
+      )
+    }),platformContext()
+  );
+  assert.equal(rejected.ok,false);
+  assert.equal(rejected.error.code,"DATA_IMPORT_RETURN_ROUTE_INVALID");
+  assert.equal(repository.list("enterprise-context:a").length,0,
+    "rejected role must not stage a job");
+
   const staged = await stageFile.execute(
     request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
       targetId: "counterparty.subject",
@@ -432,7 +464,8 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
         size: bytes.byteLength,
         contentBase64: XLSX_BASE64
       },
-      parameter__relationshipMode: "CUSTOMER"
+      parameter__relationshipMode: "CUSTOMER",
+      returnTo:originReturnTo
     }),
     platformContext()
   );
@@ -448,6 +481,12 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   );
   assert.equal(job.source.kind, "XLSX");
   assert.equal(job.targetParameters.relationshipMode, "CUSTOMER");
+  assert.equal(job.returnTo,originReturnTo);
+  assert.equal(createDataImportMappingPageV010({
+    job,target,schema:target.describe({
+      contextId:"enterprise-context:a",parameters:job.targetParameters
+    })
+  }).contextNavigation.items[0].route,originReturnTo);
   assert.deepEqual(job.mapping, [{
     sourceColumn: "往来编码",
     targetFieldId: "code"

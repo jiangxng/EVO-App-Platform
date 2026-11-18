@@ -56,6 +56,7 @@ import {
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  assertDataImportReturnRouteV010,
   dataImportMappingRouteV010,
   dataImportReviewRouteV010
 } from "./constants.js";
@@ -382,8 +383,18 @@ export function createDataImportActionHandlersV010(input: {
         );
         const target = currentTargetMap().get(targetId);
         if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
-        const source = sourceFromUploadedFile(request.values.file);
+        // The browser may propose where to return, but only the activated
+        // Domain Owner's completionNavigation can accept its exact scope.
+        // A malformed/cross-role/external hint fails before staging a Job.
         const parameters = targetParametersFromForm(target, request.values);
+        const returnTo = request.values.returnTo === undefined
+          ? undefined : assertDataImportReturnRouteV010(request.values.returnTo);
+        if (returnTo && target.completionNavigation?.({
+          parameters, originRoute: returnTo
+        })?.route !== returnTo) {
+          throw new Error("DATA_IMPORT_RETURN_ROUTE_INVALID");
+        }
+        const source = sourceFromUploadedFile(request.values.file);
         const schema = target.describe({
           contextId: active.contextId,
           parameters
@@ -490,6 +501,7 @@ export function createDataImportActionHandlersV010(input: {
           importJobId: input.idFactory(),
           targetId,
           ...(parameters ? { targetParameters: parameters } : {}),
+          ...(returnTo ? {returnTo} : {}),
           source,
           mapping: resolvedMapping,
           ...(initial.ignoredSourceColumns?.length
