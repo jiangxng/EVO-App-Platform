@@ -376,12 +376,17 @@ test("CV-03 C3-02 real PG: Human Eidos save-as form → Dictionary Owner READ �
   const sql=postgres(url,{max:2,connect_timeout:10});
   try {
     const env=fixture(storage),alice=context("owner-a","one");
-    const currentRoute="/business-dictionaries?view=all&search=Hong+Kong&sort=displayName&direction=asc&page=0&pageSize=25";
+    const currentRoute="/business-dictionaries?view=all&personalViewId=old-private-view&search=Hong+Kong&sort=displayName&direction=asc&columns=displayName%2Cstate%2CdictionaryId&page=0&pageSize=25";
     const form=createCv03PersonalSavedViewHumanFormV010({
       viewId:"human-hk-suppliers",currentDirectoryRoute:currentRoute,
       locale:"zh-CN"
     });
     assert.equal(form.actions[0].requiresConfirmation,true);
+    const fromForm=form.fields.find(f=>f.key==="returnTo").initialValue;
+    assert.equal(fromForm.includes("personalViewId="),false,
+      "Save As must not copy an old personal view's identity as authority");
+    assert.deepEqual(parseBusinessDictionaryDirectoryRouteV010(fromForm).columns,
+      ["displayName","state","dictionaryId"]);
     const formAction={
       ...command(PERSONAL_SAVED_VIEW_WRITE_V010,{
         title:"Human 保存的供应商视图",
@@ -399,12 +404,14 @@ test("CV-03 C3-02 real PG: Human Eidos save-as form → Dictionary Owner READ �
     assert.equal(result.result.data.view.visibility,"PERSONAL");
     assert.equal(result.result.data.view.ownerSubjectId,"owner-a");
     assert.deepEqual(result.result.data.view.columns,[
-      "displayName","dictionaryId","state","version","optionCount"
-    ]);
+      "displayName","state","dictionaryId"
+    ],"signed PG view must persist current authorized visible order");
     assert.deepEqual(result.result.data.view.query,{
       view:"all",search:"Hong Kong",sort:"displayName",direction:"asc"
     });
     assert.equal(result.result.navigateTo.includes("personalViewId=human-hk-suppliers"),true);
+    assert.deepEqual(parseBusinessDictionaryDirectoryRouteV010(
+      result.result.navigateTo).columns,["displayName","state","dictionaryId"]);
     const formMaterial=env.lastIssued();
     assert.equal(formMaterial.request.actionId,PERSONAL_SAVED_VIEW_WRITE_V010,
       "real Host issuer must only sign canonical Capability Operation");
@@ -430,7 +437,7 @@ test("CV-03 C3-02 real PG: Human Eidos save-as form → Dictionary Owner READ �
     assert.deepEqual(rendered.table.views.filter(v=>v.selected).map(v=>v.id),
       ["personal:human-hk-suppliers"]);
     assert.deepEqual(rendered.table.columns.map(c=>c.id),
-      ["displayName","dictionaryId","state","version","optionCount"]);
+      ["displayName","state","dictionaryId"]);
     assert.equal(rendered.table.rows.length,1);
     assert.doesNotMatch(renderCatalogBrowserToHtml(rendered),/Internal private option/);
     env.control.revokeSource();
