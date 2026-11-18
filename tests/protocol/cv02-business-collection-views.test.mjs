@@ -490,10 +490,12 @@ test("CV-02 clearing compound filters re-queries Owner without losing scope, sor
     assert.equal(next.direction,"desc");
     assert.deepEqual(next.columns,["displayName","status","subjectType"]);
     assert.match(renderCatalogBrowserToHtml(page),/clear-filters/);
+    // columns is a UI-only layout hint; never send it to the Domain READ.
+    const {columns: _presentationColumns,...ownerQuery}=next;
     const owner=pageCounterpartyProjectionV010({
       counterparties:source,
       readableFieldIds:["displayName","code","status","subjectType"],
-      query:next
+      query:ownerQuery
     });
     assert.equal(owner.pageInfo.total,2,
       "clear must query all currently authorized Owner rows, not the previous page");
