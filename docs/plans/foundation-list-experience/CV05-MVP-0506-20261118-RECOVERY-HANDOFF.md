@@ -1,5 +1,8 @@
 # List Foundation MVP #04→#05/06 · 跨窗口恢复与最小实施交接（2026-11-18）
 
+> **2026-11-18 自动续跑 #07/07 最终状态请优先阅读：[CV05 七轮最终交接与证据门禁](CV05-MVP-0506-20261118-WINDOW-0707-FINAL-HANDOFF.md)。下文 §1–10 是各轮当时的过程快照，其中“待 CI”“尚未合并”“当前 SHA”只适用于原时间点，不能覆盖最终 #1354–#1358 已合并及 #1359 阻塞事实。**
+
+
 > **状态：RECOVERED + #1353/#1354 已合并并完成东京 DEV/PREVIEW 发布；#03/07 在线 LLM 独立验收工具候选待 CI；LIVE_LLM_UNVERIFIED，不是商业上线或 Human 签收。**
 > 当日 GitHub 受保护基线：Platform `main@4efbbc7043d695955b19b3e6866bc10aac2abd36`，Eidos `main@1350e8f6557d0622331aae882da12b170c483994`。本次独立分支 `feat/cv05-mvp-agent-exact-view-navigation-20261118`，不得直接 push main。
 
