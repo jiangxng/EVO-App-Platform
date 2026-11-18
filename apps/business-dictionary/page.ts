@@ -394,6 +394,44 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
     })) };
 }
 
+/**
+ * Presentation is an Eidos route choice only. Only the real Host aggregate
+ * can admit chart, while Owner page rows may admit read-only current-page board.
+ * Source navigation comes from the already-produced owner-validated table.
+ */
+export function withBusinessDictionaryDisplayModesV010(input: {
+  page: CatalogBrowserV010;
+  directorySelection: BusinessDictionaryDirectorySelectionV010;
+  locale?: string;
+}): CatalogBrowserV010 {
+  const {page} = input;
+  if (!page.table?.search) return page;
+  const safe= parseBusinessDictionaryDirectoryRouteV010(page.table.search.route);
+  const currentPage=page.table.pageInfo?.page ?? 0;
+  const chartAllowed=Boolean(page.authorizedChart)
+    && !input.directorySelection.personalViewId;
+  const boardAllowed=Boolean(page.readOnlyKanban);
+  const requested=input.directorySelection.presentation ?? "table";
+  const active=requested==="chart" && chartAllowed ? "chart"
+    : requested==="board" && boardAllowed ? "board" : "table";
+  const zh=(input.locale ?? "").toLowerCase().startsWith("zh");
+  const modes: NonNullable<NonNullable<CatalogBrowserV010["table"]>["presentationViews"]> = [
+    {id:"table",label:zh?"表格":"Table",route:businessDictionaryDirectoryQueryRouteV010({
+      ...safe,presentation:"table"
+    },currentPage),selected:active==="table"},
+    ...(chartAllowed ? [{id:"chart" as const,label:zh?"图表":"Chart",
+      route:businessDictionaryDirectoryQueryRouteV010({
+        ...safe,presentation:"chart"
+      },currentPage),selected:active==="chart"}] : []),
+    ...(boardAllowed ? [{id:"board" as const,label:zh?"看板":"Board",
+      route:businessDictionaryDirectoryQueryRouteV010({
+        ...safe,presentation:"board"
+      },currentPage),selected:active==="board"}] : [])
+  ];
+  if(modes.length < 2) return {...page,presentation:"table"};
+  return {...page,presentation:active,table:{...page.table,presentationViews:modes}};
+}
+
 export function createBusinessDictionaryDetailPageV010(input: {
   dictionary: BusinessDictionarySnapshotV010;
   effectiveVersion?: number; canManage: boolean; locale?: string; returnTo?: string;
