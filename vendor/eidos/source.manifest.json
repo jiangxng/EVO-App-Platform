@@ -106,6 +106,21 @@
   ],
   "componentPins": [
     {
+      "component": "eidos.catalog-multi-quick-filter-groups",
+      "sourceRepository": "jiangxng/eidos",
+      "sourceCommit": "75dd85082d3fbc6171d27e9f913dfa6657f6decb",
+      "sourcePath": "src/catalog-browser",
+      "vendoredPath": "vendor/eidos/src/catalog-browser",
+      "ownerPullRequest": "https://github.com/jiangxng/eidos/pull/218",
+      "status": "SCOPED_SEMANTIC_FORWARD_PORT_WITH_PLATFORM_OVERLAY",
+      "files": [
+        "contracts.ts",
+        "render.ts"
+      ],
+      "additionalSourcePath": "src/design-language/productive-workbench-css.ts",
+      "note": "Forward-port Eidos #218 optional multi quick-filter groups, exact group validation/render fragment and responsive CSS. Preserve Platform Catalog Context Navigation, Host actions, density, chart and focus overrides. Business status/subjectType/search AND query belongs to Counterparty Domain Owner; this is no broader Eidos snapshot repin."
+    },
+    {
       "component": "eidos.catalog-browser-views",
       "sourceRepository": "jiangxng/eidos",
       "sourceCommit": "127150c30193b57b38d1d9cc62443ddfa90e2349",
@@ -113,7 +128,10 @@
       "vendoredPath": "vendor/eidos/src/catalog-browser",
       "ownerPullRequest": "https://github.com/jiangxng/eidos/pull/209",
       "status": "SCOPED_SEMANTIC_FORWARD_PORT_WITH_PLATFORM_OVERLAY",
-      "files": ["contracts.ts", "render.ts"],
+      "files": [
+        "contracts.ts",
+        "render.ts"
+      ],
       "note": "Only the optional Eidos CatalogBrowserTableV010.views declaration and governed view navigation/validation from Eidos PR #209 are forward-ported. Existing App Platform Context Navigation, page actions, density and Host overlays are intentionally retained. This is not byte-for-byte upstream parity; the broad sourceCommit remains the older snapshot."
     },
     {
