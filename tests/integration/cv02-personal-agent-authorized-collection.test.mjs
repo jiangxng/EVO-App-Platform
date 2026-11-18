@@ -657,3 +657,188 @@ test("CV05 #05: a subsequent failed Host inspection suppresses earlier successfu
   });
   assert.doesNotMatch(html,/data-eidos-chat-action="open-authorized-collection"/);
 });
+
+
+/**
+ * Opt-in REAL online llm.inference acceptance. Deliberately absent from
+ * ordinary CI test enumeration and from any automated deployment trigger.
+ * Launch exclusively through tools/agent-line/cv05-live-llm-acceptance.mjs:
+ * that launcher verifies independent test-only credentials and explicit
+ * metered-network consent before adding EVO_CV05_LIVE_LLM_RUN=1.
+ *
+ * The actual model infers decisions; only Host, Owner and test records are
+ * deterministic. No production tenant, identity, stored user data or WRITE
+ * tool is available. A failure is a real quality gap, not a release override.
+ */
+if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
+  test("CV05 LIVE online LLM ambiguity, forbidden Owner filter and correction",async()=>{
+    const {validateCv05LiveEnvironment}=await import(
+      "../../tools/agent-line/cv05-live-llm-acceptance.mjs"
+    );
+    const {provider,model}=validateCv05LiveEnvironment(process.env);
+    const {createOpenAiResponsesLlmProvider}=await import(
+      "../../dist/providers/openai/runtime.js"
+    );
+    const {createDeepSeekResponsesLlmProvider}=await import(
+      "../../dist/providers/deepseek/runtime.js"
+    );
+
+    // Only two established public Provider endpoints; redirects, alternate
+    // DNS URLs, user-provided base URLs and extra request families are denied.
+    const origin=provider==="openai"
+      ? "https://api.openai.com" : "https://api.deepseek.com";
+    const path=provider==="openai"?"/v1/responses":"/responses";
+    let networkRequests=0,modelDecisions=0;
+    let inputTokens=0,outputTokens=0,usageComplete=true;
+    const boundedFetch=async(url,options={})=>{
+      const parsed=new URL(String(url));
+      if(parsed.origin!==origin||parsed.pathname!==path
+        ||options.method!=="POST") {
+        throw new Error("CV05_LIVE_PROVIDER_DESTINATION_FORBIDDEN");
+      }
+      if(++networkRequests>32) {
+        throw new Error("CV05_LIVE_PROVIDER_NETWORK_LIMIT");
+      }
+      const signal=AbortSignal.timeout(25_000);
+      const combined=options.signal
+        ? AbortSignal.any([options.signal,signal]) : signal;
+      return fetch(url,{...options,redirect:"error",signal:combined});
+    };
+    const original=provider==="openai"
+      ? createOpenAiResponsesLlmProvider({
+          apiKey:process.env.EVO_CV05_LIVE_LLM_TEST_API_KEY,
+          model,fetchImpl:boundedFetch
+        })
+      : createDeepSeekResponsesLlmProvider({
+          apiKey:process.env.EVO_CV05_LIVE_LLM_TEST_API_KEY,
+          model,fetchImpl:boundedFetch,inferenceTimeoutMs:25_000
+        });
+    const measured={
+      providerId:original.providerId,modelId:original.modelId,
+      async infer(input) {
+        if(++modelDecisions>32) {
+          throw new Error("CV05_LIVE_PROVIDER_DECISION_LIMIT");
+        }
+        const result=await original.infer({...input,maxOutputTokens:700});
+        if(result.usage){
+          inputTokens+=result.usage.inputTokens;
+          outputTokens+=result.usage.outputTokens;
+        }else{
+          usageComplete=false;
+        }
+        return result;
+      }
+    };
+
+    const env=setup(),scope=context();
+    const operationId=COUNTERPARTY_MY_SUPPLIERS_COLLECTION_QUERY_V010;
+    const allowed=new Set([
+      PERSONAL_AGENT_CAPABILITY_SEARCH_TOOL_ID,
+      PERSONAL_AGENT_CAPABILITY_DESCRIBE_TOOL_ID,
+      PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID
+    ]);
+    const catalogFor=ctx=>{
+      // This wraps the real Host tool catalog. Filtering reduces available
+      // capabilities only; actual invocation still performs Host admission,
+      // Domain Owner field permissions and enterprise-scoped ActionRouter.
+      const host=cv05RealHostCatalog(env,ctx);
+      return {
+        async list() {
+          return (await host.list()).filter(tool=>
+            allowed.has(tool.id) && tool.effect==="READ"
+          );
+        },
+        async invoke(call,observations) {
+          if(!allowed.has(call.tool)) return {
+            tool:call.tool,ok:false,error:{
+              code:"CV05_LIVE_READ_ONLY_TOOL_REQUIRED",
+              message:"This isolated evaluation only permits three Host READ operations."
+            }
+          };
+          return host.invoke(call,observations);
+        }
+      };
+    };
+    const ask=async(message,ctx=scope,conversationHistory=[])=>{
+      const runtime=createEnterpriseAgentRuntime(
+        createProviderBackedAgentModel(measured),catalogFor(ctx),8
+      );
+      return runtime.chat(message,ctx.context,ctx.principal,conversationHistory);
+    };
+    const assertAuthorizedRoute=async reply=>{
+      const route=cv05Navigate(reply)?.route;
+      assert.ok(route?.startsWith(COUNTERPARTY_MY_SUPPLIERS_ROUTE),
+        "CV05_LIVE_FRESH_AUTHORIZED_LIST_ROUTE_REQUIRED");
+      const query=parseCounterpartyProjectionRouteQueryV010(
+        route,COUNTERPARTY_MY_SUPPLIERS_ROUTE
+      );
+      assert.equal(query.search,"Supplier");
+      assert.equal(query.subjectType,"ORGANIZATION");
+      assert.equal("status" in query,false);
+      const owner=await env.router.execute(request(operationId,query),scope);
+      assert.equal(owner.ok,true,"CV05_LIVE_OWNER_READ_REJECTED");
+      const preview=[...reply.observations].reverse().find(item=>
+        item.tool===PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID && item.ok
+      )?.result;
+      assert.ok(preview,"CV05_LIVE_SUCCESSFUL_HOST_PREVIEW_REQUIRED");
+      assert.deepEqual(owner.result.rows,preview.rows);
+      assert.deepEqual(owner.result.rows.map(row=>row.rowId),["supplier-hk"]);
+      assert.equal(JSON.stringify(preview).includes("supplier-other"),false);
+      assert.equal(preview.readableFieldIds.includes("email"),false);
+      return route;
+    };
+
+    const ambiguousMessage="我要看供应商的状态，也可能是业务字典里的供应商分类；不确定是哪一种。";
+    const ambiguous=await ask(ambiguousMessage);
+    assert.equal(ambiguous.observations.some(item=>
+      item.tool===PERSONAL_AGENT_COLLECTION_READ_PREVIEW_TOOL_ID),false,
+    "CV05_LIVE_AMBIGUOUS_INTENT_MUST_NOT_GUESS_OWNER_READ");
+    assert.equal(cv05Navigate(ambiguous),undefined);
+    assert.ok(ambiguous.message.trim().length>0,
+      "CV05_LIVE_AMBIGUITY_QUESTION_REQUIRED");
+    console.log("CV05_LIVE_SCENARIO_PASS=ambiguity_no_owner_read");
+
+    const correction="明确是我负责的供应商列表，不是字典。名称筛选 Supplier，"
+      +"subjectType=ORGANIZATION，第一页，请提供可点击列表入口。";
+    const resolved=await ask(correction,scope,[
+      {role:"user",content:ambiguousMessage},
+      {role:"assistant",content:ambiguous.message}
+    ]);
+    await assertAuthorizedRoute(resolved);
+    console.log("CV05_LIVE_SCENARIO_PASS=corrected_owner_preview_reauthorized_list");
+
+    const deniedMessage="请精确查询我负责的 Supplier 供应商，"
+      +"要求 status=ACTIVE。请调用 Owner 查询；若字段未授权不要擅自移除 status。";
+    const denied=await ask(deniedMessage);
+    assert.equal(cv05Navigate(denied),undefined,
+      "CV05_LIVE_FORBIDDEN_FILTER_MUST_NOT_HAVE_LIST_ACTION");
+    assert.ok(denied.observations.some(item=>!item.ok
+      && /COUNTERPARTY_QUERY_STATUS_FORBIDDEN|CAPABILITY_OPERATION/.test(
+        item.error?.code??""
+      )),"CV05_LIVE_REAL_OWNER_FORBIDDEN_OBSERVATION_REQUIRED");
+    console.log("CV05_LIVE_SCENARIO_PASS=forbidden_status_no_navigation");
+
+    const correctionAfterDenial="我确认不按 status 筛选。请重新查询"
+      +"我负责的 Supplier 供应商，subjectType=ORGANIZATION，提供新的列表入口。";
+    const repaired=await ask(correctionAfterDenial,scope,[
+      {role:"user",content:deniedMessage},
+      {role:"assistant",content:denied.message}
+    ]);
+    await assertAuthorizedRoute(repaired);
+    console.log("CV05_LIVE_SCENARIO_PASS=human_corrected_fresh_owner_read");
+
+    env.manager.disable(counterpartyPackage.packageId);
+    const revoked=await ask("刚才的供应商列表现在还能打开吗？请核对当前授权。");
+    assert.equal(cv05Navigate(revoked),undefined,
+      "CV05_LIVE_DISABLED_FEATURE_MUST_NOT_REISSUE_NAVIGATION");
+    console.log("CV05_LIVE_SCENARIO_PASS=plugin_revoked_no_navigation");
+
+    // No prompts, tool arguments, response bodies or credentials in evidence.
+    console.log("CV05_LIVE_INFERENCE_RECEIPT="+JSON.stringify({
+      source:"ACTUAL_NETWORK_PROVIDER",
+      providerId:measured.providerId,modelId:measured.modelId,
+      scenarios:5,networkRequests,modelDecisions,
+      usage:usageComplete?{inputTokens,outputTokens}:"UNKNOWN"
+    }));
+  });
+}
