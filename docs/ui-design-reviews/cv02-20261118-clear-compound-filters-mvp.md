@@ -10,6 +10,10 @@
 
 进入「我的供应商」→ 输入 Hong → 选「启用」和「机构」→ 分页或排序/调整列 → 点击「清除筛选条件」→ Eidos 原 `navigate` Action 把用户带回 `/counterparties/my-suppliers?page=0...`（不带 search/status/subjectType）→ Host/Domain Owner 用当前 Principal/企业/责任/字段权限再次查询 → 显示当前作用域的全量有权 `pageInfo.total`，而非浏览器当前页的局部结果。详情返回仍携带该次新路由。
 
+## 导航与信息架构
+
+这一操作归属应用内 Counterparty Collection 的二级查询动作，不是平台全局导航。Eidos 原列表 `actions[]` 控件呈现普通非主操作；用户点击后只到同一业务 Scope 的第一页，仍通过已有 Host/Owner 做企业、责任范围和字段校验。已有创建、导入、CSV 动作保持当前权限与视觉层级；无重复导航入口。
+
 ## 页面模式与导航归属
 
 入口仍为原 Counterparty Catalog `table`，原状态和主体类型 Quick Filter Groups、搜索、列设置、全部/我的 Scope Views 都继续使用 Eidos Owner 渲染。清除筛选只是列表 action，不是新 Search Engine、Server 认证、独立工具栏或 Saved View WRITE；不会创建跨企业链接。
@@ -49,12 +53,19 @@
 
 route 只能由原 `counterpartyProjectionQueryRouteV010` 构造，并由原 Host 严格 parse；原字段级 READ 与投影 Scope 由每次请求的 Domain Owner 判定，筛选、总数、排序、分页在授权后的集合运行。隐藏状态或主体类型不可通过新按钮推断，测试重用 `COUNTERPARTY_QUERY_STATUS_FORBIDDEN` 负例。没有扩大 CSV/Agent 操作、登录、生产权限、后台 EXPORT 或 Saved View SAVE。
 
-## 机器与 Human 验收证据
+## 浏览器与 Human 证据
 
 - **Protocol**：现有 `tests/protocol/cv02-business-collection-views.test.mjs` 扩展客户/供应商/我的供应商三种路由，检查参数、Page 0、列配置、排序、实际 Owner 结果与清除按钮消失；无权字段/旧无分页模式继续拒绝/不显示。
 - **Eidos render**：从现成 `renderCatalogBrowserToHtml` 检查动作输出，不新增 React/Playwright UI。
 - **自动浏览器**：复用已有 real-Host desktop/390px CI；如专项 Workflow 出现相互冲突的截图、导航失败，则在此 PR 修复，不提前承诺此轮实际点击证据。
 - **Human**：实体设备、实际在线 Google 身份、独立读屏认证属于 #1343 上线前，`HUMAN_NOT_SIGNED / 0/12`；不是内部 MVP 普通工程阻断。
+
+## 证据与剩余问题
+
+- 代码：原 `apps/counterparty/page.ts` 的确切 diff 新增声明式 clear-filters route；没有 Eidos runtime、业务 Data Owner 或 Host 权限修改。
+- 协议测试：同 PR `tests/protocol/cv02-business-collection-views.test.mjs` 运行真实 Owner 过滤和 Eidos HTML，因初次测试错误将 UI `columns` 传入 Domain 查询而失败，已按原 allowlist 拆开；须以修复后的准确 HEAD CI 为最终证据。
+- 目前未独立取得本次清除按钮的实体桌面/手机截图、真人读屏回执和真实 Google 企业登录；原有 CV04/CV05 Chromium 只证明其已覆盖的旧旅程，本轮会使用现有 workflow 回归，但不据此虚称新动作 Human PASS。
+- 未来需求：若要把清除筛选放到所有业务插件，先由 Eidos owner 判断统一动作位置；当前只在 Counterparty 四路由实现，避免跨插件擅自复制 UI。
 
 ## 三轴与平台验收摘要
 
