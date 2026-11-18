@@ -33,3 +33,16 @@
 - 若 CI 失败，在当前 PR 精确 HEAD 定位并修复；通过后 Ready→受保护 main，重查 main SHA/东京 CI-Gated 发布及 SHA-safe Branch Hygiene。**不在恢复窗口清理无合并证据的旧分支。**
 
 来源/采用取舍/未恢复项，见 [研究与证据索引](CV05-MVP-0506-20261118-RESEARCH-EVIDENCE-INDEX.md)。
+
+
+## 5. 自动续跑 #01/07（2026-11-18）· CV05 歧义与失败恢复闭环
+
+> 这是 #05/06 的后续小切片，原 #04/06 和 #1353 已合并，固定基线为 `main@d289f8bf4e6b535080a7d195140b35860c01c02e`；本切片独立分支 `feat/cv05-mvp-ambiguity-recovery-20261118`。以下为**代码变更的预期验收**，在准确 HEAD CI / 合并完成之前不写“通过”。
+
+- **确认未重复实现：** 原 Provider-backed Personal Agent `provider-model.ts` 已有 Host 的动态 Tool Catalog、会话历史与模型系统规则；`runtime.ts` 已有成功 READ 去重与失败 Observation，`evo.collection.read.preview` 与 Eidos `navigate` 在 #1314/#1315/#1353 已实现。不建第二 NL 解析器/模型/授权或路线解析器。
+- **本轮新的模型指导（仅是指令，不是质量证明）：** 业务列表先依 Domain Owner 元数据与 Human 意图确定 Collection/字段；对象或视图有重大歧义时只问一个澄清问题，不猜测；失败、非法、撤权筛选不默默放宽，不用先前旧路线；得到用户明确修正后才重新走现有 Host READ；Board 当前有权分页、Chart 独立授权聚合。
+- **本轮实际 Host/Eidos 契约：** `reply-presentation.ts` 以前只看最新一次 Preview Observation 是否成功。现在即使最后 Preview 成功，只要后续任何 Host 工具失败，也不提供陈旧的 `open-authorized-collection` 动作。失败 Activity 保留错误码；下次 Human 明确修正后可以通过新的 Preview 获取独立有权链接。
+- **复用原测试夹具：** 在 `tests/integration/cv02-personal-agent-authorized-collection.test.mjs` 增加（1）歧义问题→不执行任何 READ；下一轮对话历史澄清后真实供应商 Owner 查询与新 Host 路由复读；（2）真实 Owner 拒绝未授权 `status`，当前轮无导航；用户显式移除状态并改为已授权 `subjectType`，下一轮重新查询；（3）先有权获取字典 Board，随后其他 Host Inspection 失败，聊天动作必须隐藏。使用真实 ActionRouter/Owner/Chat，但 Provider 推理**明确标记 scripted**。
+- **真实 LLM 非自动冒充：** 本轮不能从 CI 中已有 scripted provider 证明自然语言质量。在未证实有可用在线 `llm.inference` 绑定和安全隔离的实际身份前，明确标记 `LIVE_LLM_UNVERIFIED`；不得读取/写入生产密钥、越过 #1343、#1212 或用演示预览代替登录上线。只有获得真实 Provider 的请求/回应、模型版本、脱敏测试记录与独立确认结果时，才能升级相应验收等级。
+
+**唯一继续方向：** 同 PR 修复其准确 HEAD CI 发现的错误，Protected Main 合并后核验 Tokio 当前实际 SHA、HTTPS/401 和 Actions 精确分支清理；之后针对在线 LLM 的真实澄清质量做独立可审计的实测，不开启 N1 SAVE/后台 EXPORT/WRITE。
