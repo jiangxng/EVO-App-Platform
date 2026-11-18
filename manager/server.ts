@@ -7977,8 +7977,10 @@ const server = createServer(async (request, response) => {
               ? COUNTERPARTY_MY_SUPPLIERS_ROUTE
               : projectionId === COUNTERPARTY_CUSTOMER_PROJECTION_V010
                 ? COUNTERPARTY_CUSTOMERS_ROUTE : COUNTERPARTY_MY_CUSTOMERS_ROUTE;
-          const { parseCounterpartyProjectionRouteQueryV010 } =
-            await import("../apps/counterparty/projection-query.js");
+          const {
+            parseCounterpartyProjectionRouteQueryV010,
+            counterpartyProjectionQueryRouteV010
+          } = await import("../apps/counterparty/projection-query.js");
           const userQuery = parseCounterpartyProjectionRouteQueryV010(
             url.searchParams.get("route"), projectionRoute
           );
@@ -8015,7 +8017,10 @@ const server = createServer(async (request, response) => {
                 ? {
                     importRoute: dataImportUploadRouteV010(
                       "counterparty.subject",
-                      { relationshipMode: importRelationshipMode }
+                      { relationshipMode: importRelationshipMode },
+                      counterpartyProjectionQueryRouteV010(
+                        projectionRoute, pagingQuery, pagingQuery.page ?? 0
+                      )
                     )
                   }
                 : {})
@@ -8679,13 +8684,24 @@ const server = createServer(async (request, response) => {
               code: "DATA_IMPORT_TARGET_NOT_FOUND"
             });
           }
+          // The URL is merely a hint: only the current active import target
+          // may approve a canonical same-scope worklist destination.
+          if (uploadIntent?.returnTo && target.completionNavigation?.({
+              parameters: uploadIntent.initialParameters,
+              originRoute: uploadIntent.returnTo
+            })?.route !== uploadIntent.returnTo) {
+            return json(response, 400, {
+              code: "DATA_IMPORT_RETURN_ROUTE_INVALID"
+            });
+          }
           return json(
             response,
             200,
             module.createDataImportUploadPageV010({
               target,
               locale,
-              initialParameters: uploadIntent?.initialParameters
+              initialParameters: uploadIntent?.initialParameters,
+              initialReturnTo: uploadIntent?.returnTo
             })
           );
         }
