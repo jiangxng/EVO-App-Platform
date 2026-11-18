@@ -71,6 +71,9 @@ export interface FoundationObjectImportTargetV010 {
   completionNavigation?(input: {
     parameters?: FoundationObjectImportTargetParametersV010;
     locale?: string;
+    /** Optional already-bounded source list. The target owns strict validation;
+     * an invalid origin must never become a redirect or an authorization grant. */
+    originRoute?: string;
   }): { route: string; label: FoundationObjectLocalizedTextV010 } | undefined;
   describe(input: {
     contextId: string;
