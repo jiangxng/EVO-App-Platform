@@ -15,6 +15,7 @@ export interface DeepSeekResponsesLlmProviderOptions {
 
 interface ResponseFunctionCall {
   type: "function_call";
+  status?: string;
   name: string;
   arguments: string;
 }
@@ -178,10 +179,18 @@ export function createDeepSeekResponsesLlmProvider(
         .filter((item): item is ResponseFunctionCall =>
           item.type === "function_call"
         )
-        .map(item => ({
-          name: item.name,
-          arguments: safeArguments(item.arguments)
-        }));
+        .map(item => {
+          if (item.status !== undefined && item.status !== "completed") {
+            throw new Error("DEEPSEEK_PROVIDER_TOOL_CALL_NOT_COMPLETED");
+          }
+          if (typeof item.name !== "string" || !item.name) {
+            throw new Error("DEEPSEEK_PROVIDER_TOOL_CALL_INVALID");
+          }
+          return {
+            name: item.name,
+            arguments: safeArguments(item.arguments)
+          };
+        });
 
       let text = "";
       for (const item of body.output ?? []) {
