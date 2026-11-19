@@ -14,6 +14,7 @@ export interface OpenAiResponsesLlmProviderOptions {
 
 interface ResponseFunctionCall {
   type: "function_call";
+  status?: string;
   name: string;
   arguments: string;
 }
@@ -290,6 +291,12 @@ export function createOpenAiResponsesLlmProvider(
       const toolCalls = (body.output ?? [])
         .filter((item): item is ResponseFunctionCall => item.type === "function_call")
         .map(item => {
+          if (item.status !== undefined && item.status !== "completed") {
+            throw new Error("OPENAI_PROVIDER_TOOL_CALL_NOT_COMPLETED");
+          }
+          if (typeof item.name !== "string" || !item.name) {
+            throw new Error("OPENAI_PROVIDER_TOOL_CALL_INVALID");
+          }
           const parsed = safeArguments(item.arguments);
           const originalSchema = toolSchemas.get(item.name);
           return {
