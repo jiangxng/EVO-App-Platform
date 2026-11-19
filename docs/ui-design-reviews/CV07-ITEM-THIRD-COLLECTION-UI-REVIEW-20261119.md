@@ -12,7 +12,7 @@
 
 ## 导航与信息架构
 
-页面共用“全部物料 / 我的 Item”两视图。切换视图重置页号为 0，但保留合法搜索、排序和页大小；当前项由 `selected` 标注，Eidos 再用 `aria-current` 表达。行激活保持原 Item Detail 入口，不让表格排序动作触发业务写入。**当前纵切还未完成**详情返回原筛选/焦点和真实 Host URL→Owner 绑定，下一小 PR 补齐后再做用户验收。安全 URL 仅限 `/items` 与 `/items/my-items`，重复字段、SQL/外部域等失败关闭。
+页面共用“全部物料 / 我的 Item”两视图。切换视图重置页号为 0，但保留合法搜索、排序和页大小；当前项由 `selected` 标注，Eidos 再用 `aria-current` 表达。行激活保持原 Item Detail 入口，不让表格排序动作触发业务写入。**当前纵切新增**详情 `returnTo` 安全坐标与 Host URL→Owner 接线；实际 Host HTTP/Chromium 的筛选返回与焦点恢复仍未签收。安全 URL 仅限 `/items` 与 `/items/my-items`，重复字段、SQL/外部域等失败关闭。
 
 ## 视觉与颜色
 
@@ -34,7 +34,7 @@ Scope: 行权限来自 Item 当前 Enterprise/Principal 与 `ITEM_STEWARD` 交�
 
 - 代码：`apps/item/page.ts`、`apps/item/collection-query.ts`、`apps/item/projection-service.ts`、`apps/item/projection-actions.ts`、`apps/item/capability-manifest.ts`。
 - 同 PR 回归：`tests/protocol/cv07-item-authorized-collection.test.mjs`，覆盖 Eidos HTML server search、视图路由、真实授权 Item 页面、分页、隐藏 code 和非法输入；代码完成不等于真实浏览器结果。
-- 待验证：Host 路由从 URL 解码的完整入口、详情返回原筛选和焦点、桌面 1280/390px 真实 Chromium、真实企业会话、用户签收。
+- 待验证：本 PR 新接线的真实 Host HTTP/Chromium 行为、详情返回筛选与焦点恢复、桌面 1280/390px、真实企业会话、用户签收。
 - 不应以本次源文件、文档或 CI 通过代替 `HUMAN_PASS`。
 
 ## 页面模式与导航归属
