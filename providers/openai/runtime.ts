@@ -324,7 +324,7 @@ export function createOpenAiResponsesLlmProvider(
         text: text.trim(),
         toolCalls,
         ...(providerUsage(body) ? {usage: providerUsage(body)} : {}),
-        finishReason: body.incomplete_details?.reason ?? "stop"
+        finishReason: "stop" // Explicitly incomplete/failed Responses were rejected above.
       };
     }
   };
