@@ -170,6 +170,9 @@ with sync_playwright() as api:
         # A->B->A is an actual Host re-read using the same source route.
         # No A snapshot or stale navigable page is permitted after switch.
         page.evaluate("(v)=>localStorage.setItem('evo.context.id',v)",B)
+        page.goto(HOST+"/?surface=desktop#"+data["route"],
+            wait_until="domcontentloaded")
+        page.reload(wait_until="domcontentloaded")
         visit(page,data["route"])
         table_row(page,B_NAME)
         for name in A_NAMES:
@@ -178,6 +181,9 @@ with sync_playwright() as api:
                 "CV07_CROSS_ENTERPRISE_ITEM_LEAK",name)
         screenshot(page,"item-b-enterprise-%d"%width)
         page.evaluate("(v)=>localStorage.setItem('evo.context.id',v)",A)
+        page.goto(HOST+"/?surface=desktop#"+data["route"],
+            wait_until="domcontentloaded")
+        page.reload(wait_until="domcontentloaded")
         visit(page,data["route"])
         table_row(page,A_NAMES[0])
         assert B_NAME not in page.locator(
