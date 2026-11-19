@@ -124,7 +124,7 @@
 
 | ID / 原始网址或附件 | 2026-11-19 检索级别 | 事实 / EVO 用途与剩余限制 |
 | --- | --- | --- |
-| **API04 · [DeepSeek 中文模型与定价](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)** | **S+ 官方搜索结果返回长表格；直接访问原文曾遇超时** | 新快照建议 `deepseek-flash`（V4.1 Flash），高峰缓存未命中输入 2 CNY /百万 tokens、输出 8 CNY/百万 tokens，可能变动。英文 [Responses endpoint](https://api-docs.deepseek.com/api/create-response/) 可见文档曾写只接受旧 ID `deepseek-v4-flash`，新旧章节有冲突；以实际账户模型列表验证为准，不签在线兼容。 |
+| **API04 · [DeepSeek 中文模型与定价](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)** | **S（官方搜索摘录提供长表格；直接打开原文超时）** | 新快照建议 `deepseek-flash`（V4.1 Flash），高峰缓存未命中输入 2 CNY /百万 tokens、输出 8 CNY/百万 tokens，可能变动。英文 [Responses endpoint](https://api-docs.deepseek.com/api/create-response/) 可见文档曾写只接受旧 ID `deepseek-v4-flash`，新旧章节有冲突；以实际账户模型列表验证为准，不签在线兼容。 |
 | **ADM01 · GitHub Settings 用户截图（此会话，未入库）** | **用户提供控制面截图，非 GitHub API 读取** | Environment `cv05-live-qa` 1 protection rule、1 secret；Deployment branches `Selected branches and tags` 仅 `main`，1 branch/0 tags；Environment secret 列出正确专用 QA Key 名；Actions Repository secrets 显示 `This repository has no secrets.`。没有保存截图的仓库路径，不能据此证明组织级 Secret、key 值有效或未来设置不会改变。 |
 | **ADM02 · DeepSeek 账单/预警截图（此会话，未入库）** | **用户提供服务商 UI 图片** | 余额以 CNY 显示；低余额功能说明仅通过注册邮件通知，**不是**停止计费。用户于 2026-11-19 已确认设置了预警，明确准许本次最多 2 USD；无账户级实际消费硬上限的截图。禁止把余额、赠额及累计消费当作 QA Token 报价或已发生费用。 |
 | **SRC10 · [CV05 live QA runbook](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md) 与预算防护模块** | **G 候选；以该短分支精确 PR HEAD CI 合并为准** | 只在现有 DeepSeek L01-L05 手动收费 Harness 中加入保守请求前估价、模型 `deepseek-flash`、预算 $2 内预留；超限/不支持模型未发请求即失败。**它不能取代 DeepSeek 账单端硬限额**，不能当作收费验收通过。 |
