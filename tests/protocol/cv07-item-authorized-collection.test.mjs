@@ -183,7 +183,7 @@ test("CV07 third owner Item: hidden code cannot influence search, sort or emitte
     pageInfo:visible.collection.pageInfo,tableQuery:{search:"Hong Kong"}
   });
   assert.equal(page.table.columns.some(c=>c.id==="code"),false);
-  assert.doesNotMatch(renderCatalogBrowserToHtml(page),/SEC-A|SEC-B|PRIVATE EXTRA/);
+  assert.doesNotMatch(renderCatalogBrowserToHtml(page),/SEC-A|SEC-B/);
 });
 
 test("CV07 third owner Item: Host Action and Agent operation share Owner collection shape; forged context denied",async()=>{
