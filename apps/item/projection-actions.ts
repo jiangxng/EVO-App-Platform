@@ -9,7 +9,10 @@ import type {
   PlatformPrincipalV010,
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
+import { parseItemCollectionQueryV010 } from "./collection-query.js";
 import {
+  ITEM_DIRECTORY_COLLECTION_QUERY_V010,
+  ITEM_MY_ITEMS_COLLECTION_QUERY_V010,
   ITEM_DIRECTORY_READ_COMMAND_V010,
   ITEM_FEATURE_ID,
   ITEM_MY_ITEMS_READ_COMMAND_V010,
@@ -62,32 +65,45 @@ export function createItemProjectionActionHandlersV010(input: {
 }): AppActionHandler[] {
   const create = (
     commandCode: string,
-    projectionId: ItemProjectionIdV010
+    projectionId: ItemProjectionIdV010,
+    collectionQuery = false
   ): AppActionHandler => ({
     packageId: ITEM_PACKAGE_ID,
     featureId: ITEM_FEATURE_ID,
     commandCode,
     async execute(
-      _request: AppActionRequestV010,
+      request: AppActionRequestV010,
       context?: PlatformRequestContextV010
     ): Promise<AppActionExecutionResultV010> {
       try {
         if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
         const active = activeEnterpriseContext(context);
+        const relationship = input.resolveEnterpriseRelationshipKind(
+          context.principal, active.contextId
+        );
+        if (collectionQuery && (
+          !relationship
+          || context.scope.enterpriseId !== context.context?.activeContext.enterpriseId
+          || (context.scope.userId
+            && context.scope.userId !== context.principal.subjectId)
+        )) throw new Error("ITEM_COLLECTION_CONTEXT_DENIED");
+        // Validate before any Owner read. No dynamic SQL or untyped filters.
+        const query = collectionQuery
+          ? parseItemCollectionQueryV010(request.values)
+          : undefined;
         const result = await input.service.read({
           contextId: active.contextId,
           projectionId,
+          ...(query ? { query } : {}),
           requestContext: context,
-          enterpriseRelationshipKind:
-            input.resolveEnterpriseRelationshipKind(
-              context.principal,
-              active.contextId
-            )
+          enterpriseRelationshipKind: relationship
         });
         return {
           ok: true,
           correlationId: context.correlationId,
-          result: JSON.parse(JSON.stringify(result)) as JsonValue
+          result: JSON.parse(JSON.stringify(
+            collectionQuery ? result.collection : result
+          )) as JsonValue
         };
       } catch (error) {
         return failure(error, context);
@@ -97,6 +113,10 @@ export function createItemProjectionActionHandlersV010(input: {
 
   return [
     create(ITEM_DIRECTORY_READ_COMMAND_V010, ITEM_DIRECTORY_PROJECTION_V010),
-    create(ITEM_MY_ITEMS_READ_COMMAND_V010, ITEM_MY_ITEMS_PROJECTION_V010)
+    create(ITEM_MY_ITEMS_READ_COMMAND_V010, ITEM_MY_ITEMS_PROJECTION_V010),
+    create(ITEM_DIRECTORY_COLLECTION_QUERY_V010,
+      ITEM_DIRECTORY_PROJECTION_V010, true),
+    create(ITEM_MY_ITEMS_COLLECTION_QUERY_V010,
+      ITEM_MY_ITEMS_PROJECTION_V010, true)
   ];
 }
