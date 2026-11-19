@@ -80,3 +80,11 @@
 - 离线预演不引用环境 Secret，完全不使用外网请求；只使用测试 Provider 的 `synthetic-offline-key` 和原 `seller-a/ent-a` 合成内存数据。明确核对每次 request 的官方预期 URL、HTTP POST、仅三个 READ tools、工具名称、模型元数据与调用次数；两种 Provider 均要证明旧 Eidos 路由在插件禁用之后无法通过真实 Owner/Agent 复读。
 - **解释规则：** `CV05_OFFLINE_RESPONSES_HOST_REHEARSAL_PASS` 仅代表协议适配 + 真实 Host/Owner 的**零网络、给定决策序列**回归通过，绝不是模型自己理解歧义、决策被拒绝后自主追问或真实调用收费 API 的证明；只有显式人工手动且具备 Environment 安全与费用授权的真实 run 才能验证 L01–L05 语义。
 - 候选开发分支 `test/cv05-offline-responses-provider-host-journey-20261118` 从已确认保护的 `main@9c96f52023ff1bb3f7ff854d9b2692663d5ba9a4` 创建。工程通过 PR HEAD / 主线 CI / 精确分支清理后，将最终准确回执写入 PR，而不是在此提前声称通过或重新部署业务运行镜像。
+
+
+## 2026-11-19 接续 #01/07 · 在线前双 Provider 响应完整性预检
+
+- 官方 DeepSeek Responses API [原文](https://api-docs.deepseek.com/api/create-response/) 明确 HTTP 200 的 `status` 仍有 `incomplete/failed`，`function_call.arguments` 可能非法 JSON。现有 OpenAI/DeepSeek Provider adapter 的相关问题已在独立安全小切片 `fix/cv05-responses-malformed-incomplete-failclosed-20261119` 修补候选：拒绝未完成响应或函数调用；解析参数失败不能再返回 `{}`，防止 Human 筛选被静默省略。
+- 新增 `tests/protocol/cv05-responses-provider-failclosed.test.mjs` 零网络断言：两个真实 Provider 的合成失败 Response 在进入 `createProviderBackedAgentModel` / Agent Host Catalog 时必须直接失败，绝不触发下游 Owner READ；合法无参 `{}` 仍被接受。实际 PASS 状态以该 PR 的 **准确 HEAD CI、合并后原始回执** 为准；文档提交不自动签收代码。
+- DeepSeek 模型名称在官方英文当前页面及中文搜索摘录间有不一致，**不可仅凭某一页更改 Provider 默认模型或默认为收费测试的获批模型**。管理员在 `#1359` 先确认当前实际支持型号、价格、独立 QA 密钥及费用同意。
+- 此项全是代码/模拟 HTTP 回归，既未启动 `.github/workflows/cv05-live-llm-isolated-acceptance.yml` 也未解除 `ENVIRONMENT_POLICY_NOT_VERIFIED / LIVE_LLM_UNVERIFIED`；真实 L01–L05 仍为外部阻塞项。

@@ -100,3 +100,19 @@
 | 任务 | [#1359](https://github.com/jiangxng/EVO-App-Platform/issues/1359)、[#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343)、[#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、[#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) | 先完成 #1359 管理员可核实前置；保留其它独立生产准入，不合并到此轮研究文档工作 |
 
 **备注：** 本文件的日期反映“本窗口做过何种检索”；新窗口不得把任何 S/H 自动升级为 O/G。来源事实是各 URL 原文/摘要或原始 Actions 所见；使用与拒绝理由属本工作线判断，遇到官方版本变化时需重新验证。
+
+
+## 8. 2026-11-19 接续 #01/07：Responses 完成状态/JSON 函数参数原文审计
+
+> **新增核实，源等级 O（官方网页可见原文）+ G（主线适配器代码实际读取）**；此节不追溯篡改 §1 在前一研究窗口时的 S/H 分类。新发现以本次真实浏览原文为准，已用于独立精确 HEAD PR 的非网络测试；**尚未实际调用远程 LLM**。
+
+| 参考源（原始 URL） | 本次查阅及原文定位 | 事实 vs 本项目判断 |
+| --- | --- | --- |
+| [DeepSeek Responses API](https://api-docs.deepseek.com/api/create-response/) | **2026-11-19 O**；`Response body` §Responses（status: in_progress/completed/incomplete/failed）；`output[].status`；`function_call.arguments` 第 359–363 行；`incomplete_details.reason` 第 292–300 行 | **事实：** HTTP 200 返回的 Response 仍可能不完整或失败；模型生成的工具参数不一定是有效 JSON，需要调用方验证。**判断：**在任何 Host READ 之前拒绝非完成响应、未完成函数调用、非法 JSON；禁止把非法参数变成 `{}`。 |
+| [OpenAI Function calling](https://developers.openai.com/api/docs/guides/function-calling) | **2026-11-19 O**；§Handling function calls / §Executing the call / §Incorporating results into response（页面约 2026–2310 行） | **事实：** `response.output` 可包含一个或多个 `function_call`，参数为 JSON 字符串；通常需要把调用结果显式送回模型。**判断：**现有 Agent 一次一工具，已对多工具失败关闭；此次仅收紧不可安全执行的响应/工具参数，不擅自重写整个工具循环。 |
+| [OpenAI Responses API Create](https://developers.openai.com/api/reference/resources/responses/methods/create) | **2026-11-19 S**；官方搜索摘录确认 `status/incomplete_details/function_call` 相关字段；原完整页面访问失败（页面超过抓取限制） | 与 DeepSeek 原文互证一般性响应结构，但不将未取得的整页声称为全文。首次真实模型前仍应复读模型版本和收费限额。 |
+| [DeepSeek Responses API 中文](https://api-docs.deepseek.com/zh-cn/api/create-response/) 与 [DeepSeek API 价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) | **2026-11-19 S**；官方搜索摘录列 `deepseek-flash`、`deepseek-v4-pro`；英文 [DeepSeek Responses API](https://api-docs.deepseek.com/api/create-response/) 已读页面中又出现仅 `deepseek-v4-flash` 的限制 | **来源间冲突（未解决）：** 不同语言与抓取时点对可用模型清单不同。**决定：**不更改生产/默认 Model ID，仅按 runbook 要求管理员在真实 QA 之前通过 Provider 最新列表、计划/价格、运行身份核实并**显式指定**获许可模型。 |
+
+**读取的现有缺口：** `providers/openai/runtime.ts`、`providers/deepseek/runtime.ts` 之前将 JSON 参数解析失败退化为空对象，并在 HTTP 200 时直接解析输出函数调用，即使 `status=incomplete/failed`；可能消除 Human 指定筛选而扩大 READ。由本轮安全小 PR 改成固定错误码 fail-close，并为两个 Provider 分别验证 **9 种异常响应无任何 Agent Catalog.invoke**；合法空 JSON object 则仍可执行。新测试 `tests/protocol/cv05-responses-provider-failclosed.test.mjs` 只注入离线合成 HTTP，不构成真实模型/企业权限质量签收。
+
+**保留范围：** 为兼容旧 Provider 测试夹具中未设置 `status` 的合成响应，当前适配器在字段明确为非 completed、`error` 或 `incomplete_details` 时拒绝；未来可另行考虑要求实际服务响应必须具备 `status`，但要先完整迁移旧 fixture 与协议定义。不要把当前改动包装成所有 Provider JSON Schema/生产安全已全面审计。
