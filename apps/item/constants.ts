@@ -48,6 +48,11 @@ export const ITEM_DIRECTORY_READ_OPERATION_V010 =
 export const ITEM_MY_ITEMS_READ_OPERATION_V010 =
   "item.projection.my-items.read" as const;
 
+export const ITEM_DIRECTORY_COLLECTION_QUERY_V010 =
+  "item.collection.directory.query" as const;
+export const ITEM_MY_ITEMS_COLLECTION_QUERY_V010 =
+  "item.collection.my-items.query" as const;
+
 export function itemDetailRouteV010(itemId: string): string {
   if (!itemId.trim()) throw new Error("ITEM_ID_REQUIRED");
   return `${ITEM_DETAIL_ROUTE}?${new URLSearchParams({
