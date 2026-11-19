@@ -129,11 +129,12 @@ with sync_playwright() as api:
             ).get("returnTo",[""])[0]
         assert return_route==current_route,(
             "CV07_DETAIL_RETURN_LOST_QUERY",return_route,current_route)
-        links=page.locator('[data-eidos-context-route]')
-        returning=[link for link in links.all()
-                   if link.get_attribute("data-eidos-context-route")==current_route]
-        assert returning,("CV07_RETURN_LINK_MISSING",return_route)
-        actual_click(returning[0],phone)
+        # Navigation changes location before asynchronous Host page content
+        # is fully rendered. Wait for the real Eidos return control.
+        return_link=page.locator(
+            '[data-eidos-context-route="'+return_route+'"]:visible').first
+        expect(return_link).to_be_visible(timeout=30000)
+        actual_click(return_link,phone)
         table_row(page,A_NAMES[1])
         assert current_route in page.url,("CV07_DETAIL_RETURN_COORDINATES",page.url)
         no_overflow(page,width)
