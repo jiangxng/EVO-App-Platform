@@ -295,8 +295,22 @@ export function createItemProjectionPageV010(input: {
       }
     };
   })() : undefined;
+  const fromRoute = info
+    ? itemCollectionQueryRouteV010(path, query, info.page)
+    : undefined;
   return {
     ...page,
+    ...(fromRoute ? {
+      items:page.items.map(item=>({
+        ...item,
+        ...(item.primaryAction?.type === "navigate"
+          ? { primaryAction:{
+              ...item.primaryAction,
+              route:itemDetailRouteV010(item.id)
+                + "&returnTo=" + encodeURIComponent(fromRoute)
+            }} : {})
+      }))
+    } : {}),
     ...(table ? {table} : {}),
     id: "evo-item.projection." + input.projectionId,
     title: myItems ? text.myItems : text.title,
@@ -337,6 +351,8 @@ export function createItemDetailPageV010(input: {
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
+  /** Display hint only, validated by Host. Item detail always reauthorizes. */
+  returnRoute?: string;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const canManage = input.canManage ?? true;
@@ -373,8 +389,9 @@ export function createItemDetailPageV010(input: {
     contextNavigation: {
       items: [{
         id: "items",
-        label: text.title,
-        route: ITEM_DIRECTORY_ROUTE
+        label: input.returnRoute?.startsWith(ITEM_MY_ITEMS_ROUTE + "?")
+          ? text.myItems : text.title,
+        route: input.returnRoute ?? ITEM_DIRECTORY_ROUTE
       }, {
         id: "item",
         label: item.displayName
