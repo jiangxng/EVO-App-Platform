@@ -100,7 +100,23 @@ with sync_playwright() as api:
                 "CV07_VIEW_TOUCH_TARGET",width,rect)
             assert rect["left"]>=-1 and rect["right"]<=width+2,rect
 
-        sort=page.locator('[data-eidos-catalog-action="sort-displayName"]')
+        sort=page.locator(
+            '[data-eidos-catalog-action="mobile-sort-displayName"]'
+            if phone else '[data-eidos-catalog-action="sort-displayName"]')
+        if phone:
+            mobile_sort=page.locator('[data-eidos-catalog-mobile-sort]')
+            expect(mobile_sort).to_be_visible()
+            buttons=mobile_sort.locator('button')
+            assert buttons.count()>=1
+            for rect in buttons.evaluate_all("""els=>els.map(x=>{
+              const r=x.getBoundingClientRect();return {
+                width:r.width,height:r.height,left:r.left,right:r.right
+              };
+            })"""):
+                assert rect["height"]>=44 and rect["width"]>=44,(
+                    "CV07_MOBILE_SORT_TOUCH_TARGET",rect)
+                assert rect["left"]>=-1 and rect["right"]<=width+2,(
+                    "CV07_MOBILE_SORT_OVERFLOW",rect)
         actual_click(sort,phone)
         table_row(page,A_NAMES[2])
         assert "direction=desc" in page.url,page.url
