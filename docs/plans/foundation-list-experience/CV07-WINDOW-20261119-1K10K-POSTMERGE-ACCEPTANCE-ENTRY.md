@@ -50,3 +50,16 @@ PR #1368 在**保持原行/字段/企业完整授权在前**的约束下，先�
 - 本轮不再推进付费 DeepSeek 余额提醒/本地费用估算；未来私有模型仅走现有 `llm.inference` Provider/Host/Agent。离线用户可演示 MVP 不被收费 L01–L05 阻塞，单独 [#1359](https://github.com/jiangxng/EVO-App-Platform/issues/1359) 保持 LIVE_LLM_UNVERIFIED。
 - Human OIDC [#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343)、CV03 Saved View WRITE [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、CV04 后台 EXPORT、PA05 Operator [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 与生产 WRITE 仍各自关闭；不修改并行 [#1184](https://github.com/jiangxng/EVO-App-Platform/pull/1184)。
 - 已启用条件提醒 `List Foundation 开发完成验收提醒`，每天依据实际 protected main CI、东京真实部署和可操作的预览验收路径判断，**不能**把本文单项工程合并当作全功能完成通知。下一步只补证据缺口/具体失败，不重造基础框架。
+
+
+## 6. 2026-11-19 主线 Chromium 与腾讯东京真实完成回执（新增原证）
+
+此节记录本文件初稿之后取得的**最终运行结果**，保留 §1 在最初编写时为 `in_progress` 的历史事实，不用新结果覆盖旧时间点。
+
+- **合并后主线 Chromium：** [Run #44509904650](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509904650) 完成 `SUCCESS`，其真实 `real-owner-item-1280-390` Job #135511104883 原始日志明确记录 `CV07_ITEM_REAL_HOST_CHROMIUM_PASS:1280`、`CV07_ITEM_REAL_HOST_CHROMIUM_PASS:390`、`CV07_ITEM_REAL_HOST_BROWSER_ACCEPTANCE_PASS=2`、`CV07_ITEM_REAL_HOST_BROWSER_ARTIFACT_PASS=2`。这次与 PR 阶段 #44508912286 **不同，是准确主线** `702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf`。
+- **准确主线 CI：** [Continuity #44509904652](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509904652)、[Platform #44509904648](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509904648)、[Lightweight #44509904709](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509904709)、[1k/10k Scale #44509904752](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509904752) 与上述 Chromium **全部完成 SUCCESS**。
+- **东京实际部署，而非 SKIP：** [Run #44509954215](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509954215)，`preflight SUCCESS / deploy SUCCESS`，实际远端 Deploy Job #135516298661 的 `docker compose ps` 明确显示 `evo-tokyo-dev-evo-1 ghcr.io/jiangxng/evo-app-platform:702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf … Up 6 seconds (healthy)`，并出现 `EVO_TOKYO_DEV_LOCAL_HEALTH_PASS sha=702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf`、`EVO_TOKYO_PUBLIC_HTTPS_HEALTH_PASS`、`EVO_TOKYO_BASIC_AUTH_BOUNDARY_PASS`。构建时 GHCR manifest digest `sha256:4e64be6f97e7dac01b4c2ff2d3e8bdce3463b5ed4bed47fa33a7bc3ddaec1f69` 为构建镜像清单；**没有**独立读取运行容器 Digest，不把两者混写。
+- **未得到的证据：** 现有腾讯预览的 Basic Auth 凭据和真实已登录业务用户/企业授权会话不可从连接器读取；本轮没有登录东京业务页面或检查 Item 在该实例是否已经安装、是否有可用的演示主数据。**在线实例健康≠真实 Human 业务验收入口已可操作**。若无合法预览身份、真实业务样本与具名 Human 签收，继续标注 `LIST_FOUNDATION_HUMAN_ACCEPTANCE_PENDING`。
+- **前述安全边界仍保持**：不恢复外部付费 LLM 验收作为当前开发阻塞；未解除 CV03 正式 SAVE、CV04 正式 EXPORT、Human OIDC、PA05 Operator、生产 WRITE，不更动 #1184。
+
+本窗口文档 PR 将只产生 non-runtime diff，合并后东京工作流如依据现有 `evo-tokyo-dev-deploy.yml` 正确 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE`，应以该次 Actions 实际原证签收，**不要**把文档合并 SHA 当成新运行镜像。
