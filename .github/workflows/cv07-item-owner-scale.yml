@@ -1,0 +1,75 @@
+name: CV07 Item Owner 1k 10k Scale
+
+on:
+  pull_request:
+    paths:
+      - "apps/item/**"
+      - "foundation/collection-query/**"
+      - "providers/enterprise-context/resources.ts"
+      - "tests/cv07/item-collection-scale.test.mjs"
+      - "tests/protocol/cv07-item-authorized-collection.test.mjs"
+      - ".github/workflows/cv07-item-owner-scale.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/item/**"
+      - "foundation/collection-query/**"
+      - "providers/enterprise-context/resources.ts"
+      - "tests/cv07/item-collection-scale.test.mjs"
+      - "tests/protocol/cv07-item-authorized-collection.test.mjs"
+      - ".github/workflows/cv07-item-owner-scale.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authorized-item-owner-scale:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Preserve existing authorized Owner/Host/Eidos and legacy protocol
+        run: node --test tests/protocol/cv07-item-authorized-collection.test.mjs
+      - name: Measure real Item Owner 1k and 10k authorized paging, not production SLA
+        run: node --test tests/cv07/item-collection-scale.test.mjs
+      - name: Verify bounded, source-graded scale receipt
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const data=JSON.parse(readFileSync("artifacts/cv07-item-scale/receipts.json","utf8"));
+            if(data.receipts?.length!==2
+              || JSON.stringify(data.receipts.map(r=>r.rowCount))!=="[1000,10000]"
+              || data.receipts.some(r=>
+                r.source!=="DISPOSABLE_MEMORY_RESOURCE_REAL_OWNER"
+                || r.querySamples!==4
+                || r.extensionHydrations!==23
+                || r.pageSize!==10
+                || r.authorizedReadOnly!==true
+                || r.realPostgres!==false
+                || r.realBrowser!==false
+                || r.realHuman!==false
+                || !Number.isFinite(r.p95ReadMs)
+                || !Number.isFinite(r.rssMiB)
+              )) process.exit(1);
+            console.log("CV07_ITEM_1K_10K_OWNER_SCALE_ARTIFACT_PASS");
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cv07-item-owner-1k-10k-receipts
+          path: artifacts/cv07-item-scale/receipts.json
+          if-no-files-found: warn
+          retention-days: 30
