@@ -102,31 +102,52 @@ export function createItemProjectionServiceV010(input: {
         principalSubjectId: request.requestContext.principal.subjectId,
         authorizedItemIds
       });
-      const authorized: ItemProjectionResultV010 = {
-        contractVersion: "0.1.0",
+      // Index responsibilities once. The previous per-record filter was
+      // quadratic when many items had assignments.
+      const byItemId = new Map<string, ResponsibilityAssignmentV010[]>();
+      for (const assignment of responsibilities) {
+        if (assignment.targetRef.objectType !== "item.subject") continue;
+        const id = assignment.targetRef.objectId;
+        const bucket = byItemId.get(id) ?? [];
+        bucket.push(assignment);
+        byItemId.set(id, bucket);
+      }
+      const hydrate = (item: ItemSubjectV010): ItemProjectionRecordV010 => ({
+        item,
+        responsibilities: byItemId.get(item.itemId) ?? [],
+        extensionValues: input.extensionValueRepository.listForObject({
+          contextId: request.contextId,
+          objectType: "item.subject",
+          objectId: item.itemId
+        })
+      });
+      const base = {
+        contractVersion: "0.1.0" as const,
         projectionId: request.projectionId,
         route: itemProjectionRouteV010(request.projectionId),
         count: projected.length,
-        items: projected.map(item => ({
-          item,
-          responsibilities: responsibilities.filter(assignment =>
-            assignment.targetRef.objectId === item.itemId
-          ),
-          extensionValues: input.extensionValueRepository.listForObject({
-            contextId: request.contextId,
-            objectType: "item.subject",
-            objectId: item.itemId
-          })
-        })),
         readableFieldIds: access.readableFieldIds
       };
-      if (!request.query) return authorized;
+      // Preserve legacy unpaged behavior, but avoid repeated assignment scans.
+      if (!request.query) {
+        return { ...base, items: projected.map(hydrate) };
+      }
+      // The Collection helper uses only the already-authorized Item fields.
+      // It never consumes Responsibility or extension values: keep them empty
+      // until server-side filter/sort/page has selected the visible rows.
+      // Authorization still happens on the full candidate set FIRST.
+      const candidate: ItemProjectionResultV010 = {
+        ...base,
+        items: projected.map(item => ({
+          item, responsibilities: [], extensionValues: []
+        }))
+      };
       const paged = pageAuthorizedItemProjectionV010({
-        projection: authorized, query: request.query
+        projection: candidate, query: request.query
       });
       return {
-        ...authorized,
-        items: paged.items,
+        ...base,
+        items: paged.items.map(record => hydrate(record.item)),
         collection: paged.collection
       };
     }
