@@ -56,8 +56,9 @@ export function createCv05DeepSeekLiveBudgetGuard() {
       }
       if (!Array.isArray(payload.input)
         || typeof payload.instructions !== "string"
-        || !Array.isArray(payload.tools)
-        || payload.tools.some(tool => tool?.type !== "function")) {
+        || (payload.tools !== undefined && !Array.isArray(payload.tools))
+        || (Array.isArray(payload.tools)
+          && payload.tools.some(tool => tool?.type !== "function"))) {
         blocked("UNEXPECTED_REQUEST_SHAPE");
       }
       if (reservedCalls + 1 > CV05_DEEPSEEK_MAX_REQUESTS) {
