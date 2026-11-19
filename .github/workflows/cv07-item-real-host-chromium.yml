@@ -85,7 +85,7 @@ jobs:
                 || !x.enterpriseSwitchReauthorized
                 || !x.viewTargets44px||x.horizontalOverflow))
               process.exit(1);
-            const widths=d.results.map(x=>x.viewportWidth).sort();
+            const widths=d.results.map(x=>x.viewportWidth).sort((a,b)=>a-b);
             if(JSON.stringify(widths)!=="[390,1280]")process.exit(1);
             console.log("CV07_ITEM_REAL_HOST_BROWSER_ARTIFACT_PASS=2");
           '
