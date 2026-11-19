@@ -237,3 +237,55 @@ test("CV07 Item routes fail closed on duplicated or foreign query parameters",()
     "/items?page=-1","/items#leak","/items\\steal"
   ]) assert.throws(()=>parseItemCollectionRouteV010(value,"/items"),/ITEM_COLLECTION|COLLECTION_QUERY/);
 });
+
+
+test("CV07 Item paged Owner READ hydrates extensions only for current page, legacy remains intact",async()=>{
+  const resources=createMemoryEnterpriseResourceRepositoryV010();
+  const repository=createItemRepositoryV010(resources);
+  const assignments=createResponsibilityRepositoryV010(resources);
+  const actualExtensions=createObjectExtensionValueRepositoryV010(resources);
+  const touched=[];
+  const extensions={
+    get:input=>actualExtensions.get(input),
+    listForObject:input=>{
+      touched.push(input.objectId);
+      return actualExtensions.listForObject(input);
+    }
+  };
+  repository.saveMany({
+    contextId:"enterprise-context:a",
+    items:Array.from({length:120},(_,i)=>item(
+      "item-"+String(i).padStart(4,"0"),
+      "Item "+String(i).padStart(4,"0"),
+      "VISIBLE-"+String(i).padStart(4,"0")
+    )),
+    actorSubjectId:"owner-a",recordedAt:"2026-11-19T00:00:00Z"
+  });
+  const service=createItemProjectionServiceV010({
+    repository,responsibilityRepository:assignments,
+    extensionValueRepository:extensions,
+    resolveAuthorizationProvider:()=>createHostStaticAuthorizationProviderV010(
+      itemAuthorizationPolicyV010
+    ),
+    fieldIds:()=>["itemId","displayName","code","itemKind","baseUomCode","description"]
+  });
+  const base={contextId:"enterprise-context:a",requestContext:ctx(),
+    enterpriseRelationshipKind:"MEMBER",
+    projectionId:ITEM_DIRECTORY_PROJECTION_V010};
+  const result=await service.read({...base,query:{
+    page:2,pageSize:5,sort:"displayName",direction:"asc"
+  }});
+  assert.equal(result.collection.pageInfo.total,120);
+  assert.deepEqual(result.collection.rows.map(r=>r.rowId),[
+    "item-0010","item-0011","item-0012","item-0013","item-0014"
+  ]);
+  assert.deepEqual(touched,result.items.map(r=>r.item.itemId),
+    "do not query extensions for filtered-out / off-page records");
+  assert.equal(touched.length,5);
+  touched.length=0;
+  const legacy=await service.read(base);
+  assert.equal(legacy.collection,undefined);
+  assert.equal(legacy.items.length,120);
+  assert.equal(touched.length,120,
+    "legacy unpaged read retains all record extension hydration");
+});
