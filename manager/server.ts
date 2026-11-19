@@ -8324,7 +8324,9 @@ const server = createServer(async (request, response) => {
                   locale,
                   readableFieldIds: projection.readableFieldIds,
                   canManage
-                }).actions
+                }).actions?.filter(action =>
+                  action.id !== "my-items" && action.id !== "all-items"
+                )
               }
             : tablePage;
           return json(response, 200, page);
