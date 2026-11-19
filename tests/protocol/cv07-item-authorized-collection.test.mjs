@@ -12,7 +12,9 @@ import {
 } from "../../dist/apps/responsibility/repository.js";
 import { createItemRepositoryV010 } from "../../dist/apps/item/repository.js";
 import { createItemProjectionServiceV010 } from "../../dist/apps/item/projection-service.js";
-import { createItemProjectionPageV010 } from "../../dist/apps/item/page.js";
+import {
+  createItemProjectionPageV010, createItemDetailPageV010
+} from "../../dist/apps/item/page.js";
 import {
   parseItemCollectionRouteV010, itemCollectionQueryRouteV010
 } from "../../dist/apps/item/collection-query.js";
@@ -118,6 +120,16 @@ test("CV07 third owner Item: authorized query paginates before Eidos without new
   assert.equal(page.table.pageInfo.total,2);
   assert.ok(page.table.pageInfo.nextRoute.includes("page=1"));
   const html=renderCatalogBrowserToHtml(page);
+  const detailRoute=page.items[0].primaryAction.route;
+  const returnRoute=new URL(detailRoute,"https://evo.invalid").searchParams.get("returnTo");
+  assert.ok(returnRoute?.startsWith("/items?search=Hong+Kong"));
+  const detail=createItemDetailPageV010({
+    record:result.items[0],
+    readableFieldIds:result.readableFieldIds,
+    returnRoute,canManage:false
+  });
+  assert.equal(detail.contextNavigation.items[0].route,returnRoute,
+    "Item detail must retain the authorized list navigation coordinates");
   assert.match(html,/data-eidos-catalog-table/);
   assert.match(html,/data-eidos-catalog-server-search/);
   assert.doesNotMatch(html,/data-eidos-catalog-search-input/);
