@@ -878,7 +878,11 @@ import {
   ITEM_DETAIL_PAGE_SOURCE,
   ITEM_DIRECTORY_PAGE_SOURCE,
   ITEM_DIRECTORY_PROJECTION_V010,
+  ITEM_DIRECTORY_ROUTE,
+  ITEM_MY_ITEMS_ROUTE,
   ITEM_DIRECTORY_READ_COMMAND_V010,
+  ITEM_DIRECTORY_COLLECTION_QUERY_V010,
+  ITEM_MY_ITEMS_COLLECTION_QUERY_V010,
   ITEM_EDIT_PAGE_SOURCE,
   ITEM_FEATURE_ID,
   ITEM_MY_ITEMS_PAGE_SOURCE,
@@ -5471,7 +5475,9 @@ const actionRouter = createAppActionRouter(
     ),
     ...[
       ITEM_DIRECTORY_READ_COMMAND_V010,
-      ITEM_MY_ITEMS_READ_COMMAND_V010
+      ITEM_MY_ITEMS_READ_COMMAND_V010,
+      ITEM_DIRECTORY_COLLECTION_QUERY_V010,
+      ITEM_MY_ITEMS_COLLECTION_QUERY_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: ITEM_PACKAGE_ID,
@@ -8276,30 +8282,52 @@ const server = createServer(async (request, response) => {
             source === ITEM_MY_ITEMS_PAGE_SOURCE
               ? ITEM_MY_ITEMS_PROJECTION_V010
               : ITEM_DIRECTORY_PROJECTION_V010;
+          const itemRoute = source === ITEM_MY_ITEMS_PAGE_SOURCE
+            ? ITEM_MY_ITEMS_ROUTE : ITEM_DIRECTORY_ROUTE;
+          const { parseItemCollectionRouteV010 } = await import(
+            "../apps/item/collection-query.js"
+          );
+          let tableQuery;
+          try {
+            tableQuery = parseItemCollectionRouteV010(
+              url.searchParams.get("route") ?? undefined, itemRoute
+            );
+          } catch {
+            return json(response, 400, { code: "ITEM_COLLECTION_QUERY_INVALID" });
+          }
+          // A URL is only presentation intent; the existing Item Owner
+          // reauthorizes all Item rows/fields after current Host context checks.
+          const boundedQuery = { ...tableQuery, pageSize: tableQuery.pageSize ?? 25 };
           const projection = await runtime.projectionService.read({
             contextId: active.contextId,
             projectionId,
+            query: boundedQuery,
             requestContext: readContext,
             enterpriseRelationshipKind: relationship?.kind
           });
-          return json(
-            response,
-            200,
-            source === ITEM_DIRECTORY_PAGE_SOURCE
-              ? module.createItemDirectoryPageV010({
+          const tablePage = module.createItemProjectionPageV010({
+            projectionId,
+            records: projection.items,
+            pageInfo: projection.collection?.pageInfo,
+            tableQuery: boundedQuery,
+            locale,
+            readableFieldIds: projection.readableFieldIds,
+            canManage
+          });
+          // Preserve original Item actions, including Create, from the old
+          // directory view; don't rebuild a second Host toolbar.
+          const page = source === ITEM_DIRECTORY_PAGE_SOURCE
+            ? {
+                ...tablePage,
+                actions: module.createItemDirectoryPageV010({
                   records: projection.items,
                   locale,
                   readableFieldIds: projection.readableFieldIds,
                   canManage
-                })
-              : module.createItemProjectionPageV010({
-                  projectionId,
-                  records: projection.items,
-                  locale,
-                  readableFieldIds: projection.readableFieldIds,
-                  canManage
-                })
-          );
+                }).actions
+              }
+            : tablePage;
+          return json(response, 200, page);
         }
 
         if (source === ITEM_CREATE_PAGE_SOURCE) {
