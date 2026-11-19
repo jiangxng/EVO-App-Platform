@@ -33,3 +33,14 @@
 - **阶段界线：** 这是第三插件 Item 的**代码+协议+真实东京 DEV/PREVIEW 部署**通过，**不是**真实 1280/390px Chromium、实机 Human、1k/10k 数据量压力、开发者第三方接入教程或整个 CV-07 的最终验收。下一切片应以同一 Item Host/Eidos 主线（不是新框架）执行浏览器点击“全部/我的 Item”→搜索/排序/分页→详情→返回原筛选→换企业/撤权的真负例、移动 390px 与键盘；再补 1k/10k 性能与开发者接入核验，达到可供业务用户操作时再通知。不得把自动协议回归提升成 Human PASS。
 - **用户新增优先级决定（2026-11-19）：** 未来倾向部署私有模型；当前继续 List Foundation，DeepSeek 余额提醒和客户端费用估算**非本开发线关键阻塞**。今后的私有模型接现有 `llm.inference` Provider/Host/Agent；不要再次重造授权/意图/列表框架。单独 [#1359](https://github.com/jiangxng/EVO-App-Platform/issues/1359) 的付费模型 L01–L05 安全条件依然不放行，但不阻挡 DEV/PREVIEW 非收费展示。用户已要求并设置开发完成验收通知的定期条件监测。
 - **既有独立门禁原样：** Human OIDC [#1343](https://github.com/jiangxng/EVO-App-Platform/issues/1343)、CV03 SAVE OFF [#1212](https://github.com/jiangxng/EVO-App-Platform/issues/1212)、CV04 正式 EXPORT OFF、PA05 Operator [#1092](https://github.com/jiangxng/EVO-App-Platform/issues/1092) 及生产 WRITE 不因本交付获得签收。
+
+
+## 2026-11-19 · 后续单切片：Item 分页先行装配 + 1k/10k 真实性能证据（准确 CI 待签）
+
+**新增工程发现（实际主线源码）：** 原 `apps/item/projection-service.ts` 在接到分页 `query` 后，依然先对所有合法 Item 各做一次 `responsibilities.filter` 和 `extensionValueRepository.listForObject`，然后再调用 `pageAuthorizedItemProjectionV010` 分页。业务列表显示 10 条时仍全量装配，且责任关系过滤会扩大为平方级扫描。现有公共 `foundation/collection-query` 文档已规定为小集合 Helper，10k/100k 不是生产索引型查询合同。
+
+**最小无重复修复：** 先按原 `resolveItemReadAccessV010` 和 `projectItemsV010` 取得**全部合法候选**，只在合法字段执行过滤、排序、分页；仅对当页 Item Hydrate 扩展/责任字段；并以 Map 代替循环 `responsibilities.filter`。完全保留无 `query` 的旧调用的所有 Item 和扩展装配语义，不修改 Eidos、路由、Host 授权、响应 schema 或旧业务数据。该切片仅修 Item Owner、并增加 `tests/protocol/cv07-item-authorized-collection.test.mjs` 的可重复断言——120 条记录只访问当页 5 条 Extension、旧 READ 仍访问全部 120 条。
+
+**专用规模回归候选：** `tests/cv07/item-collection-scale.test.mjs` 用**真实 Item Repository 和内存 EnterpriseResource Provider** 一次性 1k、10k Item，以及真实静态 Host Authorization/责任/扩展 Reader，再由 Item Owner 执行首页、末页、窄搜索和“我的 Item” READ。检查 count/结果/每页 Extension 次数与可读性；输出种子时间、少量查询的 p95/max、Runner RSS、明确 `realPostgres:false / realBrowser:false / realHuman:false` 的脱敏 receipt。可通过单独 `.github/workflows/cv07-item-owner-scale.yml` Run 实际验收；该结果是隔离内存负载样本，不应升级为真实东京数据库生产性能 SLA，不以一次 CI 测量杜撰毫秒阈值。新开发者最短复用路径见 [第三插件作者接入清单](CV07-COLLECTION-THIRD-PLUGIN-ONBOARDING-20261119.md)。
+
+**签收边界：** 只有新 PR 的准确 HEAD CI、合并后主线与东京真实或合法 SKIP、Actions 精确分支退役均通过后才能把本节“待签”提升为“工程已完成”。**独立第三方开发者按清单实操、业务 Human 按实际预览验收，仍是待办；不以本节代签。** 用户已决定以后私有模型、DeepSeek 费用/余额与在线模型不再阻塞当前 List Foundation 演示 MVP；所有 OIDC/CV03 SAVE/CV04 EXPORT/PA05 Operator/生产 WRITE 门禁仍原样关闭。
