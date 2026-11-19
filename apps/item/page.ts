@@ -31,6 +31,9 @@ import type {
 import type {
   ItemSubjectV010
 } from "./repository.js";
+import type { ItemCollectionQueryV010 } from "./collection-query.js";
+import { itemCollectionQueryRouteV010 } from "./collection-query.js";
+import type { DataCollectionPageInfoV010 } from "../../contracts/data-collection/query.js";
 
 function textFor(locale?: string) {
   const zh = (locale ?? "").toLowerCase().startsWith("zh");
@@ -220,6 +223,9 @@ export function createItemProjectionPageV010(input: {
   locale?: string;
   readableFieldIds?: readonly string[];
   canManage?: boolean;
+  /** Optional authorized server query, preserving legacy unpaged callers. */
+  tableQuery?: ItemCollectionQueryV010;
+  pageInfo?: DataCollectionPageInfoV010;
 }): CatalogBrowserV010 {
   const text = textFor(input.locale);
   const page = createItemDirectoryPageV010({
@@ -229,8 +235,69 @@ export function createItemProjectionPageV010(input: {
     canManage: input.canManage
   });
   const myItems = input.projectionId === ITEM_MY_ITEMS_PROJECTION_V010;
+  const path = myItems ? ITEM_MY_ITEMS_ROUTE : ITEM_DIRECTORY_ROUTE;
+  const query = input.tableQuery ?? {};
+  const info = input.pageInfo;
+  const readable = new Set(input.readableFieldIds ?? []);
+  if (info && !readable.has("displayName")) {
+    throw new Error("ITEM_TABLE_DISPLAY_NAME_FORBIDDEN");
+  }
+  const table: CatalogBrowserV010["table"] | undefined = info ? (() => {
+    const columns: NonNullable<CatalogBrowserV010["table"]>["columns"] = [
+      { id: "displayName", label: input.locale?.startsWith("zh") ? "名称" : "Name" },
+      ...(readable.has("code") ? [{id:"code",label:text.code}] : []),
+      ...(readable.has("itemKind") ? [{id:"itemKind",label:text.kind}] : []),
+      ...(readable.has("baseUomCode") ? [{id:"baseUomCode",label:text.uom}] : [])
+    ].map(column => ({
+      ...column,
+      sortRoute: itemCollectionQueryRouteV010(path,{
+        ...query,
+        sort: column.id,
+        direction: query.sort === column.id && query.direction !== "desc"
+          ? "desc" : "asc"
+      },0),
+      ...(query.sort === column.id ? {
+        sortDirection: query.direction === "desc"
+          ? "descending" as const : "ascending" as const
+      } : {})
+    }));
+    const makeRoute = (destination: string, newPage = 0) =>
+      itemCollectionQueryRouteV010(destination, query, newPage);
+    const start = info.page * info.pageSize;
+    return {
+      columns,
+      views: [
+        {id:"all",label:text.title,route:makeRoute(ITEM_DIRECTORY_ROUTE),selected:!myItems},
+        {id:"mine",label:text.myItems,route:makeRoute(ITEM_MY_ITEMS_ROUTE),selected:myItems}
+      ],
+      search:{
+        route:makeRoute(path),
+        label:text.search,placeholder:text.search,value:query.search ?? "",
+        submitLabel:input.locale?.startsWith("zh") ? "搜索" : "Search"
+      },
+      rows:input.records.map(record => ({
+        itemId:record.item.itemId,
+        cells:Object.fromEntries(columns.map(column => {
+          const id=column.id;
+          const value=id==="itemKind"
+            ? itemKindLabel(record.item,input.locale)
+            : record.item[id as "displayName"|"code"|"baseUomCode"];
+          return [id, value ?? ""];
+        }))
+      })),
+      pageInfo:{
+        page:info.page,pageSize:info.pageSize,total:info.total,
+        summary:`${info.total ? start+1 : 0}–${Math.min(start+input.records.length,info.total)} / ${info.total}`,
+        previousLabel:input.locale?.startsWith("zh") ? "上一页" : "Previous",
+        nextLabel:input.locale?.startsWith("zh") ? "下一页" : "Next",
+        ...(info.page>0 ? {previousRoute:makeRoute(path,info.page-1)} : {}),
+        ...(info.hasMore ? {nextRoute:makeRoute(path,info.page+1)} : {})
+      }
+    };
+  })() : undefined;
   return {
     ...page,
+    ...(table ? {table} : {}),
     id: "evo-item.projection." + input.projectionId,
     title: myItems ? text.myItems : text.title,
     description: myItems ? text.myItemsDescription : text.description,
