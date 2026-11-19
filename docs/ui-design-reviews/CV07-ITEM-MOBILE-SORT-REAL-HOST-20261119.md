@@ -33,3 +33,38 @@
 | 颜色 | Eidos primary/border/background tokens、焦点轮廓 | 无插件 CSS 或新主题 |
 
 **治理**：短分支 `test/cv07-item-real-host-chromium-20261119` → Draft PR #1367 → 精确 HEAD CI → Ready → 受保护 main 合并 → 主线 CI/东京判断 → Actions 精确 Branch Hygiene。不得触碰并行 PR #1184。
+
+
+## 目标与完成条件
+
+在原 `vendor/eidos/src/catalog-browser/render.ts` 的只读 Collection Table / 响应式卡片共用模型上补手机排序入口，保留现有 Domain Owner 的过滤和排序；必须在物理 Chromium 390px 点击而不是直接篡改 URL，且主线 CI 不回退。手机/桌面自动化不能算正式 Human 签署。
+
+## 流程与步骤
+
+操作员进入 Item 已授权列表（从原 Host 当前企业 READ）→ 在桌面列头或手机卡片上方原生排序按钮选择名称/方向 → Host 根据相同 Owner 允许的 sortRoute 重读有权分页 → 打开详情 → 返回原筛选/排序/页号 → 切换全部/我的 Items → 更换企业并强制页面重新拉取。撤权后旧查询必须拒绝。
+
+## 导航与信息架构
+
+排序控制仅使用受限的 `model.table.columns[].sortRoute`，原 Eidos 校验 URL 必须为合法本地 route；不把手机排序作为单独页面或持久个人视图。桌面使用原表头、手机使用 `data-eidos-catalog-mobile-sort`，二者映射到完全相同的 Item Owner ActionRouter/Collection Query。我的 Item 责任交集不等于授权提升。
+
+## 视觉与颜色
+
+保持原 Eidos 字体、圆角、间距及 `--eidos-primary`/`--eidos-border-strong`/`--eidos-bg` Token。宽屏隐藏手机排序 nav，窄屏展示紧凑可换行按钮，使用列名和方向箭头 ↑↓↕，禁止插件私有样式或硬编码色值。基于同仓响应式 CSS `vendor/eidos/src/design-language/productive-workbench-css.ts` 实现。
+
+## 记忆与注意力
+
+当前排序字段、方向、搜索、页号、每页大小均由 Owner route 表示，用户从详情返回不必重输搜索条件；手机能看到原本隐藏的操作。点击某排序列保持原有 Eidos 反馈（`aria-current`），没有本地状态存储或新增第二套查询记忆。
+
+## 无障碍与跨年龄
+
+原生语义 `nav` + `button`，键盘 Enter/手机 tap 可操作，最小 44×44px，排序列使用方向箭头并设置 `aria-current`、焦点可见轮廓；浏览器自动化只证明程序可达，不替代真实读屏器或各年龄段真人体验。
+
+## 安全与数据修复
+
+Eidos 按已验证 Owner 生成的 `sortRoute` 导航，绝不按浏览器卡片本地重排、探测隐藏字段或绕开企业重新授权。现有 Item READ SQL/非法排序字段拒绝、跨企业分页和禁用 Feature 后旧路由拒绝均在 Node seeder 与浏览器 Actions 真实测。原 OIDC、CV03 SAVE OFF、CV04 正式 EXPORT OFF、PA05 Operator 和生产 WRITE 未解除。
+
+## 证据与剩余问题
+
+原始失败：CV07 Chromium #44464422922 手机找不到隐藏的表头排序。共享 Eidos UI 修复后的 [CV07 Chromium #44465271229](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44465271229) 实际输出 `CV07_ITEM_REAL_HOST_CHROMIUM_PASS:1280`、`...PASS:390` 和 `...ACCEPTANCE_PASS=2`；该 HEAD 工作流末尾因 Node 的 `sort()` 默认字典序导致 Artifact summary gate FAIL，已在候选补为数字排序 `sort((a,b)=>a-b)`，必须以最新 HEAD 重新跑确认。重构同一共用 Eidos 会触发 CV04 CSV / CV05 Agent 列表 / BEX Chromium 等既有 CI；结果必须逐项核验，不能用“测试代码已提交”签收。
+
+即使真实 Chromium 通过，CV07 仍需 1k/10k 性能数据、插件开发者教程与最终可操作 DEV/PREVIEW 测试路径；并保留 Human/OIDC 未签收。只在正式完整 List Foundation MVP 可供用户操作时才通过已有自动验收提醒通知。
