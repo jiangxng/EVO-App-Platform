@@ -550,6 +550,28 @@ form[data-eidos-id] button,
   [data-eidos-board-columns]{grid-template-columns:minmax(0,1fr)}
 }
 
+/* Server-authorized sorting follows the Eidos responsive table/card switch.
+   On desktop the table headers already provide it; on phone expose the same
+   owner routes as native 44px buttons, never sort locally. */
+[data-eidos-catalog-mobile-sort]{display:none}
+[data-eidos-catalog-mobile-sort] button{
+  min-height:44px;min-width:44px;padding:0 var(--eidos-space-md);
+  border:1px solid var(--eidos-border-strong);border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg);cursor:pointer;
+}
+[data-eidos-catalog-mobile-sort] button[aria-current="page"]{
+  border-color:var(--eidos-primary);color:var(--eidos-primary);font-weight:650;
+}
+[data-eidos-catalog-mobile-sort] button:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+@media(max-width:700px){
+  [data-eidos-catalog-mobile-sort]{
+    display:flex;gap:var(--eidos-space-sm);flex-wrap:wrap;
+    margin-top:var(--eidos-space-lg);min-width:0;
+  }
+}
+
 /* Read-only collection table: compact on desktop, semantic cards on phone. */
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-has-table="true"] [data-eidos-catalog-items],
 [data-eidos-capability="catalog-browser"][data-eidos-catalog-has-table="true"][data-eidos-catalog-density="compact"] [data-eidos-catalog-items]{display:none}

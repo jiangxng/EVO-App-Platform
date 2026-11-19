@@ -401,6 +401,20 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     }).join("");
     return `<div data-eidos-catalog-table-wrap><table data-eidos-catalog-table><thead><tr>${heads}</tr></thead><tbody>${rows}</tbody></table></div>`;
   })() : "";
+  // At <=700px the semantic table header is hidden in favor of Item cards.
+  // Keep those same Owner-authorized sort routes keyboard/touch accessible.
+  // No browser-side sort, secondary data source or business-specific UI.
+  const mobileSort = model.table?.columns.some(column => column.sortRoute)
+    ? `<nav data-eidos-catalog-mobile-sort aria-label="Sort">${model.table.columns
+        .filter(column => column.sortRoute)
+        .map(column => actionButton(undefined, {
+          id: "mobile-sort-" + column.id,
+          label: column.label + (column.sortDirection
+            ? (column.sortDirection === "ascending" ? " ↑" : " ↓")
+            : " ↕"),
+          type: "navigate", route: column.sortRoute!
+        }, false, !!column.sortDirection)).join("")}</nav>`
+    : "";
   const pagination = model.table?.pageInfo ? (() => {
     const page = model.table!.pageInfo!;
     const previous = page.previousRoute
@@ -503,6 +517,7 @@ ${serverSearch}
 ${quickFilters}
 ${quickFilterGroups}
 ${columnControls}
+${mobileSort}
 ${model.presentation==="table"||!model.presentation ? table : ""}
 ${boardHtml}
 ${model.collectionTitle

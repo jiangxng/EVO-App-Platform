@@ -1,0 +1,106 @@
+name: CV07 Item Real Host Chromium Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "apps/item/**"
+      - "manager/server.ts"
+      - "vendor/eidos/src/catalog-browser/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "vendor/eidos/src/design-language/productive-workbench-css.ts"
+      - "tools/cv07/**"
+      - "tests/cv07/**"
+      - ".github/workflows/cv07-item-real-host-chromium.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/item/**"
+      - "manager/server.ts"
+      - "vendor/eidos/src/catalog-browser/**"
+      - "vendor/eidos/src/app-host/page-controller.ts"
+      - "vendor/eidos/src/design-language/productive-workbench-css.ts"
+      - "tools/cv07/**"
+      - "tests/cv07/**"
+      - ".github/workflows/cv07-item-real-host-chromium.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-owner-item-1280-390:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NODE_ENV: test
+      APP_PLATFORM_MANAGED_SESSION_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_OAUTH_ENABLED: "false"
+      APP_PLATFORM_EXTERNAL_AGENT_MCP_ENABLED: "false"
+      APP_PLATFORM_CV03_HUMAN_SAVE_MODE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm run build
+      - run: python -m pip install "playwright==1.56.0"
+      - run: python -m playwright install --with-deps chromium
+      - name: Start existing isolated Host fixture (A/B enterprise + original Owner)
+        run: |
+          mkdir -p artifacts/cv04-csv-browser artifacts/cv07-item-browser
+          node tools/cv04/real-host-csv-browser-fixture.mjs > artifacts/cv07-item-browser/bootstrap.log 2>&1 &
+          echo $! > /tmp/cv07-item-host.pid
+          ready=0
+          for i in $(seq 1 110); do
+            if grep -q 'CV04_REAL_HOST_CSV_BROWSER_READY=' artifacts/cv07-item-browser/bootstrap.log; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$(cat /tmp/cv07-item-host.pid)" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat artifacts/cv07-item-browser/bootstrap.log
+            exit 1
+          fi
+      - name: Install Item on same Host, seed real Owner records and verify A/B scoped Collection READ
+        run: node tools/cv07/prepare-real-host-item-browser.mjs
+      - name: Real Chromium Item table/search/sort/page/detail/return/My Items/A-B/revocation at 1280 and 390
+        run: python tests/cv07/real_host_item_chromium.py
+      - name: Verify exact isolated two-viewport artifact, no synthetic Owner shortcuts
+        run: |
+          node --input-type=module -e '
+            import {readFileSync} from "node:fs";
+            const d=JSON.parse(readFileSync("artifacts/cv07-item-browser/browser-results.json","utf8"));
+            if(!d.notProduction||!d.notHuman||!d.notLiveLlm||!d.pluginDisabledDenied
+              || d.results?.length!==2
+              || d.results.some(x=>!x.realHost||!x.realEidos
+                || !x.ownerServerSearchSortPage||!x.myItemsStewardship
+                || !x.detailReturnPreservesCoordinates
+                || !x.enterpriseSwitchReauthorized
+                || !x.viewTargets44px||x.horizontalOverflow))
+              process.exit(1);
+            const widths=d.results.map(x=>x.viewportWidth).sort((a,b)=>a-b);
+            if(JSON.stringify(widths)!=="[390,1280]")process.exit(1);
+            console.log("CV07_ITEM_REAL_HOST_BROWSER_ARTIFACT_PASS=2");
+          '
+      - name: Show isolated bootstrap failure evidence
+        if: failure()
+        run: cat artifacts/cv07-item-browser/bootstrap.log || true
+      - name: Stop disposable Host
+        if: always()
+        run: |
+          if [ -f /tmp/cv07-item-host.pid ]; then
+            kill "$(cat /tmp/cv07-item-host.pid)" 2>/dev/null || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cv07-item-real-host-chromium-1280-390
+          path: artifacts/cv07-item-browser/
+          if-no-files-found: warn
