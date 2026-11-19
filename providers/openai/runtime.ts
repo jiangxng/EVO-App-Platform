@@ -24,6 +24,7 @@ interface ResponseMessage {
 }
 
 interface ResponseBody {
+  status?: string;
   model?: string;
   output?: Array<ResponseFunctionCall | ResponseMessage | Record<string, unknown>>;
   usage?: {
@@ -56,14 +57,20 @@ function providerUsage(body: ResponseBody): LlmInferenceResponseV010["usage"] {
 }
 
 function safeArguments(value: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(value);
-    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
-      : {};
-  } catch {
-    return {};
+  // Never turn malformed or truncated model JSON into {}: a missing filter
+  // could silently widen a business READ or weaken the Human's exact intent.
+  if (typeof value !== "string") {
+    throw new Error("OPENAI_PROVIDER_TOOL_ARGUMENTS_INVALID");
   }
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Suppress raw Provider/model arguments from errors and CI logs.
+  }
+  throw new Error("OPENAI_PROVIDER_TOOL_ARGUMENTS_INVALID");
 }
 
 
@@ -266,6 +273,12 @@ export function createOpenAiResponsesLlmProvider(
       const body = await response.json() as ResponseBody;
       if (!response.ok) {
         throw new Error(body.error?.message ?? `OpenAI Responses API HTTP ${response.status}`);
+      }
+      // HTTP 200 can still represent an incomplete or failed Responses turn.
+      // Never execute its partial function calls or present them as success.
+      if ((body.status !== undefined && body.status !== "completed")
+          || body.incomplete_details != null || body.error != null) {
+        throw new Error("OPENAI_PROVIDER_RESPONSE_NOT_COMPLETED");
       }
 
       const toolSchemas = new Map(
