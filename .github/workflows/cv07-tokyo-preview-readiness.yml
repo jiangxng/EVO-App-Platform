@@ -1,0 +1,134 @@
+name: CV07 Tokyo Preview Read-Only Inventory
+
+# A main-only, non-mutating inspection of the actual Tokyo DEV/PREVIEW
+# container. It never installs Features, seeds business records or reads
+# credentials. No pull_request trigger: the SSH credential lives in a
+# protected GitHub Environment.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cv07-tokyo-preview-readiness.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cv07-tokyo-readonly-preview-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: github.ref == 'refs/heads/main' && github.repository == 'jiangxng/EVO-App-Platform'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: evo-tokyo-dev
+    steps:
+      - name: Verify preview SSH identity and inspect read-only state
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.EVO_TOKYO_SSH_PRIVATE_KEY }}
+          HOST_KEYS: ${{ secrets.EVO_TOKYO_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          set +x
+          test -n "$PRIVATE_KEY" && test -n "$HOST_KEYS"
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          trap 'rm -f "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"' EXIT
+          printf '%s\n' "$PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$HOST_KEYS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -P "" -f "$HOME/.ssh/id_ed25519" >/dev/null
+          ssh-keygen -F 43.167.252.197 -f "$HOME/.ssh/known_hosts" >/dev/null
+          report="$(ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes \
+            evo-deploy@43.167.252.197 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/evo-tokyo
+          cid="$(docker compose ps -q evo)"
+          test -n "$cid"
+          image="$(docker inspect --format '{{.Config.Image}}' "$cid")"
+          health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")"
+          case "$image" in
+            ghcr.io/jiangxng/evo-app-platform:*) ;;
+            *) echo "CV07_TOKYO_IMAGE_UNEXPECTED"; exit 1 ;;
+          esac
+          printf 'CV07_TOKYO_RUNNING_IMAGE=%s\n' "$image"
+          printf 'CV07_TOKYO_CONTAINER_HEALTH=%s\n' "$health"
+          test "$health" = healthy
+          # Inspect only two locally persisted snapshots inside the app
+          # container. Never print raw records, IDs, policies, tokens or secrets.
+          docker exec -i "$cid" node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const stateFile = process.env.APP_PLATFORM_STATE_FILE;
+          if (!stateFile || !path.isAbsolute(stateFile)) {
+            throw Error('CV07_TOKYO_STATE_PATH_MISSING');
+          }
+          function readSnapshot(file, key) {
+            if (!fs.existsSync(file)) return null;
+            const stat = fs.lstatSync(file);
+            if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 100*1024*1024) {
+              throw Error('CV07_TOKYO_STATE_FILE_NOT_SAFE_TO_INSPECT');
+            }
+            const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+            if (value.contractVersion !== '0.1.0' || !Array.isArray(value[key])) {
+              throw Error('CV07_TOKYO_STATE_SCHEMA_INVALID');
+            }
+            return value;
+          }
+          const lifecycle = readSnapshot(stateFile, 'installedPackages');
+          if (lifecycle && !Array.isArray(lifecycle.activeFeatures)) {
+            throw Error('CV07_TOKYO_FEATURE_STATE_SCHEMA_INVALID');
+          }
+          const resources = readSnapshot(
+            path.join(path.dirname(stateFile), 'enterprise-resources.json'), 'resources'
+          );
+          const installed = !!lifecycle?.installedPackages.some(
+            value => value.packageId === 'evo-item'
+          );
+          const active = !!lifecycle?.activeFeatures.some(
+            value => value.packageId === 'evo-item' &&
+                     value.featureId === 'evo-item.default'
+          );
+          const data = !!resources?.resources.some(value =>
+            value.namespace === 'evo.item' && value.collectionId === 'items' &&
+            value.resourceType === 'item.subject' && value.lifecycleState === 'ACTIVE'
+          );
+          for (const [name, value] of [
+            ['ITEM_PACKAGE_INSTALLED', installed],
+            ['ITEM_FEATURE_ACTIVE_IN_PERSISTED_STATE', active],
+            ['ITEM_RESOURCE_PRESENT_IN_PERSISTED_STORE', data]
+          ]) {
+            console.log('CV07_TOKYO_' + name + '=' + (value ? 'YES' : 'NO'));
+          }
+          console.log('CV07_TOKYO_AUTHORIZED_BUSINESS_SESSION=UNVERIFIED');
+          console.log('CV07_TOKYO_HUMAN_ACCEPTANCE=NOT_SIGNED');
+          NODE
+          REMOTE
+          )"
+          printf '%s\n' "$report"
+          {
+            echo '### CV07 Tokyo preview: read-only inventory'
+            echo 'The snapshot flags do **not** prove current Principal authorization, enterprise membership, usable business login or Human acceptance.'
+            echo '\`\`\`text'
+            printf '%s\n' "$report"
+            echo '\`\`\`'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Independently verify HTTPS health and Basic Auth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          host="evo.43.167.252.197.sslip.io"
+          health="$(curl --noproxy '*' -4 --fail --silent --show-error \
+            --connect-timeout 10 --max-time 20 "https://$host/health")"
+          printf '%s\n' "$health" | grep -Fq '"ok":true'
+          printf '%s\n' "$health" | grep -Fq '"service":"evo-app-manager"'
+          code="$(curl --noproxy '*' -4 --silent --show-error \
+            -o /dev/null -w '%{http_code}' --connect-timeout 10 --max-time 20 \
+            "https://$host/")"
+          test "$code" = 401
+          echo 'CV07_TOKYO_PUBLIC_HTTPS_HEALTH_PASS'
+          echo 'CV07_TOKYO_BASIC_AUTH_BOUNDARY_PASS'
+          echo 'No authenticated business operation was performed.' >> "$GITHUB_STEP_SUMMARY"
