@@ -44,3 +44,8 @@
 **专用规模回归候选：** `tests/cv07/item-collection-scale.test.mjs` 用**真实 Item Repository 和内存 EnterpriseResource Provider** 一次性 1k、10k Item，以及真实静态 Host Authorization/责任/扩展 Reader，再由 Item Owner 执行首页、末页、窄搜索和“我的 Item” READ。检查 count/结果/每页 Extension 次数与可读性；输出种子时间、少量查询的 p95/max、Runner RSS、明确 `realPostgres:false / realBrowser:false / realHuman:false` 的脱敏 receipt。可通过单独 `.github/workflows/cv07-item-owner-scale.yml` Run 实际验收；该结果是隔离内存负载样本，不应升级为真实东京数据库生产性能 SLA，不以一次 CI 测量杜撰毫秒阈值。新开发者最短复用路径见 [第三插件作者接入清单](CV07-COLLECTION-THIRD-PLUGIN-ONBOARDING-20261119.md)。
 
 **签收边界：** 只有新 PR 的准确 HEAD CI、合并后主线与东京真实或合法 SKIP、Actions 精确分支退役均通过后才能把本节“待签”提升为“工程已完成”。**独立第三方开发者按清单实操、业务 Human 按实际预览验收，仍是待办；不以本节代签。** 用户已决定以后私有模型、DeepSeek 费用/余额与在线模型不再阻塞当前 List Foundation 演示 MVP；所有 OIDC/CV03 SAVE/CV04 EXPORT/PA05 Operator/生产 WRITE 门禁仍原样关闭。
+
+
+## 2026-11-19 · PR #1368 已合并后的工程与验收导航
+
+**[最新准确 PR/Actions、1k/10k 原始数值、分支退役与用户 5 步只读验收路径](CV07-WINDOW-20261119-1K10K-POSTMERGE-ACCEPTANCE-ENTRY.md)**。原项目已在受保护 `main@702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf` 合并 Item 有权分页**先选页、只装配当页扩展/责任数据**修复与专用 1k/10k Runner；准确 PR HEAD 6/6 CI SUCCESS，分支已 SHA 精确退役。该补充取代上段“准确 CI 待签”这一个历史时点状态，但仍不能把内存 10k 结果宣称为生产 PG 压测，不把隔离 Chrome 1280/390 自动操作当作真实用户已验收。当前东京实际发布状态应以该接续入口和最新 Actions 重新核验，不引用旧镜像冒充更新。
