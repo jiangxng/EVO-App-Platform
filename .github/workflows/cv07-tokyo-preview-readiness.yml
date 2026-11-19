@@ -1,8 +1,8 @@
 name: CV07 Tokyo Preview Read-Only Inventory
 
 # A main-only, non-mutating inspection of the actual Tokyo DEV/PREVIEW
-# container. It never installs Features, seeds business records or reads
-# credentials. No pull_request trigger: the SSH credential lives in a
+# container. It never installs Features, seeds business records or logs
+# application credentials. No pull_request trigger: SSH credentials live in a
 # protected GitHub Environment.
 on:
   workflow_dispatch:
@@ -111,9 +111,9 @@ jobs:
           {
             echo '### CV07 Tokyo preview: read-only inventory'
             echo 'The snapshot flags do **not** prove current Principal authorization, enterprise membership, usable business login or Human acceptance.'
-            echo '\`\`\`text'
+            echo '~~~text'
             printf '%s\n' "$report"
-            echo '\`\`\`'
+            echo '~~~'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Independently verify HTTPS health and Basic Auth boundary
