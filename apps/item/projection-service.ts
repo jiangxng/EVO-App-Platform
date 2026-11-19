@@ -3,6 +3,8 @@ import type {
   EnterpriseContextRelationshipKindV010,
   PlatformRequestContextV010
 } from "../../contracts/platform-services.js";
+import type { DataCollectionResultV010, DataCollectionQueryV010 } from "../../contracts/data-collection/query.js";
+import { pageAuthorizedItemProjectionV010 } from "./collection-query.js";
 import type {
   ObjectExtensionValueSetV010
 } from "../../contracts/foundation-object/extension-value.js";
@@ -44,6 +46,8 @@ export interface ItemProjectionResultV010 {
   count: number;
   items: ItemProjectionRecordV010[];
   readableFieldIds: string[];
+  /** Present only for bounded, owner-authorized Collection reads. */
+  collection?: DataCollectionResultV010;
 }
 
 export interface ItemProjectionServiceV010 {
@@ -52,6 +56,7 @@ export interface ItemProjectionServiceV010 {
     projectionId: ItemProjectionIdV010;
     requestContext: PlatformRequestContextV010;
     enterpriseRelationshipKind?: EnterpriseContextRelationshipKindV010;
+    query?: DataCollectionQueryV010;
   }): Promise<ItemProjectionResultV010>;
 }
 
@@ -97,7 +102,7 @@ export function createItemProjectionServiceV010(input: {
         principalSubjectId: request.requestContext.principal.subjectId,
         authorizedItemIds
       });
-      return {
+      const authorized: ItemProjectionResultV010 = {
         contractVersion: "0.1.0",
         projectionId: request.projectionId,
         route: itemProjectionRouteV010(request.projectionId),
@@ -114,6 +119,15 @@ export function createItemProjectionServiceV010(input: {
           })
         })),
         readableFieldIds: access.readableFieldIds
+      };
+      if (!request.query) return authorized;
+      const paged = pageAuthorizedItemProjectionV010({
+        projection: authorized, query: request.query
+      });
+      return {
+        ...authorized,
+        items: paged.items,
+        collection: paged.collection
       };
     }
   };
