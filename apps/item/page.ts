@@ -315,21 +315,20 @@ export function createItemProjectionPageV010(input: {
     id: "evo-item.projection." + input.projectionId,
     title: myItems ? text.myItems : text.title,
     description: myItems ? text.myItemsDescription : text.description,
-    contextNavigation: {
-      items: myItems
-        ? [{
-            id: "items",
-            label: text.title,
-            route: ITEM_DIRECTORY_ROUTE
-          }, {
-            id: "my-items",
-            label: text.myItems
-          }]
-        : [{
-            id: "items",
-            label: text.title
-          }]
-    },
+    // A directory root has no parent breadcrumb; the existing Eidos
+    // ContextNavigation contract requires at least two items.
+    ...(myItems ? {
+      contextNavigation: {
+        items: [{
+          id: "items",
+          label: text.title,
+          route: ITEM_DIRECTORY_ROUTE
+        }, {
+          id: "my-items",
+          label: text.myItems
+        }]
+      }
+    } : {}),
     actions: [{
       id: "all-items",
       label: text.title,
