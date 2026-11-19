@@ -88,3 +88,16 @@
 - 新增 `tests/protocol/cv05-responses-provider-failclosed.test.mjs` 零网络断言：两个真实 Provider 的合成失败 Response 在进入 `createProviderBackedAgentModel` / Agent Host Catalog 时必须直接失败，绝不触发下游 Owner READ；合法无参 `{}` 仍被接受。实际 PASS 状态以该 PR 的 **准确 HEAD CI、合并后原始回执** 为准；文档提交不自动签收代码。
 - DeepSeek 模型名称在官方英文当前页面及中文搜索摘录间有不一致，**不可仅凭某一页更改 Provider 默认模型或默认为收费测试的获批模型**。管理员在 `#1359` 先确认当前实际支持型号、价格、独立 QA 密钥及费用同意。
 - 此项全是代码/模拟 HTTP 回归，既未启动 `.github/workflows/cv05-live-llm-isolated-acceptance.yml` 也未解除 `ENVIRONMENT_POLICY_NOT_VERIFIED / LIVE_LLM_UNVERIFIED`；真实 L01–L05 仍为外部阻塞项。
+
+
+## 2026-11-19：DeepSeek 低费用测试准入 — 只读 QA 预算保护
+
+用户在 GitHub Settings 界面已确认 `cv05-live-qa` 仅允许 `main`，且单个环境专用 QA Secret 名称为 `CV05_LIVE_QA_ENVIRONMENT_ONLY_API_KEY`；仓库级 **Repository secrets** UI 显示 0 个。以上源于用户提供的设置截图，**不能证明** Org secrets 排查完毕、API key 真实有效或模型可用。用户明确本轮**单次** DeepSeek 测试费用**不得超过 2 美元**，不是所有后续付费调用的长期授权。DeepSeek 余额阈值提醒已由用户设置；**提醒不会停止扣费**。
+
+参照 [DeepSeek 中文当前定价页](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) 的 2026-11-19 搜索/正文可见信息：建议模型名 `deepseek-flash`（V4.1 Flash），高峰输入缓存未命中 2 CNY/百万 tokens、输出 8 CNY/百万 tokens，官方明确价格可能变动；旧英文 `/api/create-response/` 的 `deepseek-v4-flash` 只接受清单与当前中文页面**有版本冲突**。应以本次实际 QA 账户支持的 model ID 为准；不从这两页推断账户运行已成功。
+
+为减少误收费，测试工具的 DeepSeek 路径增加 `tools/agent-line/cv05-deepseek-live-budget.mjs` **请求前预算预留**（先算最坏输入 body 字节估算 + 每请求 8192 tokens framing 安全余量 + 固定 700 输出上限，再允许发起网络请求）；只接受 `deepseek-flash`、最多 32 次、单请求最多 96000 bytes，并以**保守的内部 $2/M 输入、$8/M 输出估价**确保累计预留估算不超过 **$2**。任何超限/未知模型/不符合 schema 均在网络调用前失败关闭；超时请求照样占据预算，不按延迟 usage 退款。该估价刻意高于当日官方人民币价格的通常美元折算。
+
+**重要精度限制：** 此本地 guard 不是 DeepSeek 账单端硬性费用封顶。输入 UTF-8 请求 body 字节数与实际计费 token、服务端隐藏上下文、未来涨价/汇率、并发其它调用、账单延迟等不能由本地代码完全证明；即使 `conservativeEstimatedUsd<=2` 也**不能自动推断真实 DeepSeek 扣费≤$2**。若用户将“不超过 2 美元”解释为绝对银行级上限，仍须提供账户/Key 侧硬限额的真实控制面证据；没有该证据前**不得自动执行**。QA 运行后还必须用 DeepSeek 实际账单校验真实支出；一旦预算/源价格发生变化需重新复核程序常数。若预算不足，真实五项场景 **FAIL/BLOCKED**，不能改用 synthetic 代替。
+
+此预算改动只作用于 **DeepSeek CV05 手动在线测试**；OpenAI 路径不在本次 DeepSeek $2 授权范围，不允许借用此内部 guard 声称 OpenAI 计费已受控。GitHub Actions `workflow_dispatch` 仍须由管理员在安全控制面、费用和独立身份均核验后**另行明确手动触发**。正常 CI 仅执行离线预算/协议测试，无任何付费远端请求。

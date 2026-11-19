@@ -116,3 +116,17 @@
 **读取的现有缺口：** `providers/openai/runtime.ts`、`providers/deepseek/runtime.ts` 之前将 JSON 参数解析失败退化为空对象，并在 HTTP 200 时直接解析输出函数调用，即使 `status=incomplete/failed`；可能消除 Human 指定筛选而扩大 READ。由本轮安全小 PR 改成固定错误码 fail-close，并为两个 Provider 分别验证 **9 种异常响应无任何 Agent Catalog.invoke**；合法空 JSON object 则仍可执行。新测试 `tests/protocol/cv05-responses-provider-failclosed.test.mjs` 只注入离线合成 HTTP，不构成真实模型/企业权限质量签收。
 
 **保留范围：** 为兼容旧 Provider 测试夹具中未设置 `status` 的合成响应，当前适配器在字段明确为非 completed、`error` 或 `incomplete_details` 时拒绝；未来可另行考虑要求实际服务响应必须具备 `status`，但要先完整迁移旧 fixture 与协议定义。不要把当前改动包装成所有 Provider JSON Schema/生产安全已全面审计。
+
+
+## 9. 2026-11-19 本窗口：费用预算 UI 与 DeepSeek 价格更新
+
+证据仍按本索引的等级规则逐项记录，不覆盖第 1 节当时的 S 级原文检索历史。
+
+| ID / 原始网址或附件 | 2026-11-19 检索级别 | 事实 / EVO 用途与剩余限制 |
+| --- | --- | --- |
+| **API04 · [DeepSeek 中文模型与定价](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)** | **S（官方搜索摘录提供长表格；直接打开原文超时）** | 新快照建议 `deepseek-flash`（V4.1 Flash），高峰缓存未命中输入 2 CNY /百万 tokens、输出 8 CNY/百万 tokens，可能变动。英文 [Responses endpoint](https://api-docs.deepseek.com/api/create-response/) 可见文档曾写只接受旧 ID `deepseek-v4-flash`，新旧章节有冲突；以实际账户模型列表验证为准，不签在线兼容。 |
+| **ADM01 · GitHub Settings 用户截图（此会话，未入库）** | **用户提供控制面截图，非 GitHub API 读取** | Environment `cv05-live-qa` 1 protection rule、1 secret；Deployment branches `Selected branches and tags` 仅 `main`，1 branch/0 tags；Environment secret 列出正确专用 QA Key 名；Actions Repository secrets 显示 `This repository has no secrets.`。没有保存截图的仓库路径，不能据此证明组织级 Secret、key 值有效或未来设置不会改变。 |
+| **ADM02 · DeepSeek 账单/预警截图（此会话，未入库）** | **用户提供服务商 UI 图片** | 余额以 CNY 显示；低余额功能说明仅通过注册邮件通知，**不是**停止计费。用户于 2026-11-19 已确认设置了预警，明确准许本次最多 2 USD；无账户级实际消费硬上限的截图。禁止把余额、赠额及累计消费当作 QA Token 报价或已发生费用。 |
+| **SRC10 · [CV05 live QA runbook](CV05-MVP-0506-20261118-LIVE-LLM-ACCEPTANCE.md) 与预算防护模块** | **G 候选；以该短分支精确 PR HEAD CI 合并为准** | 只在现有 DeepSeek L01-L05 手动收费 Harness 中加入保守请求前估价、模型 `deepseek-flash`、预算 $2 内预留；超限/不支持模型未发请求即失败。**它不能取代 DeepSeek 账单端硬限额**，不能当作收费验收通过。 |
+
+方案保留：不触碰 Eidos、Domain Owner、Host、Agent 业务能力；不使用生产密钥、原始聊天/企业行体或更宽 API Tool；[Issue #1359](https://github.com/jiangxng/EVO-App-Platform/issues/1359) 仍需人工确认组织级密钥、真实账户模型、官方硬限额/等效授权、准确 one-shot 扣费证据及真实 L01–L05。严格区分这个候选 PR 的 **离线预算回归**、#1362 的 **Responses 失败关闭** 与未来的 **真实在线五项推理**。

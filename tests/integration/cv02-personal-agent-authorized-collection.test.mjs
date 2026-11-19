@@ -688,6 +688,12 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
     const origin=provider==="openai"
       ? "https://api.openai.com" : "https://api.deepseek.com";
     const path=provider==="openai"?"/v1/responses":"/responses";
+    // DeepSeek metered QA reserves a conservative cost allowance before each
+    // HTTP attempt, including attempts that time out or return no usage.
+    const deepseekBudget=provider==="deepseek"
+      ? (await import("../../tools/agent-line/cv05-deepseek-live-budget.mjs"))
+        .createCv05DeepSeekLiveBudgetGuard()
+      : undefined;
     let networkRequests=0,modelDecisions=0;
     let inputTokens=0,outputTokens=0,usageComplete=true;
     const boundedFetch=async(url,options={})=>{
@@ -696,9 +702,11 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
         ||options.method!=="POST") {
         throw new Error("CV05_LIVE_PROVIDER_DESTINATION_FORBIDDEN");
       }
-      if(++networkRequests>32) {
+      if(networkRequests>=32) {
         throw new Error("CV05_LIVE_PROVIDER_NETWORK_LIMIT");
       }
+      deepseekBudget?.reserve(options.body);
+      networkRequests++;
       const signal=AbortSignal.timeout(25_000);
       const combined=options.signal
         ? AbortSignal.any([options.signal,signal]) : signal;
@@ -871,7 +879,8 @@ if (process.env.EVO_CV05_LIVE_LLM_RUN === "1") {
       source:"ACTUAL_NETWORK_PROVIDER",
       providerId:measured.providerId,modelId:measured.modelId,
       scenarios:5,networkRequests,modelDecisions,
-      usage:usageComplete?{inputTokens,outputTokens}:"UNKNOWN"
+      usage:usageComplete?{inputTokens,outputTokens}:"UNKNOWN",
+      ...(deepseekBudget?{budgetGuard:deepseekBudget.receipt()}: {})
     }));
   });
 }
