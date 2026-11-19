@@ -1,5 +1,7 @@
 # CV05 MVP #05/06 · 自动续跑 #01–#07 最终交接与证据门禁（2026-11-18）
 
+> **新窗口研究/决策资料交接（2026-11-19）**：优先阅读[简短交接入口](CV05-WINDOW-20261119-RESEARCH-HANDOFF-ENTRY.md)与[详细参考索引](CV05-WINDOW-20261119-RESEARCH-REFERENCE-INDEX.md)，本文件继续保存 11-18 工程七轮原始验收快照。新索引对网页原文/搜索摘要/历史转引分级，不改变本文件既有工程事实。
+
 > **当前工程判断：ENGINEERING_ACCEPTED_FOR_DEV_PREVIEW；ENVIRONMENT_POLICY_NOT_VERIFIED / LIVE_LLM_UNVERIFIED。**
 >
 > 本文件优先于 11 月 18 日旧恢复文件中的 `待 CI`、`本分支尚未合并` 等**历史时间切片**。本文件创建时经 GitHub 独立核验的受保护工程基线是 `main@c901fae232af3133277e9f41908eaaf740089a89`；**本交接 PR 合并后会生成新的 main SHA，应以该 PR 的准确合并后 CI 回执为准**。切勿从此处推断东京运行镜像已更新。
