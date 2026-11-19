@@ -302,13 +302,19 @@ export function createItemProjectionPageV010(input: {
     title: myItems ? text.myItems : text.title,
     description: myItems ? text.myItemsDescription : text.description,
     contextNavigation: {
-      items: [{
-        id: "items",
-        label: text.title,
-        route: ITEM_DIRECTORY_ROUTE
-      }, ...(myItems
-        ? [{ id: "my-items", label: text.myItems }]
-        : [])]
+      items: myItems
+        ? [{
+            id: "items",
+            label: text.title,
+            route: ITEM_DIRECTORY_ROUTE
+          }, {
+            id: "my-items",
+            label: text.myItems
+          }]
+        : [{
+            id: "items",
+            label: text.title
+          }]
     },
     actions: [{
       id: "all-items",
