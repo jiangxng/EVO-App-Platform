@@ -1,0 +1,38 @@
+# CV07 · 东京 DEV/PREVIEW 只读业务准入盘点（2026-11-19）
+
+> **接续补证 / 不替代 Human 业务验收。** 配套 [当前研究交接入口](CV07-WINDOW-20261119-RESEARCH-HANDOFF-ENTRY.md)、[资料与决策索引](CV07-WINDOW-20261119-RESEARCH-REFERENCE-INDEX.md)、[Item 主线工程回执](CV07-WINDOW-20261119-1K10K-POSTMERGE-ACCEPTANCE-ENTRY.md) 和 [第三插件作者清单](CV07-COLLECTION-THIRD-PLUGIN-ONBOARDING-20261119.md)。不改历史八步计划，不触碰 #1184。
+
+## 1. 接续现场确认的原证
+
+- GitHub Connector **G/已读源码与 Run**：受保护 `main@625c2d23fcb58e24aa142705b6ab6792ed440249`；PR [#1370](https://github.com/jiangxng/EVO-App-Platform/pull/1370) 已 merge，准确研究交接 HEAD `02feeb9fd13b497c2a2ba0be98d33628a41dcbc8`。
+- [最新东京 #44517114989](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44517114989) `preflight SUCCESS/deploy SKIPPED`；原始 preflight Job #135535886204 实际输出 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE sha=625c2d23fcb58e24aa142705b6ab6792ed440249`。不能把该文档提交当成新部署。
+- [最近实际东京部署 #44509954215](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44509954215) 运行镜像 `ghcr.io/jiangxng/evo-app-platform:702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf`，当时容器 healthy、本地/公网健康与未授权 401 PASS。这是 **2026-11-19 当次部署日志**，不能独立证明本文件完成时 VPS 的实时状态。
+- [Branch Hygiene #44517073649](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44517073649) 原日志精确 `DELETED_VERIFIED_MERGED_PR_BRANCH docs/cv07-window-20261119-research-handoff-20261119 @ 02feeb9fd13b497c2a2ba0be98d33628a41dcbc8`，未清其他窗口分支。
+- **新增源码级判断 D：** [东京 Compose](../../../deploy/tencent-tokyo/compose.yaml) 显式 `APP_PLATFORM_STARTUP_PROFILE: clean`，而 [manager/startup-defaults.ts](../../../manager/startup-defaults.ts) 明确 clean 不会自动安装可选业务插件，既有安装保留。源代码中 `ITEM_FEATURE_ACTIVE` 守卫必须先通过，否则 Item 页面返回 404。所以**镜像包含 Item 代码并不证明现有容器已安装、启用 Item**。这是需要现场只读盘点的原因，而不是宣布 Item 未安装。
+- 当前交互终端未获得合法东京 Basic Auth + 真实业务会话；网页访问工具无法读取该外站，无法区分网络访问限制和服务器故障。不能据此编造 401、登录成功、当前企业样本或 390px 人验结果。
+
+## 2. 本轮最小工程补证：独立只读 Action
+
+新增 [CV07 Tokyo Preview Read-Only Inventory](../../../.github/workflows/cv07-tokyo-preview-readiness.yml)，**仅在受保护 main 的本 workflow 文件变化 push 或授权手动 workflow_dispatch** 运行，并使用既有 `evo-tokyo-dev` Environment 的 SSH 身份。PR 分支不运行 SSH、不授权 fork；不修改原 CI-Gated 发布策略。
+
+工作流通过 pinned SSH 在现有实例执行 **read-only**：
+
+1. 由当前 `docker compose` 查实际 EVO 容器和镜像 tag、健康状态；
+2. 使用容器内 Node 仅解析现有 `/data/platform-state.json` 的 `installedPackages/activeFeatures`，确认 `evo-item`、`evo-item.default` 是否在**持久态**存在；
+3. 仅检查 `/data/enterprise-resources.json` 是否存在 ACTIVE 的 `evo.item/items/item.subject`，输出 **YES/NO**，不输出业务行、企业 ID、资源数量、用户信息或原始 JSON；
+4. 从独立 Runner 再查 HTTPS /health 和未授权根路径 401。失败要记录为未通过，不能绕过 Basic Auth 或省略真实会话。
+
+**证据边界：** 文件持久态 YES 不等于运行时授权可执行，更不等于当前用户有权读取、合法企业上下文存在、Human 登录成功、真实 OIDC 或 390px 人验完成。NO 应推动现有受控插件安装/企业数据准备，而不是私自改造默认 clean 或直接向数据文件注入种子。工作流只标记 `CV07_TOKYO_AUTHORIZED_BUSINESS_SESSION=UNVERIFIED` 与 `HUMAN_ACCEPTANCE=NOT_SIGNED`。
+
+> 本文创建时此新增 Action 尚未运行，绝不提前填写返回值、PR CI、合并/部署或分支清理结果。必须按最新准确 SHA/Run 的实际原始日志回填。
+
+## 3. 下一实际操作与必须保留的拒绝条件
+
+- **先取得新 Action 的实际运行标识**，独立核对现场 `ITEM_PACKAGE_INSTALLED / ITEM_FEATURE_ACTIVE_IN_PERSISTED_STATE / ITEM_RESOURCE_PRESENT_IN_PERSISTED_STORE` 三项。
+- 如果 Item 未安装或无可读数据：由已获授权的 DEV/PREVIEW Operator 在现有 Host 安装/Feature 管理和企业上下文下操作；记录脱敏前后状态，不启用生产 OIDC / Saved View WRITE / Export / Agent WRITE，不直接编辑持久态快照。
+- 如果三项都有：仍需合法 Basic Auth + 应用 Principal/Enterprise 实操；在 [原人工五步入口 §4](CV07-WINDOW-20261119-1K10K-POSTMERGE-ACCEPTANCE-ENTRY.md) 验证全部 Item、搜索排序分页、详情返回、我的 Item/企业切换、390px。此次审计不代表用户已能直接验收。
+- **开发者复制性**：使用 [第三插件作者清单](CV07-COLLECTION-THIRD-PLUGIN-ONBOARDING-20261119.md) 由独立于框架实现的作者提交一条新合法 Collection，准确 CI/PR 才签；不能以 Item 既有测试冒充。
+- 正式 CV03 Saved View、CV04 Export、Human OIDC、PA05 Operator、Agent WRITE 和生产放行维持独立门禁。DeepSeek 余额/付费模型不作为本轮阻塞；未来私有模型沿用 `llm.inference`。
+- 仅按准确 PR HEAD CI 完成后普通合并 main；由既有 Branch Hygiene 依据 PR+SHA 清理**本分支**，不清理无关分支与 #1184。
+
+**最终状态词：** `CODE/CI/DEPLOYED_PREVIEW` 有历史准确 SHA 原证；`TOKYO_ITEM_LIVE_INVENTORY_PENDING`、`MVP_USER_ACCEPTANCE_NOT_READY`、`INDEPENDENT_PLUGIN_AUTHOR_PENDING`。新增 Action 成功后也只有第一项可按日志提升，其他两个必须继续标明未验。
