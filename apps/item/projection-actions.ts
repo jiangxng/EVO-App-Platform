@@ -83,7 +83,8 @@ export function createItemProjectionActionHandlersV010(input: {
         );
         if (collectionQuery && (
           !relationship
-          || context.scope.enterpriseId !== context.context?.activeContext.enterpriseId
+          || context.context?.activeContext.kind !== "ENTERPRISE"
+          || context.scope.enterpriseId !== context.context.activeContext.enterpriseId
           || (context.scope.userId
             && context.scope.userId !== context.principal.subjectId)
         )) throw new Error("ITEM_COLLECTION_CONTEXT_DENIED");
