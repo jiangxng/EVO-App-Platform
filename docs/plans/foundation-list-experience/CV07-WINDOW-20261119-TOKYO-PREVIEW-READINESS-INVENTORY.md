@@ -36,3 +36,16 @@
 - 仅按准确 PR HEAD CI 完成后普通合并 main；由既有 Branch Hygiene 依据 PR+SHA 清理**本分支**，不清理无关分支与 #1184。
 
 **最终状态词：** `CODE/CI/DEPLOYED_PREVIEW` 有历史准确 SHA 原证；`TOKYO_ITEM_LIVE_INVENTORY_PENDING`、`MVP_USER_ACCEPTANCE_NOT_READY`、`INDEPENDENT_PLUGIN_AUTHOR_PENDING`。新增 Action 成功后也只有第一项可按日志提升，其他两个必须继续标明未验。
+
+## 4. 2026-11-19 · 本轮已合并并真正完成的只读东京盘点（新增 G 级原证）
+
+本节是上面 §2 最初“尚未运行”的**后续实际执行回执**，不是倒改历史快照。
+
+- [PR #1371](https://github.com/jiangxng/EVO-App-Platform/pull/1371) Draft→准确 HEAD `0a7a54c7562b6a5313520a318602c39e47f672e3` 的 4/4 checks SUCCESS（其中 Continuity 两次）；普通 merge commit `d47c646728c07f9cc42cb35f16dffc3585f7cc6b` 到 protected main。
+- **[只读 Inventory #44519919359](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44519919359) SUCCESS / Job #135545585162 原始日志**，东京实际正在运行的镜像为 `702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf`，容器 `healthy`；`CV07_TOKYO_ITEM_PACKAGE_INSTALLED=NO`；`CV07_TOKYO_ITEM_FEATURE_ACTIVE_IN_PERSISTED_STATE=NO`；`CV07_TOKYO_ITEM_RESOURCE_PRESENT_IN_PERSISTED_STORE=NO`。同时 `CV07_TOKYO_PUBLIC_HTTPS_HEALTH_PASS`、`CV07_TOKYO_BASIC_AUTH_BOUNDARY_PASS`，未授权根路径 401。
+- 同主线 [Continuity #44519919395](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44519919395) SUCCESS；[东京 #44519966972](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44519966972) preflight SUCCESS、deploy SKIPPED，原始 Job 输出 `EVO_TOKYO_SKIP_NON_RUNTIME_CHANGE sha=d47c646728c07f9cc42cb35f16dffc3585f7cc6b`；本次没有重发运行镜像。
+- [Branch Hygiene #44519920778](https://github.com/jiangxng/EVO-App-Platform/actions/runs/44519920778) 原日志精确 `DELETED_VERIFIED_MERGED_PR_BRANCH ci/cv07-tokyo-readonly-preview-inventory-20261119 @ 0a7a54c7562b6a5313520a318602c39e47f672e3`，未触碰其他 Owner/PR #1184。
+- **现行执行跟踪：[Issue #1372](https://github.com/jiangxng/EVO-App-Platform/issues/1372)** 已记录合法 DEV Operator、Host 安装 Item/启用 Feature、有权企业数据准备和用户五步只读验收清单。**源证结论不是“Item 源码未实现”，而是“东京 clean 启动当前真实业务状态未具备验收前置条件”。** 不能直接修改持久态 JSON、绕过 Basic Auth 或用本地 fixture 假作线上数据。
+- 合法业务登录/Principal 授权与 390px 实际公网操作依然 **UNVERIFIED/HUMAN_NOT_SIGNED**；独立非框架开发者第四个新 Collection 复用仍无实际 PR/CI。没有关闭正式 CV03 SAVE、CV04 EXPORT、Human OIDC、PA05 Operator、生产 WRITE，也没有启动 DeepSeek 收费测试。
+
+**新状态：** `TOKYO_ITEM_INSTALLED=NO`、`TOKYO_ITEM_ACTIVE=NO`、`TOKYO_ITEM_RESOURCES_PRESENT=NO` (**实时只读回执当次有效**)；`MVP_USER_ACCEPTANCE_BLOCKED_BY_PREVIEW_PROVISIONING`；`INDEPENDENT_PLUGIN_AUTHOR_PENDING`。下一次以新 Action/合法业务会话重核，不把历史状态永远视为当前。
