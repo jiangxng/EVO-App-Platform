@@ -311,7 +311,7 @@ export function createItemProjectionPageV010(input: {
             }} : {})
       }))
     } : {}),
-    ...(table ? {table} : {}),
+    ...(table ? {table, search: undefined} : {}),
     id: "evo-item.projection." + input.projectionId,
     title: myItems ? text.myItems : text.title,
     description: myItems ? text.myItemsDescription : text.description,
@@ -329,7 +329,9 @@ export function createItemProjectionPageV010(input: {
         }]
       }
     } : {}),
-    actions: [{
+    // Table mode exposes its own Owner view switch. Legacy unpaged views
+    // retain the historic toolbar actions, without double navigation.
+    actions: table ? [] : [{
       id: "all-items",
       label: text.title,
       type: "navigate",
