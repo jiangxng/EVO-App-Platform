@@ -8354,6 +8354,31 @@ const server = createServer(async (request, response) => {
               : "ITEM_DETAIL_ROUTE_INVALID"
           });
         }
+        let itemReturnRoute: string | undefined;
+        if (source === ITEM_DETAIL_PAGE_SOURCE && routeValue) {
+          // ReturnTo is an inert navigation hint. Only the fixed Item
+          // collection routes are accepted; opening them reauthorizes.
+          const params = new URL(routeValue, "https://evo.invalid").searchParams;
+          if ([...params.keys()].some(key =>
+              key !== "itemId" && key !== "returnTo"
+            ) || params.getAll("itemId").length !== 1
+            || params.getAll("returnTo").length > 1) {
+            return json(response, 400, { code: "ITEM_DETAIL_ROUTE_INVALID" });
+          }
+          const hint = params.get("returnTo");
+          if (hint) {
+            try {
+              const { parseItemCollectionRouteV010, itemCollectionQueryRouteV010 } =
+                await import("../apps/item/collection-query.js");
+              const path = hint.startsWith(ITEM_MY_ITEMS_ROUTE + "?")
+                ? ITEM_MY_ITEMS_ROUTE : ITEM_DIRECTORY_ROUTE;
+              const query = parseItemCollectionRouteV010(hint, path);
+              itemReturnRoute = itemCollectionQueryRouteV010(path, query);
+            } catch {
+              return json(response, 400, { code: "ITEM_RETURN_ROUTE_INVALID" });
+            }
+          }
+        }
         const directory = await runtime.projectionService.read({
           contextId: active.contextId,
           projectionId: ITEM_DIRECTORY_PROJECTION_V010,
@@ -8385,7 +8410,8 @@ const server = createServer(async (request, response) => {
                 record,
                 locale,
                 readableFieldIds: directory.readableFieldIds,
-                canManage
+                canManage,
+                ...(itemReturnRoute ? { returnRoute: itemReturnRoute } : {})
               })
         );
       }
