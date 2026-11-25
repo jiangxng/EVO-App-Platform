@@ -629,7 +629,7 @@ form[data-eidos-id] button,
   flex-wrap:wrap;gap:2px;
 }
 [data-eidos-catalog-workspace-controls] [data-eidos-catalog-view-navigation] button{
-  min-height:36px;min-width:0;
+  min-height:var(--eidos-touch-target);min-width:var(--eidos-touch-target);
   padding:0 var(--eidos-space-md);
   background:transparent;color:var(--eidos-fg-muted);
   border:0;border-bottom:2px solid transparent;
@@ -645,7 +645,7 @@ form[data-eidos-id] button,
   border-radius:var(--eidos-radius-sm);background:var(--eidos-bg-subtle);
 }
 [data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation] button{
-  min-height:30px;min-width:0;padding:0 var(--eidos-space-md);
+  min-height:var(--eidos-touch-target);min-width:var(--eidos-touch-target);padding:0 var(--eidos-space-md);
   border:0;border-radius:var(--eidos-radius-sm);
   background:transparent;color:var(--eidos-fg-muted);font-weight:500;
 }
@@ -675,7 +675,7 @@ form[data-eidos-id] button,
 [data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] input,
 [data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] button,
 [data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-controls] summary{
-  min-height:36px;
+  min-height:var(--eidos-touch-target);
 }
 [data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-controls]{
   flex:0 0 auto;
