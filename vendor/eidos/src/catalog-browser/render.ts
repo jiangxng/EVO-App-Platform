@@ -399,7 +399,9 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
       }).join("");
       return `<tr data-eidos-table-row="${esc(row.itemId)}">${cells}</tr>`;
     }).join("");
-    return `<div data-eidos-catalog-table-wrap><table data-eidos-catalog-table><thead><tr>${heads}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    // One semantic empty state for the desktop table; phone cards stay unchanged.
+    const body = rows || `<tr data-eidos-catalog-table-empty><td colspan="${Math.max(1, model.table!.columns.length)}"><p>${esc(model.emptyMessage ?? "No items")}</p></td></tr>`;
+    return `<div data-eidos-catalog-table-wrap><table data-eidos-catalog-table><thead><tr>${heads}</tr></thead><tbody>${body}</tbody></table></div>`;
   })() : "";
   // At <=700px the semantic table header is hidden in favor of Item cards.
   // Keep those same Owner-authorized sort routes keyboard/touch accessible.
@@ -489,6 +491,18 @@ export function renderCatalogBrowserToHtml(input: CatalogBrowserV010): string {
     ? `<p data-eidos-catalog-search-empty hidden>${esc(model.search.noResultsMessage ?? "No matching items.")}</p>`
     : "";
 
+  // Shared Eidos workspace controls: one desktop row instead of stacked strips.
+  // Domain Owners continue to supply all query and navigation routes.
+  const tableToolbar = serverSearch
+    || (columnControls && (model.presentation === "table" || !model.presentation))
+    ? `<div data-eidos-catalog-table-toolbar>${serverSearch}${model.presentation === "table" || !model.presentation ? columnControls : ""}</div>`
+    : "";
+  const workspaceControls = viewNavigation || presentationNavigation || tableToolbar
+    ? `<div data-eidos-catalog-workspace-controls>${viewNavigation || presentationNavigation
+      ? `<div data-eidos-catalog-workspace-switches>${viewNavigation}${presentationNavigation}</div>`
+      : ""}${tableToolbar}</div>`
+    : "";
+
   const pageActions = (model.actions ?? [])
     .map(action =>
       actionButton(undefined, action, action.primary === true)
@@ -507,15 +521,11 @@ ${pageActions ? `<div data-eidos-page-actions>${pageActions}</div>` : ""}
 </div>
 </header>
 ${search}
-${viewNavigation}
-${presentationNavigation}
+${workspaceControls}
 ${model.presentation==="chart" && model.authorizedChart
   ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart)
   : (!model.presentation && model.authorizedChart
     ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : "")}
-${serverSearch || (columnControls && (model.presentation==="table" || !model.presentation))
-  ? `<div data-eidos-catalog-table-toolbar>${serverSearch}${model.presentation==="table"||!model.presentation ? columnControls : ""}</div>`
-  : ""}
 ${quickFilters}
 ${quickFilterGroups}
 ${mobileSort}
