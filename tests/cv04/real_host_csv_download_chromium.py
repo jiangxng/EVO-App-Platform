@@ -87,6 +87,42 @@ with sync_playwright() as api:
             assert diagnostics["scrollWidth"]<=size+2,(
                 "CV04_HORIZONTAL_OVERFLOW "+name+" "+str(diagnostics))
             assert diagnostics["exportActions"][0]["visible"],"Export action not reachable"
+            if name=="dictionary":
+                # Real installed Host / real Eidos CSS: desktop-first toolbar
+                # remains compact; the independent phone realization is touch-safe.
+                controls=root.locator("[data-eidos-catalog-workspace-controls]")
+                expect(controls).to_have_count(1)
+                views=controls.locator("[data-eidos-catalog-view-navigation]")
+                modes=controls.locator("[data-eidos-catalog-presentation-navigation]")
+                search=controls.locator("[data-eidos-catalog-server-search]")
+                columns=controls.locator("[data-eidos-catalog-column-controls]")
+                for item in [views,modes,search,columns]:
+                    expect(item).to_be_visible()
+                v=views.bounding_box()
+                m=modes.bounding_box()
+                s=search.bounding_box()
+                w=controls.bounding_box()
+                assert all([v,m,s,w]),"CV07_COLLECTION_CONTROLS_MISSING"
+                assert abs(v["y"]-m["y"])<=16,("CV07_MODES_NOT_GROUPED",v,m)
+                if not is_phone:
+                    assert s["width"]<=370,("CV07_DESKTOP_SEARCH_TOO_WIDE",s)
+                    if w["width"]>=940:
+                        assert abs(s["y"]-v["y"])<=16,(
+                            "CV07_DESKTOP_TOOLBAR_NOT_ONE_ROW",w,v,s)
+                    assert 34<=search.locator("input").first.bounding_box()["height"]<=42,(
+                        "CV07_PC_INHERITED_MOBILE_DENSITY",s)
+                else:
+                    for label,element in [
+                        ("tab",views.locator("button").first),
+                        ("display",modes.locator("button").first),
+                        ("search",search.locator("input").first),
+                        ("columns",columns.locator("summary"))
+                    ]:
+                        box=element.bounding_box()
+                        assert box and box["height"]>=43.5,(
+                            "CV07_PHONE_TARGET_TOO_SMALL",label,box)
+                print("CV07_COLLECTION_DESKTOP_FIRST_GEOMETRY_PASS:%d"%size,
+                      flush=True)
             screenshot=OUT/("%s-%s.png"%(name,"phone390" if is_phone else "desktop1280"))
             page.screenshot(path=str(screenshot),full_page=True)
             with page.expect_download(timeout=20000) as event:
