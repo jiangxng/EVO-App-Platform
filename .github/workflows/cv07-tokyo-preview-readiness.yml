@@ -6,6 +6,12 @@ name: CV07 Tokyo Preview Read-Only Inventory
 # protected GitHub Environment.
 on:
   workflow_dispatch:
+  # Automatically inspect the *actual* preview after a trusted main Tokyo
+  # release completes. This only reads lifecycle/enterprise presence flags.
+  workflow_run:
+    workflows: ["EVO Tokyo Dev - CI-Gated Preview Release"]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -20,7 +26,17 @@ concurrency:
 
 jobs:
   inventory:
-    if: github.ref == 'refs/heads/main' && github.repository == 'jiangxng/EVO-App-Platform'
+    if: >-
+      github.ref == 'refs/heads/main'
+      && github.repository == 'jiangxng/EVO-App-Platform'
+      && (
+        github.event_name != 'workflow_run'
+        || (
+          github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.head_branch == 'main'
+          && github.event.workflow_run.head_repository.full_name == github.repository
+        )
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: evo-tokyo-dev
