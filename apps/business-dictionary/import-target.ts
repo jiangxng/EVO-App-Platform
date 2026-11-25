@@ -154,7 +154,13 @@ export function createBusinessDictionaryImportTargetV010(input: {
           continue;
         }
         if(raw === undefined) continue;
-        try { values[f.fieldId]=normalizeFoundationObjectImportCellV010(f,raw); }
+        try {
+          const value = f.fieldId === "optionStatus" && typeof raw === "string"
+            ? raw.trim() === "启用" ? "ACTIVE"
+              : raw.trim() === "停用" ? "INACTIVE" : raw
+            : raw;
+          values[f.fieldId] = normalizeFoundationObjectImportCellV010(f,value);
+        }
         catch(error) {
           const code=error instanceof Error?error.message:"DATA_IMPORT_VALUE_INVALID";
           issues.push({code,message:code,fieldId:f.fieldId});
