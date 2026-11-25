@@ -517,6 +517,95 @@ form[data-eidos-id] button,
 }
 
 
+/* Collection Foundation: search and column presentation are one Eidos toolbar.
+   Domain plugins provide routes, never their own controls or styles. */
+[data-eidos-catalog-table-toolbar]{
+  display:flex;align-items:flex-end;flex-wrap:wrap;
+  gap:var(--eidos-space-sm);min-width:0;margin-top:var(--eidos-space-lg);
+}
+[data-eidos-catalog-table-toolbar] [data-eidos-catalog-server-search]{
+  flex:1 1 330px;min-width:0;margin-top:0;
+}
+[data-eidos-catalog-column-controls]{
+  position:relative;flex:0 0 auto;min-width:0;
+  font-size:var(--eidos-font-compact);color:var(--eidos-fg);
+}
+[data-eidos-catalog-column-controls] summary{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:var(--eidos-space-sm);min-height:var(--eidos-touch-target);
+  padding:0 var(--eidos-space-lg);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);cursor:pointer;user-select:none;
+  list-style:none;font:inherit;font-weight:600;
+}
+[data-eidos-catalog-column-controls] summary::-webkit-details-marker{display:none}
+[data-eidos-catalog-column-controls] summary::after{
+  content:"⌄";font-size:1.1em;color:var(--eidos-fg-muted);
+}
+[data-eidos-catalog-column-controls][open] summary{
+  border-color:var(--eidos-primary);background:var(--eidos-bg-selected);
+}
+[data-eidos-catalog-column-controls][open] summary::after{transform:rotate(180deg)}
+[data-eidos-catalog-column-controls] summary:focus-visible,
+[data-eidos-catalog-column-controls] button:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+[data-eidos-catalog-column-options]{
+  position:absolute;z-index:5;top:calc(100% + var(--eidos-space-xs));
+  right:0;width:min(430px,calc(100vw - 48px));
+  max-height:min(65vh,480px);overflow:auto;
+  display:grid;gap:0;padding:var(--eidos-space-xs);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-md);
+  background:var(--eidos-bg);box-shadow:0 10px 30px rgba(0,0,0,.12);
+}
+[data-eidos-column-choice]{
+  display:grid;grid-template-columns:minmax(90px,1fr) auto;
+  align-items:center;gap:var(--eidos-space-sm);
+  padding:var(--eidos-space-sm);
+  border-bottom:1px solid var(--eidos-border);
+}
+[data-eidos-column-choice]:last-child{border-bottom:0}
+[data-eidos-column-choice] > span:first-child{
+  min-width:0;overflow-wrap:anywhere;font-weight:600;
+}
+[data-eidos-column-choice][data-eidos-column-visible="false"] > span:first-child{
+  color:var(--eidos-fg-muted);font-weight:400;
+}
+[data-eidos-column-choice] > span:last-child{
+  display:flex;align-items:center;justify-content:flex-end;
+  flex-wrap:wrap;gap:var(--eidos-space-xs);min-width:0;
+}
+[data-eidos-catalog-column-controls] button{
+  min-height:36px;padding:0 var(--eidos-space-sm);
+  border:1px solid var(--eidos-border-strong);
+  border-radius:var(--eidos-radius-sm);
+  background:var(--eidos-bg);color:var(--eidos-fg);
+  font:inherit;cursor:pointer;
+}
+[data-eidos-catalog-column-controls] button:hover{background:var(--eidos-bg-hover)}
+[data-eidos-catalog-column-controls] > [data-eidos-action-wrap]{
+  display:block;padding:var(--eidos-space-sm);border:1px solid var(--eidos-border);
+  border-top:0;border-radius:0 0 var(--eidos-radius-sm) var(--eidos-radius-sm);
+  background:var(--eidos-bg-subtle);
+}
+@media(max-width:600px){
+  [data-eidos-catalog-table-toolbar]{align-items:stretch}
+  [data-eidos-catalog-table-toolbar] [data-eidos-catalog-server-search]{
+    flex-basis:100%;
+  }
+  [data-eidos-catalog-column-controls]{width:100%}
+  [data-eidos-catalog-column-options]{
+    left:0;right:auto;width:100%;
+    grid-template-columns:minmax(0,1fr);
+  }
+  [data-eidos-column-choice]{
+    grid-template-columns:minmax(0,1fr);align-items:stretch;
+  }
+  [data-eidos-column-choice] > span:last-child{justify-content:flex-start}
+}
+
 /* CV06 read-only, owner-partitioned current-page board; never a draggable workflow. */
 [data-eidos-catalog-presentation-navigation]{
   display:flex;gap:var(--eidos-space-sm);flex-wrap:wrap;
