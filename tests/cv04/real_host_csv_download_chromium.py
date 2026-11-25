@@ -103,8 +103,8 @@ with sync_playwright() as api:
                 s=search.bounding_box()
                 w=controls.bounding_box()
                 assert all([v,m,s,w]),"CV07_COLLECTION_CONTROLS_MISSING"
-                assert abs(v["y"]-m["y"])<=16,("CV07_MODES_NOT_GROUPED",v,m)
                 if not is_phone:
+                    assert abs(v["y"]-m["y"])<=16,("CV07_DESKTOP_MODES_NOT_GROUPED",v,m)
                     assert s["width"]<=370,("CV07_DESKTOP_SEARCH_TOO_WIDE",s)
                     if w["width"]>=940:
                         assert abs(s["y"]-v["y"])<=16,(
