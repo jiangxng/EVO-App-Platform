@@ -49,3 +49,11 @@
 - 合法业务登录/Principal 授权与 390px 实际公网操作依然 **UNVERIFIED/HUMAN_NOT_SIGNED**；独立非框架开发者第四个新 Collection 复用仍无实际 PR/CI。没有关闭正式 CV03 SAVE、CV04 EXPORT、Human OIDC、PA05 Operator、生产 WRITE，也没有启动 DeepSeek 收费测试。
 
 **新状态：** `TOKYO_ITEM_INSTALLED=NO`、`TOKYO_ITEM_ACTIVE=NO`、`TOKYO_ITEM_RESOURCES_PRESENT=NO` (**实时只读回执当次有效**)；`MVP_USER_ACCEPTANCE_BLOCKED_BY_PREVIEW_PROVISIONING`；`INDEPENDENT_PLUGIN_AUTHOR_PENDING`。下一次以新 Action/合法业务会话重核，不把历史状态永远视为当前。
+
+## 5. 2026-11-25 自动续跑：东京业务前置条件的二级只读盘点（执行前记录）
+
+- **新核验主线起点**：protected `main@51f66be5c3bd3e96ca52ec43e30c18388bb78f41`，2026-11-19 后未有 CV07 runtime 新提交；Issue [#1372](https://github.com/jiangxng/EVO-App-Platform/issues/1372) 仍 OPEN。2026-11-24 的 Ecosystem Certification 成功是结构化平台 CI，不是东京 Item 实操签收。
+- **原证来源（G 源码）**：[Item manifest](../../../apps/item/package.ts) 的 `enterprise.directory`、`enterprise.resources`、`enterprise.responsibility` 必需能力；[Responsibility package](../../../apps/responsibility/package.ts) 依赖 `enterprise.resources`；[企业上下文 Provider](../../../providers/enterprise-context/package.ts)、[企业成员关系 Provider](../../../providers/enterprise-relationship/package.ts)；[Host 治理存储](../../../manager/enterprise-context-governance-store.ts) 的 `contexts/relationships` 与 ACTIVE Owner。
+- **本切片唯一变更**：扩展已合并且 11-19 成功的 [东京只读 workflow](../../../.github/workflows/cv07-tokyo-preview-readiness.yml)，从现有容器内部 **read-only** 检查三类依赖的安装/持久 Feature 标志、有无 ACTIVE 企业、有无 ACTIVE OWNER 关系、Item 有无落在 ACTIVE 企业里；仅输出 `YES/NO`。不读 HTTP 用户会话、不请求 Basic Auth、不输出企业、主体或 Item ID，不修改 JSON/数据库、插件生命周期或启动设置。
+- **状态判断**：运行成功后可区分 `NO_ITEM_PLUGIN`、`NO_DEPENDENCY_FEATURE`、`NO_ENTERPRISE`、`NO_ACTIVE_OWNER`、`NO_ITEM_IN_ACTIVE_ENTERPRISE`。这些只是**持久状态存在性**而非当前登录主体授权；即使全 YES，也必须单独完成合法登录/Owner READ/人验。原八步及 CV03 SAVE/CV04 EXPORT/OIDC/Agent WRITE 门禁不变。
+- **执行治理**：独立短分支 → Draft PR → 准确 HEAD CI → 受保护 main 普通 merge → 由该 workflow 在 main 变更自动运行，读取实际 Job logs → 东京 runtime 变更规则应 SKIP → Branch Hygiene 精确清理。**本段写入时尚未有 2026-11-25 新 Run，绝不预填盘点结果。**
