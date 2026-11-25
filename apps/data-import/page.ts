@@ -29,6 +29,7 @@ import {
   DATA_IMPORT_ERROR_CSV_COMMAND_V010,
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
   dataImportMappingRouteV010,
   dataImportReviewRouteV010,
   dataImportRowCorrectRouteV010,
@@ -49,6 +50,7 @@ function text(locale?: string) {
         chooseTarget: "选择要导入的数据对象",
         import: "开始导入",
         importTarget: (name: string) => "导入" + name,
+        downloadBlankTemplateFor: (name: string) => "下载" + name + "空白 CSV 模板",
         recent: "最近导入",
         unfinished: "待完成",
         continueImport: (name: string) => "继续导入 · " + name,
@@ -122,6 +124,7 @@ function text(locale?: string) {
         chooseTarget: "Choose data to import",
         import: "Start import",
         importTarget: (name: string) => "Import " + name,
+        downloadBlankTemplateFor: (name: string) => "Download " + name + " blank CSV template",
         recent: "Recent imports",
         unfinished: "To finish",
         continueImport: (name: string) => "Continue import · " + name,
@@ -334,6 +337,8 @@ export function createDataImportDirectoryPageV010(input: {
   targets: readonly FoundationObjectImportTargetSummaryV010[];
   jobs: readonly DataImportJobV010[];
   locale?: string;
+  /** Host authorizes a template action only for current enterprise managers. */
+  showTemplateDownloads?: boolean;
 }): CatalogBrowserV010 {
   const t = text(input.locale);
   const availableTargets = new Set(input.targets.map(target => target.targetId));
@@ -366,6 +371,17 @@ export function createDataImportDirectoryPageV010(input: {
       ...(input.targets.length === 1 && !resumable ? { primary: true } : {})
     };
   });
+  const templateActions = input.showTemplateDownloads
+    ? input.targets.map(target => ({
+        id: "template:" + target.targetId,
+        label: t.downloadBlankTemplateFor(localizedTextV010(target.label, input.locale)),
+        type: "command" as const,
+        command: DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
+        inputVersion: "0.1.0",
+        requiresConfirmation: false,
+        values: { targetId: target.targetId, locale: input.locale ?? "en" }
+      }))
+    : [];
   const jobItems = orderedJobs
     .slice(0, 20)
     .map(job => {
@@ -414,7 +430,8 @@ export function createDataImportDirectoryPageV010(input: {
         requiresConfirmation: false,
         primary: true
       }] : []),
-      ...importActions
+      ...importActions,
+      ...templateActions
     ],
     collectionTitle: t.history,
     collectionDescription: resumable
