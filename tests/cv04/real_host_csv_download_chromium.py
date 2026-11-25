@@ -123,6 +123,40 @@ with sync_playwright() as api:
                             "CV07_PHONE_TARGET_TOO_SMALL",label,box)
                 print("CV07_COLLECTION_DESKTOP_FIRST_GEOMETRY_PASS:%d"%size,
                       flush=True)
+                if not is_phone:
+                    # Match the user's 1096px PC screenshot without altering
+                    # the source 1280px/390px journey assertions below.
+                    pc1096=context.new_page()
+                    pc1096.set_viewport_size({"width":1096,"height":800})
+                    pc1096.goto(HOST+"/?surface=desktop#"+plan["route"],
+                                wait_until="domcontentloaded")
+                    main1096=pc1096.locator(
+                        '[data-eidos-id="evo-business-dictionary.directory"]')
+                    expect(main1096).to_be_visible(timeout=30000)
+                    group1096=main1096.locator(
+                        "[data-eidos-catalog-workspace-controls]")
+                    expect(group1096).to_be_visible()
+                    tabs1096=group1096.locator(
+                        "[data-eidos-catalog-view-navigation]").bounding_box()
+                    modes1096=group1096.locator(
+                        "[data-eidos-catalog-presentation-navigation]").bounding_box()
+                    search1096=group1096.locator(
+                        "[data-eidos-catalog-server-search]").bounding_box()
+                    assert tabs1096 and modes1096 and search1096
+                    assert abs(tabs1096["y"]-modes1096["y"])<=16,(
+                        "CV07_PC_1096_TABS_DISPERSED",tabs1096,modes1096)
+                    assert search1096["y"]-tabs1096["y"]<=64,(
+                        "CV07_PC_1096_THREE_STACKED_ROWS",tabs1096,search1096)
+                    assert search1096["width"]<=370,(
+                        "CV07_PC_1096_SEARCH_FULL_WIDTH",search1096)
+                    assert pc1096.evaluate(
+                        "document.documentElement.scrollWidth")<=1098,(
+                        "CV07_PC_1096_HORIZONTAL_OVERFLOW")
+                    pc1096.screenshot(path=str(
+                        OUT/"dictionary-desktop1096.png"),full_page=True)
+                    pc1096.close()
+                    print("CV07_COLLECTION_PC_1096_GEOMETRY_PASS",
+                          flush=True)
             screenshot=OUT/("%s-%s.png"%(name,"phone390" if is_phone else "desktop1280"))
             page.screenshot(path=str(screenshot),full_page=True)
             with page.expect_download(timeout=20000) as event:
