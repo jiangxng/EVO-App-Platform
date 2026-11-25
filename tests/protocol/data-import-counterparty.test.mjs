@@ -666,7 +666,8 @@ test("Data Import package is generic and exposes stage/dry-run/commit/read/error
     "enterprise.data-import.mapping.inspect",
     "enterprise.data-import.row-correct",
     "enterprise.data-import.stage-csv",
-    "enterprise.data-import.stage-file"
+    "enterprise.data-import.stage-file",
+    "enterprise.data-import.template.csv"
   ]);
 });
 

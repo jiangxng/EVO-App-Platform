@@ -15,6 +15,8 @@ export const DATA_IMPORT_GET_OPERATION_V010 =
   "enterprise.data-import.get" as const;
 export const DATA_IMPORT_ERROR_CSV_OPERATION_V010 =
   "enterprise.data-import.error-csv" as const;
+export const DATA_IMPORT_TEMPLATE_CSV_OPERATION_V010 =
+  "enterprise.data-import.template.csv" as const;
 export const DATA_IMPORT_MAPPING_INSPECT_OPERATION_V010 =
   "enterprise.data-import.mapping.inspect" as const;
 export const DATA_IMPORT_MAPPING_APPLY_OPERATION_V010 =
@@ -30,6 +32,8 @@ export const DATA_IMPORT_GET_COMMAND_V010 =
   "data-import.get" as const;
 export const DATA_IMPORT_ERROR_CSV_COMMAND_V010 =
   "data-import.error-csv" as const;
+export const DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010 =
+  "data-import.template.csv" as const;
 export const DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010 =
   "data-import.mapping.inspect" as const;
 export const DATA_IMPORT_MAPPING_APPLY_COMMAND_V010 =

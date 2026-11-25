@@ -962,6 +962,7 @@ import {
   DATA_IMPORT_ROW_CORRECT_PAGE_SOURCE,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
   DATA_IMPORT_UPLOAD_PAGE_SOURCE,
   dataImportUploadRouteV010,
   parseDataImportMappingRouteV010,
@@ -5990,7 +5991,8 @@ const actionRouter = createAppActionRouter(
       DATA_IMPORT_MAPPING_INSPECT_COMMAND_V010,
       DATA_IMPORT_MAPPING_APPLY_COMMAND_V010,
       DATA_IMPORT_ROW_CORRECT_COMMAND_V010,
-      DATA_IMPORT_ERROR_CSV_COMMAND_V010
+      DATA_IMPORT_ERROR_CSV_COMMAND_V010,
+      DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010
     ].map(commandCode =>
       createLazyAppActionHandlerV010({
         packageId: DATA_IMPORT_PACKAGE_ID,
@@ -8799,7 +8801,10 @@ const server = createServer(async (request, response) => {
             module.createDataImportDirectoryPageV010({
               targets: dataImportTargets,
               jobs: importRuntime.repository.list(active.contextId),
-              locale
+              locale,
+              showTemplateDownloads: canManageDataImport(
+                session.principal, active.contextId
+              )
             })
           );
         }
