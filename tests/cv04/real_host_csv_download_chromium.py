@@ -267,7 +267,8 @@ with sync_playwright() as api:
                     "aria-current","page",timeout=30000)
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-status-inactive"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
-                expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(0,timeout=30000)
+                expect(page.locator('[data-eidos-table-row]')).to_have_count(0,timeout=30000)
+                expect(page.locator('[data-eidos-catalog-table-empty]')).to_have_count(1,timeout=30000)
                 assert "status=INACTIVE" in page.url and "search=Beta" in page.url
                 inactive_action=page.locator('[data-eidos-catalog-action="export-current-page"]')
                 inactive_values=json.loads(inactive_action.get_attribute("data-eidos-action-values"))
