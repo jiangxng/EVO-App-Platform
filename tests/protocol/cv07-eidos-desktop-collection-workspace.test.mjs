@@ -62,7 +62,7 @@ test("CV07 responsive Eidos CSS is desktop-productive without inheriting phone t
   assert.match(css, /\[data-eidos-catalog-workspace-switches\]\{\s*display:flex;align-items:center;flex-wrap:wrap/);
   assert.match(css, /\[data-eidos-catalog-workspace-controls\] \[data-eidos-catalog-table-toolbar\]\{/);
   assert.match(css, /\[data-eidos-catalog-workspace-controls\] \[data-eidos-catalog-server-search\]\{[^}]*max-width:360px/);
-  assert.match(css, /\[data-eidos-catalog-workspace-controls\] \[data-eidos-catalog-view-navigation\] button\{[^}]*min-height:36px/);
+  assert.match(css, /\[data-eidos-catalog-workspace-controls\] \[data-eidos-catalog-view-navigation\] button\{[^}]*min-height:var\(--eidos-touch-target\)/);
   assert.match(css, /@media\(max-width:700px\)\{\s*\[data-eidos-catalog-workspace-controls\]/);
   assert.match(css, /\[data-eidos-catalog-workspace-controls\] \[data-eidos-catalog-presentation-navigation\] button\{\s*min-height:44px/);
   assert.match(css, /\[data-eidos-catalog-table-empty\] td\{/);
