@@ -56,7 +56,7 @@ jobs:
           printf 'CV07_TOKYO_RUNNING_IMAGE=%s\n' "$image"
           printf 'CV07_TOKYO_CONTAINER_HEALTH=%s\n' "$health"
           test "$health" = healthy
-          # Inspect only two locally persisted snapshots inside the app
+          # Inspect only locally persisted lifecycle/resource/governance state inside the app
           # container. Never print raw records, IDs, policies, tokens or secrets.
           docker exec -i "$cid" node <<'NODE'
           const fs = require('node:fs');
@@ -84,6 +84,61 @@ jobs:
           const resources = readSnapshot(
             path.join(path.dirname(stateFile), 'enterprise-resources.json'), 'resources'
           );
+          // Read only the minimum governance metadata needed to decide
+          // whether any active enterprise has an active owner. Never emit
+          // context, relationship, subject or Item identifiers.
+          const governance = readSnapshot(
+            path.join(path.dirname(stateFile), 'enterprise-governance.json'),
+            'contexts'
+          );
+          if (governance && !Array.isArray(governance.relationships)) {
+            throw Error('CV07_TOKYO_ENTERPRISE_GOVERNANCE_SCHEMA_INVALID');
+          }
+          const activeContextIds = new Set(
+            (governance?.contexts ?? [])
+              .filter(value => value.lifecycleState === 'ACTIVE')
+              .map(value => value.contextId)
+          );
+          const enterpriseWithOwner = !!governance?.relationships.some(
+            value => value.kind === 'OWNER' && value.state === 'ACTIVE' &&
+              activeContextIds.has(value.contextId)
+          );
+          const hasPackage = id => !!lifecycle?.installedPackages.some(
+            value => value.packageId === id
+          );
+          const hasFeature = (id, packageId) =>
+            !!lifecycle?.activeFeatures.some(value =>
+              value.featureId === id && value.packageId === packageId
+            );
+          // These are the actual dependencies declared in Item/Responsibility
+          // package manifests. A persisted active flag is not a live
+          // provider health probe or an application authorization grant.
+          for (const [label, packageId, featureId] of [
+            ['ENTERPRISE_RESOURCE_PROVIDER', 'host-enterprise-context-provider',
+             'host-enterprise-context-provider.default'],
+            ['RESPONSIBILITY', 'evo-responsibility',
+             'evo-responsibility.default'],
+            ['ENTERPRISE_RELATIONSHIP_PROVIDER', 'host-enterprise-relationship-provider',
+             'host-enterprise-relationship-provider.default']
+          ]) {
+            console.log('CV07_TOKYO_' + label + '_PACKAGE_INSTALLED=' +
+              (hasPackage(packageId) ? 'YES' : 'NO'));
+            console.log('CV07_TOKYO_' + label + '_FEATURE_ACTIVE_IN_PERSISTED_STATE=' +
+              (hasFeature(featureId, packageId) ? 'YES' : 'NO'));
+          }
+          console.log('CV07_TOKYO_ACTIVE_ENTERPRISE_CONTEXT_PRESENT=' +
+            (activeContextIds.size > 0 ? 'YES' : 'NO'));
+          console.log('CV07_TOKYO_ACTIVE_ENTERPRISE_WITH_OWNER_PRESENT=' +
+            (enterpriseWithOwner ? 'YES' : 'NO'));
+          console.log('CV07_TOKYO_ITEM_RESOURCE_IN_ACTIVE_ENTERPRISE_PRESENT=' +
+            (resources?.resources.some(value =>
+              value.namespace === 'evo.item' && value.collectionId === 'items' &&
+              value.resourceType === 'item.subject' &&
+              value.lifecycleState === 'ACTIVE' &&
+              activeContextIds.has(value.contextId)
+            ) ? 'YES' : 'NO'));
+          // Not a Human acceptance: no user session, role grant, public
+          // Basic Auth credentials or business action has been exercised.
           const installed = !!lifecycle?.installedPackages.some(
             value => value.packageId === 'evo-item'
           );
