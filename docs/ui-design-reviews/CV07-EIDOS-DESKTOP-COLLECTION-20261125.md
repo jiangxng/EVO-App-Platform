@@ -31,7 +31,7 @@ PC 工具栏示意：
                当前企业还没有业务字典。
 ```
 
-对 700px 以下手机：语义顺序不变；状态/模式可以分组换行，搜索占可用宽度，列管理仍清晰可见；触控目标 44px，不继承 PC 的 36px 视觉密度。
+对 700px 以下手机：语义顺序不变；状态/模式可以分组换行，搜索占可用宽度，列管理仍清晰可见；触控目标 44px；桌面也保留 ≥44px 实际命中区域，但以同排分组、节制间距提高密度，不让手机堆叠影响 PC。
 
 ## 导航与信息架构
 
@@ -39,7 +39,7 @@ Eidos 渲染一个 `data-eidos-catalog-workspace-controls`，包含原来的 Own
 
 ## 视觉与颜色
 
-- **PC**：状态视图改为低强调的底部选中线 Tab；展示模式改为紧凑 segmented control；右侧搜索最大 360px，输入/按钮/列设置 36px；工作区仅一条克制的底部分隔线，减少重复盒子和跳变。
+- **PC**：状态视图改为低强调的底部选中线 Tab；展示模式改为紧凑 segmented control；右侧搜索最大 360px，输入/按钮/列设置仍保持 ≥44px 实际命中区域，紧凑感由视觉分组和有限宽度实现；工作区仅一条克制的底部分隔线，减少重复盒子和跳变。
 - **Phone**：专门覆盖为 44px touch targets 和可重排的表单；不改变 PC 尺寸。弹出的列设置面板继续有可聚焦控件，屏宽下不越界。
 - Eidos 的颜色、边框、间距 token 均沿用，不写 Business Dictionary 独立 CSS，不引入新背景色或商业皮肤。不存在为了做手机而降低桌面密度的选择。
 
@@ -49,7 +49,7 @@ Eidos 渲染一个 `data-eidos-catalog-workspace-controls`，包含原来的 Own
 
 ## 无障碍与跨年龄
 
-保留 semantic `nav`、`form role=search`、`details/summary`、表格 `thead/th/tbody` 和 keyboard `aria-current="page"`；现有 focus-visible 蓝色轮廓不变。桌面 36px 与手机 ≥44px 分离。中文提示直接使用 Eidos/业务本地化文案。文本放大、浏览器缩放、实际 390px 触屏、screen reader 需物理测试；CI 的 CSS 字符串匹配不是屏幕可用性证明。
+保留 semantic `nav`、`form role=search`、`details/summary`、表格 `thead/th/tbody` 和 keyboard `aria-current="page"`；现有 focus-visible 蓝色轮廓不变。原规范建议桌面紧凑视觉 32–36px，但现有 Chromium 产品门禁强制桌面与手机实际可点击区域都 ≥44px；按更高优先级的可访问性与既有产品不变量执行。中文提示直接使用 Eidos/业务本地化文案。文本放大、浏览器缩放、实际 390px 触屏、screen reader 需物理测试；CI 的 CSS 字符串匹配不是屏幕可用性证明。
 
 ## 安全与数据修复
 
@@ -60,7 +60,7 @@ Eidos 渲染一个 `data-eidos-catalog-workspace-controls`，包含原来的 Own
 实际修改源码：`vendor/eidos/src/catalog-browser/render.ts`、`vendor/eidos/src/design-language/productive-workbench-css.ts`、`apps/business-dictionary/page.ts`。代码评审和 UI review gate 应逐项对应，不能以截图替代实际源码引用。
 
 - 起因证据：用户 2026-11-25 业务字典 PC 截图（约 1096×528，三段状态/模式/搜索分开，空表格仅 0–0/0）。
-- 新增回归测试：`tests/protocol/cv07-eidos-desktop-collection-workspace.test.mjs`；真实业务字典 page render、view/mode/search/columns DOM 顺序、CSS desktop/mobile 不同命中高度、空/搜索无结果状态与有数据表格不显示伪空行。
+- 新增协议测试：`tests/protocol/cv07-eidos-desktop-collection-workspace.test.mjs`；新增真实 Host Chromium 几何测试：`tests/cv04/real_host_csv_download_chromium.py`，覆盖 1280px 桌面与 390px 手机。真实业务字典 page render、view/mode/search/columns DOM 顺序、CSS desktop/mobile 不同命中高度、空/搜索无结果状态与有数据表格不显示伪空行。
 - 交叉回归：原 CV03 Saved View、CV04 CSV export、CV06 Chart/Board、CV07 Dictionary import、供应商 1280/390 Chromium 不得改变。最终 HEAD 的 CI、Tokyo 当前镜像需在 PR 收据里记录。
 - 真实浏览器截图/用户名登录操作尚未获得；不能宣称人工已通过。独立上游 Eidos 在同步前需要确认 vendored 演进分支/冲突，不能未经审查覆盖旧主仓库。
 
