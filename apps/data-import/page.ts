@@ -438,6 +438,34 @@ export function createDataImportUploadPageV010(input: {
     })?.route !== input.initialReturnTo) {
     throw new Error("DATA_IMPORT_RETURN_ROUTE_INVALID");
   }
+  // A list-scoped import carries an Owner-approved return route. Do not offer
+  // an option that would make that same route invalid on file staging. The
+  // independent Import Center intentionally keeps the target\'s full choices.
+  const safeParameters = (input.target.parameters ?? []).map(parameter => {
+    const options = input.initialReturnTo
+      ? parameter.options.filter(option => {
+          try {
+            return input.target.completionNavigation?.({
+              parameters: {
+                ...input.initialParameters,
+                [parameter.key]: option.value
+              },
+              originRoute: input.initialReturnTo,
+              locale: input.locale
+            })?.route === input.initialReturnTo;
+          } catch {
+            return false;
+          }
+        })
+      : parameter.options;
+    if (!options.length) {
+      throw new Error("DATA_IMPORT_RETURN_ROUTE_INVALID");
+    }
+    return { parameter, options };
+  });
+  const scopeLimitedParameters = safeParameters.some(({parameter, options}) =>
+    options.length < parameter.options.length
+  );
   return {
     contractVersion: "0.1.1" as const,
     kind: "form" as const,
@@ -446,7 +474,11 @@ export function createDataImportUploadPageV010(input: {
       input.target.label,
       input.locale
     ),
-    description: t.description,
+    description: scopeLimitedParameters
+      ? t.description + " " + (zh(input.locale)
+        ? "已保留原列表的导入范围。如需导入其他范围，请从导入中心开始。"
+        : "This import retains the source list scope. To use another scope, start from Import Center.")
+      : t.description,
     contextNavigation: importContextNavigationV010({
       target: input.target,
       parameters: input.initialParameters,
@@ -483,21 +515,24 @@ export function createDataImportUploadPageV010(input: {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       ],
       maxBytes: 20 * 1024 * 1024
-    }, ...(input.target.parameters ?? []).map(parameter => ({
+    }, ...safeParameters.map(({parameter, options}) => ({
       key: "parameter__" + parameter.key,
       label: localizedTextV010(parameter.label, input.locale),
       semanticType: "data-import-target-parameter",
       control: "select" as const,
       required: parameter.required,
       ...(input.initialParameters?.[parameter.key] !== undefined
-        && parameter.options.some(option =>
+        && options.some(option =>
           option.value === input.initialParameters?.[parameter.key]
         )
         ? { initialValue: input.initialParameters[parameter.key] }
         : parameter.defaultValue !== undefined
+          && options.some(option => option.value === parameter.defaultValue)
           ? { initialValue: parameter.defaultValue }
-          : {}),
-      options: parameter.options.map(option => ({
+          : options.length === 1
+            ? { initialValue: options[0].value }
+            : {}),
+      options: options.map(option => ({
         value: option.value,
         label: localizedTextV010(option.label, input.locale)
       }))
