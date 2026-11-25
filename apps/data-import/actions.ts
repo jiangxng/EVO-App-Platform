@@ -425,7 +425,11 @@ export function createDataImportActionHandlersV010(input: {
           result: {
             contractVersion: "0.1.0",
             message: "Empty import template downloaded; fill the rows before staging.",
-            download
+            download: {
+              fileName: download.fileName,
+              mediaType: download.mediaType,
+              content: download.content
+            }
           }
         };
       } catch (error) {
