@@ -7,7 +7,7 @@ test('receipt and error download need no target or preliminary Job read',()=>{
   for(const command of ['get','error-csv'])assert.equal(select(input('data-import.'+command)),undefined);
 });
 test('stage commands select exactly the requested target and reject missing ids',()=>{
-  for(const command of ['stage-file','stage-csv']){
+  for(const command of ['stage-file','stage-csv','template.csv']){
     assert.equal(select(input('data-import.'+command,{targetId:' item '})),'item');
     for(const targetId of [undefined,' ',3])assert.throws(()=>select(input('data-import.'+command,{targetId})),/TARGET_ID_REQUIRED/);
   }
