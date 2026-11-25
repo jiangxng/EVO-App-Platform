@@ -57,3 +57,19 @@
 - **本切片唯一变更**：扩展已合并且 11-19 成功的 [东京只读 workflow](../../../.github/workflows/cv07-tokyo-preview-readiness.yml)，从现有容器内部 **read-only** 检查三类依赖的安装/持久 Feature 标志、有无 ACTIVE 企业、有无 ACTIVE OWNER 关系、Item 有无落在 ACTIVE 企业里；仅输出 `YES/NO`。不读 HTTP 用户会话、不请求 Basic Auth、不输出企业、主体或 Item ID，不修改 JSON/数据库、插件生命周期或启动设置。
 - **状态判断**：运行成功后可区分 `NO_ITEM_PLUGIN`、`NO_DEPENDENCY_FEATURE`、`NO_ENTERPRISE`、`NO_ACTIVE_OWNER`、`NO_ITEM_IN_ACTIVE_ENTERPRISE`。这些只是**持久状态存在性**而非当前登录主体授权；即使全 YES，也必须单独完成合法登录/Owner READ/人验。原八步及 CV03 SAVE/CV04 EXPORT/OIDC/Agent WRITE 门禁不变。
 - **执行治理**：独立短分支 → Draft PR → 准确 HEAD CI → 受保护 main 普通 merge → 由该 workflow 在 main 变更自动运行，读取实际 Job logs → 东京 runtime 变更规则应 SKIP → Branch Hygiene 精确清理。**本段写入时尚未有 2026-11-25 新 Run，绝不预填盘点结果。**
+
+## 6. 2026-11-25 · 东京二级现场已证及最小 Host 安装切片（当前 PR 结果待 CI）
+
+[CV07 Tokyo 二级 Inventory #45527898227](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45527898227) 的真实 Job #138915679109 **SUCCESS**，2026-11-25T01:44 UTC 只读 VPS 原日志（本机持久态而非真人登录）：
+- 正在运行的镜像 `702a74e566ebb3c0a8f4c0a4d49ead84af8ef9cf`，healthy、HTTPS/401 PASS。
+- `ENTERPRISE_RESOURCE_PROVIDER_PACKAGE_INSTALLED=YES`、`FEATURE_ACTIVE_IN_PERSISTED_STATE=YES`；
+  `RESPONSIBILITY_PACKAGE_INSTALLED=YES`、`FEATURE_ACTIVE_IN_PERSISTED_STATE=YES`；
+  `ENTERPRISE_RELATIONSHIP_PROVIDER_PACKAGE_INSTALLED=YES`、`FEATURE_ACTIVE_IN_PERSISTED_STATE=YES`。
+- `ACTIVE_ENTERPRISE_CONTEXT_PRESENT=YES`、`ACTIVE_ENTERPRISE_WITH_OWNER_PRESENT=YES`。
+- `ITEM_PACKAGE_INSTALLED=NO`、`ITEM_FEATURE_ACTIVE_IN_PERSISTED_STATE=NO`、
+  `ITEM_RESOURCE_IN_ACTIVE_ENTERPRISE_PRESENT=NO`、`ITEM_RESOURCE_PRESENT_IN_PERSISTED_STORE=NO`。
+- `AUTHORIZED_BUSINESS_SESSION=UNVERIFIED`、`HUMAN_ACCEPTANCE=NOT_SIGNED`。不可将有效 OWNER 关系冒充当前操作者已获权限。
+
+**新增取舍（D、仅 DEV/PREVIEW）：** 不修改 `clean` 全局默认，不建立新管理员/安装器，不通过 SSH/HTTP 绕过 Basic Auth。复用既有 [Host startup defaults](../../../manager/startup-defaults.ts) 的 `explicit=true` 与 `pa05WriteLifecycleHost.bootstrapActivation("INSTALL", "evo-item")`，在**东京专用 Compose** 中显式设置 `APP_PLATFORM_CV07_TOKYO_ITEM_BOOTSTRAP=DEV_PREVIEW_ONLY`；Host 启动仅在 `clean`、精确东京公网 Base URL、关闭 Managed Session/OAuth/MCP 的预览边界允许安装。原 Manager 负责依赖/权限计划；若已有 Item 但 Feature 已由 Operator 停用，拒绝擅自重新启用；若安装结果未激活，拒绝宣称启动成功。没有创建 Item/企业数据，未开启正式 CV03 SAVE/CV04 EXPORT/Human OIDC/PA05 Operator/Agent WRITE。
+
+**本段写入时**新增安装 PR 的准确 HEAD CI、主线合并、东京实际镜像和安装盘点结果还未得到；必须继续逐级验收，不得预签。安装成功仍需要在合法预览身份中确认当前企业有可供 READ 的 Item，执行五步真实操作；独立第三方作者实操仍未完成。
