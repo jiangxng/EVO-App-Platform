@@ -109,7 +109,7 @@ with sync_playwright() as api:
                     if w["width"]>=940:
                         assert abs(s["y"]-v["y"])<=16,(
                             "CV07_DESKTOP_TOOLBAR_NOT_ONE_ROW",w,v,s)
-                    assert 34<=search.locator("input").first.bounding_box()["height"]<=42,(
+                    assert search.locator("input").first.bounding_box()["height"]>=43.5,(
                         "CV07_PC_INHERITED_MOBILE_DENSITY",s)
                 else:
                     for label,element in [
