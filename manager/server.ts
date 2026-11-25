@@ -2960,6 +2960,52 @@ installBusinessDefaultOnce(OBJECT_EXTENSION_PACKAGE_ID,
 installBusinessDefaultOnce(DATA_IMPORT_PACKAGE_ID,
   manager.getSnapshot().effectiveCapabilities.includes(ENTERPRISE_RESOURCE_CAPABILITY_V010)
 );
+/**
+ * CV07 Tokyo DEV/PREVIEW only: explicit Host-owned first-party Item
+ * installation. Keep clean installations empty by default. The trusted
+ * deployment configuration, NOT a public request, controls this opt-in.
+ * Existing Host Manager/PA05 lifecycle applies dependencies, permissions
+ * and activation admission; never write lifecycle state files directly.
+ */
+const cv07TokyoItemBootstrapMode =
+  process.env.APP_PLATFORM_CV07_TOKYO_ITEM_BOOTSTRAP?.trim() || "OFF";
+if (!["OFF", "DEV_PREVIEW_ONLY"].includes(cv07TokyoItemBootstrapMode)) {
+  throw new Error("CV07_TOKYO_ITEM_BOOTSTRAP_MODE_INVALID");
+}
+if (cv07TokyoItemBootstrapMode === "DEV_PREVIEW_ONLY") {
+  if (
+    startupProfile !== "clean"
+    || authenticationPublicBaseUrl !== "https://evo.43.167.252.197.sslip.io"
+    || managedSessionEnabled
+    || externalAgentOAuthEnabled
+    || externalAgentMcpEnabled
+  ) {
+    throw new Error("CV07_TOKYO_ITEM_BOOTSTRAP_PREVIEW_BOUNDARY_REQUIRED");
+  }
+  const before = manager.getSnapshot();
+  // Do not silently re-enable an operator-disabled Feature.
+  if (before.installedPackages.some(item => item.packageId === ITEM_PACKAGE_ID)
+      && !before.activeFeatures.some(feature =>
+        feature.packageId === ITEM_PACKAGE_ID && feature.featureId === ITEM_FEATURE_ID)) {
+    throw new Error("CV07_TOKYO_ITEM_BOOTSTRAP_OPERATOR_REACTIVATION_REQUIRED");
+  }
+  const plan = manager.planInstall(ITEM_PACKAGE_ID);
+  if (plan.blockers.length) {
+    throw new Error("CV07_TOKYO_ITEM_BOOTSTRAP_INSTALL_PLAN_BLOCKED");
+  }
+  const outcome = installBusinessDefaultOnce(ITEM_PACKAGE_ID, true, true);
+  if (outcome !== "INSTALLED" && outcome !== "PRESERVED") {
+    throw new Error("CV07_TOKYO_ITEM_BOOTSTRAP_FAILED");
+  }
+  const after = manager.getSnapshot();
+  if (!after.installedPackages.some(item => item.packageId === ITEM_PACKAGE_ID)
+      || !after.activeFeatures.some(feature =>
+        feature.packageId === ITEM_PACKAGE_ID && feature.featureId === ITEM_FEATURE_ID)) {
+    throw new Error("CV07_TOKYO_ITEM_BOOTSTRAP_NOT_ACTIVE");
+  }
+  console.log("CV07_TOKYO_ITEM_HOST_LIFECYCLE_BOOTSTRAP_PASS");
+}
+
 const eog2dStartupSnapshot = manager.getSnapshot();
 if (
   startupProfile !== "minimal"
