@@ -20,7 +20,8 @@ import {
 function labels(locale?: string) {
   return locale?.toLowerCase().startsWith("zh") ? {
     list: "业务字典", listHelp: "维护当前企业可复用的业务选项。保存草稿后，仍需发布才能供业务字段引用。",
-    empty: "当前企业还没有业务字典。", create: "新建字典", detail: "字典项",
+    empty: "当前企业还没有业务字典。", noMatch: "没有符合当前筛选条件的业务字典。",
+    searchPlaceholder: "搜索字典名称或编码", create: "新建字典", detail: "字典项",
     exportCurrentPage: "导出当前页 CSV", importRows: "导入 CSV / Excel",
     add: "新增字典项", edit: "编辑字典项", save: "保存草稿", publish: "发布字典",
     name: "字典名称", id: "字典编码", code: "选项编码", label: "选项名称",
@@ -31,7 +32,8 @@ function labels(locale?: string) {
     publishHelp: "发布后，当前版本才能供基础对象字段引用。"
   } : {
     list: "Business dictionaries", listHelp: "Maintain business options for this enterprise. Publish a saved draft before fields can reference it.",
-    empty: "No business dictionaries in this enterprise.", create: "New dictionary", detail: "Options",
+    empty: "No business dictionaries in this enterprise.", noMatch: "No dictionaries match these filters.",
+    searchPlaceholder: "Search dictionary name or code", create: "New dictionary", detail: "Options",
     exportCurrentPage: "Export current page CSV", importRows: "Import CSV / Excel",
     add: "Add option", edit: "Edit option", save: "Save draft", publish: "Publish dictionary",
     name: "Dictionary name", id: "Dictionary code", code: "Option code", label: "Option name",
@@ -304,7 +306,7 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
     ],
     search: {
       route:businessDictionaryDirectoryQueryRouteV010(effectiveSelection),
-      label:t.list, placeholder:t.list, value:query.search ?? "",
+      label:t.searchPlaceholder, placeholder:t.searchPlaceholder, value:query.search ?? "",
       submitLabel:(input.locale ?? "").startsWith("zh") ? "搜索" : "Search"
     },
     rows: result.rows.map(row => {
@@ -381,7 +383,8 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
     } : {}),
     ...(table ? {} : {search: { placeholder: t.list, ariaLabel: t.list,
       noResultsMessage: t.empty }}),
-    emptyMessage: t.empty,
+    emptyMessage: query.search || selection?.view !== "all"
+      ? t.noMatch : t.empty,
     items: visible.map(dictionary => ({
       id: dictionary.dictionaryId,
       title: dictionary.displayName || dictionary.dictionaryId,
