@@ -87,6 +87,76 @@ with sync_playwright() as api:
             assert diagnostics["scrollWidth"]<=size+2,(
                 "CV04_HORIZONTAL_OVERFLOW "+name+" "+str(diagnostics))
             assert diagnostics["exportActions"][0]["visible"],"Export action not reachable"
+            if name=="dictionary":
+                # Real installed Host / real Eidos CSS: desktop-first toolbar
+                # remains compact; the independent phone realization is touch-safe.
+                controls=root.locator("[data-eidos-catalog-workspace-controls]")
+                expect(controls).to_have_count(1)
+                views=controls.locator("[data-eidos-catalog-view-navigation]")
+                modes=controls.locator("[data-eidos-catalog-presentation-navigation]")
+                search=controls.locator("[data-eidos-catalog-server-search]")
+                columns=controls.locator("[data-eidos-catalog-column-controls]")
+                for item in [views,modes,search,columns]:
+                    expect(item).to_be_visible()
+                v=views.bounding_box()
+                m=modes.bounding_box()
+                s=search.bounding_box()
+                w=controls.bounding_box()
+                assert all([v,m,s,w]),"CV07_COLLECTION_CONTROLS_MISSING"
+                if not is_phone:
+                    assert abs(v["y"]-m["y"])<=16,("CV07_DESKTOP_MODES_NOT_GROUPED",v,m)
+                    assert s["width"]<=370,("CV07_DESKTOP_SEARCH_TOO_WIDE",s)
+                    if w["width"]>=940:
+                        assert abs(s["y"]-v["y"])<=16,(
+                            "CV07_DESKTOP_TOOLBAR_NOT_ONE_ROW",w,v,s)
+                    assert search.locator("input").first.bounding_box()["height"]>=43.5,(
+                        "CV07_PC_INHERITED_MOBILE_DENSITY",s)
+                else:
+                    for label,element in [
+                        ("tab",views.locator("button").first),
+                        ("display",modes.locator("button").first),
+                        ("search",search.locator("input").first),
+                        ("columns",columns.locator("summary"))
+                    ]:
+                        box=element.bounding_box()
+                        assert box and box["height"]>=43.5,(
+                            "CV07_PHONE_TARGET_TOO_SMALL",label,box)
+                print("CV07_COLLECTION_DESKTOP_FIRST_GEOMETRY_PASS:%d"%size,
+                      flush=True)
+                if not is_phone:
+                    # Match the user's 1096px PC screenshot without altering
+                    # the source 1280px/390px journey assertions below.
+                    pc1096=context.new_page()
+                    pc1096.set_viewport_size({"width":1096,"height":800})
+                    pc1096.goto(HOST+"/?surface=desktop#"+plan["route"],
+                                wait_until="domcontentloaded")
+                    main1096=pc1096.locator(
+                        '[data-eidos-id="evo-business-dictionary.directory"]')
+                    expect(main1096).to_be_visible(timeout=30000)
+                    group1096=main1096.locator(
+                        "[data-eidos-catalog-workspace-controls]")
+                    expect(group1096).to_be_visible()
+                    tabs1096=group1096.locator(
+                        "[data-eidos-catalog-view-navigation]").bounding_box()
+                    modes1096=group1096.locator(
+                        "[data-eidos-catalog-presentation-navigation]").bounding_box()
+                    search1096=group1096.locator(
+                        "[data-eidos-catalog-server-search]").bounding_box()
+                    assert tabs1096 and modes1096 and search1096
+                    assert abs(tabs1096["y"]-modes1096["y"])<=16,(
+                        "CV07_PC_1096_TABS_DISPERSED",tabs1096,modes1096)
+                    assert search1096["y"]-tabs1096["y"]<=64,(
+                        "CV07_PC_1096_THREE_STACKED_ROWS",tabs1096,search1096)
+                    assert search1096["width"]<=370,(
+                        "CV07_PC_1096_SEARCH_FULL_WIDTH",search1096)
+                    assert pc1096.evaluate(
+                        "document.documentElement.scrollWidth")<=1098,(
+                        "CV07_PC_1096_HORIZONTAL_OVERFLOW")
+                    pc1096.screenshot(path=str(
+                        OUT/"dictionary-desktop1096.png"),full_page=True)
+                    pc1096.close()
+                    print("CV07_COLLECTION_PC_1096_GEOMETRY_PASS",
+                          flush=True)
             screenshot=OUT/("%s-%s.png"%(name,"phone390" if is_phone else "desktop1280"))
             page.screenshot(path=str(screenshot),full_page=True)
             with page.expect_download(timeout=20000) as event:
@@ -231,7 +301,8 @@ with sync_playwright() as api:
                     "aria-current","page",timeout=30000)
                 expect(page.locator('[data-eidos-catalog-action="quick-filter-status-inactive"]')).to_be_focused()
                 assert quick.locator('[aria-current="page"]').count()==1
-                expect(page.locator('[data-eidos-catalog-table] tbody tr')).to_have_count(0,timeout=30000)
+                expect(page.locator('[data-eidos-table-row]')).to_have_count(0,timeout=30000)
+                expect(page.locator('[data-eidos-catalog-table-empty]')).to_have_count(1,timeout=30000)
                 assert "status=INACTIVE" in page.url and "search=Beta" in page.url
                 inactive_action=page.locator('[data-eidos-catalog-action="export-current-page"]')
                 inactive_values=json.loads(inactive_action.get_attribute("data-eidos-action-values"))
