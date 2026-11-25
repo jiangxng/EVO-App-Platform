@@ -23,6 +23,8 @@ import {
   DATA_IMPORT_STAGE_CSV_OPERATION_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_OPERATION_V010,
+  DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
+  DATA_IMPORT_TEMPLATE_CSV_OPERATION_V010,
   DATA_IMPORT_WRITE_ACTION_V010
 } from "./constants.js";
 
@@ -81,6 +83,42 @@ const importJobOutputSchema = {
 
 export const dataImportCapabilityContributionsV010:
   PlatformCapabilityOperationContributionV010[] = [{
+    kind: "platform.capability-operation",
+    operation: {
+      contractVersion: "0.1.0",
+      operationId: DATA_IMPORT_TEMPLATE_CSV_OPERATION_V010,
+      capability: DATA_IMPORT_CAPABILITY_V010,
+      operationVersion: "0.1.0",
+      title: "Download blank CSV import template",
+      description: "Downloads blank headers for the active Enterprise Context and effective Domain Owner import schema; no business row values are included.",
+      effect: "READ",
+      dataScope: "ENTERPRISE",
+      authorization: {
+        action: DATA_IMPORT_READ_ACTION_V010,
+        resource: { type: DATA_IMPORT_AUTH_RESOURCE_V010, idSource: "DATA_SCOPE" }
+      },
+      inputSchema: {
+        type: "object", additionalProperties: false, required: ["targetId"],
+        properties: {
+          targetId: { type: "string", minLength: 1 },
+          targetParameters: { type: "object" },
+          locale: { type: "string", maxLength: 30 }
+        }
+      },
+      outputSchema: {
+        type: "object", required: ["contractVersion", "download"],
+        properties: {
+          contractVersion: { const: "0.1.0" },
+          download: { type: "object", required: ["fileName", "mediaType", "content"] }
+        }
+      },
+      binding: {
+        type: "ACTION_HOST", commandCode: DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
+        inputVersion: "0.1.0"
+      },
+      exposure: ["HUMAN"]
+    }
+  }, {
     kind: "platform.capability-operation",
     operation: {
       contractVersion: "0.1.0",
