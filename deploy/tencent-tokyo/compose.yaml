@@ -29,6 +29,9 @@ services:
       # New validation hosts start without default business plugins.
       # Existing persisted plugin lifecycle is intentionally preserved.
       APP_PLATFORM_STARTUP_PROFILE: clean
+      # Explicit CV07 demo install through the trusted Host lifecycle only.
+      # Does not change clean defaults in other deployments or seed records.
+      APP_PLATFORM_CV07_TOKYO_ITEM_BOOTSTRAP: DEV_PREVIEW_ONLY
       APP_PLATFORM_CONVERSATION_AUTHORITY: POSTGRES
       APP_PLATFORM_CONVERSATION_DATABASE_URL: postgres://evo:${POSTGRES_PASSWORD}@postgres:5432/evo_dev
       # Tokyo single-operator preview only. Basic Auth + compatibility-local
