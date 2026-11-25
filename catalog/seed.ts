@@ -605,6 +605,16 @@ export const businessDictionaryPackage: PackageManifestV010 = {
     requiresCapabilities: [ENTERPRISE_RESOURCE_CAPABILITY_V010],
     providesCapabilities: [BUSINESS_DICTIONARY_CAPABILITY_V010],
     contributions: [...businessDictionaryCapabilityContributionsV010, {
+      // Domain-owned target; Data Import remains the shared import workflow.
+      kind: "platform.data-import-target",
+      target: {
+        contractVersion: "0.1.0",
+        targetId: "business-dictionary.option",
+        objectType: "business-dictionary.option",
+        label: {default:"Business dictionary options",translations:{"zh-CN":"业务字典项"}},
+        binding: {type:"HOST_FACTORY",ref:"evo-business-dictionary.import-target.v0.1"}
+      }
+    }, {
       kind: "eidos.experience",
       manifest: {
         contractVersion: "0.1.0", experienceId: BUSINESS_DICTIONARY_PACKAGE_ID,

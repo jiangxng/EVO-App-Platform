@@ -2483,6 +2483,7 @@ const manager = createAppManagerService(
         void responsibilityRuntimeHost.stop().catch(error => console.error("Responsibility runtime stop failed", error));
       }
       if (event.packageId === BUSINESS_DICTIONARY_PACKAGE_ID) {
+        dataImportTargetPromises.delete("evo-business-dictionary.import-target.v0.1");
         void businessDictionaryRuntimeHost.stop().catch(error => console.error("Dictionary runtime stop failed", error));
       }
       if (event.packageId === ORGANIZATION_PACKAGE_ID_V010) {
@@ -2696,6 +2697,15 @@ Promise<FoundationObjectImportTargetV010[]> {
             }
           });
         });
+      } else if (ref === "evo-business-dictionary.import-target.v0.1") {
+        pending = Promise.all([
+          import("../apps/business-dictionary/import-target.js"),
+          businessDictionaryRuntimeHost.resolve()
+        ]).then(([module, repository]) =>
+          module.createBusinessDictionaryImportTargetV010({
+            resources: enterpriseResourceRepository, repository
+          })
+        );
       } else if (ref === "evo-item.import-target.v0.1") {
         pending = Promise.all([
           import("../apps/item/import-target.js"),
@@ -7747,6 +7757,16 @@ const server = createServer(async (request, response) => {
             });
           }
           const dictionaries = repository.list(contextId);
+          // A Host-authorized current Collection and active import target,
+          // never an URL toggle, decide whether this navigation is offered.
+          const dictionaryImportAvailable = canManage
+            && dataImportFeatureActiveV010()
+            && manager.listEffectiveDataImportTargets().some(target =>
+              target.targetId === "business-dictionary.option"
+            );
+          const importRoute = dictionaryImportAvailable
+            ? dataImportUploadRouteV010("business-dictionary.option")
+            : undefined;
           const effectiveVersions = Object.fromEntries(dictionaries.flatMap(dictionary => {
             const effective = repository.getEffective(contextId, dictionary.dictionaryId);
             return effective ? [[dictionary.dictionaryId, effective.version]] : [];
@@ -7785,6 +7805,7 @@ const server = createServer(async (request, response) => {
               const viewPage = await presentation.createCv03AuthorizedDictionarySavedViewPageV010({
                 actionRouter,context:requestContext,
                 dictionaries,effectiveVersions,directorySelection,canManage,locale,
+                ...(importRoute ? {importRoute} : {}),
                 selectedPersonalViewId:directorySelection.personalViewId
               });
               // CV03 private views stay on the separately governed READ path.
@@ -7798,7 +7819,8 @@ const server = createServer(async (request, response) => {
             }
           }
           const baseDictionaryPage = page.createBusinessDictionaryDirectoryPageV010({
-            dictionaries, effectiveVersions, canManage, locale, directorySelection
+            dictionaries, effectiveVersions, canManage, locale, directorySelection,
+            ...(importRoute ? {importRoute} : {})
           });
           // CV06: an optional Eidos visualization must use a fresh Host READ,
           // not the currently displayed page's rows or an untrusted URL sum.

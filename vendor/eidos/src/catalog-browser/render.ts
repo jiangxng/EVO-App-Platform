@@ -513,10 +513,11 @@ ${model.presentation==="chart" && model.authorizedChart
   ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart)
   : (!model.presentation && model.authorizedChart
     ? renderAuthorizedAggregateBarsToHtmlV010(model.authorizedChart) : "")}
-${serverSearch}
+${serverSearch || (columnControls && (model.presentation==="table" || !model.presentation))
+  ? `<div data-eidos-catalog-table-toolbar>${serverSearch}${model.presentation==="table"||!model.presentation ? columnControls : ""}</div>`
+  : ""}
 ${quickFilters}
 ${quickFilterGroups}
-${columnControls}
 ${mobileSort}
 ${model.presentation==="table"||!model.presentation ? table : ""}
 ${boardHtml}
