@@ -606,6 +606,114 @@ form[data-eidos-id] button,
   [data-eidos-column-choice] > span:last-child{justify-content:flex-start}
 }
 
+/* One Eidos collection work surface on desktop.
+   Views are quiet tabs, display modes are a compact segmented control,
+   and query tools sit on the trailing edge. Mobile keeps distinct 44px targets.
+   Scope to the shared renderer, never to a Business Dictionary plugin. */
+[data-eidos-catalog-workspace-controls]{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:var(--eidos-space-sm) var(--eidos-space-lg);
+  min-width:0;margin-top:var(--eidos-space-lg);
+  padding-bottom:var(--eidos-space-md);
+  border-bottom:1px solid var(--eidos-border);
+}
+[data-eidos-catalog-workspace-switches]{
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:var(--eidos-space-sm) var(--eidos-space-lg);min-width:0;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-view-navigation],
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation]{
+  margin:0;min-width:0;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-view-navigation]{
+  flex-wrap:wrap;gap:2px;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-view-navigation] button{
+  min-height:36px;min-width:0;
+  padding:0 var(--eidos-space-md);
+  background:transparent;color:var(--eidos-fg-muted);
+  border:0;border-bottom:2px solid transparent;
+  border-radius:0;font-weight:500;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-view-navigation] button[aria-current="page"]{
+  background:transparent;border-color:var(--eidos-primary);
+  color:var(--eidos-primary);font-weight:650;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation]{
+  display:inline-flex;align-items:center;flex-wrap:nowrap;gap:2px;
+  padding:3px;border:1px solid var(--eidos-border);
+  border-radius:var(--eidos-radius-sm);background:var(--eidos-bg-subtle);
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation] button{
+  min-height:30px;min-width:0;padding:0 var(--eidos-space-md);
+  border:0;border-radius:var(--eidos-radius-sm);
+  background:transparent;color:var(--eidos-fg-muted);font-weight:500;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation] button[aria-current="page"]{
+  background:var(--eidos-bg);color:var(--eidos-primary);
+  box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:650;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation] button:focus-visible{
+  outline:2px solid var(--eidos-primary);outline-offset:2px;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-table-toolbar]{
+  flex:1 1 350px;min-width:0;margin:0;
+  display:flex;align-items:center;justify-content:flex-end;
+  flex-wrap:nowrap;gap:var(--eidos-space-sm);
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search]{
+  flex:0 1 340px;max-width:360px;min-width:220px;
+  display:flex;align-items:center;flex-wrap:nowrap;gap:var(--eidos-space-sm);
+  margin:0;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] label{
+  flex:1 1 auto;min-width:0;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] input{
+  width:100%;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] input,
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] button,
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-controls] summary{
+  min-height:36px;
+}
+[data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-controls]{
+  flex:0 0 auto;
+}
+@media(max-width:700px){
+  [data-eidos-catalog-workspace-controls]{
+    align-items:stretch;gap:var(--eidos-space-md);
+  }
+  [data-eidos-catalog-workspace-switches]{
+    width:100%;gap:var(--eidos-space-sm) var(--eidos-space-lg);
+  }
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-view-navigation] button{
+    min-height:44px;min-width:44px;
+  }
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-presentation-navigation] button{
+    min-height:44px;min-width:44px;
+  }
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-table-toolbar]{
+    flex:1 1 100%;justify-content:flex-start;flex-wrap:wrap;
+  }
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search]{
+    flex:1 1 100%;max-width:none;min-width:0;
+  }
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] input,
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-server-search] button,
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-controls] summary{
+    min-height:44px;
+  }
+}
+@media(max-width:600px){
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-controls]{
+    width:auto;
+  }
+  [data-eidos-catalog-workspace-controls] [data-eidos-catalog-column-options]{
+    left:0;right:auto;width:min(430px,calc(100vw - 48px));
+  }
+}
+
 /* CV06 read-only, owner-partitioned current-page board; never a draggable workflow. */
 [data-eidos-catalog-presentation-navigation]{
   display:flex;gap:var(--eidos-space-sm);flex-wrap:wrap;
@@ -686,6 +794,16 @@ form[data-eidos-id] button,
   background:var(--eidos-bg-subtle);color:var(--eidos-fg-muted);
 }
 [data-eidos-catalog-table] tbody tr:last-child td{border-bottom:0}
+[data-eidos-catalog-table-empty] td{
+  padding:var(--eidos-space-xxl) var(--eidos-space-lg);
+  text-align:center;color:var(--eidos-fg-muted);
+  white-space:normal;overflow-wrap:anywhere;border-bottom:0;
+}
+[data-eidos-catalog-table-empty] p{margin:0;line-height:1.55}
+[data-eidos-catalog-table] tbody tr[data-eidos-catalog-table-empty]:hover{
+  background:transparent;
+}
+
 [data-eidos-catalog-table] tbody tr:hover{background:var(--eidos-bg-hover)}
 /* Names are actionable text, not bordered form buttons; sort headers are labels. */
 [data-eidos-catalog-table] th button,
