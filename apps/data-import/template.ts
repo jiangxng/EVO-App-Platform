@@ -3,14 +3,17 @@ import { fieldsForSurfaceV010, localizedTextV010 } from "../../contracts/foundat
 
 /** Use the same normalized alias identity as deterministic Import mapping. */
 function headerKey(value: string): string {
-  return value.normalize("NFKC").trim().toLocaleLowerCase()
-    .replace(/[\\s_\\-\\/()[\\]{}.:：]+/gu, "");
+  return value
+    .normalize("NFKC")
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[\s_\-\/()[\]{}.:：]+/gu, "");
 }
 
 function spreadsheetSafeHeader(value: string): boolean {
   return Boolean(value.trim()) && value.length <= 160
-    && !/^[\\s]*[=+\\-@]/u.test(value)
-    && !/[\\u0000-\\u001f\\u007f]/u.test(value);
+    && !/^\s*[=+\-@]/u.test(value)
+    && !/[\u0000-\u001f\u007f]/u.test(value);
 }
 
 export interface DataImportBlankCsvTemplateV010 {
