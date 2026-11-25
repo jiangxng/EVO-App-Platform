@@ -57,6 +57,8 @@ Eidos 渲染一个 `data-eidos-catalog-workspace-controls`，包含原来的 Own
 
 ## 证据与剩余问题
 
+实际修改源码：`vendor/eidos/src/catalog-browser/render.ts`、`vendor/eidos/src/design-language/productive-workbench-css.ts`、`apps/business-dictionary/page.ts`。代码评审和 UI review gate 应逐项对应，不能以截图替代实际源码引用。
+
 - 起因证据：用户 2026-11-25 业务字典 PC 截图（约 1096×528，三段状态/模式/搜索分开，空表格仅 0–0/0）。
 - 新增回归测试：`tests/protocol/cv07-eidos-desktop-collection-workspace.test.mjs`；真实业务字典 page render、view/mode/search/columns DOM 顺序、CSS desktop/mobile 不同命中高度、空/搜索无结果状态与有数据表格不显示伪空行。
 - 交叉回归：原 CV03 Saved View、CV04 CSV export、CV06 Chart/Board、CV07 Dictionary import、供应商 1280/390 Chromium 不得改变。最终 HEAD 的 CI、Tokyo 当前镜像需在 PR 收据里记录。
