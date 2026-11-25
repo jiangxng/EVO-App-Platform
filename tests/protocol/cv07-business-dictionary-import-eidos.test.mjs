@@ -99,7 +99,7 @@ test("CV07 real Data Import CSV stage, mapping, dry-run and atomic commit create
   assert.equal(dry.dryRun.invalidRows,0);
   const committed=f.service.commit({contextId:enterprise,importJobId:"import-dictionary",...owner});
   assert.equal(committed.state,"COMMITTED");
-  assert.equal(committed.commitReceipt.succeededRows,3);
+  assert.equal(committed.receipt.succeededRows,3);
   const customers=f.repository.get(enterprise,"customer.level");
   assert.equal(customers.version,1,"one atomic batch produces one revision");
   assert.equal(customers.state,"DRAFT","Import must never publish");
@@ -158,7 +158,7 @@ test("CV07 stale dry-run cannot partially commit: transaction rolls back all dic
       {code:"X",label:{default:"Concurrent"},status:"ACTIVE"}],...owner});
   const receipt=f.service.commit({contextId:enterprise,importJobId:"import-dictionary",...owner});
   assert.equal(receipt.state,"COMMITTED_WITH_ERRORS");
-  assert.equal(receipt.commitReceipt.failedRows,2);
+  assert.equal(receipt.receipt.failedRows,2);
   assert.equal(f.repository.get(enterprise,"customer.level"),undefined,
     "A later duplicate must roll back earlier group writes");
   assert.equal(f.repository.get(enterprise,"sector.kind").version,1);
