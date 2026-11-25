@@ -127,7 +127,7 @@ export function createBusinessDictionaryImportTargetV010(input: {
     objectType: BUSINESS_DICTIONARY_IMPORT_TARGET_V010,
     ownerPackageId:"evo-business-dictionary",
     completionNavigation(navigation) {
-      let route=DIRECTORY;
+      let route: string = DIRECTORY;
       if (navigation.originRoute) {
         // Return location is presentation intent, not an authorization grant.
         parseBusinessDictionaryDirectoryRouteV010(navigation.originRoute);
