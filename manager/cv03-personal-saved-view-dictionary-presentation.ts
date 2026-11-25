@@ -31,6 +31,8 @@ export async function createCv03AuthorizedDictionarySavedViewPageV010(input: {
   effectiveVersions?: Readonly<Record<string, number>>;
   directorySelection: BusinessDictionaryDirectorySelectionV010;
   canManage: boolean;
+  /** From current Host import-target admission, never from Saved View data. */
+  importRoute?: string;
   locale?: string;
   /** A selection hint, never an authorization token. */
   selectedPersonalViewId?: string;
@@ -53,6 +55,7 @@ export async function createCv03AuthorizedDictionarySavedViewPageV010(input: {
     ...(input.effectiveVersions ? {effectiveVersions:input.effectiveVersions} : {}),
     directorySelection:input.directorySelection,
     canManage:input.canManage,
+    ...(input.importRoute ? {importRoute:input.importRoute} : {}),
     locale:input.locale
   };
   // The existing Dictionary page owns all routes, rows and Eidos rendering.
