@@ -60,6 +60,16 @@ Page archetype: existing Eidos form, with original Context Navigation and govern
 
 ## 浏览器与 Human 证据
 
+功能：新的 scoped/unscoped UI 回归待准确 HEAD CI；原后端越权拒绝断言已在主线存在，不宣称在线操作。
+布局：沿用 Eidos Form 原有字段、分组和上下文导航；只减少冲突选项，实际渲染待浏览器复核。
+颜色：未引入 CSS 或 token 修改；Eidos 原有业务办公主题保持不变，Human 尚未验证。
+入口：受权限/Feature 控制的客户或供应商列表 Import → Data Import 上传；独立导入中心仍可进入。
+退出：同一 Owner 校验的原客户/供应商筛选分页路由；取消可返回原列表或导入中心。
+异常恢复：跨角色/非法 returnTo 拒绝表单或 Host staging；保留已有映射预检和重试路径。
+桌面：本轮没有新浏览器截图或真实授权会话，待验收。
+移动：390px 没有新的触摸及屏幕阅读器实际证据，待验收。
+Human：NOT SIGNED；东京真实 CSV/XLSX 与视觉验收均另行进行。
+
 Desktop: no new screenshot or live session observed; pending. 390px: no new browser evidence observed; pending. Human: NOT SIGNED. This PR does not claim Tokyo deployment, dictionary real CSV/XLSX signoff, or Agent WRITE certification.
 
 ## CV07 scoped Data Import 固定进度表（当前专项）
