@@ -135,7 +135,11 @@ jobs:
             ['RESPONSIBILITY', 'evo-responsibility',
              'evo-responsibility.default'],
             ['ENTERPRISE_RELATIONSHIP_PROVIDER', 'host-enterprise-relationship-provider',
-             'host-enterprise-relationship-provider.default']
+             'host-enterprise-relationship-provider.default'],
+            ['BUSINESS_DICTIONARY', 'evo-business-dictionary',
+             'evo-business-dictionary.default'],
+            ['DATA_IMPORT', 'evo-data-import',
+             'evo-data-import.default']
           ]) {
             console.log('CV07_TOKYO_' + label + '_PACKAGE_INSTALLED=' +
               (hasPackage(packageId) ? 'YES' : 'NO'));
