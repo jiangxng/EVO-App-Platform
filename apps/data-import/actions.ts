@@ -25,6 +25,7 @@ import {
 import {
   parseXlsxSourceV010
 } from "./xlsx.js";
+import { dataImportBlankCsvTemplateV010 } from "./template.js";
 import type {
   DataImportRepositoryV010
 } from "./repository.js";
@@ -56,6 +57,7 @@ import {
   DATA_IMPORT_REVIEW_COMMAND_V010,
   DATA_IMPORT_STAGE_CSV_COMMAND_V010,
   DATA_IMPORT_STAGE_FILE_COMMAND_V010,
+  DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
   assertDataImportReturnRouteV010,
   dataImportMappingRouteV010,
   dataImportReviewRouteV010
@@ -267,6 +269,35 @@ function targetParametersFromForm(
   return Object.keys(output).length > 0 ? output : undefined;
 }
 
+/** Read-only template intent is confined to declared Owner parameter options. */
+function templateTargetParameters(
+  target: FoundationObjectImportTargetV010,
+  value: JsonValue | undefined
+): FoundationObjectImportTargetParametersV010 | undefined {
+  const requested = targetParameters(value);
+  const definitions = target.parameters ?? [];
+  const declared = new Set(definitions.map(p => p.key));
+  if (Object.keys(requested ?? {}).some(key => !declared.has(key))) {
+    throw new Error("DATA_IMPORT_TARGET_PARAMETER_INVALID");
+  }
+  const output: FoundationObjectImportTargetParametersV010 = {};
+  for (const definition of definitions) {
+    const selected = requested?.[definition.key] ?? definition.defaultValue;
+    if (selected === undefined) {
+      if (definition.required) {
+        throw new Error("DATA_IMPORT_TARGET_PARAMETER_REQUIRED");
+      }
+      continue;
+    }
+    if (typeof selected !== "string"
+      || !definition.options.some(option => option.value === selected)) {
+      throw new Error("DATA_IMPORT_TARGET_PARAMETER_INVALID");
+    }
+    output[definition.key] = selected;
+  }
+  return Object.keys(output).length ? output : undefined;
+}
+
 function sourceFromUploadedFile(value: JsonValue | undefined) {
   const file = uploadedFile(value);
   if (file.size > 20 * 1024 * 1024) {
@@ -363,6 +394,45 @@ export function createDataImportActionHandlersV010(input: {
   const currentTargetMap = () => new Map(
     currentTargets().map(target => [target.targetId, target] as const)
   );
+
+  const templateCsv: AppActionHandler = {
+    packageId: DATA_IMPORT_PACKAGE_ID,
+    featureId: DATA_IMPORT_FEATURE_ID,
+    commandCode: DATA_IMPORT_TEMPLATE_CSV_COMMAND_V010,
+    async execute(request, context) {
+      try {
+        if (!context) throw new Error("REQUEST_CONTEXT_REQUIRED");
+        const active = activeEnterpriseContext(context);
+        ensureManage(context.principal, active.contextId,
+          input.canManageEnterpriseContext);
+        const targetId = required(request.values.targetId,
+          "DATA_IMPORT_TARGET_ID_REQUIRED");
+        const target = currentTargetMap().get(targetId);
+        if (!target) throw new Error("DATA_IMPORT_TARGET_NOT_FOUND");
+        const parameters = templateTargetParameters(
+          target, request.values.targetParameters
+        );
+        const locale = text(request.values.locale) ?? "en";
+        const schema = target.describe({
+          contextId: active.contextId, locale, parameters
+        });
+        const download = dataImportBlankCsvTemplateV010({
+          targetId, schema, locale
+        });
+        return {
+          ok: true,
+          correlationId: context.correlationId,
+          result: {
+            contractVersion: "0.1.0",
+            message: "Empty import template downloaded; fill the rows before staging.",
+            download
+          }
+        };
+      } catch (error) {
+        return failure(error, context);
+      }
+    }
+  };
 
   const stageFile: AppActionHandler = {
     packageId: DATA_IMPORT_PACKAGE_ID,
@@ -1096,6 +1166,7 @@ export function createDataImportActionHandlersV010(input: {
   };
 
   return [
+    templateCsv,
     stageFile,
     review,
     stageCsv,
