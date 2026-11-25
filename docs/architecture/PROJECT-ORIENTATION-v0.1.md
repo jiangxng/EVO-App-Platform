@@ -92,6 +92,9 @@ Authority: `docs/architecture/EXTENSION-BOUNDARY-CONSTITUTION-v0.1.md`,
 
 ## 6. Reading order for a new task
 
+> **跨工作线历史快照（2026-11-06）：** [项目组合里程碑与架构决策背景](../roadmap/PROJECT-PORTFOLIO-ARCHITECTURE-BASELINE-20261106.md) 可帮助新架构讨论了解各工作线现状及已有决策。它是有日期的证据导航，**不是新的当前状态权威**；执行前仍从 `project.status.json`、各工作线 owner 最新记录及实时 PR/部署证据核对。
+
+
 1. `AI-BOOTSTRAP.md`
 2. `project.status.json`
 3. `docs/roadmap/HANDOFF-LATEST.md` (generated)
