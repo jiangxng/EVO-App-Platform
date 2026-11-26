@@ -7882,7 +7882,8 @@ const server = createServer(async (request, response) => {
         }
         return json(response, 200, page.createBusinessDictionaryOptionPageV010({
           dictionary, code: route.code, parentCode: route.parentCode,
-          definitionOnly: route.definitionOnly, locale
+          definitionOnly: route.definitionOnly, locale,
+          ...(route.returnTo ? {returnTo:route.returnTo} : {})
         }));
       }
       if (source === ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE) {

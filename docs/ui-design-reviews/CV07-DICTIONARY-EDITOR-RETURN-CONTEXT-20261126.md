@@ -1,0 +1,46 @@
+# CV07 字典编辑返回上下文 Eidos 设计复核（2026-11-26）
+
+## 目标与完成条件
+详情进入编辑或发布后，保留已授权列表搜索、筛选、分页和模式。不得改变 PC 密度、字典数据或发布授权。
+
+## 流程与步骤
+目录→详情→编辑字典/编辑项/新增项/新增子项→保存草稿→详情→原目录；发布仍需独立确认。创建新字典也保留原列表来源。非法返回参数必须在业务写入前拒绝。
+
+## 导航与信息架构
+使用既有 Owner 目录路由解析器和 Eidos contextNavigation，不增加全局菜单或新页面。returnTo 只表示展示意图，返回时 Host 重新授权，已失效个人视图不得凭 URL 复活。
+
+## 视觉与颜色
+既有按钮、表单、间距、标题、颜色和桌面优先设计不变；导航路径恢复，不添加可见输入框或操作按钮。
+
+## 记忆与注意力
+保留工作位置，减少重复搜索；如果编辑改变记录筛选归属，原筛选结果允许不再包含该记录，不擅自修改筛选条件。
+
+## 无障碍与跨年龄
+复用 Eidos 原有语义导航链接和表单键盘交互；没有额外的视觉提示或触摸目标。真实焦点、缩放和触控仍需单独核验。
+
+## 安全与数据修复
+严格限制为字典目录 allowlist、拒绝重复和未知参数及外链；动作预先校验返回意图；原企业权限、版本冲突和发布 Human 检查不变。
+
+## 证据与剩余问题
+实查 apps/business-dictionary/page.ts、apps/business-dictionary/actions.ts、manager/server.ts 和 catalog/seed.ts，原详情可传 returnTo，但编辑路由和成功动作没有继续传递。tests/protocol/cv07-dictionary-hierarchy-edit.test.mjs 新增导航闭环和拒绝无写入测试。上一 HEAD 的 UI review 门禁失败，补本专项文档，不改变门禁。待本次准确 HEAD CI 验证。
+
+## 页面模式与导航归属
+字典列表/详情为 Catalog Browser，编辑为 Eidos Form；均属于当前企业业务字典插件。
+
+## 功能、布局、颜色对照
+功能：编辑与发布后返回原筛选位置；旧无来源路径仍兼容。
+布局：不修改布局或密度。
+颜色：继承现有 Eidos 颜色。
+桌面：未取得本次新 HEAD 浏览器证据。
+移动：未取得本次新 HEAD 浏览器证据。
+Human：NOT SIGNED。
+
+## 入口、退出与恢复矩阵
+入口：列表创建、详情编辑/新增子项/新增项、独立发布。
+退出：保存/发布返回带来源的详情，详情及表单导航可返回原目录。
+异常恢复：非法来源路由拒绝且无业务写入；权限和版本错误保持既有机制。
+
+## 浏览器与 Human 证据
+#1387 旧 HEAD 的隔离 Host 1096/1280/390 布局证据只作为既有基线；本次改动尚待重新验证。不能充当用户真实 CSV、授权企业会话或正式视觉签收。
+
+本轮组合回归原 HEAD `8eadc5ab85abe240d331d5c6925b34e33bf3672b` 的 [Protocol CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749231119/job/139672735319) 1522 pass / 1 fail / 1 skipped；失败是 CV02 旧合同断言所有 editor returnTo 不合法，与本次有意扩展合法目录 returnTo 的需求冲突。更新 `tests/protocol/cv02-collection-detail-return.test.mjs`：仅允许既有字典目录 allowlist，保留并扩展外链、跨应用、未知/重复参数的拒绝测试到 option 路由。补创建入口及伪造发布 returnTo 的零副作用回归；新 HEAD 尚未通过 CI。未放宽目录 allowlist、权限或发布规则。

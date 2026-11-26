@@ -14,7 +14,7 @@ import {createDataImportRepositoryV010}
   from "../../dist/apps/data-import/repository.js";
 import {parseCsvSourceV010}
   from "../../dist/apps/data-import/csv.js";
-import {createBusinessDictionaryDetailPageV010,createBusinessDictionaryOptionPageV010,
+import {createBusinessDictionaryDirectoryPageV010,createBusinessDictionaryDetailPageV010,createBusinessDictionaryOptionPageV010,
   businessDictionaryOptionRouteV010,businessDictionaryDefinitionEditRouteV010,
   parseBusinessDictionaryRouteV010}
   from "../../dist/apps/business-dictionary/page.js";
@@ -195,4 +195,57 @@ test("CV07 import precheck flags orphan and cyclic parent options without commit
   assert.ok(cycle.dryRun.rows.some(row=>row.issues.some(x=>
     x.code==="BUSINESS_DICTIONARY_PARENT_CYCLE")));
   assert.equal(repository.list(id).length,0,"no domain side effects in preflight");
+});
+
+
+test("CV07 dictionary editor and publish preserve validated directory context and reject forged routes before writes",async()=>{
+  const {repository}=setup();const dictionary=save(repository);
+  const returnTo="/business-dictionaries?view=draft&search=payment&sort=dictionaryId&direction=desc&page=2&pageSize=10";
+  const directory=createBusinessDictionaryDirectoryPageV010({dictionaries:[dictionary],canManage:true,
+    directorySelection:{view:"draft",query:{search:"payment",page:0,pageSize:10}}});
+  const create=parseBusinessDictionaryRouteV010(directory.actions.find(x=>x.id==="create").route,"option");
+  assert.ok(create.returnTo.includes("search=payment"));
+  assert.equal(create.dictionaryId,undefined);
+  const newForm=createBusinessDictionaryOptionPageV010(create);
+  assert.equal(newForm.contextNavigation.items[0].route,create.returnTo);
+  assert.equal(newForm.fields.find(x=>x.key==="returnTo").initialValue,create.returnTo);
+  const detail=createBusinessDictionaryDetailPageV010({dictionary,canManage:true,returnTo});
+  for(const action of [...detail.actions.filter(x=>x.type==="navigate"),
+    detail.items[0].primaryAction, ...detail.items[0].secondaryActions]){
+    const parsed=parseBusinessDictionaryRouteV010(action.route,"option");
+    assert.equal(parsed.returnTo,returnTo);
+    const form=createBusinessDictionaryOptionPageV010({dictionary,...parsed});
+    assert.equal(form.fields.find(x=>x.key==="returnTo").initialValue,returnTo);
+    assert.equal(form.contextNavigation.items[0].route,returnTo);
+    assert.equal(parseBusinessDictionaryRouteV010(form.contextNavigation.items[1].route,"detail").returnTo,returnTo);
+  }
+  const context={contractVersion:"0.1.0",principal:{contractVersion:"0.1.0",
+    subjectId:"owner",identityProviderId:"test",sessionId:"s",actorType:"HUMAN"},
+    scope:{contractVersion:"0.1.0",enterpriseId:"ent"},
+    context:{contractVersion:"0.1.0",activeContext:{contractVersion:"0.1.0",
+      kind:"ENTERPRISE",contextId:id,enterpriseId:"ent"}},correlationId:"route-test"};
+  const handlers=createBusinessDictionaryActionHandlersV010({repository,canManage:()=>true,canRead:()=>true});
+  const run=(commandCode,values)=>handlers.find(x=>x.commandCode===commandCode).execute({
+    contractVersion:"0.1.0",type:"command",command:{code:commandCode,inputVersion:"0.1.0"},
+    values,sourceInteractionId:"test",actionId:"save",requiresConfirmation:false
+  },context);
+  const values={dictionaryId:"payment_method",displayName:"支付方式",expectedVersion:1,definitionOnly:"definition"};
+  for(const invalid of ["//foreign.example/path","/business-dictionaries?unknown=1","/business-dictionaries?page=1&page=2"]){
+    const result=await run("dictionary.option.draft.save",{...values,returnTo:invalid});
+    assert.equal(result.ok,false);
+    assert.equal(repository.get(id,"payment_method").version,1);
+    assert.equal(parseBusinessDictionaryRouteV010("/business-dictionaries/option?dictionaryId=payment_method&returnTo="+encodeURIComponent(invalid),"option"),undefined);
+  }
+  const saved=await run("dictionary.option.draft.save",{...values,returnTo});
+  assert.equal(saved.ok,true,JSON.stringify(saved));
+  assert.equal(parseBusinessDictionaryRouteV010(saved.result.navigateTo,"detail").returnTo,returnTo);
+  const publish=detail.actions.find(x=>x.id==="publish");
+  assert.equal(publish.values.returnTo,returnTo);
+  const refusedPublish=await run(publish.command,{...publish.values,expectedVersion:2,returnTo:"//foreign.example/path"});
+  assert.equal(refusedPublish.ok,false);
+  assert.equal(repository.getEffective(id,"payment_method"),undefined);
+  const published=await run(publish.command,{...publish.values,expectedVersion:2});
+  assert.equal(published.ok,true,JSON.stringify(published));
+  assert.equal(parseBusinessDictionaryRouteV010(published.result.navigateTo,"detail").returnTo,returnTo);
+  assert.equal(repository.getEffective(id,"payment_method").state,"PUBLISHED");
 });

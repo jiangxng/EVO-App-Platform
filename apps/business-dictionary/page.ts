@@ -63,22 +63,31 @@ export function businessDictionaryDetailRouteV010(
 }
 
 export function businessDictionaryOptionRouteV010(
-  dictionaryId?: string, code?: string, parentCode?: string
+  dictionaryId?: string, code?: string, parentCode?: string, returnTo?: string
 ): string {
   const params = new URLSearchParams();
   if (dictionaryId) params.set("dictionaryId", dictionaryId);
   if (code) params.set("code", code);
   if (parentCode) params.set("parentCode", parentCode);
+  if (returnTo) {
+    parseBusinessDictionaryDirectoryRouteV010(returnTo);
+    params.set("returnTo", returnTo);
+  }
   return OPTION + (params.size ? "?" + params.toString() : "");
 }
-export function businessDictionaryDefinitionEditRouteV010(dictionaryId: string): string {
-  return OPTION + "?" + new URLSearchParams({dictionaryId,mode:"definition"}).toString();
+export function businessDictionaryDefinitionEditRouteV010(dictionaryId: string, returnTo?: string): string {
+  const params = new URLSearchParams({dictionaryId,mode:"definition"});
+  if (returnTo) {
+    parseBusinessDictionaryDirectoryRouteV010(returnTo);
+    params.set("returnTo", returnTo);
+  }
+  return OPTION + "?" + params.toString();
 }
 
 export function parseBusinessDictionaryRouteV010(route: string | undefined,
   kind: "detail" | "option"): { dictionaryId?: string; code?: string; parentCode?: string;
   definitionOnly?: boolean; returnTo?: string } | undefined {
-  if (!route || route.length > (kind === "detail" && route.includes("returnTo=") ? 2400 : 700)
+  if (!route || route.length > (route.includes("returnTo=") ? 2400 : 700)
       || !route.startsWith("/") || route.startsWith("//")
       || route.includes("#") || route.includes("\\")) return undefined;
   const url = new URL(route, "https://evo.invalid");
@@ -86,7 +95,7 @@ export function parseBusinessDictionaryRouteV010(route: string | undefined,
   if ([...url.searchParams.keys()].some(key =>
     key !== "dictionaryId" && key !== "code"
     && !(kind === "option" && (key === "parentCode" || key === "mode"))
-    && !(kind === "detail" && key === "returnTo"))) return undefined;
+    && key !== "returnTo")) return undefined;
   if (url.searchParams.getAll("dictionaryId").length > 1
       || url.searchParams.getAll("code").length > 1
       || url.searchParams.getAll("returnTo").length > 1
@@ -382,7 +391,9 @@ export function createBusinessDictionaryDirectoryPageV010(input: {
         values: pageExportValues
       }] : []),
       ...(input.canManage ? [{ id: "create", label: t.create, type: "navigate" as const,
-        route: OPTION, requiresConfirmation: false, primary: true }] : [])
+        route: businessDictionaryOptionRouteV010(undefined,undefined,undefined,
+          selection && pageInfo ? businessDictionaryDirectoryQueryRouteV010(effectiveSelection,pageInfo.page) : undefined),
+        requiresConfirmation: false, primary: true }] : [])
     ],
     ...(table ? {table} : {}),
     // Owner-owned read-only grouping of exactly the same authorized *page*.
@@ -479,15 +490,16 @@ export function createBusinessDictionaryDetailPageV010(input: {
       route: input.returnTo ?? DIRECTORY },
       { id: "dictionary", label: dictionary.displayName || dictionary.dictionaryId }] },
     actions: input.canManage ? [{ id: "edit-definition", label: t.editDefinition,
-      type: "navigate", route: businessDictionaryDefinitionEditRouteV010(dictionary.dictionaryId),
+      type: "navigate", route: businessDictionaryDefinitionEditRouteV010(dictionary.dictionaryId,input.returnTo),
       requiresConfirmation: false },
       { id: "add-option", label: t.add, type: "navigate",
-      route: businessDictionaryOptionRouteV010(dictionary.dictionaryId), requiresConfirmation: false,
+      route: businessDictionaryOptionRouteV010(dictionary.dictionaryId,undefined,undefined,input.returnTo), requiresConfirmation: false,
       primary: dictionary.state !== "DRAFT" },
       ...(dictionary.state === "DRAFT" ? [{ id: "publish", label: t.publish,
         type: "command" as const, command: PUBLISH, inputVersion: "0.1.0",
         requiresConfirmation: true, primary: true,
-        values: { dictionaryId: dictionary.dictionaryId, expectedVersion: dictionary.version } }] : [])] : [],
+        values: { dictionaryId: dictionary.dictionaryId, expectedVersion: dictionary.version,
+          ...(input.returnTo ? {returnTo:input.returnTo} : {}) } }] : [])] : [],
     collectionTitle: t.detail,
     items: (() => {
       // Render a stable hierarchy using Owner-authorized option codes only.
@@ -515,11 +527,11 @@ export function createBusinessDictionaryDetailPageV010(input: {
         ...(option.parentCode ? { [t.parent]: option.parentCode } : {}),
         ...(input.effectiveVersion ? { [t.effective]: input.effectiveVersion } : {}) },
       ...(input.canManage ? { primaryAction: { id: "edit", label: t.edit,
-        type: "navigate" as const, route: businessDictionaryOptionRouteV010(dictionary.dictionaryId, option.code),
+        type: "navigate" as const, route: businessDictionaryOptionRouteV010(dictionary.dictionaryId, option.code,undefined,input.returnTo),
         requiresConfirmation: false },
         secondaryActions: [{id:"add-child",label:t.addChild,
           type:"navigate" as const,
-          route:businessDictionaryOptionRouteV010(dictionary.dictionaryId,undefined,option.code),
+          route:businessDictionaryOptionRouteV010(dictionary.dictionaryId,undefined,option.code,input.returnTo),
           requiresConfirmation:false}]
       } : {})
     }));
@@ -528,7 +540,7 @@ export function createBusinessDictionaryDetailPageV010(input: {
 
 export function createBusinessDictionaryOptionPageV010(input: {
   dictionary?: BusinessDictionarySnapshotV010;
-  code?: string; parentCode?: string; definitionOnly?: boolean; locale?: string;
+  code?: string; parentCode?: string; definitionOnly?: boolean; locale?: string; returnTo?: string;
 }): UidlFormV011 {
   const t = labels(input.locale);
   const dictionary = input.dictionary;
@@ -554,12 +566,14 @@ export function createBusinessDictionaryOptionPageV010(input: {
         + " · " + item.code })) ?? [];
   return { contractVersion: "0.1.1", kind: "form", id: "evo-business-dictionary.option",
     title, description: input.definitionOnly ? t.definitionHelp : t.optionHelp, purpose: "execute-command",
-    contextNavigation: { items: [{ id: "dictionaries", label: t.list, route: DIRECTORY },
+    contextNavigation: { items: [{ id: "dictionaries", label: t.list, route: input.returnTo ?? DIRECTORY },
       ...(dictionary ? [{ id: "dictionary", label: dictionary.displayName || dictionary.dictionaryId,
-        route: businessDictionaryDetailRouteV010(dictionary.dictionaryId) }] : []),
+        route: businessDictionaryDetailRouteV010(dictionary.dictionaryId,input.returnTo) }] : []),
       { id: "option", label: title }] },
     command: { code: SAVE, inputVersion: "0.1.0" },
-    fields: [...(input.definitionOnly ? [{ key:"definitionOnly", label:t.editDefinition,
+    fields: [...(input.returnTo ? [{key:"returnTo",label:t.list,
+      semanticType:"business-dictionary.return-route",control:"text" as const,
+      required:false,hidden:true,initialValue:input.returnTo}] : []), ...(input.definitionOnly ? [{ key:"definitionOnly", label:t.editDefinition,
       semanticType:"business-dictionary.definition-only", control:"text" as const,
       required:false, hidden:true, initialValue:"definition" }] : []),
     { key: "displayName", label: t.name, semanticType: "business-dictionary.name",
