@@ -359,7 +359,11 @@ with sync_playwright() as pw:
         "BEX-SYNTHETIC-RET-172.xlsx")
     expect(map_form.locator('[data-eidos-form-task-overview]')).to_be_visible()
     expect(map_form.locator('[data-eidos-form-task-metric]')).to_have_count(4)
-    expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(2)
+    # The prior two-stage breadcrumb misleadingly implied step 2 imports.
+    # The active workflow now makes final authorized commit explicit.
+    expect(map_form.locator('[data-eidos-form-task-steps] li')).to_have_count(3)
+    expect(map_form.locator('[data-eidos-form-task-steps]')).to_contain_text(
+        "确认导入")
     # Separate evidence view from the scrollable Eidos shell: capture actual E3
     # overview/metrics rather than assuming a mid-table full_page shot includes it.
     map_form.locator('[data-eidos-form-task-overview]').screenshot(
