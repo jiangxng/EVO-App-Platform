@@ -206,7 +206,7 @@ test("CV07 Eidos view shows import only to managed audience and only when Host s
 });
 
 
-test("CV07 synthetic 193-row seven-column dictionary batch resolves six known headers and requires explicit primary-key exclusion",()=>{
+test("CV07 synthetic 193-row seven-column dictionary batch resolves six known headers with explicit primary-key exclusion",()=>{
   const f=fixture();
   const csv=parseCsvSourceV010({name:"synthetic-193.csv",csv:[
     "选项主键,字典编码,字典名称,选项编码,选项名称,来源别名,状态",
