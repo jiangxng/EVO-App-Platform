@@ -105,12 +105,18 @@ test("CV-02 returnTo cannot become open redirect, cross-app route or unrestricte
   ]) {
     const route="/business-dictionaries/view?dictionaryId=dict-a&returnTo="+encodeURIComponent(unsafe);
     assert.equal(parseBusinessDictionaryRouteV010(route,"detail"),undefined,unsafe);
+    const optionRoute="/business-dictionaries/option?dictionaryId=dict-a&returnTo="+encodeURIComponent(unsafe);
+    assert.equal(parseBusinessDictionaryRouteV010(optionRoute,"option"),undefined,unsafe);
     assert.throws(()=>businessDictionaryDetailRouteV010("dict-a",unsafe),undefined,unsafe);
   }
   assert.equal(parseBusinessDictionaryRouteV010(
     "/business-dictionaries/view?dictionaryId=dict-a&returnTo=%2Fbusiness-dictionaries&returnTo=%2Fbusiness-dictionaries",
     "detail"),undefined);
-  assert.equal(parseBusinessDictionaryRouteV010(
+  // CV07 extends the same allowlist to the option editor, not a new redirect target.
+  assert.deepEqual(parseBusinessDictionaryRouteV010(
     "/business-dictionaries/option?dictionaryId=dict-a&returnTo=%2Fbusiness-dictionaries",
+    "option"),{dictionaryId:"dict-a",returnTo:"/business-dictionaries"});
+  assert.equal(parseBusinessDictionaryRouteV010(
+    "/business-dictionaries/option?dictionaryId=dict-a&returnTo=%2Fbusiness-dictionaries&returnTo=%2Fbusiness-dictionaries",
     "option"),undefined);
 });
