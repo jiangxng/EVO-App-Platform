@@ -24,7 +24,9 @@ function labels(locale?: string) {
     searchPlaceholder: "搜索字典名称或编码", create: "新建字典", detail: "字典项",
     exportCurrentPage: "导出当前页 CSV", importRows: "导入 CSV / Excel",
     add: "新增字典项", addChild: "新增子项", edit: "编辑字典项", editDefinition: "编辑字典",
-    parent: "上级选项", root: "无上级（根选项）", save: "保存草稿", publish: "发布字典",
+    parent: "上级选项", root: "无上级（根选项）",
+    definitionHelp:"可修改字典名称，字典编码保持不变。保存生成草稿，发布后才正式生效。",
+    save: "保存草稿", publish: "发布字典",
     name: "字典名称", id: "字典编码", code: "选项编码", label: "选项名称",
     labelZh: "简体中文名称（可选）", aliases: "来源别名（用逗号分隔）", status: "状态", active: "启用", inactive: "停用",
     draft: "草稿", published: "已发布", version: "版本", effective: "生效版本",
@@ -37,7 +39,9 @@ function labels(locale?: string) {
     searchPlaceholder: "Search dictionary name or code", create: "New dictionary", detail: "Options",
     exportCurrentPage: "Export current page CSV", importRows: "Import CSV / Excel",
     add: "Add option", addChild: "Add child", edit: "Edit option", editDefinition: "Edit dictionary",
-    parent: "Parent option", root: "No parent (root)", save: "Save draft", publish: "Publish dictionary",
+    parent: "Parent option", root: "No parent (root)",
+    definitionHelp:"Rename this dictionary; its stable code cannot change. Save draft then publish to activate.",
+    save: "Save draft", publish: "Publish dictionary",
     name: "Dictionary name", id: "Dictionary code", code: "Option code", label: "Option name",
     labelZh: "Simplified Chinese name (optional)", aliases: "Source aliases (comma-separated)", status: "Status", active: "Active", inactive: "Inactive",
     draft: "Draft", published: "Published", version: "Version", effective: "Effective version",
@@ -532,13 +536,24 @@ export function createBusinessDictionaryOptionPageV010(input: {
   const title = input.definitionOnly ? t.editDefinition
     : option ? `${t.edit} · ${option.code}` : dictionary ? t.add : t.create;
   if (input.definitionOnly && !dictionary) throw new Error("BUSINESS_DICTIONARY_NOT_FOUND");
+  const hasAncestor = (candidate:typeof dictionary.options[number], targetCode:string):boolean => {
+    const seen=new Set<string>();
+    let parent=candidate.parentCode;
+    while(parent && !seen.has(parent)){
+      if(parent===targetCode) return true;
+      seen.add(parent);
+      parent=dictionary.options.find(item=>item.code===parent)?.parentCode;
+    }
+    return false;
+  };
   const parentChoices = dictionary?.options
-    .filter(item => item.code !== option?.code)
+    .filter(item => item.code !== option?.code
+      && (!option || !hasAncestor(item,option.code)))
     .map(item => ({ value:item.code,
-      label: item.label.translations?.[input.locale ?? ""] || item.label.default
+      label: (item.label.translations?.[input.locale ?? ""] || item.label.default)
         + " · " + item.code })) ?? [];
   return { contractVersion: "0.1.1", kind: "form", id: "evo-business-dictionary.option",
-    title, description: t.optionHelp, purpose: "execute-command",
+    title, description: input.definitionOnly ? t.definitionHelp : t.optionHelp, purpose: "execute-command",
     contextNavigation: { items: [{ id: "dictionaries", label: t.list, route: DIRECTORY },
       ...(dictionary ? [{ id: "dictionary", label: dictionary.displayName || dictionary.dictionaryId,
         route: businessDictionaryDetailRouteV010(dictionary.dictionaryId) }] : []),
