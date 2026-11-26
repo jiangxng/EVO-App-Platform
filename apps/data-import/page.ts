@@ -1075,7 +1075,7 @@ export function createDataImportMappingPageV010(input: {
       state:"current" as const
     }, {
       id:"commit",label:zh(input.locale)?"确认导入":"Confirm import",
-      state:"pending" as const
+      state:"upcoming" as const
     }],
     metrics: [{
       id:"matched",label:zh(input.locale)?"已匹配":"Matched",
