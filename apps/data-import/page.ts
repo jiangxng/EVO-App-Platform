@@ -1147,7 +1147,7 @@ export function createDataImportMappingPageV010(input: {
           ? "Experience Compiler 已给出字段建议，请人工核对待处理问题。"
           : "Field matching suggestions are available. Review pending issues.")
         : (zh(input.locale)
-          ? "先恢复本企业之前的映射。第 2 步（共 3 步）：核对每列，未确定的列须选择对应字段或明确不导入。保存后进入预检查结果，只有最后点击「确认导入」才会写入业务草稿。"
+          ? "先恢复本企业之前的映射。第 2 步（共 3 步）：请核对字段对应关系；未确定的列须选择对应字段或明确不导入。保存后进入预检查结果，只有最后点击「确认导入」才会写入业务草稿。"
           : "Step 2 of 3: resolve or explicitly exclude each source column. Save and validate to review results; only the final Confirm import writes draft records."),
     contextNavigation: importContextNavigationV010({
       target: input.target,
