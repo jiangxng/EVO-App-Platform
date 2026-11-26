@@ -7876,11 +7876,13 @@ const server = createServer(async (request, response) => {
             effectiveVersion: repository.getEffective(contextId, dictionary!.dictionaryId)?.version
           }));
         }
-        if (route.code && !dictionary?.options.some(option => option.code === route.code)) {
+        if ((route.code && !dictionary?.options.some(option => option.code === route.code))
+            || (route.parentCode && !dictionary?.options.some(option => option.code === route.parentCode))) {
           return json(response, 404, { code: "BUSINESS_DICTIONARY_OPTION_NOT_FOUND" });
         }
         return json(response, 200, page.createBusinessDictionaryOptionPageV010({
-          dictionary, code: route.code, locale
+          dictionary, code: route.code, parentCode: route.parentCode,
+          definitionOnly: route.definitionOnly, locale
         }));
       }
       if (source === ENTERPRISE_CONTEXT_DIRECTORY_PAGE_SOURCE) {
