@@ -546,7 +546,7 @@ export function createBusinessDictionaryOptionPageV010(input: {
     command: { code: SAVE, inputVersion: "0.1.0" },
     fields: [...(input.definitionOnly ? [{ key:"definitionOnly", label:t.editDefinition,
       semanticType:"business-dictionary.definition-only", control:"text" as const,
-      required:false, hidden:true, initialValue:true }] : []),
+      required:false, hidden:true, initialValue:"definition" }] : []),
     { key: "displayName", label: t.name, semanticType: "business-dictionary.name",
       control: "text", required: true, ...(dictionary?.displayName ? { initialValue: dictionary.displayName } : {}) },
     { key: "dictionaryId", label: t.id, semanticType: "business-dictionary.code",
