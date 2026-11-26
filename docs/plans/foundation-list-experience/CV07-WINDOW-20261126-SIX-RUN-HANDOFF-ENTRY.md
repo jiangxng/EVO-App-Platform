@@ -6,7 +6,7 @@
 - 仓库 https://github.com/jiangxng/EVO-App-Platform；唯一集成主线 protected main @ 6af9024fee8edcf454d5e6d08de50c0a6c101267。
 - #1385 恢复旧窗口资料、#1386 通用模板别名一致性、#1387 字典批次名称冲突与193行合成测试均已普通合并，三个过程分支均有精确删除原日志。main 协议 1523 tests/1522 pass/0 fail/1 skipped；1096、1280、390 Chromium 几何通过；四项 main 工程工作流 success。
 - **唯一未合并功能 PR [#1388](https://github.com/jiangxng/EVO-App-Platform/pull/1388)**：Draft；branch `fix/cv07-dictionary-editor-return-context-20261126`；head `59c90c2b3838a0fa4a73812153d41dea5a45868f`。修复编辑、新建、发布后保留原字典目录 returnTo，Owner allowlist 先于写入。旧 HEAD 仅确认一条协议失败（CV02 原断言禁止所有 editor returnTo），已更新兼容安全测试、补创建及伪造发布拒绝；新 HEAD 检查尚未出现，不声称通过。不要重新实现。
-- [Tokyo release #45749244689](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749244689) preflight success，UTC03:31:37 `EVO_TOKYO_MAIN_CI_VERIFIED sha=6af9024fee8edcf454d5e6d08de50c0a6c101267`；deploy job 139673537091 in_progress。最后**已证实**实际容器仍为 #1384 SHA 44da0a35ccf3191d90b9817fc21ffa667628a3b7（03:19:35Z inventory）；不可据新 main 或 preflight 推断上线。
+- [Tokyo release #45749244689](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749244689) preflight success，UTC03:31:37 `EVO_TOKYO_MAIN_CI_VERIFIED sha=6af9024fee8edcf454d5e6d08de50c0a6c101267`；[deploy job 139673537091](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749244689/job/139673537091) 已 success，UTC03:33:47–48 实际镜像同 main、healthy、LOCAL/HTTPS/BASIC_AUTH PASS；后续只读 inventory #45749734842 尚在运行。#1388 未部署，Human NOT SIGNED。
 - 本交接仅新增两份 docs，通过独立 docs Draft PR；不改变 #1388 的 HEAD 或其他工作线。此文件不预填自身提交/PR/合并证据；用 GitHub 实况定位。
 
 ## 用户要求与已定边界
