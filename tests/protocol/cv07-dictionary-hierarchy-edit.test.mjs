@@ -165,3 +165,34 @@ test("CV07 uploaded source aliases are mapped, but composite primary key is not 
   assert.equal(repository.get(id,"payment_method").options[1].parentCode,"BANK");
   assert.equal(repository.get(id,"payment_method").state,"DRAFT");
 });
+
+test("CV07 import precheck flags orphan and cyclic parent options without committing",()=>{
+  const {resources,repository}=setup();
+  const target=createBusinessDictionaryImportTargetV010({resources,repository});
+  const service=createDataImportServiceV010({
+    repository:createDataImportRepositoryV010(resources),targets:[target]});
+  const columns=["字典编码","字典名称","选项编码","选项名称","选项状态","父选项编码"];
+  const ids=["dictionaryId","displayName","optionCode","optionLabel","optionStatus","parentCode"];
+  const mapping=ids.map((targetFieldId,index)=>({
+    sourceColumn:columns[index],targetFieldId
+  }));
+  const stage=(jobId,lines)=>{
+    const source=parseCsvSourceV010({name:"hierarchy.csv",
+      csv:[columns.join(","),...lines].join("\n")});
+    service.stage({contextId:id,importJobId:jobId,targetId:target.targetId,
+      source,mapping,...actor});
+    return service.dryRun({contextId:id,importJobId:jobId,...actor});
+  };
+  const orphan=stage("orphan",["payment_method,付款方式,TT,电汇,ACTIVE,UNKNOWN"]);
+  assert.equal(orphan.state,"DRY_RUN_FAILED");
+  assert.ok(orphan.dryRun.rows[0].issues.some(x=>
+    x.code==="BUSINESS_DICTIONARY_PARENT_NOT_FOUND"));
+  const cycle=stage("cycle",[
+    "payment_method,付款方式,BANK,转账,ACTIVE,TT",
+    "payment_method,付款方式,TT,电汇,ACTIVE,BANK"
+  ]);
+  assert.equal(cycle.state,"DRY_RUN_FAILED");
+  assert.ok(cycle.dryRun.rows.some(row=>row.issues.some(x=>
+    x.code==="BUSINESS_DICTIONARY_PARENT_CYCLE")));
+  assert.equal(repository.list(id).length,0,"no domain side effects in preflight");
+});
