@@ -205,7 +205,8 @@ export function createBusinessDictionaryRepositoryV010(resources: EnterpriseReso
           throw new Error("BUSINESS_DICTIONARY_VERSION_CONFLICT");
         }
         if (previous?.state === "DRAFT" &&
-            JSON.stringify(previous.options) === JSON.stringify(options)) return previous;
+            JSON.stringify(previous.options) === JSON.stringify(options)
+            && (input.displayName?.trim() || previous.displayName) === previous.displayName) return previous;
         const next: BusinessDictionarySnapshotV010 = {
           contractVersion: "0.1.0", contextId, dictionaryId,
           ...(input.displayName?.trim() || previous?.displayName
