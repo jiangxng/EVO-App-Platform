@@ -536,13 +536,13 @@ export function createBusinessDictionaryOptionPageV010(input: {
   const title = input.definitionOnly ? t.editDefinition
     : option ? `${t.edit} · ${option.code}` : dictionary ? t.add : t.create;
   if (input.definitionOnly && !dictionary) throw new Error("BUSINESS_DICTIONARY_NOT_FOUND");
-  const hasAncestor = (candidate:typeof dictionary.options[number], targetCode:string):boolean => {
+  const hasAncestor = (candidate:BusinessDictionarySnapshotV010["options"][number], targetCode:string):boolean => {
     const seen=new Set<string>();
     let parent=candidate.parentCode;
     while(parent && !seen.has(parent)){
       if(parent===targetCode) return true;
       seen.add(parent);
-      parent=dictionary.options.find(item=>item.code===parent)?.parentCode;
+      parent=dictionary?.options.find(item=>item.code===parent)?.parentCode;
     }
     return false;
   };
