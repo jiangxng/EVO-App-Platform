@@ -173,7 +173,7 @@ export const dataImportCapabilityContributionsV010:
       effect: "WRITE",
       dataScope: "ENTERPRISE",
       authorization: { action: DATA_IMPORT_WRITE_ACTION_V010, resource: { type: DATA_IMPORT_AUTH_RESOURCE_V010, idSource: "DATA_SCOPE" } },
-      inputSchema: { type: "object", additionalProperties: true, required: ["targetId", "file"], properties: { targetId: { type: "string", minLength: 1 }, file: { type: "object", required: ["name", "mediaType", "size", "contentBase64"], properties: { name: { type: "string", minLength: 1 }, mediaType: { type: "string", minLength: 1 }, size: { type: "number" }, contentBase64: { type: "string", minLength: 1 } } } } },
+      inputSchema: { type: "object", additionalProperties: true, required: ["targetId", "file"], properties: { targetId: { type: "string", minLength: 1 }, csvEncoding: { type: "string", enum: ["UTF-8", "GB18030"] }, file: { type: "object", required: ["name", "mediaType", "size", "contentBase64"], properties: { name: { type: "string", minLength: 1 }, mediaType: { type: "string", minLength: 1 }, size: { type: "number" }, contentBase64: { type: "string", minLength: 1 } } } } },
       outputSchema: importJobOutputSchema,
       binding: { type: "ACTION_HOST", commandCode: DATA_IMPORT_STAGE_FILE_COMMAND_V010, inputVersion: "0.1.0" },
       exposure: ["HUMAN", "PERSONAL_AGENT"],

@@ -16,7 +16,7 @@ import {
 import {
   createDataImportRepositoryV010
 } from "../../dist/apps/data-import/repository.js";
-import {parseCsvSourceV010} from "../../dist/apps/data-import/csv.js";
+import {parseCsvSourceV010, decodeCsvUploadV010} from "../../dist/apps/data-import/csv.js";
 import {
   dataImportUploadRouteV010
 } from "../../dist/apps/data-import/constants.js";
@@ -240,4 +240,23 @@ test("CV07 synthetic 193-row seven-column dictionary batch resolves six known he
   assert.ok(drafts.every(d=>d.state==="DRAFT"&&d.version===1));
   assert.ok(drafts.every(d=>!f.repository.getEffective(enterprise,d.dictionaryId)));
   assert.equal(f.repository.list("enterprise:b").length,0);
+});
+
+test("CV07 Chinese Windows CSV byte decoding prevents false duplicate headers and preserves six mappings",()=>{
+  const f=fixture();
+  // GB18030 bytes for the seven documented synthetic source headers, not the Human file.
+  const bytes=Buffer.from("d1a1cfeed6f7bcfc2cd7d6b5e4b1e0c2eb2cd7d6b5e4c3fbb3c62cd1a1cfeeb1e0c2eb2cd1a1cfeec3fbb3c62cc0b4d4b4b1f0c3fb2cd7b4ccac","hex");
+  assert.throws(()=>parseCsvSourceV010({csv:bytes.toString("utf8")}),/DATA_IMPORT_CSV_HEADER_DUPLICATE/);
+  assert.throws(()=>decodeCsvUploadV010(bytes),/DATA_IMPORT_CSV_ENCODING_INVALID/);
+  const source=parseCsvSourceV010({csv:decodeCsvUploadV010(bytes,"GB18030")});
+  assert.deepEqual(source.headers,["选项主键","字典编码","字典名称","选项编码","选项名称","来源别名","状态"]);
+  const mapping=suggestDataImportMappingV010({schema:f.target.describe({contextId:enterprise,locale:"zh-CN"}),source});
+  assert.equal(mapping.length,6);
+  assert.equal(mapping.find(x=>x.sourceColumn==="选项主键"),undefined);
+  assert.throws(()=>parseCsvSourceV010({csv:"名称,名称\nA,B"}),error=>
+    error.code==="DATA_IMPORT_CSV_HEADER_DUPLICATE" && error.detail.includes("1, 2"));
+  assert.equal(decodeCsvUploadV010(Buffer.from("\uFEFF字典编码,字典名称")),"字典编码,字典名称");
+  assert.throws(()=>decodeCsvUploadV010(Buffer.from("\uFEFF字典编码"),"GB18030"),/DATA_IMPORT_CSV_ENCODING_MISMATCH/);
+  assert.throws(()=>decodeCsvUploadV010(Buffer.from([0xff]),"GB18030"),/DATA_IMPORT_CSV_ENCODING_INVALID/);
+  assert.throws(()=>decodeCsvUploadV010(Buffer.from("a"),"unknown"),/DATA_IMPORT_CSV_ENCODING_UNSUPPORTED/);
 });
