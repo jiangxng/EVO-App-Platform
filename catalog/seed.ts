@@ -572,7 +572,7 @@ export const businessDictionaryCapabilityContributionsV010:
       optionLabelZh: { type: "string" },
       optionAliases: { type: "string" },
       optionParentCode: { type: "string" },
-      definitionOnly: { type: "boolean" },
+      definitionOnly: { type: "string", enum: ["definition"] },
       optionStatus: { enum: ["ACTIVE", "INACTIVE"] }
     }, ["dictionaryId", "displayName", "expectedVersion"]),
     businessDictionaryOp(BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_PUBLISH_ACTION_V010, BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, {
