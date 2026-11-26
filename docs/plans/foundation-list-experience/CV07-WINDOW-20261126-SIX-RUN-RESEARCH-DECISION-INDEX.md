@@ -66,3 +66,24 @@ P：用户要求 PC 不降级、Eidos 既有语言、List Foundation 导入复�
 - #1388 branch 固定 HEAD 上的 [专项技术文档](https://github.com/jiangxng/EVO-App-Platform/blob/59c90c2b3838a0fa4a73812153d41dea5a45868f/docs/plans/foundation-list-experience/CV07-DICTIONARY-EDITOR-RETURN-CONTEXT-20261126.md) 与 [UI review](https://github.com/jiangxng/EVO-App-Platform/blob/59c90c2b3838a0fa4a73812153d41dea5a45868f/docs/ui-design-reviews/CV07-DICTIONARY-EDITOR-RETURN-CONTEXT-20261126.md)，修改 page.ts/actions.ts/catalog/seed.ts/manager/server.ts、CV07 hierarchy 及 CV02 return tests。先完成CI/merge/mainCI/东京/清理；本交接 docs PR 后合，避免再触发全量CI；GitHub新状态优先本文快照。
 - 最终真实验收：合法Human企业→原CSV193行7列→来源别名/状态匹配→明确选项主键含义（不能擅自忽略）→核对实际行错误→预检无写入→独立确认后实际定义数/选项数与DRAFT，旧发布隔离→改名/根/子/父级/返回筛选与分页→单独Human发布→PC 1096/1280/1440及390视觉、键盘/触摸→企业切换/撤权/停用拒绝。未经批准不写真实数据。验收清单已在#1388 PR评论存档。完整CV07仍需Item合法样本、独立开发者接入、其他列表共享导入路径的具体缺口（先读已有交付，勿重复）。
 - 仍未决：#1388最新CI、其最终部署/清理/人验（#1387 main已实际部署）；原文件与截图未取得、主键含义未知、实际用户定义数未知；上游Eidos与vendored版本差异未重新核查、1440真实视觉未签。历史外部来源冲突详旧恢复索引及11-19索引。禁止开正式CV03 WRITE/CV04后端EXPORT/OIDC/PA05/Agent WRITE；不碰#1184。当前不需人工操作，仍有独立CI/合并/部署可推进。
+
+## 7. 接续窗口新增决策与证据（2026-11-26 #01–#05）
+
+- #1388 最新准确 HEAD `59c90c2b3838a0fa4a73812153d41dea5a45868f` 初查无 CI；同一 Draft closed→reopened 恢复触发，不改变代码或 HEAD。解除 Draft 后最终 58 checks：52 SUCCESS、6 未合并关闭事件的清理/审计条件 SKIPPED，0 failure；普通 merge 进入 protected main `9d2ee382b2a607787bfb210cf371fcf6cb919799`，树与已验 HEAD 完全一致。
+- [#1388 合并记录](https://github.com/jiangxng/EVO-App-Platform/pull/1388#issuecomment-7181920294)；[Branch Hygiene 原日志](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750368372/job/139676425754) 精确删除功能分支。旧 #1385–#1387 清理亦回读原日志。
+- main [Platform 原日志](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750367920/job/139676424224) 1524 tests / 1523 pass / 0 fail / 1 skip，ok589；[Chromium 原日志](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750367745/job/139676423308) 1096/1280/390 PASS，CSV、切企业、停用拒绝通过；[Continuity](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750367949) success；写入时 42/43 main 工程检查通过，末项 [Lightweight](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750368030) 尚运行。
+- 新 [Tokyo release #45750475403](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750475403) 写入时 preflight 等 main 检查。物理部署/新只读 inventory 未确认；最新已证实运行镜像仍为下文 6af9024。后续真实 deploy/inventory、main 及文档自身合并清理证据统一追加于 [#1389 交付记录](https://github.com/jiangxng/EVO-App-Platform/pull/1389) 评论，避免为文档自身合并证据制造无限递归提交。
+- 为节省串行等待，允许本 docs Draft 在东京发布期间同步新 main 并并行 CI；不提前合并、不改变 main，待新功能实际镜像和只读巡检确认、文档准确 HEAD 门禁全绿才 Ready/merge。文档仅两份，和 #1388 八文件无重叠。
+- 接续任务：验 main 全部工程检查、Tokyo 实际 SHA/healthy/HTTPS/Basic Auth、只读插件与企业，再完成 #1389 合并/清理并通知 Human。真实 CSV/主键语义、PC/手机真实视觉、合法企业会话及权限、Human 签收仍未验；Item 样本、独立开发者接入仍是完整 CV07 退出缺口。不要重做功能或开启受限能力。
+
+
+| 新证据 | 阅读级别及用途 |
+|---|---|
+| [#1388 CI恢复](https://github.com/jiangxng/EVO-App-Platform/pull/1388#issuecomment-7181869634) | G-M：最新HEAD初始0 checks，reopened后54 runs；不是代码故障。关闭未合并事件清理跳过。 |
+| [准确HEAD协议](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749999280/job/139675204177)、[Chromium](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749999181/job/139675203661)、[UI gate](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749999265/job/139675203846) | G-O：1523 pass/0 fail/1 skip，ok589；1096/1280/390；评审明确非Human PASS。额外 ready gate #45750332571 G-M success。 |
+| [功能分支清理](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750368372/job/139676425754) | G-O：03:40:45Z DELETED_VERIFIED_MERGED_PR_BRANCH fix/cv07-dictionary-editor-return-context-20261126 @ 59c90c2b3838a0fa4a73812153d41dea5a45868f。 |
+| [main Chromium](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750367745/job/139676423308) | G-O：03:41:16–26Z CV07_COLLECTION_DESKTOP_FIRST_GEOMETRY_PASS:1280、CV07_COLLECTION_PC_1096_GEOMETRY_PASS、...:390；CSV=6、enterprise switch=6、disabled deny=1。隔离环境而非真实授权业务验收。 |
+| [旧Tokyo inventory](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749734842/job/139674360767) | G-O：03:34:08–09Z 6af9024 healthy，字典/导入 installed+active YES，owner YES，Item 样本 NO，HTTPS/Auth PASS，AUTHORIZED_BUSINESS_SESSION=UNVERIFIED，HUMAN_ACCEPTANCE=NOT_SIGNED。 |
+| [新Tokyo release](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45750475403) | G-M：写入时 preflight 运行，非上线证据。最终实证见 #1389 后续评论与原日志。 |
+
+本轮未重新检索外部竞品资料、未修改业务源码或写业务数据。既有外部研究等级不变。文档同步仅保留两份本PR新增文件，普通双父提交，非强推；先核对差异及准确HEAD，再合并。

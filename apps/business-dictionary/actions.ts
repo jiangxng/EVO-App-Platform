@@ -69,10 +69,14 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
         if (!allowed()) throw new Error("BUSINESS_DICTIONARY_PERMISSION_DENIED");
         const repository = "resolveRepository" in input ? await input.resolveRepository() : input.repository;
         if (!allowed()) throw new Error("BUSINESS_DICTIONARY_PERMISSION_DENIED");
-        const result = action(repository, context!, contextId, request.values);
-        const navigateTo = commandCode === OPTION_SAVE || commandCode === PUBLISH
+        // Validate presentation intent before any mutation. Never treat it as a grant.
+        const navigationCommand = commandCode === OPTION_SAVE || commandCode === PUBLISH;
+        const returnTo = navigationCommand && request.values.returnTo !== undefined
+          ? required(request.values.returnTo, "BUSINESS_DICTIONARY_DIRECTORY_ROUTE_INVALID") : undefined;
+        const navigateTo = navigationCommand
           ? businessDictionaryDetailRouteV010(required(request.values.dictionaryId,
-            "BUSINESS_DICTIONARY_ID_REQUIRED")) : undefined;
+            "BUSINESS_DICTIONARY_ID_REQUIRED"), returnTo) : undefined;
+        const result = action(repository, context!, contextId, request.values);
         return { ok: true, correlationId: context!.correlationId,
           result: JSON.parse(JSON.stringify({ contractVersion: "0.1.0", data: result,
             ...(navigateTo ? { navigateTo } : {}) })) as JsonValue };
