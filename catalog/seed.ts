@@ -475,6 +475,7 @@ const businessDictionaryOptionSchema = {
     code: { type: "string", minLength: 1 },
     label: { type: "object" },
     aliases: { type: "array", items: { type: "string" } },
+    parentCode: { type: "string", minLength: 1 },
     status: { enum: ["ACTIVE", "INACTIVE"] }
   }
 } as const;
@@ -570,8 +571,10 @@ export const businessDictionaryCapabilityContributionsV010:
       optionLabel: { type: "string", minLength: 1 },
       optionLabelZh: { type: "string" },
       optionAliases: { type: "string" },
+      optionParentCode: { type: "string" },
+      definitionOnly: { type: "boolean" },
       optionStatus: { enum: ["ACTIVE", "INACTIVE"] }
-    }, ["dictionaryId", "displayName", "expectedVersion", "optionCode", "optionLabel", "optionStatus"]),
+    }, ["dictionaryId", "displayName", "expectedVersion"]),
     businessDictionaryOp(BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_PUBLISH_ACTION_V010, BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
       expectedVersion: { type: "integer", minimum: 1 }
