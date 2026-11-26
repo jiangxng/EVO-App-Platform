@@ -23,7 +23,8 @@ function labels(locale?: string) {
     empty: "当前企业还没有业务字典。", noMatch: "没有符合当前筛选条件的业务字典。",
     searchPlaceholder: "搜索字典名称或编码", create: "新建字典", detail: "字典项",
     exportCurrentPage: "导出当前页 CSV", importRows: "导入 CSV / Excel",
-    add: "新增字典项", edit: "编辑字典项", save: "保存草稿", publish: "发布字典",
+    add: "新增字典项", addChild: "新增子项", edit: "编辑字典项", editDefinition: "编辑字典",
+    parent: "上级选项", root: "无上级（根选项）", save: "保存草稿", publish: "发布字典",
     name: "字典名称", id: "字典编码", code: "选项编码", label: "选项名称",
     labelZh: "简体中文名称（可选）", aliases: "来源别名（用逗号分隔）", status: "状态", active: "启用", inactive: "停用",
     draft: "草稿", published: "已发布", version: "版本", effective: "生效版本",
@@ -35,7 +36,8 @@ function labels(locale?: string) {
     empty: "No business dictionaries in this enterprise.", noMatch: "No dictionaries match these filters.",
     searchPlaceholder: "Search dictionary name or code", create: "New dictionary", detail: "Options",
     exportCurrentPage: "Export current page CSV", importRows: "Import CSV / Excel",
-    add: "Add option", edit: "Edit option", save: "Save draft", publish: "Publish dictionary",
+    add: "Add option", addChild: "Add child", edit: "Edit option", editDefinition: "Edit dictionary",
+    parent: "Parent option", root: "No parent (root)", save: "Save draft", publish: "Publish dictionary",
     name: "Dictionary name", id: "Dictionary code", code: "Option code", label: "Option name",
     labelZh: "Simplified Chinese name (optional)", aliases: "Source aliases (comma-separated)", status: "Status", active: "Active", inactive: "Inactive",
     draft: "Draft", published: "Published", version: "Version", effective: "Effective version",
@@ -56,15 +58,22 @@ export function businessDictionaryDetailRouteV010(
   return DETAIL + "?" + params.toString();
 }
 
-export function businessDictionaryOptionRouteV010(dictionaryId?: string, code?: string): string {
+export function businessDictionaryOptionRouteV010(
+  dictionaryId?: string, code?: string, parentCode?: string
+): string {
   const params = new URLSearchParams();
   if (dictionaryId) params.set("dictionaryId", dictionaryId);
   if (code) params.set("code", code);
+  if (parentCode) params.set("parentCode", parentCode);
   return OPTION + (params.size ? "?" + params.toString() : "");
+}
+export function businessDictionaryDefinitionEditRouteV010(dictionaryId: string): string {
+  return OPTION + "?" + new URLSearchParams({dictionaryId,mode:"definition"}).toString();
 }
 
 export function parseBusinessDictionaryRouteV010(route: string | undefined,
-  kind: "detail" | "option"): { dictionaryId?: string; code?: string; returnTo?: string } | undefined {
+  kind: "detail" | "option"): { dictionaryId?: string; code?: string; parentCode?: string;
+  definitionOnly?: boolean; returnTo?: string } | undefined {
   if (!route || route.length > (kind === "detail" && route.includes("returnTo=") ? 2400 : 700)
       || !route.startsWith("/") || route.startsWith("//")
       || route.includes("#") || route.includes("\\")) return undefined;
@@ -72,16 +81,24 @@ export function parseBusinessDictionaryRouteV010(route: string | undefined,
   if (url.pathname !== (kind === "detail" ? DETAIL : OPTION)) return undefined;
   if ([...url.searchParams.keys()].some(key =>
     key !== "dictionaryId" && key !== "code"
+    && !(kind === "option" && (key === "parentCode" || key === "mode"))
     && !(kind === "detail" && key === "returnTo"))) return undefined;
   if (url.searchParams.getAll("dictionaryId").length > 1
       || url.searchParams.getAll("code").length > 1
-      || url.searchParams.getAll("returnTo").length > 1) return undefined;
+      || url.searchParams.getAll("returnTo").length > 1
+      || url.searchParams.getAll("parentCode").length > 1
+      || url.searchParams.getAll("mode").length > 1) return undefined;
   const dictionaryId = url.searchParams.get("dictionaryId")?.trim();
   const code = url.searchParams.get("code")?.trim();
+  const parentCode = url.searchParams.get("parentCode")?.trim();
+  const mode = url.searchParams.get("mode");
   const returnTo = url.searchParams.get("returnTo") ?? undefined;
   if (kind === "detail" && (!dictionaryId || code)) return undefined;
-  if (code && !dictionaryId) return undefined;
-  if ((dictionaryId?.length ?? 0) > 200 || (code?.length ?? 0) > 100) return undefined;
+  if ((code || parentCode || mode) && !dictionaryId) return undefined;
+  if (mode && (mode !== "definition" || code || parentCode)) return undefined;
+  if (code && parentCode) return undefined;
+  if ((dictionaryId?.length ?? 0) > 200 || (code?.length ?? 0) > 100
+      || (parentCode?.length ?? 0) > 100) return undefined;
   if (returnTo !== undefined) {
     if (!returnTo.trim()) return undefined;
     try { parseBusinessDictionaryDirectoryRouteV010(returnTo); }
@@ -90,6 +107,8 @@ export function parseBusinessDictionaryRouteV010(route: string | undefined,
   return {
     ...(dictionaryId ? { dictionaryId } : {}),
     ...(code ? { code } : {}),
+    ...(parentCode ? { parentCode } : {}),
+    ...(mode === "definition" ? { definitionOnly: true } : {}),
     ...(returnTo ? { returnTo } : {})
   };
 }
@@ -455,7 +474,10 @@ export function createBusinessDictionaryDetailPageV010(input: {
     contextNavigation: { items: [{ id: "dictionaries", label: t.list,
       route: input.returnTo ?? DIRECTORY },
       { id: "dictionary", label: dictionary.displayName || dictionary.dictionaryId }] },
-    actions: input.canManage ? [{ id: "add-option", label: t.add, type: "navigate",
+    actions: input.canManage ? [{ id: "edit-definition", label: t.editDefinition,
+      type: "navigate", route: businessDictionaryDefinitionEditRouteV010(dictionary.dictionaryId),
+      requiresConfirmation: false },
+      { id: "add-option", label: t.add, type: "navigate",
       route: businessDictionaryOptionRouteV010(dictionary.dictionaryId), requiresConfirmation: false,
       primary: dictionary.state !== "DRAFT" },
       ...(dictionary.state === "DRAFT" ? [{ id: "publish", label: t.publish,
@@ -463,27 +485,58 @@ export function createBusinessDictionaryDetailPageV010(input: {
         requiresConfirmation: true, primary: true,
         values: { dictionaryId: dictionary.dictionaryId, expectedVersion: dictionary.version } }] : [])] : [],
     collectionTitle: t.detail,
-    items: dictionary.options.map(option => ({
-      id: option.code, title: option.label.translations?.[input.locale || ""] || option.label.default,
+    items: (() => {
+      // Render a stable hierarchy using Owner-authorized option codes only.
+      // Never infer parent identity from translated labels or re-parent data.
+      const byParent = new Map<string, typeof dictionary.options>();
+      for (const option of dictionary.options) {
+        const key = option.parentCode ?? "";
+        byParent.set(key, [...(byParent.get(key) ?? []), option]);
+      }
+      const flat: {option: typeof dictionary.options[number];depth:number}[] = [];
+      const visit = (parentCode:string, depth:number) => {
+        for(const option of byParent.get(parentCode) ?? []) {
+          flat.push({option,depth});
+          visit(option.code, depth+1);
+        }
+      };
+      visit("",0);
+      return flat.map(({option,depth}) => ({
+      id: option.code, title: (depth ? "↳ ".repeat(depth) : "")
+        + (option.label.translations?.[input.locale || ""] || option.label.default),
       summary: option.aliases?.length ? `${t.aliases}: ${option.aliases.join("、")}` : undefined,
       status: { label: option.status === "ACTIVE" ? t.active : t.inactive,
         tone: option.status === "ACTIVE" ? "positive" as const : "neutral" as const },
       metadata: { [t.code]: option.code, [t.version]: dictionary.version,
+        ...(option.parentCode ? { [t.parent]: option.parentCode } : {}),
         ...(input.effectiveVersion ? { [t.effective]: input.effectiveVersion } : {}) },
       ...(input.canManage ? { primaryAction: { id: "edit", label: t.edit,
         type: "navigate" as const, route: businessDictionaryOptionRouteV010(dictionary.dictionaryId, option.code),
-        requiresConfirmation: false } } : {})
-    })) };
+        requiresConfirmation: false },
+        secondaryActions: [{id:"add-child",label:t.addChild,
+          type:"navigate" as const,
+          route:businessDictionaryOptionRouteV010(dictionary.dictionaryId,undefined,option.code),
+          requiresConfirmation:false}]
+      } : {})
+    }));
+    })() };
 }
 
 export function createBusinessDictionaryOptionPageV010(input: {
   dictionary?: BusinessDictionarySnapshotV010;
-  code?: string; locale?: string;
+  code?: string; parentCode?: string; definitionOnly?: boolean; locale?: string;
 }): UidlFormV011 {
   const t = labels(input.locale);
   const dictionary = input.dictionary;
   const option = input.code ? dictionary?.options.find(item => item.code === input.code) : undefined;
-  const title = option ? `${t.edit} · ${option.code}` : dictionary ? t.add : t.create;
+  const title = input.definitionOnly ? t.editDefinition
+    : option ? `${t.edit} · ${option.code}` : dictionary ? t.add : t.create;
+  if (input.definitionOnly && !dictionary) throw new Error("BUSINESS_DICTIONARY_NOT_FOUND");
+  const parentChoices = dictionary?.options
+    .filter(item => item.code !== option?.code)
+    .map(item => ({ value:item.code,
+      label: item.label.translations?.[input.locale ?? ""] || item.label.default
+        + " · " + item.code })) ?? [];
   return { contractVersion: "0.1.1", kind: "form", id: "evo-business-dictionary.option",
     title, description: t.optionHelp, purpose: "execute-command",
     contextNavigation: { items: [{ id: "dictionaries", label: t.list, route: DIRECTORY },
@@ -491,15 +544,18 @@ export function createBusinessDictionaryOptionPageV010(input: {
         route: businessDictionaryDetailRouteV010(dictionary.dictionaryId) }] : []),
       { id: "option", label: title }] },
     command: { code: SAVE, inputVersion: "0.1.0" },
-    fields: [{ key: "displayName", label: t.name, semanticType: "business-dictionary.name",
+    fields: [...(input.definitionOnly ? [{ key:"definitionOnly", label:t.editDefinition,
+      semanticType:"business-dictionary.definition-only", control:"text" as const,
+      required:false, hidden:true, initialValue:true }] : []),
+    { key: "displayName", label: t.name, semanticType: "business-dictionary.name",
       control: "text", required: true, ...(dictionary?.displayName ? { initialValue: dictionary.displayName } : {}) },
     { key: "dictionaryId", label: t.id, semanticType: "business-dictionary.code",
       control: "text", required: true, ...(dictionary ? { initialValue: dictionary.dictionaryId, hidden: true } : {}) },
     { key: "expectedVersion", label: t.version, semanticType: "business-dictionary.version",
       control: "number", required: true, hidden: true, initialValue: dictionary?.version ?? 0 },
-    ...(option ? [{ key: "originalCode", label: t.code, semanticType: "business-dictionary.option-code",
+    ...(input.definitionOnly ? [] : option ? [{ key: "originalCode", label: t.code, semanticType: "business-dictionary.option-code",
       control: "text" as const, required: false, hidden: true, initialValue: option.code }] : []),
-    { key: "optionCode", label: t.code, semanticType: "business-dictionary.option-code",
+    ...(input.definitionOnly ? [] : [{ key: "optionCode", label: t.code, semanticType: "business-dictionary.option-code",
       control: "text", required: true, ...(option ? { initialValue: option.code, hidden: true } : {}) },
     { key: "optionLabel", label: t.label, semanticType: "business-dictionary.option-label",
       control: "text", required: true, ...(option ? { initialValue: option.label.default } : {}) },
@@ -509,9 +565,13 @@ export function createBusinessDictionaryOptionPageV010(input: {
         ? { initialValue: option.label.translations["zh-CN"] } : {}) },
     { key: "optionAliases", label: t.aliases, semanticType: "business-dictionary.option-aliases",
       control: "text", required: false, ...(option?.aliases?.length ? { initialValue: option.aliases.join("，") } : {}) },
+    { key: "optionParentCode", label: t.parent, semanticType: "business-dictionary.option-parent",
+      control:"select", required:false,
+      initialValue: option?.parentCode ?? input.parentCode ?? "",
+      options:[{value:"",label:t.root}, ...parentChoices] },
     { key: "optionStatus", label: t.status, semanticType: "business-dictionary.option-status",
       control: "select", required: true, initialValue: option?.status ?? "ACTIVE",
-      options: [{ value: "ACTIVE", label: t.active }, { value: "INACTIVE", label: t.inactive }] }],
+      options: [{ value: "ACTIVE", label: t.active }, { value: "INACTIVE", label: t.inactive }] }]),
     actions: [{ id: "save-option", label: t.save, type: "submit", command: SAVE,
       requiresConfirmation: false }],
     metadata: { packageId: "evo-business-dictionary", description: t.optionHelp } };
