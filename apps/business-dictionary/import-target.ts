@@ -141,6 +141,49 @@ export function createBusinessDictionaryImportTargetV010(input: {
       return {route,label:{default:"Business dictionaries",translations:{"zh-CN":"业务字典"}}};
     },
     describe(details) {return schema(details.locale);},
+    // Cross-row graph validation runs during precheck, not first at commit.
+    // The final repository still repeats validation inside its atomic write.
+    validateBatch(request) {
+      const byDictionary=new Map<string,Map<string,string|undefined>>();
+      for(const row of request.rows){
+        const id=textValue(row.values,"dictionaryId");
+        if(!id) continue;
+        if(!byDictionary.has(id)){
+          const existing=input.repository.get(request.contextId,id);
+          byDictionary.set(id,new Map(existing?.options.map(option =>
+            [option.code,option.parentCode] as const) ?? []));
+        }
+        const code=textValue(row.values,"optionCode");
+        if(code) byDictionary.get(id)!.set(code,
+          textValue(row.values,"parentCode") || undefined);
+      }
+      return request.rows.flatMap(row=>{
+        const id=textValue(row.values,"dictionaryId");
+        const code=textValue(row.values,"optionCode");
+        const parent=textValue(row.values,"parentCode");
+        if(!id||!code||!parent) return [];
+        const graph=byDictionary.get(id);
+        const issues:FoundationObjectImportValidationV010["issues"]=[];
+        if(!graph?.has(parent)){
+          issues.push({code:"BUSINESS_DICTIONARY_PARENT_NOT_FOUND",
+            message:"Parent option code is not in this dictionary or import batch.",
+            fieldId:"parentCode"});
+        } else {
+          const seen=new Set<string>();
+          let current:string|undefined=code;
+          while(current){
+            if(seen.has(current)){
+              issues.push({code:"BUSINESS_DICTIONARY_PARENT_CYCLE",
+                message:"Parent option links form a cycle.",fieldId:"parentCode"});
+              break;
+            }
+            seen.add(current);
+            current=graph.get(current);
+          }
+        }
+        return issues.length ? [{rowNumber:row.rowNumber,issues}] : [];
+      });
+    },
     validateRow(request): FoundationObjectImportValidationV010 {
       const values: Record<string, FoundationObjectImportCellV010> = {};
       const issues: FoundationObjectImportValidationV010["issues"] = [];
