@@ -77,7 +77,9 @@ test("CV07 dictionary import reuses the registered Data Import Target and locali
     && c.target.binding.type==="HOST_FACTORY"));
   const schema=f.target.describe({contextId:enterprise,locale:"zh-CN"});
   assert.equal(schema.ownerPackageId,"evo-business-dictionary");
-  assert.equal(schema.fields.length,headers.length);
+  assert.equal(schema.fields.length,headers.length + 1,
+    "optional parentCode extends the Owner schema without changing legacy seven-column CSV");
+  assert.ok(schema.fields.some(field=>field.fieldId==="parentCode" && !field.required));
   assert.ok(schema.fields.every(x=>x.writable&&x.surfaces.includes("IMPORT")));
   const suggestions=suggestDataImportMappingV010({schema,source:source([rowA])});
   assert.deepEqual(suggestions,map);
