@@ -169,6 +169,13 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
       const dictionaryId = required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED");
       const displayName = required(values.displayName, "BUSINESS_DICTIONARY_NAME_REQUIRED");
       const expectedVersion = integer(values.expectedVersion, "BUSINESS_DICTIONARY_VERSION_INVALID");
+      if (values.definitionOnly === true) {
+        const existing = repo.get(contextId, dictionaryId);
+        if (!existing) throw new Error("BUSINESS_DICTIONARY_NOT_FOUND");
+        return repo.saveDraft({contextId,dictionaryId,displayName,expectedVersion,
+          options:existing.options,actorSubjectId:context.principal.subjectId,
+          recordedAt:now().toISOString()});
+      }
       const optionCode = required(values.optionCode, "BUSINESS_DICTIONARY_CODE_REQUIRED");
       const originalCode = typeof values.originalCode === "string" ? values.originalCode.trim() : "";
       const optionLabel = required(values.optionLabel, "BUSINESS_DICTIONARY_LABEL_REQUIRED");
@@ -197,10 +204,16 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
         if (chinese) translations["zh-CN"] = chinese;
         else delete translations["zh-CN"];
       }
+      const parent = values.optionParentCode;
+      if (parent !== undefined && typeof parent !== "string") {
+        throw new Error("BUSINESS_DICTIONARY_PARENT_CODE_INVALID");
+      }
+      const parentCode = typeof parent === "string" ? parent.trim() : previousOption?.parentCode;
       const option: BusinessDictionaryOptionV010 = {
         code: optionCode, label: { default: optionLabel,
           ...(Object.keys(translations).length ? { translations } : {}) },
-        ...(aliases.length ? { aliases } : {}), status
+        ...(aliases.length ? { aliases } : {}),
+        ...(parentCode ? {parentCode} : {}), status
       };
       const options = current ? [...current.options] : [];
       if (existingIndex >= 0) options[existingIndex] = option;
