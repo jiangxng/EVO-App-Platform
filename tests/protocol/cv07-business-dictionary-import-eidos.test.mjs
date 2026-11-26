@@ -247,8 +247,9 @@ test("CV07 Chinese Windows CSV byte decoding prevents false duplicate headers an
   // GB18030 bytes for the seven documented synthetic source headers, not the Human file.
   const bytes=Buffer.from("d1a1cfeed6f7bcfc2cd7d6b5e4b1e0c2eb2cd7d6b5e4c3fbb3c62cd1a1cfeeb1e0c2eb2cd1a1cfeec3fbb3c62cc0b4d4b4b1f0c3fb2cd7b4ccac","hex");
   assert.throws(()=>parseCsvSourceV010({csv:bytes.toString("utf8")}),/DATA_IMPORT_CSV_HEADER_DUPLICATE/);
-  assert.throws(()=>decodeCsvUploadV010(bytes),/DATA_IMPORT_CSV_ENCODING_INVALID/);
-  const source=parseCsvSourceV010({csv:decodeCsvUploadV010(bytes,"GB18030")});
+  assert.throws(()=>decodeCsvUploadV010(bytes,"UTF-8"),/DATA_IMPORT_CSV_ENCODING_INVALID/);
+  assert.equal(decodeCsvUploadV010(bytes),decodeCsvUploadV010(bytes,"GB18030"));
+  const source=parseCsvSourceV010({csv:decodeCsvUploadV010(bytes,"AUTO")});
   assert.deepEqual(source.headers,["选项主键","字典编码","字典名称","选项编码","选项名称","来源别名","状态"]);
   const mapping=suggestDataImportMappingV010({schema:f.target.describe({contextId:enterprise,locale:"zh-CN"}),source});
   assert.equal(mapping.length,6);
@@ -259,4 +260,27 @@ test("CV07 Chinese Windows CSV byte decoding prevents false duplicate headers an
   assert.throws(()=>decodeCsvUploadV010(Buffer.from("\uFEFF字典编码"),"GB18030"),/DATA_IMPORT_CSV_ENCODING_MISMATCH/);
   assert.throws(()=>decodeCsvUploadV010(Buffer.from([0xff]),"GB18030"),/DATA_IMPORT_CSV_ENCODING_INVALID/);
   assert.throws(()=>decodeCsvUploadV010(Buffer.from("a"),"unknown"),/DATA_IMPORT_CSV_ENCODING_UNSUPPORTED/);
+});
+
+test("CV07 automatic CSV decoding preserves UTF-8 priority, BOM boundaries and true duplicate protection",()=>{
+  const ascii=Buffer.from("code,name\nA,B");
+  const utf8=Buffer.from("字典编码,字典名称\nA,测试");
+  for(const encoding of [undefined,"AUTO","UTF-8"]){
+    assert.equal(decodeCsvUploadV010(ascii,encoding),ascii.toString("utf8"));
+    assert.equal(decodeCsvUploadV010(utf8,encoding),utf8.toString("utf8"));
+    assert.equal(decodeCsvUploadV010(Buffer.from("\uFEFF名称"),encoding),"名称");
+  }
+  const dual=Buffer.from("é");
+  assert.notEqual(decodeCsvUploadV010(dual,"GB18030"),"é");
+  assert.equal(decodeCsvUploadV010(dual,"AUTO"),"é");
+  assert.throws(()=>decodeCsvUploadV010(Buffer.from([0xef,0xbb,0xbf,0xd6,0xd0]),"AUTO"),/DATA_IMPORT_CSV_ENCODING_INVALID/);
+  for(const bom of [[0xff,0xfe,0x41,0x00],[0xfe,0xff,0x00,0x41],[0,0,0xfe,0xff]]){
+    assert.throws(()=>decodeCsvUploadV010(Buffer.from(bom),"AUTO"),/DATA_IMPORT_CSV_ENCODING_UNSUPPORTED/);
+  }
+  assert.throws(()=>decodeCsvUploadV010(Buffer.from([0xff]),"AUTO"),/DATA_IMPORT_CSV_ENCODING_INVALID/);
+  const gbDuplicate=Buffer.from("c3fbb3c62cc3fbb3c60a412c42","hex");
+  assert.throws(()=>parseCsvSourceV010({csv:decodeCsvUploadV010(gbDuplicate,"AUTO")}),
+    error=>error.code==="DATA_IMPORT_CSV_HEADER_DUPLICATE" && error.detail.includes("1, 2"));
+  assert.throws(()=>parseCsvSourceV010({csv:decodeCsvUploadV010(Buffer.from("name,name\nA,B"),"AUTO")}),
+    /DATA_IMPORT_CSV_HEADER_DUPLICATE/);
 });

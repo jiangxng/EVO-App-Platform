@@ -534,12 +534,13 @@ export function createDataImportUploadPageV010(input: {
       maxBytes: 20 * 1024 * 1024
     }, {
       key: "csvEncoding",
-      label: zh(input.locale) ? "CSV 文件编码（Excel 文件无需设置）" : "CSV encoding (not used for XLSX)",
+      label: zh(input.locale) ? "CSV 文件编码（默认自动识别，Excel 无需设置）" : "CSV encoding (automatic by default; not used for XLSX)",
       semanticType: "data-import-csv-encoding",
       control: "select" as const,
       required: false,
-      initialValue: "UTF-8",
+      initialValue: "AUTO",
       options: [
+        {value: "AUTO", label: zh(input.locale) ? "自动识别（推荐）" : "Automatic (recommended)"},
         {value: "UTF-8", label: "UTF-8"},
         {value: "GB18030", label: zh(input.locale)
           ? "GB18030（中文 Windows / GBK / ANSI）"
