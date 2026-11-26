@@ -93,6 +93,15 @@ export interface FoundationObjectImportTargetV010 {
     resolved: Readonly<Record<string, string>>;
     issues: readonly FoundationObjectImportIssueV010[];
   }[];
+  /** Optional Owner-only full-batch precheck for cross-row constraints such as
+   * dictionary parent links. Never commits or expands permissions. */
+  validateBatch?(input: {
+    contextId: string;
+    importJobId: string;
+    schema: EffectiveObjectSchemaV010;
+    rows: readonly { rowNumber: number; values: Record<string, FoundationObjectImportCellV010> }[];
+    parameters?: FoundationObjectImportTargetParametersV010;
+  }): readonly { rowNumber: number; issues: readonly FoundationObjectImportIssueV010[] }[];
   validateRow(input: {
     contextId: string;
     importJobId: string;
