@@ -896,7 +896,7 @@ with sync_playwright() as pw:
         assert label in issue_text,("BEX01_V3_VISUAL_ISSUE_MISSING",label,issue_text)
     assert "选择字段" in issue_text and "查看记录" in issue_text and "处理此列" in issue_text,issue_text
     assert issue_text.index("开户银行存在多个对应字段") < issue_text.index("3 条记录缺少主体类型") < issue_text.index("「系统编码」尚未选择处理方式"),issue_text
-    expect(visual_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
+    expect(visual_form.locator('[data-eidos-page-description]')).to_contain_text("第 2 步（共 3 步）")
     expect(visual_form.locator('[data-eidos-context-navigation-desktop] [data-eidos-context-route*="mode=batch"]')).to_have_count(0)
     options_menu=visual_form.locator('[data-eidos-form-review-table-utility-nav]')
     expect(options_menu).to_have_count(0)
@@ -1086,7 +1086,7 @@ with sync_playwright() as pw:
     expect(phone_form).to_be_visible(timeout=30000)
     phone_issues=phone_form.locator('[data-eidos-form-task-issues] [data-eidos-form-task-issue]')
     assert visual_phone.evaluate("document.documentElement.scrollWidth<=innerWidth+2"),"BEX01_V3_VISUAL_PHONE_OVERFLOW"
-    expect(phone_form.locator('[data-eidos-page-description]')).to_have_text("先恢复本企业之前的映射；请核对字段对应关系后继续。")
+    expect(phone_form.locator('[data-eidos-page-description]')).to_contain_text("第 2 步（共 3 步）")
     phone_tools=phone_form.locator('[data-eidos-form-review-table-utility-nav]')
     expect(phone_tools).to_have_count(0)
     expect(phone_form.locator('[data-eidos-form-review-table-heading] h2')).to_have_text("字段对应关系")
