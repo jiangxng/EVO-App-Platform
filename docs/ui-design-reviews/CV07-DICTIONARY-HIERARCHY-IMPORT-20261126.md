@@ -24,7 +24,7 @@
 
 - 用户截图 7 列原始字段：`选项主键`、`字典编码`、`字典名称`、`选项编码`、`选项名称`、`来源别名`、`状态`。正式 Owner 有 7 个默认可写字段：dictionaryId、displayName、optionCode、optionLabel、optionStatus、optionLabelZh、optionAliases。源 `来源别名`、`状态`与现有目标只有表头别名差异，此次增加 Owner-governed `importHeaderAliases`，通用 Data Import 唯一匹配器按同样去重/歧义拒绝规则使用这两项，并增加第 8 个可选字段 `parentCode`。旧数据不需迁移。
 - `选项主键`看似 `payment_method/TT_BANK` 组合键，但从**截图不足以证明**该列是可靠的业务字段；不能暗中映射、拼拆或保存到其他 code。它仍在原始 Job 中保留且需 Human 显式选择不导入或未来业务 Owner 定义独立字段。如未来确有真正的外部主键，需单独扩展有审计的 externalId，不冒充 parent 或 optionCode。
-- 同一批次新增的父与子允许父在 CSV 前或后；最终 Domain repository 原子验证整个选项图。旧无父级的字典项仍是根项。保存新 DRAFT 不改已发布的引用真相，重复恢复保留文件源和映射状态。
+- 同一批次新增的父与子允许父在 CSV 前或后；Data Import 现在调用可选的 Owner `validateBatch` 对整批父级不存在/环路提供行级预检查问题，最终 Domain repository 在原子事务中再次校验完整选项图。旧无父级的字典项仍是根项。保存新 DRAFT 不改已发布的引用真相，重复恢复保留文件源和映射状态。
 
 ## 无障碍与跨年龄
 
@@ -34,7 +34,7 @@ Eidos 标准语义 form/select、按钮、上下文导航继续承载操作；�
 
 - Owner repository 保存前先标准化 options，再校验 parentCode 必须是**同一快照同一字典**中稳定且实际存在的选项编码；不能自指、不能成为子孙、不能形成任意长度环。缺父报 `BUSINESS_DICTIONARY_PARENT_NOT_FOUND`；循环 `BUSINESS_DICTIONARY_PARENT_CYCLE`，事务原子回滚。
 - Option Save 仍由 Host Principal/企业 OWNER/ADMIN + Feature/ActionRouter 再授权。Definition-only 编辑通过现有写 Operation 的固定 `definitionOnly="definition"` 字段进行分支，必须有已存在的字典；不允许借此绕过版本冲突、更新其他企业或隐式发布。
-- 导入数据仍经通用 CSV/XLSX staging→mapping→dryRun→transactional Owner commit。新增 `parentCode`是可选列，先前没有层级的行原样兼容；父存在性在提交前的最终原子事务校验，不读取其他企业。预检查发现 3 列待决时必须先决定，否则拒绝继续。
+- 导入数据仍经通用 CSV/XLSX staging→mapping→dryRun→transactional Owner commit。新增 `parentCode`是可选列，先前没有层级的行原样兼容；批次内父存在性先由 Owner `validateBatch` 于 dry-run 校验，再由最终原子事务复核；只查询当前企业，不读取其他企业。预检查发现 3 列待决时必须先决定，否则拒绝继续。
 - 不改变 Agent READ/Writes、发布行为和 CV03/04 正式能力，不写生产数据。
 
 ## 证据与剩余问题
@@ -48,11 +48,14 @@ Eidos 标准语义 form/select、按钮、上下文导航继续承载操作；�
 - `apps/business-dictionary/actions.ts`
 - `apps/business-dictionary/import-target.ts`
 - `apps/business-dictionary/page.ts`
+- `contracts/foundation-object/import.ts`（可选 Owner 批次级预检查）
 - `apps/data-import/service.ts`
 - `apps/data-import/page.ts`
 - `catalog/seed.ts`
 - `manager/server.ts`
 - `tests/protocol/cv07-dictionary-hierarchy-edit.test.mjs`
+- `tests/protocol/data-import-human-experience.test.mjs`
+- `tests/bex01/v3_synthetic_xlsx_retained_fields_chromium.py`
 
 自动化目标：真实 repository parent orphan/self/cycle/fail-closed，definition rename/permission，编辑 parent + return route，规范化别名，真实 CSV 两行父子 stage/dryRun/commit。CI 未通过前不得标已部署。东京 Human 未签收，特别是 193 行文件未由开发环境访问/写入；用户需要自己的合法企业会话确认正式批次、字段匹配及发布。父子层级之外的“跨字典依赖”“整棵树批量拖拽排序”“删除父节点级联”本次没有未经 Owner 授权实现。
 
