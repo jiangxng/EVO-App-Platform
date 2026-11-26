@@ -20,7 +20,7 @@ import {
   objectExtensionImportRouteV010
 } from "../object-extension/constants.js";
 import {
-  parseCsvSourceV010
+  parseCsvSourceV010, decodeCsvUploadV010, DataImportCsvErrorV010
 } from "./csv.js";
 import {
   parseXlsxSourceV010
@@ -298,7 +298,7 @@ function templateTargetParameters(
   return Object.keys(output).length ? output : undefined;
 }
 
-function sourceFromUploadedFile(value: JsonValue | undefined) {
+function sourceFromUploadedFile(value: JsonValue | undefined, csvEncoding?: JsonValue) {
   const file = uploadedFile(value);
   if (file.size > 20 * 1024 * 1024) {
     throw new Error("DATA_IMPORT_FILE_TOO_LARGE");
@@ -315,7 +315,7 @@ function sourceFromUploadedFile(value: JsonValue | undefined) {
   ) {
     return parseCsvSourceV010({
       name: file.name,
-      csv: bytes.toString("utf8")
+      csv: decodeCsvUploadV010(bytes, csvEncoding)
     });
   }
   if (
@@ -345,7 +345,7 @@ function failure(
       : {}),
     error: {
       code,
-      message: code
+      message: error instanceof DataImportCsvErrorV010 ? error.detail : code
     }
   };
 }
@@ -468,7 +468,7 @@ export function createDataImportActionHandlersV010(input: {
         })?.route !== returnTo) {
           throw new Error("DATA_IMPORT_RETURN_ROUTE_INVALID");
         }
-        const source = sourceFromUploadedFile(request.values.file);
+        const source = sourceFromUploadedFile(request.values.file, request.values.csvEncoding);
         const schema = target.describe({
           contextId: active.contextId,
           parameters

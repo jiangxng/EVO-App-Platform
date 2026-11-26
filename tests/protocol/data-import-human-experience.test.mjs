@@ -210,6 +210,9 @@ test("Data Import Human experience exposes target selection, file upload and tar
   assert.equal(file.control, "file");
   assert.ok(file.accept.includes(".xlsx"));
   assert.equal(file.maxBytes, 20 * 1024 * 1024);
+  const encoding = upload.fields.find(field => field.key === "csvEncoding");
+  assert.equal(encoding.initialValue, "UTF-8");
+  assert.deepEqual(encoding.options.map(option=>option.value),["UTF-8","GB18030"]);
   const relation = upload.fields.find(
     field => field.key === "parameter__relationshipMode"
   );
@@ -454,6 +457,24 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   assert.equal(repository.list("enterprise-context:a").length,0,
     "rejected role must not stage a job");
 
+  // Invalid UTF-8 and true duplicate headers must reject before staging.
+  const csvFile = bytes => ({name:"test.csv",mediaType:"text/csv",size:bytes.length,
+    contentBase64:bytes.toString("base64")});
+  const invalid = await stageFile.execute(request(DATA_IMPORT_STAGE_FILE_COMMAND_V010,{
+    targetId:"counterparty.subject",file:csvFile(Buffer.from([0xff])),
+    parameter__relationshipMode:"CUSTOMER"
+  }),platformContext());
+  assert.equal(invalid.ok,false);
+  assert.equal(invalid.error.code,"DATA_IMPORT_CSV_ENCODING_INVALID");
+  assert.match(invalid.error.message,/GB18030/);
+  const duplicate = await stageFile.execute(request(DATA_IMPORT_STAGE_FILE_COMMAND_V010,{
+    targetId:"counterparty.subject",file:csvFile(Buffer.from("name,name\nA,B")),
+    parameter__relationshipMode:"CUSTOMER"
+  }),platformContext());
+  assert.equal(duplicate.ok,false);
+  assert.equal(duplicate.error.code,"DATA_IMPORT_CSV_HEADER_DUPLICATE");
+  assert.match(duplicate.error.message,/1, 2/);
+  assert.equal(repository.list("enterprise-context:a").length,0);
   const staged = await stageFile.execute(
     request(DATA_IMPORT_STAGE_FILE_COMMAND_V010, {
       targetId: "counterparty.subject",

@@ -532,6 +532,19 @@ export function createDataImportUploadPageV010(input: {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       ],
       maxBytes: 20 * 1024 * 1024
+    }, {
+      key: "csvEncoding",
+      label: zh(input.locale) ? "CSV 文件编码（Excel 文件无需设置）" : "CSV encoding (not used for XLSX)",
+      semanticType: "data-import-csv-encoding",
+      control: "select" as const,
+      required: false,
+      initialValue: "UTF-8",
+      options: [
+        {value: "UTF-8", label: "UTF-8"},
+        {value: "GB18030", label: zh(input.locale)
+          ? "GB18030（中文 Windows / GBK / ANSI）"
+          : "GB18030 (Chinese Windows / GBK)"}
+      ]
     }, ...safeParameters.map(({parameter, options}) => ({
       key: "parameter__" + parameter.key,
       label: localizedTextV010(parameter.label, input.locale),
