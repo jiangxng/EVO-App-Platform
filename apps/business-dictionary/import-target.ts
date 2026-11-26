@@ -34,7 +34,8 @@ function field(
   chinese: string,
   order: number,
   required: boolean,
-  enumOptions?: EffectiveFoundationObjectFieldV010["enumOptions"]
+  enumOptions?: EffectiveFoundationObjectFieldV010["enumOptions"],
+  importHeaderAliases?: string[]
 ): EffectiveFoundationObjectFieldV010 {
   return {
     fieldId, slotId: "business-dictionary.option-import",
@@ -44,6 +45,7 @@ function field(
     label: {default: english, translations: {"zh-CN": chinese}},
     required, order, surfaces: ["IMPORT"],
     ...(enumOptions ? {enumOptions} : {}),
+    ...(importHeaderAliases?.length ? {importHeaderAliases} : {}),
     source: "CORE", resolvedLabel: english, readable: true, writable: true
   };
 }
@@ -56,9 +58,11 @@ const FIELDS: EffectiveFoundationObjectFieldV010[] = [
   field("optionStatus", "Option status", "选项状态", 50, true, [
     {value:"ACTIVE",label:{default:"Active",translations:{"zh-CN":"启用"}}},
     {value:"INACTIVE",label:{default:"Inactive",translations:{"zh-CN":"停用"}}}
-  ]),
+  ], ["状态"]),
   field("optionLabelZh", "Chinese option name", "简体中文名称", 60, false),
-  field("optionAliases", "Source aliases (comma-separated)", "来源别名（逗号分隔）", 70, false)
+  field("parentCode", "Parent option code", "父选项编码", 65, false),
+  field("optionAliases", "Source aliases (comma-separated)", "来源别名（逗号分隔）", 70, false,
+    undefined, ["来源别名"])
 ];
 
 function schema(locale = "en"): EffectiveObjectSchemaV010 {
@@ -91,6 +95,7 @@ function optionFor(values: Record<string, FoundationObjectImportCellV010>): Busi
         translations: {"zh-CN":textValue(values,"optionLabelZh")}
       } : {})
     },
+    ...(textValue(values,"parentCode") ? {parentCode:textValue(values,"parentCode")} : {}),
     status: textValue(values,"optionStatus") as "ACTIVE"|"INACTIVE"
   };
   const aliases = textValue(values,"optionAliases")
@@ -169,6 +174,11 @@ export function createBusinessDictionaryImportTargetV010(input: {
       const id=textValue(values,"dictionaryId");
       const name=textValue(values,"displayName");
       const code=textValue(values,"optionCode");
+      const parentCode=textValue(values,"parentCode");
+      if(parentCode && parentCode === code) {
+        issues.push({code:"BUSINESS_DICTIONARY_PARENT_SELF",
+          message:"An option cannot be its own parent.",fieldId:"parentCode"});
+      }
       if(id && code) {
         const existing=input.repository.get(request.contextId,id);
         if(existing?.displayName && existing.displayName!==name) {
