@@ -40,7 +40,8 @@ export function dataImportBlankCsvTemplateV010(input: {
   const aliases = new Map<string, Set<string>>();
   for (const field of fields) {
     for (const alias of [field.fieldId, field.resolvedLabel,
-      field.label.default, ...Object.values(field.label.translations ?? {})]) {
+      field.label.default, ...Object.values(field.label.translations ?? {}),
+      ...(field.importHeaderAliases ?? [])]) {
       const key = headerKey(alias);
       const ids = aliases.get(key) ?? new Set<string>();
       ids.add(field.fieldId);
@@ -56,8 +57,14 @@ export function dataImportBlankCsvTemplateV010(input: {
       && key && aliases.get(key)?.size === 1 && !used.has(key)
       ? candidate : field.fieldId;
     const id = headerKey(header);
+    // Match the mapper's explicit technical ID precedence when an Owner alias
+    // collides with a canonical ID. A non-ID alias must still be unique.
+    const matches = aliases.get(id);
+    const explicitIds = [...(matches ?? [])].filter(value => headerKey(value) === id);
+    const resolved = matches?.size === 1 ? [...matches][0]
+      : explicitIds.length === 1 ? explicitIds[0] : undefined;
     if (!spreadsheetSafeHeader(header) || !id || used.has(id)
-      || (aliases.get(id)?.size ?? 0) !== 1) {
+      || resolved !== field.fieldId) {
       throw new Error("DATA_IMPORT_TEMPLATE_HEADER_AMBIGUOUS");
     }
     used.add(id);

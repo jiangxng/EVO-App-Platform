@@ -225,3 +225,28 @@ test("CV07 Import Center shows per-target template actions only to eligible Host
       && c.operation.operationId===operation
   ).operation.effect,"READ");
 });
+
+
+test("CV07 generated template considers Owner import header aliases and preserves explicit ID precedence", () => {
+  const target = fixture().dictionary;
+  const schema = target.describe({contextId: enterprise, locale: "zh-CN"});
+  const basis = schema.fields[0];
+  const field = (fieldId, name, importHeaderAliases = []) => ({
+    ...basis, fieldId, resolvedLabel: name,
+    label: {default: name, translations: {"zh-CN": name}},
+    importHeaderAliases
+  });
+  const effective = {...schema, fields: [
+    field("ext.state", "状态"),
+    field("ext.other", "其他状态", ["状态", "ext.state"])
+  ]};
+  const download = dataImportBlankCsvTemplateV010({
+    targetId: target.targetId, schema: effective, locale: "zh-CN"
+  });
+  const source = parseCsvSourceV010({csv: download.content});
+  assert.deepEqual(source.headers, ["ext.state", "其他状态"],
+    "A localized header colliding with an Owner alias must use the stable field ID");
+  assert.deepEqual(suggestDataImportMappingV010({schema: effective, source})
+    .map(mapping => mapping.targetFieldId), ["ext.state", "ext.other"],
+    "The mapper honors a unique explicit ID even if another field declares it as an alias");
+});
