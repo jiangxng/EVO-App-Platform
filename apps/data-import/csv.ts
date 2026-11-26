@@ -12,26 +12,40 @@ export class DataImportCsvErrorV010 extends Error {
   }
 }
 
-/** Default to strict UTF-8; legacy Chinese encoding is a deliberate Human choice. */
+/** Automatic detection uses strict UTF-8 first, then strict GB18030 for legacy Chinese CSV.
+ * Valid UTF-8 is preferred when both encodings are possible; explicit overrides remain available.
+ * A BOM is authoritative, and parse errors must never trigger another decoding attempt.
+ */
 export function decodeCsvUploadV010(bytes: Uint8Array, encoding?: unknown): string {
-  const selected = encoding === undefined ? "UTF-8" : encoding;
-  if (selected !== "UTF-8" && selected !== "GB18030") {
+  const selected = encoding === undefined ? "AUTO" : encoding;
+  if (selected !== "AUTO" && selected !== "UTF-8" && selected !== "GB18030") {
     throw new DataImportCsvErrorV010("DATA_IMPORT_CSV_ENCODING_UNSUPPORTED",
-      "请选择 UTF-8 或 GB18030 / Choose UTF-8 or GB18030.");
+      "请选择自动识别、UTF-8 或 GB18030 / Choose automatic detection, UTF-8 or GB18030.");
   }
   const utf8Bom = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+  const unsupportedBom = (bytes[0] === 0xff && bytes[1] === 0xfe)
+    || (bytes[0] === 0xfe && bytes[1] === 0xff)
+    || (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0xfe && bytes[3] === 0xff);
+  if (unsupportedBom) {
+    throw new DataImportCsvErrorV010("DATA_IMPORT_CSV_ENCODING_UNSUPPORTED",
+      "此 CSV 使用不支持的 Unicode 编码，请另存为 UTF-8 CSV。/ Unsupported Unicode BOM; save as UTF-8 CSV.");
+  }
   if (selected === "GB18030" && utf8Bom) {
     throw new DataImportCsvErrorV010("DATA_IMPORT_CSV_ENCODING_MISMATCH",
-      "文件包含 UTF-8 BOM，请选择 UTF-8 / UTF-8 BOM detected; choose UTF-8.");
+      "文件包含 UTF-8 BOM，请使用自动识别或 UTF-8 / UTF-8 BOM detected; use automatic detection or UTF-8.");
   }
-  try {
-    return new TextDecoder(selected === "UTF-8" ? "utf-8" : "gb18030", {
-      fatal: true
-    }).decode(bytes);
-  } catch {
-    throw new DataImportCsvErrorV010("DATA_IMPORT_CSV_ENCODING_INVALID",
-      "无法按所选编码读取 CSV。请选择正确编码（中文 Windows CSV 可试 GB18030），或另存为 UTF-8 CSV。/ Cannot decode CSV; choose its encoding or save as UTF-8 CSV.");
+  const candidates = selected === "AUTO"
+    ? (utf8Bom ? ["utf-8"] : ["utf-8", "gb18030"])
+    : [selected === "UTF-8" ? "utf-8" : "gb18030"];
+  for (const candidate of candidates) {
+    try {
+      return new TextDecoder(candidate, { fatal: true }).decode(bytes);
+    } catch {
+      // Only decoding failure may advance to the next supported encoding.
+    }
   }
+  throw new DataImportCsvErrorV010("DATA_IMPORT_CSV_ENCODING_INVALID",
+    "无法读取 CSV 编码。可手动选择 UTF-8 或 GB18030，或另存为 UTF-8 CSV。/ Cannot decode CSV; try UTF-8 or GB18030 manually, or save as UTF-8 CSV.");
 }
 
 function parseCsvRecords(input: string): string[][] {

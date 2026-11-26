@@ -211,8 +211,8 @@ test("Data Import Human experience exposes target selection, file upload and tar
   assert.ok(file.accept.includes(".xlsx"));
   assert.equal(file.maxBytes, 20 * 1024 * 1024);
   const encoding = upload.fields.find(field => field.key === "csvEncoding");
-  assert.equal(encoding.initialValue, "UTF-8");
-  assert.deepEqual(encoding.options.map(option=>option.value),["UTF-8","GB18030"]);
+  assert.equal(encoding.initialValue, "AUTO");
+  assert.deepEqual(encoding.options.map(option=>option.value),["AUTO","UTF-8","GB18030"]);
   const relation = upload.fields.find(
     field => field.key === "parameter__relationshipMode"
   );
@@ -457,7 +457,7 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   assert.equal(repository.list("enterprise-context:a").length,0,
     "rejected role must not stage a job");
 
-  // Invalid UTF-8 and true duplicate headers must reject before staging.
+  // Undecodable bytes and true duplicate headers must reject before staging.
   const csvFile = bytes => ({name:"test.csv",mediaType:"text/csv",size:bytes.length,
     contentBase64:bytes.toString("base64")});
   const invalid = await stageFile.execute(request(DATA_IMPORT_STAGE_FILE_COMMAND_V010,{
@@ -541,6 +541,21 @@ test("Human file action stages XLSX, preserves suggested mapping and reaches dry
   assert.equal(ready.state, "DRY_RUN_READY");
   assert.equal(ready.dryRun.validRows, 1);
   assert.equal(counterparties.list("enterprise-context:a").length, 0);
+
+  // Synthetic GB18030 upload: no user encoding setting, and explicit AUTO, both stage correct mappings.
+  const legacy=Buffer.from("cdf9c0b4b1e0c2eb2ccdf9c0b4c3fbb3c62cd6f7cce5c0e0d0cd0a432d4155544f2cb2e2cad4bfcdbba72c4f5247414e495a4154494f4e","hex");
+  for(const [index,encoding] of [undefined,"AUTO"].entries()){
+    const auto=await stageFile.execute(request(DATA_IMPORT_STAGE_FILE_COMMAND_V010,{
+      targetId:"counterparty.subject",file:csvFile(legacy),parameter__relationshipMode:"CUSTOMER",
+      ...(encoding===undefined?{}:{csvEncoding:encoding})
+    }),platformContext());
+    assert.equal(auto.ok,true);
+    const csvJob=repository.get("enterprise-context:a","import-human-action-"+(index+2));
+    assert.deepEqual(csvJob.source.headers,["往来编码","往来名称","主体类型"]);
+    assert.equal(csvJob.source.rows[0]["往来名称"],"测试客户");
+    assert.deepEqual(csvJob.mapping,job.mapping);
+    assert.equal(counterparties.list("enterprise-context:a").length,0);
+  }
 });
 
 test("CP-03D first confirmed import teaches a recipe and second same-structure import reuses it without remapping", async () => {
