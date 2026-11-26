@@ -1065,15 +1065,17 @@ export function createDataImportMappingPageV010(input: {
         ? { iconLabel: input.job.source.kind } : {}),
       facts: []
     },
-    // Match the approved V3 prototype: the top stepper has two stages.
-    // Precheck, schema confirmation and explicit commit remain substeps of
-    // "核对并导入", not a third top-level stage.
+    // Never imply the second step has already imported business records.
+    // Explicit Owner-approved commit is a distinct final step.
     steps: [{
       id:"source",label:zh(input.locale)?"选择文件":"Choose file",
       state:"complete" as const
     }, {
-      id:"review",label:zh(input.locale)?"核对并导入":"Review & import",
+      id:"mapping",label:zh(input.locale)?"字段映射与预检查":"Map & validate",
       state:"current" as const
+    }, {
+      id:"commit",label:zh(input.locale)?"确认导入":"Confirm import",
+      state:"upcoming" as const
     }],
     metrics: [{
       id:"matched",label:zh(input.locale)?"已匹配":"Matched",
@@ -1145,8 +1147,8 @@ export function createDataImportMappingPageV010(input: {
           ? "Experience Compiler 已给出字段建议，请人工核对待处理问题。"
           : "Field matching suggestions are available. Review pending issues.")
         : (zh(input.locale)
-          ? "先恢复本企业之前的映射；请核对字段对应关系后继续。"
-          : "Review field mappings and resolve outstanding issues before continuing."),
+          ? "先恢复本企业之前的映射。第 2 步（共 3 步）：请核对字段对应关系，待决列须明确处理；预检查通过后下一步再确认导入。"
+          : "Step 2 of 3: resolve or explicitly exclude each source column. Save and validate to review results; only the final Confirm import writes draft records."),
     contextNavigation: importContextNavigationV010({
       target: input.target,
       parameters: input.job.targetParameters,

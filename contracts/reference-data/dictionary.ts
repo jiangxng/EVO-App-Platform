@@ -13,6 +13,8 @@ export interface BusinessDictionaryOptionV010 {
   label: FoundationObjectLocalizedTextV010;
   /** Explicitly governed source-value equivalents, not fuzzy matching. */
   aliases?: string[];
+  /** Stable parent option code within this same dictionary; absent means top-level. */
+  parentCode?: string;
   status: "ACTIVE" | "INACTIVE";
 }
 

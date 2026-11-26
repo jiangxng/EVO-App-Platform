@@ -53,7 +53,7 @@ function validateOptions(options: BusinessDictionaryOptionV010[]): BusinessDicti
     throw new Error("BUSINESS_DICTIONARY_OPTIONS_REQUIRED");
   }
   const codes = new Set<string>();
-  return options.map(option => {
+  const validated = options.map(option => {
     const code = required(option?.code, "BUSINESS_DICTIONARY_CODE_REQUIRED");
     if (code !== option.code) throw new Error("BUSINESS_DICTIONARY_CODE_NONCANONICAL");
     if (codes.has(normalize(code))) throw new Error("BUSINESS_DICTIONARY_CODE_DUPLICATE");
@@ -72,9 +72,37 @@ function validateOptions(options: BusinessDictionaryOptionV010[]): BusinessDicti
         ...(option.label.translations ? { translations: { ...option.label.translations } } : {})
       },
       ...(aliases.length ? { aliases: [...new Set(aliases)] } : {}),
+      ...(option.parentCode !== undefined ? {
+        parentCode: required(option.parentCode, "BUSINESS_DICTIONARY_PARENT_CODE_REQUIRED")
+      } : {}),
       status: option.status
     };
   });
+  // Resolve against canonical codes of the same snapshot, never across
+  // enterprises or dictionaries. Invalid parents and cycles cannot be saved.
+  const byCode = new Map(validated.map(option => [option.code, option]));
+  for (const option of validated) {
+    if (!option.parentCode) continue;
+    if (option.parentCode === option.code) {
+      throw new Error("BUSINESS_DICTIONARY_PARENT_SELF");
+    }
+    if (!byCode.has(option.parentCode)) {
+      throw new Error("BUSINESS_DICTIONARY_PARENT_NOT_FOUND");
+    }
+  }
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  const walk = (code: string): void => {
+    if (visited.has(code)) return;
+    if (visiting.has(code)) throw new Error("BUSINESS_DICTIONARY_PARENT_CYCLE");
+    visiting.add(code);
+    const parent = byCode.get(code)?.parentCode;
+    if (parent) walk(parent);
+    visiting.delete(code);
+    visited.add(code);
+  };
+  for (const option of validated) walk(option.code);
+  return validated;
 }
 
 function fromPayload(payload: EnterpriseResourceJsonV010 | undefined):
@@ -173,11 +201,13 @@ export function createBusinessDictionaryRepositoryV010(resources: EnterpriseReso
           // Same-content retries for the same draft do not manufacture another revision.
           if (previous?.state === "DRAFT"
               && previous.version === input.expectedVersion + 1
-              && JSON.stringify(previous.options) === JSON.stringify(options)) return previous;
+              && JSON.stringify(previous.options) === JSON.stringify(options)
+              && (input.displayName?.trim() || previous.displayName) === previous.displayName) return previous;
           throw new Error("BUSINESS_DICTIONARY_VERSION_CONFLICT");
         }
         if (previous?.state === "DRAFT" &&
-            JSON.stringify(previous.options) === JSON.stringify(options)) return previous;
+            JSON.stringify(previous.options) === JSON.stringify(options)
+            && (input.displayName?.trim() || previous.displayName) === previous.displayName) return previous;
         const next: BusinessDictionarySnapshotV010 = {
           contractVersion: "0.1.0", contextId, dictionaryId,
           ...(input.displayName?.trim() || previous?.displayName

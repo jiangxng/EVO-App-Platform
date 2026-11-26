@@ -1078,8 +1078,9 @@ test("BEX mapping: preserve source columns and reach batch review through the pr
   assert.equal(page.reviewTask.steps.filter(x=>x.state==="current").length,1);
   assert.deepEqual(page.reviewTask.steps.map(x=>[x.id,x.label,x.state]),[
     ["source","选择文件","complete"],
-    ["review","核对并导入","current"]
-  ],"the top-level stepper must match the approved two-stage V3 prototype");
+    ["mapping","字段映射与预检查","current"],
+    ["commit","确认导入","upcoming"]
+  ],"the top-level stepper must distinguish mapping from the later explicit import");
   assert.deepEqual(page.reviewTask.metrics.map(x=>x.value),["1","2","0","1"]);
   assert.deepEqual(page.reviewTask.issues.map(x=>x.focusGroupId),["map-source-3"]);
   assert.equal(page.reviewTask.issues[0].actionLabel,"处理此列");
