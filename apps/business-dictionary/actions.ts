@@ -169,7 +169,7 @@ export function createBusinessDictionaryActionHandlersV010(input: ({
       const dictionaryId = required(values.dictionaryId, "BUSINESS_DICTIONARY_ID_REQUIRED");
       const displayName = required(values.displayName, "BUSINESS_DICTIONARY_NAME_REQUIRED");
       const expectedVersion = integer(values.expectedVersion, "BUSINESS_DICTIONARY_VERSION_INVALID");
-      if (values.definitionOnly === true) {
+      if (values.definitionOnly === "definition") {
         const existing = repo.get(contextId, dictionaryId);
         if (!existing) throw new Error("BUSINESS_DICTIONARY_NOT_FOUND");
         return repo.saveDraft({contextId,dictionaryId,displayName,expectedVersion,
