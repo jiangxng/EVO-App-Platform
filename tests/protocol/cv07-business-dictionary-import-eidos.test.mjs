@@ -173,9 +173,12 @@ test("CV07 malformed enum and cross-name collisions refuse the batch",()=>{
   assert.ok(invalid.dryRun.rows[0].issues.some(x=>x.code==="DATA_IMPORT_VALUE_ENUM_INVALID"));
   assert.equal(f.repository.list(enterprise).length,0);
   const mismatch=stage(f,[rowA,"customer.level,不同名称,B,普通,ACTIVE,普通,"],"name-conflict");
-  assert.equal(mismatch.state,"DRY_RUN_READY","per-row mapping cannot trust batch name consistency");
-  const result=f.service.commit({contextId:enterprise,importJobId:"name-conflict",...owner});
-  assert.equal(result.state,"COMMITTED_WITH_ERRORS");
+  assert.equal(mismatch.state,"DRY_RUN_FAILED");
+  assert.equal(mismatch.dryRun.invalidRows,2);
+  assert.ok(mismatch.dryRun.rows.every(row=>row.issues.some(issue=>
+    issue.code==="BUSINESS_DICTIONARY_IMPORT_NAME_CONFLICT" && issue.fieldId==="displayName")));
+  assert.throws(()=>f.service.commit({contextId:enterprise,importJobId:"name-conflict",...owner}),
+    /DATA_IMPORT_DRY_RUN_REQUIRED/);
   assert.equal(f.repository.list(enterprise).length,0);
 });
 
@@ -200,4 +203,41 @@ test("CV07 Eidos view shows import only to managed audience and only when Host s
   assert.match(eidosProductiveWorkbenchCss,/\[data-eidos-catalog-column-controls\] summary/);
   assert.match(eidosProductiveWorkbenchCss,/@media\(max-width:600px\)/);
   assert.match(eidosProductiveWorkbenchCss,/\[data-eidos-catalog-table-toolbar\]/);
+});
+
+
+test("CV07 synthetic 193-row seven-column dictionary batch resolves six known headers and requires explicit primary-key exclusion",()=>{
+  const f=fixture();
+  const csv=parseCsvSourceV010({name:"synthetic-193.csv",csv:[
+    "选项主键,字典编码,字典名称,选项编码,选项名称,来源别名,状态",
+    ...Array.from({length:193},(_,i)=>{
+      const group=Math.floor(i/20), code="OPT"+i;
+      return [`synthetic.${group}/${code}`,`synthetic.${group}`,`示例字典${group}`,code,
+        `示例选项${i}`,`示例别名${i}`,i%2?"停用":"启用"].join(",");
+    })
+  ].join("\n")});
+  const schema=f.target.describe({contextId:enterprise,locale:"zh-CN"});
+  const mapping=suggestDataImportMappingV010({schema,source:csv});
+  assert.equal(csv.rows.length,193);
+  assert.equal(mapping.length,6);
+  assert.equal(mapping.find(x=>x.sourceColumn==="选项主键"),undefined);
+  assert.equal(mapping.find(x=>x.sourceColumn==="来源别名")?.targetFieldId,"optionAliases");
+  assert.equal(mapping.find(x=>x.sourceColumn==="状态")?.targetFieldId,"optionStatus");
+  const job="synthetic-193";
+  f.service.stage({contextId:enterprise,importJobId:job,
+    targetId:BUSINESS_DICTIONARY_IMPORT_TARGET_V010,source:csv,mapping,
+    ignoredSourceColumns:["选项主键"],...owner});
+  const dry=f.service.dryRun({contextId:enterprise,importJobId:job,locale:"zh-CN",...owner});
+  assert.equal(dry.state,"DRY_RUN_READY");
+  assert.equal(dry.dryRun.validRows,193);
+  assert.equal(f.repository.list(enterprise).length,0);
+  const receipt=f.service.commit({contextId:enterprise,importJobId:job,...owner});
+  assert.equal(receipt.state,"COMMITTED");
+  assert.equal(receipt.receipt.succeededRows,193);
+  const drafts=f.repository.list(enterprise);
+  assert.equal(drafts.length,10);
+  assert.equal(drafts.reduce((n,d)=>n+d.options.length,0),193);
+  assert.ok(drafts.every(d=>d.state==="DRAFT"&&d.version===1));
+  assert.ok(drafts.every(d=>!f.repository.getEffective(enterprise,d.dictionaryId)));
+  assert.equal(f.repository.list("enterprise:b").length,0);
 });
