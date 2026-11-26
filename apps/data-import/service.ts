@@ -836,6 +836,25 @@ export function createDataImportServiceV010(input: {
         || referenceRows.some((row, index) => row.rowNumber !== index + 1))) {
         throw new Error("DATA_IMPORT_REFERENCE_BATCH_RESULT_INVALID");
       }
+      const batchIssues = target.validateBatch?.({
+        contextId: dryRunInput.contextId,
+        importJobId: job.importJobId,
+        schema,
+        rows: mappedRows,
+        parameters: job.targetParameters
+      }) ?? [];
+      if (batchIssues.some(entry =>
+        !Number.isSafeInteger(entry.rowNumber)
+        || entry.rowNumber < 1 || entry.rowNumber > mappedRows.length
+        || !Array.isArray(entry.issues))) {
+        throw new Error("DATA_IMPORT_OWNER_BATCH_RESULT_INVALID");
+      }
+      const issuesByRow = new Map<number, typeof batchIssues[number]["issues"]>();
+      for (const entry of batchIssues) {
+        if (issuesByRow.has(entry.rowNumber))
+          throw new Error("DATA_IMPORT_OWNER_BATCH_RESULT_DUPLICATE");
+        issuesByRow.set(entry.rowNumber, entry.issues);
+      }
       const seenDedupeKeys = new Set<string>();
       const rows = mappedRows.map(({ rowNumber, values }, index) => {
         const validation = target.validateRow({
@@ -851,7 +870,8 @@ export function createDataImportServiceV010(input: {
         });
         const issues = [
           ...validation.issues,
-          ...(referenceRows[index]?.issues ?? [])
+          ...(referenceRows[index]?.issues ?? []),
+          ...(issuesByRow.get(rowNumber) ?? [])
         ];
         if (
           validation.prepared?.dedupeKey
