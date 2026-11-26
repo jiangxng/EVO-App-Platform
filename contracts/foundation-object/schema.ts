@@ -101,6 +101,8 @@ export interface FoundationObjectFieldDefinitionV010 {
   valueType: FoundationObjectValueTypeV010;
   control: FoundationObjectFieldControlV010;
   label: FoundationObjectLocalizedTextV010;
+  /** Domain Owner-governed deterministic CSV header alternatives; ambiguity must fail closed. */
+  importHeaderAliases?: string[];
   /**
    * Business meaning of the field. This is part of the governed schema
    * contract and is intended for Humans, Agents and integration tooling.
