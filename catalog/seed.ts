@@ -573,11 +573,13 @@ export const businessDictionaryCapabilityContributionsV010:
       optionAliases: { type: "string" },
       optionParentCode: { type: "string" },
       definitionOnly: { type: "string", enum: ["definition"] },
+      returnTo: { type: "string", maxLength: 650 },
       optionStatus: { enum: ["ACTIVE", "INACTIVE"] }
     }, ["dictionaryId", "displayName", "expectedVersion"]),
     businessDictionaryOp(BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, "WRITE", BUSINESS_DICTIONARY_PUBLISH_ACTION_V010, BUSINESS_DICTIONARY_PUBLISH_COMMAND_V010, {
       dictionaryId: { type: "string", minLength: 1 },
-      expectedVersion: { type: "integer", minimum: 1 }
+      expectedVersion: { type: "integer", minimum: 1 },
+      returnTo: { type: "string", maxLength: 650 }
     }, ["dictionaryId", "expectedVersion"])
   ];
 
