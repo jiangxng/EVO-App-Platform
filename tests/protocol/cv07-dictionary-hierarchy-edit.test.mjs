@@ -20,8 +20,6 @@ import {createBusinessDictionaryDetailPageV010,createBusinessDictionaryOptionPag
   from "../../dist/apps/business-dictionary/page.js";
 import {createDataImportMappingPageV010}
   from "../../dist/apps/data-import/page.js";
-import {renderFormToHtml}
-  from "../../dist/vendor/eidos/src/renderers/html/index.js";
 
 const id="enterprise:cv07";
 const actor={actorSubjectId:"owner",recordedAt:"2026-11-26T00:00:00Z"};
