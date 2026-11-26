@@ -42,3 +42,5 @@ Human：NOT SIGNED。
 
 ## 浏览器与 Human 证据
 #1387 旧 HEAD 的隔离 Host 1096/1280/390 布局证据只作为既有基线；本次改动尚待重新验证。不能充当用户真实 CSV、授权企业会话或正式视觉签收。
+
+本轮组合回归原 HEAD `8eadc5ab85abe240d331d5c6925b34e33bf3672b` 的 [Protocol CI](https://github.com/jiangxng/EVO-App-Platform/actions/runs/45749231119/job/139672735319) 1522 pass / 1 fail / 1 skipped；失败是 CV02 旧合同断言所有 editor returnTo 不合法，与本次有意扩展合法目录 returnTo 的需求冲突。更新 `tests/protocol/cv02-collection-detail-return.test.mjs`：仅允许既有字典目录 allowlist，保留并扩展外链、跨应用、未知/重复参数的拒绝测试到 option 路由。补创建入口及伪造发布 returnTo 的零副作用回归；新 HEAD 尚未通过 CI。未放宽目录 allowlist、权限或发布规则。
