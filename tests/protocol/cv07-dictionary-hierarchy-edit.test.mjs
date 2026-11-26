@@ -146,9 +146,18 @@ test("CV07 uploaded source aliases are mapped, but composite primary key is not 
   assert.equal(mapping.find(x=>x.sourceColumn==="父选项编码")?.targetFieldId,"parentCode");
   const service=createDataImportServiceV010({
     repository:createDataImportRepositoryV010(resources),targets:[target]});
-  service.stage({contextId:id,importJobId:"hierarchical-csv",
+  const staged=service.stage({contextId:id,importJobId:"hierarchical-csv",
     targetId:target.targetId,source:csv,mapping,
     ignoredSourceColumns:["选项主键"],...actor});
+  const mappingPage=createDataImportMappingPageV010({
+    job:staged,schema,target,locale:"zh-CN"
+  });
+  assert.deepEqual(mappingPage.reviewTask.steps.map(s=>[s.id,s.state]),[
+    ["source","complete"],["mapping","current"],["commit","upcoming"]
+  ]);
+  assert.match(mappingPage.description,/第 2 步（共 3 步）/);
+  assert.ok(mappingPage.actions.some(a=>a.id==="review"
+    && a.label.includes("预检查")));
   const checked=service.dryRun({contextId:id,importJobId:"hierarchical-csv",...actor});
   assert.equal(checked.state,"DRY_RUN_READY",JSON.stringify(checked.dryRun?.rows));
   const committed=service.commit({contextId:id,importJobId:"hierarchical-csv",...actor});
