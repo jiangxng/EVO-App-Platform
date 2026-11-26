@@ -145,9 +145,16 @@ export function createBusinessDictionaryImportTargetV010(input: {
     // The final repository still repeats validation inside its atomic write.
     validateBatch(request) {
       const byDictionary=new Map<string,Map<string,string|undefined>>();
+      const namesByDictionary=new Map<string,Set<string>>();
       for(const row of request.rows){
         const id=textValue(row.values,"dictionaryId");
         if(!id) continue;
+        const name=textValue(row.values,"displayName");
+        if(name){
+          const names=namesByDictionary.get(id) ?? new Set<string>();
+          names.add(name);
+          namesByDictionary.set(id,names);
+        }
         if(!byDictionary.has(id)){
           const existing=input.repository.get(request.contextId,id);
           byDictionary.set(id,new Map(existing?.options.map(option =>
@@ -161,9 +168,14 @@ export function createBusinessDictionaryImportTargetV010(input: {
         const id=textValue(row.values,"dictionaryId");
         const code=textValue(row.values,"optionCode");
         const parent=textValue(row.values,"parentCode");
-        if(!id||!code||!parent) return [];
-        const graph=byDictionary.get(id);
         const issues:FoundationObjectImportValidationV010["issues"]=[];
+        if((namesByDictionary.get(id)?.size ?? 0)>1){
+          issues.push({code:"BUSINESS_DICTIONARY_IMPORT_NAME_CONFLICT",
+            message:"Rows with the same dictionary code must use the same dictionary name.",
+            fieldId:"displayName"});
+        }
+        if(!id||!code||!parent) return issues.length ? [{rowNumber:row.rowNumber,issues}] : [];
+        const graph=byDictionary.get(id);
         if(!graph?.has(parent)){
           issues.push({code:"BUSINESS_DICTIONARY_PARENT_NOT_FOUND",
             message:"Parent option code is not in this dictionary or import batch.",
