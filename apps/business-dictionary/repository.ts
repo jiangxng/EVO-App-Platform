@@ -201,7 +201,8 @@ export function createBusinessDictionaryRepositoryV010(resources: EnterpriseReso
           // Same-content retries for the same draft do not manufacture another revision.
           if (previous?.state === "DRAFT"
               && previous.version === input.expectedVersion + 1
-              && JSON.stringify(previous.options) === JSON.stringify(options)) return previous;
+              && JSON.stringify(previous.options) === JSON.stringify(options)
+              && (input.displayName?.trim() || previous.displayName) === previous.displayName) return previous;
           throw new Error("BUSINESS_DICTIONARY_VERSION_CONFLICT");
         }
         if (previous?.state === "DRAFT" &&
