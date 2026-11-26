@@ -586,7 +586,7 @@ export function createBusinessDictionaryOptionPageV010(input: {
       options:[{value:"",label:t.root}, ...parentChoices] },
     { key: "optionStatus", label: t.status, semanticType: "business-dictionary.option-status",
       control: "select", required: true, initialValue: option?.status ?? "ACTIVE",
-      options: [{ value: "ACTIVE", label: t.active }, { value: "INACTIVE", label: t.inactive }] }]),
+      options: [{ value: "ACTIVE", label: t.active }, { value: "INACTIVE", label: t.inactive }] }])],
     actions: [{ id: "save-option", label: t.save, type: "submit", command: SAVE,
       requiresConfirmation: false }],
     metadata: { packageId: "evo-business-dictionary", description: t.optionHelp } };
